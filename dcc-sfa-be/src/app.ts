@@ -23,6 +23,7 @@ export const createApp = (): Application => {
   app.use(cookieParser());
 
   app.use(cors({ origin: '*', credentials: true }));
+
   app.use(responseHandler);
 
   app.use('/api', routes);
