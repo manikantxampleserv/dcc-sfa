@@ -1,0 +1,50 @@
+{
+  "name": "dcc-sfa-be",
+  "version": "1.0.0",
+  "description": "",
+  "license": "MIT",
+  "author": "MKX",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/index.ts"
+  },
+  "devDependencies": {
+    "@types/backblaze-b2": "^1.5.6",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mailparser": "^3.4.6",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.3.0",
+    "@types/nodemailer": "^6.4.17",
+    "cross-env": "^7.0.3",
+    "prisma": "^6.13.0",
+    "rimraf": "^5.0.0",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3",
+    "nodemon": "^3.1.7"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "@types/bcryptjs": "^2.4.6",
+    "backblaze-b2": "^1.7.1",
+    "bcryptjs": "^3.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.1",
+    "express-rate-limit": "^8.0.1",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mailparser": "^3.7.4",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^7.0.5",
+    "winston": "^3.17.0",
+    "express": "^5.1.0"
+  }
+}
