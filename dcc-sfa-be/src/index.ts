@@ -1,12 +1,13 @@
-import express, { Request, Response } from 'express';
+/**
+ * Application entry point.
+ * Handles environment setup and starts the server.
+ */
 
-const app = express();
-const port = process.env.PORT || 4000;
+import dotenv from 'dotenv';
+import { startServer } from './server';
 
-app.get('/', (req: Request, res: Response) => {
-  res.send('Hello, TypeScript Express!');
-});
+// Load environment variables from .env file
+dotenv.config({ quiet: true });
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+// Start the server
+startServer();
