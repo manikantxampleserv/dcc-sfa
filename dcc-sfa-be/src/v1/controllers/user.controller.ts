@@ -70,8 +70,7 @@ export const userController = {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        res.error(firstError.msg, 400);
+        res.validationError(errors.array(), 400);
         return;
       }
 
@@ -92,6 +91,7 @@ export const userController = {
         is_active,
       } = req.body;
 
+      // Check if email already exists
       const existingUser = await prisma.users.findFirst({
         where: {
           email,
@@ -104,6 +104,7 @@ export const userController = {
         return;
       }
 
+      // Check if employee_id already exists (if provided)
       if (employee_id) {
         const existingEmployee = await prisma.users.findFirst({
           where: {
@@ -118,6 +119,7 @@ export const userController = {
         }
       }
 
+      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const newUser = await prisma.users.create({
@@ -165,9 +167,9 @@ export const userController = {
   async getUsers(req: Request, res: Response): Promise<void> {
     try {
       const {
-        page,
-        limit,
-        search,
+        page = '1',
+        limit = '10',
+        search = '',
         isActive = 'Y',
         role_id,
         depot_id,
@@ -241,8 +243,7 @@ export const userController = {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        res.error(firstError.msg, 400);
+        res.validationError(errors.array(), 400);
         return;
       }
 
@@ -283,18 +284,19 @@ export const userController = {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        res.error(firstError.msg, 400);
+        res.validationError(errors.array(), 400);
         return;
       }
 
       const id = Number(req.params.id);
       const { createdate, updatedate, password, ...userData } = req.body;
 
+      // Remove id from update data if present
       if ('id' in userData) {
         delete userData.id;
       }
 
+      // Check if user exists
       const existingUser = await prisma.users.findFirst({
         where: {
           id,
@@ -307,6 +309,7 @@ export const userController = {
         return;
       }
 
+      // Check if email is being changed and if new email already exists
       if (userData.email && userData.email !== existingUser.email) {
         const emailExists = await prisma.users.findFirst({
           where: {
@@ -322,6 +325,7 @@ export const userController = {
         }
       }
 
+      // Check if employee_id is being changed and if new employee_id already exists
       if (
         userData.employee_id &&
         userData.employee_id !== existingUser.employee_id
@@ -340,16 +344,19 @@ export const userController = {
         }
       }
 
+      // Prepare update data
       const updateData: any = {
         ...userData,
         updatedby: req.user?.id ?? 0,
         updatedate: new Date(),
       };
 
+      // Hash password if provided
       if (password) {
         updateData.password_hash = await bcrypt.hash(password, 10);
       }
 
+      // Convert joining_date to Date if provided
       if (userData.joining_date) {
         updateData.joining_date = new Date(userData.joining_date);
       }
@@ -383,13 +390,13 @@ export const userController = {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        const firstError = errors.array()[0];
-        res.error(firstError.msg, 400);
+        res.validationError(errors.array(), 400);
         return;
       }
 
       const id = Number(req.params.id);
 
+      // Check if user exists
       const existingUser = await prisma.users.findFirst({
         where: {
           id,
@@ -426,13 +433,12 @@ export const userController = {
         },
       });
 
-      res.success('User deleted successfully', 200);
+      res.success('User deleted successfully', null, 200);
     } catch (error: any) {
       console.error('Error deleting user:', error);
       res.error(error.message);
     }
   },
-
   async getUserProfile(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
