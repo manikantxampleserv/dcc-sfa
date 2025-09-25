@@ -6,7 +6,7 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Application } from 'express';
-import { responseHandler } from './middlewares/responseHandler';
+import { responseHandler } from './middlewares/response.middleware';
 import routes from './routes';
 
 /**
