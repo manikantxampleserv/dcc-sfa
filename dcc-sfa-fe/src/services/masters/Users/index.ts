@@ -1,0 +1,231 @@
+import axiosInstance from 'configs/axio.config';
+import type { ApiResponse } from '../../../types/api.types';
+
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  role_id: number;
+  parent_id?: number | null;
+  depot_id?: number | null;
+  zone_id?: number | null;
+  phone_number?: string | null;
+  address?: string | null;
+  employee_id?: string | null;
+  joining_date?: string | null;
+  reporting_to?: number | null;
+  profile_image?: string | null;
+  last_login?: string | null;
+  is_active: string;
+  created_at?: string;
+  updated_at?: string;
+  role?: {
+    id: number;
+    name: string;
+    description: string;
+  } | null;
+  company?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  depot?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  zone?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  reporting_manager?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+}
+
+interface ManageUserPayload {
+  email: string;
+  password: string;
+  name: string;
+  role_id: number;
+  parent_id?: number;
+  depot_id?: number;
+  zone_id?: number;
+  phone_number?: string;
+  address?: string;
+  employee_id?: string;
+  joining_date?: string;
+  reporting_to?: number;
+  profile_image?: string;
+  is_active?: string;
+}
+
+interface UpdateUserPayload {
+  email?: string;
+  password?: string;
+  name?: string;
+  role_id?: number;
+  parent_id?: number;
+  depot_id?: number;
+  zone_id?: number;
+  phone_number?: string;
+  address?: string;
+  employee_id?: string;
+  joining_date?: string;
+  reporting_to?: number;
+  profile_image?: string;
+  is_active?: string;
+}
+
+interface GetUsersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: string;
+  role_id?: number;
+  depot_id?: number;
+  zone_id?: number;
+}
+
+interface UpdateProfilePayload {
+  name?: string;
+  phone_number?: string;
+  address?: string;
+  profile_image?: string;
+}
+
+interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Fetch all users with pagination and filters
+ * @param params - Query parameters for filtering and pagination
+ * @returns Promise<ApiResponse<User[]>>
+ */
+export const fetchUsers = async (
+  params?: GetUsersParams
+): Promise<ApiResponse<User[]>> => {
+  try {
+    const response = await axiosInstance.get('/users', { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Fetch user by ID
+ * @param id - User ID
+ * @returns Promise<ApiResponse<User>>
+ */
+export const fetchUserById = async (id: number): Promise<ApiResponse<User>> => {
+  try {
+    const response = await axiosInstance.get(`/users/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Create new user
+ * @param userData - User creation payload
+ * @returns Promise<ApiResponse<User>>
+ */
+export const createUser = async (
+  userData: ManageUserPayload
+): Promise<ApiResponse<User>> => {
+  try {
+    const response = await axiosInstance.post('/users', userData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Update existing user
+ * @param id - User ID
+ * @param userData - User update payload
+ * @returns Promise<ApiResponse<User>>
+ */
+export const updateUser = async (
+  id: number,
+  userData: UpdateUserPayload
+): Promise<ApiResponse<User>> => {
+  try {
+    const response = await axiosInstance.put(`/users/${id}`, userData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Delete user
+ * @param id - User ID
+ * @returns Promise<ApiResponse<void>>
+ */
+export const deleteUser = async (id: number): Promise<ApiResponse<void>> => {
+  try {
+    const response = await axiosInstance.delete(`/users/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Get user profile (current authenticated user)
+ * @returns Promise<ApiResponse<User>>
+ */
+export const getUserProfile = async (): Promise<ApiResponse<User>> => {
+  try {
+    const response = await axiosInstance.get('/users/profile');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Update user profile (current authenticated user)
+ * @param profileData - Profile update payload
+ * @returns Promise<ApiResponse<User>>
+ */
+export const updateUserProfile = async (
+  profileData: UpdateProfilePayload
+): Promise<ApiResponse<User>> => {
+  try {
+    const response = await axiosInstance.put('/users/profile', profileData);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export default {
+  fetchUsers,
+  fetchUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  getUserProfile,
+  updateUserProfile,
+};
+
+export type {
+  GetUsersParams,
+  ManageUserPayload,
+  UpdateUserPayload,
+  PaginationMeta,
+  UpdateProfilePayload,
+  User,
+};

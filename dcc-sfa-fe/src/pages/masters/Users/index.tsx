@@ -1,207 +1,58 @@
-import { Add, Block, CheckCircle, Edit, Visibility } from '@mui/icons-material';
-import { Avatar, Box, Button, Chip, Typography } from '@mui/material';
-import React, { useState } from 'react';
-import EnhancedTable, {
-  type TableAction,
-  type TableColumn,
-} from 'shared/Table';
+import { Block, CheckCircle, Edit, Visibility } from '@mui/icons-material';
+import { Avatar, Box, Chip, Typography } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import Table, { type TableAction, type TableColumn } from 'shared/Table';
+import ManageUsers from './ManageUsers';
+import userService, {
+  type User,
+  type GetUsersParams,
+} from '../../../services/masters/Users';
 
-// User interface based on Prisma model
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  password_hash: string;
-  name: string;
-  role: string;
-  parent_id: number;
-  department: string | null;
-  zone: string | null;
-  phone_number: string | null;
-  address: string | null;
-  employee_id: string | null;
-  joining_date: Date | null;
-  reporting_to: number | null;
-  profile_image: string | null;
-  last_login: Date | null;
-  is_active: string;
-  createdate: Date | null;
-  createdby: number;
-  updatedate: Date | null;
-  updatedby: number | null;
-  log_inst: number | null;
-}
-
-// Sample data matching the Prisma model structure
-const sampleUsers: User[] = [
-  {
-    id: 1,
-    username: 'john.doe',
-    email: 'john.doe@company.com',
-    password_hash: '$2b$10$...',
-    name: 'John Doe',
-    role: 'Sales Manager',
-    parent_id: 1,
-    department: 'IT',
-    zone: 'Zone 1',
-    phone_number: '+1234567890',
-    address: '123 Main St, City, State 12345',
-    employee_id: 'EMP001',
-    joining_date: new Date('2023-01-15'),
-    reporting_to: 5,
-    profile_image: null,
-    last_login: new Date('2024-01-20T10:30:00'),
-    is_active: 'Y',
-    createdate: new Date('2023-01-10'),
-    createdby: 1,
-    updatedate: new Date('2024-01-15'),
-    updatedby: 1,
-    log_inst: 1,
-  },
-  {
-    id: 2,
-    username: 'jane.smith',
-    email: 'jane.smith@company.com',
-    password_hash: '$2b$10$...',
-    name: 'Jane Smith',
-    role: 'Sales Representative',
-    parent_id: 1,
-    department: 'HR',
-    zone: 'Zone 2',
-    phone_number: '+1234567891',
-    address: '456 Oak Ave, City, State 12345',
-    employee_id: 'EMP002',
-    joining_date: new Date('2023-03-20'),
-    reporting_to: 1,
-    profile_image: null,
-    last_login: new Date('2024-01-21T09:15:00'),
-    is_active: 'Y',
-    createdate: new Date('2023-03-15'),
-    createdby: 1,
-    updatedate: new Date('2024-01-20'),
-    updatedby: 2,
-    log_inst: 2,
-  },
-  {
-    id: 3,
-    username: 'mike.johnson',
-    email: 'mike.johnson@company.com',
-    password_hash: '$2b$10$...',
-    name: 'Mike Johnson',
-    role: 'Depot Manager',
-    parent_id: 1,
-    department: 'Depot',
-    zone: 'Zone 3',
-    phone_number: '+1234567892',
-    address: '789 Pine St, City, State 12345',
-    employee_id: 'EMP003',
-    joining_date: new Date('2022-11-10'),
-    reporting_to: null,
-    profile_image: null,
-    last_login: new Date('2024-01-19T14:20:00'),
-    is_active: 'Y',
-    createdate: new Date('2022-11-05'),
-    createdby: 1,
-    updatedate: new Date('2024-01-18'),
-    updatedby: 3,
-    log_inst: 3,
-  },
-  {
-    id: 4,
-    username: 'sarah.wilson',
-    email: 'sarah.wilson@company.com',
-    password_hash: '$2b$10$...',
-    name: 'Sarah Wilson',
-    role: 'Zone Supervisor',
-    parent_id: 1,
-    department: null,
-    zone: 'Zone 4',
-    phone_number: null,
-    address: null,
-    employee_id: 'EMP004',
-    joining_date: new Date('2023-06-01'),
-    reporting_to: 3,
-    profile_image: null,
-    last_login: new Date('2024-01-10T11:45:00'),
-    is_active: 'N',
-    createdate: new Date('2023-05-25'),
-    createdby: 1,
-    updatedate: new Date('2024-01-10'),
-    updatedby: 1,
-    log_inst: 4,
-  },
-  {
-    id: 5,
-    username: 'robert.brown',
-    email: 'robert.brown@company.com',
-    password_hash: '$2b$10$...',
-    name: 'Robert Brown',
-    role: 'Regional Manager',
-    parent_id: 1,
-    department: 'Regional',
-    zone: 'Zone 5',
-    phone_number: '+1234567893',
-    address: '321 Elm St, City, State 12345',
-    employee_id: 'EMP005',
-    joining_date: new Date('2022-08-15'),
-    reporting_to: null,
-    profile_image: null,
-    last_login: new Date('2024-01-21T16:30:00'),
-    is_active: 'Y',
-    createdate: new Date('2022-08-10'),
-    createdby: 1,
-    updatedate: new Date('2024-01-21'),
-    updatedby: 5,
-    log_inst: 5,
-  },
-  {
-    id: 6,
-    username: 'emily.davis',
-    email: 'emily.davis@company.com',
-    password_hash: '$2b$10$...',
-    name: 'Emily Davis',
-    role: 'Sales Representative',
-    parent_id: 1,
-    department: 'Sales',
-    zone: 'Zone 6',
-    phone_number: '+1234567894',
-    address: '654 Maple Dr, City, State 12345',
-    employee_id: 'EMP006',
-    joining_date: new Date('2023-09-01'),
-    reporting_to: 5,
-    profile_image: null,
-    last_login: null,
-    is_active: 'Y',
-    createdate: new Date('2023-08-25'),
-    createdby: 1,
-    updatedate: null,
-    updatedby: null,
-    log_inst: 6,
-  },
-];
-
-const formatDate = (date: Date | null) => {
-  if (!date) return '-';
+const formatDate = (dateString: string | null | undefined) => {
+  if (!dateString) return '-';
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  }).format(date);
+  }).format(new Date(dateString));
 };
 
 const UsersTable: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState<User[]>(sampleUsers);
+  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  });
 
-  const handleRefresh = async () => {
-    setLoading(true);
-    setUsers([]);
-
-    setTimeout(() => {
-      setUsers(sampleUsers);
+  const fetchUsersData = async (params?: GetUsersParams) => {
+    try {
+      setLoading(true);
+      const response = await userService.fetchUsers(params);
+      if (response.success) {
+        setUsers(response.data || []);
+        if (response.meta) {
+          setPagination({
+            total: response.meta.total || 0,
+            page: response.meta.page || 1,
+            limit: response.meta.limit || 10,
+            totalPages: response.meta.totalPages || 0,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setUsers([]);
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
+
+  useEffect(() => {
+    fetchUsersData();
+  }, []);
 
   const userColumns: TableColumn<User>[] = [
     {
@@ -266,8 +117,10 @@ const UsersTable: React.FC = () => {
       id: 'role',
       label: 'Role',
       width: '140px',
-      render: value =>
-        value || <span className="italic text-gray-400"> No Role </span>,
+      render: (_value, row) =>
+        row.role?.name || (
+          <span className="italic text-gray-400"> No Role </span>
+        ),
     },
     {
       id: 'is_active',
@@ -284,12 +137,12 @@ const UsersTable: React.FC = () => {
       ),
     },
     {
-      id: 'department',
-      label: 'Department',
+      id: 'depot',
+      label: 'Depot',
       width: '120px',
       render: (_value, row) =>
-        row.department || (
-          <span className="italic text-gray-400"> No Department </span>
+        row.depot?.name || (
+          <span className="italic text-gray-400"> No Depot </span>
         ),
     },
     {
@@ -297,7 +150,9 @@ const UsersTable: React.FC = () => {
       label: 'Zone',
       width: '120px',
       render: (_value, row) =>
-        row.zone || <span className="italic text-gray-400"> No Zone </span>,
+        row.zone?.name || (
+          <span className="italic text-gray-400"> No Zone </span>
+        ),
     },
     {
       id: 'phone_number',
@@ -327,10 +182,7 @@ const UsersTable: React.FC = () => {
       id: 'reporting_to',
       label: 'Reports To',
       width: '180px',
-      render: (_value, row) => {
-        const reportingUser = users.find(u => u.id === row.reporting_to);
-        return reportingUser?.name || 'Top Level';
-      },
+      render: (_value, row) => row.reporting_manager?.name || 'Top Level',
     },
   ];
 
@@ -354,32 +206,34 @@ const UsersTable: React.FC = () => {
     {
       label: 'Deactivate Users',
       icon: <Block />,
-      onClick: selectedRows => {
+      onClick: async selectedRows => {
         console.log('Deactivate users:', selectedRows);
-        // Update users status
-        setUsers(prev =>
-          prev.map(user =>
-            selectedRows.some(selected => selected.id === user.id)
-              ? { ...user, is_active: 'N' }
-              : user
-          )
-        );
+        try {
+          for (const user of selectedRows) {
+            await userService.updateUser(user.id, { is_active: 'N' });
+          }
+          // Refresh the users list
+          fetchUsersData();
+        } catch (error) {
+          console.error('Error deactivating users:', error);
+        }
       },
       show: selectedRows => selectedRows.some(user => user.is_active === 'Y'),
     },
     {
       label: 'Activate Users',
       icon: <CheckCircle />,
-      onClick: selectedRows => {
+      onClick: async selectedRows => {
         console.log('Activate users:', selectedRows);
-        // Update users status
-        setUsers(prev =>
-          prev.map(user =>
-            selectedRows.some(selected => selected.id === user.id)
-              ? { ...user, is_active: 'Y' }
-              : user
-          )
-        );
+        try {
+          for (const user of selectedRows) {
+            await userService.updateUser(user.id, { is_active: 'Y' });
+          }
+          // Refresh the users list
+          fetchUsersData();
+        } catch (error) {
+          console.error('Error activating users:', error);
+        }
       },
       show: selectedRows => selectedRows.some(user => user.is_active === 'N'),
     },
@@ -410,19 +264,10 @@ const UsersTable: React.FC = () => {
             Manage users, roles, and access across your organization
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          className="!capitalize"
-          disableElevation
-          startIcon={<Add />}
-          onClick={handleRefresh}
-          disabled={loading}
-        >
-          Create
-        </Button>
+        <ManageUsers />
       </Box>
 
-      <EnhancedTable
+      <Table
         data={users}
         columns={userColumns}
         actions={userActions}
@@ -430,7 +275,7 @@ const UsersTable: React.FC = () => {
         getRowId={user => user.id}
         initialOrderBy="name"
         loading={loading}
-        totalCount={users.length}
+        totalCount={pagination.total}
         emptyMessage="No users found in the system"
       />
     </Box>

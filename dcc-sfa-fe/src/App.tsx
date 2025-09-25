@@ -1,7 +1,12 @@
 import AppRouter from './routes';
+import ContextProvider from './context';
 
 const App: React.FC = () => {
-  return <AppRouter />;
+  return (
+    <ContextProvider>
+      <AppRouter />
+    </ContextProvider>
+  );
 };
 
 export default App;

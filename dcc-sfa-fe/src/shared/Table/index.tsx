@@ -1,15 +1,15 @@
 import {
   Box,
+  Table as MuiTable,
+  TableBody as MuiTableBody,
+  TableCell as MuiTableCell,
+  TableContainer as MuiTableContainer,
+  TableHead as MuiTableHead,
+  TablePagination as MuiTablePagination,
+  TableRow as MuiTableRow,
+  TableSortLabel as MuiTableSortLabel,
   Paper,
   Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TableSortLabel,
 } from '@mui/material';
 import { visuallyHidden } from '@mui/utils';
 import classNames from 'classnames';
@@ -45,7 +45,7 @@ export interface TableAction<T = any> {
  * Props for the Enhanced Table component
  * @template T - The type of data in the table rows
  */
-export interface EnhancedTableProps<T = any> {
+export interface TableProps<T = any> {
   /** Array of data to display in the table */
   data: T[];
   /** Column configuration array */
@@ -125,7 +125,7 @@ function getComparator<Key extends keyof any>(
  * Props for the Enhanced Table Head component
  * @template T - The type of data in the table rows
  */
-interface EnhancedTableHeadProps<T> {
+interface TableHeadProps<T> {
   onRequestSort: (event: React.MouseEvent<unknown>, property: keyof T) => void;
   order: Order;
   orderBy: string;
@@ -139,7 +139,7 @@ interface EnhancedTableHeadProps<T> {
  * @param props - Component props
  * @returns Table header JSX element
  */
-function EnhancedTableHead<T>(props: EnhancedTableHeadProps<T>) {
+function TableHead<T>(props: TableHeadProps<T>) {
   const { order, orderBy, onRequestSort, columns, sortable } = props;
 
   const createSortHandler =
@@ -148,10 +148,10 @@ function EnhancedTableHead<T>(props: EnhancedTableHeadProps<T>) {
     };
 
   return (
-    <TableHead>
-      <TableRow>
+    <MuiTableHead>
+      <MuiTableRow>
         {columns.map(column => (
-          <TableCell
+          <MuiTableCell
             key={String(column.id)}
             align={column.numeric ? 'right' : 'left'}
             padding={column.disablePadding ? 'none' : 'normal'}
@@ -163,12 +163,12 @@ function EnhancedTableHead<T>(props: EnhancedTableHeadProps<T>) {
             style={{ width: column.width }}
           >
             {sortable && column.sortable !== false ? (
-              <TableSortLabel
+              <MuiTableSortLabel
                 active={orderBy === column.id}
                 direction={orderBy === column.id ? order : 'asc'}
                 onClick={createSortHandler(column.id)}
                 className={classNames(
-                  'hover:!text-blue-600',
+                  'hover:!text-blue-600 !flex !justify-between',
                   orderBy === column.id && '!text-blue-600'
                 )}
               >
@@ -180,14 +180,14 @@ function EnhancedTableHead<T>(props: EnhancedTableHeadProps<T>) {
                       : 'sorted ascending'}
                   </Box>
                 ) : null}
-              </TableSortLabel>
+              </MuiTableSortLabel>
             ) : (
               column.label
             )}
-          </TableCell>
+          </MuiTableCell>
         ))}
-      </TableRow>
-    </TableHead>
+      </MuiTableRow>
+    </MuiTableHead>
   );
 }
 
@@ -212,52 +212,30 @@ function SkeletonLoader({ columns, rows = 3 }: SkeletonLoaderProps) {
     return widths[index % widths.length];
   };
 
-  const getSkeletonHeight = (column: TableColumn) => {
-    if (column.id === 'name' || column.id === 'user') return 40;
-    return 20;
-  };
-
   return (
     <>
       {skeletonRows.map((_row, rowIndex) => (
-        <TableRow key={`skeleton-row-${rowIndex}`}>
+        <MuiTableRow key={`skeleton-row-${rowIndex}`}>
           {columns.map((column, colIndex) => (
-            <TableCell
+            <MuiTableCell
               key={`skeleton-${rowIndex}-${String(column.id)}`}
               align={column.numeric ? 'right' : 'left'}
               padding={column.disablePadding ? 'none' : 'normal'}
-              className="!border-b !border-gray-100 !h-[53px]"
+              className="!border-b !border-gray-100 !h-[60px]"
             >
               <Box className="!flex !items-center !gap-1.5">
-                {(column.id === 'name' || column.id === 'user') &&
-                  colIndex === 0 && (
-                    <Skeleton
-                      variant="circular"
-                      width={32}
-                      height={32}
-                      className="!bg-gray-100"
-                    />
-                  )}
                 <Box className="!flex-1">
                   <Skeleton
                     variant="text"
                     width={getSkeletonWidth(column, colIndex)}
-                    height={getSkeletonHeight(column)}
+                    height={20}
                     className="!bg-gray-100 !rounded"
                   />
-                  {(column.id === 'name' || column.id === 'user') && (
-                    <Skeleton
-                      variant="text"
-                      width="70%"
-                      height={16}
-                      className="!bg-gray-50 !rounded !mt-0.5"
-                    />
-                  )}
                 </Box>
               </Box>
-            </TableCell>
+            </MuiTableCell>
           ))}
-        </TableRow>
+        </MuiTableRow>
       ))}
     </>
   );
@@ -270,8 +248,8 @@ function SkeletonLoader({ columns, rows = 3 }: SkeletonLoaderProps) {
  * @param props - Component props
  * @returns Enhanced table JSX element
  */
-export default function EnhancedTable<T extends Record<string, any>>(
-  props: EnhancedTableProps<T>
+export default function Table<T extends Record<string, any>>(
+  props: TableProps<T>
 ) {
   const {
     data,
@@ -328,26 +306,26 @@ export default function EnhancedTable<T extends Record<string, any>>(
     return (
       <Box className="!w-full">
         <Paper className="!w-full !rounded-lg !border !border-gray-200 !shadow-sm">
-          <TableContainer style={{ maxHeight }}>
-            <Table
+          <MuiTableContainer style={{ maxHeight }}>
+            <MuiTable
               className="!min-w-[750px]"
               size="small"
               stickyHeader={stickyHeader}
             >
-              <EnhancedTableHead
+              <TableHead
                 order={order}
                 orderBy={String(orderBy)}
                 onRequestSort={() => {}}
                 columns={columns}
                 sortable={sortable}
               />
-              <TableBody>
+              <MuiTableBody>
                 <SkeletonLoader columns={columns} rows={rowsPerPage} />
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </MuiTableBody>
+            </MuiTable>
+          </MuiTableContainer>
           {pagination && (
-            <TablePagination
+            <MuiTablePagination
               rowsPerPageOptions={[]}
               component="div"
               count={totalCount}
@@ -368,37 +346,37 @@ export default function EnhancedTable<T extends Record<string, any>>(
         elevation={0}
         className="!bg-white !shadow-sm !rounded-lg !border !border-gray-100"
       >
-        <TableContainer style={{ maxHeight }}>
-          <Table
+        <MuiTableContainer style={{ maxHeight }}>
+          <MuiTable
             className="!min-w-[750px]"
             size="small"
             stickyHeader={stickyHeader}
           >
-            <EnhancedTableHead
+            <TableHead
               order={order}
               orderBy={String(orderBy)}
               onRequestSort={handleRequestSort}
               columns={columns}
               sortable={sortable}
             />
-            <TableBody>
+            <MuiTableBody>
               {loading ? (
                 <SkeletonLoader columns={columns} rows={rowsPerPage} />
               ) : visibleRows.length === 0 ? (
-                <TableRow>
-                  <TableCell
+                <MuiTableRow>
+                  <MuiTableCell
                     colSpan={columns.length}
                     align="center"
                     className="!py-4 !text-gray-500 !italic"
                   >
                     {emptyMessage}
-                  </TableCell>
-                </TableRow>
+                  </MuiTableCell>
+                </MuiTableRow>
               ) : (
                 visibleRows.map((row, index) => {
                   const rowId = getRowId(row, index);
                   return (
-                    <TableRow
+                    <MuiTableRow
                       hover
                       onClick={event => handleClick(event, row, index)}
                       tabIndex={-1}
@@ -406,7 +384,7 @@ export default function EnhancedTable<T extends Record<string, any>>(
                       className="!whitespace-nowrap !cursor-pointer hover:!bg-gray-50"
                     >
                       {columns.map(column => (
-                        <TableCell
+                        <MuiTableCell
                           key={String(column.id)}
                           align={column.numeric ? 'right' : 'left'}
                           padding={column.disablePadding ? 'none' : 'normal'}
@@ -415,22 +393,22 @@ export default function EnhancedTable<T extends Record<string, any>>(
                           {column.render
                             ? column.render(row[column.id], row)
                             : String(row[column.id] || '')}
-                        </TableCell>
+                        </MuiTableCell>
                       ))}
-                    </TableRow>
+                    </MuiTableRow>
                   );
                 })
               )}
               {!loading && emptyRows > 0 && (
-                <TableRow style={{ height: 53 * emptyRows }}>
-                  <TableCell colSpan={columns.length} />
-                </TableRow>
+                <MuiTableRow style={{ height: 53 * emptyRows }}>
+                  <MuiTableCell colSpan={columns.length} />
+                </MuiTableRow>
               )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+            </MuiTableBody>
+          </MuiTable>
+        </MuiTableContainer>
         {pagination && (
-          <TablePagination
+          <MuiTablePagination
             rowsPerPageOptions={[]}
             component="div"
             count={totalCount}
