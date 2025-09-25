@@ -9,7 +9,7 @@ router.get('/', authenticateToken, rolesController.getAllRoles);
 
 router.get('/:id', authenticateToken, rolesController.getRoleById);
 
-router.post('/', authenticateToken, validateRole, rolesController.createRole);
+router.post('/role', validateRole, rolesController.createRole);
 
 router.put('/:id', authenticateToken, validateRole, rolesController.updateRole);
 

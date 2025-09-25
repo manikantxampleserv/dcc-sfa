@@ -50,7 +50,6 @@ export const rolesController = {
         permissions = [],
       } = req.body;
 
-      // Check if role name already exists
       const existingRole = await prisma.roles.findFirst({
         where: {
           name,
@@ -80,7 +79,6 @@ export const rolesController = {
           },
         });
 
-        // Create role permissions if provided
         if (permissions.length > 0) {
           await tx.role_permissions.createMany({
             data: permissions.map((permissionId: number) => ({
@@ -92,7 +90,6 @@ export const rolesController = {
             })),
           });
 
-          // Fetch the role again with permissions
           const roleWithPermissions = await tx.roles.findUnique({
             where: { id: newRole.id },
             include: {
@@ -168,12 +165,10 @@ export const rolesController = {
       const id = Number(req.params.id);
       const { createdate, updatedate, ...roleData } = req.body;
 
-      // Remove id from update data if present
       if ('id' in roleData) {
         delete roleData.id;
       }
 
-      // Check if role exists
       const existingRole = await prisma.roles.findFirst({
         where: {
           id,
@@ -186,7 +181,6 @@ export const rolesController = {
         return;
       }
 
-      // Check if name is being changed and if new name already exists
       if (roleData.name && roleData.name !== existingRole.name) {
         const nameExists = await prisma.roles.findFirst({
           where: {
@@ -226,9 +220,7 @@ export const rolesController = {
           },
         });
 
-        // Update permissions if provided
         if (roleData.permissions) {
-          // Deactivate existing permissions
           await tx.role_permissions.updateMany({
             where: { role_id: id },
             data: {
@@ -238,7 +230,6 @@ export const rolesController = {
             },
           });
 
-          // Create new permissions
           if (roleData.permissions.length > 0) {
             await tx.role_permissions.createMany({
               data: roleData.permissions.map((permissionId: number) => ({
@@ -251,7 +242,6 @@ export const rolesController = {
             });
           }
 
-          // Fetch updated role with new permissions
           const roleWithPermissions = await tx.roles.findUnique({
             where: { id },
             include: {
@@ -293,7 +283,6 @@ export const rolesController = {
 
       const id = Number(req.params.id);
 
-      // Check if role exists
       const existingRole = await prisma.roles.findFirst({
         where: {
           id,
@@ -306,7 +295,6 @@ export const rolesController = {
         return;
       }
 
-      // Check if role is being used by any users
       const usersWithRole = await prisma.users.count({
         where: {
           role_id: id,
@@ -319,7 +307,6 @@ export const rolesController = {
         return;
       }
 
-      // Soft delete role and its permissions
       await prisma.$transaction(async tx => {
         await tx.roles.update({
           where: { id },
@@ -427,7 +414,6 @@ export const rolesController = {
         return;
       }
 
-      // Check if role exists
       const role = await prisma.roles.findFirst({
         where: {
           id,
@@ -441,7 +427,6 @@ export const rolesController = {
       }
 
       await prisma.$transaction(async tx => {
-        // Deactivate existing permissions
         await tx.role_permissions.updateMany({
           where: { role_id: id },
           data: {
@@ -451,7 +436,6 @@ export const rolesController = {
           },
         });
 
-        // Create new permissions
         if (permissions.length > 0) {
           await tx.role_permissions.createMany({
             data: permissions.map((permissionId: number) => ({

@@ -165,9 +165,9 @@ export const userController = {
   async getUsers(req: Request, res: Response): Promise<void> {
     try {
       const {
-        page = '1',
-        limit = '10',
-        search = '',
+        page,
+        limit,
+        search,
         isActive = 'Y',
         role_id,
         depot_id,
@@ -322,7 +322,6 @@ export const userController = {
         }
       }
 
-      // Check if employee_id is being changed and if new employee_id already exists
       if (
         userData.employee_id &&
         userData.employee_id !== existingUser.employee_id
@@ -341,19 +340,16 @@ export const userController = {
         }
       }
 
-      // Prepare update data
       const updateData: any = {
         ...userData,
         updatedby: req.user?.id ?? 0,
         updatedate: new Date(),
       };
 
-      // Hash password if provided
       if (password) {
         updateData.password_hash = await bcrypt.hash(password, 10);
       }
 
-      // Convert joining_date to Date if provided
       if (userData.joining_date) {
         updateData.joining_date = new Date(userData.joining_date);
       }
@@ -394,7 +390,6 @@ export const userController = {
 
       const id = Number(req.params.id);
 
-      // Check if user exists
       const existingUser = await prisma.users.findFirst({
         where: {
           id,
