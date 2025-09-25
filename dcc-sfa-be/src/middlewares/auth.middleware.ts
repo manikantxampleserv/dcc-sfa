@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { jwtConfig } from '../configs/jwt.config';
 
 const prisma = new PrismaClient();
@@ -32,7 +32,6 @@ interface JwtPayload {
   zone_id?: number | null;
 }
 
-// Main authentication middleware
 export const authenticate = (
   req: Request,
   res: Response,
@@ -55,10 +54,8 @@ export const authenticate = (
   }
 
   try {
-    // Verify JWT token
     const decoded = jwt.verify(token, jwtConfig.secret) as JwtPayload;
 
-    // Validate token in database
     prisma.api_tokens
       .findFirst({
         where: {
@@ -87,9 +84,8 @@ export const authenticate = (
             role: true,
             parent_id: true,
             depot_id: true,
+
             zone_id: true,
-            first_name: true,
-            last_name: true,
           },
         });
       })

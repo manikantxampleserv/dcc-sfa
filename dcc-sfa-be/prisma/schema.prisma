@@ -10,7 +10,7 @@ datasource db {
 model api_tokens {
   id                              Int       @id(map: "PK__api_toke__3213E83FCE2E766B") @default(autoincrement())
   user_id                         Int
-  token                           String    @db.NVarChar(255)
+  token                           String    @db.Text
   token_type                      String?   @default("Bearer", map: "DF__api_token__token__51851410") @db.NVarChar(50)
   issued_at                       DateTime? @default(now(), map: "DF__api_token__issue__52793849") @db.DateTime
   expires_at                      DateTime? @db.DateTime
@@ -1527,8 +1527,7 @@ model users {
   username                                                            String                       @unique(map: "UQ__users__F3DBC5721BB9904E") @db.NVarChar(100)
   email                                                               String                       @unique(map: "UQ__users__AB6E616419303B34") @db.NVarChar(255)
   password_hash                                                       String                       @db.NVarChar(255)
-  first_name                                                          String                       @db.NVarChar(100)
-  last_name                                                           String                       @db.NVarChar(100)
+  name                                                                String                       @db.NVarChar(255)
   role                                                                String                       @db.NVarChar(50)
   parent_id                                                           Int
   depot_id                                                            Int?

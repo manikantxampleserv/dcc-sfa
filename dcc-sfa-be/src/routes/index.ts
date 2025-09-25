@@ -1,6 +1,12 @@
 import { Router, Request, Response } from 'express';
 
+import user from '../v1/routes/user.routes';
+import auth from '../v1/routes/auth.routes';
+
 const routes = Router();
+
+routes.use('/v1', auth);
+routes.use('/v1', user);
 
 /**
  * Root endpoint - Welcome message and API documentation
