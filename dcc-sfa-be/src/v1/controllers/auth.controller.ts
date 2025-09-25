@@ -6,13 +6,11 @@ import { jwtConfig } from '../../configs/jwt.config';
 
 const prisma = new PrismaClient();
 
-// helper to generate tokens
 const generateTokens = (user: any) => {
   const payload = {
     id: user.id,
-    username: user.username,
     email: user.email,
-    role: user.role,
+    role: user.user_role?.name || user.role,
     parent_id: user.parent_id,
     depot_id: user.depot_id,
     zone_id: user.zone_id,
@@ -31,29 +29,28 @@ const generateTokens = (user: any) => {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { username, email, password, name, role, parent_id } = req.body;
+    const { email, password, name, role_id, parent_id } = req.body;
 
-    const existing = await prisma.users.findFirst({
-      where: { OR: [{ email }, { username }] },
-    });
-
+    const existing = await prisma.users.findFirst({ where: { email } });
     if (existing) {
-      return res.error('Username or email already exists', 400);
+      return res.error('Email already exists', 400);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.users.create({
       data: {
-        username,
         email,
         password_hash: hashedPassword,
         name,
-        role: role || 'user',
-        parent_id,
+        role_id: role_id || 1,
+        parent_id: parent_id ?? null, // ✅ optional
         createdby: 0,
         createdate: new Date(),
         is_active: 'Y',
+      },
+      include: {
+        user_role: true,
       },
     });
 
@@ -61,9 +58,8 @@ export const register = async (req: Request, res: Response) => {
       'User registered successfully',
       {
         id: user.id,
-        username: user.username,
         email: user.email,
-        role: user.role,
+        role: user.user_role?.name,
         name: user.name,
       },
       201
@@ -80,6 +76,9 @@ export const login = async (req: Request, res: Response) => {
 
     const user = await prisma.users.findFirst({
       where: { email, is_active: 'Y' },
+      include: {
+        user_role: true, // Include role relationship
+      },
     });
 
     if (!user) return res.error('User not found', 404);
@@ -105,9 +104,8 @@ export const login = async (req: Request, res: Response) => {
     return res.success('Login successful', {
       user: {
         id: user.id,
-        username: user.username,
         email: user.email,
-        role: user.role,
+        role: user.user_role.name,
         name: user.name,
       },
       accessToken,
@@ -158,6 +156,9 @@ export const refresh = async (req: Request, res: Response) => {
 
     const user = await prisma.users.findUnique({
       where: { id: decoded.id, is_active: 'Y' },
+      include: {
+        user_role: true,
+      },
     });
     if (!user) return res.error('User not found', 404);
 

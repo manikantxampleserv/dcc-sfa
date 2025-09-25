@@ -1,153 +1,536 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { paginate } from '../../utils/paginate';
+import { validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-export const createUser = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const { username, email, password, role, parent_id, name } = req.body;
+const serializeUser = (
+  user: any,
+  includeCreatedAt = false,
+  includeUpdatedAt = false
+) => ({
+  id: user.id,
+  email: user.email,
+  name: user.name,
+  role_id: user.role_id,
+  parent_id: user.parent_id,
+  depot_id: user.depot_id,
+  zone_id: user.zone_id,
+  phone_number: user.phone_number,
+  address: user.address,
+  employee_id: user.employee_id,
+  joining_date: user.joining_date,
+  reporting_to: user.reporting_to,
+  profile_image: user.profile_image,
+  last_login: user.last_login,
+  is_active: user.is_active,
+  ...(includeCreatedAt && { created_at: user.createdate }),
+  ...(includeUpdatedAt && { updated_at: user.updatedate }),
+  role: user.user_role
+    ? {
+        id: user.user_role.id,
+        name: user.user_role.name,
+        description: user.user_role.description,
+      }
+    : null,
+  company: user.companies
+    ? {
+        id: user.companies.id,
+        name: user.companies.name,
+        code: user.companies.code,
+      }
+    : null,
+  depot: user.depots
+    ? {
+        id: user.depots.id,
+        name: user.depots.name,
+        code: user.depots.code,
+      }
+    : null,
+  zone: user.zones
+    ? {
+        id: user.zones.id,
+        name: user.zones.name,
+        code: user.zones.code,
+      }
+    : null,
+  reporting_manager: user.users
+    ? {
+        id: user.users.id,
+        name: user.users.name,
+        email: user.users.email,
+      }
+    : null,
+});
 
-    const existing = await prisma.users.findFirst({
-      where: { OR: [{ username }, { email }] },
-    });
+export const userController = {
+  async createUser(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        res.error(firstError.msg, 400);
+        return;
+      }
 
-    if (existing) {
-      res.error('Username or Email already exists', 400);
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = await prisma.users.create({
-      data: {
-        username,
+      const {
         email,
-        password_hash: hashedPassword,
-        role: role || 'user',
+        password,
         name,
+        role_id,
         parent_id,
-        createdby: 1,
-        createdate: new Date(),
-        is_active: 'Y',
-      },
-    });
-    res.success(
-      'User created successfully',
-      {
-        id: newUser.id,
-        username: newUser.username,
-        email: newUser.email,
-        role: newUser.role,
-      },
-      201
-    );
-  } catch (error) {
-    console.error(error);
-    res.error('Error creating user', 500);
-  }
-};
+        depot_id,
+        zone_id,
+        phone_number,
+        address,
+        employee_id,
+        joining_date,
+        reporting_to,
+        profile_image,
+        is_active,
+      } = req.body;
 
-export const getUsers = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const users = await prisma.users.findMany({
-      where: { is_active: 'Y' },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        createdate: true,
-      },
-    });
+      // Check if email already exists
+      const existingUser = await prisma.users.findFirst({
+        where: {
+          email,
+          is_active: 'Y',
+        },
+      });
 
-    res.success('Users fetched successfully', users);
-  } catch (error) {
-    console.error(error);
-    res.error('Error fetching users', 500);
-  }
-};
+      if (existingUser) {
+        res.error('Email already exists', 400);
+        return;
+      }
 
-export const getUserById = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const userId = parseInt(req.params.id);
+      // Check if employee_id already exists (if provided)
+      if (employee_id) {
+        const existingEmployee = await prisma.users.findFirst({
+          where: {
+            employee_id,
+            is_active: 'Y',
+          },
+        });
 
-    const user = await prisma.users.findUnique({
-      where: { id: userId },
-      select: { id: true, username: true, email: true, role: true },
-    });
+        if (existingEmployee) {
+          res.error('Employee ID already exists', 400);
+          return;
+        }
+      }
 
-    if (!user) {
-      res.error('User not found', 404);
-      return;
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const newUser = await prisma.users.create({
+        data: {
+          email,
+          password_hash: hashedPassword,
+          name,
+          role_id,
+          parent_id,
+          depot_id,
+          zone_id,
+          phone_number,
+          address,
+          employee_id,
+          joining_date: joining_date ? new Date(joining_date) : null,
+          reporting_to,
+          profile_image,
+          is_active: is_active ?? 'Y',
+          createdby: req.user?.id ?? 0,
+          createdate: new Date(),
+          log_inst: 1,
+        },
+        include: {
+          user_role: true,
+          companies: true,
+          depots: true,
+          zones: true,
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      res.success('User created successfully', serializeUser(newUser), 201);
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      res.error(error.message);
     }
+  },
 
-    res.success('User fetched successfully', user);
-  } catch (error) {
-    console.error(error);
-    res.error('Error fetching user', 500);
-  }
-};
+  async getUsers(req: Request, res: Response): Promise<void> {
+    try {
+      const {
+        page = '1',
+        limit = '10',
+        search = '',
+        isActive = 'Y',
+        role_id,
+        depot_id,
+        zone_id,
+      } = req.query;
 
-export const updateUser = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const userId = parseInt(req.params.id);
-    const { username, email, password, role } = req.body;
+      const page_num = parseInt(page as string, 10);
+      const limit_num = parseInt(limit as string, 10);
+      const searchLower = (search as string).toLowerCase();
 
-    const updateData: any = {};
-    if (username) updateData.username = username;
-    if (email) updateData.email = email;
-    if (role) updateData.role = role;
+      const filters: any = {
+        is_active: isActive as string,
+        ...(search && {
+          OR: [
+            {
+              name: {
+                contains: searchLower,
+              },
+            },
+            {
+              email: {
+                contains: searchLower,
+              },
+            },
+            {
+              employee_id: {
+                contains: searchLower,
+              },
+            },
+          ],
+        }),
+        ...(role_id && { role_id: Number(role_id) }),
+        ...(depot_id && { depot_id: Number(depot_id) }),
+        ...(zone_id && { zone_id: Number(zone_id) }),
+      };
 
-    if (password) {
-      updateData.password_hash = await bcrypt.hash(password, 10);
+      const { data, pagination } = await paginate({
+        model: prisma.users,
+        filters,
+        page: page_num,
+        limit: limit_num,
+        orderBy: { createdate: 'desc' },
+        include: {
+          user_role: true,
+          companies: true,
+          depots: true,
+          zones: true,
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      res.success(
+        'Users retrieved successfully',
+        data.map((user: any) => serializeUser(user, true, true)),
+        200,
+        pagination
+      );
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      res.error(error.message);
     }
+  },
 
-    const updatedUser = await prisma.users.update({
-      where: { id: userId },
-      data: {
-        ...updateData,
-        updatedby: 1,
+  async getUserById(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        res.error(firstError.msg, 400);
+        return;
+      }
+
+      const id = Number(req.params.id);
+      const user = await prisma.users.findFirst({
+        where: {
+          id,
+          is_active: 'Y',
+        },
+        include: {
+          user_role: true,
+          companies: true,
+          depots: true,
+          zones: true,
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        res.error('User not found', 404);
+        return;
+      }
+
+      res.success('User fetched successfully', serializeUser(user), 200);
+    } catch (error: any) {
+      console.error('Error fetching user:', error);
+      res.error(error.message);
+    }
+  },
+
+  async updateUser(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        res.error(firstError.msg, 400);
+        return;
+      }
+
+      const id = Number(req.params.id);
+      const { createdate, updatedate, password, ...userData } = req.body;
+
+      if ('id' in userData) {
+        delete userData.id;
+      }
+
+      const existingUser = await prisma.users.findFirst({
+        where: {
+          id,
+          is_active: 'Y',
+        },
+      });
+
+      if (!existingUser) {
+        res.error('User not found', 404);
+        return;
+      }
+
+      if (userData.email && userData.email !== existingUser.email) {
+        const emailExists = await prisma.users.findFirst({
+          where: {
+            email: userData.email,
+            is_active: 'Y',
+            id: { not: id },
+          },
+        });
+
+        if (emailExists) {
+          res.error('Email already exists', 400);
+          return;
+        }
+      }
+
+      // Check if employee_id is being changed and if new employee_id already exists
+      if (
+        userData.employee_id &&
+        userData.employee_id !== existingUser.employee_id
+      ) {
+        const employeeIdExists = await prisma.users.findFirst({
+          where: {
+            employee_id: userData.employee_id,
+            is_active: 'Y',
+            id: { not: id },
+          },
+        });
+
+        if (employeeIdExists) {
+          res.error('Employee ID already exists', 400);
+          return;
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        ...userData,
+        updatedby: req.user?.id ?? 0,
         updatedate: new Date(),
-      },
-      select: { id: true, username: true, email: true, role: true },
-    });
+      };
 
-    res.success('User updated successfully', updatedUser);
-  } catch (error) {
-    console.error(error);
-    res.error('Error updating user', 500);
-  }
-};
+      // Hash password if provided
+      if (password) {
+        updateData.password_hash = await bcrypt.hash(password, 10);
+      }
 
-export const deleteUser = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const userId = parseInt(req.params.id);
+      // Convert joining_date to Date if provided
+      if (userData.joining_date) {
+        updateData.joining_date = new Date(userData.joining_date);
+      }
 
-    await prisma.users.update({
-      where: { id: userId },
-      data: {
-        is_active: 'N',
-        updatedate: new Date(),
-        updatedby: 1,
-      },
-    });
+      const updatedUser = await prisma.users.update({
+        where: { id },
+        data: updateData,
+        include: {
+          user_role: true,
+          companies: true,
+          depots: true,
+          zones: true,
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
 
-    res.success('User deleted successfully');
-  } catch (error) {
-    console.error(error);
-    res.error('Error deleting user', 500);
-  }
+      res.success('User updated successfully', serializeUser(updatedUser), 200);
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      res.error(error.message);
+    }
+  },
+
+  async deleteUser(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        const firstError = errors.array()[0];
+        res.error(firstError.msg, 400);
+        return;
+      }
+
+      const id = Number(req.params.id);
+
+      // Check if user exists
+      const existingUser = await prisma.users.findFirst({
+        where: {
+          id,
+          is_active: 'Y',
+        },
+      });
+
+      if (!existingUser) {
+        res.error('User not found', 404);
+        return;
+      }
+
+      // Check if user has dependent records (optional business rule)
+      const dependentRecords = await prisma.users.count({
+        where: {
+          reporting_to: id,
+          is_active: 'Y',
+        },
+      });
+
+      if (dependentRecords > 0) {
+        res.error(
+          'Cannot delete user as they have team members reporting to them',
+          400
+        );
+        return;
+      }
+
+      // Soft delete user
+      await prisma.users.update({
+        where: { id },
+        data: {
+          is_active: 'N',
+          updatedby: req.user?.id ?? 0,
+          updatedate: new Date(),
+        },
+      });
+
+      res.success('User deleted successfully', 200);
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      res.error(error.message);
+    }
+  },
+
+  async getUserProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        res.error('User not authenticated', 401);
+        return;
+      }
+
+      const user = await prisma.users.findFirst({
+        where: {
+          id: userId,
+          is_active: 'Y',
+        },
+        include: {
+          user_role: true,
+          companies: true,
+          depots: true,
+          zones: true,
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        res.error('User not found', 404);
+        return;
+      }
+
+      res.success(
+        'User profile fetched successfully',
+        serializeUser(user),
+        200
+      );
+    } catch (error: any) {
+      console.error('Error fetching user profile:', error);
+      res.error(error.message);
+    }
+  },
+
+  async updateUserProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { name, phone_number, address, profile_image } = req.body;
+
+      if (!userId) {
+        res.error('User not authenticated', 401);
+        return;
+      }
+
+      const updatedUser = await prisma.users.update({
+        where: { id: userId },
+        data: {
+          name,
+          phone_number,
+          address,
+          profile_image,
+          updatedby: userId,
+          updatedate: new Date(),
+        },
+        include: {
+          user_role: true,
+          companies: true,
+          depots: true,
+          zones: true,
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      res.success(
+        'Profile updated successfully',
+        serializeUser(updatedUser),
+        200
+      );
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      res.error(error.message);
+    }
+  },
 };

@@ -10,10 +10,12 @@ declare global {
     interface Request {
       user?: {
         id: number;
-        username: string;
+        username?: string;
         email: string;
+        name: string;
         role: string;
-        parent_id: number;
+        permissions: string[];
+        parent_id?: number | null;
         depot_id?: number | null;
         zone_id?: number | null;
       };
@@ -22,120 +24,80 @@ declare global {
   }
 }
 
-interface JwtPayload {
-  id: number;
-  username: string;
-  email: string;
-  role: string;
-  parent_id: number;
-  depot_id?: number | null;
-  zone_id?: number | null;
-}
-
-export const authenticate = (
+export const authenticateToken = async (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
-  let token: string | undefined;
-
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
-  } else if (req.headers['x-auth-token']) {
-    token = req.headers['x-auth-token'] as string;
-  }
+) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    res.error('Access denied. No token provided.', 401);
+    res.status(401).json({ error: 'access_token_missing' });
     return;
   }
 
   try {
-    const decoded = jwt.verify(token, jwtConfig.secret) as JwtPayload;
+    const decoded = jwt.verify(token, jwtConfig.secret) as { id: number };
 
-    prisma.api_tokens
-      .findFirst({
-        where: {
-          token: token,
-          user_id: decoded.id,
-          is_active: 'Y',
-          is_revoked: false,
-          OR: [{ expires_at: null }, { expires_at: { gte: new Date() } }],
+    const user = await prisma.users.findUnique({
+      where: { id: decoded.id },
+      include: {
+        user_role: {
+          include: {
+            roles_permission: true,
+          },
         },
-      })
-      .then(apiToken => {
-        if (!apiToken) {
-          res.error('Invalid or expired token.', 401);
-          return;
-        }
+      },
+    });
 
-        return prisma.users.findUnique({
-          where: {
-            id: decoded.id,
-            is_active: 'Y',
-          },
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            role: true,
-            parent_id: true,
-            depot_id: true,
-
-            zone_id: true,
-          },
-        });
-      })
-      .then(user => {
-        if (!user) {
-          res.error('User not found or inactive.', 401);
-          return;
-        }
-
-        req.user = user;
-        req.token = token;
-
-        prisma.users
-          .update({
-            where: { id: user.id },
-            data: { last_login: new Date() },
-          })
-          .then(() => next())
-          .catch(error => {
-            console.error('Last login update error:', error);
-            next();
-          });
-      })
-      .catch(error => {
-        console.error('Database error:', error);
-        res.error('Authentication failed.', 500);
-      });
-  } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      res.error('Token has expired.', 401);
-    } else if (error instanceof jwt.JsonWebTokenError) {
-      res.error('Invalid token.', 401);
-    } else {
-      res.error('Token verification failed.', 500);
+    if (!user) {
+      res.status(401).json({ error: 'user_not_found_or_inactive' });
+      return;
     }
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.user_role.name,
+      permissions: user.user_role.roles_permission.map(rp =>
+        rp.permission_id.toString()
+      ),
+      parent_id: user.parent_id,
+      depot_id: user.depot_id,
+      zone_id: user.zone_id,
+    };
+
+    req.token = token;
+    next();
+  } catch (err) {
+    console.error('JWT error:', err);
+    res.status(401).json({ error: 'invalid_or_expired_token' });
   }
 };
 
-export const authorize = (...allowedRoles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+export const authorizeRoles = (...allowedRoles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      res.status(403).json({ error: 'access_denied' });
+      return;
+    }
+    next();
+  };
+};
+
+export const requirePermission = (...perms: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      res.error('Authentication required.', 401);
+      res.status(401).json({ error: 'authentication_required' });
       return;
     }
-
-    if (!allowedRoles.includes(req.user.role)) {
-      res.error('Access denied. Insufficient permissions.', 403);
+    const allowed = perms.some(p => req.user!.permissions.includes(p));
+    if (!allowed) {
+      res.status(403).json({ error: 'access_denied', missing: perms });
       return;
     }
-
     next();
   };
 };
@@ -144,9 +106,9 @@ export const authorizeCompany = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+) => {
   if (!req.user) {
-    res.error('Authentication required.', 401);
+    res.status(401).json({ error: 'authentication_required' });
     return;
   }
 
@@ -159,7 +121,9 @@ export const authorizeCompany = (
   }
 
   if (req.user.parent_id !== parseInt(companyId as string)) {
-    res.error('Access denied. You can only access your company data.', 403);
+    res
+      .status(403)
+      .json({ error: 'access_denied', message: 'Company mismatch' });
     return;
   }
 
@@ -170,9 +134,9 @@ export const authorizeDepot = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+) => {
   if (!req.user) {
-    res.error('Authentication required.', 401);
+    res.status(401).json({ error: 'authentication_required' });
     return;
   }
 
@@ -189,21 +153,20 @@ export const authorizeDepot = (
   }
 
   if (req.user.depot_id !== parseInt(depotId as string)) {
-    res.error('Access denied. You can only access your depot data.', 403);
+    res.status(403).json({ error: 'access_denied', message: 'Depot mismatch' });
     return;
   }
 
   next();
 };
 
-// Zone authorization
 export const authorizeZone = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+) => {
   if (!req.user) {
-    res.error('Authentication required.', 401);
+    res.status(401).json({ error: 'authentication_required' });
     return;
   }
 
@@ -220,18 +183,18 @@ export const authorizeZone = (
   }
 
   if (req.user.zone_id !== parseInt(zoneId as string)) {
-    res.error('Access denied. You can only access your zone data.', 403);
+    res.status(403).json({ error: 'access_denied', message: 'Zone mismatch' });
     return;
   }
 
   next();
 };
 
-export const optionalAuth = (
+export const optionalAuth = async (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+) => {
   let token: string | undefined;
 
   if (
@@ -247,32 +210,32 @@ export const optionalAuth = (
   }
 
   try {
-    const decoded = jwt.verify(token, jwtConfig.secret) as JwtPayload;
+    const decoded = jwt.verify(token, jwtConfig.secret) as { id: number };
 
-    prisma.users
-      .findUnique({
-        where: {
-          id: decoded.id,
-          is_active: 'Y',
-        },
-        select: {
-          id: true,
-          username: true,
-          email: true,
-          role: true,
-          parent_id: true,
-          depot_id: true,
-          zone_id: true,
-        },
-      })
-      .then(user => {
-        if (user) {
-          req.user = user;
-          req.token = token;
-        }
-        next();
-      })
-      .catch(() => next());
+    const user = await prisma.users.findUnique({
+      where: {
+        id: decoded.id,
+        is_active: 'Y',
+      },
+      include: {
+        user_role: true,
+      },
+    });
+
+    if (user) {
+      req.user = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.user_role.name,
+        permissions: [],
+        parent_id: user.parent_id,
+        depot_id: user.depot_id,
+        zone_id: user.zone_id,
+      };
+      req.token = token;
+    }
+    next();
   } catch (error) {
     next();
   }
@@ -282,7 +245,7 @@ export const validateSession = (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+) => {
   if (!req.user || !req.token) {
     next();
     return;
@@ -299,7 +262,9 @@ export const validateSession = (
     })
     .then(token => {
       if (!token) {
-        res.error('Session expired. Please login again.', 401);
+        res
+          .status(401)
+          .json({ error: 'session_expired', message: 'Please login again' });
         return;
       }
       next();
