@@ -44,7 +44,7 @@ export const register = async (req: Request, res: Response) => {
         password_hash: hashedPassword,
         name,
         role_id: role_id || 1,
-        parent_id: parent_id ?? null, // ✅ optional
+        parent_id: parent_id ?? null,
         createdby: 0,
         createdate: new Date(),
         is_active: 'Y',

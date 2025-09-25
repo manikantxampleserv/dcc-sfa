@@ -92,7 +92,6 @@ export const userController = {
         is_active,
       } = req.body;
 
-      // Check if email already exists
       const existingUser = await prisma.users.findFirst({
         where: {
           email,
@@ -105,7 +104,6 @@ export const userController = {
         return;
       }
 
-      // Check if employee_id already exists (if provided)
       if (employee_id) {
         const existingEmployee = await prisma.users.findFirst({
           where: {
@@ -120,7 +118,6 @@ export const userController = {
         }
       }
 
-      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const newUser = await prisma.users.create({
@@ -410,7 +407,6 @@ export const userController = {
         return;
       }
 
-      // Check if user has dependent records (optional business rule)
       const dependentRecords = await prisma.users.count({
         where: {
           reporting_to: id,
@@ -426,7 +422,6 @@ export const userController = {
         return;
       }
 
-      // Soft delete user
       await prisma.users.update({
         where: { id },
         data: {
