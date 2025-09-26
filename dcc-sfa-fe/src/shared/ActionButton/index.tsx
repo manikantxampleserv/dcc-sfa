@@ -28,7 +28,7 @@ const EditButton: React.FC<EditButtonProps> = ({
       size={size}
       onClick={onClick}
       disabled={disabled}
-      className="!bg-blue-100 hover:!bg-blue-200 !text-blue-600"
+      className="!bg-blue-100 !rounded hover:!bg-blue-200 !text-blue-600"
     >
       <Edit fontSize={size} />
     </IconButton>
@@ -56,7 +56,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
       size={size}
       onClick={confirmDelete ? undefined : onClick}
       disabled={disabled}
-      className="!bg-red-100 hover:!bg-red-200 !text-red-600"
+      className="!bg-red-100 !rounded hover:!bg-red-200 !text-red-600"
     >
       <Delete fontSize={size} />
     </IconButton>

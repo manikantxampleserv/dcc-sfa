@@ -3,6 +3,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Layout from '../layout';
 import ExecutiveDashboard from '../pages/dashboards/ExecutiveDashboard';
 import Users from 'pages/masters/Users';
+import Login from '../pages/auth/Login';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 // Simple page components with h1 tags
 const CompanyMaster = () => <h1>Company Master</h1>;
@@ -67,9 +69,19 @@ const APITokens = () => <h1>API Tokens</h1>;
 const SystemSettings = () => <h1>System Settings</h1>;
 
 const router = createBrowserRouter([
+  // Public routes
+  {
+    path: '/login',
+    element: <Login />,
+  },
+  // Protected routes
   {
     path: '/',
-    element: <Layout />,
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
     children: [
       // Dashboard Routes
       {

@@ -268,7 +268,7 @@ export const validateSession = (
         is_revoked: false,
       },
     })
-    .then(token => {
+    .then((token: any) => {
       if (!token) {
         res
           .status(401)
@@ -277,7 +277,7 @@ export const validateSession = (
       }
       next();
     })
-    .catch(error => {
+    .catch((error: any) => {
       console.error('Session validation error:', error);
       next();
     });

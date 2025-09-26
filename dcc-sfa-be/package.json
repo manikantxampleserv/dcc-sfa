@@ -9,17 +9,18 @@
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsc",
-    "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/index.ts"
+    "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/index.ts",
+    "prisma:generate": "prisma generate",
+    "lint": "echo \"No linting configured for backend yet\""
   },
   "devDependencies": {
     "@types/backblaze-b2": "^1.5.6",
     "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^2.4.3",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/mailparser": "^3.4.6",
-    "@types/multer": "^2.0.0",
     "@types/node": "^24.3.0",
     "@types/nodemailer": "^6.4.17",
     "cross-env": "^7.0.3",
@@ -32,20 +33,16 @@
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
-    "@types/bcryptjs": "^2.4.6",
     "backblaze-b2": "^1.7.1",
     "bcrypt": "^6.0.0",
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.0.1",
     "express": "^5.1.0",
-    "express-rate-limit": "^8.0.1",
     "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mailparser": "^3.7.4",
-    "multer": "^1.4.5-lts.1",
     "nodemailer": "^7.0.5",
     "winston": "^3.17.0"
   }
