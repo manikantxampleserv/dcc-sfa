@@ -8,19 +8,18 @@
     "dcc-sfa-fe"
   ],
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
+    "setup": "npm install && npm run prisma:generate",
+    "dev": "concurrently --names \"BE,FE\" --prefix-colors \"blue,green\" --kill-others \"npm run dev --workspace=dcc-sfa-be\" \"npm run dev --workspace=dcc-sfa-fe\"",
+    "build": "concurrently --names \"BE,FE\" --prefix-colors \"blue,green\" \"npm run build --workspace=dcc-sfa-be\" \"npm run build --workspace=dcc-sfa-fe\"",
+    "start": "concurrently --names \"BE,FE\" --prefix-colors \"blue,green\" --kill-others \"npm run start --workspace=dcc-sfa-be\" \"npm run preview --workspace=dcc-sfa-fe\"",
+    "prisma:generate": "npm run prisma:generate --workspace=dcc-sfa-be",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "install:all": "npm install && npm install --workspaces",
-    "clean:files": "npx rimraf dist node_modules dcc-sfa-be/dist dcc-sfa-fe/dist dcc-sfa-be/node_modules dcc-sfa-fe/node_modules dcc-sfa-be/package-lock.json dcc-sfa-fe/package-lock.json",
-    "clean:ports": "npx kill-port 4000 5173",
-    "clean": "npm run clean:ports && npm run clean:files"
+    "clean": "npx kill-port 4000 5173 && npx rimraf node_modules dcc-sfa-be/node_modules dcc-sfa-fe/node_modules"
   },
   "devDependencies": {
-    "kill-port": "^2.0.1",
+    "concurrently": "^9.1.0",
     "prettier": "^3.0.0",
-    "rimraf": "^5.0.0",
-    "turbo": "^2.5.8"
+    "rimraf": "^5.0.0"
   },
   "packageManager": "npm@10.0.0",
   "engines": {
