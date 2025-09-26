@@ -1,15 +1,17 @@
-import { Block, CheckCircle, Edit, Visibility } from '@mui/icons-material';
-import { Avatar, Box, Chip, Typography } from '@mui/material';
-import React, { useEffect, useState } from 'react';
-import Table, { type TableAction, type TableColumn } from 'shared/Table';
+import { Block, CheckCircle } from '@mui/icons-material';
+import { Alert, Avatar, Box, Chip, Typography } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
+import classNames from 'classnames';
+import React, { useCallback, useState } from 'react';
+import userService, { type User } from 'services/masters/Users';
+import { DeleteButton, EditButton } from 'shared/ActionButton';
+import SearchInput from 'shared/SearchInput';
+import Table, { type TableColumn } from 'shared/Table';
 import ManageUsers from './ManageUsers';
-import userService, {
-  type User,
-  type GetUsersParams,
-} from '../../../services/masters/Users';
 
 const formatDate = (dateString: string | null | undefined) => {
-  if (!dateString) return '-';
+  if (!dateString)
+    return <span className="italic text-gray-400"> No Date </span>;
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
@@ -17,42 +19,28 @@ const formatDate = (dateString: string | null | undefined) => {
   }).format(new Date(dateString));
 };
 
-const UsersTable: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
-  const [pagination, setPagination] = useState({
-    total: 0,
-    page: 1,
-    limit: 10,
-    totalPages: 0,
+const Users: React.FC = () => {
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+
+  const {
+    data: usersResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['users', { search, page, limit }],
+    queryFn: () => userService.fetchUsers({ search, page, limit }),
   });
 
-  const fetchUsersData = async (params?: GetUsersParams) => {
-    try {
-      setLoading(true);
-      const response = await userService.fetchUsers(params);
-      if (response.success) {
-        setUsers(response.data || []);
-        if (response.meta) {
-          setPagination({
-            total: response.meta.total || 0,
-            page: response.meta.page || 1,
-            limit: response.meta.limit || 10,
-            totalPages: response.meta.totalPages || 0,
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
+  const users = usersResponse?.data || [];
+  const pagination = {
+    total: usersResponse?.meta?.total || 0,
+    page: usersResponse?.meta?.page || 1,
+    limit: usersResponse?.meta?.limit || 10,
+    totalPages: usersResponse?.meta?.totalPages || 0,
   };
-
-  useEffect(() => {
-    fetchUsersData();
-  }, []);
 
   const userColumns: TableColumn<User>[] = [
     {
@@ -60,20 +48,12 @@ const UsersTable: React.FC = () => {
       label: 'Name & Avatar',
       width: '200px',
       render: (_value, row) => (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            alignItems: 'center',
-          }}
-        >
+        <Box className="!flex !gap-2 !items-center">
           <Avatar
-            sx={{
-              backgroundColor: row.is_active === 'Y' ? '#2563eb' : '#6b7280',
-              fontSize: '1rem',
-              fontWeight: 600,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            }}
+            className={classNames('', {
+              '!bg-primary-100 !text-primary-600': row.is_active === 'Y',
+              '!bg-gray-200 !text-gray-600': row.is_active !== 'Y',
+            })}
           >
             {row.name
               .split(' ')
@@ -83,24 +63,15 @@ const UsersTable: React.FC = () => {
           <Box>
             <Typography
               variant="body1"
-              sx={{
-                fontWeight: 700,
-                color: '#111827',
-                lineHeight: 1.2,
-              }}
+              className="!text-gray-900 !leading-tight"
             >
               {row.name}
             </Typography>
             <Typography
               variant="caption"
-              sx={{
-                color: '#6b7280',
-                fontSize: '0.75rem',
-                display: 'block',
-                mt: 0.25,
-              }}
+              className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.employee_id}
+              {row.role?.name}
             </Typography>
           </Box>
         </Box>
@@ -184,102 +155,97 @@ const UsersTable: React.FC = () => {
       width: '180px',
       render: (_value, row) => row.reporting_manager?.name || 'Top Level',
     },
-  ];
-
-  const userActions: TableAction<User>[] = [
     {
-      label: 'Edit User',
-      icon: <Edit />,
-      onClick: selectedRows => {
-        console.log('Edit users:', selectedRows);
-      },
-      show: selectedRows => selectedRows.length === 1,
-    },
-    {
-      label: 'View Details',
-      icon: <Visibility />,
-      onClick: selectedRows => {
-        console.log('View user details:', selectedRows);
-      },
-      show: selectedRows => selectedRows.length === 1,
-    },
-    {
-      label: 'Deactivate Users',
-      icon: <Block />,
-      onClick: async selectedRows => {
-        console.log('Deactivate users:', selectedRows);
-        try {
-          for (const user of selectedRows) {
-            await userService.updateUser(user.id, { is_active: 'N' });
-          }
-          // Refresh the users list
-          fetchUsersData();
-        } catch (error) {
-          console.error('Error deactivating users:', error);
-        }
-      },
-      show: selectedRows => selectedRows.some(user => user.is_active === 'Y'),
-    },
-    {
-      label: 'Activate Users',
-      icon: <CheckCircle />,
-      onClick: async selectedRows => {
-        console.log('Activate users:', selectedRows);
-        try {
-          for (const user of selectedRows) {
-            await userService.updateUser(user.id, { is_active: 'Y' });
-          }
-          // Refresh the users list
-          fetchUsersData();
-        } catch (error) {
-          console.error('Error activating users:', error);
-        }
-      },
-      show: selectedRows => selectedRows.some(user => user.is_active === 'N'),
+      id: 'action',
+      label: 'Actions',
+      width: '120px',
+      sortable: false,
+      render: (_value, row) => (
+        <div className="!flex !gap-2 !items-center">
+          <EditButton tooltip={`Edit ${row.name}`} />
+          <DeleteButton
+            onClick={() => handleDeleteUser(row)}
+            tooltip={`Delete ${row.name}`}
+            itemName={row.name}
+            confirmDelete={true}
+          />
+        </div>
+      ),
     },
   ];
 
-  const handleUserRowClick = (user: User) => {
-    console.log('User clicked:', user);
+  const handleDeleteUser = useCallback(
+    async (user: User) => {
+      try {
+        await userService.deleteUser(user.id);
+        refetch();
+      } catch (error) {
+        console.error('Failed to delete user:', error);
+      }
+    },
+    [refetch]
+  );
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    setPage(1);
+  }, []);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage + 1);
   };
 
   return (
-    <Box>
-      <Box
-        sx={{
-          mb: 3,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
+    <>
+      <Box className="!mb-6 !flex !justify-between !items-center">
         <Box>
-          <Typography
-            variant="h5"
-            sx={{ fontWeight: 700, color: '#111827', mb: 0.5 }}
-          >
+          <Typography variant="h5" className="!font-bold !text-gray-900 !mb-2">
             Users Management
           </Typography>
-          <Typography variant="body2" sx={{ color: '#6b7280' }}>
+          <Typography variant="body2" className="!text-gray-500">
             Manage users, roles, and access across your organization
           </Typography>
         </Box>
-        <ManageUsers />
       </Box>
+
+      {error && (
+        <Alert severity="error" className="!mb-4">
+          Failed to load users. Please try again.
+        </Alert>
+      )}
 
       <Table
         data={users}
         columns={userColumns}
-        actions={userActions}
-        onRowClick={handleUserRowClick}
+        actions={
+          <div className="flex justify-between w-full">
+            <SearchInput
+              placeholder="Search Users"
+              value={search}
+              onChange={handleSearchChange}
+              debounceMs={400}
+              showClear={true}
+              fullWidth={false}
+              className="!min-w-80"
+            />
+            <ManageUsers />
+          </div>
+        }
         getRowId={user => user.id}
         initialOrderBy="name"
-        loading={loading}
+        loading={isLoading}
         totalCount={pagination.total}
-        emptyMessage="No users found in the system"
+        page={page - 1}
+        rowsPerPage={limit}
+        onPageChange={handlePageChange}
+        emptyMessage={
+          search
+            ? `No users found matching "${search}"`
+            : 'No users found in the system'
+        }
       />
-    </Box>
+    </>
   );
 };
 
-export default UsersTable;
+export default Users;
