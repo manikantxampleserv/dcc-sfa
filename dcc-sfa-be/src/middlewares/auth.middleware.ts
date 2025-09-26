@@ -61,7 +61,7 @@ export const authenticateToken = async (
       email: user.email,
       name: user.name,
       role: user.user_role.name,
-      permissions: user.user_role.roles_permission.map(rp =>
+      permissions: user.user_role.roles_permission.map((rp: any) =>
         rp.permission_id.toString()
       ),
       parent_id: user.parent_id,
@@ -260,7 +260,7 @@ export const validateSession = (
         is_revoked: false,
       },
     })
-    .then(token => {
+    .then((token: any) => {
       if (!token) {
         res
           .status(401)
@@ -269,7 +269,7 @@ export const validateSession = (
       }
       next();
     })
-    .catch(error => {
+    .catch((error: any) => {
       console.error('Session validation error:', error);
       next();
     });
