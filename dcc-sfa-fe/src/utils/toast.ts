@@ -81,7 +81,12 @@ class ToastService {
    * @param type - New toast type
    * @param options - Additional options
    */
-  update(toastId: Id, message: string, type: 'success' | 'error' | 'warning' | 'info', options?: any): void {
+  update(
+    toastId: Id,
+    message: string,
+    type: 'success' | 'error' | 'warning' | 'info',
+    options?: any
+  ): void {
     toast.update(toastId, {
       render: message,
       type,
@@ -142,21 +147,24 @@ class ToastService {
     options?: any
   ): Promise<T> {
     const toastId = this.loading(messages.loading, options);
-    
+
     try {
       const result = await operation();
-      
-      const successMessage = typeof messages.success === 'function' 
-        ? messages.success(result) 
-        : messages.success;
-      
+
+      const successMessage =
+        typeof messages.success === 'function'
+          ? messages.success(result)
+          : messages.success;
+
       this.update(toastId, successMessage, 'success', options);
       return result;
     } catch (error: any) {
-      const errorMessage = messages.error 
-        ? (typeof messages.error === 'function' ? messages.error(error) : messages.error)
+      const errorMessage = messages.error
+        ? typeof messages.error === 'function'
+          ? messages.error(error)
+          : messages.error
         : error.message || 'Operation failed';
-      
+
       this.update(toastId, errorMessage, 'error', options);
       throw error;
     }

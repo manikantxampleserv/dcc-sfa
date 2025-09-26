@@ -120,13 +120,16 @@ const SearchInput: React.FC<SearchInputProps> = ({
    * Handles input value changes with debouncing
    * @param event - Input change event
    */
-  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
-    setInternalValue(newValue);
-    
-    // Call immediate callback if provided
-    onInputChange?.(newValue);
-  }, [onInputChange]);
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = event.target.value;
+      setInternalValue(newValue);
+
+      // Call immediate callback if provided
+      onInputChange?.(newValue);
+    },
+    [onInputChange]
+  );
 
   /**
    * Clears the input value immediately (no debouncing for clear action)

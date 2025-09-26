@@ -33,9 +33,7 @@ export const killPort = async (port: number | string): Promise<void> => {
  */
 const killPortWindows = async (portNum: number): Promise<void> => {
   try {
-    const { stdout } = await execAsync(
-      `netstat -ano | findstr :${portNum}`
-    );
+    const { stdout } = await execAsync(`netstat -ano | findstr :${portNum}`);
     if (stdout) {
       const lines = stdout
         .split('\n')
