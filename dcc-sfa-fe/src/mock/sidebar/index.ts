@@ -36,12 +36,13 @@ const menuItems: MenuItem[] = [
     label: 'Masters',
     icon: MdBusiness,
     children: [
+      { id: 'user-master', label: 'User Master', href: '/masters/users' },
+
       {
         id: 'company-master',
         label: 'Company Master',
         href: '/masters/company',
       },
-      { id: 'user-master', label: 'User Master', href: '/masters/users' },
       {
         id: 'role-permission',
         label: 'Role & Permission Setup',

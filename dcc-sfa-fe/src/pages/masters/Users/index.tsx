@@ -1,9 +1,8 @@
 import { Block, CheckCircle } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, Typography } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
 import classNames from 'classnames';
 import React, { useCallback, useState } from 'react';
-import userService, { type User } from 'services/masters/Users';
+import { useUsers, useDeleteUser, type User } from '../../../hooks/useUsers';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import SearchInput from 'shared/SearchInput';
 import Table, { type TableColumn } from 'shared/Table';
@@ -28,11 +27,7 @@ const Users: React.FC = () => {
     data: usersResponse,
     isLoading,
     error,
-    refetch,
-  } = useQuery({
-    queryKey: ['users', { search, page, limit }],
-    queryFn: () => userService.fetchUsers({ search, page, limit }),
-  });
+  } = useUsers({ search, page, limit });
 
   const users = usersResponse?.data || [];
   const pagination = {
@@ -50,7 +45,7 @@ const Users: React.FC = () => {
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            className={classNames('', {
+            className={classNames('!rounded', {
               '!bg-primary-100 !text-primary-600': row.is_active === 'Y',
               '!bg-gray-200 !text-gray-600': row.is_active !== 'Y',
             })}
@@ -174,16 +169,13 @@ const Users: React.FC = () => {
     },
   ];
 
+  const deleteUserMutation = useDeleteUser();
+
   const handleDeleteUser = useCallback(
     async (user: User) => {
-      try {
-        await userService.deleteUser(user.id);
-        refetch();
-      } catch (error) {
-        console.error('Failed to delete user:', error);
-      }
+      deleteUserMutation.mutate(user.id);
     },
-    [refetch]
+    [deleteUserMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {

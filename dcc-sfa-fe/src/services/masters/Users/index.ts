@@ -135,23 +135,19 @@ export const fetchUserById = async (id: number): Promise<ApiResponse<User>> => {
 };
 
 /**
- * Create new user
+ * Create new user (silent - no toast, used by React Query hooks)
  * @param userData - User creation payload
  * @returns Promise<ApiResponse<User>>
  */
 export const createUser = async (
   userData: ManageUserPayload
 ): Promise<ApiResponse<User>> => {
-  try {
-    const response = await axiosInstance.post('/users', userData);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await axiosInstance.post('/users', userData);
+  return response.data;
 };
 
 /**
- * Update existing user
+ * Update existing user (silent - no toast, used by React Query hooks)
  * @param id - User ID
  * @param userData - User update payload
  * @returns Promise<ApiResponse<User>>
@@ -160,26 +156,18 @@ export const updateUser = async (
   id: number,
   userData: UpdateUserPayload
 ): Promise<ApiResponse<User>> => {
-  try {
-    const response = await axiosInstance.put(`/users/${id}`, userData);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await axiosInstance.put(`/users/${id}`, userData);
+  return response.data;
 };
 
 /**
- * Delete user
+ * Delete user (silent - no toast, used by React Query hooks)
  * @param id - User ID
  * @returns Promise<ApiResponse<void>>
  */
 export const deleteUser = async (id: number): Promise<ApiResponse<void>> => {
-  try {
-    const response = await axiosInstance.delete(`/users/${id}`);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await axiosInstance.delete(`/users/${id}`);
+  return response.data;
 };
 
 /**
@@ -196,19 +184,15 @@ export const getUserProfile = async (): Promise<ApiResponse<User>> => {
 };
 
 /**
- * Update user profile (current authenticated user)
+ * Update user profile (silent - no toast, used by React Query hooks)
  * @param profileData - Profile update payload
  * @returns Promise<ApiResponse<User>>
  */
 export const updateUserProfile = async (
   profileData: UpdateProfilePayload
 ): Promise<ApiResponse<User>> => {
-  try {
-    const response = await axiosInstance.put('/users/profile', profileData);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await axiosInstance.put('/users/profile', profileData);
+  return response.data;
 };
 
 export default {

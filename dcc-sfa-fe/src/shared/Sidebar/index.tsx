@@ -62,7 +62,7 @@ const Sidebar = () => {
               <ListItemButton
                 component={Link}
                 to={item.href}
-                className={`!min-h-10 !mx-1 !mb-px !rounded ${
+                className={`!min-h-10 !mx-1 !px-2 !py-1 !mb-px !rounded ${
                   isCollapsed ? '!justify-center' : '!justify-start'
                 } ${isDirectActive ? '!text-blue-700' : '!text-gray-700'}`}
               >
@@ -105,7 +105,7 @@ const Sidebar = () => {
                     ? toggleSection(item.id)
                     : undefined
                 }
-                className={`!min-h-12 !mx-1 group !mb-px !rounded ${
+                className={`!min-h-8 !py-1 !px-2 !mx-1 group !mb-px !rounded ${
                   isCollapsed ? '!justify-center' : '!justify-start'
                 } ${
                   isActive && !isCollapsed
@@ -117,11 +117,11 @@ const Sidebar = () => {
               >
                 {Icon && (
                   <ListItemIcon
-                    className={`!min-w-0 !p-2 !justify-center !rounded ${
+                    className={`!min-w-0 !p-1 !justify-center !rounded ${
                       isCollapsed ? '!mr-0' : '!mr-2'
                     } ${isActive ? '!text-white !bg-blue-600' : '!text-gray-500 !bg-gray-100 group-hover:!bg-gray-200'}`}
                   >
-                    <Icon fontSize="large" />
+                    <Icon />
                   </ListItemIcon>
                 )}
                 <ListItemText
