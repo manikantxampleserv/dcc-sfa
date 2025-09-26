@@ -23,8 +23,8 @@ export const validate = (req: Request, res: Response, next: NextFunction) => {
 
     return res.status(422).json({
       success: false,
-      error: 'Validation failed',
-      details: extractedErrors,
+      message: 'Please fill all required fields',
+      errors: extractedErrors,
     });
   }
 

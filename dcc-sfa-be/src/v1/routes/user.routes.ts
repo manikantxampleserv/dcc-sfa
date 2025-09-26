@@ -19,7 +19,7 @@ router.post(
 
 router.get('/users', authenticateToken, userController.getUsers);
 
-router.get('/users/:id', authenticateToken, userController.getUserById);
+router.get('/users/:id', userController.getUserById);
 
 router.put(
   '/users/:id',

@@ -3,11 +3,14 @@ import { Router, Request, Response } from 'express';
 import user from '../v1/routes/user.routes';
 import auth from '../v1/routes/auth.routes';
 import roles from '../v1/routes/roles.routes';
+import rolePermissions from '../v1/routes/rolePermissions.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
 routes.use('/v1', user);
 routes.use('/v1', roles);
+routes.use('/v1', rolePermissions);
+// routes.use('/v1', )
 
 /**
  * Root endpoint - Welcome message and API documentation

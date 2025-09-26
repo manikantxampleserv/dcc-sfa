@@ -132,7 +132,7 @@ export const logout = async (req: Request, res: Response) => {
       },
       data: {
         is_revoked: true,
-        is_active: 'N',
+        // is_active: 'N',
         updated_date: new Date(),
         updated_by: req.user.id,
       },

@@ -10,7 +10,7 @@ datasource db {
 model api_tokens {
   id                              Int       @id(map: "PK__api_toke__3213E83FCE2E766B") @default(autoincrement())
   user_id                         Int
-  token                           String    @db.Text
+  token                           String    @db.NVarChar(Max)
   token_type                      String?   @default("Bearer", map: "DF__api_token__token__51851410") @db.NVarChar(50)
   issued_at                       DateTime? @default(now(), map: "DF__api_token__issue__52793849") @db.DateTime
   expires_at                      DateTime? @db.DateTime
