@@ -14,7 +14,6 @@
  * - Integration with auth service and token management
  */
 
-import { Login as LoginIcon } from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -26,10 +25,10 @@ import {
   Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
+import { useLogin } from 'hooks/useAuth';
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import authService, { type LoginRequest } from 'services/auth/authService';
-import { useLogin } from 'hooks/useAuth';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
 import * as Yup from 'yup';
@@ -141,14 +140,11 @@ const Login: React.FC = () => {
   }, []);
 
   return (
-    <Box className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl">
+    <Box className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl border border-gray-100">
         <CardContent className="p-8">
           {/* Header */}
-          <Box className="text-center mb-8">
-            <Box className="mb-4">
-              <LoginIcon className="!text-6xl !text-primary-600" />
-            </Box>
+          <Box className="text-center my-10">
             <Typography
               variant="h4"
               className="!font-bold !text-gray-900 !mb-2"
@@ -162,7 +158,7 @@ const Login: React.FC = () => {
 
           {/* Error Alert */}
           {error && (
-            <Alert severity="error" className="!mb-6">
+            <Alert severity="error" className="!mb-6 !border !border-red-200">
               {error}
             </Alert>
           )}
@@ -179,6 +175,7 @@ const Login: React.FC = () => {
                 formik={formik}
                 autoComplete="email"
                 autoFocus
+                className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
               />
             </Box>
 
@@ -191,6 +188,7 @@ const Login: React.FC = () => {
                 placeholder="Enter your password"
                 formik={formik}
                 autoComplete="current-password"
+                className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
               />
             </Box>
 
@@ -202,11 +200,19 @@ const Login: React.FC = () => {
                     name="rememberMe"
                     checked={formik.values.rememberMe}
                     onChange={formik.handleChange}
-                    color="primary"
+                    className="!text-blue-600"
+                    sx={{
+                      '&.Mui-checked': {
+                        color: '#2563eb',
+                      },
+                    }}
                   />
                 }
                 label={
-                  <Typography variant="body2" className="!text-gray-700">
+                  <Typography
+                    variant="body2"
+                    className="!text-gray-700 !font-medium"
+                  >
                     Remember me
                   </Typography>
                 }
@@ -221,7 +227,7 @@ const Login: React.FC = () => {
               size="large"
               disabled={!formik.isValid || loginMutation.isPending}
               loading={loginMutation.isPending}
-              className="!mb-6 !py-3"
+              className="!mb-6 !py-3 !bg-blue-600 hover:!bg-blue-700 !text-white !font-semibold !rounded-lg !shadow-md hover:!shadow-lg !transition-all !duration-200"
             >
               {loginMutation.isPending ? 'Signing In...' : 'Sign In'}
             </Button>
@@ -231,8 +237,8 @@ const Login: React.FC = () => {
               <Typography variant="body2">
                 <MuiLink
                   component={Link}
-                  to="/forgot-password"
-                  className="!text-primary-600 hover:!text-primary-700 !font-medium"
+                  to="#"
+                  className="!text-blue-600 hover:!text-blue-700 !font-medium !no-underline hover:!underline !transition-colors !duration-200"
                 >
                   Forgot your password?
                 </MuiLink>
