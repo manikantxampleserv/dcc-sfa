@@ -1,9 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { jwtConfig } from '../configs/jwt.config';
-
+import { createPermission, PERMISSIONS } from '../configs/permissions.config';
 const prisma = new PrismaClient();
+
+type PermissionItem = { module: string; action: string };
+
+const userWithRoleAndPermissions = Prisma.validator<Prisma.usersInclude>()({
+  user_role: {
+    include: {
+      roles_permission: {
+        include: {
+          permission: true,
+        },
+      },
+    },
+  },
+});
 
 declare global {
   namespace Express {
@@ -42,16 +56,10 @@ export const authenticateToken = async (
 
     const user = await prisma.users.findUnique({
       where: { id: decoded.id },
-      include: {
-        user_role: {
-          include: {
-            roles_permission: true,
-          },
-        },
-      },
+      include: userWithRoleAndPermissions,
     });
 
-    if (!user) {
+    if (!user || !user.user_role) {
       res.status(401).json({ error: 'user_not_found_or_inactive' });
       return;
     }
@@ -61,9 +69,9 @@ export const authenticateToken = async (
       email: user.email,
       name: user.name,
       role: user.user_role.name,
-      permissions: user.user_role.roles_permission.map(rp =>
-        rp.permission_id.toString()
-      ),
+      permissions: user.user_role.roles_permission
+        .filter(rp => rp.permission?.is_active === 'Y')
+        .map(rp => rp.permission!.name),
       parent_id: user.parent_id,
       depot_id: user.depot_id,
       zone_id: user.zone_id,
@@ -273,4 +281,58 @@ export const validateSession = (
       console.error('Session validation error:', error);
       next();
     });
+};
+
+export const requireAnyModulePermission = (permissions: PermissionItem[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'authentication_required' });
+    }
+
+    const requiredPermissions: string[] = permissions.map((p: PermissionItem) =>
+      createPermission(p.module, p.action)
+    );
+
+    const hasAnyPermission = requiredPermissions.some(perm =>
+      req.user!.permissions.includes(perm)
+    );
+
+    if (!hasAnyPermission) {
+      return res.status(403).json({
+        error: 'access_denied',
+        message: 'Insufficient permissions',
+        required_permissions: requiredPermissions,
+      });
+    }
+
+    next();
+  };
+};
+export const requireAllModulePermissions = (
+  permissions: Array<{ module: string; action: string }>
+) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      res.status(401).json({ error: 'authentication_required' });
+      return;
+    }
+
+    const requiredPermissions = permissions.map(p =>
+      createPermission(p.module, p.action)
+    );
+    const hasAllPermissions = requiredPermissions.every(perm =>
+      req.user!.permissions.includes(perm)
+    );
+
+    if (!hasAllPermissions) {
+      res.status(403).json({
+        error: 'access_denied',
+        message: 'Insufficient permissions',
+        required_permissions: requiredPermissions,
+      });
+      return;
+    }
+
+    next();
+  };
 };

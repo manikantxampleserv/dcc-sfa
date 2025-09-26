@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { paginate } from '../../utils/paginate';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
+import { uploadFile } from '../../utils/blackbaze';
 
 const prisma = new PrismaClient();
 
@@ -91,6 +92,12 @@ export const userController = {
         is_active,
       } = req.body;
 
+      let profilePicFileName = null;
+      if (req.file) {
+        const fileName = `profile_pics/${Date.now()}_${req.file.originalname}`;
+        await uploadFile(req.file.buffer, fileName, req.file.mimetype);
+        profilePicFileName = fileName;
+      }
       // Check if email already exists
       const existingUser = await prisma.users.findFirst({
         where: {
@@ -104,7 +111,6 @@ export const userController = {
         return;
       }
 
-      // Check if employee_id already exists (if provided)
       if (employee_id) {
         const existingEmployee = await prisma.users.findFirst({
           where: {
@@ -119,7 +125,6 @@ export const userController = {
         }
       }
 
-      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const newUser = await prisma.users.create({
@@ -136,7 +141,7 @@ export const userController = {
           employee_id,
           joining_date: joining_date ? new Date(joining_date) : null,
           reporting_to,
-          profile_image,
+          profile_image: profilePicFileName,
           is_active: is_active ?? 'Y',
           createdby: req.user?.id ?? 0,
           createdate: new Date(),
