@@ -49,9 +49,9 @@ class TokenService {
     try {
       localStorage.setItem(this.TOKEN_KEY, token);
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-      
+
       if (expiresIn) {
-        const expiresAt = Date.now() + (expiresIn * 1000);
+        const expiresAt = Date.now() + expiresIn * 1000;
         localStorage.setItem(this.EXPIRES_KEY, expiresAt.toString());
       }
     } catch (error) {
@@ -72,7 +72,7 @@ class TokenService {
   getToken(): string | null {
     try {
       const token = localStorage.getItem(this.TOKEN_KEY);
-      
+
       if (!token) {
         return null;
       }
@@ -144,7 +144,7 @@ class TokenService {
   isTokenExpired(): boolean {
     try {
       const expiresAtStr = localStorage.getItem(this.EXPIRES_KEY);
-      
+
       if (!expiresAtStr) {
         return false; // No expiration set, assume valid
       }
@@ -218,7 +218,7 @@ class TokenService {
    */
   refreshExpiration(expiresIn: number): void {
     try {
-      const expiresAt = Date.now() + (expiresIn * 1000);
+      const expiresAt = Date.now() + expiresIn * 1000;
       localStorage.setItem(this.EXPIRES_KEY, expiresAt.toString());
     } catch (error) {
       console.error('Failed to refresh token expiration:', error);
@@ -237,14 +237,14 @@ class TokenService {
   getTimeUntilExpiration(): number {
     try {
       const expiresAtStr = localStorage.getItem(this.EXPIRES_KEY);
-      
+
       if (!expiresAtStr) {
         return -1; // No expiration set
       }
 
       const expiresAt = parseInt(expiresAtStr);
       const timeLeft = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
-      
+
       return timeLeft;
     } catch (error) {
       console.error('Failed to get expiration time:', error);

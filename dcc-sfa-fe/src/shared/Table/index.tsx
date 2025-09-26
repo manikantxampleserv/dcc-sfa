@@ -1,5 +1,6 @@
 import {
   Box,
+  Divider,
   Table as MuiTable,
   TableBody as MuiTableBody,
   TableCell as MuiTableCell,
@@ -20,7 +21,7 @@ import React, { useMemo, useState, type ReactNode } from 'react';
  * @template T - The type of data in the table rows
  */
 export interface TableColumn<T = any> {
-  id: keyof T;
+  id: keyof T | string;
   label: string;
   numeric?: boolean;
   disablePadding?: boolean;
@@ -42,6 +43,19 @@ export interface TableAction<T = any> {
 }
 
 /**
+ * Configuration for action bar items
+ */
+export interface ActionBarItem {
+  label: string;
+  icon?: ReactNode;
+  onClick: () => void;
+  variant?: 'contained' | 'outlined' | 'text';
+  color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
+  disabled?: boolean;
+  show?: boolean;
+}
+
+/**
  * Props for the Enhanced Table component
  * @template T - The type of data in the table rows
  */
@@ -57,7 +71,7 @@ export interface TableProps<T = any> {
   /** Enable/disable pagination */
   pagination?: boolean;
   /** Array of bulk actions */
-  actions?: TableAction<T>[];
+  actions?: TableAction<T>[] | ReactNode;
   /** Callback when a row is clicked */
   onRowClick?: (row: T, index: number) => void;
   /** Loading state */
@@ -82,6 +96,18 @@ export interface TableProps<T = any> {
   rowsPerPage?: number;
   /** Callback when page changes */
   onPageChange?: (page: number) => void;
+  /** Action bar items to display at the top */
+  actionBarItems?: ActionBarItem[];
+  /** Action bar title */
+  actionBarTitle?: string;
+  /** Search functionality */
+  searchValue?: string;
+  /** Search placeholder text */
+  searchPlaceholder?: string;
+  /** Search change handler */
+  onSearchChange?: (value: string) => void;
+  /** Show search instead of title */
+  showSearch?: boolean;
 }
 
 /** Sort order type */
@@ -126,7 +152,10 @@ function getComparator<Key extends keyof any>(
  * @template T - The type of data in the table rows
  */
 interface TableHeadProps<T> {
-  onRequestSort: (event: React.MouseEvent<unknown>, property: keyof T) => void;
+  onRequestSort: (
+    event: React.MouseEvent<unknown>,
+    property: keyof T | string
+  ) => void;
   order: Order;
   orderBy: string;
   columns: TableColumn<T>[];
@@ -143,7 +172,7 @@ function TableHead<T>(props: TableHeadProps<T>) {
   const { order, orderBy, onRequestSort, columns, sortable } = props;
 
   const createSortHandler =
-    (property: keyof T) => (event: React.MouseEvent<unknown>) => {
+    (property: keyof T | string) => (event: React.MouseEvent<unknown>) => {
       onRequestSort(event, property);
     };
 
@@ -157,12 +186,14 @@ function TableHead<T>(props: TableHeadProps<T>) {
             padding={column.disablePadding ? 'none' : 'normal'}
             sortDirection={orderBy === column.id ? order : false}
             className={classNames(
-              '!border-b !border-gray-200 !bg-gray-50 !font-semibold',
+              '!border-b !border-gray-200 !bg-blue-50 !font-semibold',
               '!whitespace-nowrap !text-gray-700 !p-4 !text-sm'
             )}
             style={{ width: column.width }}
           >
-            {sortable && column.sortable !== false ? (
+            {sortable &&
+            column.sortable !== false &&
+            typeof column.id !== 'string' ? (
               <MuiTableSortLabel
                 active={orderBy === column.id}
                 direction={orderBy === column.id ? order : 'asc'}
@@ -272,13 +303,16 @@ export default function Table<T extends Record<string, any>>(
 
   const [order, setOrder] = useState<Order>(initialOrder);
   const [orderBy, setOrderBy] = useState<keyof T>(
-    initialOrderBy || (columns[0]?.id as keyof T)
+    initialOrderBy ||
+      (columns.find(col => typeof col.id !== 'string')?.id as keyof T) ||
+      (columns[0]?.id as keyof T)
   );
 
   const handleRequestSort = (
     _event: React.MouseEvent<unknown>,
-    property: keyof T
+    property: keyof T | string
   ) => {
+    if (typeof property === 'string') return; // Don't sort action columns
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
@@ -306,6 +340,12 @@ export default function Table<T extends Record<string, any>>(
     return (
       <Box className="!w-full">
         <Paper className="!w-full !rounded-lg !border !border-gray-200 !shadow-sm">
+          {props.actions && !Array.isArray(props.actions) && (
+            <>
+              <Box className="!p-3">{props.actions}</Box>
+              <Divider className="!border-gray-200" />
+            </>
+          )}
           <MuiTableContainer style={{ maxHeight }}>
             <MuiTable
               className="!min-w-[750px]"
@@ -320,7 +360,7 @@ export default function Table<T extends Record<string, any>>(
                 sortable={sortable}
               />
               <MuiTableBody>
-                <SkeletonLoader columns={columns} rows={rowsPerPage} />
+                <SkeletonLoader columns={columns} rows={6} />
               </MuiTableBody>
             </MuiTable>
           </MuiTableContainer>
@@ -346,6 +386,12 @@ export default function Table<T extends Record<string, any>>(
         elevation={0}
         className="!bg-white !shadow-sm !rounded-lg !border !border-gray-100"
       >
+        {props.actions && !Array.isArray(props.actions) && (
+          <>
+            <Box className="!p-3">{props.actions}</Box>
+            <Divider className="!border-gray-200" />
+          </>
+        )}
         <MuiTableContainer style={{ maxHeight }}>
           <MuiTable
             className="!min-w-[750px]"
