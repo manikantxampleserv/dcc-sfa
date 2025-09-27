@@ -10,11 +10,13 @@ import {
   createUserValidation,
   updateUserValidation,
 } from '../validations/user.validation';
+import { upload } from '../../utils/multer';
 
 const router = Router();
 
 router.post(
   '/users',
+  upload.single('profile_image'),
   authenticateToken,
   requireAnyModulePermission([
     { module: MODULES.USER, action: ACTIONS.CREATE },
@@ -24,26 +26,18 @@ router.post(
   userController.createUser
 );
 
-router.get(
-  '/users',
-  authenticateToken,
-  requireAnyModulePermission([{ module: MODULES.USER, action: ACTIONS.LIST }]),
-  userController.getUsers
-);
+router.get('/users', authenticateToken, userController.getUsers);
 
-router.get(
-  '/users/:id',
-  authenticateToken,
-  requireAnyModulePermission([{ module: MODULES.USER, action: ACTIONS.READ }]),
-  userController.getUserById
-);
+router.get('/users/:id', authenticateToken, userController.getUserById);
 
 router.put(
   '/users/:id',
   authenticateToken,
-  requireAnyModulePermission([
-    { module: MODULES.USER, action: ACTIONS.UPDATE },
-  ]),
+  upload.single('profile_image'),
+
+  // requireAnyModulePermission([
+  //   { module: MODULES.USER, action: ACTIONS.UPDATE },
+  // ]),
   updateUserValidation,
   validate,
   userController.updateUser
@@ -52,9 +46,7 @@ router.put(
 router.delete(
   '/users/:id',
   authenticateToken,
-  requireAnyModulePermission([
-    { module: MODULES.USER, action: ACTIONS.DELETE },
-  ]),
+
   userController.deleteUser
 );
 

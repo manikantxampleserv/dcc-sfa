@@ -9,13 +9,11 @@ export const startServer = async () => {
     const app = createApp();
     const port = process.env.PORT || 4000;
 
-    // Check if port is in use and kill any existing processes
     if (await isPortInUse(port)) {
       logger.warn(
         `Port ${port} is in use. Attempting to kill existing processes...`
       );
       await killPort(port);
-      // Wait a moment for the port to be freed
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 

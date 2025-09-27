@@ -1,13 +1,17 @@
-import multer from 'multer';
+import { Request } from 'express';
+
+const multer = require('multer');
 
 const storage = multer.memoryStorage();
 
 export const upload = multer({
   storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024,
-  },
-  fileFilter: (req, file, cb) => {
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (
+    req: Request,
+    file: Express.Multer.File,
+    cb: (err: Error | null, acceptFile?: boolean) => void
+  ) => {
     const allowedTypes = [
       'image/jpeg',
       'image/png',
@@ -15,12 +19,8 @@ export const upload = multer({
       'image/webp',
       'application/pdf',
     ];
-
-    if (!allowedTypes.includes(file.mimetype)) {
-      return cb(
-        new Error('Only JPEG, PNG, JPG, WEBP, and PDF files are allowed')
-      );
-    }
+    if (!allowedTypes.includes(file.mimetype))
+      return cb(new Error('Invalid file type'));
     cb(null, true);
   },
 });

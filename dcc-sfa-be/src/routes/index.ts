@@ -4,17 +4,15 @@ import user from '../v1/routes/user.routes';
 import auth from '../v1/routes/auth.routes';
 import roles from '../v1/routes/roles.routes';
 import rolePermissions from '../v1/routes/rolePermissions.routes';
+import company from '../v1/routes/company.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
 routes.use('/v1', user);
 routes.use('/v1', roles);
 routes.use('/v1', rolePermissions);
-// routes.use('/v1', )
+routes.use('/v1', company);
 
-/**
- * Root endpoint - Welcome message and API documentation
- */
 routes.get('/', (_: Request, res: Response) => {
   res.json({
     name: 'DCC-SFA API',
@@ -36,9 +34,6 @@ routes.get('/', (_: Request, res: Response) => {
   });
 });
 
-/**
- * Health check endpoint
- */
 routes.get('/v1/health', (_: Request, res: Response) => {
   res.json({
     status: 'OK',
