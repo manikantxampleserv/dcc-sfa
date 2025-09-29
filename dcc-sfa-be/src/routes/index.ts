@@ -7,6 +7,7 @@ import rolePermissions from '../v1/routes/rolePermissions.routes';
 import permissions from '../v1/routes/permissions.routes';
 import company from '../v1/routes/company.routes';
 import depots from '../v1/routes/depots.routes';
+import zones from '../v1/routes/zones.routes';
 
 const routes = Router();
 
@@ -17,6 +18,7 @@ routes.use('/v1', rolePermissions);
 routes.use('/v1', permissions);
 routes.use('/v1', company);
 routes.use('/v1', depots);
+routes.use('/v1', zones);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
+import { validationResult } from 'express-validator';
 
 const prisma = new PrismaClient();
 
@@ -85,8 +86,7 @@ export const depotsController = {
       const depot = await prisma.depots.create({
         data: {
           ...data,
-          parent_id: Number(data.parent_id),
-          createdby: Number(data.createdby),
+          createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
         },
@@ -127,7 +127,7 @@ export const depotsController = {
         page: page_num,
         limit: limit_num,
         orderBy: { createdate: 'desc' },
-        include: { companies: true, user_depot: true },
+        include: { depot_companies: true, user_depot: true },
       });
 
       res.json({
