@@ -39,6 +39,7 @@ export const responseHandler = (req: any, res: any, next: any) => {
     if (pagination) {
       response.meta = {
         ...response.meta,
+        ...pagination,
         total: pagination.total_count,
         page: pagination.current_page,
         limit: pagination.per_page || 10,
