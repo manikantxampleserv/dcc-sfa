@@ -4,7 +4,6 @@ import { paginate } from '../../utils/paginate';
 
 const prisma = new PrismaClient();
 
-// Interface for Depot serialization
 interface DepotSerialized {
   id: number;
   parent_id: number;
@@ -33,13 +32,12 @@ interface DepotSerialized {
   } | null;
 }
 
-// Serialize depot data
 const serializeDepot = (
   depot: any,
   includeCompany = false
 ): DepotSerialized => ({
   id: depot.id,
-  parent_id: depot.parent_id,
+  parent_id: Number(depot.parent_id),
   name: depot.name,
   code: depot.code,
   address: depot.address,
@@ -77,6 +75,7 @@ export const depotsController = {
           ...data,
           parent_id: Number(data.parent_id),
           createdby: Number(data.createdby),
+          log_inst: data.log_inst || 1,
           createdate: new Date(),
         },
         include: { companies: true },
@@ -130,7 +129,7 @@ export const depotsController = {
   },
 
   // GET Depot by ID
-  async getDepotById(req: Request, res: Response) {
+  async getDepotsById(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const depot = await prisma.depots.findUnique({
@@ -153,7 +152,7 @@ export const depotsController = {
   },
 
   // UPDATE Depot
-  async updateDepot(req: Request, res: Response) {
+  async updateDepots(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const existingDepot = await prisma.depots.findUnique({
@@ -183,7 +182,7 @@ export const depotsController = {
   },
 
   // DELETE Depot
-  async deleteDepot(req: Request, res: Response) {
+  async deleteDepots(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const existingDepot = await prisma.depots.findUnique({

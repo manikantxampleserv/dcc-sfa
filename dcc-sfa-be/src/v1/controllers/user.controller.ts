@@ -23,7 +23,7 @@ const serializeUser = (
   address: user.address,
   employee_id: user.employee_id,
   joining_date: user.joining_date,
-  reporting_to: user.reporting_to,
+  reporting_to: Number(user.reporting_to),
   profile_image: user.profile_image,
   last_login: user.last_login,
   is_active: user.is_active,
