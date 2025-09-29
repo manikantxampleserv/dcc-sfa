@@ -89,7 +89,6 @@ export const zonesController = {
     }
   },
 
-  // Get all zones with pagination and optional search
   async getZones(req: Request, res: Response) {
     try {
       const { page = '1', limit = '10', search = '' } = req.query;
@@ -131,7 +130,6 @@ export const zonesController = {
     }
   },
 
-  // Get zone by ID
   async getZoneById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -159,7 +157,6 @@ export const zonesController = {
     }
   },
 
-  // Update zone
   async updateZone(req: Request, res: Response) {
     try {
       const { id } = req.params;

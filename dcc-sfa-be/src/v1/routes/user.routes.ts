@@ -25,6 +25,8 @@ router.post(
   userController.createUser
 );
 
+router.get('/users/me', authenticateToken, userController.getUserProfile);
+
 router.get('/users', authenticateToken, userController.getUsers);
 
 router.get('/users/:id', authenticateToken, userController.getUserById);

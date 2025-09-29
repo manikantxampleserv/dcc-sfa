@@ -6,7 +6,6 @@ import bcrypt from 'bcrypt';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 
 const prisma = new PrismaClient();
-
 const serializeUser = (
   user: any,
   includeCreatedAt = false,

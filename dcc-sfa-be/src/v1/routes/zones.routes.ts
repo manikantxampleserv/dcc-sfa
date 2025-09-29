@@ -1,15 +1,15 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
 import { zonesController } from '../controllers/zones.controller';
-// import { createZoneValidation } from '../validations/zones.validation';
 import { validate } from '../../middlewares/validation.middleware';
+import { createZoneValidation } from '../validations/zones.validation';
 
 const router = Router();
 
 router.post(
   '/zones',
   authenticateToken,
-  //   createZoneValidation,
+  createZoneValidation,
   validate,
   zonesController.createZone
 );
