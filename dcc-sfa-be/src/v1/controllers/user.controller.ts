@@ -139,6 +139,7 @@ export const userController = {
           console.warn(' Continuing without profile image');
         }
       }
+
       const newUser = await prisma.users.create({
         data: {
           email,
@@ -152,7 +153,7 @@ export const userController = {
           address,
           employee_id,
           joining_date: joining_date ? new Date(joining_date) : null,
-          reporting_to,
+          reporting_to: Number(reporting_to),
           profile_image: profile_image_url,
           is_active: is_active ?? 'Y',
           createdby: req.user?.id ?? 0,

@@ -1,50 +1,105 @@
-import {
-  Add,
-  Close as CloseIcon,
-  Upload as UploadIcon,
-} from '@mui/icons-material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import { Box, IconButton, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
+import { useRoles } from 'hooks/useRoles';
+import {
+  useCreateUser,
+  useUpdateUser,
+  useUsers,
+  type User,
+} from 'hooks/useUsers';
 import React, { useState } from 'react';
+import validationSchema from 'schemas/masters/Users';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import { formatForDateInput } from 'utils/dateUtils';
 
-const ManageUsers: React.FC = () => {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+interface ManageUsersProps {
+  selectedUser?: User | null;
+  setSelectedUser: (user: User | null) => void;
+  drawerOpen: boolean;
+  setDrawerOpen: (drawerOpen: boolean) => void;
+}
+
+const ManageUsers: React.FC<ManageUsersProps> = ({
+  selectedUser,
+  setSelectedUser,
+  drawerOpen,
+  setDrawerOpen,
+}) => {
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const isEdit = !!selectedUser;
+
+  const { data: rolesResponse, isLoading: rolesLoading } = useRoles();
+  const roles = rolesResponse?.data || [];
+
+  const { data: usersResponse, isLoading: usersLoading } = useUsers();
+  const users = usersResponse?.data || [];
+
+  const createUserMutation = useCreateUser({
+    onSuccess: () => {
+      handleCancel();
+    },
+  });
+
+  const updateUserMutation = useUpdateUser({
+    onSuccess: () => {
+      handleCancel();
+    },
+  });
 
   const initialValues = {
-    firstName: '',
-    userName: '',
-    email: '',
-    role: '',
-    phone1: '',
-    phone2: '',
+    name: selectedUser?.name || '',
+    email: selectedUser?.email || '',
+    role_id: selectedUser?.role_id || '',
+    phone_number: selectedUser?.phone_number || '',
+    address: selectedUser?.address || '',
+    joining_date: formatForDateInput(selectedUser?.joining_date),
+    reporting_to: selectedUser?.reporting_to || '',
     password: '',
-    repeatPassword: '',
-    location: '',
+    is_active: selectedUser?.is_active || 'Y',
+    isEdit: !!selectedUser,
   };
 
   const formik = useFormik({
     initialValues,
-    onSubmit: values => {
-      const formData = new FormData();
-      formData.append('firstName', values.firstName);
-      formData.append('userName', values.userName);
-      formData.append('email', values.email);
-      formData.append('role', values.role);
-      formData.append('phone1', values.phone1);
-      formData.append('phone2', values.phone2);
-      formData.append('password', values.password);
-      formData.append('repeatPassword', values.repeatPassword);
-      formData.append('location', values.location);
-      formData.append('file', uploadedFile!);
-      console.log(formData);
+    validationSchema,
+    enableReinitialize: true,
+    onSubmit: async values => {
+      try {
+        const formData = new FormData();
+        formData.append('name', values.name);
+        formData.append('email', values.email);
+        formData.append('role_id', values.role_id.toString());
+        formData.append('phone_number', values.phone_number);
+        formData.append('address', values.address);
+        formData.append('joining_date', values.joining_date);
+        formData.append('reporting_to', values.reporting_to.toString());
+        formData.append('is_active', values.is_active);
+
+        if (values.password) {
+          formData.append('password', values.password);
+        }
+
+        if (uploadedFile) {
+          formData.append('profile_image', uploadedFile);
+        }
+
+        if (isEdit && selectedUser) {
+          await updateUserMutation.mutateAsync({
+            id: selectedUser.id,
+            userData: formData,
+          });
+        } else {
+          await createUserMutation.mutateAsync(formData);
+        }
+      } catch (error) {
+        console.error('Error saving user:', error);
+      }
     },
   });
-
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -56,13 +111,12 @@ const ManageUsers: React.FC = () => {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     formik.handleSubmit();
-    setDrawerOpen(false);
-    setUploadedFile(null);
   };
 
   const handleCancel = () => {
     setDrawerOpen(false);
     formik.resetForm();
+    setSelectedUser(null);
     setUploadedFile(null);
   };
 
@@ -71,112 +125,172 @@ const ManageUsers: React.FC = () => {
   };
 
   return (
-    <div>
-      <Button
-        variant="contained"
-        className="!capitalize"
-        disableElevation
-        startIcon={<Add />}
-        onClick={() => setDrawerOpen(true)}
-      >
-        Create
-      </Button>
+    <CustomDrawer
+      open={drawerOpen}
+      setOpen={handleCancel}
+      title={isEdit ? `Edit User: ${selectedUser?.name}` : 'Create New User'}
+      size="large"
+    >
+      <Box component="form" onSubmit={handleSubmit} className="p-4">
+        <div
+          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4 cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50"
+          onClick={() => document.getElementById('file-upload')?.click()}
+        >
+          <input
+            id="file-upload"
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+          {uploadedFile ? (
+            <div className="flex items-center gap-2">
+              <Typography variant="body2">{uploadedFile.name}</Typography>
+              <IconButton size="small" onClick={removeUploadedFile}>
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </div>
+          ) : (
+            <>
+              <Button variant="contained" sx={{ mb: 1 }}>
+                Upload file
+              </Button>
+              <Typography variant="body2" color="text.secondary">
+                JPG, GIF or PNG. Max size of 800K
+              </Typography>
+            </>
+          )}
+        </div>
 
-      <CustomDrawer
-        open={drawerOpen}
-        setOpen={setDrawerOpen}
-        title="Add New User"
-        size="large"
-      >
-        <Box component="form" onSubmit={handleSubmit} className="p-6">
-          <div
-            className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4 cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50"
-            onClick={() => document.getElementById('file-upload')?.click()}
-          >
-            <input
-              id="file-upload"
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleFileUpload}
+        {/* User Basic Information */}
+        <Box className="mb-6">
+          <p className="!font-semibold !mb-4 !text-gray-900">
+            User Information
+          </p>
+
+          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
+            <Input
+              name="name"
+              formik={formik}
+              label="Full Name"
+              placeholder="Enter full name"
+              required
             />
-            {uploadedFile ? (
-              <div className="flex items-center gap-2">
-                <Typography variant="body2">{uploadedFile.name}</Typography>
-                <IconButton size="small" onClick={removeUploadedFile}>
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </div>
-            ) : (
-              <>
-                <UploadIcon sx={{ fontSize: 40, color: 'text.secondary' }} />
-                <Button variant="contained" sx={{ mb: 1 }}>
-                  Upload file
-                </Button>
-                <Typography variant="body2" color="text.secondary">
-                  JPG, GIF or PNG. Max size of 800K
-                </Typography>
-              </>
-            )}
+            <Input
+              name="email"
+              formik={formik}
+              label="Email"
+              placeholder="Enter email address"
+              type="email"
+              required
+            />
           </div>
 
           <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
-            <Input name="firstName" formik={formik} label="First Name" />
-            <Input name="userName" formik={formik} label="User Name" />
-          </div>
-
-          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
-            <Input name="email" formik={formik} label="Email" />
-            <Select name="role" formik={formik} label="Role">
-              <MenuItem value="admin">Admin</MenuItem>
-              <MenuItem value="manager">Manager</MenuItem>
-              <MenuItem value="user">User</MenuItem>
-              <MenuItem value="installer">Installer</MenuItem>
-              <MenuItem value="technician">Technician</MenuItem>
-              <MenuItem value="engineer">Test Engineer</MenuItem>
-              <MenuItem value="designer">UI/UX Designer</MenuItem>
+            <Select name="role_id" formik={formik} label="Role" required>
+              {rolesLoading ? (
+                <MenuItem disabled>Loading roles...</MenuItem>
+              ) : (
+                roles.map(role => (
+                  <MenuItem key={role.id} value={role.id}>
+                    {role.name}
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+            <Select required name="is_active" formik={formik} label="Status">
+              <MenuItem value="Y">Active</MenuItem>
+              <MenuItem value="N">Inactive</MenuItem>
             </Select>
           </div>
 
           <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
-            <Input name="phone1" formik={formik} label="Phone 1" />
-            <Input name="phone2" formik={formik} label="Phone 2" />
+            <Input
+              name="phone_number"
+              formik={formik}
+              label="Phone Number"
+              placeholder="Enter phone number"
+            />
           </div>
 
           <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
             <Input
+              name="joining_date"
+              formik={formik}
+              label="Joining Date"
+              type="date"
+            />
+            <Select
+              name="reporting_to"
+              formik={formik}
+              required
+              label="Reporting Manager"
+            >
+              {usersLoading ? (
+                <MenuItem disabled>Loading users...</MenuItem>
+              ) : (
+                users.map(u => (
+                  <MenuItem key={u.id} value={u.id}>
+                    {u.name} ({u.email})
+                  </MenuItem>
+                ))
+              )}
+            </Select>
+          </div>
+
+          <Input
+            name="address"
+            formik={formik}
+            label="Address"
+            placeholder="Enter address"
+            multiline
+            rows={3}
+          />
+
+          {!isEdit && (
+            <Input
               name="password"
-              type="password"
               formik={formik}
               label="Password"
-            />
-            <Input
-              name="repeatPassword"
+              placeholder="Enter password"
               type="password"
-              formik={formik}
-              label="Repeat Password"
+              required
+              className="!mt-4"
             />
-          </div>
+          )}
 
-          <Select name="location" label="Location" formik={formik}>
-            <MenuItem value="">Select</MenuItem>
-            <MenuItem value="office1">Office 1</MenuItem>
-            <MenuItem value="office2">Office 2</MenuItem>
-            <MenuItem value="remote">Remote</MenuItem>
-            <MenuItem value="warehouse">Warehouse</MenuItem>
-          </Select>
-
-          <div className="flex gap-4 justify-end pt-4">
-            <Button variant="outlined" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="contained">
-              Create
-            </Button>
-          </div>
+          {isEdit && (
+            <Input
+              name="password"
+              formik={formik}
+              label="New Password (Optional)"
+              placeholder="Enter new password to change"
+              type="password"
+              className="!mt-4"
+            />
+          )}
         </Box>
-      </CustomDrawer>
-    </div>
+
+        <div className="flex gap-4 justify-end">
+          <Button variant="outlined" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={
+              createUserMutation.isPending || updateUserMutation.isPending
+            }
+          >
+            {createUserMutation.isPending || updateUserMutation.isPending
+              ? 'Saving...'
+              : isEdit
+                ? 'Update'
+                : 'Create'}
+          </Button>
+        </div>
+      </Box>
+    </CustomDrawer>
   );
 };
 

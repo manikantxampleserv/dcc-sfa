@@ -13,6 +13,7 @@ const RolePermissions: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(7);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const {
     data: rolesResponse,
@@ -102,6 +103,8 @@ const RolePermissions: React.FC = () => {
 
   const handleEditRole = useCallback((role: Role) => {
     setSelectedRole(role);
+    console.log(role);
+    setDrawerOpen(true);
   }, []);
 
   const handleDeleteRole = useCallback(
@@ -114,10 +117,6 @@ const RolePermissions: React.FC = () => {
     },
     [deleteRoleMutation]
   );
-
-  const handleCloseManage = useCallback(() => {
-    setSelectedRole(null);
-  }, []);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
@@ -134,14 +133,14 @@ const RolePermissions: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-6 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <Typography variant="h5" className="!font-bold !text-gray-900 !mb-2">
+          <p className="!font-bold text-xl !text-gray-900">
             Role & Permissions Management
-          </Typography>
-          <Typography variant="body2" className="!text-gray-500">
+          </p>
+          <p className="!text-gray-500 text-sm">
             Manage system roles and their associated permissions
-          </Typography>
+          </p>
         </Box>
       </Box>
 
@@ -166,8 +165,10 @@ const RolePermissions: React.FC = () => {
               className="!min-w-80"
             />
             <ManageRolePermissions
-              role={selectedRole}
-              onClose={handleCloseManage}
+              selectedRole={selectedRole}
+              setSelectedRole={setSelectedRole}
+              setDrawerOpen={setDrawerOpen}
+              drawerOpen={drawerOpen}
             />
           </div>
         }

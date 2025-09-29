@@ -9,7 +9,7 @@ import {
 import { useFormik } from 'formik';
 import { usePermissionsByModule } from 'hooks/usePermissions';
 import { useCreateRole, useUpdateRole, type Role } from 'hooks/useRoles';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -17,8 +17,10 @@ import Select from 'shared/Select';
 import * as Yup from 'yup';
 
 interface ManageRolePermissionsProps {
-  role?: Role | null;
-  onClose: () => void;
+  selectedRole?: Role | null;
+  setSelectedRole: (role: Role | null) => void;
+  drawerOpen: boolean;
+  setDrawerOpen: (drawerOpen: boolean) => void;
 }
 
 const validationSchema = Yup.object({
@@ -35,11 +37,12 @@ const validationSchema = Yup.object({
 });
 
 const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
-  role,
-  onClose,
+  selectedRole,
+  setSelectedRole,
+  drawerOpen,
+  setDrawerOpen,
 }) => {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const isEdit = !!role;
+  const isEdit = !!selectedRole;
 
   const {
     data: permissionsResponse,
@@ -62,11 +65,11 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   });
 
   const initialValues = {
-    name: role?.name || '',
-    description: role?.description || '',
-    is_active: role?.is_active || 'Y',
+    name: selectedRole?.name || '',
+    description: selectedRole?.description || '',
+    is_active: selectedRole?.is_active || 'Y',
     permissions:
-      role?.permissions
+      selectedRole?.permissions
         ?.filter(p => p.is_active === 'Y')
         .map(p => p.permission_id) || [],
   };
@@ -74,11 +77,12 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   const formik = useFormik({
     initialValues,
     validationSchema,
+    enableReinitialize: true,
     onSubmit: async values => {
       try {
-        if (isEdit && role) {
+        if (isEdit && selectedRole) {
           await updateRoleMutation.mutateAsync({
-            id: role.id,
+            id: selectedRole.id,
             roleData: {
               name: values.name,
               description: values.description,
@@ -100,10 +104,6 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
     },
   });
 
-  useEffect(() => {
-    setDrawerOpen(true);
-  }, []);
-
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     formik.handleSubmit();
@@ -111,10 +111,8 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
 
   const handleCancel = () => {
     setDrawerOpen(false);
-    setTimeout(() => {
-      formik.resetForm();
-      onClose();
-    }, 300);
+    formik.resetForm();
+    setSelectedRole(null);
   };
 
   const handlePermissionChange = (permissionId: number, checked: boolean) => {
@@ -184,13 +182,13 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
 
       <CustomDrawer
         open={drawerOpen}
-        setOpen={setDrawerOpen}
-        title={isEdit ? `Edit Role: ${role?.name}` : 'Create New Role'}
+        setOpen={handleCancel}
+        title={isEdit ? `Edit Role: ${selectedRole?.name}` : 'Create New Role'}
         size="larger"
       >
         <Box component="form" onSubmit={handleSubmit} className="p-4">
           {/* Role Basic Information */}
-          <Box className="mb-6">
+          <Box className="mb-3">
             <p className="!font-semibold !mb-4 !text-gray-900">
               Role Information
             </p>
@@ -277,7 +275,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                     }
                   />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 pb-2 gap-1">
                     {module.permissions.map(permission => (
                       <FormControlLabel
                         key={permission.id}

@@ -76,6 +76,7 @@ const Select: React.FC<CustomSelectProps> = ({
   setValue,
   label,
   value,
+  required,
   children,
   fullWidth = true,
   onBlur,
@@ -100,12 +101,13 @@ const Select: React.FC<CustomSelectProps> = ({
 
   return (
     <FormControl fullWidth={fullWidth} error={!!error}>
-      <InputLabel id={`${name}-label`} size={size}>
+      <InputLabel id={`${name}-label`} size={size} required={required}>
         {label}
       </InputLabel>
       <MuiSelect
         labelId={`${name}-label`}
         name={name}
+        required={required}
         size={size}
         onBlur={formik?.handleBlur || onBlur}
         value={value || formik?.values[name] || ''}

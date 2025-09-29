@@ -191,9 +191,7 @@ function TableHead<T>(props: TableHeadProps<T>) {
             )}
             style={{ width: column.width }}
           >
-            {sortable &&
-            column.sortable !== false &&
-            typeof column.id !== 'string' ? (
+            {sortable && column.sortable !== false ? (
               <MuiTableSortLabel
                 active={orderBy === column.id}
                 direction={orderBy === column.id ? order : 'asc'}
@@ -304,7 +302,7 @@ export default function Table<T extends Record<string, any>>(
   const [order, setOrder] = useState<Order>(initialOrder);
   const [orderBy, setOrderBy] = useState<keyof T>(
     initialOrderBy ||
-      (columns.find(col => typeof col.id !== 'string')?.id as keyof T) ||
+      (columns.find(col => col.sortable !== false)?.id as keyof T) ||
       (columns[0]?.id as keyof T)
   );
 
@@ -312,7 +310,10 @@ export default function Table<T extends Record<string, any>>(
     _event: React.MouseEvent<unknown>,
     property: keyof T | string
   ) => {
-    if (typeof property === 'string') return; // Don't sort action columns
+    // Find the column to check if it's sortable
+    const column = columns.find(col => col.id === property);
+    if (column?.sortable === false) return; // Don't sort if explicitly disabled
+
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
