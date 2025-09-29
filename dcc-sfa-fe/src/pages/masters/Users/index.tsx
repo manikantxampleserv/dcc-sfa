@@ -6,17 +6,8 @@ import { useUsers, useDeleteUser, type User } from '../../../hooks/useUsers';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import SearchInput from 'shared/SearchInput';
 import Table, { type TableColumn } from 'shared/Table';
+import { formatDate } from '../../../utils/dateUtils';
 import ManageUsers from './ManageUsers';
-
-const formatDate = (dateString: string | null | undefined) => {
-  if (!dateString)
-    return <span className="italic text-gray-400"> No Date </span>;
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-};
 
 const Users: React.FC = () => {
   const [search, setSearch] = useState('');

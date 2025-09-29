@@ -4,6 +4,7 @@ import user from '../v1/routes/user.routes';
 import auth from '../v1/routes/auth.routes';
 import roles from '../v1/routes/roles.routes';
 import rolePermissions from '../v1/routes/rolePermissions.routes';
+import permissions from '../v1/routes/permissions.routes';
 import company from '../v1/routes/company.routes';
 const routes = Router();
 
@@ -11,9 +12,10 @@ routes.use('/v1', auth);
 routes.use('/v1', user);
 routes.use('/v1', roles);
 routes.use('/v1', rolePermissions);
+routes.use('/v1', permissions);
 routes.use('/v1', company);
 
-routes.get('/', (_: Request, res: Response) => {
+routes.get('/', (_: any, res: any) => {
   res.json({
     name: 'DCC-SFA API',
     description: 'Sales Force Automation System - Backend API',
@@ -34,7 +36,7 @@ routes.get('/', (_: Request, res: Response) => {
   });
 });
 
-routes.get('/v1/health', (_: Request, res: Response) => {
+routes.get('/v1/health', (_: any, res: any) => {
   res.json({
     status: 'OK',
     message: 'DCC SFA is alive, well-fed, and caffeinated.',

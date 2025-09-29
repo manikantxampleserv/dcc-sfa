@@ -21,6 +21,12 @@ const serializeRole = (
     ? role.roles_permission.map((rp: any) => ({
         permission_id: rp.permission_id,
         is_active: rp.is_active,
+        permission: rp.permissions ? {
+          id: rp.permissions.id,
+          name: rp.permissions.name,
+          description: rp.permissions.description,
+          module: rp.permissions.module,
+        } : null,
       }))
     : [],
   user_role: role.user_role
