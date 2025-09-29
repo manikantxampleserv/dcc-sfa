@@ -43,13 +43,14 @@ const serializeUser = (
         code: user.companies.code,
       }
     : null,
-  depot: user.depots
+  user_depot: user.user_depot
     ? {
-        id: user.depots.id,
-        name: user.depots.name,
-        code: user.depots.code,
+        id: user.user_depot.id,
+        name: user.user_depot.name,
+        code: user.user_depot.code,
       }
     : null,
+
   zone: user.zones
     ? {
         id: user.zones.id,
@@ -161,7 +162,7 @@ export const userController = {
         include: {
           user_role: true,
           companies: true,
-          depots: true,
+          user_depot: true,
           zones: true,
           users: { select: { id: true, name: true, email: true } },
         },
@@ -225,7 +226,7 @@ export const userController = {
         include: {
           user_role: true,
           companies: true,
-          depots: true,
+          user_depot: true,
           zones: true,
           users: {
             select: {
@@ -266,7 +267,7 @@ export const userController = {
         include: {
           user_role: true,
           companies: true,
-          depots: true,
+          user_depot: true,
           zones: true,
           users: {
             select: {
@@ -403,7 +404,7 @@ export const userController = {
         include: {
           user_role: true,
           companies: true,
-          depots: true,
+          user_depot: true,
           zones: true,
           users: { select: { id: true, name: true, email: true } },
         },
@@ -490,7 +491,7 @@ export const userController = {
         include: {
           user_role: true,
           companies: true,
-          depots: true,
+          user_depot: true,
           zones: true,
           users: {
             select: {
