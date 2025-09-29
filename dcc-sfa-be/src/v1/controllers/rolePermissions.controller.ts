@@ -43,7 +43,7 @@ const serializeRolePermissions = (
 });
 
 export const rolePermissionsController = {
-  async createRolePermissions(req: Request, res: Response): Promise<void> {
+  async createRolePermissions(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -102,7 +102,7 @@ export const rolePermissionsController = {
     }
   },
 
-  async getAllRolePermissions(req: Request, res: Response): Promise<void> {
+  async getAllRolePermissions(req: any, res: any): Promise<void> {
     try {
       const {
         page = '1',
@@ -163,7 +163,7 @@ export const rolePermissionsController = {
     }
   },
 
-  async getRolePermissionsById(req: Request, res: Response): Promise<void> {
+  async getRolePermissionsById(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -203,7 +203,7 @@ export const rolePermissionsController = {
     }
   },
 
-  async updateRolePermission(req: Request, res: Response): Promise<void> {
+  async updateRolePermission(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -297,7 +297,7 @@ export const rolePermissionsController = {
     }
   },
 
-  async deleteRolePermissions(req: Request, res: Response): Promise<void> {
+  async deleteRolePermissions(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

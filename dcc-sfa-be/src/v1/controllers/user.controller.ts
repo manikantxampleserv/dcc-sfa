@@ -67,7 +67,7 @@ const serializeUser = (
 });
 
 export const userController = {
-  async createUser(req: Request, res: Response): Promise<void> {
+  async createUser(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -112,23 +112,24 @@ export const userController = {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       let profile_image_url: string | null = null;
-      if (req.file) {
+      const file = (req as any).file;
+      if (file) {
         try {
           const userFolder = req.user?.id ?? 'guest';
-          const fileExt = req.file.originalname.split('.').pop();
+          const fileExt = file.originalname.split('.').pop();
           const fileName = `profiles/profile_${userFolder}_${Date.now()}.${fileExt}`;
 
           console.log(' Uploading file:', {
-            originalName: req.file.originalname,
+            originalName: file.originalname,
             fileName,
-            mimetype: req.file.mimetype,
-            size: req.file.size,
+            mimetype: file.mimetype,
+            size: file.size,
           });
 
           profile_image_url = await uploadFile(
-            req.file.buffer,
+            file.buffer,
             fileName,
-            req.file.mimetype
+            file.mimetype
           );
 
           console.log('File uploaded successfully:', profile_image_url);
@@ -173,7 +174,7 @@ export const userController = {
     }
   },
 
-  async getUsers(req: Request, res: Response): Promise<void> {
+  async getUsers(req: any, res: any): Promise<void> {
     try {
       const {
         page = '1',
@@ -248,7 +249,7 @@ export const userController = {
     }
   },
 
-  async getUserById(req: Request, res: Response): Promise<void> {
+  async getUserById(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -289,7 +290,7 @@ export const userController = {
     }
   },
 
-  async updateUser(req: Request, res: Response): Promise<void> {
+  async updateUser(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -303,7 +304,8 @@ export const userController = {
       console.log('Target User ID:', targetUserId);
       console.log('Current User ID:', currentUserId);
       console.log('Req body:', req.body);
-      console.log('Req file:', req.file ? 'File present' : 'No file');
+      const uploadedFile = (req as any).file;
+      console.log('Req file:', uploadedFile ? 'File present' : 'No file');
 
       if (!currentUserId) {
         res.error('User not authenticated', 401);
@@ -338,7 +340,7 @@ export const userController = {
 
       let profile_image_url = undefined;
 
-      if (req.file) {
+      if (uploadedFile) {
         console.log(
           '[UPDATE USER] File upload triggered for user:',
           targetUserId
@@ -357,20 +359,20 @@ export const userController = {
           }
         }
 
-        const fileExt = req.file.originalname.split('.').pop();
+        const fileExt = uploadedFile.originalname.split('.').pop();
         const fileName = `profiles/profile_${targetUserId}_${Date.now()}.${fileExt}`;
 
         console.log(' Uploading new file:', {
           fileName,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
+          mimetype: uploadedFile.mimetype,
+          size: uploadedFile.size,
         });
 
         try {
           profile_image_url = await uploadFile(
-            req.file.buffer,
+            uploadedFile.buffer,
             fileName,
-            req.file.mimetype
+            uploadedFile.mimetype
           );
           console.log(' File uploaded successfully:', profile_image_url);
         } catch (error) {
@@ -418,7 +420,7 @@ export const userController = {
     }
   },
 
-  async deleteUser(req: Request, res: Response): Promise<void> {
+  async deleteUser(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -471,7 +473,7 @@ export const userController = {
     }
   },
 
-  async getUserProfile(req: Request, res: Response): Promise<void> {
+  async getUserProfile(req: any, res: any): Promise<void> {
     try {
       const userId = req.user?.id;
 

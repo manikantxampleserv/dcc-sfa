@@ -1,12 +1,2 @@
-declare module 'multer' {
-  import { RequestHandler } from 'express';
-
-  function multer(options?: any): {
-    single(fieldname: string): RequestHandler;
-    array(fieldname: string, maxCount?: number): RequestHandler;
-    fields(fields: { name: string; maxCount?: number }[]): RequestHandler;
-    none(): RequestHandler;
-  };
-
-  export = multer;
-}
+// This file is no longer needed since we use @types/multer package
+// Express Request interface extensions are now in src/types/express.d.ts

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { jwtConfig } from '../configs/jwt.config';
 import { createPermission, PERMISSIONS } from '../configs/permissions.config';
+
 const prisma = new PrismaClient();
 
 type PermissionItem = { module: string; action: string };
@@ -19,30 +20,9 @@ const userWithRoleAndPermissions = Prisma.validator<Prisma.usersInclude>()({
   },
 });
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: number;
-        username?: string;
-        email: string;
-        name: string;
-        role: string;
-        permissions: string[];
-        parent_id?: number | null;
-        depot_id?: number | null;
-        zone_id?: number | null;
-      };
-      token?: string;
-    }
-  }
-}
+// Express Request interface extensions are now in src/types/express.d.ts
 
-export const authenticateToken = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const authenticateToken = async (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -86,7 +66,7 @@ export const authenticateToken = async (
 };
 
 export const authorizeRoles = (...allowedRoles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: any, res: any, next: any) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
       res.status(403).json({ error: 'access_denied' });
       return;
@@ -96,7 +76,7 @@ export const authorizeRoles = (...allowedRoles: string[]) => {
 };
 
 export const requirePermission = (...perms: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: any, res: any, next: any) => {
     if (!req.user) {
       res.status(401).json({ error: 'authentication_required' });
       return;
@@ -110,11 +90,7 @@ export const requirePermission = (...perms: string[]) => {
   };
 };
 
-export const authorizeCompany = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const authorizeCompany = (req: any, res: any, next: any) => {
   if (!req.user) {
     res.status(401).json({ error: 'authentication_required' });
     return;
@@ -138,11 +114,7 @@ export const authorizeCompany = (
   next();
 };
 
-export const authorizeDepot = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const authorizeDepot = (req: any, res: any, next: any) => {
   if (!req.user) {
     res.status(401).json({ error: 'authentication_required' });
     return;
@@ -168,11 +140,7 @@ export const authorizeDepot = (
   next();
 };
 
-export const authorizeZone = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const authorizeZone = (req: any, res: any, next: any) => {
   if (!req.user) {
     res.status(401).json({ error: 'authentication_required' });
     return;
@@ -198,11 +166,7 @@ export const authorizeZone = (
   next();
 };
 
-export const optionalAuth = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const optionalAuth = async (req: any, res: any, next: any) => {
   let token: string | undefined;
 
   if (
@@ -249,11 +213,7 @@ export const optionalAuth = async (
   }
 };
 
-export const validateSession = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const validateSession = (req: any, res: any, next: any) => {
   if (!req.user || !req.token) {
     next();
     return;
@@ -284,7 +244,7 @@ export const validateSession = (
 };
 
 export const requireAnyModulePermission = (permissions: PermissionItem[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: any, res: any, next: any) => {
     if (!req.user) {
       return res.status(401).json({ error: 'authentication_required' });
     }
@@ -311,7 +271,7 @@ export const requireAnyModulePermission = (permissions: PermissionItem[]) => {
 export const requireAllModulePermissions = (
   permissions: Array<{ module: string; action: string }>
 ) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: any, res: any, next: any) => {
     if (!req.user) {
       res.status(401).json({ error: 'authentication_required' });
       return;

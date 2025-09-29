@@ -7,9 +7,9 @@ import { codeInspectorPlugin } from 'code-inspector-plugin';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    codeInspectorPlugin({ bundler: 'vite', hotKeys: ['altKey'] }),
     react(),
     tailwindcss(),
-    codeInspectorPlugin({ bundler: 'vite', hotKeys: ['altKey'] }),
   ],
   resolve: {
     alias: {

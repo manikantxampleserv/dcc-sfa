@@ -21,7 +21,7 @@ const formatDate = (dateString: string | null | undefined) => {
 const Users: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit] = useState(7);
 
   const {
     data: usersResponse,

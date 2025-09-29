@@ -1,15 +1,14 @@
+import ProtectedRoute from 'components/ProtectedRoute';
+import Layout from 'layout';
+import Login from 'pages/auth/Login';
+import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
+import Companies from 'pages/masters/Companies';
+import Depots from 'pages/masters/Depots';
+import Users from 'pages/masters/Users';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import Layout from '../layout';
-import ExecutiveDashboard from '../pages/dashboards/ExecutiveDashboard';
-import Users from 'pages/masters/Users';
-import Login from '../pages/auth/Login';
-import ProtectedRoute from '../components/ProtectedRoute';
 
-// Simple page components with h1 tags
-const CompanyMaster = () => <h1>Company Master</h1>;
 const RolePermission = () => <h1>Role & Permission Setup</h1>;
-const Depots = () => <h1>Depots</h1>;
 const Zones = () => <h1>Zones</h1>;
 const Routes = () => <h1>Routes</h1>;
 const OutletMaster = () => <h1>Outlet Master</h1>;
@@ -96,7 +95,7 @@ const router = createBrowserRouter([
       // Masters Routes
       {
         path: '/masters/company',
-        element: <CompanyMaster />,
+        element: <Companies />,
       },
       {
         path: '/masters/users',

@@ -434,7 +434,7 @@ export default function Table<T extends Record<string, any>>(
                           key={String(column.id)}
                           align={column.numeric ? 'right' : 'left'}
                           padding={column.disablePadding ? 'none' : 'normal'}
-                          className="!border-b !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm !p-4"
+                          className="!border-b !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
                         >
                           {column.render
                             ? column.render(row[column.id], row)
