@@ -4,72 +4,93 @@ import { paginate } from '../../utils/paginate';
 
 const prisma = new PrismaClient();
 
-interface RoleSerialized {
+interface ZoneSerialized {
   id: number;
+  parent_id: number;
+  depot_id?: number | null;
   name: string;
+  code: string;
   description?: string | null;
+  supervisor_id?: number | null;
   is_active: string;
   createdby: number;
   createdate?: Date | null;
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  user_role?: { id: number; email: string; name: string }[];
-  roles_permission?: { id: number; permission: string }[];
+  promotions?: { id: number; name: string }[];
+  routes_zones?: { id: number; name: string }[];
+  user_zones?: { id: number; name: string; email: string }[];
+  zone_depots?: { id: number; name: string; code: string } | null;
 }
 
-const serializeRole = (role: any): RoleSerialized => ({
-  id: role.id,
-  name: role.name,
-  description: role.description,
-  is_active: role.is_active,
-  createdby: role.createdby,
-  createdate: role.createdate,
-  updatedate: role.updatedate,
-  updatedby: role.updatedby,
-  log_inst: role.log_inst,
-  user_role: role.user_role
-    ? role.user_role.map((u: any) => ({
+const serializeZone = (zone: any): ZoneSerialized => ({
+  id: zone.id,
+  parent_id: zone.parent_id,
+  depot_id: zone.depot_id,
+  name: zone.name,
+  code: zone.code,
+  description: zone.description,
+  supervisor_id: zone.supervisor_id,
+  is_active: zone.is_active,
+  createdby: zone.createdby,
+  createdate: zone.createdate,
+  updatedate: zone.updatedate,
+  updatedby: zone.updatedby,
+  log_inst: zone.log_inst,
+  promotions: zone.promotions
+    ? zone.promotions.map((p: any) => ({ id: p.id, name: p.name }))
+    : [],
+  routes_zones: zone.routes_zones
+    ? zone.routes_zones.map((r: any) => ({ id: r.id, name: r.name }))
+    : [],
+  user_zones: zone.user_zones
+    ? zone.user_zones.map((u: any) => ({
         id: u.id,
-        email: u.email,
         name: u.name,
+        email: u.email,
       }))
     : [],
-  roles_permission: role.roles_permission
-    ? role.roles_permission.map((rp: any) => ({
-        id: rp.id,
-        permission: rp.permission,
-      }))
-    : [],
+  zone_depots: zone.zone_depots
+    ? {
+        id: zone.zone_depots.id,
+        name: zone.zone_depots.name,
+        code: zone.zone_depots.code,
+      }
+    : null,
 });
 
-export const rolesController = {
-  // Create a role
-  async createRole(req: Request, res: Response) {
+export const zonesController = {
+  async createZone(req: Request, res: Response) {
     try {
       const data = req.body;
-      const role = await prisma.roles.create({
+      const zone = await prisma.zones.create({
         data: {
           ...data,
           createdby: data.createdby || 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
         },
-        include: { user_role: true, roles_permission: true },
+        include: {
+          promotions: true,
+          routes_zones: true,
+          user_zones: true,
+          zone_depots: true,
+        },
       });
 
       res.status(201).json({
-        message: 'Role created successfully',
-        data: serializeRole(role),
+        message: 'Zone created successfully',
+        data: serializeZone(zone),
       });
     } catch (error: any) {
-      console.error('Create Role Error:', error);
+      console.error('Create Zone Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
 
-  // Get all roles with pagination and optional search
-  async getRoles(req: Request, res: Response) {
+  // Get all zones with pagination and optional search
+  async getZones(req: Request, res: Response) {
     try {
       const { page = '1', limit = '10', search = '' } = req.query;
       const pageNum = parseInt(page as string, 10);
@@ -78,99 +99,117 @@ export const rolesController = {
 
       const filters: any = {
         ...(search && {
-          OR: [{ name: { contains: searchLower } }],
+          OR: [
+            { name: { contains: searchLower } },
+            { code: { contains: searchLower } },
+          ],
         }),
       };
 
       const { data, pagination } = await paginate({
-        model: prisma.roles,
+        model: prisma.zones,
         filters,
         page: pageNum,
         limit: limitNum,
         orderBy: { createdate: 'desc' },
-        include: { user_role: true, roles_permission: true },
+        include: {
+          promotions: true,
+          routes_zones: true,
+          user_zones: true,
+          zone_depots: true,
+        },
       });
 
       res.json({
-        message: 'Roles retrieved successfully',
-        data: data.map(serializeRole),
+        message: 'Zones retrieved successfully',
+        data: data.map(serializeZone),
         pagination,
       });
     } catch (error: any) {
-      console.error('Get Roles Error:', error);
+      console.error('Get Zones Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
 
-  // Get role by ID
-  async getRoleById(req: Request, res: Response) {
+  // Get zone by ID
+  async getZoneById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const role = await prisma.roles.findUnique({
+      const zone = await prisma.zones.findUnique({
         where: { id: Number(id) },
-        include: { user_role: true, roles_permission: true },
+        include: {
+          promotions: true,
+          routes_zones: true,
+          user_zones: true,
+          zone_depots: true,
+        },
       });
 
-      if (!role) {
-        return res.status(404).json({ message: 'Role not found' });
+      if (!zone) {
+        return res.status(404).json({ message: 'Zone not found' });
       }
 
       res.json({
-        message: 'Role fetched successfully',
-        data: serializeRole(role),
+        message: 'Zone fetched successfully',
+        data: serializeZone(zone),
       });
     } catch (error: any) {
-      console.error('Get Role Error:', error);
+      console.error('Get Zone Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
 
-  // Update role
-  async updateRole(req: Request, res: Response) {
+  // Update zone
+  async updateZone(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const existingRole = await prisma.roles.findUnique({
+      const existingZone = await prisma.zones.findUnique({
         where: { id: Number(id) },
       });
 
-      if (!existingRole) {
-        return res.status(404).json({ message: 'Role not found' });
+      if (!existingZone) {
+        return res.status(404).json({ message: 'Zone not found' });
       }
 
       const data = { ...req.body, updatedate: new Date() };
-      const role = await prisma.roles.update({
+      const zone = await prisma.zones.update({
         where: { id: Number(id) },
         data,
-        include: { user_role: true, roles_permission: true },
+        include: {
+          promotions: true,
+          routes_zones: true,
+          user_zones: true,
+          zone_depots: true,
+        },
       });
 
       res.json({
-        message: 'Role updated successfully',
-        data: serializeRole(role),
+        message: 'Zone updated successfully',
+        data: serializeZone(zone),
       });
     } catch (error: any) {
-      console.error('Update Role Error:', error);
+      console.error('Update Zone Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
 
-  // Delete role
-  async deleteRole(req: Request, res: Response) {
+  // Delete zone
+  async deleteZone(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const existingRole = await prisma.roles.findUnique({
+      const existingZone = await prisma.zones.findUnique({
         where: { id: Number(id) },
       });
 
-      if (!existingRole) {
-        return res.status(404).json({ message: 'Role not found' });
+      if (!existingZone) {
+        return res.status(404).json({ message: 'Zone not found' });
       }
 
-      await prisma.roles.delete({ where: { id: Number(id) } });
+      await prisma.zones.delete({ where: { id: Number(id) } });
 
-      res.json({ message: 'Role deleted successfully' });
+      res.json({ message: 'Zone deleted successfully' });
     } catch (error: any) {
-      console.error('Delete Role Error:', error);
+      console.error('Delete Zone Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
