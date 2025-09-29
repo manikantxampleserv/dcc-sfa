@@ -33,10 +33,10 @@ const serializeCompany = (
       }))
     : [],
   depot_companies: company.depot_companies
-    ? company.depot_companies.map((u: any) => ({
-        id: true,
-        parent_id: true,
-        name: true,
+    ? company.depot_companies.map((d: any) => ({
+        id: d.id,
+        parent_id: d.parent_id,
+        name: d.name,
       }))
     : [],
 });
@@ -124,11 +124,38 @@ export const companyController = {
         include: { depot_companies: true },
       });
 
+      const totalCompanies = await prisma.companies.count();
+      const activeCompanies = await prisma.companies.count({
+        where: { is_active: 'Y' },
+      });
+      const inactiveCompanies = await prisma.companies.count({
+        where: { is_active: 'N' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const newCompaniesThisMonth = await prisma.companies.count({
+        where: {
+          created_date: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
+      });
+
       res.success(
         'Companies retrieved successfully',
         data.map((c: any) => serializeCompany(c, true, true)),
         200,
-        pagination
+        {
+          ...pagination,
+          total_companies: totalCompanies,
+          active_companies: activeCompanies,
+          inactive_companies: inactiveCompanies,
+          new_companies: newCompaniesThisMonth,
+        }
       );
     } catch (error: any) {
       console.error('Error fetching companies:', error);

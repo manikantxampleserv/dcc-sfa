@@ -27,6 +27,14 @@ router.post(
 
 router.get('/users/me', authenticateToken, userController.getUserProfile);
 
+router.put(
+  '/users/me',
+  authenticateToken,
+  upload.single('profile_image'),
+  updateUserValidation,
+  userController.updateUserProfile
+);
+
 router.get('/users', authenticateToken, userController.getUsers);
 
 router.get('/users/:id', authenticateToken, userController.getUserById);
