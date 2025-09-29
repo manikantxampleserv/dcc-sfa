@@ -62,8 +62,7 @@ model users {
   companies                                                           companies?                   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   users                                                               users?                       @relation("usersTousers", fields: [reporting_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__reporting__403A8C7D")
   other_users                                                         users[]                      @relation("usersTousers")
-  zones                                                               zones?                       @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__zone_id__3F466844")
-  van_inventory_van_inventory_user_idTousers                          van_inventory[]              @relation("van_inventory_user_idTousers")
+  user_zones                                                          zones?                       @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   vehicles                                                            vehicles[]
   visit_tasks                                                         visit_tasks[]
   visits                                                              visits[]
@@ -71,6 +70,7 @@ model users {
   workflow_steps_workflow_steps_processed_byTousers                   workflow_steps[]             @relation("workflow_steps_processed_byTousers")
   user_role                                                           roles                        @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   user_depot                                                          depots?                      @relation(fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_van_inventory_user_idTousers                                  van_inventory[]              @relation("van_inventory_user_idTousers")
 }
 
 model roles {
@@ -1379,7 +1379,7 @@ model routes {
   log_inst           Int?
   customers          customers[]
   depots             depots      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, map: "FK__routes__depot_id__35BCFE0A")
-  zones              zones       @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__routes__parent_i__34C8D9D1")
+  routes_zones       zones       @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__routes__parent_i__34C8D9D1")
   visits             visits[]
 }
 
@@ -1833,7 +1833,7 @@ model zones {
   updatedby     Int?
   log_inst      Int?
   promotions    promotions[]
-  routes        routes[]
-  users         users[]
+  routes_zones  routes[]
+  user_zones    users[]
   zone_depots   depots?      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }

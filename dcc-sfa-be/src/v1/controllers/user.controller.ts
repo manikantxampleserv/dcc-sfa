@@ -51,7 +51,7 @@ const serializeUser = (
       }
     : null,
 
-  zone: user.zones
+  user_zones: user.zones
     ? {
         id: user.zones.id,
         name: user.zones.name,
@@ -163,7 +163,7 @@ export const userController = {
           user_role: true,
           companies: true,
           user_depot: true,
-          zones: true,
+          user_zones: true,
           users: { select: { id: true, name: true, email: true } },
         },
       });
@@ -268,7 +268,7 @@ export const userController = {
           user_role: true,
           companies: true,
           user_depot: true,
-          zones: true,
+          user_zones: true,
           users: {
             select: {
               id: true,
@@ -313,10 +313,10 @@ export const userController = {
         return;
       }
 
-      if (targetUserId !== currentUserId) {
-        res.error('You can only update your own profile', 403);
-        return;
-      }
+      // if (targetUserId !== currentUserId) {
+      //   res.error('You can only update your own profile', 403);
+      //   return;
+      // }
 
       const existingUser = await prisma.users.findFirst({
         where: {
@@ -405,7 +405,7 @@ export const userController = {
           user_role: true,
           companies: true,
           user_depot: true,
-          zones: true,
+          user_zones: true,
           users: { select: { id: true, name: true, email: true } },
         },
       });
@@ -492,7 +492,7 @@ export const userController = {
           user_role: true,
           companies: true,
           user_depot: true,
-          zones: true,
+          user_zones: true,
           users: {
             select: {
               id: true,
