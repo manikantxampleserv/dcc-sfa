@@ -1,8 +1,8 @@
-// import { Router } from 'express';
+import { Router } from 'express';
 // import { authenticateToken } from '../../middlewares/auth.middleware';
 // import { depotsController } from '../controllers/depots.controller';
 
-// const router = Router();
+const router = Router();
 
 // router.post('/depots', authenticateToken, depotsController.createDepots);
 
@@ -13,4 +13,4 @@
 
 // router.delete('/depots/:id', authenticateToken, depotsController.deleteDepots);
 
-// export default router;
+export default router;

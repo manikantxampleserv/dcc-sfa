@@ -13,7 +13,7 @@ const serializeRole = (
   id: role.id,
   name: role.name,
   description: role.description,
-  user_id: role.user_id,
+  // user_id: role.user_id,
   is_active: role.is_active,
   ...(includeCreatedAt && { created_at: role.createdate }),
   ...(includeUpdatedAt && { updated_at: role.updatedate }),
@@ -21,12 +21,14 @@ const serializeRole = (
     ? role.roles_permission.map((rp: any) => ({
         permission_id: rp.permission_id,
         is_active: rp.is_active,
-        permission: rp.permissions ? {
-          id: rp.permissions.id,
-          name: rp.permissions.name,
-          description: rp.permissions.description,
-          module: rp.permissions.module,
-        } : null,
+        permission: rp.permissions
+          ? {
+              id: rp.permissions.id,
+              name: rp.permissions.name,
+              description: rp.permissions.description,
+              module: rp.permissions.module,
+            }
+          : null,
       }))
     : [],
   user_role: role.user_role
@@ -50,7 +52,7 @@ export const rolesController = {
       const {
         name,
         description,
-        user_id,
+        // user_id,
         is_active,
         permissions = [],
       } = req.body;
@@ -72,7 +74,7 @@ export const rolesController = {
           data: {
             name,
             description,
-            user_id,
+            // user_id: req.user?.id ?? 0,
             is_active: is_active ?? 'Y',
             createdby: req.user?.id ?? 0,
             createdate: new Date(),
