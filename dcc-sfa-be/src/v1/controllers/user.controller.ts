@@ -291,6 +291,131 @@ export const userController = {
     }
   },
 
+  // async updateUser(req: any, res: any): Promise<void> {
+  //   try {
+  //     const errors = validationResult(req);
+  //     if (!errors.isEmpty()) {
+  //       res.validationError(errors.array(), 400);
+  //       return;
+  //     }
+
+  //     const targetUserId = Number(req.params.id);
+  //     const currentUserId = req.user?.id;
+
+  //     console.log('Target User ID:', targetUserId);
+  //     console.log('Current User ID:', currentUserId);
+  //     console.log('Req body:', req.body);
+  //     const uploadedFile = (req as any).file;
+  //     console.log('Req file:', uploadedFile ? 'File present' : 'No file');
+
+  //     if (!currentUserId) {
+  //       res.error('User not authenticated', 401);
+  //       return;
+  //     }
+
+  //     const existingUser = await prisma.users.findFirst({
+  //       where: {
+  //         id: targetUserId,
+  //         is_active: 'Y',
+  //       },
+  //     });
+
+  //     if (!existingUser) {
+  //       res.error('User not found', 404);
+  //       return;
+  //     }
+
+  //     const { createdate, updatedate, password, id, ...userData } = req.body;
+
+  //     const restrictedFields = ['role_id', 'is_active', 'employee_id', 'email'];
+  //     restrictedFields.forEach(field => {
+  //       if (field in userData) {
+  //         delete userData[field];
+  //       }
+  //     });
+
+  //     let profile_image_url = undefined;
+
+  //     if (uploadedFile) {
+  //       console.log(
+  //         '[UPDATE USER] File upload triggered for user:',
+  //         targetUserId
+  //       );
+
+  //       if (existingUser.profile_image) {
+  //         try {
+  //           const oldFileUrl = new URL(existingUser.profile_image);
+  //           const pathParts = oldFileUrl.pathname.split('/');
+  //           const fileName = pathParts.slice(3).join('/');
+
+  //           console.log('[UPDATE USER] Deleting old profile image:', fileName);
+  //           await deleteFile(fileName);
+  //         } catch (error) {
+  //           console.error(' Error deleting old profile image:', error);
+  //         }
+  //       }
+
+  //       const fileExt = uploadedFile.originalname.split('.').pop();
+  //       const fileName = `profiles/profile_${targetUserId}_${Date.now()}.${fileExt}`;
+
+  //       console.log(' Uploading new file:', {
+  //         fileName,
+  //         mimetype: uploadedFile.mimetype,
+  //         size: uploadedFile.size,
+  //       });
+
+  //       try {
+  //         profile_image_url = await uploadFile(
+  //           uploadedFile.buffer,
+  //           fileName,
+  //           uploadedFile.mimetype
+  //         );
+  //         console.log(' File uploaded successfully:', profile_image_url);
+  //       } catch (error) {
+  //         console.error('[UPDATE USER] Error uploading profile image:', error);
+  //         res.error('Failed to upload profile image', 500);
+  //         return;
+  //       }
+  //     }
+
+  //     const updateData: any = {
+  //       ...userData,
+  //       ...(profile_image_url && { profile_image: profile_image_url }),
+  //       updatedby: currentUserId,
+  //       updatedate: new Date(),
+  //     };
+
+  //     if (password) {
+  //       updateData.password_hash = await bcrypt.hash(password, 10);
+  //     }
+
+  //     if (userData.joining_date) {
+  //       updateData.joining_date = new Date(userData.joining_date);
+  //     }
+
+  //     const updatedUser = await prisma.users.update({
+  //       where: { id: targetUserId },
+  //       data: updateData,
+  //       include: {
+  //         user_role: true,
+  //         companies: true,
+  //         user_depot: true,
+  //         user_zones: true,
+  //         users: { select: { id: true, name: true, email: true } },
+  //       },
+  //     });
+
+  //     res.success(
+  //       'Profile updated successfully',
+  //       serializeUser(updatedUser),
+  //       200
+  //     );
+  //   } catch (error: any) {
+  //     console.error('Error updating user:', error);
+  //     res.error(error.message);
+  //   }
+  // },
+
   async updateUser(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
@@ -302,21 +427,10 @@ export const userController = {
       const targetUserId = Number(req.params.id);
       const currentUserId = req.user?.id;
 
-      console.log('Target User ID:', targetUserId);
-      console.log('Current User ID:', currentUserId);
-      console.log('Req body:', req.body);
-      const uploadedFile = (req as any).file;
-      console.log('Req file:', uploadedFile ? 'File present' : 'No file');
-
       if (!currentUserId) {
         res.error('User not authenticated', 401);
         return;
       }
-
-      // if (targetUserId !== currentUserId) {
-      //   res.error('You can only update your own profile', 403);
-      //   return;
-      // }
 
       const existingUser = await prisma.users.findFirst({
         where: {
@@ -334,50 +448,34 @@ export const userController = {
 
       const restrictedFields = ['role_id', 'is_active', 'employee_id', 'email'];
       restrictedFields.forEach(field => {
-        if (field in userData) {
-          delete userData[field];
-        }
+        if (field in userData) delete userData[field];
       });
 
-      let profile_image_url = undefined;
+      let profile_image_url: string | undefined;
 
+      const uploadedFile = (req as any).file;
       if (uploadedFile) {
-        console.log(
-          '[UPDATE USER] File upload triggered for user:',
-          targetUserId
-        );
-
         if (existingUser.profile_image) {
           try {
             const oldFileUrl = new URL(existingUser.profile_image);
             const pathParts = oldFileUrl.pathname.split('/');
             const fileName = pathParts.slice(3).join('/');
-
-            console.log('[UPDATE USER] Deleting old profile image:', fileName);
             await deleteFile(fileName);
-          } catch (error) {
-            console.error(' Error deleting old profile image:', error);
+          } catch (err) {
+            console.error('Error deleting old profile image:', err);
           }
         }
 
         const fileExt = uploadedFile.originalname.split('.').pop();
         const fileName = `profiles/profile_${targetUserId}_${Date.now()}.${fileExt}`;
-
-        console.log(' Uploading new file:', {
-          fileName,
-          mimetype: uploadedFile.mimetype,
-          size: uploadedFile.size,
-        });
-
         try {
           profile_image_url = await uploadFile(
             uploadedFile.buffer,
             fileName,
             uploadedFile.mimetype
           );
-          console.log(' File uploaded successfully:', profile_image_url);
-        } catch (error) {
-          console.error('[UPDATE USER] Error uploading profile image:', error);
+        } catch (err) {
+          console.error('Error uploading new profile image:', err);
           res.error('Failed to upload profile image', 500);
           return;
         }
@@ -397,6 +495,12 @@ export const userController = {
       if (userData.joining_date) {
         updateData.joining_date = new Date(userData.joining_date);
       }
+      if (
+        userData.reporting_to !== undefined &&
+        userData.reporting_to !== null
+      ) {
+        updateData.reporting_to = Number(userData.reporting_to);
+      }
 
       const updatedUser = await prisma.users.update({
         where: { id: targetUserId },
@@ -410,11 +514,9 @@ export const userController = {
         },
       });
 
-      res.success(
-        'Profile updated successfully',
-        serializeUser(updatedUser),
-        200
-      );
+      const serializedUser = serializeUser(updatedUser, true, true);
+
+      res.success('Profile updated successfully', serializedUser, 200);
     } catch (error: any) {
       console.error('Error updating user:', error);
       res.error(error.message);
