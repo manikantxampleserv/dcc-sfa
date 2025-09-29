@@ -5,6 +5,15 @@ import ExecutiveDashboard from '../pages/dashboards/ExecutiveDashboard';
 import Users from 'pages/masters/Users';
 import Login from '../pages/auth/Login';
 import ProtectedRoute from '../components/ProtectedRoute';
+import CompaniesManagement from 'pages/masters/Company';
+import DepotsManagement from 'pages/masters/Depot';
+import RoutesManagement from 'pages/masters/Routes';
+import OutletsManagement from 'pages/masters/Outlet';
+import SurveyBuilder from 'pages/masters/SurveyBuilder';
+import SurveyAnswers from 'pages/transactions/VisitLogging';
+import OrdersManagement from 'pages/transactions/Orders';
+import ProductsManagement from 'pages/masters/Product';
+import ZonesManagement from 'pages/masters/Zone';
 
 // Simple page components with h1 tags
 const CompanyMaster = () => <h1>Company Master</h1>;
@@ -96,7 +105,7 @@ const router = createBrowserRouter([
       // Masters Routes
       {
         path: '/masters/company',
-        element: <CompanyMaster />,
+        element: <CompaniesManagement />,
       },
       {
         path: '/masters/users',
@@ -108,19 +117,19 @@ const router = createBrowserRouter([
       },
       {
         path: '/masters/depots',
-        element: <Depots />,
+        element: <DepotsManagement />,
       },
       {
         path: '/masters/zones',
-        element: <Zones />,
+        element: <ZonesManagement />,
       },
       {
         path: '/masters/routes',
-        element: <Routes />,
+        element: <RoutesManagement />,
       },
       {
         path: '/masters/outlets',
-        element: <OutletMaster />,
+        element: <OutletsManagement />,
       },
       {
         path: '/masters/outlet-groups',
@@ -144,7 +153,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/masters/products',
-        element: <ProductCatalog />,
+        element: <ProductsManagement />,
       },
       {
         path: '/masters/pricelists',
@@ -164,13 +173,13 @@ const router = createBrowserRouter([
       },
       {
         path: '/masters/surveys',
-        element: <SurveyTemplates />,
+        element: <SurveyBuilder />,
       },
 
       // Transaction Routes
       {
         path: '/transactions/orders',
-        element: <OrderEntry />,
+        element: <OrdersManagement />,
       },
       {
         path: '/transactions/delivery',
@@ -194,7 +203,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/transactions/visits',
-        element: <VisitLogging />,
+        element: <SurveyAnswers />,
       },
       {
         path: '/transactions/asset-movement',
