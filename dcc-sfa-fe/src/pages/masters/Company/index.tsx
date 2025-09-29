@@ -1,23 +1,22 @@
-import React, { useState, useEffect } from 'react';
 import {
   Building2,
-  Plus,
-  Search,
-  Filter,
+  Calendar,
+  CheckCircle,
+  Download,
   Edit,
-  Trash2,
   Eye,
+  Filter,
   Globe,
-  Phone,
   Mail,
   MapPin,
-  Calendar,
-  User,
-  CheckCircle,
-  XCircle,
-  Download,
+  Phone,
+  Plus,
+  Search,
+  Trash2,
   Upload,
+  XCircle,
 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface Company {
   id: number;

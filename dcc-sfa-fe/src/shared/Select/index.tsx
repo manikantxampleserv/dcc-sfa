@@ -109,6 +109,11 @@ const Select: React.FC<CustomSelectProps> = ({
         name={name}
         required={required}
         size={size}
+        slotProps={{
+          input: {
+            required: false,
+          },
+        }}
         onBlur={formik?.handleBlur || onBlur}
         value={value || formik?.values[name] || ''}
         label={label}
