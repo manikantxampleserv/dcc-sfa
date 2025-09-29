@@ -24,18 +24,19 @@ const serializeCompany = (
   created_by: company.created_by,
   ...(includeCreatedAt && { created_at: company.created_date }),
   ...(includeUpdatedAt && { updated_at: company.updated_date }),
-  depots: company.depots
-    ? company.depots.map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        code: d.code,
-      }))
-    : [],
+
   users: company.users
     ? company.users.map((u: any) => ({
         id: u.id,
         name: u.name,
         email: u.email,
+      }))
+    : [],
+  depot_companies: company.depot_companies
+    ? company.depot_companies.map((u: any) => ({
+        id: true,
+        parent_id: true,
+        name: true,
       }))
     : [],
 });
@@ -83,7 +84,7 @@ export const companyController = {
           created_by: Number(created_by) || 0,
           created_date: new Date(),
         },
-        include: { depots: true, users: true },
+        include: { users: true, depot_companies: true },
       });
 
       res.success(
@@ -120,7 +121,7 @@ export const companyController = {
         page: page_num,
         limit: limit_num,
         orderBy: { created_date: 'desc' },
-        include: { depots: true },
+        include: { depot_companies: true },
       });
 
       res.success(
@@ -140,7 +141,7 @@ export const companyController = {
       const { id } = req.params;
       const company = await prisma.companies.findUnique({
         where: { id: Number(id) },
-        include: { depots: true, users: true },
+        include: { depot_companies: true, users: true },
       });
 
       if (!company) {
@@ -189,7 +190,7 @@ export const companyController = {
       const company = await prisma.companies.update({
         where: { id: Number(id) },
         data,
-        include: { depots: true, users: true },
+        include: { depot_companies: true, users: true },
       });
 
       if (req.file && existingCompany.logo) {

@@ -137,7 +137,7 @@ model depots {
   updatedate             DateTime?         @db.DateTime
   updatedby              Int?
   log_inst               Int?
-  companies              companies         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__depots__parent_i__2B3F6F97")
+  depot_companies        companies         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   inventory_stock        inventory_stock[]
   promotions             promotions[]
   routes                 routes[]
@@ -350,26 +350,26 @@ model batch_lots {
 }
 
 model companies {
-  id           Int       @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
-  name         String    @db.NVarChar(255)
-  code         String    @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
-  address      String?   @db.NVarChar(500)
-  city         String?   @db.NVarChar(100)
-  state        String?   @db.NVarChar(100)
-  country      String?   @db.NVarChar(100)
-  zipcode      String?   @db.NVarChar(20)
-  phone_number String?   @db.NVarChar(20)
-  email        String?   @db.NVarChar(255)
-  website      String?   @db.NVarChar(255)
-  logo         String?   @db.NVarChar(500)
-  is_active    String    @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
-  created_date DateTime? @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
-  created_by   Int
-  updated_date DateTime? @db.DateTime
-  updated_by   Int?
-  log_inst     Int?
-  depots       depots[]
-  users        users[]
+  id              Int       @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
+  name            String    @db.NVarChar(255)
+  code            String    @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
+  address         String?   @db.NVarChar(500)
+  city            String?   @db.NVarChar(100)
+  state           String?   @db.NVarChar(100)
+  country         String?   @db.NVarChar(100)
+  zipcode         String?   @db.NVarChar(20)
+  phone_number    String?   @db.NVarChar(20)
+  email           String?   @db.NVarChar(255)
+  website         String?   @db.NVarChar(255)
+  logo            String?   @db.NVarChar(500)
+  is_active       String    @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
+  created_date    DateTime? @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
+  created_by      Int
+  updated_date    DateTime? @db.DateTime
+  updated_by      Int?
+  log_inst        Int?
+  users           users[]
+  depot_companies depots[]
 }
 
 model competitor_activity {
