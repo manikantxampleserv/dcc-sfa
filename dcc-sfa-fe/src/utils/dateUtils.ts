@@ -153,3 +153,23 @@ export const formatForAPI = (
     return null;
   }
 };
+
+/**
+ * Formats a date for HTML date inputs (yyyy-MM-dd format)
+ * @param date - Date object, date string, or null/undefined
+ * @returns Date string in yyyy-MM-dd format or today's date if null
+ */
+export const formatForDateInput = (
+  date: Date | string | null | undefined
+): string => {
+  try {
+    if (!date) {
+      return new Date().toISOString().split('T')[0];
+    }
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toISOString().split('T')[0];
+  } catch (error) {
+    console.warn('Invalid date provided to formatForDateInput:', date);
+    return new Date().toISOString().split('T')[0];
+  }
+};

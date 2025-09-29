@@ -1,18 +1,21 @@
-import { Block, CheckCircle } from '@mui/icons-material';
+import { Add, Block, CheckCircle } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, Typography } from '@mui/material';
 import classNames from 'classnames';
+import { useDeleteUser, useUsers, type User } from 'hooks/useUsers';
 import React, { useCallback, useState } from 'react';
-import { useUsers, useDeleteUser, type User } from '../../../hooks/useUsers';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
+import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDate } from 'utils/dateUtils';
 import ManageUsers from './ManageUsers';
 
 const Users: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [limit] = useState(7);
+  const [limit] = useState(8);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const {
     data: usersResponse,
@@ -32,10 +35,11 @@ const Users: React.FC = () => {
     {
       id: 'name',
       label: 'Name & Avatar',
-      width: '200px',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
+            alt={row.name}
+            src={row.profile_image || 'mkx'}
             className={classNames('!rounded', {
               '!bg-primary-100 !text-primary-600': row.is_active === 'Y',
               '!bg-gray-200 !text-gray-600': row.is_active !== 'Y',
@@ -44,7 +48,8 @@ const Users: React.FC = () => {
             {row.name
               .split(' ')
               .map(n => n[0])
-              .join('')}
+              .join('')
+              ?.slice(0, 2)}
           </Avatar>
           <Box>
             <Typography
@@ -66,14 +71,12 @@ const Users: React.FC = () => {
     {
       id: 'email',
       label: 'Email Address',
-      width: '220px',
       render: (_value, row) =>
         row.email || <span className="italic text-gray-400"> No Email </span>,
     },
     {
       id: 'role',
       label: 'Role',
-      width: '140px',
       render: (_value, row) =>
         row.role?.name || (
           <span className="italic text-gray-400"> No Role </span>
@@ -82,7 +85,6 @@ const Users: React.FC = () => {
     {
       id: 'is_active',
       label: 'Status',
-      width: '120px',
       render: is_active => (
         <Chip
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
@@ -96,7 +98,6 @@ const Users: React.FC = () => {
     {
       id: 'depot',
       label: 'Depot',
-      width: '120px',
       render: (_value, row) =>
         row.depot?.name || (
           <span className="italic text-gray-400"> No Depot </span>
@@ -105,7 +106,6 @@ const Users: React.FC = () => {
     {
       id: 'zone',
       label: 'Zone',
-      width: '120px',
       render: (_value, row) =>
         row.zone?.name || (
           <span className="italic text-gray-400"> No Zone </span>
@@ -114,7 +114,6 @@ const Users: React.FC = () => {
     {
       id: 'phone_number',
       label: 'Phone',
-      width: '160px',
       render: (_value, row) =>
         row.phone_number || (
           <span className="italic text-gray-400"> No Phone </span>
@@ -123,7 +122,6 @@ const Users: React.FC = () => {
     {
       id: 'address',
       label: 'Address',
-      width: '200px',
       render: (_value, row) =>
         row.address || (
           <span className="italic text-gray-400"> No Address </span>
@@ -132,25 +130,30 @@ const Users: React.FC = () => {
     {
       id: 'joining_date',
       label: 'Join Date',
-      width: '140px',
-      render: (_value, row) => formatDate(row.joining_date),
+      render: (_value, row) =>
+        formatDate(row.joining_date) || (
+          <span className="italic text-gray-400"> No Date </span>
+        ),
     },
     {
       id: 'reporting_to',
       label: 'Reports To',
-      width: '180px',
-      render: (_value, row) => row.reporting_manager?.name || 'Top Level',
+      render: (_value, row) =>
+        row.reporting_manager?.name || (
+          <span className="italic text-gray-400"> No Reports To </span>
+        ),
     },
     {
       id: 'action',
       label: 'Actions',
-      width: '120px',
-      sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
-          <EditButton tooltip={`Edit ${row.name}`} />
+          <EditButton
+            onClick={() => handleEditUser(row)}
+            tooltip={`Edit ${row.name}`}
+          />
           <DeleteButton
-            onClick={() => handleDeleteUser(row)}
+            onClick={() => handleDeleteUser(row.id)}
             tooltip={`Delete ${row.name}`}
             itemName={row.name}
             confirmDelete={true}
@@ -162,9 +165,21 @@ const Users: React.FC = () => {
 
   const deleteUserMutation = useDeleteUser();
 
+  const handleCreateUser = useCallback(() => {
+    setSelectedUser(null);
+    setDrawerOpen(true);
+  }, []);
+
+  const handleEditUser = useCallback((user: User) => {
+    setSelectedUser(user);
+    setDrawerOpen(true);
+  }, []);
+
   const handleDeleteUser = useCallback(
-    async (user: User) => {
-      deleteUserMutation.mutate(user.id);
+    (id: number) => {
+      if (window.confirm('Are you sure you want to delete this user?')) {
+        deleteUserMutation.mutate(id);
+      }
     },
     [deleteUserMutation]
   );
@@ -174,20 +189,16 @@ const Users: React.FC = () => {
     setPage(1);
   }, []);
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage + 1);
-  };
+  const handlePageChange = (newPage: number) => setPage(newPage + 1);
 
   return (
     <>
-      <Box className="!mb-6 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <Typography variant="h5" className="!font-bold !text-gray-900 !mb-2">
-            Users Management
-          </Typography>
-          <Typography variant="body2" className="!text-gray-500">
+          <p className="!font-bold text-xl !text-gray-900">Users Management</p>
+          <p className="!text-gray-500 text-sm">
             Manage users, roles, and access across your organization
-          </Typography>
+          </p>
         </Box>
       </Box>
 
@@ -211,7 +222,15 @@ const Users: React.FC = () => {
               fullWidth={false}
               className="!min-w-80"
             />
-            <ManageUsers />
+            <Button
+              variant="contained"
+              className="!capitalize"
+              disableElevation
+              startIcon={<Add />}
+              onClick={handleCreateUser}
+            >
+              Create
+            </Button>
           </div>
         }
         getRowId={user => user.id}
@@ -226,6 +245,13 @@ const Users: React.FC = () => {
             ? `No users found matching "${search}"`
             : 'No users found in the system'
         }
+      />
+
+      <ManageUsers
+        selectedUser={selectedUser}
+        setSelectedUser={setSelectedUser}
+        drawerOpen={drawerOpen}
+        setDrawerOpen={setDrawerOpen}
       />
     </>
   );

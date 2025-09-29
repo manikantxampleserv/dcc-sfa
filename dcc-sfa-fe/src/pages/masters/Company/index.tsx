@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Building2, 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Globe, 
-  Phone, 
-  Mail, 
+import {
+  Building2,
+  Plus,
+  Search,
+  Filter,
+  Edit,
+  Trash2,
+  Eye,
+  Globe,
+  Phone,
+  Mail,
   MapPin,
   Calendar,
   User,
   CheckCircle,
   XCircle,
   Download,
-  Upload
+  Upload,
 } from 'lucide-react';
 
 interface Company {
@@ -44,9 +44,13 @@ const CompaniesManagement: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'active' | 'inactive'
+  >('all');
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>(
+    'create'
+  );
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -72,7 +76,7 @@ const CompaniesManagement: React.FC = () => {
         createdby: 1,
         updatedate: '2024-01-20T14:45:00',
         updatedby: 1,
-        log_inst: 1
+        log_inst: 1,
       },
       {
         id: 2,
@@ -90,7 +94,7 @@ const CompaniesManagement: React.FC = () => {
         is_active: 'Y',
         createdate: '2024-01-10T09:15:00',
         createdby: 2,
-        log_inst: 2
+        log_inst: 2,
       },
       {
         id: 3,
@@ -109,8 +113,8 @@ const CompaniesManagement: React.FC = () => {
         createdby: 1,
         updatedate: '2024-01-25T11:30:00',
         updatedby: 2,
-        log_inst: 3
-      }
+        log_inst: 3,
+      },
     ];
     setCompanies(mockCompanies);
     setFilteredCompanies(mockCompanies);
@@ -119,18 +123,20 @@ const CompaniesManagement: React.FC = () => {
   // Filter companies based on search and status
   useEffect(() => {
     let filtered = companies.filter(company => {
-      const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           company.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           company.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           company.city?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || 
-                           (statusFilter === 'active' && company.is_active === 'Y') ||
-                           (statusFilter === 'inactive' && company.is_active === 'N');
-      
+      const matchesSearch =
+        company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        company.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        company.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        company.city?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && company.is_active === 'Y') ||
+        (statusFilter === 'inactive' && company.is_active === 'N');
+
       return matchesSearch && matchesStatus;
     });
-    
+
     setFilteredCompanies(filtered);
     setCurrentPage(1);
   }, [searchTerm, statusFilter, companies]);
@@ -160,9 +166,11 @@ const CompaniesManagement: React.FC = () => {
   };
 
   const handleToggleStatus = (id: number) => {
-    setCompanies(companies.map(c => 
-      c.id === id ? { ...c, is_active: c.is_active === 'Y' ? 'N' : 'Y' } : c
-    ));
+    setCompanies(
+      companies.map(c =>
+        c.id === id ? { ...c, is_active: c.is_active === 'Y' ? 'N' : 'Y' } : c
+      )
+    );
   };
 
   // Pagination
@@ -172,7 +180,7 @@ const CompaniesManagement: React.FC = () => {
   const currentCompanies = filteredCompanies.slice(startIndex, endIndex);
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -181,7 +189,9 @@ const CompaniesManagement: React.FC = () => {
               <Building2 className="w-8 h-8 text-blue-600" />
               Companies Management
             </h1>
-            <p className="text-gray-600 mt-2">Manage your company database and organizational structure</p>
+            <p className="text-gray-600 mt-2">
+              Manage your company database and organizational structure
+            </p>
           </div>
           <div className="flex gap-3">
             <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
@@ -192,7 +202,7 @@ const CompaniesManagement: React.FC = () => {
               <Upload className="w-4 h-4" />
               Import
             </button>
-            <button 
+            <button
               onClick={handleCreateCompany}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -213,7 +223,7 @@ const CompaniesManagement: React.FC = () => {
                 type="text"
                 placeholder="Search companies by name, code, email, or city..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -223,7 +233,11 @@ const CompaniesManagement: React.FC = () => {
               <Filter className="w-5 h-5 text-gray-400" />
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                onChange={e =>
+                  setStatusFilter(
+                    e.target.value as 'all' | 'active' | 'inactive'
+                  )
+                }
                 className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
@@ -240,8 +254,12 @@ const CompaniesManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Companies</p>
-              <p className="text-2xl font-bold text-gray-900">{companies.length}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Total Companies
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {companies.length}
+              </p>
             </div>
             <Building2 className="w-8 h-8 text-blue-600" />
           </div>
@@ -249,8 +267,12 @@ const CompaniesManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Companies</p>
-              <p className="text-2xl font-bold text-green-600">{companies.filter(c => c.is_active === 'Y').length}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Active Companies
+              </p>
+              <p className="text-2xl font-bold text-green-600">
+                {companies.filter(c => c.is_active === 'Y').length}
+              </p>
             </div>
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
@@ -258,8 +280,12 @@ const CompaniesManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Inactive Companies</p>
-              <p className="text-2xl font-bold text-red-600">{companies.filter(c => c.is_active === 'N').length}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Inactive Companies
+              </p>
+              <p className="text-2xl font-bold text-red-600">
+                {companies.filter(c => c.is_active === 'N').length}
+              </p>
             </div>
             <XCircle className="w-8 h-8 text-red-600" />
           </div>
@@ -268,7 +294,9 @@ const CompaniesManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Countries</p>
-              <p className="text-2xl font-bold text-purple-600">{new Set(companies.map(c => c.country).filter(Boolean)).size}</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {new Set(companies.map(c => c.country).filter(Boolean)).size}
+              </p>
             </div>
             <Globe className="w-8 h-8 text-purple-600" />
           </div>
@@ -281,32 +309,60 @@ const CompaniesManagement: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Company
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Code
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Location
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {currentCompanies.map((company) => (
-                <tr key={company.id} className="hover:bg-gray-50 transition-colors">
+              {currentCompanies.map(company => (
+                <tr
+                  key={company.id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {company.logo ? (
-                        <img className="h-10 w-10 rounded-full object-cover" src={company.logo} alt={company.name} />
+                        <img
+                          className="h-10 w-10 rounded-full object-cover"
+                          src={company.logo}
+                          alt={company.name}
+                        />
                       ) : (
                         <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
                           <Building2 className="w-5 h-5 text-gray-500" />
                         </div>
                       )}
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{company.name}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {company.name}
+                        </div>
                         {company.website && (
                           <div className="text-sm text-blue-600 hover:text-blue-800">
-                            <a href={company.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                            <a
+                              href={company.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1"
+                            >
                               <Globe className="w-3 h-3" />
                               Website
                             </a>
@@ -331,7 +387,9 @@ const CompaniesManagement: React.FC = () => {
                       {company.phone_number && (
                         <div className="flex items-center gap-1">
                           <Phone className="w-3 h-3 text-gray-400" />
-                          <span className="text-xs">{company.phone_number}</span>
+                          <span className="text-xs">
+                            {company.phone_number}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -340,7 +398,9 @@ const CompaniesManagement: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-gray-400" />
                       <span className="text-xs">
-                        {[company.city, company.state, company.country].filter(Boolean).join(', ')}
+                        {[company.city, company.state, company.country]
+                          .filter(Boolean)
+                          .join(', ')}
                       </span>
                     </div>
                   </td>
@@ -415,7 +475,9 @@ const CompaniesManagement: React.FC = () => {
                 Previous
               </button>
               <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
                 disabled={currentPage === totalPages}
                 className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -425,13 +487,23 @@ const CompaniesManagement: React.FC = () => {
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
-                  <span className="font-medium">{Math.min(endIndex, filteredCompanies.length)}</span> of{' '}
-                  <span className="font-medium">{filteredCompanies.length}</span> results
+                  Showing <span className="font-medium">{startIndex + 1}</span>{' '}
+                  to{' '}
+                  <span className="font-medium">
+                    {Math.min(endIndex, filteredCompanies.length)}
+                  </span>{' '}
+                  of{' '}
+                  <span className="font-medium">
+                    {filteredCompanies.length}
+                  </span>{' '}
+                  results
                 </p>
               </div>
               <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <nav
+                  className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                  aria-label="Pagination"
+                >
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
@@ -439,21 +511,25 @@ const CompaniesManagement: React.FC = () => {
                   >
                     Previous
                   </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        page === currentPage
-                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    page => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          page === currentPage
+                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
                   <button
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    onClick={() =>
+                      setCurrentPage(Math.min(totalPages, currentPage + 1))
+                    }
                     disabled={currentPage === totalPages}
                     className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -472,22 +548,28 @@ const CompaniesManagement: React.FC = () => {
           mode={modalMode}
           company={selectedCompany}
           onClose={() => setShowModal(false)}
-          onSave={(company) => {
+          onSave={company => {
             if (modalMode === 'create') {
               const newCompany = {
                 ...company,
                 id: Math.max(...companies.map(c => c.id)) + 1,
                 createdate: new Date().toISOString(),
                 createdby: 1, // Current user ID
-                log_inst: Math.max(...companies.map(c => c.log_inst || 0)) + 1
+                log_inst: Math.max(...companies.map(c => c.log_inst || 0)) + 1,
               };
               setCompanies([...companies, newCompany]);
             } else if (modalMode === 'edit') {
-              setCompanies(companies.map(c => 
-                c.id === company.id 
-                  ? { ...company, updatedate: new Date().toISOString(), updatedby: 1 }
-                  : c
-              ));
+              setCompanies(
+                companies.map(c =>
+                  c.id === company.id
+                    ? {
+                        ...company,
+                        updatedate: new Date().toISOString(),
+                        updatedby: 1,
+                      }
+                    : c
+                )
+              );
             }
             setShowModal(false);
           }}
@@ -505,7 +587,12 @@ interface CompanyModalProps {
   onSave: (company: Company) => void;
 }
 
-const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onSave }) => {
+const CompanyModal: React.FC<CompanyModalProps> = ({
+  mode,
+  company,
+  onClose,
+  onSave,
+}) => {
   const [formData, setFormData] = useState<Partial<Company>>({
     name: '',
     code: '',
@@ -519,7 +606,7 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
     website: '',
     logo: '',
     is_active: 'Y',
-    ...company
+    ...company,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -559,7 +646,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 required
                 readOnly={isReadOnly}
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -573,7 +662,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 required
                 readOnly={isReadOnly}
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, code: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -585,7 +676,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
               <textarea
                 readOnly={isReadOnly}
                 value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
@@ -599,7 +692,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 type="text"
                 readOnly={isReadOnly}
                 value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, city: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -612,7 +707,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 type="text"
                 readOnly={isReadOnly}
                 value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, state: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -625,7 +722,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 type="text"
                 readOnly={isReadOnly}
                 value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, country: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -638,7 +737,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 type="text"
                 readOnly={isReadOnly}
                 value={formData.zipcode}
-                onChange={(e) => setFormData({ ...formData, zipcode: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, zipcode: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -651,7 +752,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 type="tel"
                 readOnly={isReadOnly}
                 value={formData.phone_number}
-                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, phone_number: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -664,7 +767,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 type="email"
                 readOnly={isReadOnly}
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -677,7 +782,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 type="url"
                 readOnly={isReadOnly}
                 value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, website: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -690,7 +797,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 type="url"
                 readOnly={isReadOnly}
                 value={formData.logo}
-                onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, logo: e.target.value })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               />
             </div>
@@ -702,7 +811,12 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
               <select
                 disabled={isReadOnly}
                 value={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.value as 'Y' | 'N' })}
+                onChange={e =>
+                  setFormData({
+                    ...formData,
+                    is_active: e.target.value as 'Y' | 'N',
+                  })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50"
               >
                 <option value="Y">Active</option>
@@ -713,7 +827,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
 
           {mode === 'view' && company && (
             <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-sm font-medium text-gray-700 mb-4">System Information</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-4">
+                System Information
+              </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-500">Created:</span>
@@ -723,7 +839,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                 </div>
                 <div>
                   <span className="text-gray-500">Created By:</span>
-                  <span className="ml-2 text-gray-900">User {company.createdby}</span>
+                  <span className="ml-2 text-gray-900">
+                    User {company.createdby}
+                  </span>
                 </div>
                 {company.updatedate && (
                   <>
@@ -735,7 +853,9 @@ const CompanyModal: React.FC<CompanyModalProps> = ({ mode, company, onClose, onS
                     </div>
                     <div>
                       <span className="text-gray-500">Updated By:</span>
-                      <span className="ml-2 text-gray-900">User {company.updatedby}</span>
+                      <span className="ml-2 text-gray-900">
+                        User {company.updatedby}
+                      </span>
                     </div>
                   </>
                 )}

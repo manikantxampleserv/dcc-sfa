@@ -28,8 +28,7 @@ import {
  */
 
 const BASE_URL =
-  import.meta.env?.VITE_API_BASE_URL ||
-  'http://localhost:4000/api/v1';
+  import.meta.env?.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
 
 /**
  * Request timeout in milliseconds
@@ -89,10 +88,8 @@ axiosInstance.interceptors.request.use(
       const token = tokenService.getToken();
 
       if (token) {
-        // Add Bearer token to Authorization header
         config.headers.set('Authorization', `Bearer ${token}`);
 
-        // Add user context headers if available
         const user = tokenService.getUser();
         if (user) {
           config.headers.set('X-User-ID', user.id.toString());
@@ -106,7 +103,6 @@ axiosInstance.interceptors.request.use(
         }
       }
 
-      // Add request ID for tracking
       config.headers.set('X-Request-ID', generateRequestId());
 
       if (import.meta.env.VITE_APP_ENV === 'development') {

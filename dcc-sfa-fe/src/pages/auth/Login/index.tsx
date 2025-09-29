@@ -180,7 +180,7 @@ const Login: React.FC = () => {
             </Box>
 
             {/* Password Field */}
-            <Box className="mb-4">
+            <Box className="mb-3">
               <Input
                 name="password"
                 type="password"
@@ -193,7 +193,7 @@ const Login: React.FC = () => {
             </Box>
 
             {/* Remember Me */}
-            <Box className="mb-6">
+            <Box className="mb-3">
               <FormControlLabel
                 control={
                   <Checkbox

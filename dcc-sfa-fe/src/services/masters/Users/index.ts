@@ -136,27 +136,39 @@ export const fetchUserById = async (id: number): Promise<ApiResponse<User>> => {
 
 /**
  * Create new user (silent - no toast, used by React Query hooks)
- * @param userData - User creation payload
+ * @param userData - User creation payload (supports both FormData and plain object)
  * @returns Promise<ApiResponse<User>>
  */
 export const createUser = async (
-  userData: ManageUserPayload
+  userData: ManageUserPayload | FormData
 ): Promise<ApiResponse<User>> => {
-  const response = await axiosInstance.post('/users', userData);
+  const response = await axiosInstance.post('/users', userData, {
+    headers: userData instanceof FormData ? {
+      'Content-Type': 'multipart/form-data',
+    } : {
+      'Content-Type': 'application/json',
+    },
+  });
   return response.data;
 };
 
 /**
  * Update existing user (silent - no toast, used by React Query hooks)
  * @param id - User ID
- * @param userData - User update payload
+ * @param userData - User update payload (supports both FormData and plain object)
  * @returns Promise<ApiResponse<User>>
  */
 export const updateUser = async (
   id: number,
-  userData: UpdateUserPayload
+  userData: UpdateUserPayload | FormData
 ): Promise<ApiResponse<User>> => {
-  const response = await axiosInstance.put(`/users/${id}`, userData);
+  const response = await axiosInstance.put(`/users/${id}`, userData, {
+    headers: userData instanceof FormData ? {
+      'Content-Type': 'multipart/form-data',
+    } : {
+      'Content-Type': 'application/json',
+    },
+  });
   return response.data;
 };
 

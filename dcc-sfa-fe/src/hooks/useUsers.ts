@@ -100,12 +100,15 @@ export const useUserProfile = (
 export const useCreateUser = (options?: {
   onSuccess?: (
     data: ApiResponse<userService.User>,
-    variables: userService.ManageUserPayload
+    variables: userService.ManageUserPayload | FormData
   ) => void;
-  onError?: (error: any, variables: userService.ManageUserPayload) => void;
+  onError?: (
+    error: any,
+    variables: userService.ManageUserPayload | FormData
+  ) => void;
 }) => {
   return useApiMutation({
-    mutationFn: (userData: userService.ManageUserPayload) =>
+    mutationFn: (userData: userService.ManageUserPayload | FormData) =>
       userService.createUser(userData),
     loadingMessage: 'Creating user...',
     invalidateQueries: ['users'],
@@ -122,11 +125,17 @@ export const useCreateUser = (options?: {
 export const useUpdateUser = (options?: {
   onSuccess?: (
     data: ApiResponse<userService.User>,
-    variables: { id: number; userData: userService.UpdateUserPayload }
+    variables: {
+      id: number;
+      userData: userService.UpdateUserPayload | FormData;
+    }
   ) => void;
   onError?: (
     error: any,
-    variables: { id: number; userData: userService.UpdateUserPayload }
+    variables: {
+      id: number;
+      userData: userService.UpdateUserPayload | FormData;
+    }
   ) => void;
 }) => {
   return useApiMutation({
@@ -135,7 +144,7 @@ export const useUpdateUser = (options?: {
       userData,
     }: {
       id: number;
-      userData: userService.UpdateUserPayload;
+      userData: userService.UpdateUserPayload | FormData;
     }) => userService.updateUser(id, userData),
     loadingMessage: 'Updating user...',
     invalidateQueries: ['users'],

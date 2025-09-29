@@ -74,7 +74,6 @@ export const rolesController = {
           data: {
             name,
             description,
-            // user_id: req.user?.id ?? 0,
             is_active: is_active ?? 'Y',
             createdby: req.user?.id ?? 0,
             createdate: new Date(),
