@@ -15,6 +15,7 @@ const validationSchema = Yup.object({
     /^[0-9+\-\s()]+$/,
     'Invalid phone number format'
   ),
+  reporting_to: Yup.number().required('Reporting to is required'),
   password: Yup.string().when('isEdit', {
     is: false,
     then: schema =>

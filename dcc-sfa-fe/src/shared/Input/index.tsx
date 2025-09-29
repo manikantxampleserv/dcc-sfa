@@ -97,6 +97,9 @@ const Input: React.FC<InputProps> = ({
       size={size}
       name={name}
       slotProps={{
+        root: {
+          required: false,
+        },
         htmlInput: {
           style:
             type === 'file'
@@ -107,6 +110,7 @@ const Input: React.FC<InputProps> = ({
                 }
               : undefined,
         },
+        inputLabel: type === 'date' ? { shrink: true } : undefined,
         input: {
           ...(type === 'search' && {
             endAdornment: <Search />,
