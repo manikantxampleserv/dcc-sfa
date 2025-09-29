@@ -1575,7 +1575,7 @@ model users {
   stock_transfer_requests_stock_transfer_requests_requested_byTousers stock_transfer_requests[]    @relation("stock_transfer_requests_requested_byTousers")
   survey_responses_survey_responses_submitted_byTousers               survey_responses[]           @relation("survey_responses_submitted_byTousers")
   depots                                                              depots?                      @relation(fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__depot_id__3E52440B")
-  companies                                                           companies?                    @relation(fields: [parent_id], references: [id], onUpdate: NoAction,onDelete:NoAction)
+  companies                                                           companies?                   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   users                                                               users?                       @relation("usersTousers", fields: [reporting_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__reporting__403A8C7D")
   other_users                                                         users[]                      @relation("usersTousers")
   zones                                                               zones?                       @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__zone_id__3F466844")
@@ -1603,19 +1603,33 @@ model roles {
   roles_permission role_permissions[]
 }
 
+model permissions {
+  id          Int                @id() @default(autoincrement())
+  name        String             @unique @db.NVarChar(100)
+  module      String             @db.NVarChar(50)
+  action      String             @db.NVarChar(50)
+  description String?            @db.NVarChar(500)
+  is_active   String             @default("Y") @db.Char(1)
+  createdate  DateTime?          @default(now()) @db.DateTime
+  createdby   Int
+  updatedate  DateTime?          @db.DateTime
+  updatedby   Int?
+  permission  role_permissions[]
+}
+
 model role_permissions {
-  id               Int       @id() @default(autoincrement())
+  id               Int          @id() @default(autoincrement())
   role_id          Int
   permission_id    Int
-  is_active        String    @default("Y") @db.Char(1)
-  createdate       DateTime? @default(now()) @db.DateTime
+  is_active        String       @default("Y") @db.Char(1)
+  createdate       DateTime?    @default(now()) @db.DateTime
   createdby        Int
-  updatedate       DateTime? @db.DateTime
+  updatedate       DateTime?    @db.DateTime
   updatedby        Int?
   log_inst         Int?
-  roles_permission roles?    @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  roles_permission roles?       @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  permission       permissions? @relation(fields: [permission_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 
-  @@unique([role_id, permission_id], map: "uq_role_permission")
 }
 
 model van_inventory {

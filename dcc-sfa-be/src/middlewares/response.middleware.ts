@@ -1,4 +1,4 @@
-import { Response, Request, NextFunction } from 'express';
+import { Response, Request, NextFunction, RequestHandler } from 'express';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -16,32 +16,7 @@ export interface ApiResponse<T = any> {
   };
 }
 
-declare global {
-  namespace Express {
-    interface Response {
-      success: (
-        message: string,
-        data?: any,
-        statusCode?: number,
-        pagination?: {
-          current_page: number;
-          total_pages: number;
-          total_count: number;
-          has_next: boolean;
-          has_previous: boolean;
-        }
-      ) => Response;
-      error: (error: string, statusCode?: number) => Response;
-      validationError: (errors: any[], statusCode?: number) => Response;
-    }
-  }
-}
-
-export const responseHandler = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const responseHandler = (req: any, res: any, next: any) => {
   const startTime = Date.now();
 
   res.success = function (

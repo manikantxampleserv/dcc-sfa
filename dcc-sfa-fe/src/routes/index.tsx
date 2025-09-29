@@ -1,47 +1,38 @@
-import React from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import Layout from '../layout';
-import ExecutiveDashboard from '../pages/dashboards/ExecutiveDashboard';
-import Users from 'pages/masters/Users';
-import Login from '../pages/auth/Login';
-import ProtectedRoute from '../components/ProtectedRoute';
+import ProtectedRoute from 'components/ProtectedRoute';
+import Layout from 'layout';
+import Login from 'pages/auth/Login';
+import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
 import CompaniesManagement from 'pages/masters/Company';
 import DepotsManagement from 'pages/masters/Depot';
-import RoutesManagement from 'pages/masters/Routes';
 import OutletsManagement from 'pages/masters/Outlet';
-import SurveyBuilder from 'pages/masters/SurveyBuilder';
-import SurveyAnswers from 'pages/transactions/VisitLogging';
-import OrdersManagement from 'pages/transactions/Orders';
 import ProductsManagement from 'pages/masters/Product';
+import RoutesManagement from 'pages/masters/Routes';
+import SurveyBuilder from 'pages/masters/SurveyBuilder';
+import Users from 'pages/masters/Users';
 import ZonesManagement from 'pages/masters/Zone';
+import OrdersManagement from 'pages/transactions/Orders';
+import SurveyAnswers from 'pages/transactions/VisitLogging';
+import React from 'react';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-// Simple page components with h1 tags
-const CompanyMaster = () => <h1>Company Master</h1>;
 const RolePermission = () => <h1>Role & Permission Setup</h1>;
-const Depots = () => <h1>Depots</h1>;
-const Zones = () => <h1>Zones</h1>;
-const Routes = () => <h1>Routes</h1>;
-const OutletMaster = () => <h1>Outlet Master</h1>;
+
 const OutletGroups = () => <h1>Outlet Groups</h1>;
 const AssetTypes = () => <h1>Asset Types</h1>;
 const AssetMaster = () => <h1>Asset Master</h1>;
 const WarehouseMaster = () => <h1>Warehouse Master</h1>;
 const VehicleMaster = () => <h1>Vehicle Master</h1>;
-const ProductCatalog = () => <h1>Product Catalog</h1>;
 const Pricelists = () => <h1>Pricelists</h1>;
 const SalesTargetGroups = () => <h1>Sales Target Groups</h1>;
 const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
 const KPITargets = () => <h1>KPI Targets</h1>;
-const SurveyTemplates = () => <h1>Survey Templates</h1>;
 
 // Transaction Components
-const OrderEntry = () => <h1>Order Entry</h1>;
 const DeliveryScheduling = () => <h1>Delivery Scheduling</h1>;
 const ReturnRequests = () => <h1>Return Requests</h1>;
 const PaymentCollection = () => <h1>Payment Collection</h1>;
 const InvoiceManagement = () => <h1>Invoice Management</h1>;
 const CreditNotes = () => <h1>Credit Notes</h1>;
-const VisitLogging = () => <h1>Visit Logging</h1>;
 const AssetMovement = () => <h1>Asset Movement</h1>;
 const AssetMaintenance = () => <h1>Asset Maintenance</h1>;
 const CoolerInstallations = () => <h1>Cooler Installations</h1>;

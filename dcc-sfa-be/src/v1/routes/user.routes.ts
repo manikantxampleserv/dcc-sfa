@@ -1,17 +1,26 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requireAnyModulePermission,
+} from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validation.middleware';
+import { MODULES, ACTIONS } from '../../configs/permissions.config';
+import { userController } from '../controllers/user.controller';
 import {
   createUserValidation,
   updateUserValidation,
 } from '../validations/user.validation';
-import { userController } from '../controllers/user.controller';
+import { upload } from '../../utils/multer';
 
 const router = Router();
 
 router.post(
   '/users',
+  upload.single('profile_image'),
   authenticateToken,
+  requireAnyModulePermission([
+    { module: MODULES.USER, action: ACTIONS.CREATE },
+  ]),
   createUserValidation,
   validate,
   userController.createUser
@@ -19,16 +28,26 @@ router.post(
 
 router.get('/users', authenticateToken, userController.getUsers);
 
-router.get('/users/:id', userController.getUserById);
+router.get('/users/:id', authenticateToken, userController.getUserById);
 
 router.put(
   '/users/:id',
   authenticateToken,
+  upload.single('profile_image'),
+
+  // requireAnyModulePermission([
+  //   { module: MODULES.USER, action: ACTIONS.UPDATE },
+  // ]),
   updateUserValidation,
   validate,
   userController.updateUser
 );
 
-router.delete('/users/:id', authenticateToken, userController.deleteUser);
+router.delete(
+  '/users/:id',
+  authenticateToken,
+
+  userController.deleteUser
+);
 
 export default router;

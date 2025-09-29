@@ -22,9 +22,9 @@ interface LogoutButtonProps {
  * @param className - Additional CSS classes
  * @returns JSX.Element - Rendered logout button
  */
-const LogoutButton: React.FC<LogoutButtonProps> = ({ 
+const LogoutButton: React.FC<LogoutButtonProps> = ({
   variant = 'icon',
-  className = '' 
+  className = '',
 }) => {
   const navigate = useNavigate();
 

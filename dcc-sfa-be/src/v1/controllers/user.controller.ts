@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { paginate } from '../../utils/paginate';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
+import { deleteFile, uploadFile } from '../../utils/blackbaze';
 
 const prisma = new PrismaClient();
 
@@ -14,7 +15,7 @@ const serializeUser = (
   id: user.id,
   email: user.email,
   name: user.name,
-  role_id: user.role_id,
+  role_id: Number(user.role_id),
   parent_id: user.parent_id,
   depot_id: user.depot_id,
   zone_id: user.zone_id,
@@ -66,7 +67,7 @@ const serializeUser = (
 });
 
 export const userController = {
-  async createUser(req: Request, res: Response): Promise<void> {
+  async createUser(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -87,47 +88,62 @@ export const userController = {
         employee_id,
         joining_date,
         reporting_to,
-        profile_image,
         is_active,
       } = req.body;
 
-      // Check if email already exists
       const existingUser = await prisma.users.findFirst({
-        where: {
-          email,
-          is_active: 'Y',
-        },
+        where: { email, is_active: 'Y' },
       });
-
       if (existingUser) {
         res.error('Email already exists', 400);
         return;
       }
 
-      // Check if employee_id already exists (if provided)
       if (employee_id) {
         const existingEmployee = await prisma.users.findFirst({
-          where: {
-            employee_id,
-            is_active: 'Y',
-          },
+          where: { employee_id, is_active: 'Y' },
         });
-
         if (existingEmployee) {
           res.error('Employee ID already exists', 400);
           return;
         }
       }
 
-      // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
+      let profile_image_url: string | null = null;
+      const file = (req as any).file;
+      if (file) {
+        try {
+          const userFolder = req.user?.id ?? 'guest';
+          const fileExt = file.originalname.split('.').pop();
+          const fileName = `profiles/profile_${userFolder}_${Date.now()}.${fileExt}`;
+
+          console.log(' Uploading file:', {
+            originalName: file.originalname,
+            fileName,
+            mimetype: file.mimetype,
+            size: file.size,
+          });
+
+          profile_image_url = await uploadFile(
+            file.buffer,
+            fileName,
+            file.mimetype
+          );
+
+          console.log('File uploaded successfully:', profile_image_url);
+        } catch (uploadError: any) {
+          console.error(' File upload failed:', uploadError);
+          console.warn(' Continuing without profile image');
+        }
+      }
       const newUser = await prisma.users.create({
         data: {
           email,
           password_hash: hashedPassword,
           name,
-          role_id,
+          role_id: Number(role_id),
           parent_id,
           depot_id,
           zone_id,
@@ -136,7 +152,7 @@ export const userController = {
           employee_id,
           joining_date: joining_date ? new Date(joining_date) : null,
           reporting_to,
-          profile_image,
+          profile_image: profile_image_url,
           is_active: is_active ?? 'Y',
           createdby: req.user?.id ?? 0,
           createdate: new Date(),
@@ -147,13 +163,7 @@ export const userController = {
           companies: true,
           depots: true,
           zones: true,
-          users: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+          users: { select: { id: true, name: true, email: true } },
         },
       });
 
@@ -164,7 +174,7 @@ export const userController = {
     }
   },
 
-  async getUsers(req: Request, res: Response): Promise<void> {
+  async getUsers(req: any, res: any): Promise<void> {
     try {
       const {
         page = '1',
@@ -239,7 +249,7 @@ export const userController = {
     }
   },
 
-  async getUserById(req: Request, res: Response): Promise<void> {
+  async getUserById(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -280,7 +290,7 @@ export const userController = {
     }
   },
 
-  async updateUser(req: Request, res: Response): Promise<void> {
+  async updateUser(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -288,18 +298,28 @@ export const userController = {
         return;
       }
 
-      const id = Number(req.params.id);
-      const { createdate, updatedate, password, ...userData } = req.body;
+      const targetUserId = Number(req.params.id);
+      const currentUserId = req.user?.id;
 
-      // Remove id from update data if present
-      if ('id' in userData) {
-        delete userData.id;
+      console.log('Target User ID:', targetUserId);
+      console.log('Current User ID:', currentUserId);
+      console.log('Req body:', req.body);
+      const uploadedFile = (req as any).file;
+      console.log('Req file:', uploadedFile ? 'File present' : 'No file');
+
+      if (!currentUserId) {
+        res.error('User not authenticated', 401);
+        return;
       }
 
-      // Check if user exists
+      if (targetUserId !== currentUserId) {
+        res.error('You can only update your own profile', 403);
+        return;
+      }
+
       const existingUser = await prisma.users.findFirst({
         where: {
-          id,
+          id: targetUserId,
           is_active: 'Y',
         },
       });
@@ -309,84 +329,98 @@ export const userController = {
         return;
       }
 
-      // Check if email is being changed and if new email already exists
-      if (userData.email && userData.email !== existingUser.email) {
-        const emailExists = await prisma.users.findFirst({
-          where: {
-            email: userData.email,
-            is_active: 'Y',
-            id: { not: id },
-          },
+      const { createdate, updatedate, password, id, ...userData } = req.body;
+
+      const restrictedFields = ['role_id', 'is_active', 'employee_id', 'email'];
+      restrictedFields.forEach(field => {
+        if (field in userData) {
+          delete userData[field];
+        }
+      });
+
+      let profile_image_url = undefined;
+
+      if (uploadedFile) {
+        console.log(
+          '[UPDATE USER] File upload triggered for user:',
+          targetUserId
+        );
+
+        if (existingUser.profile_image) {
+          try {
+            const oldFileUrl = new URL(existingUser.profile_image);
+            const pathParts = oldFileUrl.pathname.split('/');
+            const fileName = pathParts.slice(3).join('/');
+
+            console.log('[UPDATE USER] Deleting old profile image:', fileName);
+            await deleteFile(fileName);
+          } catch (error) {
+            console.error(' Error deleting old profile image:', error);
+          }
+        }
+
+        const fileExt = uploadedFile.originalname.split('.').pop();
+        const fileName = `profiles/profile_${targetUserId}_${Date.now()}.${fileExt}`;
+
+        console.log(' Uploading new file:', {
+          fileName,
+          mimetype: uploadedFile.mimetype,
+          size: uploadedFile.size,
         });
 
-        if (emailExists) {
-          res.error('Email already exists', 400);
+        try {
+          profile_image_url = await uploadFile(
+            uploadedFile.buffer,
+            fileName,
+            uploadedFile.mimetype
+          );
+          console.log(' File uploaded successfully:', profile_image_url);
+        } catch (error) {
+          console.error('[UPDATE USER] Error uploading profile image:', error);
+          res.error('Failed to upload profile image', 500);
           return;
         }
       }
 
-      // Check if employee_id is being changed and if new employee_id already exists
-      if (
-        userData.employee_id &&
-        userData.employee_id !== existingUser.employee_id
-      ) {
-        const employeeIdExists = await prisma.users.findFirst({
-          where: {
-            employee_id: userData.employee_id,
-            is_active: 'Y',
-            id: { not: id },
-          },
-        });
-
-        if (employeeIdExists) {
-          res.error('Employee ID already exists', 400);
-          return;
-        }
-      }
-
-      // Prepare update data
       const updateData: any = {
         ...userData,
-        updatedby: req.user?.id ?? 0,
+        ...(profile_image_url && { profile_image: profile_image_url }),
+        updatedby: currentUserId,
         updatedate: new Date(),
       };
 
-      // Hash password if provided
       if (password) {
         updateData.password_hash = await bcrypt.hash(password, 10);
       }
 
-      // Convert joining_date to Date if provided
       if (userData.joining_date) {
         updateData.joining_date = new Date(userData.joining_date);
       }
 
       const updatedUser = await prisma.users.update({
-        where: { id },
+        where: { id: targetUserId },
         data: updateData,
         include: {
           user_role: true,
           companies: true,
           depots: true,
           zones: true,
-          users: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+          users: { select: { id: true, name: true, email: true } },
         },
       });
 
-      res.success('User updated successfully', serializeUser(updatedUser), 200);
+      res.success(
+        'Profile updated successfully',
+        serializeUser(updatedUser),
+        200
+      );
     } catch (error: any) {
       console.error('Error updating user:', error);
       res.error(error.message);
     }
   },
 
-  async deleteUser(req: Request, res: Response): Promise<void> {
+  async deleteUser(req: any, res: any): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -396,7 +430,6 @@ export const userController = {
 
       const id = Number(req.params.id);
 
-      // Check if user exists
       const existingUser = await prisma.users.findFirst({
         where: {
           id,
@@ -439,7 +472,8 @@ export const userController = {
       res.error(error.message);
     }
   },
-  async getUserProfile(req: Request, res: Response): Promise<void> {
+
+  async getUserProfile(req: any, res: any): Promise<void> {
     try {
       const userId = req.user?.id;
 
@@ -480,52 +514,6 @@ export const userController = {
       );
     } catch (error: any) {
       console.error('Error fetching user profile:', error);
-      res.error(error.message);
-    }
-  },
-
-  async updateUserProfile(req: Request, res: Response): Promise<void> {
-    try {
-      const userId = req.user?.id;
-      const { name, phone_number, address, profile_image } = req.body;
-
-      if (!userId) {
-        res.error('User not authenticated', 401);
-        return;
-      }
-
-      const updatedUser = await prisma.users.update({
-        where: { id: userId },
-        data: {
-          name,
-          phone_number,
-          address,
-          profile_image,
-          updatedby: userId,
-          updatedate: new Date(),
-        },
-        include: {
-          user_role: true,
-          companies: true,
-          depots: true,
-          zones: true,
-          users: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
-
-      res.success(
-        'Profile updated successfully',
-        serializeUser(updatedUser),
-        200
-      );
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
       res.error(error.message);
     }
   },

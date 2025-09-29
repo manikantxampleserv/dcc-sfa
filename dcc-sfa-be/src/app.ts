@@ -1,11 +1,10 @@
 /**
- * Express application configuration.
  * Sets up middleware, routes, and application-level configurations.
  */
 
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { Application } from 'express';
+import express, { Application, RequestHandler } from 'express';
 import { responseHandler } from './middlewares/response.middleware';
 import routes from './routes';
 
@@ -17,7 +16,6 @@ export const createApp = (): Application => {
   const app = express();
 
   app.use(express.json());
-
   app.use(express.urlencoded({ extended: true }));
 
   app.use(cookieParser());

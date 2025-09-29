@@ -27,7 +27,7 @@ const generateTokens = (user: any) => {
   return { accessToken, refreshToken };
 };
 
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: any, res: any) => {
   try {
     const { email, password, name, role_id, parent_id } = req.body;
 
@@ -70,7 +70,7 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: any, res: any) => {
   try {
     const { email, password } = req.body;
 
@@ -119,7 +119,7 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (req: any, res: any) => {
   try {
     if (!req.token || !req.user) {
       return res.error('No active session', 400);
@@ -145,7 +145,7 @@ export const logout = async (req: Request, res: Response) => {
   }
 };
 
-export const refresh = async (req: Request, res: Response) => {
+export const refresh = async (req: any, res: any) => {
   try {
     const { refreshToken } = req.body;
     if (!refreshToken) return res.error('Refresh token required', 400);

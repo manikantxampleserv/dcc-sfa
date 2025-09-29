@@ -1,14 +1,14 @@
 # ===================================
-# DCC-SFA Turborepo Monorepo
+# DCC-SFA Monorepo
 # ===================================
 
 # Node modules
 **/node_modules/
 node_modules/
 
-# Turborepo
-.turbo/
-**/.turbo/
+# Build cache
+.cache/
+**/.cache/
 
 # Build output
 **/dist/
@@ -53,9 +53,6 @@ lerna-debug.log*
 **/*.tsbuildinfo
 *.tsbuildinfo
 
-# Turborepo cache
-.turbo/
-**/.turbo/
 
 # Package manager lock files 
 yarn.lock
@@ -147,12 +144,8 @@ temp/
 # dcc-sfa.code-workspace
 
 # ===================================
-# Turborepo & Monorepo Specific
+# Monorepo Specific
 # ===================================
-
-# Turborepo remote cache
-.turbo/
-**/.turbo/
 
 # Package-specific files
 **/coverage/
