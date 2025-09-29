@@ -42,12 +42,7 @@
  */
 
 import CloseIcon from '@mui/icons-material/Close';
-import {
-  Box,
-  Drawer as MuiDrawer,
-  IconButton,
-  Typography,
-} from '@mui/material';
+import { Box, IconButton, Drawer as MuiDrawer } from '@mui/material';
 import * as React from 'react';
 
 interface DrawerProps {
@@ -62,7 +57,7 @@ interface DrawerProps {
   /** Custom width in pixels (overrides size prop) */
   width?: number;
   /** Predefined size options (default: 'medium') */
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'medium' | 'large' | 'larger';
   /** Position where the drawer slides from (default: 'right') */
   anchor?: 'left' | 'right' | 'top' | 'bottom';
 }
@@ -74,7 +69,7 @@ interface DrawerProps {
  * @returns Width in pixels
  */
 const getDrawerWidth = (
-  size?: 'small' | 'medium' | 'large',
+  size?: 'small' | 'medium' | 'large' | 'larger',
   customWidth?: number
 ): number => {
   if (customWidth) return customWidth;
@@ -83,9 +78,11 @@ const getDrawerWidth = (
     case 'small':
       return 320;
     case 'medium':
-      return 480;
+      return 580;
     case 'large':
-      return 640;
+      return 740;
+    case 'larger':
+      return 840;
     default:
       return 400;
   }

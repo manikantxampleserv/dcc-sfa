@@ -13,7 +13,6 @@ const RolePermissions: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(7);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
-  const [isManageOpen, setIsManageOpen] = useState(false);
 
   const {
     data: rolesResponse,
@@ -31,13 +30,11 @@ const RolePermissions: React.FC = () => {
     {
       id: 'name',
       label: 'Role Name',
-      width: '200px',
       render: (_value, row) => row.name,
     },
     {
       id: 'description',
       label: 'Description',
-      width: '250px',
       render: (_value, row) =>
         row.description || (
           <span className="italic text-gray-400"> No Description </span>
@@ -46,7 +43,6 @@ const RolePermissions: React.FC = () => {
     {
       id: 'is_active',
       label: 'Status',
-      width: '120px',
       render: is_active => (
         <Chip
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
@@ -60,7 +56,6 @@ const RolePermissions: React.FC = () => {
     {
       id: '_count',
       label: 'Users Count',
-      width: '120px',
       render: (_value, row) => (
         <Box className="!flex !gap-1 !items-center">
           <Group className="!text-gray-500 !text-sm" />
@@ -73,7 +68,6 @@ const RolePermissions: React.FC = () => {
     {
       id: 'permissions',
       label: 'Permissions',
-      width: '140px',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
           {row.permissions?.filter(p => p.is_active === 'Y').length || 0} active
@@ -83,7 +77,6 @@ const RolePermissions: React.FC = () => {
     {
       id: 'created_at',
       label: 'Created Date',
-      width: '130px',
       render: created_at => formatDate(created_at),
     },
     {
@@ -109,7 +102,6 @@ const RolePermissions: React.FC = () => {
 
   const handleEditRole = useCallback((role: Role) => {
     setSelectedRole(role);
-    setIsManageOpen(true);
   }, []);
 
   const handleDeleteRole = useCallback(
@@ -124,7 +116,6 @@ const RolePermissions: React.FC = () => {
   );
 
   const handleCloseManage = useCallback(() => {
-    setIsManageOpen(false);
     setSelectedRole(null);
   }, []);
 
@@ -174,7 +165,10 @@ const RolePermissions: React.FC = () => {
               fullWidth={false}
               className="!min-w-80"
             />
-            <ManageRolePermissions onClose={handleCloseManage} />
+            <ManageRolePermissions
+              role={selectedRole}
+              onClose={handleCloseManage}
+            />
           </div>
         }
         getRowId={role => role.id}
@@ -191,13 +185,6 @@ const RolePermissions: React.FC = () => {
             : 'No roles found in the system'
         }
       />
-
-      {isManageOpen && (
-        <ManageRolePermissions
-          role={selectedRole}
-          onClose={handleCloseManage}
-        />
-      )}
     </>
   );
 };
