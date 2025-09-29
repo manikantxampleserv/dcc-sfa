@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { paginate } from '../../utils/paginate';
@@ -42,7 +41,7 @@ const serializeCompany = (
 });
 
 export const companyController = {
-  async createCompany(req: Request, res: Response) {
+  async createCompany(req: any, res: any) {
     try {
       const {
         name,
@@ -97,7 +96,7 @@ export const companyController = {
     }
   },
 
-  async getCompanies(req: Request, res: Response) {
+  async getCompanies(req: any, res: any) {
     try {
       const { page = '1', limit = '10', search = '' } = req.query;
 
@@ -136,7 +135,7 @@ export const companyController = {
     }
   },
 
-  async getCompanyById(req: Request, res: Response) {
+  async getCompanyById(req: any, res: any) {
     try {
       const { id } = req.params;
       const company = await prisma.companies.findUnique({
@@ -160,7 +159,7 @@ export const companyController = {
     }
   },
 
-  async updateCompany(req: Request, res: Response) {
+  async updateCompany(req: any, res: any) {
     let newLogoUrl: string | null = null;
 
     try {
@@ -218,7 +217,7 @@ export const companyController = {
     }
   },
 
-  async deleteCompany(req: Request, res: Response) {
+  async deleteCompany(req: any, res: any) {
     try {
       const { id } = req.params;
 

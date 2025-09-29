@@ -15,7 +15,7 @@ import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-const RolePermission = () => <h1>Role & Permission Setup</h1>;
+import RolePermissions from 'pages/masters/RolePermissions';
 
 const OutletGroups = () => <h1>Outlet Groups</h1>;
 const AssetTypes = () => <h1>Asset Types</h1>;
@@ -104,7 +104,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/masters/roles',
-        element: <RolePermission />,
+        element: <RolePermissions />,
       },
       {
         path: '/masters/depots',

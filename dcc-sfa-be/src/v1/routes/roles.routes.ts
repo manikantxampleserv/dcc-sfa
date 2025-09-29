@@ -5,24 +5,29 @@ import { validateRole } from '../validations/role.validation';
 
 const router = Router();
 
-router.get('/', authenticateToken, rolesController.getAllRoles);
+router.get('/roles', authenticateToken, rolesController.getAllRoles);
 
-router.get('/:id', authenticateToken, rolesController.getRoleById);
+router.get('/roles/:id', authenticateToken, rolesController.getRoleById);
 
-router.post('/role', validateRole, rolesController.createRole);
+router.post('/roles/role', validateRole, rolesController.createRole);
 
-router.put('/:id', authenticateToken, validateRole, rolesController.updateRole);
+router.put(
+  '/roles/:id',
+  authenticateToken,
+  validateRole,
+  rolesController.updateRole
+);
 
-router.delete('/:id', authenticateToken, rolesController.deleteRole);
+router.delete('/roles/:id', authenticateToken, rolesController.deleteRole);
 
 router.post(
-  '/:id/permissions',
+  '/roles/:id/permissions',
   authenticateToken,
   rolesController.assignPermissions
 );
 
 router.get(
-  '/:id/permissions',
+  '/roles/:id/permissions',
   authenticateToken,
   rolesController.getRolePermissions
 );
