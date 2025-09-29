@@ -1,22 +1,12 @@
-import { Block, CheckCircle, Security, Group } from '@mui/icons-material';
-import { Alert, Box, Button, Chip, Typography } from '@mui/material';
-import classNames from 'classnames';
+import { Block, CheckCircle, Group } from '@mui/icons-material';
+import { Alert, Box, Chip, Typography } from '@mui/material';
 import React, { useCallback, useState } from 'react';
-import { useRoles, useDeleteRole, type Role } from '../../../hooks/useRoles';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import SearchInput from 'shared/SearchInput';
 import Table, { type TableColumn } from 'shared/Table';
+import { useDeleteRole, useRoles, type Role } from '../../../hooks/useRoles';
+import { formatDate } from '../../../utils/dateUtils';
 import ManageRolePermissions from './ManageRolePermissions';
-
-const formatDate = (dateString: string | null | undefined) => {
-  if (!dateString)
-    return <span className="italic text-gray-400"> No Date </span>;
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-};
 
 const RolePermissions: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -33,7 +23,7 @@ const RolePermissions: React.FC = () => {
 
   const roles = rolesResponse?.data || [];
   const totalCount = rolesResponse?.meta?.total || 0;
-  const currentPage = (rolesResponse?.meta?.page || 1) - 1; // Convert to 0-based for MUI
+  const currentPage = (rolesResponse?.meta?.page || 1) - 1;
 
   const deleteRoleMutation = useDeleteRole();
 
@@ -42,30 +32,7 @@ const RolePermissions: React.FC = () => {
       id: 'name',
       label: 'Role Name',
       width: '200px',
-      render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
-          <Security
-            className={classNames('!text-lg', {
-              '!text-primary-600': row.is_active === 'Y',
-              '!text-gray-400': row.is_active !== 'Y',
-            })}
-          />
-          <Box>
-            <Typography
-              variant="body1"
-              className="!text-gray-900 !leading-tight !font-medium"
-            >
-              {row.name}
-            </Typography>
-            <Typography
-              variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
-            >
-              ID: {row.id}
-            </Typography>
-          </Box>
-        </Box>
-      ),
+      render: (_value, row) => row.name,
     },
     {
       id: 'description',
@@ -156,11 +123,6 @@ const RolePermissions: React.FC = () => {
     [deleteRoleMutation]
   );
 
-  const handleAddRole = useCallback(() => {
-    setSelectedRole(null);
-    setIsManageOpen(true);
-  }, []);
-
   const handleCloseManage = useCallback(() => {
     setIsManageOpen(false);
     setSelectedRole(null);
@@ -212,14 +174,13 @@ const RolePermissions: React.FC = () => {
               fullWidth={false}
               className="!min-w-80"
             />
-            <Button variant="contained" onClick={handleAddRole}>
-              + Create
-            </Button>
+            <ManageRolePermissions onClose={handleCloseManage} />
           </div>
         }
         getRowId={role => role.id}
         initialOrderBy="name"
         loading={isLoading}
+        pagination={true}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

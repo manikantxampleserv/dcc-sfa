@@ -120,14 +120,8 @@ const Drawer: React.FC<DrawerProps> = ({
       {/* Drawer Content */}
       <Box className="!h-full !flex !flex-col">
         {/* Drawer Header */}
-        <Box className="!flex !items-center !justify-between !px-4 !py-2 !border-b !border-gray-200 !min-h-16">
-          <Typography
-            variant="h6"
-            component="h2"
-            className="!font-semibold !text-gray-900"
-          >
-            {title}
-          </Typography>
+        <Box className="!flex !items-center !justify-between !p-2 !border-b !border-gray-200 !min-h-16">
+          <p className="!font-semibold text-lg !text-gray-900">{title}</p>
           <IconButton
             onClick={handleClose}
             className="!text-gray-500 hover:!bg-gray-100 hover:!text-gray-700"
