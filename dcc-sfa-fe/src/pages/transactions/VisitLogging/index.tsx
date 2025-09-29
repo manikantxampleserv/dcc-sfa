@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, Eye, MapPin, Calendar, User, FileText, BarChart3, Camera, Clock, CheckCircle, XCircle, MoreVertical, Plus, Send, Upload, FileSignature as Signature } from 'lucide-react';
+import { BarChart3, Calendar, Camera, CheckCircle, Clock, Download, Eye, FileText, MapPin, MoreVertical, Plus, Search, Send, FileSignature as Signature, User, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SurveyResponse {
   id: number;
@@ -14,7 +14,6 @@ interface SurveyResponse {
   updatedate?: string;
   updatedby?: number;
   log_inst?: number;
-  // Related data
   survey_title?: string;
   survey_category?: string;
   submitter_name?: string;
