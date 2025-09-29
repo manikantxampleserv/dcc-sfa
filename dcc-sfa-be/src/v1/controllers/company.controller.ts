@@ -119,7 +119,7 @@ export const companyController = {
         filters,
         page: page_num,
         limit: limit_num,
-        orderBy: { createdate: 'desc' },
+        orderBy: { created_date: 'desc' },
         include: { depots: true },
       });
 

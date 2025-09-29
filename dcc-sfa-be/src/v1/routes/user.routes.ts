@@ -22,7 +22,6 @@ router.post(
     { module: MODULES.USER, action: ACTIONS.CREATE },
   ]),
   createUserValidation,
-  validate,
   userController.createUser
 );
 
@@ -39,7 +38,6 @@ router.put(
   //   { module: MODULES.USER, action: ACTIONS.UPDATE },
   // ]),
   updateUserValidation,
-  validate,
   userController.updateUser
 );
 
