@@ -25,11 +25,16 @@ interface DepotSerialized {
   createdate?: Date | null;
   updatedate?: Date | null;
   updatedby?: number | null;
-  company?: {
+  depot_companies?: {
     id: number;
     name: string;
     code: string;
   } | null;
+  user_depot?: {
+    id: Number;
+    email: String;
+    name: String;
+  };
 }
 
 const serializeDepot = (
@@ -56,14 +61,21 @@ const serializeDepot = (
   createdate: depot.createdate,
   updatedate: depot.updatedate,
   updatedby: depot.updatedby,
-  company:
-    includeCompany && depot.companies
+  depot_companies:
+    includeCompany && depot.depot_companies
       ? {
-          id: depot.companies.id,
-          name: depot.companies.name,
-          code: depot.companies.code,
+          id: depot.depot_companies.id,
+          name: depot.depot_companies.name,
+          code: depot.depot_companies.code,
         }
       : null,
+  user_depot: depot.user_depot
+    ? depot.user_depot.map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+      }))
+    : [],
 });
 
 export const depotsController = {
@@ -78,8 +90,9 @@ export const depotsController = {
           log_inst: data.log_inst || 1,
           createdate: new Date(),
         },
-        include: { companies: true },
+        include: { depot_companies: true, user_depot: true },
       });
+
       res.status(201).json({
         message: 'Depot created successfully',
         data: serializeDepot(depot, true),
@@ -114,7 +127,7 @@ export const depotsController = {
         page: page_num,
         limit: limit_num,
         orderBy: { createdate: 'desc' },
-        include: { companies: true },
+        include: { companies: true, user_depot: true },
       });
 
       res.json({
@@ -128,13 +141,12 @@ export const depotsController = {
     }
   },
 
-  // GET Depot by ID
   async getDepotsById(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const depot = await prisma.depots.findUnique({
         where: { id: Number(id) },
-        include: { companies: true },
+        include: { depot_companies: true, user_depot: true },
       });
 
       if (!depot) {
@@ -151,7 +163,6 @@ export const depotsController = {
     }
   },
 
-  // UPDATE Depot
   async updateDepots(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -168,7 +179,7 @@ export const depotsController = {
       const depot = await prisma.depots.update({
         where: { id: Number(id) },
         data,
-        include: { companies: true },
+        include: { depot_companies: true, user_depot: true },
       });
 
       res.json({
@@ -181,7 +192,6 @@ export const depotsController = {
     }
   },
 
-  // DELETE Depot
   async deleteDepots(req: Request, res: Response) {
     try {
       const { id } = req.params;
