@@ -76,7 +76,6 @@ model users {
 model roles {
   id               Int                @id() @default(autoincrement())
   name             String             @unique @db.NVarChar(100)
-  user_id          Int
   description      String?            @db.NVarChar(500)
   is_active        String             @default("Y") @db.Char(1)
   createdate       DateTime?          @default(now()) @db.DateTime
