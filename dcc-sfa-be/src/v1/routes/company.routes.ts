@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
-import { validate } from '../../middlewares/validation.middleware';
 import { companyController } from '../controllers/company.controller';
 import { upload } from '../../utils/multer';
 
@@ -10,19 +9,16 @@ router.post(
   '/company',
   upload.single('logo'),
   authenticateToken,
-  validate,
   companyController.createCompany
 );
 
-router.get('/company', authenticateToken, companyController.getCompanies);
-
 router.get('/company/:id', authenticateToken, companyController.getCompanyById);
+router.get('/company', authenticateToken, companyController.getCompanies);
 
 router.put(
   '/company/:id',
   upload.single('logo'),
   authenticateToken,
-  validate,
   companyController.updateCompany
 );
 
