@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // import { Request, Response } from 'express';
 // import { PrismaClient } from '@prisma/client';
 // import { paginate } from '../../utils/paginate';
@@ -489,6 +490,8 @@
 //   },
 // };
 
+=======
+>>>>>>> dev-Shivang
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { paginate } from '../../utils/paginate';
@@ -540,7 +543,6 @@ export const rolesController = {
         permissions = [],
       } = req.body;
 
-      // Check if role name already exists
       const existingRole = await prisma.roles.findFirst({
         where: {
           name,
@@ -553,7 +555,6 @@ export const rolesController = {
         return;
       }
 
-      // Create role with permissions in a transaction
       const result = await prisma.$transaction(async tx => {
         const newRole = await tx.roles.create({
           data: {
@@ -571,7 +572,6 @@ export const rolesController = {
           },
         });
 
-        // Create role permissions if provided
         if (permissions.length > 0) {
           await tx.role_permissions.createMany({
             data: permissions.map((permissionId: number) => ({
@@ -615,16 +615,14 @@ export const rolesController = {
 
       const id = Number(req.params.id);
 
-      // Validate that id is a valid number
       if (isNaN(id) || id <= 0) {
         res.error('Invalid role ID', 400);
         return;
       }
 
-      // FIXED: Added the missing id field
       const role = await prisma.roles.findFirst({
         where: {
-          id: id, // This was missing!
+          id: id,
           is_active: 'Y',
         },
         include: {
@@ -664,7 +662,6 @@ export const rolesController = {
 
       const id = Number(req.params.id);
 
-      // Validate that id is a valid number
       if (isNaN(id) || id <= 0) {
         res.error('Invalid role ID', 400);
         return;
@@ -672,15 +669,13 @@ export const rolesController = {
 
       const { createdate, updatedate, ...roleData } = req.body;
 
-      // Remove id from update data if present
       if ('id' in roleData) {
         delete roleData.id;
       }
 
-      // Check if role exists - FIXED: Added the missing id field
       const existingRole = await prisma.roles.findFirst({
         where: {
-          id: id, // This was missing!
+          id: id,
           is_active: 'Y',
         },
       });
@@ -690,7 +685,6 @@ export const rolesController = {
         return;
       }
 
-      // Check if name is being changed and if new name already exists
       if (roleData.name && roleData.name !== existingRole.name) {
         const nameExists = await prisma.roles.findFirst({
           where: {
@@ -706,10 +700,9 @@ export const rolesController = {
         }
       }
 
-      // Update role and permissions in a transaction
       const result = await prisma.$transaction(async tx => {
         const updatedRole = await tx.roles.update({
-          where: { id: id }, // Make sure id is properly passed
+          where: { id: id },
           data: {
             ...roleData,
             updatedby: req.user?.id ?? 0,
@@ -730,9 +723,7 @@ export const rolesController = {
           },
         });
 
-        // Update permissions if provided
         if (roleData.permissions) {
-          // Deactivate existing permissions
           await tx.role_permissions.updateMany({
             where: { role_id: id },
             data: {
@@ -742,7 +733,6 @@ export const rolesController = {
             },
           });
 
-          // Create new permissions
           if (roleData.permissions.length > 0) {
             await tx.role_permissions.createMany({
               data: roleData.permissions.map((permissionId: number) => ({
@@ -755,7 +745,6 @@ export const rolesController = {
             });
           }
 
-          // Fetch updated role with new permissions
           const roleWithPermissions = await tx.roles.findUnique({
             where: { id: id },
             include: {
@@ -796,16 +785,14 @@ export const rolesController = {
 
       const id = Number(req.params.id);
 
-      // Validate that id is a valid number
       if (isNaN(id) || id <= 0) {
         res.error('Invalid role ID', 400);
         return;
       }
 
-      // Check if role exists - FIXED: Added the missing id field
       const existingRole = await prisma.roles.findFirst({
         where: {
-          id: id, // This was missing!
+          id: id,
           is_active: 'Y',
         },
       });
@@ -815,7 +802,6 @@ export const rolesController = {
         return;
       }
 
-      // Check if role is being used by any users
       const usersWithRole = await prisma.users.count({
         where: {
           role_id: id,
@@ -828,10 +814,9 @@ export const rolesController = {
         return;
       }
 
-      // Soft delete role and its permissions
       await prisma.$transaction(async tx => {
         await tx.roles.update({
-          where: { id: id }, // Make sure id is properly passed
+          where: { id: id },
           data: {
             is_active: 'N',
             updatedby: req.user?.id ?? 0,
@@ -935,10 +920,9 @@ export const rolesController = {
         return;
       }
 
-      // Check if role exists - FIXED: Added the missing id field
       const role = await prisma.roles.findFirst({
         where: {
-          id: id, // This was missing!
+          id: id,
           is_active: 'Y',
         },
       });
