@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Avatar, Skeleton } from '@mui/material';
 import {
   FaBars,
   FaBell,
@@ -11,6 +12,7 @@ import {
 } from 'react-icons/fa';
 import authService from 'services/auth/authService';
 import { useLogout } from 'hooks/useAuth';
+import { useCurrentUser } from 'hooks/useUsers';
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -22,7 +24,14 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentUser = authService.getCurrentUser();
+  // Get dynamic user data from API
+  const { data: apiUser, isLoading: userLoading } = useCurrentUser();
+
+  // Fallback to localStorage data if API fails
+  const fallbackUser = authService.getCurrentUser();
+
+  // Use API data if available, otherwise fallback to localStorage
+  const currentUser = apiUser || fallbackUser;
 
   const logoutMutation = useLogout({
     onSuccess: () => {
@@ -57,13 +66,28 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   };
 
   const getUserInitials = () => {
-    if (!currentUser?.username) return 'U';
-    return currentUser.username
+    // Handle both API User (name) and localStorage UserData (username)
+    const displayName =
+      (currentUser as any)?.name || (currentUser as any)?.username;
+    if (!displayName) return 'U';
+    return displayName
       .split(' ')
-      .map(name => name[0])
+      .map((name: string) => name[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const getUserDisplayName = () => {
+    return (
+      (currentUser as any)?.name || (currentUser as any)?.username || 'User'
+    );
+  };
+
+  const getUserRole = () => {
+    return (
+      (currentUser as any)?.role?.name || (currentUser as any)?.role || 'User'
+    );
   };
 
   return (
@@ -92,22 +116,67 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
               onClick={toggleUserMenu}
               className="flex items-center gap-2 p-2 rounded-md text-gray-700 hover:bg-gray-100"
             >
-              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                {getUserInitials()}
-              </div>
+              {userLoading ? (
+                <Skeleton
+                  variant="circular"
+                  width={40}
+                  height={40}
+                  sx={{ bgcolor: 'grey.200' }}
+                />
+              ) : (
+                <Avatar
+                  alt={getUserDisplayName()}
+                  src={(currentUser as any)?.profile_image || undefined}
+                  className="!w-10 !rounded !h-10 !bg-primary-500 !text-sm !font-medium !border-2 !border-transparent hover:!border-primary-400 !transition-colors"
+                >
+                  {getUserInitials()}
+                </Avatar>
+              )}
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
+              <div className="absolute right-0 mt-2.5 w-60 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
                 <div className="px-4 py-2 border-b border-gray-100">
-                  <div className="text-sm font-medium text-gray-900">
-                    {currentUser?.username || 'User'}
+                  <div className="flex items-center gap-3 mb-2">
+                    {userLoading ? (
+                      <Skeleton
+                        variant="circular"
+                        width={40}
+                        height={40}
+                        sx={{ bgcolor: 'grey.200' }}
+                      />
+                    ) : (
+                      <Avatar
+                        alt={getUserDisplayName()}
+                        src={(currentUser as any)?.profile_image || undefined}
+                        className="!w-10 !rounded !h-10 !bg-primary-500 !text-base !font-medium !border-2 !border-primary-400"
+                      >
+                        {getUserInitials()}
+                      </Avatar>
+                    )}
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        {userLoading ? (
+                          <Skeleton width={120} height={16} />
+                        ) : (
+                          getUserDisplayName()
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {userLoading ? (
+                          <Skeleton width={80} height={12} />
+                        ) : (
+                          getUserRole()
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {currentUser?.email || 'user@example.com'}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {currentUser?.role || 'User'}
+                    {userLoading ? (
+                      <Skeleton width={150} height={12} />
+                    ) : (
+                      (currentUser as any)?.email || 'user@example.com'
+                    )}
                   </div>
                 </div>
                 <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">

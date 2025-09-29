@@ -1,10 +1,17 @@
-import { Add, CheckBox, CheckBoxOutlineBlank } from '@mui/icons-material';
+import { Add } from '@mui/icons-material';
 import {
   Alert,
   Box,
   Checkbox,
-  FormControlLabel,
   MenuItem,
+  Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { usePermissionsByModule } from 'hooks/usePermissions';
@@ -14,7 +21,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import * as Yup from 'yup';
+import validationSchema from 'schemas/masters/RolePersmissions';
 
 interface ManageRolePermissionsProps {
   selectedRole?: Role | null;
@@ -22,19 +29,6 @@ interface ManageRolePermissionsProps {
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
-
-const validationSchema = Yup.object({
-  name: Yup.string()
-    .required('Role name is required')
-    .min(2, 'Role name must be at least 2 characters')
-    .max(50, 'Role name must not exceed 50 characters'),
-  description: Yup.string().max(
-    200,
-    'Description must not exceed 200 characters'
-  ),
-  is_active: Yup.string().required('Status is required'),
-  permissions: Yup.array().min(1, 'At least one permission must be selected'),
-});
 
 const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   selectedRole,
@@ -168,6 +162,49 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
     return selectedCount > 0 && selectedCount < modulePermissionIds.length;
   };
 
+  const getUniqueActions = () => {
+    const actions = new Set<string>();
+    permissionsData.forEach(module => {
+      module.permissions.forEach(permission => {
+        actions.add(permission.action);
+      });
+    });
+    return Array.from(actions).sort();
+  };
+
+  const isAllPermissionsSelected = () => {
+    const allPermissionIds = permissionsData.flatMap(module =>
+      module.permissions.map(p => p.id)
+    );
+    return (
+      allPermissionIds.length > 0 &&
+      allPermissionIds.every(id => formik.values.permissions.includes(id))
+    );
+  };
+
+  const isSomePermissionsSelected = () => {
+    const allPermissionIds = permissionsData.flatMap(module =>
+      module.permissions.map(p => p.id)
+    );
+    const selectedCount = allPermissionIds.filter(id =>
+      formik.values.permissions.includes(id)
+    ).length;
+    return selectedCount > 0 && selectedCount < allPermissionIds.length;
+  };
+
+  const handleSelectAllPermissions = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (event.target.checked) {
+      const allPermissionIds = permissionsData.flatMap(module =>
+        module.permissions.map(p => p.id)
+      );
+      formik.setFieldValue('permissions', allPermissionIds);
+    } else {
+      formik.setFieldValue('permissions', []);
+    }
+  };
+
   return (
     <div>
       <Button
@@ -240,77 +277,96 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
               </div>
             )}
 
-            {permissionsData.map(module => {
-              const isFullySelected = isModuleFullySelected(module.permissions);
-              const isPartiallySelected = isModulePartiallySelected(
-                module.permissions
-              );
-
-              return (
-                <div
-                  key={module.module}
-                  className="border px-2 border-gray-200 rounded-lg"
-                >
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        checked={isFullySelected}
-                        indeterminate={isPartiallySelected}
-                        onChange={e =>
-                          handleModuleSelectAll(
-                            module.permissions,
-                            e.target.checked
-                          )
-                        }
-                        icon={<CheckBoxOutlineBlank />}
-                        checkedIcon={<CheckBox />}
-                        className="!text-primary-600"
-                      />
-                    }
-                    label={
-                      <p className="!font-semibold !capitalize !text-gray-900">
-                        {module.module}
-                      </p>
-                    }
-                  />
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 pb-2 gap-1">
-                    {module.permissions.map(permission => (
-                      <FormControlLabel
-                        key={permission.id}
-                        className="!items-start fle !m-0 !p-1 !rounded !border !border-gray-100 hover:!bg-gray-50"
-                        control={
+            {/* Compact Permissions Table */}
+            <TableContainer
+              component={Paper}
+              className="!shadow-none !border !border-gray-200"
+            >
+              <Table size="small" className="!min-w-full">
+                <TableHead>
+                  <TableRow className="!bg-gray-50">
+                    <TableCell className="!font-semibold !text-gray-700 !py-1">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          size="small"
+                          checked={isAllPermissionsSelected()}
+                          indeterminate={isSomePermissionsSelected()}
+                          onChange={handleSelectAllPermissions}
+                          className="!text-primary-600"
+                        />
+                        Module
+                      </div>
+                    </TableCell>
+                    {getUniqueActions().map(action => (
+                      <TableCell
+                        key={action}
+                        align="center"
+                        className="!font-semibold !capitalize !text-gray-700 !py-3 !min-w-[100px]"
+                      >
+                        {action}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {permissionsData.map(module => (
+                    <TableRow key={module.module} className="hover:!bg-gray-50">
+                      <TableCell className="!py-1">
+                        <div className="flex items-center gap-2">
                           <Checkbox
-                            checked={formik.values.permissions.includes(
-                              permission.id
+                            size="small"
+                            checked={isModuleFullySelected(module.permissions)}
+                            indeterminate={isModulePartiallySelected(
+                              module.permissions
                             )}
                             onChange={e =>
-                              handlePermissionChange(
-                                permission.id,
+                              handleModuleSelectAll(
+                                module.permissions,
                                 e.target.checked
                               )
                             }
-                            size="small"
-                            className="!text-primary-600 !mt-0.5"
+                            className="!text-primary-600"
                           />
-                        }
-                        label={
-                          <div className="!text-gray-700">
-                            <span className="!font-semibold !text-xs uppercase !text-blue-600">
-                              {permission.action}
-                            </span>
-                            <p className="!text-xs !text-gray-500 !mt-0.5 !leading-tight">
-                              {permission.description || permission.name}
-                            </p>
-                          </div>
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                          <span className="!font-medium !text-gray-900 !capitalize">
+                            {module.module}
+                          </span>
+                        </div>
+                      </TableCell>
+                      {getUniqueActions().map(action => {
+                        const permission = module.permissions.find(
+                          p => p.action === action
+                        );
+                        return (
+                          <TableCell
+                            key={action}
+                            align="center"
+                            className="!py-2"
+                          >
+                            {permission ? (
+                              <Switch
+                                size="small"
+                                checked={formik.values.permissions.includes(
+                                  permission.id
+                                )}
+                                onChange={e =>
+                                  handlePermissionChange(
+                                    permission.id,
+                                    e.target.checked
+                                  )
+                                }
+                                className="!text-primary-600"
+                              />
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
 
           {/* Action Buttons */}

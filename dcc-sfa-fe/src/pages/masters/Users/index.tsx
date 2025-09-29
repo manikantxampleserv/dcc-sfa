@@ -177,9 +177,7 @@ const Users: React.FC = () => {
 
   const handleDeleteUser = useCallback(
     (id: number) => {
-      if (window.confirm('Are you sure you want to delete this user?')) {
-        deleteUserMutation.mutate(id);
-      }
+      deleteUserMutation.mutate(id);
     },
     [deleteUserMutation]
   );

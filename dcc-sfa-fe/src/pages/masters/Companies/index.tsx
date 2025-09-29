@@ -1,456 +1,381 @@
-import React, { useState } from 'react';
-import { Box, Typography, Chip, Button } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
-import type { ColDef } from 'ag-grid-community';
-import { DeleteButton, EditButton } from '../../../shared/ActionButton';
-import SearchInput from '../../../shared/SearchInput';
-import DataGrid from '../../../shared/DataGrid';
-// TypeScript interface matching Prisma schema
-interface Company {
-  id: number;
-  name: string;
-  code: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  zipcode?: string;
-  phone_number?: string;
-  email?: string;
-  website?: string;
-  logo?: string;
-  is_active: string;
-  created_date?: Date;
-  created_by: number;
-  updated_date?: Date;
-  updated_by?: number;
-  log_inst?: number;
-}
+import { Add, Block, CheckCircle } from '@mui/icons-material';
+import { Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { Building2, Globe, Mail, MapPin, Phone, XCircle } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { DeleteButton, EditButton } from 'shared/ActionButton';
+import Button from 'shared/Button';
+import SearchInput from 'shared/SearchInput';
+import Select from 'shared/Select';
+import Table, { type TableColumn } from 'shared/Table';
+import type { Company } from 'types/Company';
+import { formatDate } from 'utils/dateUtils';
+import ManageCompanies from './ManageCompanies';
 
-const formatDate = (dateString: string | Date | null | undefined) => {
-  if (!dateString)
-    return <span className="italic text-gray-400"> No Date </span>;
-  return new Intl.DateTimeFormat('en-IN', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(dateString));
-};
-
-const Companies: React.FC = () => {
+const CompaniesManagement: React.FC = () => {
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  // Mock data matching Prisma schema
-  const [companies] = useState<Company[]>([
-    {
-      id: 1,
-      name: 'Hindustan Unilever Limited',
-      code: 'HUL001',
-      address: 'Unilever House, B.D. Sawant Marg, Chakala',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      country: 'India',
-      zipcode: '400099',
-      phone_number: '+91-22-3983-0000',
-      email: 'contact@hul.co.in',
-      website: 'https://www.hul.co.in',
-      logo: 'https://www.hul.co.in/logo.png',
-      is_active: 'Y',
-      created_date: new Date('2023-01-15'),
-      created_by: 1,
-      updated_date: new Date('2024-03-20'),
-      updated_by: 1,
-      log_inst: 1,
-    },
-    {
-      id: 2,
-      name: 'ITC Limited',
-      code: 'ITC002',
-      address: 'Virginia House, 37 J.L. Nehru Road',
-      city: 'Kolkata',
-      state: 'West Bengal',
-      country: 'India',
-      zipcode: '700071',
-      phone_number: '+91-33-2288-9371',
-      email: 'corporate@itc.in',
-      website: 'https://www.itcportal.com',
-      logo: 'https://www.itcportal.com/logo.png',
-      is_active: 'Y',
-      created_date: new Date('2023-02-10'),
-      created_by: 1,
-      updated_date: new Date('2024-02-15'),
-      updated_by: 2,
-      log_inst: 1,
-    },
-    {
-      id: 3,
-      name: 'Nestle India Limited',
-      code: 'NES003',
-      address: 'Nestle House, Jacaranda Marg, M Block',
-      city: 'Gurugram',
-      state: 'Haryana',
-      country: 'India',
-      zipcode: '122002',
-      phone_number: '+91-124-399-5000',
-      email: 'info@nestle.in',
-      website: 'https://www.nestle.in',
-      logo: 'https://www.nestle.in/logo.png',
-      is_active: 'Y',
-      created_date: new Date('2023-03-05'),
-      created_by: 1,
-      updated_date: new Date('2024-01-10'),
-      updated_by: 1,
-      log_inst: 1,
-    },
-    {
-      id: 4,
-      name: 'Britannia Industries Ltd',
-      code: 'BRI004',
-      address: 'Britannia House, 1-A Hungerford Street',
-      city: 'Kolkata',
-      state: 'West Bengal',
-      country: 'India',
-      zipcode: '700017',
-      phone_number: '+91-33-2229-8747',
-      email: 'contact@britannia.co.in',
-      website: 'https://www.britannia.co.in',
-      logo: 'https://www.britannia.co.in/logo.png',
-      is_active: 'Y',
-      created_date: new Date('2023-04-12'),
-      created_by: 2,
-      updated_date: new Date('2024-04-01'),
-      updated_by: 2,
-      log_inst: 1,
-    },
-    {
-      id: 5,
-      name: 'Godrej Consumer Products',
-      code: 'GCP005',
-      address: 'Godrej One, Pirojshanagar',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      country: 'India',
-      zipcode: '400079',
-      phone_number: '+91-22-2518-8010',
-      email: 'info@godrejcp.com',
-      website: 'https://www.godrejcp.com',
-      logo: 'https://www.godrejcp.com/logo.png',
-      is_active: 'Y',
-      created_date: new Date('2023-05-20'),
-      created_by: 1,
-      updated_date: new Date('2024-05-15'),
-      updated_by: 1,
-      log_inst: 1,
-    },
-    {
-      id: 6,
-      name: 'Dabur India Limited',
-      code: 'DAB006',
-      address: '8/3 Asaf Ali Road',
-      city: 'New Delhi',
-      state: 'Delhi',
-      country: 'India',
-      zipcode: '110002',
-      phone_number: '+91-11-2324-6017',
-      email: 'contact@dabur.com',
-      website: 'https://www.dabur.com',
-      logo: 'https://www.dabur.com/logo.png',
-      is_active: 'N',
-      created_date: new Date('2023-06-08'),
-      created_by: 2,
-      updated_date: new Date('2024-06-01'),
-      log_inst: 1,
-    },
-  ]);
+  useEffect(() => {
+    const mockCompanies: Company[] = [
+      {
+        id: 1,
+        name: 'TechCorp Solutions',
+        code: 'TECH001',
+        address: '123 Innovation Drive',
+        city: 'San Francisco',
+        state: 'California',
+        country: 'USA',
+        zipcode: '94105',
+        phone_number: '+1-555-0123',
+        email: 'contact@techcorp.com',
+        website: 'https://techcorp.com',
+        logo: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+        is_active: 'Y',
+        createdate: '2024-01-15T10:30:00',
+        createdby: 1,
+        updatedate: '2024-01-20T14:45:00',
+        updatedby: 1,
+        log_inst: 1,
+      },
+      {
+        id: 2,
+        name: 'Global Manufacturing Inc',
+        code: 'GLOB002',
+        address: '456 Industrial Blvd',
+        city: 'Detroit',
+        state: 'Michigan',
+        country: 'USA',
+        zipcode: '48201',
+        phone_number: '+1-555-0456',
+        email: 'info@globalmanuf.com',
+        website: 'https://globalmanuf.com',
+        logo: 'https://images.pexels.com/photos/3184338/pexels-photo-3184338.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
+        is_active: 'Y',
+        createdate: '2024-01-10T09:15:00',
+        createdby: 2,
+        log_inst: 2,
+      },
+      {
+        id: 3,
+        name: 'Retail Express Ltd',
+        code: 'RET003',
+        address: '789 Commerce Street',
+        city: 'New York',
+        state: 'New York',
+        country: 'USA',
+        zipcode: '10001',
+        phone_number: '+1-555-0789',
+        email: 'support@retailexpress.com',
+        website: 'https://retailexpress.com',
+        is_active: 'N',
+        createdate: '2024-01-05T16:20:00',
+        createdby: 1,
+        updatedate: '2024-01-25T11:30:00',
+        updatedby: 2,
+        log_inst: 3,
+      },
+    ];
+    setCompanies(mockCompanies);
+  }, []);
 
-  // Filter companies based on search
-  const filteredCompanies = companies.filter(
-    company =>
+  const filteredCompanies = companies.filter(company => {
+    const matchesSearch =
+      search === '' ||
       company.name.toLowerCase().includes(search.toLowerCase()) ||
       company.code.toLowerCase().includes(search.toLowerCase()) ||
-      company.city?.toLowerCase().includes(search.toLowerCase()) ||
-      company.state?.toLowerCase().includes(search.toLowerCase())
+      company.email?.toLowerCase().includes(search.toLowerCase()) ||
+      company.city?.toLowerCase().includes(search.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusFilter === 'active' && company.is_active === 'Y') ||
+      (statusFilter === 'inactive' && company.is_active === 'N');
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleCreateCompany = useCallback(() => {
+    setSelectedCompany(null);
+    setDrawerOpen(true);
+  }, []);
+
+  const handleEditCompany = useCallback((company: Company) => {
+    setSelectedCompany(company);
+    setDrawerOpen(true);
+  }, []);
+
+  const handleDeleteCompany = useCallback(
+    (id: number) => {
+      setCompanies(companies.filter(c => c.id !== id));
+    },
+    [companies]
   );
 
-  // Action handlers
-  const handleAddCompany = () => {
-    console.log('Add new company');
-  };
-  const handleEdit = (company: Company) => {
-    console.log('Edit company:', company);
-  };
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    setPage(1);
+  }, []);
 
-  const handleDelete = (company: Company) => {
-    console.log('Delete company:', company);
-  };
+  const handlePageChange = (newPage: number) => setPage(newPage + 1);
 
-  // Column definitions matching AG Grid inventory demo exactly
-  const companyColumns: ColDef<Company>[] = [
+  const companyColumns: TableColumn<Company>[] = [
     {
-      headerName: 'Company Name',
-      field: 'name',
-      width: 200,
-      pinned: 'left',
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
-      cellRenderer: (params: any) => (
-        <Box className="flex items-center gap-3 py-2">
-          {/* Company Logo */}
-          <Box className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm">
-            {params.data.name.substring(0, 2).toUpperCase()}
-          </Box>
-          {/* Company Info */}
+      id: 'name',
+      label: 'Company & Logo',
+      render: (_value, row) => (
+        <Box className="!flex !gap-2 !items-center">
+          <Avatar
+            alt={row.name}
+            src={row.logo}
+            className="!rounded !bg-primary-100 !text-primary-600"
+          >
+            <Building2 className="w-5 h-5" />
+          </Avatar>
           <Box>
             <Typography
-              variant="body2"
-              className="font-semibold text-gray-900 leading-tight"
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
             >
-              {params.value}
+              {row.name}
             </Typography>
-            <Typography variant="caption" className="text-gray-500 text-xs">
-              {params.data.code}
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.code}
             </Typography>
           </Box>
         </Box>
       ),
     },
     {
-      headerName: 'Industry',
-      field: 'address',
-      width: 150,
-      cellRenderer: (params: any) => (
-        <Box className="flex items-center gap-2">
-          <Box className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
-            <Box className="w-2 h-2 bg-white rounded-full" />
-          </Box>
-          <Typography variant="body2" className="text-gray-700">
-            {params.data.city || 'Consumer Goods'}
-          </Typography>
+      id: 'email',
+      label: 'Contact',
+      render: (_value, row) => (
+        <Box className="space-y-1">
+          {row.email ? (
+            <div className="flex items-center gap-1">
+              <Mail className="w-3 h-3 text-gray-400" />
+              <span className="text-xs">{row.email}</span>
+            </div>
+          ) : (
+            <span className="italic text-gray-400">No Email</span>
+          )}
+          {row.phone_number && (
+            <div className="flex items-center gap-1">
+              <Phone className="w-3 h-3 text-gray-400" />
+              <span className="text-xs">{row.phone_number}</span>
+            </div>
+          )}
         </Box>
       ),
     },
     {
-      headerName: 'Year',
-      field: 'created_date',
-      width: 80,
-      cellRenderer: (params: any) => (
-        <Typography variant="body2" className="text-gray-700">
-          {params.value
-            ? new Date(params.value).getFullYear().toString().slice(-2)
-            : '23'}
-        </Typography>
-      ),
-    },
-    {
-      headerName: 'Status',
-      field: 'is_active',
-      width: 100,
-      cellRenderer: (params: any) => (
-        <Box className="flex items-center gap-2">
-          <Box
-            className={`w-2 h-2 rounded-full ${
-              params.value === 'Y' ? 'bg-green-500' : 'bg-orange-500'
-            }`}
-          />
-          <Typography
-            variant="body2"
-            className={`font-medium ${
-              params.value === 'Y' ? 'text-green-700' : 'text-orange-700'
-            }`}
-          >
-            {params.value === 'Y' ? 'Active' : 'On Hold'}
-          </Typography>
+      id: 'location',
+      label: 'Location',
+      render: (_value, row) => (
+        <Box className="flex items-center gap-1">
+          <MapPin className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">
+            {[row.city, row.state, row.country].filter(Boolean).join(', ') ||
+              'No Location'}
+          </span>
         </Box>
       ),
     },
     {
-      headerName: 'Inventory',
-      field: 'phone_number',
-      width: 120,
-      cellRenderer: (params: any) => (
-        <Box>
-          <Typography variant="body2" className="text-gray-900 font-medium">
-            {Math.floor(Math.random() * 20) + 1} Stock / 2 Variants
-          </Typography>
-        </Box>
+      id: 'website',
+      label: 'Website',
+      render: (_value, row) =>
+        row.website ? (
+          <div className="flex items-center gap-1">
+            <Globe className="w-3 h-3 text-gray-400" />
+            <a
+              href={row.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 text-xs"
+            >
+              Visit Site
+            </a>
+          </div>
+        ) : (
+          <span className="italic text-gray-400">No Website</span>
+        ),
+    },
+    {
+      id: 'is_active',
+      label: 'Status',
+      render: is_active => (
+        <Chip
+          icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
+          label={is_active === 'Y' ? 'Active' : 'Inactive'}
+          size="small"
+          className="w-26"
+          color={is_active === 'Y' ? 'success' : 'error'}
+        />
       ),
     },
     {
-      headerName: 'Incoming',
-      field: 'email',
-      width: 100,
-      cellRenderer: () => (
-        <Typography variant="body2" className="text-gray-700 text-center">
-          {Math.floor(Math.random() * 50) + 10}
-        </Typography>
-      ),
+      id: 'createdate',
+      label: 'Created Date',
+      render: (_value, row) =>
+        formatDate(row.createdate) || (
+          <span className="italic text-gray-400">No Date</span>
+        ),
     },
     {
-      headerName: 'Price',
-      field: 'website',
-      width: 120,
-      cellRenderer: () => (
-        <Box>
-          <Typography variant="body2" className="text-gray-900 font-semibold">
-            £{Math.floor(Math.random() * 100) + 20}
-          </Typography>
-          <Typography variant="caption" className="text-gray-500">
-            {Math.floor(Math.random() * 20) + 5}% Increase
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      headerName: 'Sold',
-      field: 'zipcode',
-      width: 80,
-      cellRenderer: () => (
-        <Typography variant="body2" className="text-gray-700 text-center">
-          {Math.floor(Math.random() * 30) + 5}
-        </Typography>
-      ),
-    },
-    {
-      headerName: 'Est. Profit',
-      field: 'country',
-      width: 100,
-      cellRenderer: () => (
-        <Typography variant="body2" className="text-gray-900 font-semibold">
-          £{Math.floor(Math.random() * 1000) + 100}
-        </Typography>
-      ),
-    },
-    {
-      headerName: 'Actions',
-      width: 120,
-      pinned: 'right',
-      cellRenderer: (params: any) => (
-        <Box className="!flex !gap-1">
-          <Button
-            size="small"
-            variant="outlined"
-            className="!text-blue-600 !border-blue-600 !px-3 !py-1 !text-xs !font-medium"
-          >
-            Hold Selling
-          </Button>
-          <DeleteButton
-            onClick={() => handleDelete(params.data)}
-            tooltip={`Delete ${params.data.name}`}
-            itemName={params.data.name}
-          />
-        </Box>
-      ),
+      id: 'action',
+      label: 'Actions',
       sortable: false,
-      filter: false,
+      render: (_value, row) => (
+        <div className="!flex !gap-2 !items-center">
+          <EditButton
+            onClick={() => handleEditCompany(row)}
+            tooltip={`Edit ${row.name}`}
+          />
+          <DeleteButton
+            onClick={() => handleDeleteCompany(row.id)}
+            tooltip={`Delete ${row.name}`}
+            itemName={row.name}
+            confirmDelete={true}
+          />
+        </div>
+      ),
     },
   ];
 
   return (
-    <Box className="h-screen flex flex-col bg-gray-50">
-      {/* Header Bar - Similar to AG Grid Demo */}
-      <Box className="bg-white border-b border-gray-200 px-6 py-4">
-        <Box className="flex justify-between items-center">
-          <Box>
-            <Typography
-              variant="h4"
-              className="font-semibold text-gray-900 mb-1"
-            >
-              Companies
-            </Typography>
-            <Typography variant="body2" className="text-gray-600">
-              Manage your company database and track business relationships
-            </Typography>
-          </Box>
-          <Box className="flex items-center gap-3">
-            <Box className="flex gap-2">
-              <Chip
-                label={`${companies.length} Total`}
-                variant="filled"
-                size="small"
-                className="!bg-blue-100 !text-blue-800"
+    <>
+      <Box className="!mb-3 !flex !justify-between !items-center">
+        <Box>
+          <p className="!font-bold text-xl !text-gray-900">
+            Companies Management
+          </p>
+          <p className="!text-gray-500 text-sm">
+            Manage your company database and organizational structure
+          </p>
+        </Box>
+      </Box>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                Total Companies
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {companies.length}
+              </p>
+            </div>
+            <Building2 className="w-8 h-8 text-blue-600" />
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                Active Companies
+              </p>
+              <p className="text-2xl font-bold text-green-600">
+                {companies.filter(c => c.is_active === 'Y').length}
+              </p>
+            </div>
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                Inactive Companies
+              </p>
+              <p className="text-2xl font-bold text-red-600">
+                {companies.filter(c => c.is_active === 'N').length}
+              </p>
+            </div>
+            <XCircle className="w-8 h-8 text-red-600" />
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Countries</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {new Set(companies.map(c => c.country).filter(Boolean)).size}
+              </p>
+            </div>
+            <Globe className="w-8 h-8 text-purple-600" />
+          </div>
+        </div>
+      </div>
+
+      <Table
+        data={filteredCompanies}
+        columns={companyColumns}
+        actions={
+          <div className="flex justify-between w-full">
+            <div className="flex gap-3">
+              <SearchInput
+                placeholder="Search Companies"
+                value={search}
+                onChange={handleSearchChange}
+                debounceMs={400}
+                showClear={true}
+                fullWidth={false}
+                className="!min-w-80"
               />
-              <Chip
-                label={`${companies.filter((c: Company) => c.is_active === 'Y').length} Active`}
-                variant="filled"
+              <Select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                className="!min-w-32"
                 size="small"
-                className="!bg-green-100 !text-green-800"
-              />
-              <Chip
-                label={`${companies.filter((c: Company) => c.is_active === 'N').length} Inactive`}
-                variant="filled"
-                size="small"
-                className="!bg-red-100 !text-red-800"
-              />
-            </Box>
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </div>
             <Button
               variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAddCompany}
-              className="!bg-blue-600 hover:!bg-blue-700 !text-white !font-medium !px-4 !py-2"
+              className="!capitalize"
+              disableElevation
+              startIcon={<Add />}
+              onClick={handleCreateCompany}
             >
-              Add Company
+              Create
             </Button>
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        }
+        getRowId={company => company.id}
+        initialOrderBy="name"
+        loading={false}
+        totalCount={filteredCompanies.length}
+        page={page - 1}
+        rowsPerPage={limit}
+        onPageChange={handlePageChange}
+        emptyMessage={
+          search
+            ? `No companies found matching "${search}"`
+            : 'No companies found in the system'
+        }
+      />
 
-      {/* Toolbar - Search and Filters */}
-      <Box className="bg-white border-b border-gray-200 px-6 py-3">
-        <Box className="flex items-center justify-between">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search companies by name, code, city, or state..."
-            className="!w-96"
-          />
-          <Box className="flex items-center gap-2">
-            <Typography variant="body2" className="text-gray-600">
-              {filteredCompanies.length} of {companies.length} companies
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Main Grid Container */}
-      <Box className="flex-1 p-6">
-        <Box className="h-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <DataGrid
-            rowData={filteredCompanies}
-            columnDefs={companyColumns}
-            height="100%"
-            loading={false}
-            gridOptions={{
-              rowSelection: 'multiple',
-              suppressRowClickSelection: true,
-              pagination: true,
-              paginationPageSize: limit,
-              domLayout: 'normal',
-              headerHeight: 40,
-              rowHeight: 48,
-              animateRows: true,
-              enableCellTextSelection: true,
-              suppressMenuHide: false,
-              suppressRowHoverHighlight: false,
-              suppressColumnVirtualisation: true,
-              defaultColDef: {
-                sortable: true,
-                filter: true,
-                resizable: true,
-                minWidth: 80,
-                cellStyle: {
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: '13px',
-                  padding: '4px 8px',
-                },
-              },
-            }}
-          />
-        </Box>
-      </Box>
-    </Box>
+      <ManageCompanies
+        selectedCompany={selectedCompany}
+        setSelectedCompany={setSelectedCompany}
+        drawerOpen={drawerOpen}
+        setDrawerOpen={setDrawerOpen}
+      />
+    </>
   );
 };
 
-export default Companies;
+export default CompaniesManagement;

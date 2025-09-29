@@ -88,7 +88,25 @@ export const useUserProfile = (
     queryKey: userQueryKeys.profile(),
     queryFn: () => userService.getUserProfile(),
     staleTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     ...options,
+  });
+};
+
+/**
+ * Hook to fetch current user profile for header/navigation
+ * @returns Query result with user profile data optimized for header usage
+ */
+export const useCurrentUser = () => {
+  return useQuery({
+    queryKey: userQueryKeys.profile(),
+    queryFn: () => userService.getUserProfile(),
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    retry: 2,
+    select: (data) => data?.data, // Extract just the user data
   });
 };
 

@@ -188,7 +188,7 @@ export const deleteUser = async (id: number): Promise<ApiResponse<void>> => {
  */
 export const getUserProfile = async (): Promise<ApiResponse<User>> => {
   try {
-    const response = await axiosInstance.get('/users/profile');
+    const response = await axiosInstance.get('/users/me');
     return response.data;
   } catch (error) {
     throw error;

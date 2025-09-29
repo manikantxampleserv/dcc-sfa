@@ -16,6 +16,7 @@ export interface UserData {
   parent_id: number;
   depot_id?: number | null;
   zone_id?: number | null;
+  profile_image?: string | null;
 }
 
 /**
