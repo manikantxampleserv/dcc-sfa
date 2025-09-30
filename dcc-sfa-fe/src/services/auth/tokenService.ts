@@ -55,6 +55,9 @@ class TokenService {
         const expiresAt = Date.now() + expiresIn * 1000;
         localStorage.setItem(this.EXPIRES_KEY, expiresAt.toString());
       }
+      
+      // Dispatch custom event to notify auth state change
+      window.dispatchEvent(new Event('auth-change'));
     } catch (error) {
       console.error('Failed to store token:', error);
       throw new Error('Token storage failed');
@@ -187,6 +190,9 @@ class TokenService {
       localStorage.removeItem(this.TOKEN_KEY);
       localStorage.removeItem(this.USER_KEY);
       localStorage.removeItem(this.EXPIRES_KEY);
+      
+      // Dispatch custom event to notify auth state change
+      window.dispatchEvent(new Event('auth-change'));
     } catch (error) {
       console.error('Failed to clear auth data:', error);
     }

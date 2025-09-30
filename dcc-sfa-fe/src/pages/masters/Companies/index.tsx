@@ -1,18 +1,21 @@
-import { Add, Block, CheckCircle } from '@mui/icons-material';
+import { Add, CheckCircle, Block } from '@mui/icons-material';
 import { Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { Building2, Globe, Mail, MapPin, Phone, XCircle } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import {
+  useCompanies,
+  useDeleteCompany,
+  type Company,
+} from 'hooks/useCompanies';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import type { Company } from 'types/Company';
 import { formatDate } from 'utils/dateUtils';
 import ManageCompanies from './ManageCompanies';
 
 const CompaniesManagement: React.FC = () => {
-  const [companies, setCompanies] = useState<Company[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -20,70 +23,25 @@ const CompaniesManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  useEffect(() => {
-    const mockCompanies: Company[] = [
-      {
-        id: 1,
-        name: 'TechCorp Solutions',
-        code: 'TECH001',
-        address: '123 Innovation Drive',
-        city: 'San Francisco',
-        state: 'California',
-        country: 'USA',
-        zipcode: '94105',
-        phone_number: '+1-555-0123',
-        email: 'contact@techcorp.com',
-        website: 'https://techcorp.com',
-        logo: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-        is_active: 'Y',
-        createdate: '2024-01-15T10:30:00',
-        createdby: 1,
-        updatedate: '2024-01-20T14:45:00',
-        updatedby: 1,
-        log_inst: 1,
-      },
-      {
-        id: 2,
-        name: 'Global Manufacturing Inc',
-        code: 'GLOB002',
-        address: '456 Industrial Blvd',
-        city: 'Detroit',
-        state: 'Michigan',
-        country: 'USA',
-        zipcode: '48201',
-        phone_number: '+1-555-0456',
-        email: 'info@globalmanuf.com',
-        website: 'https://globalmanuf.com',
-        logo: 'https://images.pexels.com/photos/3184338/pexels-photo-3184338.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-        is_active: 'Y',
-        createdate: '2024-01-10T09:15:00',
-        createdby: 2,
-        log_inst: 2,
-      },
-      {
-        id: 3,
-        name: 'Retail Express Ltd',
-        code: 'RET003',
-        address: '789 Commerce Street',
-        city: 'New York',
-        state: 'New York',
-        country: 'USA',
-        zipcode: '10001',
-        phone_number: '+1-555-0789',
-        email: 'support@retailexpress.com',
-        website: 'https://retailexpress.com',
-        is_active: 'N',
-        createdate: '2024-01-05T16:20:00',
-        createdby: 1,
-        updatedate: '2024-01-25T11:30:00',
-        updatedby: 2,
-        log_inst: 3,
-      },
-    ];
-    setCompanies(mockCompanies);
-  }, []);
+  // Fetch companies with API
+  const { data: companiesData, isLoading } = useCompanies({
+    page,
+    limit,
+    search,
+    is_active:
+      statusFilter === 'all'
+        ? undefined
+        : statusFilter === 'active'
+          ? 'Y'
+          : 'N',
+  });
 
-  const filteredCompanies = companies.filter(company => {
+  // Delete company mutation
+  const deleteCompanyMutation = useDeleteCompany();
+
+  const companies = companiesData?.data || [];
+
+  const filteredCompanies = companies.filter((company: Company) => {
     const matchesSearch =
       search === '' ||
       company.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -111,9 +69,9 @@ const CompaniesManagement: React.FC = () => {
 
   const handleDeleteCompany = useCallback(
     (id: number) => {
-      setCompanies(companies.filter(c => c.id !== id));
+      deleteCompanyMutation.mutate(id);
     },
-    [companies]
+    [deleteCompanyMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -222,10 +180,10 @@ const CompaniesManagement: React.FC = () => {
       ),
     },
     {
-      id: 'createdate',
+      id: 'created_at',
       label: 'Created Date',
       render: (_value, row) =>
-        formatDate(row.createdate) || (
+        formatDate(row.created_at) || (
           <span className="italic text-gray-400">No Date</span>
         ),
     },
@@ -271,9 +229,13 @@ const CompaniesManagement: React.FC = () => {
               <p className="text-sm font-medium text-gray-600">
                 Total Companies
               </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {companies.length}
-              </p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">
+                  {companiesData?.meta?.total_companies || 0}
+                </p>
+              )}
             </div>
             <Building2 className="w-8 h-8 text-blue-600" />
           </div>
@@ -284,9 +246,13 @@ const CompaniesManagement: React.FC = () => {
               <p className="text-sm font-medium text-gray-600">
                 Active Companies
               </p>
-              <p className="text-2xl font-bold text-green-600">
-                {companies.filter(c => c.is_active === 'Y').length}
-              </p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-green-600">
+                  {companiesData?.meta?.active_companies || 0}
+                </p>
+              )}
             </div>
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
@@ -297,9 +263,13 @@ const CompaniesManagement: React.FC = () => {
               <p className="text-sm font-medium text-gray-600">
                 Inactive Companies
               </p>
-              <p className="text-2xl font-bold text-red-600">
-                {companies.filter(c => c.is_active === 'N').length}
-              </p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-red-600">
+                  {companiesData?.meta?.inactive_companies || 0}
+                </p>
+              )}
             </div>
             <XCircle className="w-8 h-8 text-red-600" />
           </div>
@@ -307,10 +277,16 @@ const CompaniesManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Countries</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {new Set(companies.map(c => c.country).filter(Boolean)).size}
+              <p className="text-sm font-medium text-gray-600">
+                New This Month
               </p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-purple-600">
+                  {companiesData?.meta?.new_companies || 0}
+                </p>
+              )}
             </div>
             <Globe className="w-8 h-8 text-purple-600" />
           </div>
@@ -356,8 +332,8 @@ const CompaniesManagement: React.FC = () => {
         }
         getRowId={company => company.id}
         initialOrderBy="name"
-        loading={false}
-        totalCount={filteredCompanies.length}
+        loading={isLoading}
+        totalCount={companiesData?.meta?.total_count || 0}
         page={page - 1}
         rowsPerPage={limit}
         onPageChange={handlePageChange}

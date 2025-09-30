@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Avatar, Skeleton } from '@mui/material';
 import {
   FaBars,
@@ -10,9 +9,8 @@ import {
   FaTimes,
   FaUser,
 } from 'react-icons/fa';
-import authService from 'services/auth/authService';
-import { useLogout } from 'hooks/useAuth';
-import { useCurrentUser } from 'hooks/useUsers';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -20,28 +18,12 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
-  const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-  // Get dynamic user data from API
-  const { data: apiUser, isLoading: userLoading } = useCurrentUser();
-
-  // Fallback to localStorage data if API fails
-  const fallbackUser = authService.getCurrentUser();
-
-  // Use API data if available, otherwise fallback to localStorage
-  const currentUser = apiUser || fallbackUser;
-
-  const logoutMutation = useLogout({
-    onSuccess: () => {
-      navigate('/login', { replace: true });
-    },
-    onError: error => {
-      console.error('Logout failed:', error);
-      navigate('/login', { replace: true });
-    },
-  });
+  // Get user data from auth context
+  const { user: currentUser, isLoading: userLoading, logout } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -61,16 +43,27 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
 
   const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
 
-  const handleLogout = () => {
-    logoutMutation.mutate();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setUserMenuOpen(false);
+  };
+
+  const handleSettingsClick = () => {
+    navigate('/settings/system');
+    setUserMenuOpen(false);
   };
 
   const getUserInitials = () => {
-    // Handle both API User (name) and localStorage UserData (username)
-    const displayName =
-      (currentUser as any)?.name || (currentUser as any)?.username;
-    if (!displayName) return 'U';
-    return displayName
+    if (!currentUser?.name) return 'U';
+    return currentUser.name
       .split(' ')
       .map((name: string) => name[0])
       .join('')
@@ -79,15 +72,11 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   };
 
   const getUserDisplayName = () => {
-    return (
-      (currentUser as any)?.name || (currentUser as any)?.username || 'User'
-    );
+    return currentUser?.name || 'User';
   };
 
   const getUserRole = () => {
-    return (
-      (currentUser as any)?.role?.name || (currentUser as any)?.role || 'User'
-    );
+    return currentUser?.role?.name || 'User';
   };
 
   return (
@@ -126,7 +115,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
               ) : (
                 <Avatar
                   alt={getUserDisplayName()}
-                  src={(currentUser as any)?.profile_image || undefined}
+                  src={currentUser?.profile_image || undefined}
                   className="!w-10 !rounded !h-10 !bg-primary-500 !text-sm !font-medium !border-2 !border-transparent hover:!border-primary-400 !transition-colors"
                 >
                   {getUserInitials()}
@@ -135,7 +124,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2.5 w-60 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
+              <div className="absolute right-0 mt-2 w-60 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
                 <div className="px-4 py-2 border-b border-gray-100">
                   <div className="flex items-center gap-3 mb-2">
                     {userLoading ? (
@@ -148,7 +137,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                     ) : (
                       <Avatar
                         alt={getUserDisplayName()}
-                        src={(currentUser as any)?.profile_image || undefined}
+                        src={currentUser?.profile_image || undefined}
                         className="!w-10 !rounded !h-10 !bg-primary-500 !text-base !font-medium !border-2 !border-primary-400"
                       >
                         {getUserInitials()}
@@ -175,15 +164,21 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                     {userLoading ? (
                       <Skeleton width={150} height={12} />
                     ) : (
-                      (currentUser as any)?.email || 'user@example.com'
+                      currentUser?.email || 'user@example.com'
                     )}
                   </div>
                 </div>
-                <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                <button 
+                  onClick={handleProfileClick}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
                   <FaUser size={14} />
-                  Profile
+                  My Profile
                 </button>
-                <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                <button 
+                  onClick={handleSettingsClick}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
                   <FaCog size={14} />
                   Settings
                 </button>

@@ -265,6 +265,11 @@ const menuItems: MenuItem[] = [
     icon: MdSettings,
     children: [
       {
+        id: 'profile',
+        label: 'My Profile',
+        href: '/profile',
+      },
+      {
         id: 'login-history',
         label: 'Login History',
         href: '/settings/login-history',

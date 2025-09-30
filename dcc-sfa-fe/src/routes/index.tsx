@@ -1,4 +1,5 @@
 import ProtectedRoute from 'components/ProtectedRoute';
+import Profile from 'pages/Profile';
 import Layout from 'layout';
 import Login from 'pages/auth/Login';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
@@ -300,6 +301,10 @@ const router = createBrowserRouter([
       {
         path: '/settings/system',
         element: <SystemSettings />,
+      },
+      {
+        path: '/profile',
+        element: <Profile />,
       },
     ],
   },

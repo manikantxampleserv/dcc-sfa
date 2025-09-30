@@ -197,13 +197,19 @@ export const getUserProfile = async (): Promise<ApiResponse<User>> => {
 
 /**
  * Update user profile (silent - no toast, used by React Query hooks)
- * @param profileData - Profile update payload
+ * @param profileData - Profile update payload (supports both FormData and plain object)
  * @returns Promise<ApiResponse<User>>
  */
 export const updateUserProfile = async (
-  profileData: UpdateProfilePayload
+  profileData: UpdateProfilePayload | FormData
 ): Promise<ApiResponse<User>> => {
-  const response = await axiosInstance.put('/users/profile', profileData);
+  const response = await axiosInstance.put('/users/me', profileData, {
+    headers: profileData instanceof FormData ? {
+      'Content-Type': 'multipart/form-data',
+    } : {
+      'Content-Type': 'application/json',
+    },
+  });
   return response.data;
 };
 

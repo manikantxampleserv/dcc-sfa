@@ -6,10 +6,11 @@
  */
 
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { useApiMutation } from './useApiMutation';
 import * as userService from '../services/masters/Users';
 import type { ApiResponse } from '../types/api.types';
-
+import authService from 'services/auth/authService';
 export type {
   User,
   ManageUserPayload,
@@ -99,14 +100,47 @@ export const useUserProfile = (
  * @returns Query result with user profile data optimized for header usage
  */
 export const useCurrentUser = () => {
+  // Check auth status and force re-render when it changes
+  const [isAuthenticated, setIsAuthenticated] = useState(() => 
+    authService.isAuthenticated()
+  );
+  
+  useEffect(() => {
+    // Check auth immediately on mount
+    const checkAuth = () => {
+      const authStatus = authService.isAuthenticated();
+      setIsAuthenticated(authStatus);
+    };
+    
+    checkAuth();
+    
+    // Listen for custom auth events
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+    
+    window.addEventListener('auth-change', handleAuthChange);
+    
+    // Check periodically for token expiration
+    const interval = setInterval(checkAuth, 5000); // Check every 5 seconds
+    
+    return () => {
+      window.removeEventListener('auth-change', handleAuthChange);
+      clearInterval(interval);
+    };
+  }, []);
+  
   return useQuery({
-    queryKey: userQueryKeys.profile(),
+    queryKey: [...userQueryKeys.profile(), isAuthenticated],
     queryFn: () => userService.getUserProfile(),
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    refetchOnWindowFocus: true,
     refetchOnMount: true,
-    retry: 2,
-    select: (data) => data?.data, // Extract just the user data
+    refetchOnReconnect: true,
+    retry: 1,
+    enabled: isAuthenticated, // Only fetch when authenticated
+    select: data => data?.data, // Extract just the user data
   });
 };
 
@@ -197,12 +231,15 @@ export const useDeleteUser = (options?: {
 export const useUpdateUserProfile = (options?: {
   onSuccess?: (
     data: ApiResponse<userService.User>,
-    variables: userService.UpdateProfilePayload
+    variables: userService.UpdateProfilePayload | FormData
   ) => void;
-  onError?: (error: any, variables: userService.UpdateProfilePayload) => void;
+  onError?: (
+    error: any,
+    variables: userService.UpdateProfilePayload | FormData
+  ) => void;
 }) => {
   return useApiMutation({
-    mutationFn: (profileData: userService.UpdateProfilePayload) =>
+    mutationFn: (profileData: userService.UpdateProfilePayload | FormData) =>
       userService.updateUserProfile(profileData),
     loadingMessage: 'Updating profile...',
     invalidateQueries: ['users'],
