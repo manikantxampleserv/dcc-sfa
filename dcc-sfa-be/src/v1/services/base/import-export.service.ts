@@ -197,7 +197,6 @@ export abstract class ImportExportService<T> {
 
   async generateTemplate(): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
-
     const worksheet = workbook.addWorksheet(`${this.displayName} Template`);
 
     worksheet.columns = this.columns.map(col => ({
@@ -226,6 +225,7 @@ export abstract class ImportExportService<T> {
       };
     });
 
+    // Add sample data
     const sampleData = await this.getSampleData();
     sampleData.forEach((data, index) => {
       const row = worksheet.addRow(data);
@@ -246,20 +246,34 @@ export abstract class ImportExportService<T> {
       }
     });
 
+    // Add data validation for boolean columns (only for sample data rows + a few extra)
     this.columns.forEach((col, colIndex) => {
       if (col.type === 'boolean' || col.key === 'is_active') {
-        const colLetter = String.fromCharCode(65 + colIndex);
-        worksheet.dataValidations.add(`${colLetter}2:${colLetter}1000`, {
-          type: 'list',
-          allowBlank: !col.required,
-          formulae: ['"Y,N"'],
-          showErrorMessage: true,
-          errorTitle: 'Invalid Value',
-          error: 'Please select Y or N',
-        });
+        const column = worksheet.getColumn(colIndex + 1);
+
+        // Add validation only to the first 100 rows after header
+        for (
+          let rowNum = 2;
+          rowNum <= Math.min(sampleData.length + 50, 100);
+          rowNum++
+        ) {
+          const cell = worksheet.getCell(rowNum, colIndex + 1);
+          cell.dataValidation = {
+            type: 'list',
+            allowBlank: !col.required,
+            formulae: ['"Y,N"'],
+            showErrorMessage: true,
+            errorTitle: 'Invalid Value',
+            error: 'Please select Y or N',
+            prompt: 'Please select Y for Yes or N for No',
+            promptTitle: 'Choose Value',
+            showInputMessage: true,
+          };
+        }
       }
     });
 
+    // Rest of your code remains the same...
     const instructionSheet = workbook.addWorksheet('Instructions');
     instructionSheet.columns = [
       { header: 'Field', key: 'field', width: 25 },
@@ -314,7 +328,6 @@ export abstract class ImportExportService<T> {
     return Buffer.from(buffer);
   }
 
-  // Export to Excel
   async exportToExcel(options: ExportOptions = {}): Promise<Buffer> {
     const query: any = {
       where: options.filters,
