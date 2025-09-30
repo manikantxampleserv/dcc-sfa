@@ -11,8 +11,8 @@ import { useFormik } from 'formik';
 import { useCurrentUser, useUpdateUserProfile } from 'hooks/useUsers';
 import React, { useState } from 'react';
 import profileValidationSchema from 'schemas/Profile';
-import Input from 'shared/Input';
 import Button from 'shared/Button';
+import Input from 'shared/Input';
 import { formatForDateInput } from 'utils/dateUtils';
 
 const Profile: React.FC = () => {
@@ -195,7 +195,7 @@ const Profile: React.FC = () => {
                 <Avatar
                   alt={user.name}
                   src={currentProfileImage}
-                  className="!w-32 !h-32 !text-4xl !font-bold !bg-blue-500"
+                  className="!w-32 !h-32 !rounded-xl !text-4xl !font-bold !bg-blue-500"
                 >
                   {user.name
                     .split(' ')
@@ -218,7 +218,7 @@ const Profile: React.FC = () => {
                       onClick={() =>
                         document.getElementById('profile-image-upload')?.click()
                       }
-                      className="absolute bottom-0 right-0 bg-blue-600 text-white hover:bg-blue-700 p-2 rounded-full shadow-lg transition-colors"
+                      className="absolute size-10 flex cursor-pointer items-center justify-center -bottom-2 -right-2 bg-blue-600 text-white hover:bg-blue-700 p-2 rounded-xl shadow-lg transition-colors"
                     >
                       <PhotoCamera fontSize="small" />
                     </button>

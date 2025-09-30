@@ -1,18 +1,14 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
+import { useCreateZone, useUpdateZone, type Zone } from 'hooks/useZones';
 import React from 'react';
+import { zoneValidationSchema } from 'schemas/zone.schema';
+import type { Depot } from 'services/masters/Depots';
+import type { User } from 'services/masters/Users';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import {
-  useCreateZone,
-  useUpdateZone,
-  type Zone,
-} from '../../../../hooks/useZones';
-import type { Depot } from '../../../../services/masters/Depots';
-import type { User } from '../../../../services/masters/Users';
-import { zoneValidationSchema } from '../../../../schemas/zone.schema';
 
 interface ManageZoneProps {
   selectedZone?: Zone | null;
@@ -45,7 +41,6 @@ const ManageZone: React.FC<ManageZoneProps> = ({
     initialValues: {
       parent_id: selectedZone?.parent_id?.toString() || '',
       name: selectedZone?.name || '',
-      code: selectedZone?.code || '',
       description: selectedZone?.description || '',
       supervisor_id: selectedZone?.supervisor_id?.toString() || '',
       is_active: selectedZone?.is_active || 'Y',
@@ -57,9 +52,10 @@ const ManageZone: React.FC<ManageZoneProps> = ({
         const zoneData = {
           parent_id: Number(values.parent_id),
           name: values.name,
-          code: values.code,
           description: values.description || undefined,
-          supervisor_id: values.supervisor_id ? Number(values.supervisor_id) : undefined,
+          supervisor_id: values.supervisor_id
+            ? Number(values.supervisor_id)
+            : undefined,
           is_active: values.is_active,
         };
 
@@ -79,8 +75,7 @@ const ManageZone: React.FC<ManageZoneProps> = ({
     },
   });
 
-  // Filter users by supervisor role
-  const supervisors = users.filter(user => user.role?.name === 'Supervisor' || user.role?.name === 'Zone Supervisor');
+  const supervisors = users;
 
   return (
     <CustomDrawer
@@ -109,21 +104,21 @@ const ManageZone: React.FC<ManageZoneProps> = ({
               required
             />
 
-            <Input
-              name="code"
-              label="Zone Code"
-              placeholder="Enter zone code"
+            <Select
+              name="supervisor_id"
+              label="Zone Supervisor"
               formik={formik}
-              required
-            />
-
-            <Select name="supervisor_id" label="Zone Supervisor" formik={formik}>
+            >
               <MenuItem value="">Select Supervisor</MenuItem>
               {supervisors.map(supervisor => (
                 <MenuItem key={supervisor.id} value={supervisor.id.toString()}>
                   {supervisor.name}
                 </MenuItem>
               ))}
+            </Select>
+            <Select name="is_active" label="Status" formik={formik} required>
+              <MenuItem value="Y">Active</MenuItem>
+              <MenuItem value="N">Inactive</MenuItem>
             </Select>
 
             <Box className="md:!col-span-2">
@@ -136,26 +131,25 @@ const ManageZone: React.FC<ManageZoneProps> = ({
                 rows={3}
               />
             </Box>
-
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
           </Box>
 
-          <Box className="!flex !justify-end !gap-3 !pt-6 !border-t !border-gray-200">
+          <Box className="!flex !justify-end !gap-3">
             <Button
               type="button"
               variant="outlined"
               onClick={handleCancel}
-              disabled={createZoneMutation.isPending || updateZoneMutation.isPending}
+              disabled={
+                createZoneMutation.isPending || updateZoneMutation.isPending
+              }
             >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="contained"
-              loading={createZoneMutation.isPending || updateZoneMutation.isPending}
+              loading={
+                createZoneMutation.isPending || updateZoneMutation.isPending
+              }
             >
               {createZoneMutation.isPending
                 ? 'Creating...'

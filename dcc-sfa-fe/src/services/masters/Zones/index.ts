@@ -39,7 +39,6 @@ interface Zone {
 interface ManageZonePayload {
   parent_id: number;
   name: string;
-  code: string;
   description?: string;
   supervisor_id?: number;
   is_active?: string;
@@ -95,9 +94,7 @@ export const fetchZones = async (
  * @param id - Zone ID
  * @returns Promise<ApiResponse<Zone>>
  */
-export const fetchZoneById = async (
-  id: number
-): Promise<ApiResponse<Zone>> => {
+export const fetchZoneById = async (id: number): Promise<ApiResponse<Zone>> => {
   try {
     const response = await api.get(`/zones/${id}`);
     return response.data;
