@@ -66,7 +66,6 @@ export const importExportController = {
     }
   },
 
-  // Preview import
   async previewImport(req: Request, res: Response, next: NextFunction) {
     try {
       const { table } = req.params;
@@ -140,7 +139,6 @@ export const importExportController = {
       const userId = (req as any).user?.id || 1;
       const preview = await service.parseExcelFile(req.file.buffer);
 
-      // Check for validation errors
       if (preview.errors.length > 0 && !skipDuplicates) {
         return res.status(400).json({
           success: false,
