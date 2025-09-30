@@ -180,7 +180,6 @@ export const permissionsController = {
 
       const { name, description, module, action, is_active } = req.body;
 
-      // Check if permission name already exists
       const existingPermission = await prisma.permissions.findFirst({
         where: {
           name,

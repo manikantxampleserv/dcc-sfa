@@ -74,7 +74,6 @@ export abstract class ImportExportService<T> {
         break;
     }
 
-    // Custom validation
     if (column.validation) {
       const validationResult = column.validation(value);
       if (validationResult !== true) {
@@ -132,7 +131,6 @@ export abstract class ImportExportService<T> {
         this.columns.forEach(column => {
           const value = row[column.header];
 
-          // Validate
           const error = this.validateValue(value, column);
           if (error) {
             errors.push({
@@ -205,7 +203,6 @@ export abstract class ImportExportService<T> {
       width: col.width || 20,
     }));
 
-    // Style header row
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
     headerRow.fill = {
@@ -225,7 +222,6 @@ export abstract class ImportExportService<T> {
       };
     });
 
-    // Add sample data
     const sampleData = await this.getSampleData();
     sampleData.forEach((data, index) => {
       const row = worksheet.addRow(data);
@@ -246,12 +242,10 @@ export abstract class ImportExportService<T> {
       }
     });
 
-    // Add data validation for boolean columns (only for sample data rows + a few extra)
     this.columns.forEach((col, colIndex) => {
       if (col.type === 'boolean' || col.key === 'is_active') {
         const column = worksheet.getColumn(colIndex + 1);
 
-        // Add validation only to the first 100 rows after header
         for (
           let rowNum = 2;
           rowNum <= Math.min(sampleData.length + 50, 100);
@@ -273,7 +267,6 @@ export abstract class ImportExportService<T> {
       }
     });
 
-    // Rest of your code remains the same...
     const instructionSheet = workbook.addWorksheet('Instructions');
     instructionSheet.columns = [
       { header: 'Field', key: 'field', width: 25 },
@@ -343,7 +336,6 @@ export abstract class ImportExportService<T> {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(this.displayName);
 
-    // Metadata
     workbook.creator = 'Import/Export System';
     workbook.created = new Date();
     workbook.modified = new Date();
@@ -641,7 +633,6 @@ export abstract class ImportExportService<T> {
         allImportedData.push(...result.data);
       }
 
-      // Report progress
       if (options.onProgress) {
         const progress = Math.round(((i + 1) / batches) * 100);
         options.onProgress(progress);

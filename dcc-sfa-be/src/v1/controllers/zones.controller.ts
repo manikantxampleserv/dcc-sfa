@@ -89,12 +89,12 @@ export const zonesController = {
     }
   },
 
-  async getZones(req: Request, res: Response) {
+  async getZones(req: any, res: any) {
     try {
-      const { page = '1', limit = '10', search = '' } = req.query;
-      const pageNum = parseInt(page as string, 10);
-      const limitNum = parseInt(limit as string, 10);
-      const searchLower = (search as string).toLowerCase();
+      const { page, limit, search } = req.query;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 10;
+      const searchLower = search ? (search as string).toLowerCase() : '';
 
       const filters: any = {
         ...(search && {
@@ -119,17 +119,42 @@ export const zonesController = {
         },
       });
 
-      res.json({
+      const totalZones = await prisma.zones.count();
+      const activeZones = await prisma.zones.count({
+        where: { is_active: 'Y' },
+      });
+      const inactiveZones = await prisma.zones.count({
+        where: { is_active: 'N' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const newZonesThisMonth = await prisma.zones.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
+      });
+
+      res.success({
         message: 'Zones retrieved successfully',
         data: data.map(serializeZone),
         pagination,
+        stats: {
+          totalZones,
+          activeZones,
+          inactiveZones,
+          newZonesThisMonth,
+        },
       });
     } catch (error: any) {
       console.error('Get Zones Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
-
   async getZoneById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -157,7 +182,7 @@ export const zonesController = {
     }
   },
 
-  async updateZone(req: Request, res: Response) {
+  async updateZone(req: any, res: any) {
     try {
       const { id } = req.params;
       const existingZone = await prisma.zones.findUnique({
