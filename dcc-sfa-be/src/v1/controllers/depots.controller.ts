@@ -35,6 +35,9 @@ interface DepotSerialized {
     email: String;
     name: String;
   };
+  depots_manager?: { id: number; name: string; email: string } | null;
+  depots_supervisior?: { id: number; name: string; email: string } | null;
+  depots_coodrinator?: { id: number; name: string; email: string } | null;
 }
 
 const generatedDepotCode = async (name: string) => {
@@ -94,6 +97,27 @@ const serializeDepot = (
         name: u.name,
       }))
     : [],
+  depots_manager: depot.depots_manager
+    ? {
+        id: depot.depots_manager.id,
+        name: depot.depots_manager.name,
+        email: depot.depots_manager.email,
+      }
+    : null,
+  depots_supervisior: depot.depots_supervisior
+    ? {
+        id: depot.depots_supervisior.id,
+        name: depot.depots_supervisior.name,
+        email: depot.depots_supervisior.email,
+      }
+    : null,
+  depots_coodrinator: depot.depots_coodrinator
+    ? {
+        id: depot.depots_coodrinator.id,
+        name: depot.depots_coodrinator.name,
+        email: depot.depots_coodrinator.email,
+      }
+    : null,
 });
 
 export const depotsController = {
@@ -115,7 +139,13 @@ export const depotsController = {
           log_inst: data.log_inst || 1,
           createdate: new Date(),
         },
-        include: { depot_companies: true, user_depot: true },
+        include: {
+          depot_companies: true,
+          user_depot: true,
+          depots_manager: true,
+          depots_supervisior: true,
+          depots_coodrinator: true,
+        },
       });
 
       res.status(201).json({
@@ -152,7 +182,13 @@ export const depotsController = {
         page: page_num,
         limit: limit_num,
         orderBy: { createdate: 'desc' },
-        include: { depot_companies: true, user_depot: true },
+        include: {
+          depot_companies: true,
+          user_depot: true,
+          depots_manager: true,
+          depots_supervisior: true,
+          depots_coodrinator: true,
+        },
       });
 
       res.json({
@@ -204,7 +240,13 @@ export const depotsController = {
       const depot = await prisma.depots.update({
         where: { id: Number(id) },
         data,
-        include: { depot_companies: true, user_depot: true },
+        include: {
+          depot_companies: true,
+          user_depot: true,
+          depots_manager: true,
+          depots_supervisior: true,
+          depots_coodrinator: true,
+        },
       });
 
       res.json({
