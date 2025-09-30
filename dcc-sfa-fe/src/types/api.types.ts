@@ -51,6 +51,16 @@ export interface ApiResponse<T = any> {
     active_role_permissions?: number;
     inactive_role_permissions?: number;
     new_role_permissions?: number;
+    // Depot statistics
+    total_depots?: number;
+    active_depots?: number;
+    inactive_depots?: number;
+    new_depots?: number;
+    // Zone statistics
+    total_zones?: number;
+    active_zones?: number;
+    inactive_zones?: number;
+    new_zones?: number;
   };
 }
 

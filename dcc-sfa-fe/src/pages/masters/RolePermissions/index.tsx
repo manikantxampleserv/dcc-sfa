@@ -1,9 +1,10 @@
 import { Block, CheckCircle, Group } from '@mui/icons-material';
-import { Alert, Box, Chip, Typography } from '@mui/material';
+import { Alert, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { Shield, ShieldCheck, ShieldX, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import SearchInput from 'shared/SearchInput';
+import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { useDeleteRole, useRoles, type Role } from '../../../hooks/useRoles';
 import { formatDate } from '../../../utils/dateUtils';
@@ -11,6 +12,7 @@ import ManageRolePermissions from './ManageRolePermissions';
 
 const RolePermissions: React.FC = () => {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(7);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -20,7 +22,12 @@ const RolePermissions: React.FC = () => {
     data: rolesResponse,
     isLoading,
     error,
-  } = useRoles({ search, page, limit });
+  } = useRoles({ 
+    search, 
+    page, 
+    limit,
+    isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' ? 'Y' : 'N'
+  });
 
   const roles = rolesResponse?.data || [];
   const totalCount = rolesResponse?.meta?.total || 0;
@@ -233,15 +240,27 @@ const RolePermissions: React.FC = () => {
         columns={roleColumns}
         actions={
           <div className="flex justify-between w-full">
-            <SearchInput
-              placeholder="Search Roles"
-              value={search}
-              onChange={handleSearchChange}
-              debounceMs={400}
-              showClear={true}
-              fullWidth={false}
-              className="!min-w-80"
-            />
+            <div className="flex gap-3">
+              <SearchInput
+                placeholder="Search Roles"
+                value={search}
+                onChange={handleSearchChange}
+                debounceMs={400}
+                showClear={true}
+                fullWidth={false}
+                className="!min-w-80"
+              />
+              <Select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                className="!min-w-32"
+                size="small"
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </div>
             <ManageRolePermissions
               selectedRole={selectedRole}
               setSelectedRole={setSelectedRole}
