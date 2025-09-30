@@ -426,8 +426,8 @@ export const importExportController = {
           });
         }
 
-        return res.status(400).json({
-          success: false,
+        return res.status(200).json({
+          success: true,
           message: 'Import failed: Validation errors found',
           data: {
             success: 0,
@@ -482,7 +482,7 @@ export const importExportController = {
           },
         });
       } else {
-        return res.status(400).json({
+        return res.status(200).json({
           success: false,
           message: 'Import failed: No records were imported',
           data: {
