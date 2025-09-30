@@ -97,9 +97,6 @@ const Input: React.FC<InputProps> = ({
       size={size}
       name={name}
       slotProps={{
-        root: {
-          required: false,
-        },
         htmlInput: {
           style:
             type === 'file'
@@ -109,6 +106,7 @@ const Input: React.FC<InputProps> = ({
                   paddingBottom: '3rem',
                 }
               : undefined,
+          required: false,
         },
         inputLabel: type === 'date' ? { shrink: true } : undefined,
         input: {

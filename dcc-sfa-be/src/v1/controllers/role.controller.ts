@@ -188,6 +188,10 @@ export const rolesController = {
         delete roleData.id;
       }
 
+      if ('permissions' in roleData) {
+        delete roleData.permissions;
+      }
+
       const existingRole = await prisma.roles.findFirst({
         where: {
           id: id,

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Avatar, Skeleton } from '@mui/material';
 import {
   FaBars,
   FaBell,
@@ -9,8 +9,8 @@ import {
   FaTimes,
   FaUser,
 } from 'react-icons/fa';
-import authService from 'services/auth/authService';
-import { useLogout } from 'hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -18,21 +18,12 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
-  const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-  const currentUser = authService.getCurrentUser();
-
-  const logoutMutation = useLogout({
-    onSuccess: () => {
-      navigate('/login', { replace: true });
-    },
-    onError: error => {
-      console.error('Logout failed:', error);
-      navigate('/login', { replace: true });
-    },
-  });
+  // Get user data from auth context
+  const { user: currentUser, isLoading: userLoading, logout } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -52,18 +43,40 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
 
   const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
 
-  const handleLogout = () => {
-    logoutMutation.mutate();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setUserMenuOpen(false);
+  };
+
+  const handleSettingsClick = () => {
+    navigate('/settings/system');
+    setUserMenuOpen(false);
   };
 
   const getUserInitials = () => {
-    if (!currentUser?.username) return 'U';
-    return currentUser.username
+    if (!currentUser?.name) return 'U';
+    return currentUser.name
       .split(' ')
-      .map(name => name[0])
+      .map((name: string) => name[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const getUserDisplayName = () => {
+    return currentUser?.name || 'User';
+  };
+
+  const getUserRole = () => {
+    return currentUser?.role?.name || 'User';
   };
 
   return (
@@ -92,29 +105,80 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
               onClick={toggleUserMenu}
               className="flex items-center gap-2 p-2 rounded-md text-gray-700 hover:bg-gray-100"
             >
-              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                {getUserInitials()}
-              </div>
+              {userLoading ? (
+                <Skeleton
+                  variant="circular"
+                  width={40}
+                  height={40}
+                  sx={{ bgcolor: 'grey.200' }}
+                />
+              ) : (
+                <Avatar
+                  alt={getUserDisplayName()}
+                  src={currentUser?.profile_image || undefined}
+                  className="!w-10 !rounded !h-10 !bg-primary-500 !text-sm !font-medium !border-2 !border-transparent hover:!border-primary-400 !transition-colors"
+                >
+                  {getUserInitials()}
+                </Avatar>
+              )}
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
+              <div className="absolute right-0 mt-2 w-60 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
                 <div className="px-4 py-2 border-b border-gray-100">
-                  <div className="text-sm font-medium text-gray-900">
-                    {currentUser?.username || 'User'}
+                  <div className="flex items-center gap-3 mb-2">
+                    {userLoading ? (
+                      <Skeleton
+                        variant="circular"
+                        width={40}
+                        height={40}
+                        sx={{ bgcolor: 'grey.200' }}
+                      />
+                    ) : (
+                      <Avatar
+                        alt={getUserDisplayName()}
+                        src={currentUser?.profile_image || undefined}
+                        className="!w-10 !rounded !h-10 !bg-primary-500 !text-base !font-medium !border-2 !border-primary-400"
+                      >
+                        {getUserInitials()}
+                      </Avatar>
+                    )}
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        {userLoading ? (
+                          <Skeleton width={120} height={16} />
+                        ) : (
+                          getUserDisplayName()
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {userLoading ? (
+                          <Skeleton width={80} height={12} />
+                        ) : (
+                          getUserRole()
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {currentUser?.email || 'user@example.com'}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {currentUser?.role || 'User'}
+                    {userLoading ? (
+                      <Skeleton width={150} height={12} />
+                    ) : (
+                      currentUser?.email || 'user@example.com'
+                    )}
                   </div>
                 </div>
-                <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                <button 
+                  onClick={handleProfileClick}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
                   <FaUser size={14} />
-                  Profile
+                  My Profile
                 </button>
-                <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                <button 
+                  onClick={handleSettingsClick}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
                   <FaCog size={14} />
                   Settings
                 </button>

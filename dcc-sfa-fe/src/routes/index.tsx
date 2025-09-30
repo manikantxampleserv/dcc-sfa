@@ -1,11 +1,13 @@
 import ProtectedRoute from 'components/ProtectedRoute';
+import Profile from 'pages/Profile';
 import Layout from 'layout';
 import Login from 'pages/auth/Login';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
-import CompaniesManagement from 'pages/masters/Company';
+import CompaniesManagement from 'pages/masters/Companies';
 import DepotsManagement from 'pages/masters/Depot';
 import OutletsManagement from 'pages/masters/Outlet';
 import ProductsManagement from 'pages/masters/Product';
+import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
 import SurveyBuilder from 'pages/masters/SurveyBuilder';
 import Users from 'pages/masters/Users';
@@ -14,8 +16,6 @@ import OrdersManagement from 'pages/transactions/Orders';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-
-import RolePermissions from 'pages/masters/RolePermissions';
 
 const OutletGroups = () => <h1>Outlet Groups</h1>;
 const AssetTypes = () => <h1>Asset Types</h1>;
@@ -301,6 +301,10 @@ const router = createBrowserRouter([
       {
         path: '/settings/system',
         element: <SystemSettings />,
+      },
+      {
+        path: '/profile',
+        element: <Profile />,
       },
     ],
   },

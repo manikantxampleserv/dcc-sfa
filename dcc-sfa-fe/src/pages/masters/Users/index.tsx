@@ -2,6 +2,7 @@ import { Add, Block, CheckCircle } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useDeleteUser, useUsers, type User } from 'hooks/useUsers';
+import { Users as UsersIcon, UserCheck, UserX, UserPlus } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -177,9 +178,7 @@ const Users: React.FC = () => {
 
   const handleDeleteUser = useCallback(
     (id: number) => {
-      if (window.confirm('Are you sure you want to delete this user?')) {
-        deleteUserMutation.mutate(id);
-      }
+      deleteUserMutation.mutate(id);
     },
     [deleteUserMutation]
   );
@@ -201,6 +200,74 @@ const Users: React.FC = () => {
           </p>
         </Box>
       </Box>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Users</p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">
+                  {usersResponse?.stats?.total_users || 0}
+                </p>
+              )}
+            </div>
+            <UsersIcon className="w-8 h-8 text-blue-600" />
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Active Users</p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-green-600">
+                  {usersResponse?.stats?.active_users || 0}
+                </p>
+              )}
+            </div>
+            <UserCheck className="w-8 h-8 text-green-600" />
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                Inactive Users
+              </p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-red-600">
+                  {usersResponse?.stats?.inactive_users || 0}
+                </p>
+              )}
+            </div>
+            <UserX className="w-8 h-8 text-red-600" />
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                New This Month
+              </p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-purple-600">
+                  {usersResponse?.stats?.new_users || 0}
+                </p>
+              )}
+            </div>
+            <UserPlus className="w-8 h-8 text-purple-600" />
+          </div>
+        </div>
+      </div>
 
       {error && (
         <Alert severity="error" className="!mb-4">

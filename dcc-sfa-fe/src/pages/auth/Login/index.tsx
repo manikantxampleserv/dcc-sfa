@@ -26,8 +26,10 @@ import {
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { useLogin } from 'hooks/useAuth';
+import { userQueryKeys } from 'hooks/useUsers';
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import authService, { type LoginRequest } from 'services/auth/authService';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
@@ -61,6 +63,7 @@ interface LoginFormValues {
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
   // Get redirect path from location state or default to dashboard
@@ -71,7 +74,14 @@ const Login: React.FC = () => {
     onSuccess: response => {
       if (response.success) {
         setError(null);
-        navigate(from, { replace: true });
+        // Trigger auth change event (tokenService already does this, but ensure it happens)
+        window.dispatchEvent(new Event('auth-change'));
+        // Invalidate user profile query to trigger refetch
+        queryClient.invalidateQueries({ queryKey: userQueryKeys.profile() });
+        // Small delay to ensure token is set before navigation
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 100);
       } else {
         setError(response.message || 'Login failed');
       }

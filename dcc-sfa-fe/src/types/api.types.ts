@@ -18,12 +18,29 @@ export interface ApiResponse<T = any> {
   error?: string;
   errors?: Record<string, string[]>;
   meta?: {
+    requestDuration?: number;
+    timestamp?: string;
+    current_page?: number;
+    total_pages?: number;
+    total_count?: number;
+    has_next?: boolean;
+    has_previous?: boolean;
     total?: number;
     page?: number;
     limit?: number;
     totalPages?: number;
-    requestDuration?: number;
-    timestamp?: string;
+  };
+  stats?: {
+    // Company statistics
+    total_companies?: number;
+    active_companies?: number;
+    inactive_companies?: number;
+    new_companies?: number;
+    // User statistics
+    total_users?: number;
+    active_users?: number;
+    inactive_users?: number;
+    new_users?: number;
   };
 }
 
