@@ -75,7 +75,7 @@ declare global {
           has_next: boolean;
           has_previous: boolean;
         }
-      ) => this; // use 'this' instead of Response
+      ) => this;
       error: (error: string, statusCode?: number) => this;
       validationError: (errors: any[], statusCode?: number) => this;
     }

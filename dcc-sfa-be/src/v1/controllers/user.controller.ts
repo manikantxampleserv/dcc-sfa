@@ -653,8 +653,10 @@ export const userController = {
         is_active,
         employee_id,
         email,
+        password,
         ...userData
       } = req.body;
+      console.log('Req.body', req.body);
 
       let profile_image_url: string | undefined;
       const uploadedFile = (req as any).file;
@@ -691,8 +693,8 @@ export const userController = {
         updatedate: new Date(),
       };
 
-      if (userData.password) {
-        updateData.password_hash = await bcrypt.hash(userData.password, 10);
+      if (password) {
+        updateData.password_hash = await bcrypt.hash(password, 10);
       }
 
       if (userData.joining_date) {

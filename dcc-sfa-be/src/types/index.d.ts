@@ -2,7 +2,6 @@ import 'express';
 
 declare module 'express' {
   interface Request {
-    // User authentication properties (from auth middleware)
     user?: {
       id: number;
       username?: string;
@@ -15,14 +14,14 @@ declare module 'express' {
       zone_id?: number | null;
     };
     token?: string;
-    
-    // Multer file upload properties
+
     file?: Express.Multer.File;
-    files?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] };
+    files?:
+      | Express.Multer.File[]
+      | { [fieldname: string]: Express.Multer.File[] };
   }
 
   interface Response {
-    // Custom response methods (from response middleware)
     success: (
       message: string,
       data?: any,
