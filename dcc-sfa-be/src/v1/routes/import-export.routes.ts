@@ -3,7 +3,6 @@ import { importExportController } from '../controllers/import-export.controller'
 
 import {
   validateTemplate,
-  validatePreview,
   validateImport,
   validateExport,
 } from '../validations/import-export.validation';
@@ -23,14 +22,6 @@ router.get(
   authenticateToken,
   validateTemplate,
   importExportController.downloadTemplate
-);
-
-router.post(
-  '/import-export/:table/preview',
-  authenticateToken,
-  uploadExcel.single('file'),
-  validatePreview,
-  importExportController.previewImport
 );
 
 router.post(

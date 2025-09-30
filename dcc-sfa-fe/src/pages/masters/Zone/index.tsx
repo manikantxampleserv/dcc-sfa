@@ -65,7 +65,7 @@ const ZonesManagement: React.FC = () => {
   const inactiveZones =
     zonesResponse?.stats?.inactive_zones ??
     zones.filter(z => z.is_active === 'N').length;
-  const uniqueDepots = new Set(zones.map(z => z.zone_depots?.name)).size;
+  const newZonesThisMonth = zonesResponse?.stats?.new_zones || 0;
 
   const handleCreateZone = useCallback(() => {
     setSelectedZone(null);
@@ -155,8 +155,11 @@ const ZonesManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <User className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {users.find(u => u.id === row.supervisor_id)?.name ||
-              'No Supervisor'}
+            {users.find(u => u.id === row.supervisor_id)?.name || (
+              <span className="text-xs italic text-gray-500">
+                No Supervisor
+              </span>
+            )}
           </span>
         </Box>
       ),
@@ -272,13 +275,13 @@ const ZonesManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">
-                Covered Depots
+                New This Month
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {uniqueDepots}
+                  {newZonesThisMonth}
                 </p>
               )}
             </div>

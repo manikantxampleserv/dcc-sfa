@@ -11,12 +11,6 @@ export const createDepotValidation = [
     .isString()
     .withMessage('Name must be a string'),
 
-  body('code')
-    .notEmpty()
-    .withMessage('Code is required')
-    .isString()
-    .withMessage('Code must be a string'),
-
   body('address').optional().isString().withMessage('Address must be a string'),
 
   body('city').optional().isString().withMessage('City must be a string'),

@@ -40,24 +40,6 @@ interface DepotSerialized {
   depots_coodrinator?: { id: number; name: string; email: string } | null;
 }
 
-// const generatedDepotCode = async (name: string) => {
-//   const prefix = name.replace(/\s+/g, '').substring(0, 3).toUpperCase();
-//   const lastDepot = await prisma.depots.findFirst({
-//     where: { code: { startsWith: prefix } },
-//     orderBy: { id: 'desc' },
-//     select: { code: true },
-//   });
-//   let newNumber = 1;
-//   if (lastDepot && lastDepot.code) {
-//     const match = lastDepot.code.match(new RegExp(`${prefix}(\\d+)`));
-//     if (match) {
-//       newNumber = parseInt(match[1], 10) + 1;
-//     }
-//   }
-
-//   return `${prefix}${newNumber.toString().padStart(3, '0')}`;
-// };
-
 const generatedDepotCode = async (name: string) => {
   const prefix = name.slice(0, 3).toUpperCase();
 

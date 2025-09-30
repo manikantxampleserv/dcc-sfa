@@ -78,7 +78,7 @@ const Select: React.FC<CustomSelectProps> = ({
   value,
   required,
   children,
-  fullWidth = true,
+  fullWidth = false,
   onBlur,
   onChange,
   ...rest
@@ -105,6 +105,7 @@ const Select: React.FC<CustomSelectProps> = ({
         {label}
       </InputLabel>
       <MuiSelect
+        fullWidth={fullWidth}
         labelId={`${name}-label`}
         name={name}
         required={required}

@@ -1,7 +1,8 @@
-import { Add, Block, CheckCircle } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useCompanies } from 'hooks/useCompanies';
 import { useDeleteDepot, useDepots, type Depot } from 'hooks/useDepots';
+import { useExportToExcel } from 'hooks/useImportExport';
 import { useUsers } from 'hooks/useUsers';
 import {
   Building2,
@@ -14,12 +15,14 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ManageDepot from './ManageDepot';
+import ImportDepot from './ImportDepot';
 
 const DepotsManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -27,6 +30,7 @@ const DepotsManagement: React.FC = () => {
   const [companyFilter, setCompanyFilter] = useState('all');
   const [selectedDepot, setSelectedDepot] = useState<Depot | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -47,23 +51,18 @@ const DepotsManagement: React.FC = () => {
     parent_id: companyFilter === 'all' ? undefined : Number(companyFilter),
   });
 
-  const { data: companiesResponse } = useCompanies({
-    page: 1,
-    limit: 100, // Get all companies for filter
-  });
+  const { data: companiesResponse } = useCompanies({ page: 1, limit: 100 });
 
-  const { data: usersResponse } = useUsers({
-    page: 1,
-    limit: 1000, // Get all users for role-based filtering
-  });
+  const { data: usersResponse } = useUsers({ page: 1, limit: 1000 });
 
   const depots = depotsResponse?.data || [];
   const companies = companiesResponse?.data || [];
   const users = usersResponse?.data || [];
-  const totalCount = depotsResponse?.meta?.total || 0;
-  const currentPage = (depotsResponse?.meta?.page || 1) - 1;
+  const totalCount = depotsResponse?.meta?.total_count || 0;
+  const currentPage = (depotsResponse?.meta?.current_page || 1) - 1;
 
   const deleteDepotMutation = useDeleteDepot();
+  const exportToExcelMutation = useExportToExcel();
 
   const totalDepots = depotsResponse?.stats?.total_depots ?? depots.length;
   const activeDepots =
@@ -104,7 +103,28 @@ const DepotsManagement: React.FC = () => {
     setPage(newPage + 1);
   };
 
-  // Define table columns following Company pattern
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      const filters = {
+        search,
+        isActive:
+          statusFilter === 'all'
+            ? undefined
+            : statusFilter === 'active'
+              ? 'Y'
+              : 'N',
+        parent_id: companyFilter === 'all' ? undefined : Number(companyFilter),
+      };
+
+      await exportToExcelMutation.mutateAsync({
+        tableName: 'depots',
+        filters,
+      });
+    } catch (error) {
+      console.error('Error exporting depots:', error);
+    }
+  }, [exportToExcelMutation, search, statusFilter, companyFilter]);
+
   const depotColumns: TableColumn<Depot>[] = [
     {
       id: 'name',
@@ -113,7 +133,7 @@ const DepotsManagement: React.FC = () => {
         <Box className="!flex !gap-2 !items-center">
           <Avatar
             alt={row.name}
-            className="!rounded !bg-primary-100 !text-primary-600"
+            className="!rounded !bg-primary-100 !text-primary-500"
           >
             <Building2 className="w-5 h-5" />
           </Avatar>
@@ -235,41 +255,45 @@ const DepotsManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Depots</p>
+              <p className="text-sm font-medium text-primary-500">
+                Total Depots
+              </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-primary-500">
                   {totalDepots}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-blue-600" />
+              <Building2 className="w-6 h-6 text-primary-500" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Depots</p>
+              <p className="text-sm font-medium text-green-500">
+                Active Depots
+              </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-green-500">
                   {activeDepots}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <UserCheck className="w-6 h-6 text-green-600" />
+              <UserCheck className="w-6 h-6 text-green-500" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-red-500">
                 Inactive Depots
               </p>
               {isLoading ? (
@@ -288,7 +312,7 @@ const DepotsManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-purple-600">
                 New This Month
               </p>
               {isLoading ? (
@@ -316,22 +340,20 @@ const DepotsManagement: React.FC = () => {
         data={depots}
         columns={depotColumns}
         actions={
-          <div className="flex justify-between w-full">
-            <div className="flex gap-3">
+          <div className="flex justify-between gap-3 items-center flex-wrap">
+            <div className="flex flex-wrap gap-3">
               <SearchInput
-                placeholder="Search Depots"
+                placeholder="Search Depots..."
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
                 showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
+                className="!w-80"
               />
               <Select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
+                className="!w-32"
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
@@ -340,8 +362,7 @@ const DepotsManagement: React.FC = () => {
               <Select
                 value={companyFilter}
                 onChange={e => setCompanyFilter(e.target.value)}
-                className="!min-w-60"
-                size="small"
+                className="!w-68"
               >
                 <MenuItem value="all">All Companies</MenuItem>
                 {companies.map(company => (
@@ -351,15 +372,42 @@ const DepotsManagement: React.FC = () => {
                 ))}
               </Select>
             </div>
-            <Button
-              variant="contained"
-              className="!capitalize"
-              disableElevation
-              startIcon={<Add />}
-              onClick={handleCreateDepot}
-            >
-              Create
-            </Button>
+            <div className="flex gap-2">
+              <PopConfirm
+                title="Export Depots"
+                description="Are you sure you want to export the current depot data to Excel? This will include all filtered results."
+                onConfirm={handleExportToExcel}
+                confirmText="Export"
+                cancelText="Cancel"
+                placement="top"
+              >
+                <Button
+                  variant="outlined"
+                  className="!capitalize"
+                  startIcon={<Download />}
+                  disabled={exportToExcelMutation.isPending}
+                >
+                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                </Button>
+              </PopConfirm>
+              <Button
+                variant="outlined"
+                className="!capitalize"
+                startIcon={<Upload />}
+                onClick={() => setImportModalOpen(true)}
+              >
+                Import
+              </Button>
+              <Button
+                variant="contained"
+                className="!capitalize"
+                disableElevation
+                startIcon={<Add />}
+                onClick={handleCreateDepot}
+              >
+                Create
+              </Button>
+            </div>
           </div>
         }
         getRowId={depot => depot.id}
@@ -383,6 +431,11 @@ const DepotsManagement: React.FC = () => {
         setDrawerOpen={setDrawerOpen}
         companies={companies}
         users={users}
+      />
+
+      <ImportDepot
+        drawerOpen={importModalOpen}
+        setDrawerOpen={setImportModalOpen}
       />
     </>
   );
