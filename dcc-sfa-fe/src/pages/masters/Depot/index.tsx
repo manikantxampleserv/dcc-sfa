@@ -1,16 +1,18 @@
 import { Add, Block, CheckCircle } from '@mui/icons-material';
-import { Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { useCompanies } from 'hooks/useCompanies';
+import { useDeleteDepot, useDepots, type Depot } from 'hooks/useDepots';
+import { useUsers } from 'hooks/useUsers';
 import {
   Building2,
   Mail,
   MapPin,
   Phone,
-  User,
   UserCheck,
   Users,
   XCircle,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
@@ -18,12 +20,8 @@ import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ManageDepot from './ManageDepot';
-import type { Depot, Company, Employee } from 'types/Depot';
 
 const DepotsManagement: React.FC = () => {
-  const [depots, setDepots] = useState<Depot[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
@@ -32,132 +30,49 @@ const DepotsManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  useEffect(() => {
-    const mockCompanies: Company[] = [
-      { id: 1, name: 'TechCorp Solutions', code: 'TECH001' },
-      { id: 2, name: 'Global Industries', code: 'GLOB002' },
-      { id: 3, name: 'Innovation Labs', code: 'INNO003' },
-      { id: 4, name: 'Future Systems', code: 'FUTU004' },
-    ];
-
-    const mockEmployees: Employee[] = [
-      { id: 1, name: 'John Smith', role: 'Manager' },
-      { id: 2, name: 'Sarah Johnson', role: 'Supervisor' },
-      { id: 3, name: 'Mike Davis', role: 'Coordinator' },
-      { id: 4, name: 'Lisa Wilson', role: 'Manager' },
-      { id: 5, name: 'David Brown', role: 'Supervisor' },
-      { id: 6, name: 'Emma Taylor', role: 'Coordinator' },
-    ];
-
-    const mockDepots: Depot[] = [
-      {
-        id: 1,
-        parent_id: 1,
-        name: 'North Regional Depot',
-        code: 'NRD001',
-        address: '123 Industrial Blvd',
-        city: 'Chicago',
-        state: 'Illinois',
-        zipcode: '60601',
-        phone_number: '+1-312-555-0101',
-        email: 'north@techcorp.com',
-        manager_id: 1,
-        supervisor_id: 2,
-        coordinator_id: 3,
-        latitude: 41.8781,
-        longitude: -87.6298,
-        is_active: 'Y',
-        createdate: '2024-01-15T10:30:00',
-        createdby: 1,
-        updatedate: '2024-01-20T14:15:00',
-        updatedby: 1,
-        log_inst: 1,
-        company_name: 'TechCorp Solutions',
-        manager_name: 'John Smith',
-        supervisor_name: 'Sarah Johnson',
-        coordinator_name: 'Mike Davis',
-      },
-      {
-        id: 2,
-        parent_id: 2,
-        name: 'South Distribution Center',
-        code: 'SDC002',
-        address: '456 Commerce Way',
-        city: 'Atlanta',
-        state: 'Georgia',
-        zipcode: '30309',
-        phone_number: '+1-404-555-0202',
-        email: 'south@global.com',
-        manager_id: 4,
-        supervisor_id: 5,
-        coordinator_id: 6,
-        latitude: 33.749,
-        longitude: -84.388,
-        is_active: 'Y',
-        createdate: '2024-01-10T09:00:00',
-        createdby: 2,
-        updatedate: null,
-        updatedby: null,
-        log_inst: 2,
-        company_name: 'Global Industries',
-        manager_name: 'Lisa Wilson',
-        supervisor_name: 'David Brown',
-        coordinator_name: 'Emma Taylor',
-      },
-      {
-        id: 3,
-        parent_id: 1,
-        name: 'West Coast Hub',
-        code: 'WCH003',
-        address: '789 Pacific Ave',
-        city: 'Los Angeles',
-        state: 'California',
-        zipcode: '90210',
-        phone_number: '+1-213-555-0303',
-        email: 'west@techcorp.com',
-        manager_id: 1,
-        supervisor_id: null,
-        coordinator_id: null,
-        latitude: 34.0522,
-        longitude: -118.2437,
-        is_active: 'N',
-        createdate: '2024-01-05T16:45:00',
-        createdby: 1,
-        updatedate: '2024-01-25T11:30:00',
-        updatedby: 3,
-        log_inst: 3,
-        company_name: 'TechCorp Solutions',
-        manager_name: 'John Smith',
-        supervisor_name: undefined,
-        coordinator_name: undefined,
-      },
-    ];
-
-    setCompanies(mockCompanies);
-    setEmployees(mockEmployees);
-    setDepots(mockDepots);
-  }, []);
-
-  // Filter depots based on search, status, and company
-  const filteredDepots = depots.filter(depot => {
-    const matchesSearch =
-      search === '' ||
-      depot.name.toLowerCase().includes(search.toLowerCase()) ||
-      depot.code.toLowerCase().includes(search.toLowerCase()) ||
-      depot.email?.toLowerCase().includes(search.toLowerCase()) ||
-      depot.city?.toLowerCase().includes(search.toLowerCase()) ||
-      depot.company_name?.toLowerCase().includes(search.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && depot.is_active === 'Y') ||
-      (statusFilter === 'inactive' && depot.is_active === 'N');
-
-    const matchesCompany =
-      companyFilter === 'all' || depot.parent_id.toString() === companyFilter;
-
-    return matchesSearch && matchesStatus && matchesCompany;
+  const {
+    data: depotsResponse,
+    isLoading,
+    error,
+  } = useDepots({
+    search,
+    page,
+    limit,
+    isActive:
+      statusFilter === 'all'
+        ? undefined
+        : statusFilter === 'active'
+          ? 'Y'
+          : 'N',
+    parent_id: companyFilter === 'all' ? undefined : Number(companyFilter),
   });
+
+  const { data: companiesResponse } = useCompanies({
+    page: 1,
+    limit: 100, // Get all companies for filter
+  });
+
+  const { data: usersResponse } = useUsers({
+    page: 1,
+    limit: 1000, // Get all users for role-based filtering
+  });
+
+  const depots = depotsResponse?.data || [];
+  const companies = companiesResponse?.data || [];
+  const users = usersResponse?.data || [];
+  const totalCount = depotsResponse?.meta?.total || 0;
+  const currentPage = (depotsResponse?.meta?.page || 1) - 1;
+
+  const deleteDepotMutation = useDeleteDepot();
+
+  const totalDepots = depotsResponse?.stats?.total_depots ?? depots.length;
+  const activeDepots =
+    depotsResponse?.stats?.active_depots ??
+    depots.filter(d => d.is_active === 'Y').length;
+  const inactiveDepots =
+    depotsResponse?.stats?.inactive_depots ??
+    depots.filter(d => d.is_active === 'N').length;
+  const uniqueCompanies = new Set(depots.map(d => d.company_name)).size;
 
   const handleCreateDepot = useCallback(() => {
     setSelectedDepot(null);
@@ -170,10 +85,14 @@ const DepotsManagement: React.FC = () => {
   }, []);
 
   const handleDeleteDepot = useCallback(
-    (id: number) => {
-      setDepots(depots.filter(d => d.id !== id));
+    async (id: number) => {
+      try {
+        await deleteDepotMutation.mutateAsync(id);
+      } catch (error) {
+        console.error('Error deleting depot:', error);
+      }
     },
-    [depots]
+    [deleteDepotMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -181,7 +100,9 @@ const DepotsManagement: React.FC = () => {
     setPage(1);
   }, []);
 
-  const handlePageChange = (newPage: number) => setPage(newPage + 1);
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage + 1);
+  };
 
   // Define table columns following Company pattern
   const depotColumns: TableColumn<Depot>[] = [
@@ -214,11 +135,11 @@ const DepotsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'company_name',
+      id: 'depot_companies',
       label: 'Company',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900">
-          {row.company_name || 'No Company'}
+          {row.depot_companies?.name || 'No Company'}
         </Typography>
       ),
     },
@@ -253,32 +174,6 @@ const DepotsManagement: React.FC = () => {
           <span className="text-xs">
             {[row.city, row.state].filter(Boolean).join(', ') || 'No Location'}
           </span>
-        </Box>
-      ),
-    },
-    {
-      id: 'staff',
-      label: 'Staff',
-      render: (_value, row) => (
-        <Box className="space-y-1">
-          {row.manager_name ? (
-            <div className="flex items-center gap-1">
-              <User className="w-3 h-3 text-gray-400" />
-              <span className="text-xs">{row.manager_name}</span>
-            </div>
-          ) : (
-            <span className="italic text-gray-400">No Manager</span>
-          )}
-          {(row.supervisor_name || row.coordinator_name) && (
-            <div className="flex items-center gap-1">
-              <Users className="w-3 h-3 text-gray-400" />
-              <span className="text-xs">
-                {[row.supervisor_name, row.coordinator_name]
-                  .filter(Boolean)
-                  .join(', ')}
-              </span>
-            </div>
-          )}
         </Box>
       ),
     },
@@ -324,105 +219,119 @@ const DepotsManagement: React.FC = () => {
     },
   ];
 
-  // Statistics
-  const totalDepots = depots.length;
-  const activeDepots = depots.filter(d => d.is_active === 'Y').length;
-  const inactiveDepots = depots.filter(d => d.is_active === 'N').length;
-  const uniqueCompanies = new Set(depots.map(d => d.company_name)).size;
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Depot Management</h1>
-          <p className="text-gray-600 mt-1">
+    <>
+      <Box className="!mb-3 !flex !justify-between !items-center">
+        <Box>
+          <p className="!font-bold text-xl !text-gray-900">Depot Management</p>
+          <p className="!text-gray-500 text-sm">
             Manage depot locations, staff assignments, and operational details
           </p>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Depots</p>
-              <p className="text-2xl font-bold text-gray-900">{totalDepots}</p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">
+                  {totalDepots}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <Building2 className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
-
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Active Depots</p>
-              <p className="text-2xl font-bold text-green-600">
-                {activeDepots}
-              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-green-600">
+                  {activeDepots}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-green-100 rounded-full">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
               <UserCheck className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
-
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">
                 Inactive Depots
               </p>
-              <p className="text-2xl font-bold text-red-600">
-                {inactiveDepots}
-              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-red-600">
+                  {inactiveDepots}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-red-100 rounded-full">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
               <XCircle className="w-6 h-6 text-red-600" />
             </div>
           </div>
         </div>
-
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Companies</p>
-              <p className="text-2xl font-bold text-purple-600">
-                {uniqueCompanies}
+              <p className="text-sm font-medium text-gray-600">
+                New This Month
               </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-purple-600">
+                  {uniqueCompanies}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-purple-100 rounded-full">
-              <Building2 className="w-6 h-6 text-purple-600" />
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <Users className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Table */}
+      {error && (
+        <Alert severity="error" className="!mb-4">
+          Failed to load depots. Please try again.
+        </Alert>
+      )}
+
       <Table
-        data={filteredDepots}
+        data={depots}
         columns={depotColumns}
         actions={
-          <div className="flex justify-between flex-wrap gap-3 w-full">
-            <div className="flex gap-3 flex-wrap items-center">
+          <div className="flex justify-between w-full">
+            <div className="flex gap-3">
               <SearchInput
                 placeholder="Search Depots"
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
                 showClear={true}
-                fullWidth={true}
-                className="!w-80"
+                fullWidth={false}
+                className="!min-w-80"
               />
               <Select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                className="!w-40"
+                className="!min-w-32"
                 size="small"
-                fullWidth={false}
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
@@ -431,9 +340,8 @@ const DepotsManagement: React.FC = () => {
               <Select
                 value={companyFilter}
                 onChange={e => setCompanyFilter(e.target.value)}
-                className="!w-60"
+                className="!min-w-60"
                 size="small"
-                fullWidth={false}
               >
                 <MenuItem value="all">All Companies</MenuItem>
                 {companies.map(company => (
@@ -456,9 +364,9 @@ const DepotsManagement: React.FC = () => {
         }
         getRowId={depot => depot.id}
         initialOrderBy="name"
-        loading={false}
-        totalCount={filteredDepots.length}
-        page={page - 1}
+        loading={isLoading}
+        totalCount={totalCount}
+        page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
         emptyMessage={
@@ -474,9 +382,9 @@ const DepotsManagement: React.FC = () => {
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
         companies={companies}
-        employees={employees}
+        users={users}
       />
-    </div>
+    </>
   );
 };
 

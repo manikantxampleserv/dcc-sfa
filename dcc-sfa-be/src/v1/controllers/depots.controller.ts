@@ -105,12 +105,19 @@ export const depotsController = {
 
   async getDepots(req: Request, res: Response) {
     try {
-      const { page = '1', limit = '10', search = '' } = req.query;
+      const { 
+        page = '1', 
+        limit = '10', 
+        search = '', 
+        isActive,
+        parent_id 
+      } = req.query;
       const page_num = parseInt(page as string, 10);
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
 
       const filters: any = {
+        is_active: isActive as string,
         ...(search && {
           OR: [
             { name: { contains: searchLower } },
@@ -119,6 +126,37 @@ export const depotsController = {
             { city: { contains: searchLower } },
           ],
         }),
+        ...(parent_id && { parent_id: Number(parent_id) }),
+      };
+
+      // Calculate depot statistics
+      const totalDepots = await prisma.depots.count();
+      const activeDepots = await prisma.depots.count({
+        where: { is_active: 'Y' },
+      });
+      const inactiveDepots = await prisma.depots.count({
+        where: { is_active: 'N' },
+      });
+
+      // Calculate new depots this month
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const newDepotsThisMonth = await prisma.depots.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
+      });
+
+      const stats = {
+        total_depots: totalDepots,
+        active_depots: activeDepots,
+        inactive_depots: inactiveDepots,
+        new_depots: newDepotsThisMonth,
       };
 
       const { data, pagination } = await paginate({
@@ -131,13 +169,22 @@ export const depotsController = {
       });
 
       res.json({
+        success: true,
         message: 'Depots retrieved successfully',
         data: data.map((d: any) => serializeDepot(d, true)),
-        pagination,
+        meta: {
+          requestDuration: Date.now(),
+          timestamp: new Date().toISOString(),
+          ...pagination,
+        },
+        stats,
       });
     } catch (error: any) {
       console.error('Get Depots Error:', error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ 
+        success: false,
+        message: error.message 
+      });
     }
   },
 

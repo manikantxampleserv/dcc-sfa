@@ -1,5 +1,5 @@
 import { Add, Block, CheckCircle } from '@mui/icons-material';
-import { Alert, Avatar, Box, Chip, Typography } from '@mui/material';
+import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useDeleteUser, useUsers, type User } from 'hooks/useUsers';
 import { Users as UsersIcon, UserCheck, UserX, UserPlus } from 'lucide-react';
@@ -7,12 +7,14 @@ import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
+import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ManageUsers from './ManageUsers';
 
-const Users: React.FC = () => {
+const UsersManagement: React.FC = () => {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(8);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -22,7 +24,17 @@ const Users: React.FC = () => {
     data: usersResponse,
     isLoading,
     error,
-  } = useUsers({ search, page, limit });
+  } = useUsers({
+    search,
+    page,
+    limit,
+    isActive:
+      statusFilter === 'all'
+        ? undefined
+        : statusFilter === 'active'
+          ? 'Y'
+          : 'N',
+  });
 
   const users = usersResponse?.data || [];
   const pagination = {
@@ -288,15 +300,27 @@ const Users: React.FC = () => {
         columns={userColumns}
         actions={
           <div className="flex justify-between w-full">
-            <SearchInput
-              placeholder="Search Users"
-              value={search}
-              onChange={handleSearchChange}
-              debounceMs={400}
-              showClear={true}
-              fullWidth={false}
-              className="!min-w-80"
-            />
+            <div className="flex gap-3">
+              <SearchInput
+                placeholder="Search Users"
+                value={search}
+                onChange={handleSearchChange}
+                debounceMs={400}
+                showClear={true}
+                fullWidth={false}
+                className="!min-w-80"
+              />
+              <Select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                className="!min-w-32"
+                size="small"
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </div>
             <Button
               variant="contained"
               className="!capitalize"
@@ -332,4 +356,4 @@ const Users: React.FC = () => {
   );
 };
 
-export default Users;
+export default UsersManagement;

@@ -250,7 +250,7 @@ function SkeletonLoader({ columns, rows = 3 }: SkeletonLoaderProps) {
               key={`skeleton-${rowIndex}-${String(column.id)}`}
               align={column.numeric ? 'right' : 'left'}
               padding={column.disablePadding ? 'none' : 'normal'}
-              className="!border-b !border-gray-100 !h-[60px]"
+              className="!border-b !border-gray-100 !h-[50px]"
             >
               <Box className="!flex !items-center !gap-1.5">
                 <Box className="!flex-1">

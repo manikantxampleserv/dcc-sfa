@@ -5,7 +5,14 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import type { Depot, Company, Employee } from 'types/Depot';
+import {
+  useCreateDepot,
+  useUpdateDepot,
+  type Depot,
+} from '../../../../hooks/useDepots';
+import type { Company } from '../../../../services/masters/Companies';
+import type { User } from '../../../../services/masters/Users';
+import { depotValidationSchema } from '../../../../schemas/depot.schema';
 
 interface ManageDepotProps {
   selectedDepot?: Depot | null;
@@ -13,7 +20,7 @@ interface ManageDepotProps {
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
   companies: Company[];
-  employees: Employee[];
+  users: User[];
 }
 
 const ManageDepot: React.FC<ManageDepotProps> = ({
@@ -22,7 +29,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
   drawerOpen,
   setDrawerOpen,
   companies,
-  employees,
+  users,
 }) => {
   const isEdit = !!selectedDepot;
 
@@ -31,11 +38,13 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
     setDrawerOpen(false);
   };
 
+  const createDepotMutation = useCreateDepot();
+  const updateDepotMutation = useUpdateDepot();
+
   const formik = useFormik({
     initialValues: {
       parent_id: selectedDepot?.parent_id?.toString() || '',
       name: selectedDepot?.name || '',
-      code: selectedDepot?.code || '',
       address: selectedDepot?.address || '',
       city: selectedDepot?.city || '',
       state: selectedDepot?.state || '',
@@ -49,11 +58,40 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
       longitude: selectedDepot?.longitude?.toString() || '',
       is_active: selectedDepot?.is_active || 'Y',
     },
+    validationSchema: depotValidationSchema,
     enableReinitialize: true,
     onSubmit: async values => {
       try {
-        console.log('Depot data:', values);
-        // Here you would call the API
+        const depotData = {
+          parent_id: Number(values.parent_id),
+          name: values.name,
+          address: values.address || undefined,
+          city: values.city || undefined,
+          state: values.state || undefined,
+          zipcode: values.zipcode || undefined,
+          phone_number: values.phone_number || undefined,
+          email: values.email || undefined,
+          manager_id: values.manager_id ? Number(values.manager_id) : undefined,
+          supervisor_id: values.supervisor_id
+            ? Number(values.supervisor_id)
+            : undefined,
+          coordinator_id: values.coordinator_id
+            ? Number(values.coordinator_id)
+            : undefined,
+          latitude: values.latitude ? Number(values.latitude) : undefined,
+          longitude: values.longitude ? Number(values.longitude) : undefined,
+          is_active: values.is_active,
+        };
+
+        if (isEdit && selectedDepot) {
+          await updateDepotMutation.mutateAsync({
+            id: selectedDepot.id,
+            ...depotData,
+          });
+        } else {
+          await createDepotMutation.mutateAsync(depotData);
+        }
+
         handleCancel();
       } catch (error) {
         console.error('Error saving depot:', error);
@@ -61,15 +99,16 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
     },
   });
 
-  const managers = employees.filter(emp => emp.role === 'Manager');
-  const supervisors = employees.filter(emp => emp.role === 'Supervisor');
-  const coordinators = employees.filter(emp => emp.role === 'Coordinator');
+  const managers = users;
+  const supervisors = users;
+  const coordinators = users;
 
   return (
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Depot' : 'Create Depot'}
+      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -87,14 +126,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               name="name"
               label="Depot Name"
               placeholder="Enter depot name"
-              formik={formik}
-              required
-            />
-
-            <Input
-              name="code"
-              label="Depot Code"
-              placeholder="Enter depot code"
               formik={formik}
               required
             />
@@ -204,24 +235,28 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               type="button"
               variant="outlined"
               onClick={handleCancel}
-              className="!capitalize"
+              className="!mr-3"
+              disabled={
+                createDepotMutation.isPending || updateDepotMutation.isPending
+              }
             >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="contained"
-              className="!capitalize"
-              disableElevation
-              disabled={formik.isSubmitting}
+              disabled={
+                createDepotMutation.isPending || updateDepotMutation.isPending
+              }
             >
-              {formik.isSubmitting
+              {createDepotMutation.isPending || updateDepotMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'
                 : isEdit
                   ? 'Update'
-                  : 'Create'}
+                  : 'Create'}{' '}
+              Depot
             </Button>
           </Box>
         </form>
