@@ -40,22 +40,42 @@ interface DepotSerialized {
   depots_coodrinator?: { id: number; name: string; email: string } | null;
 }
 
+// const generatedDepotCode = async (name: string) => {
+//   const prefix = name.replace(/\s+/g, '').substring(0, 3).toUpperCase();
+//   const lastDepot = await prisma.depots.findFirst({
+//     where: { code: { startsWith: prefix } },
+//     orderBy: { id: 'desc' },
+//     select: { code: true },
+//   });
+//   let newNumber = 1;
+//   if (lastDepot && lastDepot.code) {
+//     const match = lastDepot.code.match(new RegExp(`${prefix}(\\d+)`));
+//     if (match) {
+//       newNumber = parseInt(match[1], 10) + 1;
+//     }
+//   }
+
+//   return `${prefix}${newNumber.toString().padStart(3, '0')}`;
+// };
+
 const generatedDepotCode = async (name: string) => {
-  const prefix = name.replace(/\s+/g, '').substring(0, 3).toUpperCase();
-  const lastDepot = await prisma.depots.findFirst({
-    where: { code: { startsWith: prefix } },
+  const prefix = name.slice(0, 3).toUpperCase();
+
+  const lastDepots = await prisma.depots.findFirst({
     orderBy: { id: 'desc' },
     select: { code: true },
   });
+
   let newNumber = 1;
-  if (lastDepot && lastDepot.code) {
-    const match = lastDepot.code.match(new RegExp(`${prefix}(\\d+)`));
+  if (lastDepots && lastDepots.code) {
+    const match = lastDepots.code.match(/(\d+)$/);
     if (match) {
       newNumber = parseInt(match[1], 10) + 1;
     }
   }
 
-  return `${prefix}${newNumber.toString().padStart(3, '0')}`;
+  const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+  return code;
 };
 
 const serializeDepot = (
@@ -160,12 +180,12 @@ export const depotsController = {
 
   async getDepots(req: Request, res: Response) {
     try {
-      const { 
-        page = '1', 
-        limit = '10', 
-        search = '', 
+      const {
+        page = '1',
+        limit = '10',
+        search = '',
         isActive,
-        parent_id 
+        parent_id,
       } = req.query;
       const page_num = parseInt(page as string, 10);
       const limit_num = parseInt(limit as string, 10);
@@ -242,9 +262,9 @@ export const depotsController = {
       });
     } catch (error: any) {
       console.error('Get Depots Error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        message: error.message 
+        message: error.message,
       });
     }
   },

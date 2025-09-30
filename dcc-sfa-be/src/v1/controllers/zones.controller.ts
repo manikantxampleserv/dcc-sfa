@@ -24,23 +24,26 @@ interface ZoneSerialized {
   zone_depots?: { id: number; name: string; code: string } | null;
 }
 
-const generatedDepotCode = async (name: string) => {
-  const prefix = name.replace(/\s+/g, '').substring(0, 3).toUpperCase();
+const generateZoneCode = async (name: string) => {
+  const prefix = name.slice(0, 3).toUpperCase();
+
   const lastZone = await prisma.zones.findFirst({
-    where: { code: { startsWith: prefix } },
     orderBy: { id: 'desc' },
     select: { code: true },
   });
+
   let newNumber = 1;
   if (lastZone && lastZone.code) {
-    const match = lastZone.code.match(new RegExp(`${prefix}(\\d+)`));
+    const match = lastZone.code.match(/(\d+)$/);
     if (match) {
       newNumber = parseInt(match[1], 10) + 1;
     }
   }
 
-  return `${prefix}${newNumber.toString().padStart(3, '0')}`;
+  const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+  return code;
 };
+
 const serializeZone = (zone: any): ZoneSerialized => ({
   id: zone.id,
   parent_id: zone.parent_id,
@@ -85,12 +88,11 @@ export const zonesController = {
         return res.status(400).json({ message: 'Zone name is required' });
       }
 
-      const newCode = await generatedDepotCode(data.name);
+      const newCode = await generateZoneCode(data.name);
       const zone = await prisma.zones.create({
         data: {
           ...data,
           code: newCode,
-
           createdby: data.createdby || 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
@@ -168,10 +170,10 @@ export const zonesController = {
         data: data.map(serializeZone),
         pagination,
         stats: {
-          totalZones,
-          activeZones,
-          inactiveZones,
-          newZonesThisMonth,
+          total_zones: totalZones,
+          active_zones: activeZones,
+          inactive_zones: inactiveZones,
+          new_zones: newZonesThisMonth,
         },
       });
     } catch (error: any) {
