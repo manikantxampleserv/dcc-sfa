@@ -226,7 +226,6 @@ export abstract class ImportExportService<T> {
       };
     });
 
-    // Add sample data
     const sampleData = await this.getSampleData();
     sampleData.forEach((data, index) => {
       const row = worksheet.addRow(data);
