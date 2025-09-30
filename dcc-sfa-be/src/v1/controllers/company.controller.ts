@@ -20,6 +20,7 @@ const serializeCompany = (
   phone_number: company.phone_number,
   email: company.email,
   website: company.website,
+  is_active: company.is_active,
   logo: company.logo,
   created_by: company.created_by,
   ...(includeCreatedAt && { created_at: company.created_date }),
@@ -55,20 +56,19 @@ export const companyController = {
         email,
         website,
         created_by,
+        is_active,
       } = req.body;
 
-      // 1. Generate code prefix (first three letters of name)
       const prefix = name.slice(0, 3).toUpperCase();
 
-      // 2. Find the latest sequence number used
       const lastCompany = await prisma.companies.findFirst({
-        orderBy: { id: 'desc' }, // latest entry
+        orderBy: { id: 'desc' },
         select: { code: true },
       });
 
       let newSequence = 1;
       if (lastCompany && lastCompany.code) {
-        const match = lastCompany.code.match(/(\d+)$/); // get trailing number
+        const match = lastCompany.code.match(/(\d+)$/);
         if (match) {
           newSequence = parseInt(match[1], 10) + 1;
         }
@@ -76,7 +76,6 @@ export const companyController = {
 
       const code = `${prefix}${newSequence.toString().padStart(3, '0')}`;
 
-      // 3. Handle logo upload
       let logoUrl: string | null = null;
       if (req.file) {
         const fileName = `logos/${Date.now()}-${req.file.originalname}`;
@@ -87,7 +86,6 @@ export const companyController = {
         );
       }
 
-      // 4. Create company
       const company = await prisma.companies.create({
         data: {
           name,
@@ -100,6 +98,7 @@ export const companyController = {
           phone_number,
           email,
           website,
+          is_active,
           logo: logoUrl,
           created_by: Number(created_by) || 0,
           created_date: new Date(),

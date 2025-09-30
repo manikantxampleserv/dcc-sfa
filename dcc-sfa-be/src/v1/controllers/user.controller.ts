@@ -570,30 +570,7 @@ export const userController = {
         res.error('User not found', 404);
         return;
       }
-
-      // const dependentRecords = await prisma.users.count({
-      //   where: {
-      //     reporting_to: id,
-      //     is_active: 'Y',
-      //   },
-      // });
-
-      // if (dependentRecords > 0) {
-      //   res.error(
-      //     'Cannot delete user as they have team members reporting to them',
-      //     400
-      //   );
-      //   return;
-      // }
-
-      // await prisma.users.update({
-      //   where: { id },
-      //   data: {
-      //     is_active: 'N',
-      //     updatedby: req.user?.id ?? 0,
-      //     updatedate: new Date(),
-      //   },
-      // });
+      await prisma.users.delete({ where: { id: Number(id) } });
 
       res.success('User deleted successfully', null, 200);
     } catch (error: any) {

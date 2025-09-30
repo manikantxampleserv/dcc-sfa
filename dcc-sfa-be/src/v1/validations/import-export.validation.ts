@@ -1,6 +1,6 @@
 import { body, param, query, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
-import { ImportExportFactory } from '../services/base/import-export.service';
+import { ImportExportFactory } from '../services//import-export-factory.service';
 
 export const handleValidationErrors = (
   req: Request,

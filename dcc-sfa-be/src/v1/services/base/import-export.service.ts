@@ -195,11 +195,9 @@ export abstract class ImportExportService<T> {
     }
   }
 
-  // Generate template
   async generateTemplate(): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
 
-    // Main data sheet
     const worksheet = workbook.addWorksheet(`${this.displayName} Template`);
 
     worksheet.columns = this.columns.map(col => ({
@@ -219,7 +217,6 @@ export abstract class ImportExportService<T> {
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
     headerRow.height = 25;
 
-    // Add borders to header
     headerRow.eachCell(cell => {
       cell.border = {
         top: { style: 'thin' },
@@ -233,7 +230,6 @@ export abstract class ImportExportService<T> {
     const sampleData = await this.getSampleData();
     sampleData.forEach((data, index) => {
       const row = worksheet.addRow(data);
-      // Add borders to data rows
       row.eachCell(cell => {
         cell.border = {
           top: { style: 'thin' },
@@ -265,7 +261,6 @@ export abstract class ImportExportService<T> {
       }
     });
 
-    // Instructions sheet
     const instructionSheet = workbook.addWorksheet('Instructions');
     instructionSheet.columns = [
       { header: 'Field', key: 'field', width: 25 },
@@ -299,7 +294,6 @@ export abstract class ImportExportService<T> {
       }
     });
 
-    // Add general instructions
     instructionSheet.addRow([]);
     instructionSheet.addRow(['GENERAL INSTRUCTIONS:', '', '', '']);
     const instructions = [
@@ -342,14 +336,12 @@ export abstract class ImportExportService<T> {
     workbook.created = new Date();
     workbook.modified = new Date();
 
-    // Set columns
     worksheet.columns = this.columns.map(col => ({
       header: col.header,
       key: col.key,
       width: col.width || 20,
     }));
 
-    // Style header
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
     headerRow.fill = {
@@ -360,12 +352,10 @@ export abstract class ImportExportService<T> {
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
     headerRow.height = 25;
 
-    // Add data
     const exportData = await this.transformDataForExport(data);
     exportData.forEach((row, index) => {
       const excelRow = worksheet.addRow(row);
 
-      // Alternate row colors
       if (index % 2 === 0) {
         excelRow.fill = {
           type: 'pattern',
@@ -374,7 +364,6 @@ export abstract class ImportExportService<T> {
         };
       }
 
-      // Add borders
       excelRow.eachCell(cell => {
         cell.border = {
           top: { style: 'thin' },
@@ -385,7 +374,6 @@ export abstract class ImportExportService<T> {
       });
     });
 
-    // Add auto-filter
     if (data.length > 0) {
       worksheet.autoFilter = {
         from: 'A1',
@@ -393,19 +381,16 @@ export abstract class ImportExportService<T> {
       };
     }
 
-    // Add summary row
     const summaryRow = worksheet.addRow([]);
     summaryRow.getCell(1).value = `Total Records: ${data.length}`;
     summaryRow.getCell(1).font = { bold: true };
 
-    // Freeze header row
     worksheet.views = [{ state: 'frozen', ySplit: 1 }];
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
   }
 
-  // Export to PDF
   async exportToPDF(options: ExportOptions = {}): Promise<Buffer> {
     const query: any = {
       where: options.filters,
@@ -431,7 +416,6 @@ export abstract class ImportExportService<T> {
         doc.on('data', chunk => chunks.push(chunk));
         doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-        // Header
         doc
           .fontSize(18)
           .font('Helvetica-Bold')
@@ -446,21 +430,17 @@ export abstract class ImportExportService<T> {
           });
         doc.moveDown(1);
 
-        // Calculate table dimensions
         const pageWidth = doc.page.width - 80;
         const maxColumns = this.columns.length > 7 ? 7 : this.columns.length;
         const columnWidth = pageWidth / maxColumns;
         const startX = 40;
         let currentY = doc.y;
 
-        // Table header
         doc.fontSize(9).font('Helvetica-Bold');
         const pdfColumns = this.columns.slice(0, maxColumns);
 
-        // Draw header background
         doc.rect(startX, currentY, pageWidth, 20).fill('#4472C4');
 
-        // Draw header text
         doc.fillColor('white');
         pdfColumns.forEach((col, index) => {
           doc.text(col.header, startX + index * columnWidth + 5, currentY + 5, {
@@ -473,17 +453,14 @@ export abstract class ImportExportService<T> {
         currentY += 25;
         doc.fillColor('black').font('Helvetica');
 
-        // Table data
         const exportData = await this.transformDataForExport(data);
         let rowCount = 0;
 
         for (const row of exportData) {
-          // Check if we need a new page
           if (currentY > doc.page.height - 80) {
             doc.addPage();
             currentY = 40;
 
-            // Redraw header on new page
             doc.fontSize(9).font('Helvetica-Bold');
             doc.rect(startX, currentY, pageWidth, 20).fill('#4472C4');
 
@@ -505,13 +482,11 @@ export abstract class ImportExportService<T> {
             doc.fillColor('black').font('Helvetica');
           }
 
-          // Draw row background (alternating colors)
           if (rowCount % 2 === 0) {
             doc.rect(startX, currentY, pageWidth, 18).fill('#F5F5F5');
             doc.fillColor('black');
           }
 
-          // Draw row data
           doc.fontSize(8);
           pdfColumns.forEach((col, colIndex) => {
             const value = String(row[col.key] || '-');
@@ -522,7 +497,6 @@ export abstract class ImportExportService<T> {
             });
           });
 
-          // Draw row border
           doc
             .moveTo(startX, currentY + 18)
             .lineTo(startX + pageWidth, currentY + 18)
@@ -537,12 +511,10 @@ export abstract class ImportExportService<T> {
           }
         }
 
-        // Footer on last page
         const pages = doc.bufferedPageRange();
         for (let i = 0; i < pages.count; i++) {
           doc.switchToPage(i);
 
-          // Page number
           doc
             .fontSize(8)
             .font('Helvetica')
@@ -551,7 +523,6 @@ export abstract class ImportExportService<T> {
             });
         }
 
-        // Summary
         doc.switchToPage(pages.count - 1);
         doc
           .fontSize(10)
@@ -565,7 +536,6 @@ export abstract class ImportExportService<T> {
     });
   }
 
-  // Import data
   async importData(
     data: any[],
     userId: number,
@@ -576,11 +546,9 @@ export abstract class ImportExportService<T> {
     const errors: string[] = [];
     const importedData: any[] = [];
 
-    // Start transaction
     const results = await prisma.$transaction(async tx => {
       for (const [index, row] of data.entries()) {
         try {
-          // Check for duplicates
           const duplicateCheck = await this.checkDuplicate(row, tx);
 
           if (duplicateCheck) {
@@ -589,7 +557,6 @@ export abstract class ImportExportService<T> {
               errors.push(`Row ${index + 2}: Skipped - ${duplicateCheck}`);
               continue;
             } else if (options.updateExisting) {
-              // Update existing record
               const updated = await this.updateExisting(row, userId, tx);
               if (updated) {
                 importedData.push(updated);
@@ -608,7 +575,6 @@ export abstract class ImportExportService<T> {
             }
           }
 
-          // Validate foreign keys
           const fkValidation = await this.validateForeignKeys(row, tx);
           if (fkValidation) {
             errors.push(`Row ${index + 2}: ${fkValidation}`);
@@ -616,10 +582,8 @@ export abstract class ImportExportService<T> {
             continue;
           }
 
-          // Prepare data for insertion
           const preparedData = await this.prepareDataForImport(row, userId);
 
-          // Create record
           const created = await (tx as any)[this.modelName].create({
             data: preparedData,
           });
@@ -638,7 +602,6 @@ export abstract class ImportExportService<T> {
     return results;
   }
 
-  // Batch import
   async batchImport(
     data: any[],
     userId: number,
