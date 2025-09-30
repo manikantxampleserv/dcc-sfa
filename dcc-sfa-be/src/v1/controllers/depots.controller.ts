@@ -40,24 +40,6 @@ interface DepotSerialized {
   depots_coodrinator?: { id: number; name: string; email: string } | null;
 }
 
-// const generatedDepotCode = async (name: string) => {
-//   const prefix = name.replace(/\s+/g, '').substring(0, 3).toUpperCase();
-//   const lastDepot = await prisma.depots.findFirst({
-//     where: { code: { startsWith: prefix } },
-//     orderBy: { id: 'desc' },
-//     select: { code: true },
-//   });
-//   let newNumber = 1;
-//   if (lastDepot && lastDepot.code) {
-//     const match = lastDepot.code.match(new RegExp(`${prefix}(\\d+)`));
-//     if (match) {
-//       newNumber = parseInt(match[1], 10) + 1;
-//     }
-//   }
-
-//   return `${prefix}${newNumber.toString().padStart(3, '0')}`;
-// };
-
 const generatedDepotCode = async (name: string) => {
   const prefix = name.slice(0, 3).toUpperCase();
 
@@ -204,7 +186,6 @@ export const depotsController = {
         ...(parent_id && { parent_id: Number(parent_id) }),
       };
 
-      // Calculate depot statistics
       const totalDepots = await prisma.depots.count();
       const activeDepots = await prisma.depots.count({
         where: { is_active: 'Y' },
@@ -213,7 +194,6 @@ export const depotsController = {
         where: { is_active: 'N' },
       });
 
-      // Calculate new depots this month
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
