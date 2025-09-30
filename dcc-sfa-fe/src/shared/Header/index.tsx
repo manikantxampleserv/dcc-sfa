@@ -116,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 <Avatar
                   alt={getUserDisplayName()}
                   src={currentUser?.profile_image || undefined}
-                  className="!w-10 !rounded !h-10 !bg-primary-500 !text-sm !font-medium !border-2 !border-transparent hover:!border-primary-400 !transition-colors"
+                  className="!w-10 !rounded !h-10 !bg-primary-500 !text-sm !font-medium !transition-colors"
                 >
                   {getUserInitials()}
                 </Avatar>
@@ -138,7 +138,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                       <Avatar
                         alt={getUserDisplayName()}
                         src={currentUser?.profile_image || undefined}
-                        className="!w-10 !rounded !h-10 !bg-primary-500 !text-base !font-medium !border-2 !border-primary-400"
+                        className="!w-10 !rounded !h-10 !bg-primary-500 !text-base !font-medium"
                       >
                         {getUserInitials()}
                       </Avatar>
@@ -168,14 +168,14 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                     )}
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={handleProfileClick}
                   className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <FaUser size={14} />
                   My Profile
                 </button>
-                <button 
+                <button
                   onClick={handleSettingsClick}
                   className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >

@@ -165,17 +165,18 @@ export const zonesController = {
         },
       });
 
-      res.success({
-        message: 'Zones retrieved successfully',
-        data: data.map(serializeZone),
+      res.success(
+        'Zones retrieved successfully',
+        data.map((zone: any) => serializeZone(zone)),
+        200,
         pagination,
-        stats: {
-          total_zones: totalZones,
+        {
+          totalZones,
           active_zones: activeZones,
           inactive_zones: inactiveZones,
           new_zones: newZonesThisMonth,
-        },
-      });
+        }
+      );
     } catch (error: any) {
       console.error('Get Zones Error:', error);
       res.status(500).json({ message: error.message });

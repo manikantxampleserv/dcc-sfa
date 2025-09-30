@@ -1,13 +1,6 @@
 import { Add, Block, CheckCircle } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import {
-  Building2,
-  MapPin,
-  User,
-  UserCheck,
-  Users,
-  XCircle,
-} from 'lucide-react';
+import { Building2, MapPin, User, UserCheck, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -15,13 +8,9 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import {
-  useDeleteZone,
-  useZones,
-  type Zone,
-} from '../../../hooks/useZones';
 import { useDepots } from '../../../hooks/useDepots';
 import { useUsers } from '../../../hooks/useUsers';
+import { useDeleteZone, useZones, type Zone } from '../../../hooks/useZones';
 import ManageZone from './ManageZone';
 
 const ZonesManagement: React.FC = () => {
@@ -151,7 +140,10 @@ const ZonesManagement: React.FC = () => {
       id: 'description',
       label: 'Description',
       render: description => (
-        <Typography variant="body2" className="!text-gray-600 !max-w-xs !truncate">
+        <Typography
+          variant="body2"
+          className="!text-gray-600 !max-w-xs !truncate"
+        >
           {description || 'No description'}
         </Typography>
       ),
@@ -163,7 +155,8 @@ const ZonesManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <User className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {users.find(u => u.id === row.supervisor_id)?.name || 'No Supervisor'}
+            {users.find(u => u.id === row.supervisor_id)?.name ||
+              'No Supervisor'}
           </span>
         </Box>
       ),
@@ -216,7 +209,8 @@ const ZonesManagement: React.FC = () => {
         <Box>
           <p className="!font-bold text-xl !text-gray-900">Zone Management</p>
           <p className="!text-gray-500 text-sm">
-            Manage zone territories, supervisor assignments, and operational areas
+            Manage zone territories, supervisor assignments, and operational
+            areas
           </p>
         </Box>
       </Box>
@@ -230,9 +224,7 @@ const ZonesManagement: React.FC = () => {
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-gray-900">
-                  {totalZones}
-                </p>
+                <p className="text-2xl font-bold text-gray-900">{totalZones}</p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
