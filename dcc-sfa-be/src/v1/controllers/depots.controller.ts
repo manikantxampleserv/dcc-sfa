@@ -186,7 +186,6 @@ export const depotsController = {
         ...(parent_id && { parent_id: Number(parent_id) }),
       };
 
-      // Calculate depot statistics
       const totalDepots = await prisma.depots.count();
       const activeDepots = await prisma.depots.count({
         where: { is_active: 'Y' },
@@ -195,7 +194,6 @@ export const depotsController = {
         where: { is_active: 'N' },
       });
 
-      // Calculate new depots this month
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);

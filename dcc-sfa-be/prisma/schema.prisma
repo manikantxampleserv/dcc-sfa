@@ -69,7 +69,7 @@ model users {
   workflow_steps_workflow_steps_assigned_user_idTousers               workflow_steps[]             @relation("workflow_steps_assigned_user_idTousers")
   workflow_steps_workflow_steps_processed_byTousers                   workflow_steps[]             @relation("workflow_steps_processed_byTousers")
   user_role                                                           roles                        @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  user_depot                                                          depots?                      @relation(fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_depot                                                          depots?                      @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users_van_inventory_user_idTousers                                  van_inventory[]              @relation("van_inventory_user_idTousers")
   depots_manager                                                      depots[]                     @relation("DeportsManager")
   depots_supervisior                                                  depots[]                     @relation("DeportsSupervisior")
@@ -140,7 +140,7 @@ model depots {
   updatedate             DateTime?         @db.DateTime
   updatedby              Int?
   log_inst               Int?
-  depot_companies        companies         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  depot_companies        companies         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   inventory_stock        inventory_stock[]
   promotions             promotions[]
   routes                 routes[]
@@ -810,7 +810,7 @@ model inventory_stock {
   updatedate          DateTime? @db.DateTime
   updatedby           Int?
   log_inst            Int?
-  depots              depots    @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK__inventory__locat__03BB8E22")
+  depots              depots    @relation(fields: [location_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   products            products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__inventory__produ__02C769E9")
 }
 
@@ -1185,7 +1185,7 @@ model promotion_customer_types {
   updatedate    DateTime?  @db.DateTime
   updatedby     Int?
   log_inst      Int?
-  promotions    promotions @relation(fields: [promotion_id], references: [id], onUpdate: NoAction, map: "FK__promotion__promo__6BAEFA67")
+  promotions    promotions @relation(fields: [promotion_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_parameters {
@@ -1384,7 +1384,7 @@ model routes {
   updatedby          Int?
   log_inst           Int?
   customers          customers[]
-  depots             depots      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, map: "FK__routes__depot_id__35BCFE0A")
+  depots             depots      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   routes_zones       zones       @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__routes__parent_i__34C8D9D1")
   visits             visits[]
 }
@@ -1841,5 +1841,5 @@ model zones {
   promotions    promotions[]
   routes_zones  routes[]
   user_zones    users[]
-  zone_depots   depots?      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  zone_depots   depots?      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
