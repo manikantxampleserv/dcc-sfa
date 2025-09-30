@@ -158,7 +158,6 @@ export class ZonesImportExportService extends ImportExportService<any> {
   ): Promise<string | null> {
     const prismaClient = tx || prisma;
 
-    // Validate depot_id if provided
     if (data.depot_id) {
       const depot = await prismaClient.depots.findUnique({
         where: { id: data.depot_id },
@@ -168,7 +167,6 @@ export class ZonesImportExportService extends ImportExportService<any> {
       }
     }
 
-    // Validate supervisor_id if provided
     if (data.supervisor_id) {
       const supervisor = await prismaClient.users.findUnique({
         where: { id: data.supervisor_id },

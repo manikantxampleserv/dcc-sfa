@@ -559,17 +559,6 @@ export const userController = {
 
       const id = Number(req.params.id);
 
-      const existingUser = await prisma.users.findFirst({
-        where: {
-          id,
-          is_active: 'Y',
-        },
-      });
-
-      if (!existingUser) {
-        res.error('User not found', 404);
-        return;
-      }
       await prisma.users.delete({ where: { id: Number(id) } });
 
       res.success('User deleted successfully', null, 200);
