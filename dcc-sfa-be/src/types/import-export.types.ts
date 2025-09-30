@@ -15,6 +15,14 @@ export interface ImportResult {
   failed: number;
   errors: string[];
   data?: any[];
+  detailedErrors?: Array<{
+    row: number;
+    errors: Array<{
+      type: string;
+      message: string;
+      action?: string;
+    }>;
+  }>;
 }
 
 export interface ExportOptions {

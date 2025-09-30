@@ -74,6 +74,7 @@ model users {
   depots_manager                                                      depots[]                     @relation("DeportsManager")
   depots_supervisior                                                  depots[]                     @relation("DeportsSupervisior")
   depots_coodrinator                                                  depots[]                     @relation("DepotsCoodrinator")
+  routes_salesperson                                                  routes[]
 }
 
 model roles {
@@ -1377,15 +1378,16 @@ model routes {
   end_location       String?     @db.NVarChar(255)
   estimated_distance Decimal?    @db.Decimal(10, 2)
   estimated_time     Int?
-  is_active          String      @default("Y", map: "DF__routes__is_activ__32E0915F") @db.Char(1)
-  createdate         DateTime?   @default(now(), map: "DF__routes__createda__33D4B598") @db.DateTime
+  is_active          String      @default("Y") @db.Char(1)
+  createdate         DateTime?   @default(now()) @db.DateTime
   createdby          Int
   updatedate         DateTime?   @db.DateTime
   updatedby          Int?
   log_inst           Int?
   customers          customers[]
   depots             depots      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  routes_zones       zones       @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__routes__parent_i__34C8D9D1")
+  routes_zones       zones       @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  routes_salesperson users?      @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   visits             visits[]
 }
 
@@ -1761,7 +1763,7 @@ model visits {
   visit_attachments   visit_attachments[]
   visit_tasks         visit_tasks[]
   customers           customers             @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__visits__customer__46486B8E")
-  routes              routes?               @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__visits__route_id__4830B400")
+  routes              routes?               @relation(fields: [route_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users               users                 @relation(fields: [sales_person_id], references: [id], onUpdate: NoAction, map: "FK__visits__sales_pe__473C8FC7")
 }
 
