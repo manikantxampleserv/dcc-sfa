@@ -24,6 +24,23 @@ interface ZoneSerialized {
   zone_depots?: { id: number; name: string; code: string } | null;
 }
 
+const generatedDepotCode = async (name: string) => {
+  const prefix = name.replace(/\s+/g, '').substring(0, 3).toUpperCase();
+  const lastZone = await prisma.zones.findFirst({
+    where: { code: { startsWith: prefix } },
+    orderBy: { id: 'desc' },
+    select: { code: true },
+  });
+  let newNumber = 1;
+  if (lastZone && lastZone.code) {
+    const match = lastZone.code.match(new RegExp(`${prefix}(\\d+)`));
+    if (match) {
+      newNumber = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  return `${prefix}${newNumber.toString().padStart(3, '0')}`;
+};
 const serializeZone = (zone: any): ZoneSerialized => ({
   id: zone.id,
   parent_id: zone.parent_id,
@@ -64,9 +81,16 @@ export const zonesController = {
   async createZone(req: Request, res: Response) {
     try {
       const data = req.body;
+      if (!data.name) {
+        return res.status(400).json({ message: 'Zone name is required' });
+      }
+
+      const newCode = await generatedDepotCode(data.name);
       const zone = await prisma.zones.create({
         data: {
           ...data,
+          code: newCode,
+
           createdby: data.createdby || 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
