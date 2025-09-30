@@ -181,7 +181,7 @@ export const userController = {
         page = '1',
         limit = '10',
         search = '',
-        isActive = 'Y',
+        isActive,
         role_id,
         depot_id,
         zone_id,
@@ -237,12 +237,38 @@ export const userController = {
           },
         },
       });
+      const totalUsers = await prisma.users.count();
+      const activeUsers = await prisma.users.count({
+        where: { is_active: 'Y' },
+      });
+      const inactiveUsers = await prisma.users.count({
+        where: { is_active: 'N' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const newUsersThisMonth = await prisma.users.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
+      });
 
       res.success(
         'Users retrieved successfully',
         data.map((user: any) => serializeUser(user, true, true)),
         200,
-        pagination
+        pagination,
+        {
+          total_users: totalUsers,
+          active_users: activeUsers,
+          inactive_users: inactiveUsers,
+          new_users: newUsersThisMonth,
+        }
       );
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -545,12 +571,12 @@ export const userController = {
         return;
       }
 
-      const dependentRecords = await prisma.users.count({
-        where: {
-          reporting_to: id,
-          is_active: 'Y',
-        },
-      });
+      // const dependentRecords = await prisma.users.count({
+      //   where: {
+      //     reporting_to: id,
+      //     is_active: 'Y',
+      //   },
+      // });
 
       // if (dependentRecords > 0) {
       //   res.error(
@@ -560,14 +586,14 @@ export const userController = {
       //   return;
       // }
 
-      await prisma.users.update({
-        where: { id },
-        data: {
-          is_active: 'N',
-          updatedby: req.user?.id ?? 0,
-          updatedate: new Date(),
-        },
-      });
+      // await prisma.users.update({
+      //   where: { id },
+      //   data: {
+      //     is_active: 'N',
+      //     updatedby: req.user?.id ?? 0,
+      //     updatedate: new Date(),
+      //   },
+      // });
 
       res.success('User deleted successfully', null, 200);
     } catch (error: any) {

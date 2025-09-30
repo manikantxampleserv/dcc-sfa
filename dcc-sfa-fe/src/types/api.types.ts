@@ -25,14 +25,22 @@ export interface ApiResponse<T = any> {
     total_count?: number;
     has_next?: boolean;
     has_previous?: boolean;
-    total_companies?: number;
-    active_companies?: number;
-    inactive_companies?: number;
-    new_companies?: number;
     total?: number;
     page?: number;
     limit?: number;
     totalPages?: number;
+  };
+  stats?: {
+    // Company statistics
+    total_companies?: number;
+    active_companies?: number;
+    inactive_companies?: number;
+    new_companies?: number;
+    // User statistics
+    total_users?: number;
+    active_users?: number;
+    inactive_users?: number;
+    new_users?: number;
   };
 }
 

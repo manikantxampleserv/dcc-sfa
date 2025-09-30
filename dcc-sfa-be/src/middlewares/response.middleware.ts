@@ -14,6 +14,7 @@ export interface ApiResponse<T = any> {
     requestDuration?: number;
     timestamp?: string;
   };
+  stats?: any;
 }
 
 export const responseHandler = (req: any, res: any, next: any) => {
@@ -23,7 +24,8 @@ export const responseHandler = (req: any, res: any, next: any) => {
     message: string,
     data: any = null,
     statusCode: number = 200,
-    pagination?: any
+    pagination?: any,
+    stats?: any
   ): Response {
     const response: ApiResponse = {
       success: true,
@@ -32,6 +34,7 @@ export const responseHandler = (req: any, res: any, next: any) => {
         requestDuration: Date.now() - startTime,
         timestamp: new Date().toISOString(),
       },
+      stats,
     };
 
     if (data !== null) response.data = data;

@@ -149,8 +149,8 @@ export const companyController = {
         'Companies retrieved successfully',
         data.map((c: any) => serializeCompany(c, true, true)),
         200,
+        pagination,
         {
-          ...pagination,
           total_companies: totalCompanies,
           active_companies: activeCompanies,
           inactive_companies: inactiveCompanies,

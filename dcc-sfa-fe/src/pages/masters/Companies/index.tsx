@@ -233,7 +233,7 @@ const CompaniesManagement: React.FC = () => {
                 <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-gray-900">
-                  {companiesData?.meta?.total_companies || 0}
+                  {companiesData?.stats?.total_companies || 0}
                 </p>
               )}
             </div>
@@ -250,7 +250,7 @@ const CompaniesManagement: React.FC = () => {
                 <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-green-600">
-                  {companiesData?.meta?.active_companies || 0}
+                  {companiesData?.stats?.active_companies || 0}
                 </p>
               )}
             </div>
@@ -267,7 +267,7 @@ const CompaniesManagement: React.FC = () => {
                 <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-red-600">
-                  {companiesData?.meta?.inactive_companies || 0}
+                  {companiesData?.stats?.inactive_companies || 0}
                 </p>
               )}
             </div>
@@ -284,7 +284,7 @@ const CompaniesManagement: React.FC = () => {
                 <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {companiesData?.meta?.new_companies || 0}
+                  {companiesData?.stats?.new_companies || 0}
                 </p>
               )}
             </div>
