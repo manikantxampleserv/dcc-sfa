@@ -46,7 +46,6 @@ export const companyController = {
     try {
       const {
         name,
-        code,
         address,
         city,
         state,
@@ -58,6 +57,26 @@ export const companyController = {
         created_by,
       } = req.body;
 
+      // 1. Generate code prefix (first three letters of name)
+      const prefix = name.slice(0, 3).toUpperCase();
+
+      // 2. Find the latest sequence number used
+      const lastCompany = await prisma.companies.findFirst({
+        orderBy: { id: 'desc' }, // latest entry
+        select: { code: true },
+      });
+
+      let newSequence = 1;
+      if (lastCompany && lastCompany.code) {
+        const match = lastCompany.code.match(/(\d+)$/); // get trailing number
+        if (match) {
+          newSequence = parseInt(match[1], 10) + 1;
+        }
+      }
+
+      const code = `${prefix}${newSequence.toString().padStart(3, '0')}`;
+
+      // 3. Handle logo upload
       let logoUrl: string | null = null;
       if (req.file) {
         const fileName = `logos/${Date.now()}-${req.file.originalname}`;
@@ -68,6 +87,7 @@ export const companyController = {
         );
       }
 
+      // 4. Create company
       const company = await prisma.companies.create({
         data: {
           name,
@@ -144,7 +164,6 @@ export const companyController = {
           },
         },
       });
-
       res.success(
         'Companies retrieved successfully',
         data.map((c: any) => serializeCompany(c, true, true)),
