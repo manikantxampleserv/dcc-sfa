@@ -44,24 +44,6 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({
           Please wait while we verify your authentication...
         </Typography>
       </Box>
-
-      {/* Optional animated dots */}
-      <Box className="!mt-4">
-        <style>{`
-          @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
-          }
-          .loading-dots::after {
-            content: '.';
-            animation: dots 1.5s infinite;
-          }
-        `}</style>
-        <Typography variant="caption" className="loading-dots !text-gray-400">
-          Authenticating
-        </Typography>
-      </Box>
     </Box>
   );
 };

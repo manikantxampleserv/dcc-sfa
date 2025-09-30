@@ -118,7 +118,7 @@ export const companyController = {
 
   async getCompanies(req: any, res: any) {
     try {
-      const { page, limit, search } = req.query;
+      const { page, limit, search = '' } = req.query;
 
       const page_num = parseInt(page as string, 10);
       const limit_num = parseInt(limit as string, 10);
