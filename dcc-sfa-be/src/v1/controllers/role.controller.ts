@@ -362,12 +362,7 @@ export const rolesController = {
 
   async getAllRoles(req: any, res: any): Promise<void> {
     try {
-      const {
-        page = '1',
-        limit = '10',
-        search = '',
-        isActive = 'Y',
-      } = req.query;
+      const { page = '1', limit = '10', search = '', isActive } = req.query;
       const page_num = parseInt(page as string, 10);
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
@@ -411,11 +406,42 @@ export const rolesController = {
         },
       });
 
+      // Calculate role statistics
+      const totalRoles = await prisma.roles.count();
+      const activeRoles = await prisma.roles.count({
+        where: { is_active: 'Y' },
+      });
+      const inactiveRoles = await prisma.roles.count({
+        where: { is_active: 'N' },
+      });
+
+      // Calculate new roles this month
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const newRolesThisMonth = await prisma.roles.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
+      });
+
+      const stats = {
+        total_roles: totalRoles,
+        active_roles: activeRoles,
+        inactive_roles: inactiveRoles,
+        new_roles: newRolesThisMonth,
+      };
+
       res.success(
         'Roles retrieved successfully',
         data.map((role: any) => serializeRole(role, true, true)),
         200,
-        pagination
+        pagination,
+        stats
       );
     } catch (error: any) {
       console.error('Error fetching roles:', error);

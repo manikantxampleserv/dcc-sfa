@@ -40,7 +40,7 @@ export const permissionsController = {
         page = '1',
         limit = '50',
         search = '',
-        isActive = 'Y',
+        isActive,
         module,
       } = req.query;
 
@@ -96,7 +96,7 @@ export const permissionsController = {
 
   async getPermissionsByModule(req: any, res: any): Promise<void> {
     try {
-      const { isActive = 'Y' } = req.query;
+      const { isActive } = req.query;
 
       const permissions = await prisma.permissions.findMany({
         where: {

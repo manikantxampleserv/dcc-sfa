@@ -1,5 +1,6 @@
 import { Block, CheckCircle, Group } from '@mui/icons-material';
 import { Alert, Box, Chip, Typography } from '@mui/material';
+import { Shield, ShieldCheck, ShieldX, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import SearchInput from 'shared/SearchInput';
@@ -24,6 +25,7 @@ const RolePermissions: React.FC = () => {
   const roles = rolesResponse?.data || [];
   const totalCount = rolesResponse?.meta?.total || 0;
   const currentPage = (rolesResponse?.meta?.page || 1) - 1;
+  const stats = rolesResponse?.stats;
 
   const deleteRoleMutation = useDeleteRole();
 
@@ -55,13 +57,13 @@ const RolePermissions: React.FC = () => {
       ),
     },
     {
-      id: '_count',
+      id: 'user_role',
       label: 'Users Count',
       render: (_value, row) => (
         <Box className="!flex !gap-1 !items-center">
           <Group className="!text-gray-500 !text-sm" />
           <Typography variant="body2" className="!text-gray-700">
-            {row._count?.user_role || 0}
+            {row.user_role?.length || 0}
           </Typography>
         </Box>
       ),
@@ -143,6 +145,82 @@ const RolePermissions: React.FC = () => {
           </p>
         </Box>
       </Box>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Roles</p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats?.total_roles || 0}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <Shield className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Active Roles</p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-green-600">
+                  {stats?.active_roles || 0}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                Inactive Roles
+              </p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-red-600">
+                  {stats?.inactive_roles || 0}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <ShieldX className="w-6 h-6 text-red-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                New This Month
+              </p>
+              {isLoading ? (
+                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-purple-600">
+                  {stats?.new_roles || 0}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+      </div>
 
       {error && (
         <Alert severity="error" className="!mb-4">

@@ -237,7 +237,9 @@ const CompaniesManagement: React.FC = () => {
                 </p>
               )}
             </div>
-            <Building2 className="w-8 h-8 text-blue-600" />
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-blue-600" />
+            </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -254,7 +256,9 @@ const CompaniesManagement: React.FC = () => {
                 </p>
               )}
             </div>
-            <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -271,7 +275,9 @@ const CompaniesManagement: React.FC = () => {
                 </p>
               )}
             </div>
-            <XCircle className="w-8 h-8 text-red-600" />
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <XCircle className="w-6 h-6 text-red-600" />
+            </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -288,7 +294,9 @@ const CompaniesManagement: React.FC = () => {
                 </p>
               )}
             </div>
-            <Globe className="w-8 h-8 text-purple-600" />
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <Globe className="w-6 h-6 text-purple-600" />
+            </div>
           </div>
         </div>
       </div>

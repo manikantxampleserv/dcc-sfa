@@ -215,7 +215,9 @@ const Users: React.FC = () => {
                 </p>
               )}
             </div>
-            <UsersIcon className="w-8 h-8 text-blue-600" />
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <UsersIcon className="w-6 h-6 text-blue-600" />
+            </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -230,7 +232,9 @@ const Users: React.FC = () => {
                 </p>
               )}
             </div>
-            <UserCheck className="w-8 h-8 text-green-600" />
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <UserCheck className="w-6 h-6 text-green-600" />
+            </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -247,7 +251,9 @@ const Users: React.FC = () => {
                 </p>
               )}
             </div>
-            <UserX className="w-8 h-8 text-red-600" />
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <UserX className="w-6 h-6 text-red-600" />
+            </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -264,7 +270,9 @@ const Users: React.FC = () => {
                 </p>
               )}
             </div>
-            <UserPlus className="w-8 h-8 text-purple-600" />
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <UserPlus className="w-6 h-6 text-purple-600" />
+            </div>
           </div>
         </div>
       </div>

@@ -149,13 +149,40 @@ export const rolePermissionsController = {
         },
       });
 
+      const totalRolePermissions = await prisma.role_permissions.count();
+      const activeRolePermissions = await prisma.role_permissions.count({
+        where: { is_active: 'Y' },
+      });
+      const inactiveRolePermissions = await prisma.role_permissions.count({
+        where: { is_active: 'N' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const newRolePermissionsThisMonth = await prisma.role_permissions.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
+      });
+
       res.success(
         'Role permissions retrieved successfully',
         data.map((rolePermission: any) =>
           serializeRolePermissions(rolePermission, true, true)
         ),
         200,
-        pagination
+        pagination,
+        {
+          total_role_permissions: totalRolePermissions,
+          active_role_permissions: activeRolePermissions,
+          inactive_role_permissions: inactiveRolePermissions,
+          new_role_permissions: newRolePermissionsThisMonth,
+        }
       );
     } catch (error: any) {
       console.error('Error fetching role permissions:', error);
