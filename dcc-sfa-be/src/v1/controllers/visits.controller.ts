@@ -174,7 +174,7 @@ export const visitsController = {
         200,
         pagination,
         {
-          totalVisits,
+          total_visits: totalVisits,
           active_visits: activeVisits,
           inactive_visits: inactiveZones,
           new_visits: newVisitsThisMonth,
