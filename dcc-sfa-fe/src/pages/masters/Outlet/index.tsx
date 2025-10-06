@@ -1,394 +1,446 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Download, Upload, Edit, Trash2, Eye, Store, MapPin, Phone, Mail, DollarSign, MoreVertical, Users, Route, Calendar, CreditCard, TrendingUp } from 'lucide-react';
+import { Add, Block, CheckCircle } from '@mui/icons-material';
+import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import {
+  Store,
+  MapPin,
+  User,
+  UserCheck,
+  TrendingUp,
+  Users,
+  CreditCard,
+  DollarSign,
+  Phone,
+  Mail,
+} from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { DeleteButton, EditButton } from 'shared/ActionButton';
+import Button from 'shared/Button';
+import SearchInput from 'shared/SearchInput';
+import Select from 'shared/Select';
+import Table, { type TableColumn } from 'shared/Table';
+import { formatDate } from 'utils/dateUtils';
+import { useUsers } from '../../../hooks/useUsers';
+import { useRoutes } from '../../../hooks/useRoutes';
+import { useZones } from '../../../hooks/useZones';
+import {
+  useDeleteCustomer,
+  useCustomers,
+  type Customer,
+} from '../../../hooks/useCustomers';
+import ManageOutlet from './ManageOutlet';
 
-interface Outlet {
-  id: number;
-  name: string;
-  code: string;
-  type: 'distributor' | 'retailer' | 'wholesaler';
-  contact_person: string;
-  phone_number: string;
-  email: string;
-  address: string;
-  city: string;
-  state: string;
-  zipcode: string;
-  latitude: number | null;
-  longitude: number | null;
-  credit_limit: number | null;
-  outstanding_amount: number;
-  route_id: number | null;
-  salesperson_id: number | null;
-  last_visit_date: string | null;
-  is_active: string;
-  createdate: string;
-  createdby: number;
-  updatedate?: string;
-  updatedby?: number;
-  log_inst?: number;
-  // Related data
-  route_name?: string;
-  salesperson_name?: string;
-  zone_name?: string;
-  depot_name?: string;
-}
-
-interface Route {
-  id: number;
-  name: string;
-  code: string;
-  zone_name: string;
-  depot_name: string;
-}
-
-interface Employee {
-  id: number;
-  name: string;
-  role: string;
-}
-
-export default function OutletsManagement() {
-  const [outlets, setOutlets] = useState<Outlet[]>([]);
-  const [routes, setRoutes] = useState<Route[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+const OutletsManagement: React.FC = () => {
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [routeFilter, setRouteFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
-  const [selectedOutlet, setSelectedOutlet] = useState<Outlet | null>(null);
-  const [showDropdown, setShowDropdown] = useState<number | null>(null);
+  const [selectedOutlet, setSelectedOutlet] = useState<Customer | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
 
-  const itemsPerPage = 10;
-
-  // Mock data - replace with actual API calls
-  useEffect(() => {
-    // Mock outlets data
-    const mockOutlets: Outlet[] = [
-      {
-        id: 1,
-        name: 'Metro Supermarket',
-        code: 'OUT001',
-        type: 'retailer',
-        contact_person: 'John Smith',
-        phone_number: '+1-555-0101',
-        email: 'john@metrosupermarket.com',
-        address: '123 Main Street',
-        city: 'New York',
-        state: 'NY',
-        zipcode: '10001',
-        latitude: 40.7128,
-        longitude: -74.0060,
-        credit_limit: 50000.00,
-        outstanding_amount: 12500.00,
-        route_id: 1,
-        salesperson_id: 201,
-        last_visit_date: '2024-01-20T14:30:00',
-        is_active: 'Y',
-        createdate: '2024-01-15T10:30:00',
-        createdby: 1,
-        route_name: 'Downtown Circuit',
-        salesperson_name: 'Alex Johnson',
-        zone_name: 'North Zone',
-        depot_name: 'Main Depot - NYC'
-      },
-      {
-        id: 2,
-        name: 'City Wholesale Hub',
-        code: 'OUT002',
-        type: 'wholesaler',
-        contact_person: 'Sarah Wilson',
-        phone_number: '+1-555-0102',
-        email: 'sarah@citywholesale.com',
-        address: '456 Business Ave',
-        city: 'New York',
-        state: 'NY',
-        zipcode: '10002',
-        latitude: 40.7589,
-        longitude: -73.9851,
-        credit_limit: 100000.00,
-        outstanding_amount: 25000.00,
-        route_id: 1,
-        salesperson_id: 201,
-        last_visit_date: '2024-01-18T11:15:00',
-        is_active: 'Y',
-        createdate: '2024-01-16T14:20:00',
-        createdby: 1,
-        route_name: 'Downtown Circuit',
-        salesperson_name: 'Alex Johnson',
-        zone_name: 'North Zone',
-        depot_name: 'Main Depot - NYC'
-      },
-      {
-        id: 3,
-        name: 'Regional Distribution Center',
-        code: 'OUT003',
-        type: 'distributor',
-        contact_person: 'Mike Davis',
-        phone_number: '+1-555-0103',
-        email: 'mike@regionaldist.com',
-        address: '789 Industrial Blvd',
-        city: 'Los Angeles',
-        state: 'CA',
-        zipcode: '90001',
-        latitude: 34.0522,
-        longitude: -118.2437,
-        credit_limit: 200000.00,
-        outstanding_amount: 45000.00,
-        route_id: 4,
-        salesperson_id: 203,
-        last_visit_date: '2024-01-19T16:45:00',
-        is_active: 'Y',
-        createdate: '2024-01-17T09:15:00',
-        createdby: 1,
-        route_name: 'Coastal Highway',
-        salesperson_name: 'David Wilson',
-        zone_name: 'East Zone',
-        depot_name: 'West Coast Depot - LA'
-      },
-      {
-        id: 4,
-        name: 'Corner Store Plus',
-        code: 'OUT004',
-        type: 'retailer',
-        contact_person: 'Lisa Chen',
-        phone_number: '+1-555-0104',
-        email: 'lisa@cornerstoreplus.com',
-        address: '321 Neighborhood St',
-        city: 'Chicago',
-        state: 'IL',
-        zipcode: '60601',
-        latitude: 41.8781,
-        longitude: -87.6298,
-        credit_limit: 25000.00,
-        outstanding_amount: 5000.00,
-        route_id: null,
-        salesperson_id: null,
-        last_visit_date: null,
-        is_active: 'N',
-        createdate: '2024-01-18T11:45:00',
-        createdby: 1,
-        route_name: null,
-        salesperson_name: null,
-        zone_name: null,
-        depot_name: null
-      }
-    ];
-
-    // Mock routes data
-    const mockRoutes: Route[] = [
-      { id: 1, name: 'Downtown Circuit', code: 'RT001', zone_name: 'North Zone', depot_name: 'Main Depot - NYC' },
-      { id: 2, name: 'Suburban Loop', code: 'RT002', zone_name: 'North Zone', depot_name: 'Main Depot - NYC' },
-      { id: 3, name: 'Industrial Route', code: 'RT003', zone_name: 'South Zone', depot_name: 'Main Depot - NYC' },
-      { id: 4, name: 'Coastal Highway', code: 'RT004', zone_name: 'East Zone', depot_name: 'West Coast Depot - LA' }
-    ];
-
-    // Mock employees data
-    const mockEmployees: Employee[] = [
-      { id: 201, name: 'Alex Johnson', role: 'Sales Representative' },
-      { id: 202, name: 'Maria Garcia', role: 'Sales Representative' },
-      { id: 203, name: 'David Wilson', role: 'Sales Representative' },
-      { id: 204, name: 'Lisa Chen', role: 'Sales Representative' },
-      { id: 205, name: 'Robert Brown', role: 'Sales Representative' }
-    ];
-
-    setOutlets(mockOutlets);
-    setRoutes(mockRoutes);
-    setEmployees(mockEmployees);
-  }, []);
-
-  // Filter outlets based on search and filters
-  const filteredOutlets = outlets.filter(outlet => {
-    const matchesSearch = outlet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         outlet.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         outlet.contact_person?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         outlet.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         outlet.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         outlet.route_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || outlet.is_active === (statusFilter === 'active' ? 'Y' : 'N');
-    const matchesType = typeFilter === 'all' || outlet.type === typeFilter;
-    const matchesRoute = routeFilter === 'all' || outlet.route_id?.toString() === routeFilter;
-    
-    return matchesSearch && matchesStatus && matchesType && matchesRoute;
+  const {
+    data: customersResponse,
+    isLoading,
+    error,
+  } = useCustomers({
+    search,
+    page,
+    limit,
+    isActive:
+      statusFilter === 'all'
+        ? undefined
+        : statusFilter === 'active'
+          ? 'Y'
+          : 'N',
+    type: typeFilter === 'all' ? undefined : typeFilter,
   });
 
-  // Pagination
-  const totalPages = Math.ceil(filteredOutlets.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedOutlets = filteredOutlets.slice(startIndex, startIndex + itemsPerPage);
+  const { data: usersResponse } = useUsers({
+    page: 1,
+    limit: 1000, // Get all users for salesperson filtering
+  });
 
-  // Statistics
-  const stats = {
-    total: outlets.length,
-    active: outlets.filter(o => o.is_active === 'Y').length,
-    inactive: outlets.filter(o => o.is_active === 'N').length,
-    distributors: outlets.filter(o => o.type === 'distributor').length,
-    retailers: outlets.filter(o => o.type === 'retailer').length,
-    wholesalers: outlets.filter(o => o.type === 'wholesaler').length,
-    totalCredit: outlets.reduce((sum, o) => sum + (o.credit_limit || 0), 0),
-    totalOutstanding: outlets.reduce((sum, o) => sum + (o.outstanding_amount || 0), 0)
-  };
+  const { data: routesResponse } = useRoutes({
+    page: 1,
+    limit: 100, // Get all routes
+  });
 
-  const handleCreate = () => {
-    setModalMode('create');
+  const { data: zonesResponse } = useZones({
+    page: 1,
+    limit: 100, // Get all zones
+  });
+
+  const customers = customersResponse?.data || [];
+  const users = usersResponse?.data || [];
+  const routes = routesResponse?.data || [];
+  const zones = zonesResponse?.data || [];
+  const totalCount = customersResponse?.meta?.total || 0;
+  const currentPage = (customersResponse?.meta?.page || 1) - 1;
+
+  const deleteCustomerMutation = useDeleteCustomer();
+
+  // Statistics - Use API stats when available, fallback to local calculation
+  const totalCustomers =
+    customersResponse?.stats?.totalCustomers ?? customers.length;
+  const activeCustomers =
+    customersResponse?.stats?.active_customers ??
+    customers.filter(c => c.is_active === 'Y').length;
+  // const inactiveCustomers =
+  //   customersResponse?.stats?.inactive_customers ??
+  //   customers.filter(c => c.is_active === 'N').length;
+
+  // Type-based statistics
+  const distributors = customers.filter(c => c.type === 'distributor').length;
+  const retailers = customers.filter(c => c.type === 'retailer').length;
+  const wholesalers = customers.filter(c => c.type === 'wholesaler').length;
+
+  // Financial statistics
+  const totalCreditLimit = customers.reduce(
+    (sum, c) => sum + parseFloat(c.credit_limit || '0'),
+    0
+  );
+  const totalOutstanding = customers.reduce(
+    (sum, c) => sum + parseFloat(c.outstanding_amount || '0'),
+    0
+  );
+
+  const handleCreateOutlet = useCallback(() => {
     setSelectedOutlet(null);
-    setShowModal(true);
-  };
+    setDrawerOpen(true);
+  }, []);
 
-  const handleEdit = (outlet: Outlet) => {
-    setModalMode('edit');
+  const handleEditOutlet = useCallback((outlet: Customer) => {
     setSelectedOutlet(outlet);
-    setShowModal(true);
-    setShowDropdown(null);
+    setDrawerOpen(true);
+  }, []);
+
+  const handleDeleteOutlet = useCallback(
+    async (id: number) => {
+      try {
+        await deleteCustomerMutation.mutateAsync(id);
+      } catch (error) {
+        console.error('Error deleting outlet:', error);
+      }
+    },
+    [deleteCustomerMutation]
+  );
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    setPage(1);
+  }, []);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage + 1);
   };
 
-  const handleView = (outlet: Outlet) => {
-    setModalMode('view');
-    setSelectedOutlet(outlet);
-    setShowModal(true);
-    setShowDropdown(null);
-  };
-
-  const handleDelete = (outlet: Outlet) => {
-    if (window.confirm(`Are you sure you want to delete outlet "${outlet.name}"?`)) {
-      setOutlets(outlets.filter(o => o.id !== outlet.id));
-    }
-    setShowDropdown(null);
-  };
-
-  const handleToggleStatus = (outlet: Outlet) => {
-    const updatedOutlets = outlets.map(o => 
-      o.id === outlet.id 
-        ? { ...o, is_active: o.is_active === 'Y' ? 'N' : 'Y', updatedate: new Date().toISOString(), updatedby: 1 }
-        : o
-    );
-    setOutlets(updatedOutlets);
-    setShowDropdown(null);
-  };
-
-  const handleSubmit = (formData: any) => {
-    if (modalMode === 'create') {
-      const selectedRoute = routes.find(r => r.id === formData.route_id);
-      const selectedSalesperson = formData.salesperson_id ? employees.find(e => e.id === formData.salesperson_id) : null;
-      
-      const newOutlet: Outlet = {
-        id: Math.max(...outlets.map(o => o.id)) + 1,
-        ...formData,
-        outstanding_amount: formData.outstanding_amount || 0,
-        createdate: new Date().toISOString(),
-        createdby: 1,
-        route_name: selectedRoute?.name || null,
-        salesperson_name: selectedSalesperson?.name || null,
-        zone_name: selectedRoute?.zone_name || null,
-        depot_name: selectedRoute?.depot_name || null
-      };
-      setOutlets([...outlets, newOutlet]);
-    } else if (modalMode === 'edit' && selectedOutlet) {
-      const selectedRoute = routes.find(r => r.id === formData.route_id);
-      const selectedSalesperson = formData.salesperson_id ? employees.find(e => e.id === formData.salesperson_id) : null;
-      
-      const updatedOutlets = outlets.map(o => 
-        o.id === selectedOutlet.id 
-          ? { 
-              ...o, 
-              ...formData, 
-              outstanding_amount: formData.outstanding_amount || 0,
-              updatedate: new Date().toISOString(), 
-              updatedby: 1,
-              route_name: selectedRoute?.name || null,
-              salesperson_name: selectedSalesperson?.name || null,
-              zone_name: selectedRoute?.zone_name || null,
-              depot_name: selectedRoute?.depot_name || null
-            }
-          : o
-      );
-      setOutlets(updatedOutlets);
-    }
-    setShowModal(false);
-  };
-
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null) return 'N/A';
+  const formatCurrency = (amount: string | null | undefined) => {
+    if (!amount) return 'N/A';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+      currency: 'USD',
+    }).format(parseFloat(amount));
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'distributor': return 'bg-purple-100 text-purple-800';
-      case 'retailer': return 'bg-blue-100 text-blue-800';
-      case 'wholesaler': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'distributor':
+        return 'bg-purple-100 text-purple-800';
+      case 'retailer':
+        return 'bg-blue-100 text-blue-800';
+      case 'wholesaler':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'distributor': return <TrendingUp className="w-4 h-4" />;
-      case 'retailer': return <Store className="w-4 h-4" />;
-      case 'wholesaler': return <Users className="w-4 h-4" />;
-      default: return <Store className="w-4 h-4" />;
+      case 'distributor':
+        return <TrendingUp className="w-4 h-4" />;
+      case 'retailer':
+        return <Store className="w-4 h-4" />;
+      case 'wholesaler':
+        return <Users className="w-4 h-4" />;
+      default:
+        return <Store className="w-4 h-4" />;
     }
   };
 
+  // Define table columns following Routes pattern
+  const outletColumns: TableColumn<Customer>[] = [
+    {
+      id: 'name',
+      label: 'Outlet Info',
+      render: (_value, row) => (
+        <Box className="!flex !gap-2 !items-center">
+          <Avatar
+            alt={row.name}
+            className="!rounded !bg-primary-100 !text-primary-600"
+          >
+            <Store className="w-5 h-5" />
+          </Avatar>
+          <Box>
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
+            >
+              {row.name}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.code}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'type',
+      label: 'Type & Contact',
+      render: (_value, row) => (
+        <Box>
+          <Box className="flex items-center mb-2">
+            <span
+              className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(row.type || '')}`}
+            >
+              {getTypeIcon(row.type || '')}
+              <span className="ml-1 capitalize">{row.type || 'N/A'}</span>
+            </span>
+          </Box>
+          <Typography variant="body2" className="!font-medium">
+            {row.contact_person || 'No Contact'}
+          </Typography>
+          {row.phone_number && (
+            <Box className="flex items-center text-sm text-gray-500 mt-1">
+              <Phone className="w-3 h-3 mr-1" />
+              {row.phone_number}
+            </Box>
+          )}
+          {row.email && (
+            <Box className="flex items-center text-sm text-gray-500 mt-1">
+              <Mail className="w-3 h-3 mr-1" />
+              {row.email}
+            </Box>
+          )}
+        </Box>
+      ),
+    },
+    {
+      id: 'location',
+      label: 'Location',
+      render: (_value, row) => (
+        <Box>
+          <Box className="flex items-center text-gray-900">
+            <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+            {row.city && row.state ? `${row.city}, ${row.state}` : 'N/A'}
+          </Box>
+          {row.zipcode && (
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !block !mt-1"
+            >
+              {row.zipcode}
+            </Typography>
+          )}
+          {row.latitude && row.longitude && (
+            <Typography
+              variant="caption"
+              className="!text-gray-400 !block !mt-1"
+            >
+              {parseFloat(row.latitude).toFixed(4)},{' '}
+              {parseFloat(row.longitude).toFixed(4)}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      id: 'route_sales',
+      label: 'Route & Sales',
+      render: (_value, row) => (
+        <Box>
+          {row.customer_routes ? (
+            <Box className="flex items-center text-sm text-gray-900 mb-1">
+              <Store className="w-4 h-4 text-gray-400 mr-2" />
+              {row.customer_routes.name}
+            </Box>
+          ) : (
+            <Typography variant="caption" className="!text-gray-500">
+              No Route
+            </Typography>
+          )}
+          {row.customer_users ? (
+            <Box className="flex items-center text-sm text-gray-500">
+              <User className="w-4 h-4 text-gray-400 mr-2" />
+              {row.customer_users.name}
+            </Box>
+          ) : (
+            <Typography variant="caption" className="!text-gray-500">
+              No Salesperson
+            </Typography>
+          )}
+          {row.last_visit_date && (
+            <Typography
+              variant="caption"
+              className="!text-gray-400 !block !mt-1"
+            >
+              Last visit: {new Date(row.last_visit_date).toLocaleDateString()}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      id: 'financial',
+      label: 'Financial',
+      render: (_value, row) => (
+        <Box>
+          <Box className="flex items-center text-gray-900 mb-1">
+            <CreditCard className="w-4 h-4 text-gray-400 mr-2" />
+            <Typography variant="caption">
+              {formatCurrency(row.credit_limit ?? null)}
+            </Typography>
+          </Box>
+          <Box className="flex items-center text-red-600">
+            <DollarSign className="w-4 h-4 text-gray-400 mr-2" />
+            <Typography variant="caption">
+              {formatCurrency(row.outstanding_amount)}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'is_active',
+      label: 'Status',
+      render: is_active => (
+        <Chip
+          icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
+          label={is_active === 'Y' ? 'Active' : 'Inactive'}
+          size="small"
+          className="w-26"
+          color={is_active === 'Y' ? 'success' : 'error'}
+        />
+      ),
+    },
+    {
+      id: 'createdate',
+      label: 'Created Date',
+      render: (_value, row) =>
+        formatDate(row.createdate) || (
+          <span className="italic text-gray-400">No Date</span>
+        ),
+    },
+    {
+      id: 'action',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, row) => (
+        <div className="!flex !gap-2 !items-center">
+          <EditButton
+            onClick={() => handleEditOutlet(row)}
+            tooltip={`Edit ${row.name}`}
+          />
+          <DeleteButton
+            onClick={() => handleDeleteOutlet(row.id)}
+            tooltip={`Delete ${row.name}`}
+            itemName={row.name}
+            confirmDelete={true}
+          />
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Outlets Management</h1>
-        <p className="text-gray-600">Manage customer outlets, distributors, retailers, and wholesalers</p>
-      </div>
+    <>
+      <Box className="!mb-3 !flex !justify-between !items-center">
+        <Box>
+          <p className="!font-bold text-xl !text-gray-900">
+            Outlets Management
+          </p>
+          <p className="!text-gray-500 text-sm">
+            Manage customer outlets, distributors, retailers, and wholesalers
+          </p>
+        </Box>
+      </Box>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Outlets</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">
+                  {totalCustomers}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <Store className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Outlets</p>
-              <p className="text-3xl font-bold text-green-600">{stats.active}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Active Outlets
+              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-green-600">
+                  {activeCustomers}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <Store className="w-6 h-6 text-green-600" />
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <UserCheck className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Credit Limit</p>
-              <p className="text-2xl font-bold text-purple-600">{formatCurrency(stats.totalCredit)}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Total Credit Limit
+              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-purple-600">
+                  {formatCurrency(totalCreditLimit.toString())}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-purple-100 rounded-full">
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
               <CreditCard className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Outstanding Amount</p>
-              <p className="text-2xl font-bold text-red-600">{formatCurrency(stats.totalOutstanding)}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Outstanding Amount
+              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-red-600">
+                  {formatCurrency(totalOutstanding.toString())}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-red-100 rounded-full">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-red-600" />
             </div>
           </div>
@@ -396,701 +448,137 @@ export default function OutletsManagement() {
       </div>
 
       {/* Type Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Distributors</p>
-              <p className="text-3xl font-bold text-purple-600">{stats.distributors}</p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-purple-600">
+                  {distributors}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-purple-100 rounded-full">
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-purple-600" />
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Retailers</p>
-              <p className="text-3xl font-bold text-blue-600">{stats.retailers}</p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-blue-600">{retailers}</p>
+              )}
             </div>
-            <div className="p-3 bg-blue-100 rounded-full">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <Store className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Wholesalers</p>
-              <p className="text-3xl font-bold text-green-600">{stats.wholesalers}</p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-green-600">
+                  {wholesalers}
+                </p>
+              )}
             </div>
-            <div className="p-3 bg-green-100 rounded-full">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
               <Users className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search outlets..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Types</option>
-              <option value="distributor">Distributors</option>
-              <option value="retailer">Retailers</option>
-              <option value="wholesaler">Wholesalers</option>
-            </select>
-
-            <select
-              value={routeFilter}
-              onChange={(e) => setRouteFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">All Routes</option>
-              {routes.map(route => (
-                <option key={route.id} value={route.id.toString()}>{route.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex gap-3">
-            <button className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </button>
-            <button className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <Upload className="w-4 h-4 mr-2" />
-              Import
-            </button>
-            <button
-              onClick={handleCreate}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Outlet
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Outlets Table */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Outlet Info</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type & Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Route & Sales</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Financial</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedOutlets.map((outlet) => (
-                <tr key={outlet.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{outlet.name}</div>
-                      <div className="text-sm text-gray-500">{outlet.code}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="flex items-center mb-2">
-                        <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(outlet.type)}`}>
-                          {getTypeIcon(outlet.type)}
-                          <span className="ml-1 capitalize">{outlet.type}</span>
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-900">{outlet.contact_person}</div>
-                      <div className="flex items-center text-sm text-gray-500 mt-1">
-                        <Phone className="w-4 h-4 mr-1" />
-                        {outlet.phone_number}
-                      </div>
-                      {outlet.email && (
-                        <div className="flex items-center text-sm text-gray-500 mt-1">
-                          <Mail className="w-4 h-4 mr-1" />
-                          {outlet.email}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm">
-                      <div className="flex items-center text-gray-900">
-                        <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                        {outlet.city}, {outlet.state}
-                      </div>
-                      <div className="text-gray-500 text-xs mt-1">{outlet.zipcode}</div>
-                      {outlet.latitude && outlet.longitude && (
-                        <div className="text-gray-400 text-xs mt-1">
-                          {outlet.latitude.toFixed(4)}, {outlet.longitude.toFixed(4)}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {outlet.route_name ? (
-                      <div>
-                        <div className="flex items-center text-sm text-gray-900">
-                          <Route className="w-4 h-4 text-gray-400 mr-2" />
-                          {outlet.route_name}
-                        </div>
-                        {outlet.salesperson_name && (
-                          <div className="flex items-center text-sm text-gray-500 mt-1">
-                            <Users className="w-4 h-4 text-gray-400 mr-2" />
-                            {outlet.salesperson_name}
-                          </div>
-                        )}
-                        {outlet.last_visit_date && (
-                          <div className="flex items-center text-sm text-gray-500 mt-1">
-                            <Calendar className="w-4 h-4 text-gray-400 mr-2" />
-                            {new Date(outlet.last_visit_date).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">Not assigned</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm">
-                      <div className="flex items-center text-gray-900">
-                        <CreditCard className="w-4 h-4 text-gray-400 mr-2" />
-                        {formatCurrency(outlet.credit_limit)}
-                      </div>
-                      <div className="flex items-center text-red-600 mt-1">
-                        <DollarSign className="w-4 h-4 text-gray-400 mr-2" />
-                        {formatCurrency(outlet.outstanding_amount)}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      outlet.is_active === 'Y' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {outlet.is_active === 'Y' ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowDropdown(showDropdown === outlet.id ? null : outlet.id)}
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      
-                      {showDropdown === outlet.id && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
-                          <div className="py-1">
-                            <button
-                              onClick={() => handleView(outlet)}
-                              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </button>
-                            <button
-                              onClick={() => handleEdit(outlet)}
-                              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleToggleStatus(outlet)}
-                              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                            >
-                              <Filter className="w-4 h-4 mr-2" />
-                              {outlet.is_active === 'Y' ? 'Deactivate' : 'Activate'}
-                            </button>
-                            <button
-                              onClick={() => handleDelete(outlet)}
-                              className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredOutlets.length)} of {filteredOutlets.length} outlets
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 text-sm border rounded ${
-                    currentPage === page
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Modal */}
-      {showModal && (
-        <OutletModal
-          mode={modalMode}
-          outlet={selectedOutlet}
-          routes={routes}
-          employees={employees}
-          onClose={() => setShowModal(false)}
-          onSubmit={handleSubmit}
-        />
+      {error && (
+        <Alert severity="error" className="!mb-4">
+          Failed to load outlets. Please try again.
+        </Alert>
       )}
-    </div>
-  );
-}
 
-// Outlet Modal Component
-interface OutletModalProps {
-  mode: 'create' | 'edit' | 'view';
-  outlet: Outlet | null;
-  routes: Route[];
-  employees: Employee[];
-  onClose: () => void;
-  onSubmit: (data: any) => void;
-}
-
-function OutletModal({ mode, outlet, routes, employees, onClose, onSubmit }: OutletModalProps) {
-  const [formData, setFormData] = useState({
-    name: outlet?.name || '',
-    code: outlet?.code || '',
-    type: outlet?.type || 'retailer',
-    contact_person: outlet?.contact_person || '',
-    phone_number: outlet?.phone_number || '',
-    email: outlet?.email || '',
-    address: outlet?.address || '',
-    city: outlet?.city || '',
-    state: outlet?.state || '',
-    zipcode: outlet?.zipcode || '',
-    latitude: outlet?.latitude || '',
-    longitude: outlet?.longitude || '',
-    credit_limit: outlet?.credit_limit || '',
-    outstanding_amount: outlet?.outstanding_amount || '',
-    route_id: outlet?.route_id || '',
-    salesperson_id: outlet?.salesperson_id || '',
-    last_visit_date: outlet?.last_visit_date ? outlet.last_visit_date.split('T')[0] : '',
-    is_active: outlet?.is_active || 'Y'
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode !== 'view') {
-      onSubmit({
-        ...formData,
-        latitude: formData.latitude ? parseFloat(formData.latitude.toString()) : null,
-        longitude: formData.longitude ? parseFloat(formData.longitude.toString()) : null,
-        credit_limit: formData.credit_limit ? parseFloat(formData.credit_limit.toString()) : null,
-        outstanding_amount: formData.outstanding_amount ? parseFloat(formData.outstanding_amount.toString()) : 0,
-        route_id: formData.route_id ? parseInt(formData.route_id.toString()) : null,
-        salesperson_id: formData.salesperson_id ? parseInt(formData.salesperson_id.toString()) : null,
-        last_visit_date: formData.last_visit_date ? new Date(formData.last_visit_date).toISOString() : null
-      });
-    }
-  };
-
-  const isReadOnly = mode === 'view';
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {mode === 'create' ? 'Add New Outlet' : mode === 'edit' ? 'Edit Outlet' : 'Outlet Details'}
-          </h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Outlet Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                disabled={isReadOnly}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter outlet name"
+      <Table
+        data={customers}
+        columns={outletColumns}
+        actions={
+          <div className="flex justify-between w-full">
+            <div className="flex gap-3">
+              <SearchInput
+                placeholder="Search Outlets"
+                value={search}
+                onChange={handleSearchChange}
+                debounceMs={400}
+                showClear={true}
+                fullWidth={false}
+                className="!min-w-80"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Outlet Code <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                disabled={isReadOnly}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter outlet code"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as 'distributor' | 'retailer' | 'wholesaler' })}
-                disabled={isReadOnly}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+              <Select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                className="!min-w-32"
+                size="small"
               >
-                <option value="retailer">Retailer</option>
-                <option value="wholesaler">Wholesaler</option>
-                <option value="distributor">Distributor</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Person
-              </label>
-              <input
-                type="text"
-                value={formData.contact_person}
-                onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter contact person name"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                value={formData.phone_number}
-                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter phone number"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter email address"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
-              </label>
-              <textarea
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                disabled={isReadOnly}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter full address"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                City
-              </label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter city"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                State
-              </label>
-              <input
-                type="text"
-                value={formData.state}
-                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter state"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Zip Code
-              </label>
-              <input
-                type="text"
-                value={formData.zipcode}
-                onChange={(e) => setFormData({ ...formData, zipcode: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter zip code"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Latitude
-              </label>
-              <input
-                type="number"
-                step="0.00000001"
-                value={formData.latitude}
-                onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter latitude"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Longitude
-              </label>
-              <input
-                type="number"
-                step="0.00000001"
-                value={formData.longitude}
-                onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter longitude"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Credit Limit
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.credit_limit}
-                onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter credit limit"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Outstanding Amount
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.outstanding_amount}
-                onChange={(e) => setFormData({ ...formData, outstanding_amount: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                placeholder="Enter outstanding amount"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Route
-              </label>
-              <select
-                value={formData.route_id}
-                onChange={(e) => setFormData({ ...formData, route_id: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+              <Select
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                className="!min-w-40"
+                size="small"
               >
-                <option value="">Select Route</option>
-                {routes.map(route => (
-                  <option key={route.id} value={route.id}>
-                    {route.name} ({route.zone_name})
-                  </option>
-                ))}
-              </select>
+                <MenuItem value="all">All Types</MenuItem>
+                <MenuItem value="distributor">Distributors</MenuItem>
+                <MenuItem value="retailer">Retailers</MenuItem>
+                <MenuItem value="wholesaler">Wholesalers</MenuItem>
+              </Select>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Salesperson
-              </label>
-              <select
-                value={formData.salesperson_id}
-                onChange={(e) => setFormData({ ...formData, salesperson_id: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-              >
-                <option value="">Select Salesperson</option>
-                {employees.filter(emp => emp.role === 'Sales Representative').map(employee => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Last Visit Date
-              </label>
-              <input
-                type="date"
-                value={formData.last_visit_date}
-                onChange={(e) => setFormData({ ...formData, last_visit_date: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <select
-                value={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.value })}
-                disabled={isReadOnly}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-              >
-                <option value="Y">Active</option>
-                <option value="N">Inactive</option>
-              </select>
-            </div>
-          </div>
-
-          {mode === 'view' && outlet && (
-            <div className="border-t pt-6 space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">System Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-gray-700">Created:</span>
-                  <span className="ml-2 text-gray-600">{new Date(outlet.createdate).toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Created By:</span>
-                  <span className="ml-2 text-gray-600">User ID: {outlet.createdby}</span>
-                </div>
-                {outlet.updatedate && (
-                  <>
-                    <div>
-                      <span className="font-medium text-gray-700">Updated:</span>
-                      <span className="ml-2 text-gray-600">{new Date(outlet.updatedate).toLocaleString()}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-700">Updated By:</span>
-                      <span className="ml-2 text-gray-600">User ID: {outlet.updatedby}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-6 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            <Button
+              variant="contained"
+              className="!capitalize"
+              disableElevation
+              startIcon={<Add />}
+              onClick={handleCreateOutlet}
             >
-              {mode === 'view' ? 'Close' : 'Cancel'}
-            </button>
-            {mode !== 'view' && (
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {mode === 'create' ? 'Create Outlet' : 'Update Outlet'}
-              </button>
-            )}
+              Add Outlet
+            </Button>
           </div>
-        </form>
-      </div>
-    </div>
+        }
+        getRowId={customer => customer.id}
+        initialOrderBy="name"
+        loading={isLoading}
+        totalCount={totalCount}
+        page={currentPage}
+        rowsPerPage={limit}
+        onPageChange={handlePageChange}
+        emptyMessage={
+          search
+            ? `No outlets found matching "${search}"`
+            : 'No outlets found in the system'
+        }
+      />
+
+      <ManageOutlet
+        selectedOutlet={selectedOutlet}
+        setSelectedOutlet={setSelectedOutlet}
+        drawerOpen={drawerOpen}
+        setDrawerOpen={setDrawerOpen}
+        users={users}
+        routes={routes}
+        zones={zones}
+      />
+    </>
   );
-}
+};
+
+export default OutletsManagement;

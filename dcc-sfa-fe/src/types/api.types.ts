@@ -61,6 +61,20 @@ export interface ApiResponse<T = any> {
     active_zones?: number;
     inactive_zones?: number;
     new_zones?: number;
+    // Route statistics
+    total_routes: number;
+    active_routes: number;
+    inactive_routes: number;
+    routes_this_month: number;
+    // Visit statistics
+    total_visits?: number;
+    active_visits?: number;
+    inactive_visits?: number;
+    new_visits?: number;
+    // Customer statistics
+    totalCustomers?: number;
+    active_customers?: number;
+    inactive_customers?: number;
   };
 }
 

@@ -11,7 +11,6 @@ import {
   type ImportResult,
 } from '../../../../hooks/useImportExport';
 
-
 interface ImportDepotProps {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
@@ -255,7 +254,10 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
 
                     {importResults.fileInfo && (
                       <Box className="!mt-3 !p-3 !bg-gray-50 !rounded-lg">
-                        <Typography variant="subtitle2" className="!font-medium !mb-1">
+                        <Typography
+                          variant="subtitle2"
+                          className="!font-medium !mb-1"
+                        >
                           File Information
                         </Typography>
                         <Typography variant="body2" className="!text-gray-600">
@@ -267,38 +269,39 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
                       </Box>
                     )}
 
-                    {importResults.errors && importResults.errors.length > 0 && (
-                      <Box className="!mt-3">
-                        <Typography
-                          variant="subtitle2"
-                          className="!font-medium !mb-2 !text-red-700"
-                        >
-                          Import Errors ({importResults.errors.length}):
-                        </Typography>
-                        <Box className="!bg-red-50 !rounded-lg !max-h-32 !overflow-y-auto !p-2">
-                          {importResults.errors
-                            .slice(0, 10)
-                            .map((error: string, index: number) => (
+                    {importResults.errors &&
+                      importResults.errors.length > 0 && (
+                        <Box className="!mt-3">
+                          <Typography
+                            variant="subtitle2"
+                            className="!font-medium !mb-2 !text-red-700"
+                          >
+                            Import Errors ({importResults.errors.length}):
+                          </Typography>
+                          <Box className="!bg-red-50 !rounded-lg !max-h-32 !overflow-y-auto !p-2">
+                            {importResults.errors
+                              .slice(0, 10)
+                              .map((error: string, index: number) => (
+                                <Typography
+                                  key={index}
+                                  variant="body2"
+                                  className="!text-red-600 !mb-1"
+                                >
+                                  • {error}
+                                </Typography>
+                              ))}
+                            {importResults.errors.length > 10 && (
                               <Typography
-                                key={index}
                                 variant="body2"
-                                className="!text-red-600 !mb-1"
+                                className="!text-red-600 !font-medium"
                               >
-                                • {error}
+                                ... and {importResults.errors.length - 10} more
+                                errors
                               </Typography>
-                            ))}
-                          {importResults.errors.length > 10 && (
-                            <Typography
-                              variant="body2"
-                              className="!text-red-600 !font-medium"
-                            >
-                              ... and {importResults.errors.length - 10} more
-                              errors
-                            </Typography>
-                          )}
+                            )}
+                          </Box>
                         </Box>
-                      </Box>
-                    )}
+                      )}
                   </Box>
                 )}
               </Box>

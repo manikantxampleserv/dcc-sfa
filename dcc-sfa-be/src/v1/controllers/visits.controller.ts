@@ -99,9 +99,25 @@ export const visitsController = {
           .json({ message: 'Customer ID and Sales Person ID are required' });
       }
 
+      const processedData = {
+        ...data,
+        visit_date: data.visit_date ? new Date(data.visit_date) : undefined,
+        start_time: data.start_time ? new Date(data.start_time) : undefined,
+        end_time: data.end_time ? new Date(data.end_time) : undefined,
+        check_in_time: data.check_in_time
+          ? new Date(data.check_in_time)
+          : undefined,
+        check_out_time: data.check_out_time
+          ? new Date(data.check_out_time)
+          : undefined,
+        next_visit_date: data.next_visit_date
+          ? new Date(data.next_visit_date)
+          : undefined,
+      };
+
       const visit = await prisma.visits.create({
         data: {
-          ...data,
+          ...processedData,
           createdate: new Date(),
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
@@ -221,8 +237,29 @@ export const visitsController = {
       if (!existingVisit) {
         return res.status(404).json({ message: 'Visit not found' });
       }
-      const data = {
+      // Convert date strings to Date objects if provided
+      const processedData = {
         ...req.body,
+        visit_date: req.body.visit_date
+          ? new Date(req.body.visit_date)
+          : undefined,
+        start_time: req.body.start_time
+          ? new Date(req.body.start_time)
+          : undefined,
+        end_time: req.body.end_time ? new Date(req.body.end_time) : undefined,
+        check_in_time: req.body.check_in_time
+          ? new Date(req.body.check_in_time)
+          : undefined,
+        check_out_time: req.body.check_out_time
+          ? new Date(req.body.check_out_time)
+          : undefined,
+        next_visit_date: req.body.next_visit_date
+          ? new Date(req.body.next_visit_date)
+          : undefined,
+      };
+
+      const data = {
+        ...processedData,
         updatedate: new Date(),
         updatedby: req.user?.id || 1,
       };
