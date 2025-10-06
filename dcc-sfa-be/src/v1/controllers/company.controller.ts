@@ -100,7 +100,8 @@ export const companyController = {
           website,
           is_active,
           logo: logoUrl,
-          created_by: Number(created_by) || 0,
+          // created_by: Number(created_by) || 0,
+          created_by: req.user?.id,
           created_date: new Date(),
         },
         include: { users: true, depot_companies: true },
@@ -120,8 +121,14 @@ export const companyController = {
     try {
       const { page, limit, search = '' } = req.query;
 
-      const page_num = parseInt(page as string, 10);
-      const limit_num = parseInt(limit as string, 10);
+      const page_num = page ? parseInt(page as string, 10) : 1;
+      const limit_num = limit ? parseInt(limit as string, 10) : 10;
+
+      if (isNaN(page_num) || isNaN(limit_num)) {
+        res.error('Invalid page or limit parameter', 400);
+        return;
+      }
+
       const searchLower = (search as string).toLowerCase();
 
       const filters: any = {
@@ -163,6 +170,7 @@ export const companyController = {
           },
         },
       });
+
       res.success(
         'Companies retrieved successfully',
         data.map((c: any) => serializeCompany(c, true, true)),
@@ -220,7 +228,11 @@ export const companyController = {
         return;
       }
 
-      const data: any = { ...req.body, updated_date: new Date() };
+      const data: any = {
+        ...req.body,
+        updated_date: new Date(),
+        updated_by: req.user?.id,
+      };
 
       if (req.file) {
         const fileName = `logos/${Date.now()}-${req.file.originalname}`;

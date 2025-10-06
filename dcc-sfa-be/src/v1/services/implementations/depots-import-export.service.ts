@@ -422,7 +422,7 @@ export class DepotsImportExportService extends ImportExportService<any> {
             code: true,
           },
         },
-        routes: {
+        routes_depots: {
           select: {
             id: true,
             name: true,
@@ -455,7 +455,7 @@ export class DepotsImportExportService extends ImportExportService<any> {
         _count: {
           select: {
             zone_depots: true,
-            routes: true,
+            routes_depots: true,
             inventory_stock: true,
             user_depot: true,
           },
@@ -500,7 +500,7 @@ export class DepotsImportExportService extends ImportExportService<any> {
       const depot = data[index] as any;
       row.company_name = depot.depot_companies?.name || '';
       row.total_zones = depot._count?.zone_depots || 0;
-      row.total_routes = depot._count?.routes || 0;
+      row.total_routes = depot._count?.routes_depots || 0;
       row.total_stock = depot._count?.inventory_stock || 0;
       row.total_users = depot._count?.user_depot || 0;
 

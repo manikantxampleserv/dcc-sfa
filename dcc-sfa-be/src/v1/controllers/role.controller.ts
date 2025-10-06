@@ -75,7 +75,7 @@ export const rolesController = {
             name,
             description,
             is_active: is_active ?? 'Y',
-            createdby: req.user?.id ?? 0,
+            createdby: req.user?.id || 1,
             createdate: new Date(),
             log_inst: 1,
           },
@@ -96,7 +96,6 @@ export const rolesController = {
             })),
           });
 
-          // Fetch the role again with permissions
           const roleWithPermissions = await tx.roles.findUnique({
             where: { id: newRole.id },
             include: {
@@ -257,7 +256,7 @@ export const rolesController = {
               data: roleData.permissions.map((permissionId: number) => ({
                 role_id: id,
                 permission_id: permissionId,
-                createdby: req.user?.id ?? 0,
+                createdby: req.user?.id || 1,
                 createdate: new Date(),
                 log_inst: 1,
               })),

@@ -199,7 +199,7 @@ export const permissionsController = {
           module,
           action,
           is_active: is_active ?? 'Y',
-          createdby: req.user?.id ?? 0,
+          createdby: req.user?.id || 1,
           createdate: new Date(),
         },
       });
@@ -273,7 +273,7 @@ export const permissionsController = {
         where: { id: id },
         data: {
           ...permissionData,
-          updatedby: req.user?.id ?? 0,
+          updatedby: req.user?.id || 1,
           updatedate: new Date(),
         },
       });
@@ -304,7 +304,6 @@ export const permissionsController = {
         return;
       }
 
-      // Check if permission exists
       const existingPermission = await prisma.permissions.findFirst({
         where: {
           id: id,
@@ -330,16 +329,7 @@ export const permissionsController = {
         return;
       }
 
-      // Soft delete permission
-      await prisma.permissions.update({
-        where: { id: id },
-        data: {
-          is_active: 'N',
-          updatedby: req.user?.id ?? 0,
-          updatedate: new Date(),
-        },
-      });
-
+      await prisma.permissions.delete({ where: { id: id } });
       res.success('Permission deleted successfully', null, 200);
     } catch (error: any) {
       console.error('Error deleting permission:', error);

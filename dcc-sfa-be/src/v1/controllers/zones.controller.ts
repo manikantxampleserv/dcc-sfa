@@ -93,7 +93,7 @@ export const zonesController = {
         data: {
           ...data,
           code: newCode,
-          createdby: data.createdby || 1,
+          createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
         },
@@ -220,7 +220,11 @@ export const zonesController = {
         return res.status(404).json({ message: 'Zone not found' });
       }
 
-      const data = { ...req.body, updatedate: new Date() };
+      const data = {
+        ...req.body,
+        updatedate: new Date(),
+        updatedby: req.user?.id,
+      };
       const zone = await prisma.zones.update({
         where: { id: Number(id) },
         data,
@@ -242,7 +246,6 @@ export const zonesController = {
     }
   },
 
-  // Delete zone
   async deleteZone(req: Request, res: Response) {
     try {
       const { id } = req.params;

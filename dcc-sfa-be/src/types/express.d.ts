@@ -39,7 +39,6 @@
 //   }
 // }
 
-// src/types/express.d.ts
 import 'express';
 
 declare global {
@@ -57,10 +56,8 @@ declare global {
         zone_id?: number | null;
       };
       token?: string;
-      file?: Express.Multer.File;
-      files?:
-        | Express.Multer.File[]
-        | { [fieldname: string]: Express.Multer.File[] };
+      file?: Multer.File;
+      files?: Multer.File[] | { [fieldname: string]: Multer.File[] };
     }
 
     interface Response {

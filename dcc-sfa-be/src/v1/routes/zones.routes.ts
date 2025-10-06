@@ -14,12 +14,7 @@ router.post(
   zonesController.createZone
 );
 
-router.get(
-  '/zones/:id',
-  authenticateToken,
-  validate,
-  zonesController.getZoneById
-);
+router.get('/zones/:id', authenticateToken, zonesController.getZoneById);
 router.get('/zones', authenticateToken, zonesController.getZones);
 
 router.put('/zones/:id', authenticateToken, zonesController.updateZone);

@@ -22,13 +22,31 @@ interface RouteSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  customers?: { id: number; name: string }[];
-  depots?: { id: number; name: string; code: string };
+  customer_routes?: { id: number; name: string }[];
+  routes_depots?: { id: number; name: string; code: string };
   routes_zones?: { id: number; name: string };
   routes_salesperson?: { id: number; name: string; email: string } | null;
   visits?: { id: number; name: string }[];
 }
 
+const generateRoutesCode = async (name: string) => {
+  const prefix = name.slice(0, 3).toUpperCase();
+  const lastRoutes = await prisma.routes.findFirst({
+    orderBy: { id: 'desc' },
+    select: { code: true },
+  });
+
+  let newNumber = 1;
+  if (lastRoutes && lastRoutes.code) {
+    const match = lastRoutes.code.match(/(\d+)$/);
+    if (match) {
+      newNumber = parseInt(match[1], 10) + 1;
+    }
+  }
+  const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+
+  return code;
+};
 const serializeRoute = (route: any): RouteSerialized => ({
   id: route.id,
   parent_id: route.parent_id,
@@ -47,10 +65,14 @@ const serializeRoute = (route: any): RouteSerialized => ({
   updatedate: route.updatedate,
   updatedby: route.updatedby,
   log_inst: route.log_inst,
-  customers:
-    route.customers?.map((c: any) => ({ id: c.id, name: c.name })) || [],
-  depots: route.depots
-    ? { id: route.depots.id, name: route.depots.name, code: route.depots.code }
+  customer_routes:
+    route.customer_routes?.map((c: any) => ({ id: c.id, name: c.name })) || [],
+  routes_depots: route.routes_depots
+    ? {
+        id: route.routes_depots.id,
+        name: route.routes_depots.name,
+        code: route.routes_depots.code,
+      }
     : undefined,
   routes_zones: route.routes_zones
     ? { id: route.routes_zones.id, name: route.routes_zones.name }
@@ -66,7 +88,6 @@ const serializeRoute = (route: any): RouteSerialized => ({
 });
 
 export const routesController = {
-  // Create Route
   async createRoutes(req: Request, res: Response) {
     try {
       const data = req.body;
@@ -76,18 +97,19 @@ export const routesController = {
           .status(400)
           .json({ message: 'Name, depot_id, and parent_id are required' });
       }
-
+      const newCode = await generateRoutesCode(data.name);
       const route = await prisma.routes.create({
         data: {
           ...data,
+          code: newCode,
           is_active: data.is_active || 'Y',
           createdate: new Date(),
-          createdby: data.createdby || 1,
+          createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
         },
         include: {
-          customers: true,
-          depots: true,
+          customer_routes: true,
+          routes_depots: true,
           routes_zones: true,
           routes_salesperson: true,
           visits: true,
@@ -127,8 +149,8 @@ export const routesController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          customers: true,
-          depots: true,
+          customer_routes: true,
+          routes_depots: true,
           routes_zones: true,
           routes_salesperson: true,
           visits: true,
@@ -147,15 +169,14 @@ export const routesController = {
     }
   },
 
-  // Get Route by ID
   async getRoutesById(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const route = await prisma.routes.findUnique({
         where: { id: Number(id) },
         include: {
-          customers: true,
-          depots: true,
+          customer_routes: true,
+          routes_depots: true,
           routes_zones: true,
           routes_salesperson: true,
           visits: true,
@@ -174,7 +195,6 @@ export const routesController = {
     }
   },
 
-  // Update Route
   async updateRoutes(req: any, res: any) {
     try {
       const { id } = req.params;
@@ -185,13 +205,17 @@ export const routesController = {
       if (!existingRoute)
         return res.status(404).json({ message: 'Route not found' });
 
-      const data = { ...req.body, updatedate: new Date() };
+      const data = {
+        ...req.body,
+        updatedate: new Date(),
+        updatedby: req.user?.id,
+      };
       const route = await prisma.routes.update({
         where: { id: Number(id) },
         data,
         include: {
-          customers: true,
-          depots: true,
+          customer_routes: true,
+          routes_depots: true,
           routes_zones: true,
           routes_salesperson: true,
           visits: true,
@@ -208,7 +232,6 @@ export const routesController = {
     }
   },
 
-  // Delete Route
   async deleteRoutes(req: Request, res: Response) {
     try {
       const { id } = req.params;

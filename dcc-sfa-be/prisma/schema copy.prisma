@@ -7,10 +7,157 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model users {
+  id                                                                  Int                          @id(map: "PK__users__3213E83F0D3B3A05") @default(autoincrement())
+  email                                                               String                       @unique(map: "UQ__users__AB6E616419303B34") @db.NVarChar(255)
+  role_id                                                             Int
+  password_hash                                                       String                       @db.NVarChar(255)
+  name                                                                String                       @db.NVarChar(255)
+  parent_id                                                           Int?
+  depot_id                                                            Int?
+  zone_id                                                             Int?
+  phone_number                                                        String?                      @db.NVarChar(20)
+  address                                                             String?                      @db.NVarChar(500)
+  employee_id                                                         String?                      @db.NVarChar(50)
+  joining_date                                                        DateTime?                    @db.Date
+  reporting_to                                                        Int?
+  profile_image                                                       String?                      @db.NVarChar(500)
+  last_login                                                          DateTime?
+  is_active                                                           String                       @default("Y", map: "DF__users__is_active__3B75D760") @db.Char(1)
+  createdate                                                          DateTime?                    @default(now(), map: "DF__users__createdat__3C69FB99") @db.DateTime
+  createdby                                                           Int
+  updatedate                                                          DateTime?                    @db.DateTime
+  updatedby                                                           Int?
+  log_inst                                                            Int?
+  api_tokens_api_tokens_user_idTousers                                api_tokens[]                 @relation("api_tokens_user_idTousers")
+  approval_workflows_approval_workflows_final_approved_byTousers      approval_workflows[]         @relation("approval_workflows_final_approved_byTousers")
+  approval_workflows_approval_workflows_rejected_byTousers            approval_workflows[]         @relation("approval_workflows_rejected_byTousers")
+  approval_workflows_approval_workflows_requested_byTousers           approval_workflows[]         @relation("approval_workflows_requested_byTousers")
+  audit_logs_audit_logs_changed_byTousers                             audit_logs[]                 @relation("audit_logs_changed_byTousers")
+  cooler_inspections                                                  cooler_inspections[]
+  coolers                                                             coolers[]
+  customer_assets                                                     customer_assets[]
+  customer_assets_history_customer_assets_history_changed_byTousers   customer_assets_history[]    @relation("customer_assets_history_changed_byTousers")
+  customer_documents                                                  customer_documents[]
+  customer_users                                                      customers[]
+  delivery_schedules                                                  delivery_schedules[]
+  employee_kpi_targets_employee_kpi_targets_employee_idTousers        employee_kpi_targets[]       @relation("employee_kpi_targets_employee_idTousers")
+  gps_logs_gps_logs_user_idTousers                                    gps_logs[]                   @relation("gps_logs_user_idTousers")
+  login_history_login_history_user_idTousers                          login_history[]              @relation("login_history_user_idTousers")
+  notifications                                                       notifications[]
+  orders_approved_by                                                  orders[]                     @relation("OrdersApprovedBy")
+  orders_salesperson                                                  orders[]                     @relation("OrdersSalesperson")
+  payments_payments_collected_byTousers                               payments[]                   @relation("payments_collected_byTousers")
+  price_history_price_history_approved_byTousers                      price_history[]              @relation("price_history_approved_byTousers")
+  price_history_price_history_changed_byTousers                       price_history[]              @relation("price_history_changed_byTousers")
+  return_requests_return_requests_approved_byTousers                  return_requests[]            @relation("return_requests_approved_byTousers")
+  return_workflow_return_workflow_action_byTousers                    return_workflow[]            @relation("return_workflow_action_byTousers")
+  route_exceptions_route_exceptions_sales_person_idTousers            route_exceptions[]           @relation("route_exceptions_sales_person_idTousers")
+  route_plans_route_plans_sales_person_idTousers                      route_plans[]                @relation("route_plans_sales_person_idTousers")
+  sales_target_group_members                                          sales_target_group_members[]
+  sales_target_overrides                                              sales_target_overrides[]
+  stock_transfer_requests_stock_transfer_requests_approved_byTousers  stock_transfer_requests[]    @relation("stock_transfer_requests_approved_byTousers")
+  stock_transfer_requests_stock_transfer_requests_requested_byTousers stock_transfer_requests[]    @relation("stock_transfer_requests_requested_byTousers")
+  survey_responses_submitted_by_users                                 survey_responses[]           @relation("survey_responses_submitted_users")
+  companies                                                           companies?                   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  users                                                               users?                       @relation("usersTousers", fields: [reporting_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__reporting__403A8C7D")
+  other_users                                                         users[]                      @relation("usersTousers")
+  user_zones                                                          zones?                       @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicles                                                            vehicles[]
+  visit_tasks                                                         visit_tasks[]
+  visits_salesperson                                                  visits[]
+  workflow_steps_workflow_steps_assigned_user_idTousers               workflow_steps[]             @relation("workflow_steps_assigned_user_idTousers")
+  workflow_steps_workflow_steps_processed_byTousers                   workflow_steps[]             @relation("workflow_steps_processed_byTousers")
+  user_role                                                           roles                        @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  user_depot                                                          depots?                      @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_van_inventory_user_idTousers                                  van_inventory[]              @relation("van_inventory_user_idTousers")
+  depots_manager                                                      depots[]                     @relation("DeportsManager")
+  depots_supervisior                                                  depots[]                     @relation("DeportsSupervisior")
+  depots_coodrinator                                                  depots[]                     @relation("DepotsCoodrinator")
+  routes_salesperson                                                  routes[]
+}
+
+model roles {
+  id               Int                @id() @default(autoincrement())
+  name             String             @unique @db.NVarChar(100)
+  description      String?            @db.NVarChar(500)
+  is_active        String             @default("Y") @db.Char(1)
+  createdate       DateTime?          @default(now()) @db.DateTime
+  createdby        Int
+  updatedate       DateTime?          @db.DateTime
+  updatedby        Int?
+  log_inst         Int?
+  user_role        users[]
+  roles_permission role_permissions[]
+}
+
+model permissions {
+  id          Int                @id() @default(autoincrement())
+  name        String             @unique @db.NVarChar(100)
+  module      String             @db.NVarChar(50)
+  action      String             @db.NVarChar(50)
+  description String?            @db.NVarChar(500)
+  is_active   String             @default("Y") @db.Char(1)
+  createdate  DateTime?          @default(now()) @db.DateTime
+  createdby   Int
+  updatedate  DateTime?          @db.DateTime
+  updatedby   Int?
+  permission  role_permissions[]
+}
+
+model role_permissions {
+  id               Int          @id() @default(autoincrement())
+  role_id          Int
+  permission_id    Int
+  is_active        String       @default("Y") @db.Char(1)
+  createdate       DateTime?    @default(now()) @db.DateTime
+  createdby        Int
+  updatedate       DateTime?    @db.DateTime
+  updatedby        Int?
+  log_inst         Int?
+  roles_permission roles?       @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  permission       permissions? @relation(fields: [permission_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+}
+
+model depots {
+  id                     Int               @id(map: "PK__depots__3213E83F2BEB71BC") @default(autoincrement())
+  parent_id              Int
+  name                   String            @db.NVarChar(255)
+  code                   String            @db.NVarChar(50)
+  address                String?           @db.NVarChar(500)
+  city                   String?           @db.NVarChar(100)
+  state                  String?           @db.NVarChar(100)
+  zipcode                String?           @db.NVarChar(20)
+  phone_number           String?           @db.NVarChar(20)
+  email                  String?           @db.NVarChar(255)
+  manager_id             Int?
+  supervisor_id          Int?
+  coordinator_id         Int?
+  latitude               Decimal?          @db.Decimal(10, 8)
+  longitude              Decimal?          @db.Decimal(11, 8)
+  is_active              String            @default("Y", map: "DF__depots__is_activ__29572725") @db.Char(1)
+  createdate             DateTime?         @default(now(), map: "DF__depots__createda__2A4B4B5E") @db.DateTime
+  createdby              Int
+  updatedate             DateTime?         @db.DateTime
+  updatedby              Int?
+  log_inst               Int?
+  depot_companies        companies         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  inventory_stock        inventory_stock[]
+  promotions             promotions[]
+  routes_depots          routes[]
+  serial_numbers         serial_numbers[]
+  user_depot             users[]
+  zone_depots            zones[]
+  depots_manager         users?            @relation("DeportsManager", fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  depots_supervisior     users?            @relation("DeportsSupervisior", fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  depots_coodrinator     users?            @relation("DepotsCoodrinator", fields: [coordinator_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock_movements_depots stock_movements[] @relation("stock_movements_to_location_idTodepots")
+}
+
 model api_tokens {
   id                              Int       @id(map: "PK__api_toke__3213E83FCE2E766B") @default(autoincrement())
   user_id                         Int
-  token                           String    @db.Text
+  token                           String    @db.NVarChar(Max)
   token_type                      String?   @default("Bearer", map: "DF__api_token__token__51851410") @db.NVarChar(50)
   issued_at                       DateTime? @default(now(), map: "DF__api_token__issue__52793849") @db.DateTime
   expires_at                      DateTime? @db.DateTime
@@ -210,47 +357,47 @@ model batch_lots {
 }
 
 model companies {
-  id           Int       @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
-  name         String    @db.NVarChar(255)
-  code         String    @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
-  address      String?   @db.NVarChar(500)
-  city         String?   @db.NVarChar(100)
-  state        String?   @db.NVarChar(100)
-  country      String?   @db.NVarChar(100)
-  zipcode      String?   @db.NVarChar(20)
-  phone_number String?   @db.NVarChar(20)
-  email        String?   @db.NVarChar(255)
-  website      String?   @db.NVarChar(255)
-  logo         String?   @db.NVarChar(500)
-  is_active    String    @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
-  created_date DateTime? @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
-  created_by   Int
-  updated_date DateTime? @db.DateTime
-  updated_by   Int?
-  log_inst     Int?
-  depots       depots[]
-  users        users[]
+  id              Int       @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
+  name            String    @db.NVarChar(255)
+  code            String    @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
+  address         String?   @db.NVarChar(500)
+  city            String?   @db.NVarChar(100)
+  state           String?   @db.NVarChar(100)
+  country         String?   @db.NVarChar(100)
+  zipcode         String?   @db.NVarChar(20)
+  phone_number    String?   @db.NVarChar(20)
+  email           String?   @db.NVarChar(255)
+  website         String?   @db.NVarChar(255)
+  logo            String?   @db.NVarChar(500)
+  is_active       String    @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
+  created_date    DateTime? @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
+  created_by      Int
+  updated_date    DateTime? @db.DateTime
+  updated_by      Int?
+  log_inst        Int?
+  users           users[]
+  depot_companies depots[]
 }
 
 model competitor_activity {
-  id                Int       @id(map: "PK__competit__3213E83FE5625D5F") @default(autoincrement())
-  customer_id       Int
-  visit_id          Int?
-  brand_name        String    @db.NVarChar(255)
-  product_name      String?   @db.NVarChar(255)
-  observed_price    Decimal?  @db.Decimal(18, 2)
-  promotion_details String?
-  visibility_score  Int?
-  image_url         String?   @db.NVarChar(500)
-  remarks           String?
-  is_active         String    @default("Y", map: "DF__competito__is_ac__37C5420D") @db.Char(1)
-  createdate        DateTime? @default(now(), map: "DF__competito__creat__38B96646") @db.DateTime
-  createdby         Int
-  updatedate        DateTime? @db.DateTime
-  updatedby         Int?
-  log_inst          Int?
-  customers         customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__competito__custo__39AD8A7F")
-  visits            visits?   @relation(fields: [visit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__competito__visit__3AA1AEB8")
+  id                            Int       @id(map: "PK__competit__3213E83FE5625D5F") @default(autoincrement())
+  customer_id                   Int
+  visit_id                      Int?
+  brand_name                    String    @db.NVarChar(255)
+  product_name                  String?   @db.NVarChar(255)
+  observed_price                Decimal?  @db.Decimal(18, 2)
+  promotion_details             String?
+  visibility_score              Int?
+  image_url                     String?   @db.NVarChar(500)
+  remarks                       String?
+  is_active                     String    @default("Y", map: "DF__competito__is_ac__37C5420D") @db.Char(1)
+  createdate                    DateTime? @default(now(), map: "DF__competito__creat__38B96646") @db.DateTime
+  createdby                     Int
+  updatedate                    DateTime? @db.DateTime
+  updatedby                     Int?
+  log_inst                      Int?
+  competitor_activity_customers customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__competito__custo__39AD8A7F")
+  visits                        visits?   @relation(fields: [visit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__competito__visit__3AA1AEB8")
 }
 
 model cooler_inspections {
@@ -304,7 +451,7 @@ model coolers {
   updatedby            Int?
   log_inst             Int?
   cooler_inspections   cooler_inspections[]
-  customers            customers            @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__coolers__custome__314D4EA8")
+  coolers_customers    customers            @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   users                users?               @relation(fields: [technician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__coolers__technic__324172E1")
 }
 
@@ -325,82 +472,82 @@ model credit_note_items {
 }
 
 model credit_notes {
-  id                 Int                 @id(map: "PK__credit_n__3213E83F7845CC17") @default(autoincrement())
-  credit_note_number String              @unique(map: "UQ__credit_n__72E3FB855AAA8AF7") @db.NVarChar(50)
-  parent_id          Int
-  customer_id        Int
-  credit_note_date   DateTime?           @default(now(), map: "DF__credit_no__credi__2B0A656D")
-  due_date           DateTime?
-  status             String?             @default("draft", map: "DF__credit_no__statu__2CF2ADDF") @db.NVarChar(20)
-  reason             String?             @db.NVarChar(255)
-  payment_method     String?             @default("credit", map: "DF__credit_no__payme__2EDAF651") @db.NVarChar(20)
-  subtotal           Decimal?            @default(0, map: "DF__credit_no__subto__2FCF1A8A") @db.Decimal(18, 2)
-  discount_amount    Decimal?            @default(0, map: "DF__credit_no__disco__30C33EC3") @db.Decimal(18, 2)
-  tax_amount         Decimal?            @default(0, map: "DF__credit_no__tax_a__31B762FC") @db.Decimal(18, 2)
-  shipping_amount    Decimal?            @default(0, map: "DF__credit_no__shipp__32AB8735") @db.Decimal(18, 2)
-  total_amount       Decimal?            @default(0, map: "DF__credit_no__total__339FAB6E") @db.Decimal(18, 2)
-  amount_applied     Decimal?            @default(0, map: "DF__credit_no__amoun__3493CFA7") @db.Decimal(18, 2)
-  balance_due        Decimal?            @db.Decimal(19, 2)
-  notes              String?
-  billing_address    String?
-  is_active          String              @default("Y", map: "DF__credit_no__is_ac__3587F3E0") @db.Char(1)
-  createdate         DateTime?           @default(now(), map: "DF__credit_no__creat__367C1819") @db.DateTime
-  createdby          Int
-  updatedate         DateTime?           @db.DateTime
-  updatedby          Int?
-  log_inst           Int?
-  currency_id        Int?
-  credit_note_items  credit_note_items[]
-  currencies         currencies?         @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__credit_no__curre__671F4F74")
-  customers          customers           @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__custo__3864608B")
-  orders             orders              @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__paren__37703C52")
+  id                     Int                 @id(map: "PK__credit_n__3213E83F7845CC17") @default(autoincrement())
+  credit_note_number     String              @unique(map: "UQ__credit_n__72E3FB855AAA8AF7") @db.NVarChar(50)
+  parent_id              Int
+  customer_id            Int
+  credit_note_date       DateTime?           @default(now(), map: "DF__credit_no__credi__2B0A656D")
+  due_date               DateTime?
+  status                 String?             @default("draft", map: "DF__credit_no__statu__2CF2ADDF") @db.NVarChar(20)
+  reason                 String?             @db.NVarChar(255)
+  payment_method         String?             @default("credit", map: "DF__credit_no__payme__2EDAF651") @db.NVarChar(20)
+  subtotal               Decimal?            @default(0, map: "DF__credit_no__subto__2FCF1A8A") @db.Decimal(18, 2)
+  discount_amount        Decimal?            @default(0, map: "DF__credit_no__disco__30C33EC3") @db.Decimal(18, 2)
+  tax_amount             Decimal?            @default(0, map: "DF__credit_no__tax_a__31B762FC") @db.Decimal(18, 2)
+  shipping_amount        Decimal?            @default(0, map: "DF__credit_no__shipp__32AB8735") @db.Decimal(18, 2)
+  total_amount           Decimal?            @default(0, map: "DF__credit_no__total__339FAB6E") @db.Decimal(18, 2)
+  amount_applied         Decimal?            @default(0, map: "DF__credit_no__amoun__3493CFA7") @db.Decimal(18, 2)
+  balance_due            Decimal?            @db.Decimal(19, 2)
+  notes                  String?
+  billing_address        String?
+  is_active              String              @default("Y", map: "DF__credit_no__is_ac__3587F3E0") @db.Char(1)
+  createdate             DateTime?           @default(now(), map: "DF__credit_no__creat__367C1819") @db.DateTime
+  createdby              Int
+  updatedate             DateTime?           @db.DateTime
+  updatedby              Int?
+  log_inst               Int?
+  currency_id            Int?
+  credit_note_items      credit_note_items[]
+  currencies             currencies?         @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__credit_no__curre__671F4F74")
+  credit_notes_customers customers           @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__custo__3864608B")
+  orders                 orders              @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__paren__37703C52")
 }
 
 model currencies {
-  id                    Int            @id(map: "PK__currenci__3213E83F79F58F94") @default(autoincrement())
-  code                  String         @unique(map: "UQ__currenci__357D4CF905DDBF7E") @db.NVarChar(10)
+  id                    Int            @id() @default(autoincrement())
+  code                  String         @unique() @db.NVarChar(10)
   name                  String         @db.NVarChar(100)
   symbol                String?        @db.NVarChar(10)
   exchange_rate_to_base Decimal?       @db.Decimal(18, 6)
-  is_base               String?        @default("N", map: "DF__currencie__is_ba__6166761E") @db.Char(1)
-  is_active             String         @default("Y", map: "DF__currencie__is_ac__625A9A57") @db.Char(1)
-  createdate            DateTime?      @default(now(), map: "DF__currencie__creat__634EBE90") @db.DateTime
+  is_base               String?        @default("N") @db.Char(1)
+  is_active             String         @default("Y") @db.Char(1)
+  createdate            DateTime?      @default(now())
   createdby             Int
   updatedate            DateTime?      @db.DateTime
   updatedby             Int?
   log_inst              Int?
   credit_notes          credit_notes[]
   invoices              invoices[]
-  orders                orders[]
   payments              payments[]
+  orders_currencies     orders[]       @relation("OrdersCurrencies")
 }
 
 model customer_assets {
-  id                      Int                       @id(map: "PK__customer__3213E83F9C727C78") @default(autoincrement())
-  customer_id             Int
-  asset_type_id           Int
-  code                    String                    @db.NVarChar(100)
-  brand                   String?                   @db.NVarChar(100)
-  model                   String?                   @db.NVarChar(100)
-  serial_number           String?                   @db.NVarChar(100)
-  capacity                Int?
-  install_date            DateTime?
-  status                  String?                   @default("working", map: "DF__customer___statu__67A95F59") @db.NVarChar(20)
-  last_scanned_date       DateTime?
-  remarks                 String?                   @db.NVarChar(500)
-  technician_id           Int?
-  warranty_expiry         DateTime?
-  maintenance_contract    String?                   @db.NVarChar(100)
-  is_active               String                    @default("Y", map: "DF__customer___is_ac__689D8392") @db.Char(1)
-  createdate              DateTime?                 @default(now(), map: "DF__customer___creat__6991A7CB") @db.DateTime
-  createdby               Int
-  updatedate              DateTime?                 @db.DateTime
-  updatedby               Int?
-  log_inst                Int?
-  asset_types             asset_types               @relation(fields: [asset_type_id], references: [id], onUpdate: NoAction, map: "FK__customer___asset__6B79F03D")
-  customers               customers                 @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__customer___custo__6A85CC04")
-  users                   users?                    @relation(fields: [technician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__customer___techn__6C6E1476")
-  customer_assets_history customer_assets_history[]
+  id                        Int                       @id(map: "PK__customer__3213E83F9C727C78") @default(autoincrement())
+  customer_id               Int
+  asset_type_id             Int
+  code                      String                    @db.NVarChar(100)
+  brand                     String?                   @db.NVarChar(100)
+  model                     String?                   @db.NVarChar(100)
+  serial_number             String?                   @db.NVarChar(100)
+  capacity                  Int?
+  install_date              DateTime?
+  status                    String?                   @default("working", map: "DF__customer___statu__67A95F59") @db.NVarChar(20)
+  last_scanned_date         DateTime?
+  remarks                   String?                   @db.NVarChar(500)
+  technician_id             Int?
+  warranty_expiry           DateTime?
+  maintenance_contract      String?                   @db.NVarChar(100)
+  is_active                 String                    @default("Y", map: "DF__customer___is_ac__689D8392") @db.Char(1)
+  createdate                DateTime?                 @default(now(), map: "DF__customer___creat__6991A7CB") @db.DateTime
+  createdby                 Int
+  updatedate                DateTime?                 @db.DateTime
+  updatedby                 Int?
+  log_inst                  Int?
+  asset_types               asset_types               @relation(fields: [asset_type_id], references: [id], onUpdate: NoAction, map: "FK__customer___asset__6B79F03D")
+  customer_assets_customers customers                 @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__customer___custo__6A85CC04")
+  users                     users?                    @relation(fields: [technician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__customer___techn__6C6E1476")
+  customer_assets_history   customer_assets_history[]
 }
 
 model customer_assets_history {
@@ -482,110 +629,79 @@ model customer_groups {
 }
 
 model customers {
-  id                     Int                      @id(map: "PK__customer__3213E83F277524A1") @default(autoincrement())
-  name                   String                   @db.NVarChar(255)
-  code                   String                   @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
-  type                   String?                  @db.NVarChar(50)
-  contact_person         String?                  @db.NVarChar(255)
-  phone_number           String?                  @db.NVarChar(20)
-  email                  String?                  @db.NVarChar(255)
-  address                String?                  @db.NVarChar(500)
-  city                   String?                  @db.NVarChar(100)
-  state                  String?                  @db.NVarChar(100)
-  zipcode                String?                  @db.NVarChar(20)
-  latitude               Decimal?                 @db.Decimal(10, 8)
-  longitude              Decimal?                 @db.Decimal(11, 8)
-  credit_limit           Decimal?                 @db.Decimal(18, 2)
-  outstanding_amount     Decimal?                 @default(0, map: "DF__customers__outst__49C3F6B7") @db.Decimal(18, 2)
-  route_id               Int?
-  salesperson_id         Int?
-  last_visit_date        DateTime?
-  is_active              String                   @default("Y", map: "DF__customers__is_ac__4AB81AF0") @db.Char(1)
-  createdate             DateTime?                @default(now(), map: "DF__customers__creat__4BAC3F29") @db.DateTime
-  createdby              Int
-  updatedate             DateTime?                @db.DateTime
-  updatedby              Int?
-  log_inst               Int?
-  competitor_activity    competitor_activity[]
-  coolers                coolers[]
-  credit_notes           credit_notes[]
-  customer_assets        customer_assets[]
-  customer_documents     customer_documents[]
-  customer_group_members customer_group_members[]
-  routes                 routes?                  @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__customers__paren__4CA06362")
-  users                  users?                   @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__customers__sales__4D94879B")
-  delivery_schedules     delivery_schedules[]
-  invoices               invoices[]
-  orders                 orders[]
-  payments               payments[]
-  product_facing         product_facing[]
-  return_requests        return_requests[]
-  route_exceptions       route_exceptions[]
-  route_plan_details     route_plan_details[]
-  serial_numbers         serial_numbers[]
-  visits                 visits[]
-  warranty_claims        warranty_claims[]
+  id                            Int                      @id() @default(autoincrement())
+  name                          String                   @db.NVarChar(255)
+  code                          String                   @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
+  zones_id                      Int?                     @db.Int
+  type                          String?                  @db.NVarChar(50)
+  contact_person                String?                  @db.NVarChar(255)
+  phone_number                  String?                  @db.NVarChar(20)
+  email                         String?                  @db.NVarChar(255)
+  address                       String?                  @db.NVarChar(500)
+  city                          String?                  @db.NVarChar(100)
+  state                         String?                  @db.NVarChar(100)
+  zipcode                       String?                  @db.NVarChar(20)
+  latitude                      Decimal?                 @db.Decimal(10, 8)
+  longitude                     Decimal?                 @db.Decimal(11, 8)
+  credit_limit                  Decimal?                 @db.Decimal(18, 2)
+  outstanding_amount            Decimal?                 @default(0, map: "DF__customers__outst__49C3F6B7") @db.Decimal(18, 2)
+  route_id                      Int?
+  salesperson_id                Int?
+  last_visit_date               DateTime?
+  is_active                     String                   @default("Y") @db.Char(1)
+  createdate                    DateTime?                @default(now()) @db.DateTime
+  createdby                     Int
+  updatedate                    DateTime?                @db.DateTime
+  updatedby                     Int?
+  log_inst                      Int?
+  competitor_activity_customers competitor_activity[]
+  coolers_customers             coolers[]
+  credit_notes_customers        credit_notes[]
+  customer_assets_customers     customer_assets[]
+  customer_documents            customer_documents[]
+  customer_group_members        customer_group_members[]
+  customer_routes               routes?                  @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer_users                users?                   @relation(fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  delivery_schedules_customers  delivery_schedules[]
+  invoices_customers            invoices[]
+  orders_customers              orders[]
+  payments_customers            payments[]
+  product_facing_customers      product_facing[]
+  return_requests_customers     return_requests[]
+  customer_route_exceptions     route_exceptions[]
+  route_plan_details_customers  route_plan_details[]
+  serial_numbers_customers      serial_numbers[]
+  visit_customers               visits[]
+  warranty_claims_customers     warranty_claims[]
+  customer_zones                zones?                   @relation("ZoneCustomer", fields: [zones_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model delivery_schedules {
-  id                    Int       @id(map: "PK__delivery__3213E83F85B313EA") @default(autoincrement())
-  order_id              Int
-  customer_id           Int
-  scheduled_date        DateTime  @db.DateTime
-  scheduled_time_slot   String?   @db.NVarChar(20)
-  assigned_vehicle_id   Int?
-  assigned_driver_id    Int?
-  status                String?   @default("scheduled", map: "DF__delivery___statu__57FD0775") @db.NVarChar(20)
-  priority              String?   @default("medium", map: "DF__delivery___prior__59E54FE7") @db.NVarChar(10)
-  delivery_instructions String?
-  actual_delivery_time  DateTime? @db.DateTime
-  delivery_proof        String?   @db.NVarChar(500)
-  customer_signature    String?   @db.NVarChar(Max)
-  failure_reason        String?   @db.NVarChar(500)
-  rescheduled_date      DateTime? @db.DateTime
-  is_active             String    @default("Y", map: "DF__delivery___is_ac__5AD97420") @db.Char(1)
-  createdate            DateTime? @default(now(), map: "DF__delivery___creat__5BCD9859") @db.DateTime
-  createdby             Int
-  updatedate            DateTime? @db.DateTime
-  updatedby             Int?
-  log_inst              Int?
-  vehicles              vehicles? @relation(fields: [assigned_vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__delivery___assig__5EAA0504")
-  users                 users?    @relation(fields: [assigned_driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__delivery___assig__5F9E293D")
-  customers             customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__delivery___custo__5DB5E0CB")
-  orders                orders    @relation(fields: [order_id], references: [id], onUpdate: NoAction, map: "FK__delivery___order__5CC1BC92")
-}
-
-model depots {
-  id                                                       Int               @id(map: "PK__depots__3213E83F2BEB71BC") @default(autoincrement())
-  parent_id                                                Int
-  name                                                     String            @db.NVarChar(255)
-  code                                                     String            @db.NVarChar(50)
-  address                                                  String?           @db.NVarChar(500)
-  city                                                     String?           @db.NVarChar(100)
-  state                                                    String?           @db.NVarChar(100)
-  zipcode                                                  String?           @db.NVarChar(20)
-  phone_number                                             String?           @db.NVarChar(20)
-  email                                                    String?           @db.NVarChar(255)
-  manager_id                                               Int?
-  supervisor_id                                            Int?
-  coordinator_id                                           Int?
-  latitude                                                 Decimal?          @db.Decimal(10, 8)
-  longitude                                                Decimal?          @db.Decimal(11, 8)
-  is_active                                                String            @default("Y", map: "DF__depots__is_activ__29572725") @db.Char(1)
-  createdate                                               DateTime?         @default(now(), map: "DF__depots__createda__2A4B4B5E") @db.DateTime
-  createdby                                                Int
-  updatedate                                               DateTime?         @db.DateTime
-  updatedby                                                Int?
-  log_inst                                                 Int?
-  companies                                                companies         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__depots__parent_i__2B3F6F97")
-  inventory_stock                                          inventory_stock[]
-  promotions                                               promotions[]
-  routes                                                   routes[]
-  serial_numbers                                           serial_numbers[]
-  stock_movements_stock_movements_from_location_idTodepots stock_movements[] @relation("stock_movements_from_location_idTodepots")
-  stock_movements_stock_movements_to_location_idTodepots   stock_movements[] @relation("stock_movements_to_location_idTodepots")
-  users                                                    users[]
-  zones                                                    zones[]
+  id                           Int       @id(map: "PK__delivery__3213E83F85B313EA") @default(autoincrement())
+  order_id                     Int
+  customer_id                  Int
+  scheduled_date               DateTime  @db.DateTime
+  scheduled_time_slot          String?   @db.NVarChar(20)
+  assigned_vehicle_id          Int?
+  assigned_driver_id           Int?
+  status                       String?   @default("scheduled", map: "DF__delivery___statu__57FD0775") @db.NVarChar(20)
+  priority                     String?   @default("medium", map: "DF__delivery___prior__59E54FE7") @db.NVarChar(10)
+  delivery_instructions        String?
+  actual_delivery_time         DateTime? @db.DateTime
+  delivery_proof               String?   @db.NVarChar(500)
+  customer_signature           String?   @db.NVarChar(Max)
+  failure_reason               String?   @db.NVarChar(500)
+  rescheduled_date             DateTime? @db.DateTime
+  is_active                    String    @default("Y", map: "DF__delivery___is_ac__5AD97420") @db.Char(1)
+  createdate                   DateTime? @default(now(), map: "DF__delivery___creat__5BCD9859") @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime? @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  vehicles                     vehicles? @relation(fields: [assigned_vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__delivery___assig__5EAA0504")
+  users                        users?    @relation(fields: [assigned_driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__delivery___assig__5F9E293D")
+  delivery_schedules_customers customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  orders                       orders    @relation(fields: [order_id], references: [id], onUpdate: NoAction, map: "FK__delivery___order__5CC1BC92")
 }
 
 model digital_signatures {
@@ -697,7 +813,7 @@ model inventory_stock {
   updatedate          DateTime? @db.DateTime
   updatedby           Int?
   log_inst            Int?
-  depots              depots    @relation(fields: [location_id], references: [id], onUpdate: NoAction, map: "FK__inventory__locat__03BB8E22")
+  depots              depots    @relation(fields: [location_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   products            products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__inventory__produ__02C769E9")
 }
 
@@ -718,36 +834,36 @@ model invoice_items {
 }
 
 model invoices {
-  id              Int             @id(map: "PK__invoices__3213E83F14772822") @default(autoincrement())
-  invoice_number  String          @unique(map: "UQ__invoices__8081A63A5B749F42") @db.NVarChar(50)
-  parent_id       Int
-  customer_id     Int
-  invoice_date    DateTime?       @default(now(), map: "DF__invoices__invoic__09A971A2")
-  due_date        DateTime?
-  status          String?         @default("draft", map: "DF__invoices__status__0B91BA14") @db.NVarChar(20)
-  payment_method  String?         @default("credit", map: "DF__invoices__paymen__0D7A0286") @db.NVarChar(20)
-  subtotal        Decimal?        @default(0, map: "DF__invoices__subtot__0E6E26BF") @db.Decimal(18, 2)
-  discount_amount Decimal?        @default(0, map: "DF__invoices__discou__0F624AF8") @db.Decimal(18, 2)
-  tax_amount      Decimal?        @default(0, map: "DF__invoices__tax_am__10566F31") @db.Decimal(18, 2)
-  shipping_amount Decimal?        @default(0, map: "DF__invoices__shippi__114A936A") @db.Decimal(18, 2)
-  total_amount    Decimal?        @default(0, map: "DF__invoices__total___123EB7A3") @db.Decimal(18, 2)
-  amount_paid     Decimal?        @default(0, map: "DF__invoices__amount__1332DBDC") @db.Decimal(18, 2)
-  balance_due     Decimal?        @db.Decimal(19, 2)
-  notes           String?
-  billing_address String?
-  is_active       String          @default("Y", map: "DF__invoices__is_act__14270015") @db.Char(1)
-  createdate      DateTime?       @default(now(), map: "DF__invoices__create__151B244E") @db.DateTime
-  createdby       Int
-  updatedate      DateTime?       @db.DateTime
-  updatedby       Int?
-  log_inst        Int?
-  currency_id     Int?
-  invoice_items   invoice_items[]
-  currencies      currencies?     @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__invoices__curren__65370702")
-  customers       customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__invoices__custom__17036CC0")
-  orders          orders          @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoices__parent__160F4887")
-  payment_lines   payment_lines[]
-  refund_lines    refund_lines[]
+  id                 Int             @id(map: "PK__invoices__3213E83F14772822") @default(autoincrement())
+  invoice_number     String          @unique(map: "UQ__invoices__8081A63A5B749F42") @db.NVarChar(50)
+  parent_id          Int
+  customer_id        Int
+  invoice_date       DateTime?       @default(now(), map: "DF__invoices__invoic__09A971A2")
+  due_date           DateTime?
+  status             String?         @default("draft", map: "DF__invoices__status__0B91BA14") @db.NVarChar(20)
+  payment_method     String?         @default("credit", map: "DF__invoices__paymen__0D7A0286") @db.NVarChar(20)
+  subtotal           Decimal?        @default(0, map: "DF__invoices__subtot__0E6E26BF") @db.Decimal(18, 2)
+  discount_amount    Decimal?        @default(0, map: "DF__invoices__discou__0F624AF8") @db.Decimal(18, 2)
+  tax_amount         Decimal?        @default(0, map: "DF__invoices__tax_am__10566F31") @db.Decimal(18, 2)
+  shipping_amount    Decimal?        @default(0, map: "DF__invoices__shippi__114A936A") @db.Decimal(18, 2)
+  total_amount       Decimal?        @default(0, map: "DF__invoices__total___123EB7A3") @db.Decimal(18, 2)
+  amount_paid        Decimal?        @default(0, map: "DF__invoices__amount__1332DBDC") @db.Decimal(18, 2)
+  balance_due        Decimal?        @db.Decimal(19, 2)
+  notes              String?
+  billing_address    String?
+  is_active          String          @default("Y", map: "DF__invoices__is_act__14270015") @db.Char(1)
+  createdate         DateTime?       @default(now(), map: "DF__invoices__create__151B244E") @db.DateTime
+  createdby          Int
+  updatedate         DateTime?       @db.DateTime
+  updatedby          Int?
+  log_inst           Int?
+  currency_id        Int?
+  invoice_items      invoice_items[]
+  currencies         currencies?     @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__invoices__curren__65370702")
+  invoices_customers customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  orders             orders          @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoices__parent__160F4887")
+  payment_lines      payment_lines[]
+  refund_lines       refund_lines[]
 }
 
 model login_history {
@@ -810,43 +926,43 @@ model order_items {
 }
 
 model orders {
-  id                                 Int                  @id(map: "PK__orders__3213E83F905B1E46") @default(autoincrement())
-  order_number                       String               @unique(map: "UQ__orders__730E34DFD86AF7A9") @db.NVarChar(50)
-  parent_id                          Int
-  salesperson_id                     Int
-  order_date                         DateTime?            @default(now(), map: "DF__orders__order_da__693CA210")
-  delivery_date                      DateTime?
-  status                             String?              @default("draft", map: "DF__orders__status__6B24EA82") @db.NVarChar(20)
-  priority                           String?              @default("medium", map: "DF__orders__priority__6D0D32F4") @db.NVarChar(10)
-  order_type                         String?              @default("regular", map: "DF__orders__order_ty__6EF57B66") @db.NVarChar(20)
-  payment_method                     String?              @default("credit", map: "DF__orders__payment___70DDC3D8") @db.NVarChar(20)
-  payment_terms                      String?              @default("Net 30", map: "DF__orders__payment___71D1E811") @db.NVarChar(50)
-  subtotal                           Decimal?             @default(0, map: "DF__orders__subtotal__72C60C4A") @db.Decimal(18, 2)
-  discount_amount                    Decimal?             @default(0, map: "DF__orders__discount__73BA3083") @db.Decimal(18, 2)
-  tax_amount                         Decimal?             @default(0, map: "DF__orders__tax_amou__74AE54BC") @db.Decimal(18, 2)
-  shipping_amount                    Decimal?             @default(0, map: "DF__orders__shipping__75A278F5") @db.Decimal(18, 2)
-  total_amount                       Decimal?             @default(0, map: "DF__orders__total_am__76969D2E") @db.Decimal(18, 2)
-  notes                              String?
-  shipping_address                   String?
-  approval_status                    String?              @default("pending", map: "DF__orders__approval__787EE5A0") @db.NVarChar(20)
-  approved_by                        Int?
-  approved_at                        DateTime?
-  is_active                          String               @default("Y", map: "DF__orders__is_activ__797309D9") @db.Char(1)
-  createdate                         DateTime?            @default(now(), map: "DF__orders__createda__7A672E12") @db.DateTime
-  createdby                          Int
-  updatedate                         DateTime?            @db.DateTime
-  updatedby                          Int?
-  log_inst                           Int?
-  currency_id                        Int?
-  credit_notes                       credit_notes[]
-  delivery_schedules                 delivery_schedules[]
-  digital_signatures                 digital_signatures[]
-  invoices                           invoices[]
-  order_items                        order_items[]
-  users_orders_approved_byTousers    users?               @relation("orders_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__orders__approved__7D439ABD")
-  currencies                         currencies?          @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__orders__currency__662B2B3B")
-  customers                          customers            @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__orders__parent_i__7B5B524B")
-  users_orders_salesperson_idTousers users                @relation("orders_salesperson_idTousers", fields: [salesperson_id], references: [id], onUpdate: NoAction, map: "FK__orders__salesper__7C4F7684")
+  id                 Int                  @id() @default(autoincrement())
+  order_number       String               @unique() @db.NVarChar(50)
+  parent_id          Int
+  salesperson_id     Int
+  order_date         DateTime?            @default(now())
+  delivery_date      DateTime?
+  status             String?              @default("draft") @db.NVarChar(20)
+  priority           String?              @default("medium") @db.NVarChar(10)
+  order_type         String?              @default("regular") @db.NVarChar(20)
+  payment_method     String?              @default("credit") @db.NVarChar(20)
+  payment_terms      String?              @default("Net 30") @db.NVarChar(50)
+  subtotal           Decimal?             @default(0) @db.Decimal(18, 2)
+  discount_amount    Decimal?             @default(0) @db.Decimal(18, 2)
+  tax_amount         Decimal?             @default(0) @db.Decimal(18, 2)
+  shipping_amount    Decimal?             @default(0) @db.Decimal(18, 2)
+  total_amount       Decimal?             @default(0) @db.Decimal(18, 2)
+  notes              String?
+  shipping_address   String?
+  approval_status    String?              @default("pending") @db.NVarChar(20)
+  approved_by        Int?
+  approved_at        DateTime?
+  is_active          String               @default("Y") @db.Char(1)
+  createdate         DateTime?            @default(now()) @db.DateTime
+  createdby          Int
+  updatedate         DateTime?            @db.DateTime
+  updatedby          Int?
+  log_inst           Int?
+  currency_id        Int?
+  credit_notes       credit_notes[]
+  delivery_schedules delivery_schedules[]
+  digital_signatures digital_signatures[]
+  invoices           invoices[]
+  order_items        order_items[]
+  orders_approved_by users?               @relation("OrdersApprovedBy", fields: [approved_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  orders_currencies  currencies?          @relation("OrdersCurrencies", fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders_customers   customers            @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  orders_salesperson users                @relation("OrdersSalesperson", fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model payment_lines {
@@ -902,7 +1018,7 @@ model payments {
   payment_refunds                    payment_refunds[]
   users_payments_collected_byTousers users             @relation("payments_collected_byTousers", fields: [collected_by], references: [id], onUpdate: NoAction, map: "FK__payments__collec__4A8310C6")
   currencies                         currencies?       @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__payments__curren__681373AD")
-  customers                          customers         @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__payments__custom__498EEC8D")
+  payments_customers                 customers         @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model price_history {
@@ -980,23 +1096,23 @@ model product_categories {
 }
 
 model product_facing {
-  id           Int       @id(map: "PK__product___3213E83F24D5352E") @default(autoincrement())
-  customer_id  Int
-  product_id   Int
-  visit_id     Int?
-  facing_count Int
-  shelf_level  String?   @db.NVarChar(50)
-  image_url    String?   @db.NVarChar(500)
-  remarks      String?
-  is_active    String    @default("Y", map: "DF__product_f__is_ac__2F2FFC0C") @db.Char(1)
-  createdate   DateTime? @default(now(), map: "DF__product_f__creat__30242045") @db.DateTime
-  createdby    Int
-  updatedate   DateTime? @db.DateTime
-  updatedby    Int?
-  log_inst     Int?
-  customers    customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__product_f__custo__3118447E")
-  products     products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__product_f__produ__320C68B7")
-  visits       visits?   @relation(fields: [visit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__product_f__visit__33008CF0")
+  id                       Int       @id(map: "PK__product___3213E83F24D5352E") @default(autoincrement())
+  customer_id              Int
+  product_id               Int
+  visit_id                 Int?
+  facing_count             Int
+  shelf_level              String?   @db.NVarChar(50)
+  image_url                String?   @db.NVarChar(500)
+  remarks                  String?
+  is_active                String    @default("Y", map: "DF__product_f__is_ac__2F2FFC0C") @db.Char(1)
+  createdate               DateTime? @default(now(), map: "DF__product_f__creat__30242045") @db.DateTime
+  createdby                Int
+  updatedate               DateTime? @db.DateTime
+  updatedby                Int?
+  log_inst                 Int?
+  product_facing_customers customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  products                 products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__product_f__produ__320C68B7")
+  visits                   visits?   @relation(fields: [visit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__product_f__visit__33008CF0")
 }
 
 model product_sub_categories {
@@ -1072,7 +1188,7 @@ model promotion_customer_types {
   updatedate    DateTime?  @db.DateTime
   updatedby     Int?
   log_inst      Int?
-  promotions    promotions @relation(fields: [promotion_id], references: [id], onUpdate: NoAction, map: "FK__promotion__promo__6BAEFA67")
+  promotions    promotions @relation(fields: [promotion_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_parameters {
@@ -1158,7 +1274,7 @@ model return_requests {
   updatedby                                Int?
   log_inst                                 Int?
   users_return_requests_approved_byTousers users?          @relation("return_requests_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__return_re__appro__3EDC53F0")
-  customers                                customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__return_re__custo__3BFFE745")
+  return_requests_customers                customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   products                                 products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__return_re__produ__3CF40B7E")
   serial_numbers                           serial_numbers? @relation(fields: [serial_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__return_re__seria__3DE82FB7")
 }
@@ -1198,27 +1314,27 @@ model route_exceptions {
   updatedate                                    DateTime? @db.DateTime
   updatedby                                     Int?
   log_inst                                      Int?
-  customers                                     customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__route_exc__custo__22CA2527")
+  customer_route_exceptions                     customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   users_route_exceptions_sales_person_idTousers users     @relation("route_exceptions_sales_person_idTousers", fields: [sales_person_id], references: [id], onUpdate: NoAction, map: "FK__route_exc__sales__21D600EE")
   visits                                        visits    @relation(fields: [visit_id], references: [id], onUpdate: NoAction, map: "FK__route_exc__visit__20E1DCB5")
 }
 
 model route_plan_details {
-  id                Int         @id(map: "PK__route_pl__3213E83F5E4DA8CE") @default(autoincrement())
-  parent_id         Int
-  customer_id       Int
-  visit_sequence    Int
-  scheduled_date    DateTime    @db.Date
-  time_window_start DateTime?   @db.Time
-  time_window_end   DateTime?   @db.Time
-  is_active         String      @default("Y", map: "DF__route_pla__is_ac__7E8CC4B1") @db.Char(1)
-  createdate        DateTime?   @default(now(), map: "DF__route_pla__creat__7F80E8EA") @db.DateTime
-  createdby         Int
-  updatedate        DateTime?   @db.DateTime
-  updatedby         Int?
-  log_inst          Int?
-  customers         customers   @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__route_pla__custo__0169315C")
-  route_plans       route_plans @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__route_pla__paren__00750D23")
+  id                           Int         @id(map: "PK__route_pl__3213E83F5E4DA8CE") @default(autoincrement())
+  parent_id                    Int
+  customer_id                  Int
+  visit_sequence               Int
+  scheduled_date               DateTime    @db.Date
+  time_window_start            DateTime?   @db.Time
+  time_window_end              DateTime?   @db.Time
+  is_active                    String      @default("Y", map: "DF__route_pla__is_ac__7E8CC4B1") @db.Char(1)
+  createdate                   DateTime?   @default(now(), map: "DF__route_pla__creat__7F80E8EA") @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime?   @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  route_plan_details_customers customers   @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  route_plans                  route_plans @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__route_pla__paren__00750D23")
 }
 
 model route_plans {
@@ -1264,15 +1380,16 @@ model routes {
   end_location       String?     @db.NVarChar(255)
   estimated_distance Decimal?    @db.Decimal(10, 2)
   estimated_time     Int?
-  is_active          String      @default("Y", map: "DF__routes__is_activ__32E0915F") @db.Char(1)
-  createdate         DateTime?   @default(now(), map: "DF__routes__createda__33D4B598") @db.DateTime
+  is_active          String      @default("Y") @db.Char(1)
+  createdate         DateTime?   @default(now()) @db.DateTime
   createdby          Int
   updatedate         DateTime?   @db.DateTime
   updatedby          Int?
   log_inst           Int?
-  customers          customers[]
-  depots             depots      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, map: "FK__routes__depot_id__35BCFE0A")
-  zones              zones       @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__routes__parent_i__34C8D9D1")
+  customer_routes    customers[]
+  routes_depots      depots      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  routes_zones       zones       @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  routes_salesperson users?      @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   visits             visits[]
 }
 
@@ -1358,29 +1475,29 @@ model sales_targets {
 }
 
 model serial_numbers {
-  id              Int               @id(map: "PK__serial_n__3213E83FF27AFA1D") @default(autoincrement())
-  product_id      Int
-  serial_number   String            @unique(map: "UQ__serial_n__BED14FEECBB93DDA") @db.NVarChar(100)
-  batch_id        Int?
-  status          String?           @default("available", map: "DF__serial_nu__statu__12FDD1B2") @db.NVarChar(20)
-  customer_id     Int?
-  sold_date       DateTime?
-  warranty_expiry DateTime?
-  location_id     Int?
-  is_active       String            @default("Y", map: "DF__serial_nu__is_ac__13F1F5EB") @db.Char(1)
-  createdate      DateTime?         @default(now(), map: "DF__serial_nu__creat__14E61A24") @db.DateTime
-  createdby       Int
-  updatedate      DateTime?         @db.DateTime
-  updatedby       Int?
-  log_inst        Int?
-  return_requests return_requests[]
-  batch_lots      batch_lots?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__batch__16CE6296")
-  customers       customers?        @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__custo__17C286CF")
-  depots          depots?           @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__locat__18B6AB08")
-  products        products          @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__serial_nu__produ__15DA3E5D")
-  stock_movements stock_movements[]
-  van_inventory   van_inventory[]
-  warranty_claims warranty_claims[]
+  id                       Int               @id(map: "PK__serial_n__3213E83FF27AFA1D") @default(autoincrement())
+  product_id               Int
+  serial_number            String            @unique(map: "UQ__serial_n__BED14FEECBB93DDA") @db.NVarChar(100)
+  batch_id                 Int?
+  status                   String?           @default("available", map: "DF__serial_nu__statu__12FDD1B2") @db.NVarChar(20)
+  customer_id              Int?
+  sold_date                DateTime?
+  warranty_expiry          DateTime?
+  location_id              Int?
+  is_active                String            @default("Y", map: "DF__serial_nu__is_ac__13F1F5EB") @db.Char(1)
+  createdate               DateTime?         @default(now(), map: "DF__serial_nu__creat__14E61A24") @db.DateTime
+  createdby                Int
+  updatedate               DateTime?         @db.DateTime
+  updatedby                Int?
+  log_inst                 Int?
+  return_requests          return_requests[]
+  batch_lots               batch_lots?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__batch__16CE6296")
+  serial_numbers_customers customers?        @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  depots                   depots?           @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__locat__18B6AB08")
+  products                 products          @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__serial_nu__produ__15DA3E5D")
+  stock_movements          stock_movements[]
+  van_inventory            van_inventory[]
+  warranty_claims          warranty_claims[]
 }
 
 model settings {
@@ -1398,29 +1515,28 @@ model settings {
 }
 
 model stock_movements {
-  id                                              Int             @id(map: "PK__stock_mo__3213E83FF52C8600") @default(autoincrement())
-  product_id                                      Int
-  batch_id                                        Int?
-  serial_id                                       Int?
-  movement_type                                   String          @db.NVarChar(20)
-  reference_type                                  String?         @db.NVarChar(50)
-  reference_id                                    Int?
-  from_location_id                                Int?
-  to_location_id                                  Int?
-  quantity                                        Int
-  movement_date                                   DateTime?       @default(now(), map: "DF__stock_mov__movem__1E6F845E")
-  remarks                                         String?         @db.NVarChar(500)
-  is_active                                       String          @default("Y", map: "DF__stock_mov__is_ac__1F63A897") @db.Char(1)
-  createdate                                      DateTime?       @default(now(), map: "DF__stock_mov__creat__2057CCD0") @db.DateTime
-  createdby                                       Int
-  updatedate                                      DateTime?       @db.DateTime
-  updatedby                                       Int?
-  log_inst                                        Int?
-  batch_lots                                      batch_lots?     @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_mov__batch__22401542")
-  depots_stock_movements_from_location_idTodepots depots?         @relation("stock_movements_from_location_idTodepots", fields: [from_location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_mov__from___24285DB4")
-  products                                        products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__stock_mov__produ__214BF109")
-  serial_numbers                                  serial_numbers? @relation(fields: [serial_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_mov__seria__2334397B")
-  depots_stock_movements_to_location_idTodepots   depots?         @relation("stock_movements_to_location_idTodepots", fields: [to_location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_mov__to_lo__251C81ED")
+  id                     Int             @id(map: "PK__stock_mo__3213E83FF52C8600") @default(autoincrement())
+  product_id             Int
+  batch_id               Int?
+  serial_id              Int?
+  movement_type          String          @db.NVarChar(20)
+  reference_type         String?         @db.NVarChar(50)
+  reference_id           Int?
+  from_location_id       Int?
+  to_location_id         Int?
+  quantity               Int
+  movement_date          DateTime?       @default(now(), map: "DF__stock_mov__movem__1E6F845E")
+  remarks                String?         @db.NVarChar(500)
+  is_active              String          @default("Y", map: "DF__stock_mov__is_ac__1F63A897") @db.Char(1)
+  createdate             DateTime?       @default(now(), map: "DF__stock_mov__creat__2057CCD0") @db.DateTime
+  createdby              Int
+  updatedate             DateTime?       @db.DateTime
+  updatedby              Int?
+  log_inst               Int?
+  batch_lots             batch_lots?     @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_mov__batch__22401542")
+  products               products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__stock_mov__produ__214BF109")
+  serial_numbers         serial_numbers? @relation(fields: [serial_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_mov__seria__2334397B")
+  stock_movements_depots depots?         @relation("stock_movements_to_location_idTodepots", fields: [to_location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model stock_transfer_lines {
@@ -1464,12 +1580,12 @@ model stock_transfer_requests {
 }
 
 model survey_answers {
-  id               Int              @id(map: "PK__survey_a__3213E83F1E327198") @default(autoincrement())
-  parent_id        Int
-  field_id         Int
-  answer           String?          @db.NVarChar(Max)
-  survey_fields    survey_fields    @relation(fields: [field_id], references: [id], onUpdate: NoAction, map: "FK__survey_an__field__656C112C")
-  survey_responses survey_responses @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__survey_an__paren__6477ECF3")
+  id                      Int              @id(map: "PK__survey_a__3213E83F1E327198") @default(autoincrement())
+  parent_id               Int
+  field_id                Int
+  answer                  String?          @db.NVarChar(Max)
+  survey_fields           survey_fields    @relation(fields: [field_id], references: [id], onUpdate: NoAction, map: "FK__survey_an__field__656C112C")
+  survey_answer_responses survey_responses @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model survey_fields {
@@ -1485,21 +1601,21 @@ model survey_fields {
 }
 
 model survey_responses {
-  id                                         Int                       @id(map: "PK__survey_r__3213E83FEC719727") @default(autoincrement())
-  parent_id                                  Int
-  submitted_by                               Int
-  submitted_at                               DateTime?                 @default(now(), map: "DF__survey_re__submi__5CD6CB2B")
-  location                                   Unsupported("geography")?
-  photo_url                                  String?                   @db.NVarChar(Max)
-  is_active                                  String                    @default("Y", map: "DF__survey_re__is_ac__5DCAEF64") @db.Char(1)
-  createdate                                 DateTime?                 @default(now(), map: "DF__survey_re__creat__5EBF139D") @db.DateTime
-  createdby                                  Int
-  updatedate                                 DateTime?                 @db.DateTime
-  updatedby                                  Int?
-  log_inst                                   Int?
-  survey_answers                             survey_answers[]
-  surveys                                    surveys                   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__survey_re__paren__5FB337D6")
-  users_survey_responses_submitted_byTousers users                     @relation("survey_responses_submitted_byTousers", fields: [submitted_by], references: [id], onUpdate: NoAction, map: "FK__survey_re__submi__60A75C0F")
+  id                                  Int                       @id(map: "PK__survey_r__3213E83FEC719727") @default(autoincrement())
+  parent_id                           Int
+  submitted_by                        Int
+  submitted_at                        DateTime?                 @default(now(), map: "DF__survey_re__submi__5CD6CB2B")
+  location                            Unsupported("geography")?
+  photo_url                           String?                   @db.NVarChar(Max)
+  is_active                           String                    @default("Y", map: "DF__survey_re__is_ac__5DCAEF64") @db.Char(1)
+  createdate                          DateTime?                 @default(now(), map: "DF__survey_re__creat__5EBF139D") @db.DateTime
+  createdby                           Int
+  updatedate                          DateTime?                 @db.DateTime
+  updatedby                           Int?
+  log_inst                            Int?
+  survey_answer_responses             survey_answers[]
+  surveys                             surveys                   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__survey_re__paren__5FB337D6")
+  survey_responses_submitted_by_users users                     @relation("survey_responses_submitted_users", fields: [submitted_by], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model surveys {
@@ -1520,104 +1636,6 @@ model surveys {
   log_inst         Int?
   survey_fields    survey_fields[]
   survey_responses survey_responses[]
-}
-
-model users {
-  id                                                                  Int                          @id(map: "PK__users__3213E83F0D3B3A05") @default(autoincrement())
-  username                                                            String                       @unique(map: "UQ__users__F3DBC5721BB9904E") @db.NVarChar(100)
-  email                                                               String                       @unique(map: "UQ__users__AB6E616419303B34") @db.NVarChar(255)
-  role_id                                                             Int
-  password_hash                                                       String                       @db.NVarChar(255)
-  name                                                                String                       @db.NVarChar(255)
-  role                                                                String                       @db.NVarChar(50)
-  parent_id                                                           Int
-  depot_id                                                            Int?
-  zone_id                                                             Int?
-  phone_number                                                        String?                      @db.NVarChar(20)
-  address                                                             String?                      @db.NVarChar(500)
-  employee_id                                                         String?                      @db.NVarChar(50)
-  joining_date                                                        DateTime?                    @db.Date
-  reporting_to                                                        Int?
-  profile_image                                                       String?                      @db.NVarChar(500)
-  last_login                                                          DateTime?
-  is_active                                                           String                       @default("Y", map: "DF__users__is_active__3B75D760") @db.Char(1)
-  createdate                                                          DateTime?                    @default(now(), map: "DF__users__createdat__3C69FB99") @db.DateTime
-  createdby                                                           Int
-  updatedate                                                          DateTime?                    @db.DateTime
-  updatedby                                                           Int?
-  log_inst                                                            Int?
-  api_tokens_api_tokens_user_idTousers                                api_tokens[]                 @relation("api_tokens_user_idTousers")
-  approval_workflows_approval_workflows_final_approved_byTousers      approval_workflows[]         @relation("approval_workflows_final_approved_byTousers")
-  approval_workflows_approval_workflows_rejected_byTousers            approval_workflows[]         @relation("approval_workflows_rejected_byTousers")
-  approval_workflows_approval_workflows_requested_byTousers           approval_workflows[]         @relation("approval_workflows_requested_byTousers")
-  audit_logs_audit_logs_changed_byTousers                             audit_logs[]                 @relation("audit_logs_changed_byTousers")
-  cooler_inspections                                                  cooler_inspections[]
-  coolers                                                             coolers[]
-  customer_assets                                                     customer_assets[]
-  customer_assets_history_customer_assets_history_changed_byTousers   customer_assets_history[]    @relation("customer_assets_history_changed_byTousers")
-  customer_documents                                                  customer_documents[]
-  customers                                                           customers[]
-  delivery_schedules                                                  delivery_schedules[]
-  employee_kpi_targets_employee_kpi_targets_employee_idTousers        employee_kpi_targets[]       @relation("employee_kpi_targets_employee_idTousers")
-  gps_logs_gps_logs_user_idTousers                                    gps_logs[]                   @relation("gps_logs_user_idTousers")
-  login_history_login_history_user_idTousers                          login_history[]              @relation("login_history_user_idTousers")
-  notifications                                                       notifications[]
-  orders_orders_approved_byTousers                                    orders[]                     @relation("orders_approved_byTousers")
-  orders_orders_salesperson_idTousers                                 orders[]                     @relation("orders_salesperson_idTousers")
-  payments_payments_collected_byTousers                               payments[]                   @relation("payments_collected_byTousers")
-  price_history_price_history_approved_byTousers                      price_history[]              @relation("price_history_approved_byTousers")
-  price_history_price_history_changed_byTousers                       price_history[]              @relation("price_history_changed_byTousers")
-  return_requests_return_requests_approved_byTousers                  return_requests[]            @relation("return_requests_approved_byTousers")
-  return_workflow_return_workflow_action_byTousers                    return_workflow[]            @relation("return_workflow_action_byTousers")
-  route_exceptions_route_exceptions_sales_person_idTousers            route_exceptions[]           @relation("route_exceptions_sales_person_idTousers")
-  route_plans_route_plans_sales_person_idTousers                      route_plans[]                @relation("route_plans_sales_person_idTousers")
-  sales_target_group_members                                          sales_target_group_members[]
-  sales_target_overrides                                              sales_target_overrides[]
-  stock_transfer_requests_stock_transfer_requests_approved_byTousers  stock_transfer_requests[]    @relation("stock_transfer_requests_approved_byTousers")
-  stock_transfer_requests_stock_transfer_requests_requested_byTousers stock_transfer_requests[]    @relation("stock_transfer_requests_requested_byTousers")
-  survey_responses_survey_responses_submitted_byTousers               survey_responses[]           @relation("survey_responses_submitted_byTousers")
-  depots                                                              depots?                      @relation(fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__depot_id__3E52440B")
-  companies                                                           companies                    @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__users__parent_id__3D5E1FD2")
-  users                                                               users?                       @relation("usersTousers", fields: [reporting_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__reporting__403A8C7D")
-  other_users                                                         users[]                      @relation("usersTousers")
-  zones                                                               zones?                       @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__zone_id__3F466844")
-  van_inventory_van_inventory_user_idTousers                          van_inventory[]              @relation("van_inventory_user_idTousers")
-  vehicles                                                            vehicles[]
-  visit_tasks                                                         visit_tasks[]
-  visits                                                              visits[]
-  workflow_steps_workflow_steps_assigned_user_idTousers               workflow_steps[]             @relation("workflow_steps_assigned_user_idTousers")
-  workflow_steps_workflow_steps_processed_byTousers                   workflow_steps[]             @relation("workflow_steps_processed_byTousers")
-  user_role                                                           roles                        @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-}
-
-model roles {
-  id               Int                @id() @default(autoincrement())
-  name             String             @unique @db.NVarChar(100)
-  user_id          Int
-  description      String?            @db.NVarChar(500)
-  is_active        String             @default("Y") @db.Char(1)
-  createdate       DateTime?          @default(now()) @db.DateTime
-  createdby        Int
-  updatedate       DateTime?          @db.DateTime
-  updatedby        Int?
-  log_inst         Int?
-  user_role        users[]
-  roles_permission role_permissions[]
-}
-
-model role_permissions {
-  id               Int       @id() @default(autoincrement())
-  role_id          Int
-  permission_id    Int
-  is_active        String    @default("Y") @db.Char(1)
-  createdate       DateTime? @default(now()) @db.DateTime
-  createdby        Int
-  updatedate       DateTime? @db.DateTime
-  updatedby        Int?
-  log_inst         Int?
-  roles_permission roles?    @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-
-  @@unique([role_id, permission_id], map: "uq_role_permission")
 }
 
 model van_inventory {
@@ -1716,6 +1734,7 @@ model visits {
   customer_id         Int
   sales_person_id     Int
   route_id            Int?
+  zones_id            Int?
   visit_date          DateTime?             @default(now(), map: "DF__visits__visit_da__3DB3258D")
   visit_time          String?               @db.NVarChar(10)
   purpose             String?               @default("sales", map: "DF__visits__purpose__3F9B6DFF") @db.NVarChar(20)
@@ -1746,9 +1765,10 @@ model visits {
   route_exceptions    route_exceptions[]
   visit_attachments   visit_attachments[]
   visit_tasks         visit_tasks[]
-  customers           customers             @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__visits__customer__46486B8E")
-  routes              routes?               @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__visits__route_id__4830B400")
-  users               users                 @relation(fields: [sales_person_id], references: [id], onUpdate: NoAction, map: "FK__visits__sales_pe__473C8FC7")
+  visit_customers     customers             @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  visit_routes        routes?               @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  visits_salesperson  users                 @relation(fields: [sales_person_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  visit_zones         zones?                @relation("VisitZones", fields: [zones_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model warehouses {
@@ -1766,24 +1786,24 @@ model warehouses {
 }
 
 model warranty_claims {
-  id                Int            @id(map: "PK__warranty__3213E83F32E529EF") @default(autoincrement())
-  serial_id         Int
-  product_id        Int
-  customer_id       Int
-  claim_date        DateTime?      @default(now(), map: "DF__warranty___claim__29E1370A")
-  issue_description String?
-  status            String?        @default("open", map: "DF__warranty___statu__2BC97F7C") @db.NVarChar(20)
-  resolution_notes  String?
-  resolved_date     DateTime?
-  is_active         String         @default("Y", map: "DF__warranty___is_ac__2CBDA3B5") @db.Char(1)
-  createdate        DateTime?      @default(now(), map: "DF__warranty___creat__2DB1C7EE") @db.DateTime
-  createdby         Int
-  updatedate        DateTime?      @db.DateTime
-  updatedby         Int?
-  log_inst          Int?
-  customers         customers      @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__warranty___custo__308E3499")
-  products          products       @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__warranty___produ__2F9A1060")
-  serial_numbers    serial_numbers @relation(fields: [serial_id], references: [id], onUpdate: NoAction, map: "FK__warranty___seria__2EA5EC27")
+  id                        Int            @id(map: "PK__warranty__3213E83F32E529EF") @default(autoincrement())
+  serial_id                 Int
+  product_id                Int
+  customer_id               Int
+  claim_date                DateTime?      @default(now(), map: "DF__warranty___claim__29E1370A")
+  issue_description         String?
+  status                    String?        @default("open", map: "DF__warranty___statu__2BC97F7C") @db.NVarChar(20)
+  resolution_notes          String?
+  resolved_date             DateTime?
+  is_active                 String         @default("Y", map: "DF__warranty___is_ac__2CBDA3B5") @db.Char(1)
+  createdate                DateTime?      @default(now(), map: "DF__warranty___creat__2DB1C7EE") @db.DateTime
+  createdby                 Int
+  updatedate                DateTime?      @db.DateTime
+  updatedby                 Int?
+  log_inst                  Int?
+  warranty_claims_customers customers      @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__warranty___custo__308E3499")
+  products                  products       @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__warranty___produ__2F9A1060")
+  serial_numbers            serial_numbers @relation(fields: [serial_id], references: [id], onUpdate: NoAction, map: "FK__warranty___seria__2EA5EC27")
 }
 
 model workflow_steps {
@@ -1811,20 +1831,23 @@ model workflow_steps {
 }
 
 model zones {
-  id            Int          @id(map: "PK__zones__3213E83F1B7A16B0") @default(autoincrement())
-  parent_id     Int
-  name          String       @db.NVarChar(255)
-  code          String       @db.NVarChar(50)
-  description   String?      @db.NVarChar(500)
-  supervisor_id Int?
-  is_active     String       @default("Y", map: "DF__zones__is_active__2E1BDC42") @db.Char(1)
-  createdate    DateTime?    @default(now(), map: "DF__zones__createdat__2F10007B") @db.DateTime
-  createdby     Int
-  updatedate    DateTime?    @db.DateTime
-  updatedby     Int?
-  log_inst      Int?
-  promotions    promotions[]
-  routes        routes[]
-  users         users[]
-  depots        depots       @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__zones__parent_id__300424B4")
+  id             Int          @id(map: "PK__zones__3213E83F1B7A16B0") @default(autoincrement())
+  parent_id      Int
+  depot_id       Int?
+  name           String       @db.NVarChar(255)
+  code           String       @db.NVarChar(50)
+  description    String?      @db.NVarChar(500)
+  supervisor_id  Int?
+  is_active      String       @default("Y", map: "DF__zones__is_active__2E1BDC42") @db.Char(1)
+  createdate     DateTime?    @default(now(), map: "DF__zones__createdat__2F10007B") @db.DateTime
+  createdby      Int
+  updatedate     DateTime?    @db.DateTime
+  updatedby      Int?
+  log_inst       Int?
+  promotions     promotions[]
+  routes_zones   routes[]
+  user_zones     users[]
+  zone_depots    depots?      @relation(fields: [depot_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  visit_zones    visits[]     @relation("VisitZones")
+  customer_zones customers[]  @relation("ZoneCustomer")
 }
