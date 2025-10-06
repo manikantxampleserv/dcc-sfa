@@ -59,6 +59,8 @@ export interface SearchInputProps {
   onChange?: (value: string) => void;
   /** Callback function called immediately on every keystroke (not debounced) */
   onInputChange?: (value: string) => void;
+  /** Callback function called when Enter key is pressed */
+  onEnterPress?: (value: string) => void;
   /** Additional CSS className for custom styling */
   className?: string;
   /** Input field size (default: 'small') */
@@ -83,6 +85,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   placeholder = 'Search...',
   onChange,
   onInputChange,
+  onEnterPress,
   className = '',
   size = 'small',
   showClear = true,
@@ -140,10 +143,25 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onInputChange?.('');
   }, [onChange, onInputChange]);
 
+  /**
+   * Handles Enter key press to trigger search action
+   * @param event - Keyboard event
+   */
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Enter' && onEnterPress) {
+        event.preventDefault();
+        onEnterPress(internalValue);
+      }
+    },
+    [onEnterPress, internalValue]
+  );
+
   return (
     <TextField
       value={internalValue}
       onChange={handleChange}
+      onKeyDown={handleKeyDown}
       placeholder={placeholder}
       size={size}
       disabled={disabled}

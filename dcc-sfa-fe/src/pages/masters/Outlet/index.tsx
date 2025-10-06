@@ -1,16 +1,14 @@
 import { Add, Block, CheckCircle } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import {
-  Store,
-  MapPin,
-  User,
-  UserCheck,
-  TrendingUp,
-  Users,
   CreditCard,
   DollarSign,
+  MapPin,
   Phone,
-  Mail,
+  Store,
+  TrendingUp,
+  UserCheck,
+  Users,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -18,15 +16,14 @@ import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
-import { useUsers } from '../../../hooks/useUsers';
-import { useRoutes } from '../../../hooks/useRoutes';
-import { useZones } from '../../../hooks/useZones';
 import {
-  useDeleteCustomer,
   useCustomers,
+  useDeleteCustomer,
   type Customer,
 } from '../../../hooks/useCustomers';
+import { useRoutes } from '../../../hooks/useRoutes';
+import { useUsers } from '../../../hooks/useUsers';
+import { useZones } from '../../../hooks/useZones';
 import ManageOutlet from './ManageOutlet';
 
 const OutletsManagement: React.FC = () => {
@@ -81,28 +78,32 @@ const OutletsManagement: React.FC = () => {
 
   // Statistics - Use API stats when available, fallback to local calculation
   const totalCustomers =
-    customersResponse?.stats?.totalCustomers ?? customers.length;
+    customersResponse?.stats?.total_customers ?? customers.length;
   const activeCustomers =
     customersResponse?.stats?.active_customers ??
     customers.filter(c => c.is_active === 'Y').length;
-  // const inactiveCustomers =
-  //   customersResponse?.stats?.inactive_customers ??
-  //   customers.filter(c => c.is_active === 'N').length;
 
-  // Type-based statistics
-  const distributors = customers.filter(c => c.type === 'distributor').length;
-  const retailers = customers.filter(c => c.type === 'retailer').length;
-  const wholesalers = customers.filter(c => c.type === 'wholesaler').length;
+  // Type-based statistics from API
+  const distributors =
+    customersResponse?.stats?.distributors ??
+    customers.filter(c => c.type === 'distributor').length;
+  const retailers =
+    customersResponse?.stats?.retailers ??
+    customers.filter(c => c.type === 'retailer').length;
+  const wholesalers =
+    customersResponse?.stats?.wholesellers ??
+    customers.filter(c => c.type === 'wholesaler').length;
 
-  // Financial statistics
-  const totalCreditLimit = customers.reduce(
-    (sum, c) => sum + parseFloat(c.credit_limit || '0'),
-    0
-  );
-  const totalOutstanding = customers.reduce(
-    (sum, c) => sum + parseFloat(c.outstanding_amount || '0'),
-    0
-  );
+  // Financial statistics from API
+  const totalCreditLimit = customersResponse?.stats?.total_credit_limit
+    ? parseFloat(customersResponse.stats.total_credit_limit)
+    : customers.reduce((sum, c) => sum + parseFloat(c.credit_limit || '0'), 0);
+  const totalOutstanding = customersResponse?.stats?.total_outstanding_amount
+    ? parseFloat(customersResponse.stats.total_outstanding_amount)
+    : customers.reduce(
+        (sum, c) => sum + parseFloat(c.outstanding_amount || '0'),
+        0
+      );
 
   const handleCreateOutlet = useCallback(() => {
     setSelectedOutlet(null);
@@ -168,11 +169,11 @@ const OutletsManagement: React.FC = () => {
     }
   };
 
-  // Define table columns following Routes pattern
+  // Define table columns with better separation
   const outletColumns: TableColumn<Customer>[] = [
     {
       id: 'name',
-      label: 'Outlet Info',
+      label: 'Outlet Name',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
@@ -184,7 +185,7 @@ const OutletsManagement: React.FC = () => {
           <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight"
+              className="!text-gray-900 !leading-tight !font-medium"
             >
               {row.name}
             </Typography>
@@ -200,18 +201,22 @@ const OutletsManagement: React.FC = () => {
     },
     {
       id: 'type',
-      label: 'Type & Contact',
+      label: 'Type',
+      render: (_value, row) => (
+        <span
+          className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(row.type || '')}`}
+        >
+          {getTypeIcon(row.type || '')}
+          <span className="ml-1 capitalize">{row.type || 'N/A'}</span>
+        </span>
+      ),
+    },
+    {
+      id: 'contact',
+      label: 'Contact Person',
       render: (_value, row) => (
         <Box>
-          <Box className="flex items-center mb-2">
-            <span
-              className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(row.type || '')}`}
-            >
-              {getTypeIcon(row.type || '')}
-              <span className="ml-1 capitalize">{row.type || 'N/A'}</span>
-            </span>
-          </Box>
-          <Typography variant="body2" className="!font-medium">
+          <Typography variant="body2" className="!font-medium !text-gray-900">
             {row.contact_person || 'No Contact'}
           </Typography>
           {row.phone_number && (
@@ -220,13 +225,16 @@ const OutletsManagement: React.FC = () => {
               {row.phone_number}
             </Box>
           )}
-          {row.email && (
-            <Box className="flex items-center text-sm text-gray-500 mt-1">
-              <Mail className="w-3 h-3 mr-1" />
-              {row.email}
-            </Box>
-          )}
         </Box>
+      ),
+    },
+    {
+      id: 'email',
+      label: 'Email',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.email || 'No Email'}
+        </Typography>
       ),
     },
     {
@@ -236,82 +244,53 @@ const OutletsManagement: React.FC = () => {
         <Box>
           <Box className="flex items-center text-gray-900">
             <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-            {row.city && row.state ? `${row.city}, ${row.state}` : 'N/A'}
+            {row.city && row.state && row.zipcode
+              ? `${row.city}${row.state ? `, ${row.state}` : ''}${row.zipcode ? `, ${row.zipcode}` : ''}`
+              : row.city
+                ? row.city
+                : row.state
+                  ? row.state
+                  : row.zipcode
+                    ? row.zipcode
+                    : 'N/A'}
           </Box>
-          {row.zipcode && (
-            <Typography
-              variant="caption"
-              className="!text-gray-500 !block !mt-1"
-            >
-              {row.zipcode}
-            </Typography>
-          )}
-          {row.latitude && row.longitude && (
-            <Typography
-              variant="caption"
-              className="!text-gray-400 !block !mt-1"
-            >
-              {parseFloat(row.latitude).toFixed(4)},{' '}
-              {parseFloat(row.longitude).toFixed(4)}
-            </Typography>
-          )}
         </Box>
       ),
     },
     {
-      id: 'route_sales',
-      label: 'Route & Sales',
+      id: 'route',
+      label: 'Route',
       render: (_value, row) => (
-        <Box>
-          {row.customer_routes ? (
-            <Box className="flex items-center text-sm text-gray-900 mb-1">
-              <Store className="w-4 h-4 text-gray-400 mr-2" />
-              {row.customer_routes.name}
-            </Box>
-          ) : (
-            <Typography variant="caption" className="!text-gray-500">
-              No Route
-            </Typography>
-          )}
-          {row.customer_users ? (
-            <Box className="flex items-center text-sm text-gray-500">
-              <User className="w-4 h-4 text-gray-400 mr-2" />
-              {row.customer_users.name}
-            </Box>
-          ) : (
-            <Typography variant="caption" className="!text-gray-500">
-              No Salesperson
-            </Typography>
-          )}
-          {row.last_visit_date && (
-            <Typography
-              variant="caption"
-              className="!text-gray-400 !block !mt-1"
-            >
-              Last visit: {new Date(row.last_visit_date).toLocaleDateString()}
-            </Typography>
-          )}
-        </Box>
+        <Typography variant="body2" className="!text-gray-700">
+          {row.customer_routes?.name || 'No Route'}
+        </Typography>
       ),
     },
     {
-      id: 'financial',
-      label: 'Financial',
+      id: 'salesperson',
+      label: 'Salesperson',
       render: (_value, row) => (
-        <Box>
-          <Box className="flex items-center text-gray-900 mb-1">
-            <CreditCard className="w-4 h-4 text-gray-400 mr-2" />
-            <Typography variant="caption">
-              {formatCurrency(row.credit_limit ?? null)}
-            </Typography>
-          </Box>
-          <Box className="flex items-center text-red-600">
-            <DollarSign className="w-4 h-4 text-gray-400 mr-2" />
-            <Typography variant="caption">
-              {formatCurrency(row.outstanding_amount)}
-            </Typography>
-          </Box>
-        </Box>
+        <Typography variant="body2" className="!text-gray-700">
+          {row.customer_users?.name || 'No Salesperson'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'credit_limit',
+      label: 'Credit Limit',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900 !font-medium">
+          {formatCurrency(row.credit_limit ?? null)}
+        </Typography>
+      ),
+    },
+    {
+      id: 'outstanding',
+      label: 'Outstanding',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-red-600 !font-medium">
+          {formatCurrency(row.outstanding_amount)}
+        </Typography>
       ),
     },
     {
@@ -322,18 +301,9 @@ const OutletsManagement: React.FC = () => {
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
-          className="w-26"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),
-    },
-    {
-      id: 'createdate',
-      label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
-          <span className="italic text-gray-400">No Date</span>
-        ),
     },
     {
       id: 'action',
@@ -370,7 +340,7 @@ const OutletsManagement: React.FC = () => {
       </Box>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>

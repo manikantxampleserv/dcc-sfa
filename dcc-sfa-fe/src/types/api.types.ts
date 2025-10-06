@@ -72,9 +72,15 @@ export interface ApiResponse<T = any> {
     inactive_visits?: number;
     new_visits?: number;
     // Customer statistics
-    totalCustomers?: number;
+    new_customers_this_month?: number;
+    total_customers?: number;
     active_customers?: number;
     inactive_customers?: number;
+    distributors?: number;
+    retailers?: number;
+    wholesellers?: number;
+    total_credit_limit?: string;
+    total_outstanding_amount?: string;
   };
 }
 
