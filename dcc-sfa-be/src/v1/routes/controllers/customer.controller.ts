@@ -138,7 +138,7 @@ export const customerController = {
 
   async getAllCustomers(req: any, res: any) {
     try {
-      const { page, limit, search } = req.query;
+      const { page, limit, search, type } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -151,6 +151,7 @@ export const customerController = {
             { email: { contains: searchLower } },
           ],
         }),
+        ...(type && type !== 'All' && { type }),
       };
 
       const { data, pagination } = await paginate({
