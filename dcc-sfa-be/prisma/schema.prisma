@@ -596,38 +596,38 @@ model customer_documents {
 }
 
 model customer_group_members {
-  id                Int             @id(map: "PK__customer__3213E83FB235A246") @default(autoincrement())
-  customer_group_id Int
-  customer_id       Int
-  joined_at         DateTime?       @default(now(), map: "DF__customer___joine__505BE5AD") @db.DateTime
-  is_active         String          @default("Y", map: "DF__customer___is_ac__515009E6") @db.Char(1)
-  createdate        DateTime?       @default(now(), map: "DF__customer___creat__52442E1F") @db.DateTime
-  createdby         Int
-  updatedate        DateTime?       @db.DateTime
-  updatedby         Int?
-  log_inst          Int?
-  customer_groups   customer_groups @relation(fields: [customer_group_id], references: [id], onUpdate: NoAction, map: "FK__customer___custo__53385258")
-  customers         customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__customer___custo__542C7691")
+  id                                    Int             @id(map: "PK__customer__3213E83FB235A246") @default(autoincrement())
+  customer_group_id                     Int
+  customer_id                           Int
+  joined_at                             DateTime?       @default(now(), map: "DF__customer___joine__505BE5AD") @db.DateTime
+  is_active                             String          @default("Y", map: "DF__customer___is_ac__515009E6") @db.Char(1)
+  createdate                            DateTime?       @default(now(), map: "DF__customer___creat__52442E1F") @db.DateTime
+  createdby                             Int
+  updatedate                            DateTime?       @db.DateTime
+  updatedby                             Int?
+  log_inst                              Int?
+  customer_group_members_customer_group customer_groups @relation(fields: [customer_group_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  customers                             customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__customer___custo__542C7691")
 
   @@unique([customer_group_id, customer_id], map: "uq_customer_group_customer")
 }
 
 model customer_groups {
-  id                     Int                      @id(map: "PK__customer__3213E83F94C78BD4") @default(autoincrement())
-  name                   String                   @db.NVarChar(255)
-  code                   String                   @unique(map: "UQ__customer__357D4CF903DA0CFA") @db.NVarChar(50)
-  description            String?
-  discount_percentage    Decimal?                 @default(0, map: "DF__customer___disco__49AEE81E") @db.Decimal(5, 2)
-  credit_terms           Int?                     @default(30, map: "DF__customer___credi__4AA30C57")
-  payment_terms          String?                  @db.NVarChar(100)
-  price_group            String?                  @db.NVarChar(50)
-  is_active              String                   @default("Y", map: "DF__customer___is_ac__4B973090") @db.Char(1)
-  createdate             DateTime?                @default(now(), map: "DF__customer___creat__4C8B54C9") @db.DateTime
-  createdby              Int
-  updatedate             DateTime?                @db.DateTime
-  updatedby              Int?
-  log_inst               Int?
-  customer_group_members customer_group_members[]
+  id                                    Int                      @id(map: "PK__customer__3213E83F94C78BD4") @default(autoincrement())
+  name                                  String                   @db.NVarChar(255)
+  code                                  String                   @unique(map: "UQ__customer__357D4CF903DA0CFA") @db.NVarChar(50)
+  description                           String?
+  discount_percentage                   Decimal?                 @default(0, map: "DF__customer___disco__49AEE81E") @db.Decimal(5, 2)
+  credit_terms                          Int?                     @default(30, map: "DF__customer___credi__4AA30C57")
+  payment_terms                         String?                  @db.NVarChar(100)
+  price_group                           String?                  @db.NVarChar(50)
+  is_active                             String                   @default("Y", map: "DF__customer___is_ac__4B973090") @db.Char(1)
+  createdate                            DateTime?                @default(now(), map: "DF__customer___creat__4C8B54C9") @db.DateTime
+  createdby                             Int
+  updatedate                            DateTime?                @db.DateTime
+  updatedby                             Int?
+  log_inst                              Int?
+  customer_group_members_customer_group customer_group_members[]
 }
 
 model customers {

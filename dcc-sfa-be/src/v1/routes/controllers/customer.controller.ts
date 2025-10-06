@@ -135,6 +135,7 @@ export const customerController = {
       res.status(500).json({ message: error.message });
     }
   },
+
   async getAllCustomers(req: any, res: any) {
     try {
       const { page, limit, search } = req.query;
@@ -165,6 +166,16 @@ export const customerController = {
         },
       });
 
+      const distributors = await prisma.customers.count({
+        where: { type: 'Distributor' },
+      });
+      const retailers = await prisma.customers.count({
+        where: { type: 'Retailer' },
+      });
+
+      const wholesellers = await prisma.customers.count({
+        where: { type: 'Wholeseller' },
+      });
       const totalCustomers = await prisma.customers.count();
       const activeCustomers = await prisma.customers.count({
         where: { is_active: 'Y' },
@@ -172,16 +183,42 @@ export const customerController = {
       const inactiveCustomers = await prisma.customers.count({
         where: { is_active: 'N' },
       });
+      const totals = await prisma.customers.aggregate({
+        _sum: {
+          credit_limit: true,
+          outstanding_amount: true,
+        },
+      });
 
+      const totalCreditLimit = totals._sum.credit_limit || 0;
+      const totalOutstandingAmount = totals._sum.outstanding_amount || 0;
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const newCustomersThisMonth = await prisma.customers.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      });
       res.success(
         'Customers retrieved successfully',
         data.map((c: any) => serializeCustomer(c)),
         200,
         pagination,
         {
-          totalCustomers,
+          new_customers_this_month: newCustomersThisMonth,
+          total_customers: totalCustomers,
           active_customers: activeCustomers,
           inactive_customers: inactiveCustomers,
+          distributors: distributors,
+          retailers: retailers,
+          wholesellers: wholesellers,
+          total_credit_limit: totalCreditLimit,
+          total_outstanding_amount: totalOutstandingAmount,
         }
       );
     } catch (error: any) {
@@ -189,6 +226,7 @@ export const customerController = {
       res.status(500).json({ message: error.message });
     }
   },
+
   async getCustomersById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -214,6 +252,7 @@ export const customerController = {
       res.status(500).json({ message: error.message });
     }
   },
+
   async updateCustomers(req: any, res: any) {
     try {
       const { id } = req.params;
