@@ -13,12 +13,6 @@ export const createZoneValidation = [
     .isString()
     .withMessage('Name must be a string'),
 
-  body('code')
-    .notEmpty()
-    .withMessage('Code is required')
-    .isString()
-    .withMessage('Code must be a string'),
-
   body('description')
     .optional()
     .isString()

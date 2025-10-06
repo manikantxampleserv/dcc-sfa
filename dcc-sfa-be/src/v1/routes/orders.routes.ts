@@ -16,7 +16,7 @@ router.post(
 
 router.get('/orders/:id', authenticateToken, ordersController.getOrdersById);
 
-router.get('/orders', authenticateToken, ordersController.getOrders);
+router.get('/orders', authenticateToken, ordersController.getAllOrders);
 
 router.put('/orders/:id', authenticateToken, ordersController.updateOrders);
 

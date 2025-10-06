@@ -13,6 +13,8 @@ import route from '../v1/routes/route.routes';
 import visits from '../v1/routes/visits.routes';
 import customers from '../v1/routes/customers.routes';
 import orders from '../v1/routes/orders.routes';
+import currencies from '../v1/routes/currencies.routes';
+import inventoryStock from '../v1/routes/inventoryStock.routes';
 
 const routes = Router();
 
@@ -29,6 +31,8 @@ routes.use('/v1', route);
 routes.use('/v1', visits);
 routes.use('/v1', customers);
 routes.use('/v1', orders);
+routes.use('/v1', currencies);
+routes.use('/v1', inventoryStock);
 routes.get('/', (_: any, res: any) => {
   res.json({
     name: 'DCC-SFA API',

@@ -142,7 +142,7 @@ model depots {
   updatedby              Int?
   log_inst               Int?
   depot_companies        companies         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  inventory_stock        inventory_stock[]
+  inventory_stock_depots inventory_stock[]
   promotions             promotions[]
   routes_depots          routes[]
   serial_numbers         serial_numbers[]
@@ -781,40 +781,40 @@ model gps_logs {
 }
 
 model inventory_stock {
-  id                  Int       @id(map: "PK__inventor__3213E83FFE642193") @default(autoincrement())
-  product_id          Int
-  location_id         Int
-  location_type       String?   @default("warehouse", map: "DF__inventory__locat__6BE40491") @db.NVarChar(20)
-  current_stock       Int?      @default(0, map: "DF__inventory__curre__6CD828CA")
-  reserved_stock      Int?      @default(0, map: "DF__inventory__reser__6DCC4D03")
-  available_stock     Int?      @default(0, map: "DF__inventory__avail__6EC0713C")
-  minimum_stock       Int?      @default(0, map: "DF__inventory__minim__6FB49575")
-  maximum_stock       Int?      @default(0, map: "DF__inventory__maxim__70A8B9AE")
-  reorder_level       Int?      @default(0, map: "DF__inventory__reord__719CDDE7")
-  reorder_quantity    Int?      @default(0, map: "DF__inventory__reord__72910220")
-  average_daily_sales Decimal?  @default(0, map: "DF__inventory__avera__73852659") @db.Decimal(10, 2)
-  lead_time           Int?      @default(0, map: "DF__inventory__lead___74794A92")
-  safety_stock        Int?      @default(0, map: "DF__inventory__safet__756D6ECB")
-  stock_value         Decimal?  @default(0, map: "DF__inventory__stock__76619304") @db.Decimal(18, 2)
-  last_stock_update   DateTime? @default(now(), map: "DF__inventory__last___7755B73D")
-  stock_status        String?   @default("adequate", map: "DF__inventory__stock__793DFFAF") @db.NVarChar(20)
-  turnover_rate       Decimal?  @default(0, map: "DF__inventory__turno__7A3223E8") @db.Decimal(10, 2)
-  days_of_stock       Int?      @default(0, map: "DF__inventory__days___7B264821")
-  last_count_date     DateTime?
-  next_count_due      DateTime?
-  variance            Int?      @default(0, map: "DF__inventory__varia__7C1A6C5A")
-  variance_percentage Decimal?  @default(0, map: "DF__inventory__varia__7D0E9093") @db.Decimal(5, 2)
-  cost_price          Decimal?  @default(0, map: "DF__inventory__cost___7E02B4CC") @db.Decimal(18, 2)
-  selling_price       Decimal?  @default(0, map: "DF__inventory__selli__7EF6D905") @db.Decimal(18, 2)
-  margin              Decimal?  @default(0, map: "DF__inventory__margi__7FEAFD3E") @db.Decimal(5, 2)
-  is_active           String    @default("Y", map: "DF__inventory__is_ac__00DF2177") @db.Char(1)
-  createdate          DateTime? @default(now(), map: "DF__inventory__creat__01D345B0") @db.DateTime
-  createdby           Int
-  updatedate          DateTime? @db.DateTime
-  updatedby           Int?
-  log_inst            Int?
-  depots              depots    @relation(fields: [location_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  products            products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__inventory__produ__02C769E9")
+  id                       Int       @id() @default(autoincrement())
+  product_id               Int
+  location_id              Int
+  location_type            String?   @default("warehouse") @db.NVarChar(20)
+  current_stock            Int?      @default(0)
+  reserved_stock           Int?      @default(0)
+  available_stock          Int?      @default(0)
+  minimum_stock            Int?      @default(0)
+  maximum_stock            Int?      @default(0)
+  reorder_level            Int?      @default(0)
+  reorder_quantity         Int?      @default(0)
+  average_daily_sales      Decimal?  @default(0) @db.Decimal(10, 2)
+  lead_time                Int?      @default(0)
+  safety_stock             Int?      @default(0)
+  stock_value              Decimal?  @default(0) @db.Decimal(18, 2)
+  last_stock_update        DateTime? @default(now())
+  stock_status             String?   @default("adequate") @db.NVarChar(20)
+  turnover_rate            Decimal?  @default(0) @db.Decimal(10, 2)
+  days_of_stock            Int?      @default(0)
+  last_count_date          DateTime?
+  next_count_due           DateTime?
+  variance                 Int?      @default(0)
+  variance_percentage      Decimal?  @default(0) @db.Decimal(5, 2)
+  cost_price               Decimal?  @default(0) @db.Decimal(18, 2)
+  selling_price            Decimal?  @default(0) @db.Decimal(18, 2)
+  margin                   Decimal?  @default(0) @db.Decimal(5, 2)
+  is_active                String    @default("Y") @db.Char(1)
+  createdate               DateTime? @default(now()) @db.DateTime
+  createdby                Int
+  updatedate               DateTime? @db.DateTime
+  updatedby                Int?
+  log_inst                 Int?
+  inventory_stock_depots   depots    @relation(fields: [location_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  inventory_stock_products products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model invoice_items {
@@ -1145,37 +1145,37 @@ model product_warranty_policy {
 }
 
 model products {
-  id                      Int                       @id(map: "PK__products__3213E83FDD87FD35") @default(autoincrement())
-  name                    String                    @db.NVarChar(255)
-  code                    String                    @unique(map: "UQ__products__357D4CF92939390A") @db.NVarChar(100)
-  description             String?
-  category                String?                   @db.NVarChar(100)
-  brand                   String?                   @db.NVarChar(100)
-  unit_of_measure         String?                   @db.NVarChar(50)
-  base_price              Decimal?                  @db.Decimal(18, 2)
-  tax_rate                Decimal?                  @db.Decimal(5, 2)
-  is_active               String                    @default("Y", map: "DF__products__is_act__440B1D61") @db.Char(1)
-  createdate              DateTime?                 @default(now(), map: "DF__products__create__44FF419A") @db.DateTime
-  createdby               Int
-  updatedate              DateTime?                 @db.DateTime
-  updatedby               Int?
-  log_inst                Int?
-  batch_lots              batch_lots[]
-  credit_note_items       credit_note_items[]
-  inventory_stock         inventory_stock[]
-  invoice_items           invoice_items[]
-  order_items             order_items[]
-  price_history           price_history[]
-  pricelist_items         pricelist_items[]
-  product_facing          product_facing[]
-  product_warranty_policy product_warranty_policy[]
-  promotion_products      promotion_products[]
-  return_requests         return_requests[]
-  serial_numbers          serial_numbers[]
-  stock_movements         stock_movements[]
-  stock_transfer_lines    stock_transfer_lines[]
-  van_inventory           van_inventory[]
-  warranty_claims         warranty_claims[]
+  id                       Int                       @id() @default(autoincrement())
+  name                     String                    @db.NVarChar(255)
+  code                     String                    @unique() @db.NVarChar(100)
+  description              String?
+  category                 String?                   @db.NVarChar(100)
+  brand                    String?                   @db.NVarChar(100)
+  unit_of_measure          String?                   @db.NVarChar(50)
+  base_price               Decimal?                  @db.Decimal(18, 2)
+  tax_rate                 Decimal?                  @db.Decimal(5, 2)
+  is_active                String                    @default("Y") @db.Char(1)
+  createdate               DateTime?                 @default(now()) @db.DateTime
+  createdby                Int
+  updatedate               DateTime?                 @db.DateTime
+  updatedby                Int?
+  log_inst                 Int?
+  batch_lots               batch_lots[]
+  credit_note_items        credit_note_items[]
+  inventory_stock_products inventory_stock[]
+  invoice_items            invoice_items[]
+  order_items              order_items[]
+  price_history            price_history[]
+  pricelist_items          pricelist_items[]
+  product_facing           product_facing[]
+  product_warranty_policy  product_warranty_policy[]
+  promotion_products       promotion_products[]
+  return_requests          return_requests[]
+  serial_numbers           serial_numbers[]
+  stock_movements          stock_movements[]
+  stock_transfer_lines     stock_transfer_lines[]
+  van_inventory            van_inventory[]
+  warranty_claims          warranty_claims[]
 }
 
 model promotion_customer_types {

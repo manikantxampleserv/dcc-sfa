@@ -136,7 +136,7 @@ export const ordersController = {
     }
   },
 
-  async getOrders(req: any, res: any) {
+  async getAllOrders(req: any, res: any) {
     try {
       const { page, limit, search } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
@@ -158,7 +158,7 @@ export const ordersController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          currency: true,
+          orders_currencies: true,
           orders_customers: true,
           orders_salesperson: true,
           order_items: true,
@@ -166,11 +166,36 @@ export const ordersController = {
         },
       });
 
+      const totalOrders = await prisma.orders.count();
+      const activeOrders = await prisma.orders.count({
+        where: { is_active: 'Y' },
+      });
+      const inactiveOrders = await prisma.orders.count({
+        where: { is_active: 'N' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const ordersThisMonth = await prisma.orders.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      });
       res.success(
         'Orders retrieved successfully',
         data.map((order: any) => serializeOrder(order)),
         200,
-        pagination
+        pagination,
+        {
+          total_orders: totalOrders,
+          active_orders: activeOrders,
+          inactive_orders: inactiveOrders,
+          orders_this_month: ordersThisMonth,
+        }
       );
     } catch (error: any) {
       console.error('Get Orders Error:', error);
