@@ -349,7 +349,7 @@ model batch_lots {
   updatedate           DateTime?              @db.DateTime
   updatedby            Int?
   log_inst             Int?
-  products             products               @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__batch_lot__produ__0C50D423")
+  batch_lots_products  products               @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   serial_numbers       serial_numbers[]
   stock_movements      stock_movements[]
   stock_transfer_lines stock_transfer_lines[]
@@ -456,19 +456,19 @@ model coolers {
 }
 
 model credit_note_items {
-  id              Int          @id(map: "PK__credit_n__3213E83F19D9154C") @default(autoincrement())
-  parent_id       Int
-  product_id      Int
-  product_name    String?      @db.NVarChar(255)
-  unit            String?      @db.NVarChar(50)
-  quantity        Int          @default(1, map: "DF__credit_no__quant__3C34F16F")
-  unit_price      Decimal      @default(0, map: "DF__credit_no__unit___3D2915A8") @db.Decimal(18, 2)
-  discount_amount Decimal?     @default(0, map: "DF__credit_no__disco__3E1D39E1") @db.Decimal(18, 2)
-  tax_amount      Decimal?     @default(0, map: "DF__credit_no__tax_a__3F115E1A") @db.Decimal(18, 2)
-  total_amount    Decimal?     @db.Decimal(18, 2)
-  notes           String?      @db.NVarChar(500)
-  credit_notes    credit_notes @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__paren__40058253")
-  products        products     @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__produ__40F9A68C")
+  id                    Int          @id(map: "PK__credit_n__3213E83F19D9154C") @default(autoincrement())
+  parent_id             Int
+  product_id            Int
+  product_name          String?      @db.NVarChar(255)
+  unit                  String?      @db.NVarChar(50)
+  quantity              Int          @default(1, map: "DF__credit_no__quant__3C34F16F")
+  unit_price            Decimal      @default(0, map: "DF__credit_no__unit___3D2915A8") @db.Decimal(18, 2)
+  discount_amount       Decimal?     @default(0, map: "DF__credit_no__disco__3E1D39E1") @db.Decimal(18, 2)
+  tax_amount            Decimal?     @default(0, map: "DF__credit_no__tax_a__3F115E1A") @db.Decimal(18, 2)
+  total_amount          Decimal?     @db.Decimal(18, 2)
+  notes                 String?      @db.NVarChar(500)
+  credit_notes          credit_notes @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  credit_notes_products products     @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model credit_notes {
@@ -501,6 +501,8 @@ model credit_notes {
   currencies             currencies?         @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__credit_no__curre__671F4F74")
   credit_notes_customers customers           @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__custo__3864608B")
   orders                 orders              @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__paren__37703C52")
+  products               products?           @relation(fields: [productsId], references: [id])
+  productsId             Int?
 }
 
 model currencies {
@@ -818,19 +820,19 @@ model inventory_stock {
 }
 
 model invoice_items {
-  id              Int      @id(map: "PK__invoice___3213E83F051E2380") @default(autoincrement())
-  parent_id       Int
-  product_id      Int
-  product_name    String?  @db.NVarChar(255)
-  unit            String?  @db.NVarChar(50)
-  quantity        Int      @default(1, map: "DF__invoice_i__quant__1AD3FDA4")
-  unit_price      Decimal  @default(0, map: "DF__invoice_i__unit___1BC821DD") @db.Decimal(18, 2)
-  discount_amount Decimal? @default(0, map: "DF__invoice_i__disco__1CBC4616") @db.Decimal(18, 2)
-  tax_amount      Decimal? @default(0, map: "DF__invoice_i__tax_a__1DB06A4F") @db.Decimal(18, 2)
-  total_amount    Decimal? @db.Decimal(18, 2)
-  notes           String?  @db.NVarChar(500)
-  invoices        invoices @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__paren__1EA48E88")
-  products        products @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__produ__1F98B2C1")
+  id                     Int      @id(map: "PK__invoice___3213E83F051E2380") @default(autoincrement())
+  parent_id              Int
+  product_id             Int
+  product_name           String?  @db.NVarChar(255)
+  unit                   String?  @db.NVarChar(50)
+  quantity               Int      @default(1, map: "DF__invoice_i__quant__1AD3FDA4")
+  unit_price             Decimal  @default(0, map: "DF__invoice_i__unit___1BC821DD") @db.Decimal(18, 2)
+  discount_amount        Decimal? @default(0, map: "DF__invoice_i__disco__1CBC4616") @db.Decimal(18, 2)
+  tax_amount             Decimal? @default(0, map: "DF__invoice_i__tax_a__1DB06A4F") @db.Decimal(18, 2)
+  total_amount           Decimal? @db.Decimal(18, 2)
+  notes                  String?  @db.NVarChar(500)
+  invoices               invoices @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__paren__1EA48E88")
+  invoice_items_products products @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__produ__1F98B2C1")
 }
 
 model invoices {
@@ -1041,26 +1043,26 @@ model price_history {
   log_inst                               Int?
   users_price_history_approved_byTousers users?    @relation("price_history_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__price_his__appro__45DE573A")
   users_price_history_changed_byTousers  users     @relation("price_history_changed_byTousers", fields: [changed_by], references: [id], onUpdate: NoAction, map: "FK__price_his__chang__44EA3301")
-  products                               products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__price_his__produ__43F60EC8")
+  price_history_products                 products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model pricelist_items {
-  id               Int        @id(map: "PK__pricelis__3213E83F7FFD4E4E") @default(autoincrement())
-  pricelist_id     Int
-  product_id       Int
-  unit_price       Decimal    @db.Decimal(12, 2)
-  uom              String?    @db.NVarChar(20)
-  discount_percent Decimal?   @db.Decimal(5, 2)
-  effective_from   DateTime?  @db.Date
-  effective_to     DateTime?  @db.Date
-  is_active        String     @default("Y", map: "DF__pricelist__is_ac__03DB89B3") @db.Char(1)
-  createdate       DateTime?  @default(now(), map: "DF__pricelist__creat__04CFADEC") @db.DateTime
-  createdby        Int
-  updatedate       DateTime?  @db.DateTime
-  updatedby        Int?
-  log_inst         Int?
-  pricelists       pricelists @relation(fields: [pricelist_id], references: [id], onUpdate: NoAction, map: "FK__pricelist__price__01F34141")
-  products         products   @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__pricelist__produ__02E7657A")
+  id                       Int        @id() @default(autoincrement())
+  pricelist_id             Int
+  product_id               Int
+  unit_price               Decimal    @db.Decimal(12, 2)
+  uom                      String?    @db.NVarChar(20)
+  discount_percent         Decimal?   @db.Decimal(5, 2)
+  effective_from           DateTime?  @db.Date
+  effective_to             DateTime?  @db.Date
+  is_active                String     @default("Y", map: "DF__pricelist__is_ac__03DB89B3") @db.Char(1)
+  createdate               DateTime?  @default(now(), map: "DF__pricelist__creat__04CFADEC") @db.DateTime
+  createdby                Int
+  updatedate               DateTime?  @db.DateTime
+  updatedby                Int?
+  log_inst                 Int?
+  pricelists               pricelists @relation(fields: [pricelist_id], references: [id], onUpdate: NoAction, map: "FK__pricelist__price__01F34141")
+  pricelist_items_products products   @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model pricelists {
@@ -1111,7 +1113,7 @@ model product_facing {
   updatedby                Int?
   log_inst                 Int?
   product_facing_customers customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  products                 products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__product_f__produ__320C68B7")
+  product_facing_customers                 products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__product_f__produ__320C68B7")
   visits                   visits?   @relation(fields: [visit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__product_f__visit__33008CF0")
 }
 
@@ -1160,13 +1162,13 @@ model products {
   updatedate               DateTime?                 @db.DateTime
   updatedby                Int?
   log_inst                 Int?
-  batch_lots               batch_lots[]
-  credit_note_items        credit_note_items[]
+  batch_lots_products      batch_lots[]
+  credit_notes_products    credit_notes[]
   inventory_stock_products inventory_stock[]
-  invoice_items            invoice_items[]
+  invoice_items_products   invoice_items[]
   order_items              order_items[]
-  price_history            price_history[]
-  pricelist_items          pricelist_items[]
+  price_history_products   price_history[]
+  pricelist_items_products pricelist_items[]
   product_facing           product_facing[]
   product_warranty_policy  product_warranty_policy[]
   promotion_products       promotion_products[]
@@ -1176,6 +1178,7 @@ model products {
   stock_transfer_lines     stock_transfer_lines[]
   van_inventory            van_inventory[]
   warranty_claims          warranty_claims[]
+  credit_note_items        credit_note_items[]
 }
 
 model promotion_customer_types {

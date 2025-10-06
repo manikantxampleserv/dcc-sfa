@@ -89,7 +89,6 @@ const serializeInventoryStock = (stock: any): InventoryStockSerialized => ({
 });
 
 export const inventoryStockController = {
-  // Create
   async createInventoryStock(req: Request, res: Response) {
     try {
       const data = req.body;
@@ -118,7 +117,6 @@ export const inventoryStockController = {
     }
   },
 
-  // Get all with pagination & search
   async getAllInventoryStock(req: any, res: any) {
     try {
       const { page, limit, search } = req.query;
@@ -159,7 +157,6 @@ export const inventoryStockController = {
     }
   },
 
-  // Get by ID
   async getInventoryStockById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -184,7 +181,6 @@ export const inventoryStockController = {
     }
   },
 
-  // Update
   async updateInventoryStock(req: any, res: any) {
     try {
       const { id } = req.params;
@@ -220,7 +216,6 @@ export const inventoryStockController = {
     }
   },
 
-  // Delete
   async deleteInventoryStock(req: Request, res: Response) {
     try {
       const { id } = req.params;

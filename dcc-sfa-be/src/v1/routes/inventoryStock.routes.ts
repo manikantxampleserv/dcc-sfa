@@ -5,27 +5,27 @@ import { inventoryStockController } from '../controllers/inventoryStock.controll
 const router = Router();
 
 router.post(
-  '/inventoryStock',
+  '/inventory-stock',
   authenticateToken,
   inventoryStockController.createInventoryStock
 );
 router.get(
-  '/inventoryStock',
+  '/inventory-stock',
   authenticateToken,
   inventoryStockController.getAllInventoryStock
 );
 router.get(
-  '/inventoryStock/:id',
+  '/inventory-stock/:id',
   authenticateToken,
   inventoryStockController.getInventoryStockById
 );
 router.put(
-  '/inventoryStock/:id',
+  '/inventory-stock/:id',
   authenticateToken,
   inventoryStockController.updateInventoryStock
 );
 router.delete(
-  '/inventoryStock/:id',
+  '/inventory-stock/:id',
   authenticateToken,
   inventoryStockController.deleteInventoryStock
 );

@@ -15,6 +15,7 @@ import customers from '../v1/routes/customers.routes';
 import orders from '../v1/routes/orders.routes';
 import currencies from '../v1/routes/currencies.routes';
 import inventoryStock from '../v1/routes/inventoryStock.routes';
+import products from '../v1/routes/products.routes';
 
 const routes = Router();
 
@@ -33,6 +34,8 @@ routes.use('/v1', customers);
 routes.use('/v1', orders);
 routes.use('/v1', currencies);
 routes.use('/v1', inventoryStock);
+routes.use('/v1', products);
+
 routes.get('/', (_: any, res: any) => {
   res.json({
     name: 'DCC-SFA API',

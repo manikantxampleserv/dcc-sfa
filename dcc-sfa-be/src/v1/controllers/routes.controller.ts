@@ -157,11 +157,36 @@ export const routesController = {
         },
       });
 
+      const totalRoutes = await prisma.routes.count();
+      const activeRoutes = await prisma.routes.count({
+        where: { is_active: 'Y' },
+      });
+      const inactiveRoutes = await prisma.routes.count({
+        where: { is_active: 'N' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const routesThisMonth = await prisma.routes.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      });
       res.success(
         'Routes retrieved successfully',
         data.map((route: any) => serializeRoute(route)),
         200,
-        pagination
+        pagination,
+        {
+          total_routes: totalRoutes,
+          active_routes: activeRoutes,
+          inactive_routes: inactiveRoutes,
+          routes_this_month: routesThisMonth,
+        }
       );
     } catch (error: any) {
       console.error('Get Routes Error:', error);
