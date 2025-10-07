@@ -175,7 +175,7 @@ export const customerController = {
       });
 
       const wholesellers = await prisma.customers.count({
-        where: { type: 'Wholeseller' },
+        where: { type: 'Wholesaler' },
       });
       const totalCustomers = await prisma.customers.count();
       const activeCustomers = await prisma.customers.count({
@@ -217,7 +217,7 @@ export const customerController = {
           inactive_customers: inactiveCustomers,
           distributors: distributors,
           retailers: retailers,
-          wholesellers: wholesellers,
+          wholesaler: wholesellers,
           total_credit_limit: totalCreditLimit,
           total_outstanding_amount: totalOutstandingAmount,
         }

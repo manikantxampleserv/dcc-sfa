@@ -1,6 +1,7 @@
 import { ImportExportService } from './base/import-export.service';
 import { ZonesImportExportService } from './implementations/zones-import-export.service';
 import { DepotsImportExportService } from './implementations/depots-import-export.service';
+import { CustomersImportExportService } from './implementations/customers-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -12,6 +13,7 @@ export class ImportExportFactory {
   >([
     ['zones', ZonesImportExportService],
     ['depots', DepotsImportExportService],
+    ['customers', CustomersImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 
