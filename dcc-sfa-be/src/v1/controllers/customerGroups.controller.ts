@@ -66,17 +66,27 @@ const serializeCustomerGroup = (group: any): CustomerGroupSerialized => ({
 export const customerGroupsController = {
   async createCustomerGroups(req: Request, res: Response) {
     try {
-      const data = req.body;
+      const { customerGroups, ...groupData } = req.body;
+      const newCode = await generateCustomerGroupCode(groupData.name);
 
-      const newCode = await generateCustomerGroupCode(data.name);
       const group = await prisma.customer_groups.create({
         data: {
-          ...data,
+          ...groupData,
           code: newCode,
-          is_active: data.is_active || 'Y',
+          is_active: groupData.is_active || 'Y',
           createdate: new Date(),
           createdby: req.user?.id || 1,
-          log_inst: data.log_inst || 1,
+          log_inst: groupData.log_inst || 1,
+          customer_group_members_customer_group: {
+            create: customerGroups?.map((member: any) => ({
+              customer_id: member.customer_id,
+              joined_at: member.joined_at || new Date(),
+              is_active: member.is_active || 'Y',
+              createdate: new Date(),
+              createdby: req.user?.id || 1,
+              log_inst: member.log_inst || 1,
+            })),
+          },
         },
         include: {
           customer_group_members_customer_group: true,
