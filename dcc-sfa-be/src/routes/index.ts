@@ -17,6 +17,9 @@ import currencies from '../v1/routes/currencies.routes';
 import inventoryStock from '../v1/routes/inventoryStock.routes';
 import products from '../v1/routes/products.routes';
 import customerGroups from '../v1/routes/customerGroups.routes';
+import assetTypes from '../v1/routes/assetTypes.routes';
+import warehouses from '../v1/routes/warehouses.routes';
+import vehicles from '../v1/routes/vehicles.routes';
 
 const routes = Router();
 
@@ -37,6 +40,9 @@ routes.use('/v1', currencies);
 routes.use('/v1', inventoryStock);
 routes.use('/v1', products);
 routes.use('/v1', customerGroups);
+routes.use('/v1', assetTypes);
+routes.use('/v1', warehouses);
+routes.use('/v1', vehicles);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

@@ -81,6 +81,27 @@ export interface ApiResponse<T = any> {
     wholesellers?: number;
     total_credit_limit?: string;
     total_outstanding_amount?: string;
+    // Outlet group statistics
+    total_groups: number;
+    active_groups: number;
+    inactive_groups: number;
+    new_groups: number;
+    avg_discount: number;
+    // Asset type statistics
+    total_asset_types: number;
+    active_asset_types: number;
+    inactive_asset_types: number;
+    new_asset_types: number;
+    // Warehouse statistics
+    total_warehouses: number;
+    active_warehouses: number;
+    inactive_warehouses: number;
+    new_warehouses: number;
+    // Vehicle statistics
+    total_vehicles: number;
+    active_vehicles: number;
+    inactive_vehicles: number;
+    new_vehicles: number;
   };
 }
 

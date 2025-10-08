@@ -1,17 +1,17 @@
-import { CloudUpload, Download, TableChart } from '@mui/icons-material';
+import { CloudUpload, TableChart, Download } from '@mui/icons-material';
 import { Alert, Box, LinearProgress, Typography } from '@mui/material';
 import { useFormik } from 'formik';
+import React, { useRef, useState } from 'react';
+import * as Yup from 'yup';
+import Button from 'shared/Button';
+import CustomDrawer from 'shared/Drawer';
 import {
   useDownloadTemplate,
   useImportData,
   type ImportResult,
-} from 'hooks/useImportExport';
-import React, { useRef, useState } from 'react';
-import Button from 'shared/Button';
-import CustomDrawer from 'shared/Drawer';
-import * as Yup from 'yup';
+} from '../../../../hooks/useImportExport';
 
-interface ImportDepotProps {
+interface ImportAssetTypeProps {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
 }
@@ -20,7 +20,7 @@ const importValidationSchema = Yup.object({
   file: Yup.mixed().required('Please select a file to import'),
 });
 
-const ImportDepot: React.FC<ImportDepotProps> = ({
+const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
@@ -30,6 +30,7 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // API hooks
   const downloadTemplateMutation = useDownloadTemplate();
   const importDataMutation = useImportData({
     onSuccess: data => {
@@ -59,7 +60,7 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
 
   const handleDownloadSample = async () => {
     try {
-      await downloadTemplateMutation.mutateAsync('depots');
+      await downloadTemplateMutation.mutateAsync('asset_types');
     } catch (error) {
       console.error('Failed to download template:', error);
     }
@@ -84,7 +85,7 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
 
     try {
       await importDataMutation.mutateAsync({
-        tableName: 'depots',
+        tableName: 'asset_types',
         file: uploadedFile,
         options: {
           batchSize: 100,
@@ -92,6 +93,7 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
           updateExisting: false,
         },
       });
+      // Results are handled in the mutation onSuccess callback
     } catch (error) {
       console.error('Import failed:', error);
     }
@@ -111,18 +113,19 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
-      title="Import Depots"
+      title="Import Asset Types"
       size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
-              Upload an Excel file to import multiple depots. Download the
+              Upload an Excel file to import multiple asset types. Download the
               sample file to see the required format.
             </Typography>
           </Alert>
 
+          {/* Download Sample Section */}
           <Box className="!p-4 !border !border-gray-200 !rounded-lg">
             <Box className="!flex !items-center !justify-between">
               <Box className="!flex !items-center !gap-3">
@@ -148,6 +151,7 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
             </Box>
           </Box>
 
+          {/* Upload Section */}
           <Box className="!p-4 !border !border-gray-200 !rounded-lg">
             <Typography variant="subtitle1" className="!font-medium !mb-3">
               Upload File
@@ -337,4 +341,4 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
   );
 };
 
-export default ImportDepot;
+export default ImportAssetType;

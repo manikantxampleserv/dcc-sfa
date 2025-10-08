@@ -11,7 +11,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import * as Yup from 'yup';
 
-interface ImportDepotProps {
+interface ImportWarehouseProps {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
 }
@@ -20,7 +20,7 @@ const importValidationSchema = Yup.object({
   file: Yup.mixed().required('Please select a file to import'),
 });
 
-const ImportDepot: React.FC<ImportDepotProps> = ({
+const ImportWarehouse: React.FC<ImportWarehouseProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
@@ -59,7 +59,7 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
 
   const handleDownloadSample = async () => {
     try {
-      await downloadTemplateMutation.mutateAsync('depots');
+      await downloadTemplateMutation.mutateAsync('warehouses');
     } catch (error) {
       console.error('Failed to download template:', error);
     }
@@ -84,7 +84,7 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
 
     try {
       await importDataMutation.mutateAsync({
-        tableName: 'depots',
+        tableName: 'warehouses',
         file: uploadedFile,
         options: {
           batchSize: 100,
@@ -111,14 +111,14 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
-      title="Import Depots"
+      title="Import Warehouses"
       size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
-              Upload an Excel file to import multiple depots. Download the
+              Upload an Excel file to import multiple warehouses. Download the
               sample file to see the required format.
             </Typography>
           </Alert>
@@ -337,4 +337,4 @@ const ImportDepot: React.FC<ImportDepotProps> = ({
   );
 };
 
-export default ImportDepot;
+export default ImportWarehouse;

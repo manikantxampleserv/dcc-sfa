@@ -6,22 +6,21 @@ import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
 import CompaniesManagement from 'pages/masters/Companies';
 import DepotsManagement from 'pages/masters/Depot';
 import OutletsManagement from 'pages/masters/Outlet';
-import ProductsManagement from 'pages/masters/Product';
+import OutletGroupsManagement from 'pages/masters/OutletGroups';
+import ProductsManagement from 'pages/masters/Products';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
 import SurveyBuilder from 'pages/masters/SurveyBuilder';
 import Users from 'pages/masters/Users';
 import ZonesManagement from 'pages/masters/Zone';
+import AssetTypesManagement from 'pages/masters/AssetTypes';
+import WarehousesManagement from 'pages/masters/Warehouses';
+import VehiclesManagement from 'pages/masters/Vehicles';
 import OrdersManagement from 'pages/transactions/Orders';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-
-const OutletGroups = () => <h1>Outlet Groups</h1>;
-const AssetTypes = () => <h1>Asset Types</h1>;
 const AssetMaster = () => <h1>Asset Master</h1>;
-const WarehouseMaster = () => <h1>Warehouse Master</h1>;
-const VehicleMaster = () => <h1>Vehicle Master</h1>;
 const Pricelists = () => <h1>Pricelists</h1>;
 const SalesTargetGroups = () => <h1>Sales Target Groups</h1>;
 const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
@@ -124,11 +123,11 @@ const router = createBrowserRouter([
       },
       {
         path: '/masters/outlet-groups',
-        element: <OutletGroups />,
+        element: <OutletGroupsManagement />,
       },
       {
         path: '/masters/asset-types',
-        element: <AssetTypes />,
+        element: <AssetTypesManagement />,
       },
       {
         path: '/masters/assets',
@@ -136,11 +135,11 @@ const router = createBrowserRouter([
       },
       {
         path: '/masters/warehouses',
-        element: <WarehouseMaster />,
+        element: <WarehousesManagement />,
       },
       {
         path: '/masters/vehicles',
-        element: <VehicleMaster />,
+        element: <VehiclesManagement />,
       },
       {
         path: '/masters/products',
