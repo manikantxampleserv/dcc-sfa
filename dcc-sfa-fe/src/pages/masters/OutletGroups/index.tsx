@@ -54,7 +54,8 @@ const OutletGroupsManagement: React.FC = () => {
   const inactiveGroups =
     outletGroupsResponse?.stats?.inactive_groups ??
     outletGroups.filter(g => g.is_active === 'N').length;
-  const avgDiscountPercentage = outletGroupsResponse?.stats?.avg_discount ?? 0;
+  const avgDiscountPercentage =
+    Number(outletGroupsResponse?.stats?.avg_discount)?.toFixed(2) ?? 0;
 
   const handleCreateOutletGroup = useCallback(() => {
     setSelectedOutletGroup(null);
@@ -321,7 +322,7 @@ const OutletGroupsManagement: React.FC = () => {
         columns={outletGroupColumns}
         actions={
           <div className="flex justify-between w-full">
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
               <SearchInput
                 placeholder="Search Outlet Groups"
                 value={search}

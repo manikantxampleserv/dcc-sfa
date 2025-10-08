@@ -211,6 +211,8 @@ export const customerGroupsController = {
   async updateCustomerGroups(req: any, res: any) {
     try {
       const { id } = req.params;
+      const { customerGroups, ...groupData } = req.body;
+
       const existingGroup = await prisma.customer_groups.findUnique({
         where: { id: Number(id) },
       });
@@ -218,8 +220,31 @@ export const customerGroupsController = {
       if (!existingGroup)
         return res.status(404).json({ message: 'Customer group not found' });
 
+      // If customerGroups is provided, update the members
+      if (customerGroups) {
+        // Delete existing members
+        await prisma.customer_group_members.deleteMany({
+          where: { customer_group_id: Number(id) },
+        });
+
+        // Create new members
+        if (customerGroups.length > 0) {
+          await prisma.customer_group_members.createMany({
+            data: customerGroups.map((member: any) => ({
+              customer_group_id: Number(id),
+              customer_id: member.customer_id,
+              joined_at: member.joined_at || new Date(),
+              is_active: member.is_active || 'Y',
+              createdate: new Date(),
+              createdby: req.user?.id || 1,
+              log_inst: member.log_inst || 1,
+            })),
+          });
+        }
+      }
+
       const data = {
-        ...req.body,
+        ...groupData,
         updatedate: new Date(),
         updatedby: req.user?.id,
       };

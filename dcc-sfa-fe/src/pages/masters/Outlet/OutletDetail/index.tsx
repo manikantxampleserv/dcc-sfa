@@ -49,7 +49,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`outlet-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box>{children}</Box>}
     </div>
   );
 }
@@ -135,7 +135,13 @@ const OutletDetail: React.FC = () => {
       label: 'Verification Status',
       render: is_verified => (
         <Chip
-          icon={is_verified ? <Verified /> : <Warning />}
+          icon={
+            is_verified ? (
+              <Verified fontSize="small" />
+            ) : (
+              <Warning fontSize="small" />
+            )
+          }
           label={is_verified ? 'Verified' : 'Pending'}
           size="small"
           color={is_verified ? 'success' : 'warning'}
@@ -417,35 +423,41 @@ const OutletDetail: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            sx={{
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 500,
-              },
-            }}
-          >
+      <div className="bg-white rounded-lg shadow-sm border !border-b-none border-gray-200">
+        <Box>
+          <Tabs value={tabValue} onChange={handleTabChange}>
             <Tab
               icon={<Description />}
               label={`Documents (${documents.length})`}
               iconPosition="start"
               className="!py-0"
+              sx={{
+                '& .MuiButtonBase-root': {
+                  padding: 1,
+                },
+              }}
             />
             <Tab
               icon={<Inventory />}
               label={`Assets (${assets.length})`}
               iconPosition="start"
               className="!py-0"
+              sx={{
+                '& .MuiButtonBase-root': {
+                  padding: 1,
+                },
+              }}
             />
             <Tab
               icon={<History />}
               label={`Asset History (${allAssetHistory.length})`}
               iconPosition="start"
               className="!py-0"
+              sx={{
+                '& .MuiButtonBase-root': {
+                  padding: 1,
+                },
+              }}
             />
           </Tabs>
         </Box>

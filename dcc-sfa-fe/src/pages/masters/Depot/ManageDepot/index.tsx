@@ -230,7 +230,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
             </Select>
           </Box>
 
-          <Box className="!flex !justify-end !gap-3 ">
+          <Box className="!flex !justify-end items-center ">
             <Button
               type="button"
               variant="outlined"

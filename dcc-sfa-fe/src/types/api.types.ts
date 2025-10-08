@@ -102,6 +102,13 @@ export interface ApiResponse<T = any> {
     active_vehicles: number;
     inactive_vehicles: number;
     new_vehicles: number;
+    // Survey statistics
+    total_surveys: number;
+    published_surveys: number;
+    draft_surveys: number;
+    active_surveys: number;
+    total_responses: number;
+    total_categories: number;
   };
 }
 

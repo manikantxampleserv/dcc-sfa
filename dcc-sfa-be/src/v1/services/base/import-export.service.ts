@@ -289,7 +289,6 @@ export abstract class ImportExportService<T> {
     return Buffer.from(buffer);
   }
 
-  // Export to Excel
   async exportToExcel(options: ExportOptions = {}): Promise<Buffer> {
     const query: any = {
       where: options.filters,
@@ -364,7 +363,6 @@ export abstract class ImportExportService<T> {
     return Buffer.from(buffer);
   }
 
-  // Export to PDF
   async exportToPDF(options: ExportOptions = {}): Promise<Buffer> {
     const query: any = {
       where: options.filters,
@@ -510,7 +508,6 @@ export abstract class ImportExportService<T> {
     });
   }
 
-  // Updated importData method with better error reporting
   async importData(
     data: any[],
     userId: number,
@@ -522,95 +519,96 @@ export abstract class ImportExportService<T> {
     const importedData: any[] = [];
     const detailedErrors: any[] = [];
 
-    const results = await prisma.$transaction(async tx => {
-      for (const [index, row] of data.entries()) {
-        const rowNum = index + 2;
-        const rowErrors: any = { row: rowNum, errors: [] };
+    const results = await prisma.$transaction(
+      async tx => {
+        for (const [index, row] of data.entries()) {
+          const rowNum = index + 2;
+          const rowErrors: any = { row: rowNum, errors: [] };
 
-        try {
-          // Check for duplicates
-          const duplicateCheck = await this.checkDuplicate(row, tx);
+          try {
+            const duplicateCheck = await this.checkDuplicate(row, tx);
 
-          if (duplicateCheck) {
-            if (options.skipDuplicates) {
-              failed++;
-              rowErrors.errors.push({
-                type: 'duplicate',
-                message: duplicateCheck,
-                action: 'skipped',
-              });
-            } else if (options.updateExisting) {
-              const updated = await this.updateExisting(row, userId, tx);
-              if (updated) {
-                importedData.push(updated);
-                success++;
-                continue;
+            if (duplicateCheck) {
+              if (options.skipDuplicates) {
+                failed++;
+                rowErrors.errors.push({
+                  type: 'duplicate',
+                  message: duplicateCheck,
+                  action: 'skipped',
+                });
+              } else if (options.updateExisting) {
+                const updated = await this.updateExisting(row, userId, tx);
+                if (updated) {
+                  importedData.push(updated);
+                  success++;
+                  continue;
+                } else {
+                  failed++;
+                  rowErrors.errors.push({
+                    type: 'duplicate',
+                    message: 'Failed to update existing record',
+                    action: 'failed',
+                  });
+                }
               } else {
                 failed++;
                 rowErrors.errors.push({
                   type: 'duplicate',
-                  message: 'Failed to update existing record',
-                  action: 'failed',
+                  message: duplicateCheck,
+                  action: 'rejected',
                 });
               }
-            } else {
+
+              if (rowErrors.errors.length > 0) {
+                detailedErrors.push(rowErrors);
+                errors.push(`Row ${rowNum}: ${duplicateCheck}`);
+                continue;
+              }
+            }
+
+            const fkValidation = await this.validateForeignKeys(row, tx);
+            if (fkValidation) {
               failed++;
               rowErrors.errors.push({
-                type: 'duplicate',
-                message: duplicateCheck,
+                type: 'foreign_key',
+                message: fkValidation,
                 action: 'rejected',
               });
-            }
-
-            if (rowErrors.errors.length > 0) {
               detailedErrors.push(rowErrors);
-              errors.push(`Row ${rowNum}: ${duplicateCheck}`);
+              errors.push(`Row ${rowNum}: ${fkValidation}`);
               continue;
             }
-          }
 
-          // Validate foreign keys
-          const fkValidation = await this.validateForeignKeys(row, tx);
-          if (fkValidation) {
+            const preparedData = await this.prepareDataForImport(row, userId);
+            const created = await (tx as any)[this.modelName].create({
+              data: preparedData,
+            });
+
+            importedData.push(created);
+            success++;
+          } catch (error: any) {
             failed++;
             rowErrors.errors.push({
-              type: 'foreign_key',
-              message: fkValidation,
-              action: 'rejected',
+              type: 'system',
+              message: error.message,
+              action: 'failed',
             });
             detailedErrors.push(rowErrors);
-            errors.push(`Row ${rowNum}: ${fkValidation}`);
-            continue;
+            errors.push(`Row ${rowNum}: ${error.message}`);
           }
-
-          // Prepare and create record
-          const preparedData = await this.prepareDataForImport(row, userId);
-          const created = await (tx as any)[this.modelName].create({
-            data: preparedData,
-          });
-
-          importedData.push(created);
-          success++;
-        } catch (error: any) {
-          failed++;
-          rowErrors.errors.push({
-            type: 'system',
-            message: error.message,
-            action: 'failed',
-          });
-          detailedErrors.push(rowErrors);
-          errors.push(`Row ${rowNum}: ${error.message}`);
         }
-      }
 
-      return {
-        success,
-        failed,
-        errors,
-        data: importedData,
-        detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
-      };
-    });
+        return {
+          success,
+          failed,
+          errors,
+          data: importedData,
+          detailedErrors:
+            detailedErrors.length > 0 ? detailedErrors : undefined,
+        };
+      },
+      { timeout: 60000 }
+    );
 
     return results;
   }
@@ -646,7 +644,6 @@ export abstract class ImportExportService<T> {
         allDetailedErrors.push(...result.detailedErrors);
       }
 
-      // Report progress
       if (options.onProgress) {
         const progress = Math.round(((i + 1) / batches) * 100);
         options.onProgress(progress);
@@ -663,7 +660,6 @@ export abstract class ImportExportService<T> {
     };
   }
 
-  // Abstract methods to be implemented by child classes
   protected abstract getSampleData(): Promise<any[]>;
   protected abstract getColumnDescription(key: string): string;
   protected abstract transformDataForExport(data: any[]): Promise<any[]>;

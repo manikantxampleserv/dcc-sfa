@@ -32,4 +32,14 @@ export const outletGroupValidationSchema = yup.object().shape({
     .string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')
     .required('Status is required'),
+  customerGroups: yup
+    .array()
+    .of(
+      yup.object().shape({
+        customer_id: yup.number().required('Customer ID is required'),
+        is_active: yup.string().oneOf(['Y', 'N']).default('Y'),
+      })
+    )
+    .min(1, 'At least one customer must be selected')
+    .required('Customers are required'),
 });

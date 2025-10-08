@@ -428,7 +428,7 @@ export default function Table<T extends Record<string, any>>(
                       onClick={event => handleClick(event, row, index)}
                       tabIndex={-1}
                       key={String(rowId)}
-                      className="!whitespace-nowrap !cursor-pointer hover:!bg-gray-50"
+                      className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
                     >
                       {columns.map(column => (
                         <MuiTableCell

@@ -126,11 +126,11 @@ const WarehousesPage: React.FC = () => {
             <WarehouseIcon className="w-5 h-5" />
           </Avatar>
           <Box>
-            <Typography
-              variant="body1"
-              className="!text-gray-900 !leading-tight"
-            >
+            <Typography variant="body1" className="!text-gray-900">
               {row.name}
+            </Typography>
+            <Typography variant="caption" className="!text-gray-500">
+              {row.location}
             </Typography>
           </Box>
         </Box>
@@ -142,17 +142,6 @@ const WarehousesPage: React.FC = () => {
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900">
           {row.type || <span className="italic text-gray-400">No Type</span>}
-        </Typography>
-      ),
-    },
-    {
-      id: 'location',
-      label: 'Location',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.location || (
-            <span className="italic text-gray-400">No Location</span>
-          )}
         </Typography>
       ),
     },
@@ -302,7 +291,7 @@ const WarehousesPage: React.FC = () => {
         columns={warehouseColumns}
         actions={
           <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <SearchInput
                 placeholder="Search Warehouses..."
                 value={search}

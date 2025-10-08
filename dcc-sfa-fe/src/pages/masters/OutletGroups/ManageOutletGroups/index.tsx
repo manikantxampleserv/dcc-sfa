@@ -1,11 +1,18 @@
-import { Box, MenuItem } from '@mui/material';
+import {
+  Autocomplete,
+  Box,
+  MenuItem,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { useFormik } from 'formik';
+import { useCustomers, type Customer } from 'hooks/useCustomers';
 import {
   useCreateOutletGroup,
   useUpdateOutletGroup,
   type OutletGroup,
 } from 'hooks/useOutletGroups';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { outletGroupValidationSchema } from 'schemas/outletGroup.schema';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -35,6 +42,27 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
   const createOutletGroupMutation = useCreateOutletGroup();
   const updateOutletGroupMutation = useUpdateOutletGroup();
 
+  // Fetch all customers for selection
+  const { data: customersResponse, isLoading: customersLoading } = useCustomers(
+    {
+      page: 1,
+      limit: 1000, // Get all customers
+      isActive: 'Y',
+    }
+  );
+
+  const customers = customersResponse?.data || [];
+
+  // Get selected customer IDs from the group members
+  const getSelectedCustomers = () => {
+    if (!selectedOutletGroup?.members) return [];
+    return customers.filter(customer =>
+      selectedOutletGroup.members?.some(
+        member => member.customer_id === customer.id
+      )
+    );
+  };
+
   const formik = useFormik({
     initialValues: {
       name: selectedOutletGroup?.name || '',
@@ -44,6 +72,12 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
       payment_terms: selectedOutletGroup?.payment_terms || '',
       price_group: selectedOutletGroup?.price_group || '',
       is_active: selectedOutletGroup?.is_active || 'Y',
+      selectedCustomers: getSelectedCustomers(),
+      customerGroups:
+        selectedOutletGroup?.members?.map(member => ({
+          customer_id: member.customer_id,
+          is_active: 'Y',
+        })) || [],
     },
     validationSchema: outletGroupValidationSchema,
     enableReinitialize: true,
@@ -61,6 +95,7 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
           payment_terms: values.payment_terms || undefined,
           price_group: values.price_group || undefined,
           is_active: values.is_active,
+          customerGroups: values.customerGroups,
         };
 
         if (isEdit && selectedOutletGroup) {
@@ -78,6 +113,19 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
       }
     },
   });
+
+  // Update customerGroups when selectedCustomers changes
+  useEffect(() => {
+    if (formik.values.selectedCustomers) {
+      formik.setFieldValue(
+        'customerGroups',
+        formik.values.selectedCustomers.map((customer: Customer) => ({
+          customer_id: customer.id,
+          is_active: 'Y',
+        }))
+      );
+    }
+  }, [formik.values.selectedCustomers]);
 
   return (
     <CustomDrawer
@@ -142,9 +190,71 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                 rows={3}
               />
             </Box>
+
+            <Box className="md:!col-span-2">
+              <Typography
+                variant="body2"
+                className="!mb-2 !font-medium !text-gray-700"
+              >
+                Select Customers <span className="!text-red-500">*</span>
+              </Typography>
+              <Autocomplete
+                multiple
+                size="small"
+                id="customers-autocomplete"
+                options={customers}
+                value={formik.values.selectedCustomers}
+                onChange={(_event, newValue) => {
+                  formik.setFieldValue('selectedCustomers', newValue);
+                }}
+                getOptionLabel={option => `${option.name}`}
+                loading={customersLoading}
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    placeholder="Select customers"
+                    error={
+                      formik.touched.customerGroups &&
+                      Boolean(formik.errors.customerGroups)
+                    }
+                    helperText={
+                      formik.touched.customerGroups &&
+                      typeof formik.errors.customerGroups === 'string'
+                        ? formik.errors.customerGroups
+                        : ''
+                    }
+                  />
+                )}
+                slotProps={{
+                  chip: {
+                    size: 'small',
+                    color: 'primary',
+                    variant: 'outlined',
+                  },
+                }}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props}>
+                    <Box className="!flex !flex-col">
+                      <Typography variant="body2" className="!font-medium">
+                        {option.name}
+                      </Typography>
+                      <Typography variant="caption" className="!text-gray-500">
+                        {option.code} • {option.type || 'N/A'} •{' '}
+                        {option.city || 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+              />
+              <Typography variant="caption" className="!text-gray-500 !mt-1">
+                {formik.values.selectedCustomers?.length || 0} customer(s)
+                selected
+              </Typography>
+            </Box>
           </Box>
 
-          <Box className="!flex !justify-end !gap-3">
+          <Box className="!flex !justify-end items-center">
             <Button
               type="button"
               variant="outlined"

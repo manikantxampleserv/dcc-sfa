@@ -133,7 +133,7 @@ const ManageZone: React.FC<ManageZoneProps> = ({
             </Box>
           </Box>
 
-          <Box className="!flex !justify-end !gap-3">
+          <Box className="!flex !justify-end items-center">
             <Button
               type="button"
               variant="outlined"

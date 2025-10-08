@@ -122,7 +122,7 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
             </Select>
           </Box>
 
-          <Box className="!flex !justify-end !gap-3 ">
+          <Box className="!flex !justify-end">
             <Button
               type="button"
               variant="outlined"
@@ -151,7 +151,6 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
                 : isEdit
                   ? 'Update'
                   : 'Create'}{' '}
-              Asset Type
             </Button>
           </Box>
         </form>

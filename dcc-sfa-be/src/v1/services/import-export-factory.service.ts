@@ -9,6 +9,7 @@ import { VisitsImportExportService } from './implementations/visits.import-expor
 import { AssetTypesImportExportService } from './implementations/assetTypes-import-export.service';
 import { WarehousesImportExportService } from './implementations/warehouses-import-export.service';
 import { VehiclesImportExportService } from './implementations/vehicles-import-export.service';
+import { SurveysImportExportService } from './implementations/surveys-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -28,6 +29,7 @@ export class ImportExportFactory {
     ['asset_types', AssetTypesImportExportService],
     ['warehouses', WarehousesImportExportService],
     ['vehicles', VehiclesImportExportService],
+    ['surveys', SurveysImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

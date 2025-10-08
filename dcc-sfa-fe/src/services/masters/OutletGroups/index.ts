@@ -19,6 +19,12 @@ interface OutletGroup {
   members?: { id: number; customer_id: number; group_id: number }[];
 }
 
+interface CustomerGroupMember {
+  customer_id: number;
+  is_active?: string;
+  joined_at?: Date;
+}
+
 interface ManageOutletGroupPayload {
   name: string;
   description?: string;
@@ -27,6 +33,7 @@ interface ManageOutletGroupPayload {
   payment_terms?: string;
   price_group?: string;
   is_active?: string;
+  customerGroups?: CustomerGroupMember[];
 }
 
 interface UpdateOutletGroupPayload {
@@ -37,6 +44,7 @@ interface UpdateOutletGroupPayload {
   payment_terms?: string;
   price_group?: string;
   is_active?: string;
+  customerGroups?: CustomerGroupMember[];
 }
 
 interface GetOutletGroupsParams {
@@ -157,4 +165,5 @@ export type {
   PaginationMeta,
   OutletGroupStats,
   OutletGroup,
+  CustomerGroupMember,
 };
