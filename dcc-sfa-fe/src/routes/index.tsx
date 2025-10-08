@@ -6,6 +6,7 @@ import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
 import CompaniesManagement from 'pages/masters/Companies';
 import DepotsManagement from 'pages/masters/Depot';
 import OutletsManagement from 'pages/masters/Outlet';
+import OutletDetail from 'pages/masters/Outlet/OutletDetail';
 import OutletGroupsManagement from 'pages/masters/OutletGroups';
 import ProductsManagement from 'pages/masters/Products';
 import RolePermissions from 'pages/masters/RolePermissions';
@@ -120,6 +121,10 @@ const router = createBrowserRouter([
       {
         path: '/masters/outlets',
         element: <OutletsManagement />,
+      },
+      {
+        path: '/masters/outlets/:id',
+        element: <OutletDetail />,
       },
       {
         path: '/masters/outlet-groups',

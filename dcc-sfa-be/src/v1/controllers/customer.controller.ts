@@ -237,6 +237,28 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
+          customer_documents: {
+            orderBy: { createdate: 'desc' },
+          },
+          customer_assets_customers: {
+            include: {
+              asset_types: {
+                select: { id: true, name: true, category: true, brand: true },
+              },
+              users: {
+                select: { id: true, name: true, email: true },
+              },
+              customer_assets_history: {
+                orderBy: { change_date: 'desc' },
+                include: {
+                  users_customer_assets_history_changed_byTousers: {
+                    select: { id: true, name: true, email: true },
+                  },
+                },
+              },
+            },
+            orderBy: { createdate: 'desc' },
+          },
         },
       });
 
@@ -245,8 +267,13 @@ export const customerController = {
       }
 
       res.json({
+        success: true,
         message: 'Customer fetched successfully',
-        data: serializeCustomer(customer),
+        data: {
+          customer: serializeCustomer(customer),
+          documents: customer.customer_documents || [],
+          assets: customer.customer_assets_customers || [],
+        },
       });
     } catch (error: any) {
       console.error('Get Customer Error:', error);

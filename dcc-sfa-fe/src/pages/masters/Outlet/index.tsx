@@ -11,6 +11,7 @@ import {
   Users,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
@@ -27,6 +28,7 @@ import { useZones } from '../../../hooks/useZones';
 import ManageOutlet from './ManageOutlet';
 
 const OutletsManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -479,6 +481,7 @@ const OutletsManagement: React.FC = () => {
       <Table
         data={customers}
         columns={outletColumns}
+        onRowClick={(row: Customer) => navigate(`/masters/outlets/${row.id}`)}
         actions={
           <div className="flex justify-between w-full">
             <div className="flex gap-3">
