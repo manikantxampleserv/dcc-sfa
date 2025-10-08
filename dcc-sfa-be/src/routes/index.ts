@@ -22,6 +22,9 @@ import warehouses from '../v1/routes/warehouses.routes';
 import vehicles from '../v1/routes/vehicles.routes';
 import customerGroupMembers from '../v1/routes/customerGroupMembers.routes';
 import customerDocuments from '../v1/routes/customerDocuments.routes';
+import assetMaster from '../v1/routes/assetMaster.routes';
+import assetImages from '../v1/routes/assetImages.routes';
+
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -46,6 +49,9 @@ routes.use('/v1', warehouses);
 routes.use('/v1', vehicles);
 routes.use('/v1', customerGroupMembers);
 routes.use('/v1', customerDocuments);
+routes.use('/v1', assetMaster);
+routes.use('/v1', assetImages);
+
 routes.get('/', (_: any, res: any) => {
   res.json({
     name: 'DCC-SFA API',

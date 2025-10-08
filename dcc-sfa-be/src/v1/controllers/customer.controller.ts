@@ -237,7 +237,7 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
-          customer_documents: {
+          customer_documents_customers: {
             orderBy: { createdate: 'desc' },
           },
           customer_assets_customers: {
@@ -271,7 +271,7 @@ export const customerController = {
         message: 'Customer fetched successfully',
         data: {
           customer: serializeCustomer(customer),
-          documents: customer.customer_documents || [],
+          documents: customer.customer_documents_customers || [],
           assets: customer.customer_assets_customers || [],
         },
       });

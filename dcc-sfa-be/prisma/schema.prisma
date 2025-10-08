@@ -204,110 +204,110 @@ model approval_workflows {
 }
 
 model asset_images {
-  id           Int          @id(map: "PK__asset_im__3213E83FC987CC43") @default(autoincrement())
-  asset_id     Int
-  image_url    String       @db.NVarChar(500)
-  caption      String?      @db.NVarChar(255)
-  uploaded_by  String?      @db.NVarChar(100)
-  uploaded_at  DateTime?    @default(now(), map: "DF__asset_ima__uploa__73A521EA") @db.DateTime
-  is_active    String       @default("Y", map: "DF__asset_ima__is_ac__74994623") @db.Char(1)
-  createdate   DateTime?    @default(now(), map: "DF__asset_ima__creat__758D6A5C") @db.DateTime
-  createdby    Int
-  updatedate   DateTime?    @db.DateTime
-  updatedby    Int?
-  log_inst     Int?
-  asset_master asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, map: "FK__asset_ima__asset__72B0FDB1")
+  id                 Int          @id() @default(autoincrement())
+  asset_id           Int
+  image_url          String       @db.NVarChar(500)
+  caption            String?      @db.NVarChar(255)
+  uploaded_by        String?      @db.NVarChar(100)
+  uploaded_at        DateTime?    @default(now()) @db.DateTime
+  is_active          String       @default("Y") @db.Char(1)
+  createdate         DateTime?    @default(now()) @db.DateTime
+  createdby          Int
+  updatedate         DateTime?    @db.DateTime
+  updatedby          Int?
+  log_inst           Int?
+  asset_master_image asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model asset_maintenance {
-  id               Int          @id(map: "PK__asset_ma__3213E83FDAF15AFD") @default(autoincrement())
-  asset_id         Int
-  maintenance_date DateTime     @db.Date
-  issue_reported   String?      @db.NVarChar(255)
-  action_taken     String?      @db.NVarChar(255)
-  technician       String?      @db.NVarChar(100)
-  cost             Decimal?     @db.Decimal(10, 2)
-  remarks          String?      @db.NVarChar(255)
-  is_active        String       @default("Y", map: "DF__asset_mai__is_ac__6EE06CCD") @db.Char(1)
-  createdate       DateTime?    @default(now(), map: "DF__asset_mai__creat__6FD49106") @db.DateTime
-  createdby        Int
-  updatedate       DateTime?    @db.DateTime
-  updatedby        Int?
-  log_inst         Int?
-  asset_master     asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, map: "FK__asset_mai__asset__6DEC4894")
+  id                       Int          @id(map: "PK__asset_ma__3213E83FDAF15AFD") @default(autoincrement())
+  asset_id                 Int
+  maintenance_date         DateTime     @db.Date
+  issue_reported           String?      @db.NVarChar(255)
+  action_taken             String?      @db.NVarChar(255)
+  technician               String?      @db.NVarChar(100)
+  cost                     Decimal?     @db.Decimal(10, 2)
+  remarks                  String?      @db.NVarChar(255)
+  is_active                String       @default("Y", map: "DF__asset_mai__is_ac__6EE06CCD") @db.Char(1)
+  createdate               DateTime?    @default(now(), map: "DF__asset_mai__creat__6FD49106") @db.DateTime
+  createdby                Int
+  updatedate               DateTime?    @db.DateTime
+  updatedby                Int?
+  log_inst                 Int?
+  asset_maintenance_master asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model asset_master {
-  id                    Int                     @id(map: "PK__asset_ma__3213E83FB367A2E5") @default(autoincrement())
-  asset_type_id         Int
-  serial_number         String                  @unique(map: "UQ__asset_ma__BED14FEE105CB870") @db.NVarChar(100)
-  purchase_date         DateTime?               @db.Date
-  warranty_expiry       DateTime?               @db.Date
-  current_location      String?                 @db.NVarChar(255)
-  current_status        String?                 @db.NVarChar(50)
-  assigned_to           String?                 @db.NVarChar(100)
-  is_active             String                  @default("Y", map: "DF__asset_mas__is_ac__6462DE5A") @db.Char(1)
-  createdate            DateTime?               @default(now(), map: "DF__asset_mas__creat__65570293") @db.DateTime
-  createdby             Int
-  updatedate            DateTime?               @db.DateTime
-  updatedby             Int?
-  log_inst              Int?
-  asset_images          asset_images[]
-  asset_maintenance     asset_maintenance[]
-  asset_types           asset_types             @relation(fields: [asset_type_id], references: [id], onUpdate: NoAction, map: "FK__asset_mas__asset__636EBA21")
-  asset_movements       asset_movements[]
-  asset_warranty_claims asset_warranty_claims[]
+  id                           Int                     @id(map: "PK__asset_ma__3213E83FB367A2E5") @default(autoincrement())
+  asset_type_id                Int
+  serial_number                String                  @unique(map: "UQ__asset_ma__BED14FEE105CB870") @db.NVarChar(100)
+  purchase_date                DateTime?               @db.Date
+  warranty_expiry              DateTime?               @db.Date
+  current_location             String?                 @db.NVarChar(255)
+  current_status               String?                 @db.NVarChar(50)
+  assigned_to                  String?                 @db.NVarChar(100)
+  is_active                    String                  @default("Y", map: "DF__asset_mas__is_ac__6462DE5A") @db.Char(1)
+  createdate                   DateTime?               @default(now(), map: "DF__asset_mas__creat__65570293") @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime?               @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  asset_master_image           asset_images[]
+  asset_maintenance_master     asset_maintenance[]
+  asset_master_asset_types     asset_types             @relation(fields: [asset_type_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  asset_movements_master       asset_movements[]
+  asset_master_warranty_claims asset_warranty_claims[]
 }
 
 model asset_movements {
-  id            Int          @id(map: "PK__asset_mo__3213E83FA5DAA4BE") @default(autoincrement())
-  asset_id      Int
-  from_location String?      @db.NVarChar(255)
-  to_location   String?      @db.NVarChar(255)
-  movement_type String?      @db.NVarChar(50)
-  movement_date DateTime     @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
-  performed_by  String?      @db.NVarChar(100)
-  notes         String?      @db.NVarChar(255)
-  is_active     String       @default("Y", map: "DF__asset_mov__is_ac__6A1BB7B0") @db.Char(1)
-  createdate    DateTime?    @default(now(), map: "DF__asset_mov__creat__6B0FDBE9") @db.DateTime
-  createdby     Int
-  updatedate    DateTime?    @db.DateTime
-  updatedby     Int?
-  log_inst      Int?
-  asset_master  asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, map: "FK__asset_mov__asset__68336F3E")
+  id                     Int          @id(map: "PK__asset_mo__3213E83FA5DAA4BE") @default(autoincrement())
+  asset_id               Int
+  from_location          String?      @db.NVarChar(255)
+  to_location            String?      @db.NVarChar(255)
+  movement_type          String?      @db.NVarChar(50)
+  movement_date          DateTime     @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
+  performed_by           String?      @db.NVarChar(100)
+  notes                  String?      @db.NVarChar(255)
+  is_active              String       @default("Y", map: "DF__asset_mov__is_ac__6A1BB7B0") @db.Char(1)
+  createdate             DateTime?    @default(now(), map: "DF__asset_mov__creat__6B0FDBE9") @db.DateTime
+  createdby              Int
+  updatedate             DateTime?    @db.DateTime
+  updatedby              Int?
+  log_inst               Int?
+  asset_movements_master asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model asset_types {
-  id              Int               @id(map: "PK__asset_ty__3213E83F81A55314") @default(autoincrement())
-  name            String            @db.NVarChar(100)
-  description     String?           @db.NVarChar(255)
-  is_active       String            @default("Y", map: "DF__asset_typ__is_ac__62E4AA3C") @db.Char(1)
-  createdate      DateTime?         @default(now(), map: "DF__asset_typ__creat__63D8CE75") @db.DateTime
-  createdby       Int
-  updatedate      DateTime?         @db.DateTime
-  updatedby       Int?
-  log_inst        Int?
-  category        String?           @db.NVarChar(50)
-  brand           String?           @db.NVarChar(100)
-  asset_master    asset_master[]
-  customer_assets customer_assets[]
+  id                       Int               @id(map: "PK__asset_ty__3213E83F81A55314") @default(autoincrement())
+  name                     String            @db.NVarChar(100)
+  description              String?           @db.NVarChar(255)
+  is_active                String            @default("Y", map: "DF__asset_typ__is_ac__62E4AA3C") @db.Char(1)
+  createdate               DateTime?         @default(now(), map: "DF__asset_typ__creat__63D8CE75") @db.DateTime
+  createdby                Int
+  updatedate               DateTime?         @db.DateTime
+  updatedby                Int?
+  log_inst                 Int?
+  category                 String?           @db.NVarChar(50)
+  brand                    String?           @db.NVarChar(100)
+  asset_master_asset_types asset_master[]
+  customer_assets          customer_assets[]
 }
 
 model asset_warranty_claims {
-  id                Int          @id(map: "PK__asset_wa__3213E83FC35677B7") @default(autoincrement())
-  asset_id          Int
-  claim_date        DateTime     @db.Date
-  issue_description String?      @db.NVarChar(255)
-  claim_status      String?      @db.NVarChar(50)
-  resolved_date     DateTime?    @db.Date
-  notes             String?      @db.NVarChar(255)
-  is_active         String       @default("Y", map: "DF__asset_war__is_ac__795DFB40") @db.Char(1)
-  createdate        DateTime?    @default(now(), map: "DF__asset_war__creat__7A521F79") @db.DateTime
-  createdby         Int
-  updatedate        DateTime?    @db.DateTime
-  updatedby         Int?
-  log_inst          Int?
-  asset_master      asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, map: "FK__asset_war__asset__7869D707")
+  id                           Int          @id(map: "PK__asset_wa__3213E83FC35677B7") @default(autoincrement())
+  asset_id                     Int
+  claim_date                   DateTime     @db.Date
+  issue_description            String?      @db.NVarChar(255)
+  claim_status                 String?      @db.NVarChar(50)
+  resolved_date                DateTime?    @db.Date
+  notes                        String?      @db.NVarChar(255)
+  is_active                    String       @default("Y", map: "DF__asset_war__is_ac__795DFB40") @db.Char(1)
+  createdate                   DateTime?    @default(now(), map: "DF__asset_war__creat__7A521F79") @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime?    @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  asset_master_warranty_claims asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model audit_logs {
@@ -707,27 +707,27 @@ model delivery_schedules {
 }
 
 model digital_signatures {
-  id                Int       @id() @default(autoincrement())
-  document_id       Int
-  document_type     String    @db.NVarChar(50)
-  signature_data    String    @db.NVarChar(Max)
-  signer_name       String    @db.NVarChar(255)
-  signer_email      String?   @db.NVarChar(255)
-  signer_role       String    @db.NVarChar(50)
-  signed_at         DateTime? @default(now())
-  ip_address        String?   @db.NVarChar(45)
-  device_info       String?   @db.NVarChar(500)
-  latitude          Decimal?  @db.Decimal(10, 8)
-  longitude         Decimal?  @db.Decimal(11, 8)
-  is_valid          Boolean?  @default(turnover_rate)
-  verification_hash String?   @db.NVarChar(255)
-  is_active         String    @default("Y") @db.Char(1)
-  createdate        DateTime? @default(now()) @db.DateTime
-  createdby         Int
-  updatedate        DateTime? @db.DateTime
-  updatedby         Int?
-  log_inst          Int?
-  digital_signatures_orders            orders    @relation(fields: [document_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  id                        Int       @id() @default(autoincrement())
+  document_id               Int
+  document_type             String    @db.NVarChar(50)
+  signature_data            String    @db.NVarChar(Max)
+  signer_name               String    @db.NVarChar(255)
+  signer_email              String?   @db.NVarChar(255)
+  signer_role               String    @db.NVarChar(50)
+  signed_at                 DateTime? @default(now())
+  ip_address                String?   @db.NVarChar(45)
+  device_info               String?   @db.NVarChar(500)
+  latitude                  Decimal?  @db.Decimal(10, 8)
+  longitude                 Decimal?  @db.Decimal(11, 8)
+  is_valid                  Boolean?
+  verification_hash         String?   @db.NVarChar(255)
+  is_active                 String    @default("Y") @db.Char(1)
+  createdate                DateTime? @default(now()) @db.DateTime
+  createdby                 Int
+  updatedate                DateTime? @db.DateTime
+  updatedby                 Int?
+  log_inst                  Int?
+  digital_signatures_orders orders    @relation(fields: [document_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model employee_kpi_actuals {
@@ -928,43 +928,43 @@ model order_items {
 }
 
 model orders {
-  id                 Int                  @id() @default(autoincrement())
-  order_number       String               @unique() @db.NVarChar(50)
-  parent_id          Int
-  salesperson_id     Int
-  order_date         DateTime?            @default(now())
-  delivery_date      DateTime?
-  status             String?              @default("draft") @db.NVarChar(20)
-  priority           String?              @default("medium") @db.NVarChar(10)
-  order_type         String?              @default("regular") @db.NVarChar(20)
-  payment_method     String?              @default("credit") @db.NVarChar(20)
-  payment_terms      String?              @default("Net 30") @db.NVarChar(50)
-  subtotal           Decimal?             @default(0) @db.Decimal(18, 2)
-  discount_amount    Decimal?             @default(0) @db.Decimal(18, 2)
-  tax_amount         Decimal?             @default(0) @db.Decimal(18, 2)
-  shipping_amount    Decimal?             @default(0) @db.Decimal(18, 2)
-  total_amount       Decimal?             @default(0) @db.Decimal(18, 2)
-  notes              String?
-  shipping_address   String?
-  approval_status    String?              @default("pending") @db.NVarChar(20)
-  approved_by        Int?
-  approved_at        DateTime?
-  is_active          String               @default("Y") @db.Char(1)
-  createdate         DateTime?            @default(now()) @db.DateTime
-  createdby          Int
-  updatedate         DateTime?            @db.DateTime
-  updatedby          Int?
-  log_inst           Int?
-  currency_id        Int?
-  credit_notes       credit_notes[]
-  delivery_schedules delivery_schedules[]
+  id                        Int                  @id() @default(autoincrement())
+  order_number              String               @unique() @db.NVarChar(50)
+  parent_id                 Int
+  salesperson_id            Int
+  order_date                DateTime?            @default(now())
+  delivery_date             DateTime?
+  status                    String?              @default("draft") @db.NVarChar(20)
+  priority                  String?              @default("medium") @db.NVarChar(10)
+  order_type                String?              @default("regular") @db.NVarChar(20)
+  payment_method            String?              @default("credit") @db.NVarChar(20)
+  payment_terms             String?              @default("Net 30") @db.NVarChar(50)
+  subtotal                  Decimal?             @default(0) @db.Decimal(18, 2)
+  discount_amount           Decimal?             @default(0) @db.Decimal(18, 2)
+  tax_amount                Decimal?             @default(0) @db.Decimal(18, 2)
+  shipping_amount           Decimal?             @default(0) @db.Decimal(18, 2)
+  total_amount              Decimal?             @default(0) @db.Decimal(18, 2)
+  notes                     String?
+  shipping_address          String?
+  approval_status           String?              @default("pending") @db.NVarChar(20)
+  approved_by               Int?
+  approved_at               DateTime?
+  is_active                 String               @default("Y") @db.Char(1)
+  createdate                DateTime?            @default(now()) @db.DateTime
+  createdby                 Int
+  updatedate                DateTime?            @db.DateTime
+  updatedby                 Int?
+  log_inst                  Int?
+  currency_id               Int?
+  credit_notes              credit_notes[]
+  delivery_schedules        delivery_schedules[]
   digital_signatures_orders digital_signatures[]
-  invoices           invoices[]
-  order_items        order_items[]
-  orders_approved_by users?               @relation("OrdersApprovedBy", fields: [approved_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  orders_currencies  currencies?          @relation("OrdersCurrencies", fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  orders_customers   customers            @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  orders_salesperson users                @relation("OrdersSalesperson", fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  invoices                  invoices[]
+  order_items               order_items[]
+  orders_approved_by        users?               @relation("OrdersApprovedBy", fields: [approved_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  orders_currencies         currencies?          @relation("OrdersCurrencies", fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders_customers          customers            @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  orders_salesperson        users                @relation("OrdersSalesperson", fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model payment_lines {
