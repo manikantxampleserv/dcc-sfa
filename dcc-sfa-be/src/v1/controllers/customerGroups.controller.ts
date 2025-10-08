@@ -99,6 +99,7 @@ export const customerGroupsController = {
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
+      const statusLower = status ? (status as string).toLowerCase() : '';
 
       const filters: any = {
         ...(search && {
@@ -107,8 +108,8 @@ export const customerGroupsController = {
             { code: { contains: searchLower } },
           ],
         }),
-        ...(status === 'active' && { is_active: 'Y' }),
-        ...(status === 'inactive' && { is_active: 'N' }),
+        ...(statusLower === 'active' && { is_active: 'Y' }),
+        ...(statusLower === 'inactive' && { is_active: 'N' }),
       };
 
       const { data, pagination } = await paginate({

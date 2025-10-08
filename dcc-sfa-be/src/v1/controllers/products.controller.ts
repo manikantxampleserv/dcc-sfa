@@ -132,10 +132,11 @@ export const productsController = {
 
   async getAllProducts(req: any, res: any) {
     try {
-      const { page, limit, search } = req.query;
+      const { page, limit, search, status } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
+      const statusLower = status ? (status as string).toLowerCase() : '';
 
       const filters: any = {
         ...(search && {
@@ -146,6 +147,9 @@ export const productsController = {
             { brand: { contains: searchLower } },
           ],
         }),
+
+        ...(statusLower === 'active' && { is_active: 'Y' }),
+        ...(statusLower === 'inactive' && { is_active: 'N' }),
       };
 
       const { data, pagination } = await paginate({
