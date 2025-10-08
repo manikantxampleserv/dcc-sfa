@@ -599,17 +599,17 @@ model customer_group_members {
   id                                    Int             @id(map: "PK__customer__3213E83FB235A246") @default(autoincrement())
   customer_group_id                     Int
   customer_id                           Int
-  joined_at                             DateTime?       @default(now(), map: "DF__customer___joine__505BE5AD") @db.DateTime
-  is_active                             String          @default("Y", map: "DF__customer___is_ac__515009E6") @db.Char(1)
-  createdate                            DateTime?       @default(now(), map: "DF__customer___creat__52442E1F") @db.DateTime
+  joined_at                             DateTime?       @default(now()) @db.DateTime
+  is_active                             String          @default("Y") @db.Char(1)
+  createdate                            DateTime?       @default(now()) @db.DateTime
   createdby                             Int
   updatedate                            DateTime?       @db.DateTime
   updatedby                             Int?
   log_inst                              Int?
   customer_group_members_customer_group customer_groups @relation(fields: [customer_group_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  customers                             customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__customer___custo__542C7691")
+  customer_group_members_customers      customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 
-  @@unique([customer_group_id, customer_id], map: "uq_customer_group_customer")
+  @@unique([customer_group_id, customer_id])
 }
 
 model customer_groups {
@@ -631,51 +631,51 @@ model customer_groups {
 }
 
 model customers {
-  id                            Int                      @id() @default(autoincrement())
-  name                          String                   @db.NVarChar(255)
-  code                          String                   @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
-  zones_id                      Int?                     @db.Int
-  type                          String?                  @db.NVarChar(50)
-  contact_person                String?                  @db.NVarChar(255)
-  phone_number                  String?                  @db.NVarChar(20)
-  email                         String?                  @db.NVarChar(255)
-  address                       String?                  @db.NVarChar(500)
-  city                          String?                  @db.NVarChar(100)
-  state                         String?                  @db.NVarChar(100)
-  zipcode                       String?                  @db.NVarChar(20)
-  latitude                      Decimal?                 @db.Decimal(10, 8)
-  longitude                     Decimal?                 @db.Decimal(11, 8)
-  credit_limit                  Decimal?                 @db.Decimal(18, 2)
-  outstanding_amount            Decimal?                 @default(0, map: "DF__customers__outst__49C3F6B7") @db.Decimal(18, 2)
-  route_id                      Int?
-  salesperson_id                Int?
-  last_visit_date               DateTime?
-  is_active                     String                   @default("Y") @db.Char(1)
-  createdate                    DateTime?                @default(now()) @db.DateTime
-  createdby                     Int
-  updatedate                    DateTime?                @db.DateTime
-  updatedby                     Int?
-  log_inst                      Int?
-  competitor_activity_customers competitor_activity[]
-  coolers_customers             coolers[]
-  credit_notes_customers        credit_notes[]
-  customer_assets_customers     customer_assets[]
-  customer_documents            customer_documents[]
-  customer_group_members        customer_group_members[]
-  customer_routes               routes?                  @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  customer_users                users?                   @relation(fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  delivery_schedules_customers  delivery_schedules[]
-  invoices_customers            invoices[]
-  orders_customers              orders[]
-  payments_customers            payments[]
-  product_facing_customers      product_facing[]
-  return_requests_customers     return_requests[]
-  customer_route_exceptions     route_exceptions[]
-  route_plan_details_customers  route_plan_details[]
-  serial_numbers_customers      serial_numbers[]
-  visit_customers               visits[]
-  warranty_claims_customers     warranty_claims[]
-  customer_zones                zones?                   @relation("ZoneCustomer", fields: [zones_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                               Int                      @id() @default(autoincrement())
+  name                             String                   @db.NVarChar(255)
+  code                             String                   @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
+  zones_id                         Int?                     @db.Int
+  type                             String?                  @db.NVarChar(50)
+  contact_person                   String?                  @db.NVarChar(255)
+  phone_number                     String?                  @db.NVarChar(20)
+  email                            String?                  @db.NVarChar(255)
+  address                          String?                  @db.NVarChar(500)
+  city                             String?                  @db.NVarChar(100)
+  state                            String?                  @db.NVarChar(100)
+  zipcode                          String?                  @db.NVarChar(20)
+  latitude                         Decimal?                 @db.Decimal(10, 8)
+  longitude                        Decimal?                 @db.Decimal(11, 8)
+  credit_limit                     Decimal?                 @db.Decimal(18, 2)
+  outstanding_amount               Decimal?                 @default(0, map: "DF__customers__outst__49C3F6B7") @db.Decimal(18, 2)
+  route_id                         Int?
+  salesperson_id                   Int?
+  last_visit_date                  DateTime?
+  is_active                        String                   @default("Y") @db.Char(1)
+  createdate                       DateTime?                @default(now()) @db.DateTime
+  createdby                        Int
+  updatedate                       DateTime?                @db.DateTime
+  updatedby                        Int?
+  log_inst                         Int?
+  competitor_activity_customers    competitor_activity[]
+  coolers_customers                coolers[]
+  credit_notes_customers           credit_notes[]
+  customer_assets_customers        customer_assets[]
+  customer_documents               customer_documents[]
+  customer_group_members_customers customer_group_members[]
+  customer_routes                  routes?                  @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer_users                   users?                   @relation(fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  delivery_schedules_customers     delivery_schedules[]
+  invoices_customers               invoices[]
+  orders_customers                 orders[]
+  payments_customers               payments[]
+  product_facing_customers         product_facing[]
+  return_requests_customers        return_requests[]
+  customer_route_exceptions        route_exceptions[]
+  route_plan_details_customers     route_plan_details[]
+  serial_numbers_customers         serial_numbers[]
+  visit_customers                  visits[]
+  warranty_claims_customers        warranty_claims[]
+  customer_zones                   zones?                   @relation("ZoneCustomer", fields: [zones_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model delivery_schedules {

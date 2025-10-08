@@ -6,11 +6,12 @@ import {
   refresh,
 } from '../controllers/auth.controller';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import { upload } from '../../utils/multer';
 
 const router = Router();
 
 router.post('/auth/register', register);
-router.post('/auth/login', login);
+router.post('/auth/login', upload.none(), login);
 router.post('/auth/logout', authenticateToken, logout);
 router.post('/auth/refresh', refresh);
 

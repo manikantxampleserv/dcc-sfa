@@ -95,7 +95,7 @@ export const customerGroupsController = {
 
   async getAllCustomerGroups(req: any, res: any) {
     try {
-      const { page, limit, search } = req.query;
+      const { page, limit, search, status } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -107,6 +107,8 @@ export const customerGroupsController = {
             { code: { contains: searchLower } },
           ],
         }),
+        ...(status === 'active' && { is_active: 'Y' }),
+        ...(status === 'inactive' && { is_active: 'N' }),
       };
 
       const { data, pagination } = await paginate({
@@ -128,6 +130,31 @@ export const customerGroupsController = {
         where: { is_active: 'N' },
       });
 
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const avgResult = await prisma.customer_groups.aggregate({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+        _avg: { discount_percentage: true },
+      });
+
+      const avgDiscount = avgResult._avg.discount_percentage || 0;
+
+      const newGroups = await prisma.customer_groups.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      });
+
       res.success(
         'Customer groups retrieved successfully',
         data.map((g: any) => serializeCustomerGroup(g)),
@@ -137,6 +164,8 @@ export const customerGroupsController = {
           total_groups: totalGroups,
           active_groups: activeGroups,
           inactive_groups: inactiveGroups,
+          new_groups: newGroups,
+          avg_discount: avgDiscount,
         }
       );
     } catch (error: any) {
