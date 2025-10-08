@@ -2,6 +2,10 @@ import { ImportExportService } from './base/import-export.service';
 import { ZonesImportExportService } from './implementations/zones-import-export.service';
 import { DepotsImportExportService } from './implementations/depots-import-export.service';
 import { CustomersImportExportService } from './implementations/customers-import-export.service';
+import { ProductsImportExportService } from './implementations/products-import-export.service';
+import { OrdersImportExportService } from './implementations/orders.import-export.service';
+import { CurrenciesImportExportService } from './implementations/currencies.import-export.service';
+import { VisitsImportExportService } from './implementations/visits.import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -14,6 +18,10 @@ export class ImportExportFactory {
     ['zones', ZonesImportExportService],
     ['depots', DepotsImportExportService],
     ['customers', CustomersImportExportService],
+    ['products', ProductsImportExportService],
+    ['orders', OrdersImportExportService],
+    ['currencies', CurrenciesImportExportService],
+    ['visits', VisitsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 
