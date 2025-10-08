@@ -38,7 +38,7 @@ model users {
   coolers                                                             coolers[]
   customer_assets                                                     customer_assets[]
   customer_assets_history_customer_assets_history_changed_byTousers   customer_assets_history[]    @relation("customer_assets_history_changed_byTousers")
-  customer_documents                                                  customer_documents[]
+  customer_documents_users                                            customer_documents[]
   customer_users                                                      customers[]
   delivery_schedules                                                  delivery_schedules[]
   employee_kpi_targets_employee_kpi_targets_employee_idTousers        employee_kpi_targets[]       @relation("employee_kpi_targets_employee_idTousers")
@@ -574,25 +574,25 @@ model customer_assets_history {
 }
 
 model customer_documents {
-  id                Int       @id(map: "PK__customer__3213E83FDD2C0852") @default(autoincrement())
-  customer_id       Int
-  document_type     String    @db.NVarChar(50)
-  document_number   String?   @db.NVarChar(100)
-  issue_date        DateTime?
-  expiry_date       DateTime?
-  issuing_authority String?   @db.NVarChar(255)
-  file_path         String?   @db.NVarChar(500)
-  is_verified       Boolean?  @default(false, map: "DF__customer___is_ve__2C1E8537")
-  verified_by       Int?
-  verified_at       DateTime?
-  is_active         String    @default("Y", map: "DF__customer___is_ac__2D12A970") @db.Char(1)
-  createdate        DateTime? @default(now(), map: "DF__customer___creat__2E06CDA9") @db.DateTime
-  createdby         Int
-  updatedate        DateTime? @db.DateTime
-  updatedby         Int?
-  log_inst          Int?
-  customers         customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__customer___custo__2EFAF1E2")
-  users             users?    @relation(fields: [verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__customer___verif__2FEF161B")
+  id                           Int       @id(map: "PK__customer__3213E83FDD2C0852") @default(autoincrement())
+  customer_id                  Int
+  document_type                String    @db.NVarChar(50)
+  document_number              String?   @db.NVarChar(100)
+  issue_date                   DateTime?
+  expiry_date                  DateTime?
+  issuing_authority            String?   @db.NVarChar(255)
+  file_path                    String?   @db.NVarChar(500)
+  is_verified                  Boolean?  @default(false)
+  verified_by                  Int?
+  verified_at                  DateTime?
+  is_active                    String    @default("Y") @db.Char(1)
+  createdate                   DateTime? @default(now()) @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime? @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  customer_documents_customers customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  customer_documents_users     users?    @relation(fields: [verified_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model customer_group_members {
@@ -660,7 +660,7 @@ model customers {
   coolers_customers                coolers[]
   credit_notes_customers           credit_notes[]
   customer_assets_customers        customer_assets[]
-  customer_documents               customer_documents[]
+  customer_documents_customers     customer_documents[]
   customer_group_members_customers customer_group_members[]
   customer_routes                  routes?                  @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   customer_users                   users?                   @relation(fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
@@ -707,27 +707,27 @@ model delivery_schedules {
 }
 
 model digital_signatures {
-  id                Int       @id(map: "PK__digital___3213E83F46CFFA7D") @default(autoincrement())
+  id                Int       @id() @default(autoincrement())
   document_id       Int
   document_type     String    @db.NVarChar(50)
   signature_data    String    @db.NVarChar(Max)
   signer_name       String    @db.NVarChar(255)
   signer_email      String?   @db.NVarChar(255)
   signer_role       String    @db.NVarChar(50)
-  signed_at         DateTime? @default(now(), map: "DF__digital_s__signe__3B60C8C7")
+  signed_at         DateTime? @default(now())
   ip_address        String?   @db.NVarChar(45)
   device_info       String?   @db.NVarChar(500)
   latitude          Decimal?  @db.Decimal(10, 8)
   longitude         Decimal?  @db.Decimal(11, 8)
-  is_valid          Boolean?  @default(true, map: "DF__digital_s__is_va__3C54ED00")
+  is_valid          Boolean?  @default(turnover_rate)
   verification_hash String?   @db.NVarChar(255)
-  is_active         String    @default("Y", map: "DF__digital_s__is_ac__3D491139") @db.Char(1)
-  createdate        DateTime? @default(now(), map: "DF__digital_s__creat__3E3D3572") @db.DateTime
+  is_active         String    @default("Y") @db.Char(1)
+  createdate        DateTime? @default(now()) @db.DateTime
   createdby         Int
   updatedate        DateTime? @db.DateTime
   updatedby         Int?
   log_inst          Int?
-  orders            orders    @relation(fields: [document_id], references: [id], onUpdate: NoAction, map: "FK__digital_s__docum__3F3159AB")
+  digital_signatures_orders            orders    @relation(fields: [document_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model employee_kpi_actuals {
@@ -958,7 +958,7 @@ model orders {
   currency_id        Int?
   credit_notes       credit_notes[]
   delivery_schedules delivery_schedules[]
-  digital_signatures digital_signatures[]
+  digital_signatures_orders digital_signatures[]
   invoices           invoices[]
   order_items        order_items[]
   orders_approved_by users?               @relation("OrdersApprovedBy", fields: [approved_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
