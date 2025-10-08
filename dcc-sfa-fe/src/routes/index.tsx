@@ -15,13 +15,13 @@ import SurveyBuilder from 'pages/masters/SurveyBuilder';
 import Users from 'pages/masters/Users';
 import ZonesManagement from 'pages/masters/Zone';
 import AssetTypesManagement from 'pages/masters/AssetTypes';
+import AssetMasterManagement from 'pages/masters/AssetMaster';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import VehiclesManagement from 'pages/masters/Vehicles';
 import OrdersManagement from 'pages/transactions/Orders';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-const AssetMaster = () => <h1>Asset Master</h1>;
 const Pricelists = () => <h1>Pricelists</h1>;
 const SalesTargetGroups = () => <h1>Sales Target Groups</h1>;
 const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
@@ -135,8 +135,8 @@ const router = createBrowserRouter([
         element: <AssetTypesManagement />,
       },
       {
-        path: '/masters/assets',
-        element: <AssetMaster />,
+        path: '/masters/asset-master',
+        element: <AssetMasterManagement />,
       },
       {
         path: '/masters/warehouses',

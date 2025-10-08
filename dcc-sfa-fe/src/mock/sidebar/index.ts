@@ -57,7 +57,11 @@ const menuItems: MenuItem[] = [
         href: '/masters/outlet-groups',
       },
       { id: 'asset-types', label: 'Asset Types', href: '/masters/asset-types' },
-      { id: 'asset-master', label: 'Asset Master', href: '/masters/assets' },
+      {
+        id: 'asset-master',
+        label: 'Asset Master',
+        href: '/masters/asset-master',
+      },
       {
         id: 'warehouse-master',
         label: 'Warehouse Master',

@@ -109,6 +109,11 @@ export interface ApiResponse<T = any> {
     active_surveys: number;
     total_responses: number;
     total_categories: number;
+    // Asset master statistics
+    total_assets: number;
+    active_assets: number;
+    inactive_assets: number;
+    assets_this_month: number;
   };
 }
 
