@@ -1,10 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
 import { Avatar, Skeleton } from '@mui/material';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FaBars,
   FaBell,
   FaCog,
-  FaSearch,
   FaSignOutAlt,
   FaTimes,
   FaUser,
@@ -92,10 +91,6 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-            <FaSearch size={20} />
-          </button>
-
           <button className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
             <FaBell size={20} />
           </button>

@@ -1,9 +1,10 @@
-import { Add, Block, CheckCircle } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { Building2, MapPin, User, UserCheck, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
@@ -11,7 +12,9 @@ import { formatDate } from 'utils/dateUtils';
 import { useDepots } from '../../../hooks/useDepots';
 import { useUsers } from '../../../hooks/useUsers';
 import { useDeleteZone, useZones, type Zone } from '../../../hooks/useZones';
+import { useExportToExcel } from '../../../hooks/useImportExport';
 import ManageZone from './ManageZone';
+import ImportZone from './ImportZone';
 
 const ZonesManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -19,6 +22,7 @@ const ZonesManagement: React.FC = () => {
   const [depotFilter, setDepotFilter] = useState('all');
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -56,6 +60,7 @@ const ZonesManagement: React.FC = () => {
   const currentPage = (zonesResponse?.meta?.page || 1) - 1;
 
   const deleteZoneMutation = useDeleteZone();
+  const exportToExcelMutation = useExportToExcel();
 
   // Statistics - Use API stats when available, fallback to local calculation
   const totalZones = zonesResponse?.stats?.total_zones ?? zones.length;
@@ -96,6 +101,28 @@ const ZonesManagement: React.FC = () => {
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
   };
+
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      const filters = {
+        search,
+        isActive:
+          statusFilter === 'all'
+            ? undefined
+            : statusFilter === 'active'
+              ? 'Y'
+              : 'N',
+        parent_id: depotFilter === 'all' ? undefined : Number(depotFilter),
+      };
+
+      await exportToExcelMutation.mutateAsync({
+        tableName: 'zones',
+        filters,
+      });
+    } catch (error) {
+      console.error('Error exporting zones:', error);
+    }
+  }, [exportToExcelMutation, search, statusFilter, depotFilter]);
 
   // Define table columns following Depot pattern
   const zoneColumns: TableColumn<Zone>[] = [
@@ -337,15 +364,42 @@ const ZonesManagement: React.FC = () => {
                 ))}
               </Select>
             </div>
-            <Button
-              variant="contained"
-              className="!capitalize"
-              disableElevation
-              startIcon={<Add />}
-              onClick={handleCreateZone}
-            >
-              Create
-            </Button>
+            <div className="flex gap-2 items-center">
+              <PopConfirm
+                title="Export Zones"
+                description="Are you sure you want to export the current zones data to Excel? This will include all filtered results."
+                onConfirm={handleExportToExcel}
+                confirmText="Export"
+                cancelText="Cancel"
+                placement="top"
+              >
+                <Button
+                  variant="outlined"
+                  className="!capitalize"
+                  startIcon={<Download />}
+                  disabled={exportToExcelMutation.isPending}
+                >
+                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                </Button>
+              </PopConfirm>
+              <Button
+                variant="outlined"
+                className="!capitalize"
+                startIcon={<Upload />}
+                onClick={() => setImportModalOpen(true)}
+              >
+                Import
+              </Button>
+              <Button
+                variant="contained"
+                className="!capitalize"
+                disableElevation
+                startIcon={<Add />}
+                onClick={handleCreateZone}
+              >
+                Create
+              </Button>
+            </div>
           </div>
         }
         getRowId={zone => zone.id}
@@ -369,6 +423,11 @@ const ZonesManagement: React.FC = () => {
         setDrawerOpen={setDrawerOpen}
         depots={depots}
         users={users}
+      />
+
+      <ImportZone
+        drawerOpen={importModalOpen}
+        setDrawerOpen={setImportModalOpen}
       />
     </>
   );

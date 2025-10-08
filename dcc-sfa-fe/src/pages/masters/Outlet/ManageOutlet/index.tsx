@@ -90,7 +90,8 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
           salesperson_id: values.salesperson_id
             ? Number(values.salesperson_id)
             : undefined,
-          last_visit_date: values.last_visit_date || undefined,
+          last_visit_date:
+            new Date(values.last_visit_date).toISOString() || undefined,
           is_active: values.is_active,
         };
 
