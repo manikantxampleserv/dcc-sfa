@@ -33,7 +33,7 @@ import loginHistory from '../v1/routes/loginHistory.routes';
 import apiTokens from '../v1/routes/apiTokens.routes';
 import orderItems from '../v1/routes/orderItems.routes';
 import salesTargetGroups from '../v1/routes/salesTargetGroups.routes';
-
+import salesBonusRule from '../v1/routes/salesBonusRule.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -69,6 +69,8 @@ routes.use('/v1', loginHistory);
 routes.use('/v1/api-tokens', apiTokens);
 routes.use('/v1', orderItems);
 routes.use('/v1', salesTargetGroups);
+routes.use('/v1', salesBonusRule);
+
 routes.get('/', (_: any, res: any) => {
   res.json({
     name: 'DCC-SFA API',
