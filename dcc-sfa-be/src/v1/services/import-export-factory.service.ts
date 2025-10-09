@@ -3,7 +3,7 @@ import { ZonesImportExportService } from './implementations/zones-import-export.
 import { DepotsImportExportService } from './implementations/depots-import-export.service';
 import { CustomersImportExportService } from './implementations/customers-import-export.service';
 import { ProductsImportExportService } from './implementations/products-import-export.service';
-import { OrdersImportExportService } from './implementations/orders.import-export.service';
+import { OrdersImportExportService } from './implementations/orders-import-export.service';
 import { CurrenciesImportExportService } from './implementations/currencies.import-export.service';
 import { VisitsImportExportService } from './implementations/visits.import-export.service';
 import { AssetTypesImportExportService } from './implementations/assetTypes-import-export.service';
