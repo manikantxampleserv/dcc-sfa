@@ -21,8 +21,12 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Get user data from auth context
-  const { user: currentUser, isLoading: userLoading, logout } = useAuth();
+  const {
+    user: currentUser,
+    isLoading: userLoading,
+    logout,
+    isLoggingOut,
+  } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -79,7 +83,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 h-16.5">
+    <header className="bg-white border-b border-gray-200 h-[67px]">
       <div className="flex items-center justify-between h-full px-4">
         <div className="flex items-center gap-4">
           <button
@@ -180,10 +184,11 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 <div className="border-t border-gray-100 my-1"></div>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  disabled={isLoggingOut}
+                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FaSignOutAlt size={14} />
-                  Logout
+                  {isLoggingOut ? 'Signing out...' : 'Logout'}
                 </button>
               </div>
             )}

@@ -1,27 +1,25 @@
-import React, { useState, useEffect } from 'react';
 import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Download,
+  Edit,
+  Eye,
+  FileText,
+  MoreVertical,
+  Package,
   Plus,
   Search,
-  Filter,
-  Download,
-  Upload,
-  Edit,
-  Trash2,
-  Eye,
   ShoppingCart,
-  User,
-  Calendar,
-  DollarSign,
-  Package,
+  Trash2,
   Truck,
-  CheckCircle,
+  Upload,
+  User,
   XCircle,
-  Clock,
-  AlertTriangle,
-  MoreVertical,
-  FileText,
-  CreditCard,
 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface Order {
   id: number;
@@ -532,7 +530,7 @@ export default function OrdersManagement() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div>
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -545,7 +543,7 @@ export default function OrdersManagement() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Orders</p>
@@ -557,7 +555,7 @@ export default function OrdersManagement() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Value</p>
@@ -571,7 +569,7 @@ export default function OrdersManagement() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">
@@ -587,7 +585,7 @@ export default function OrdersManagement() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">
@@ -606,41 +604,41 @@ export default function OrdersManagement() {
 
       {/* Status Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-gray-600">{stats.draft}</div>
           <div className="text-sm text-gray-500">Draft</div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-yellow-600">
             {stats.pending}
           </div>
           <div className="text-sm text-gray-500">Pending</div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-blue-600">
             {stats.confirmed}
           </div>
           <div className="text-sm text-gray-500">Confirmed</div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-purple-600">
             {stats.processing}
           </div>
           <div className="text-sm text-gray-500">Processing</div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-indigo-600">
             {stats.shipped}
           </div>
           <div className="text-sm text-gray-500">Shipped</div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-green-600">
             {stats.delivered}
           </div>
           <div className="text-sm text-gray-500">Delivered</div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
           <div className="text-2xl font-bold text-red-600">
             {stats.cancelled}
           </div>
@@ -649,7 +647,7 @@ export default function OrdersManagement() {
       </div>
 
       {/* Controls */}
-      <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex flex-col sm:flex-row gap-4 flex-1">
             <div className="relative flex-1 max-w-md">
@@ -735,10 +733,10 @@ export default function OrdersManagement() {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Order Info
@@ -766,7 +764,7 @@ export default function OrdersManagement() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200 border-t border-gray-200">
               {paginatedOrders.map(order => (
                 <tr
                   key={order.id}

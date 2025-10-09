@@ -270,7 +270,7 @@ const Sidebar = () => {
       }`}
     >
       <div
-        className={`!p-4 !border-b !border-gray-100 !flex !items-center ${
+        className={`!p-4 !border-b !border-gray-200 !flex !items-center ${
           isCollapsed ? '!justify-center' : '!justify-between'
         }`}
       >

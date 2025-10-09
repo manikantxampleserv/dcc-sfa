@@ -8,6 +8,8 @@ interface ActionButtonProps {
   disabled?: boolean;
   tooltip?: string;
   size?: 'small' | 'medium' | 'large';
+  icon?: React.ReactNode;
+  color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
 }
 
 interface EditButtonProps extends ActionButtonProps {}
@@ -79,5 +81,48 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
   );
 };
 
-export { DeleteButton, EditButton };
+const ActionButton: React.FC<ActionButtonProps> = ({
+  onClick,
+  disabled = false,
+  tooltip = 'Action',
+  size = 'small',
+  icon,
+  color = 'primary',
+}) => {
+  const getColorClass = (color: string) => {
+    switch (color) {
+      case 'error':
+        return '!bg-red-100 hover:!bg-red-200 !text-red-600';
+      case 'warning':
+        return '!bg-orange-100 hover:!bg-orange-200 !text-orange-600';
+      case 'success':
+        return '!bg-green-100 hover:!bg-green-200 !text-green-600';
+      case 'info':
+        return '!bg-blue-100 hover:!bg-blue-200 !text-blue-600';
+      default:
+        return '!bg-gray-100 hover:!bg-gray-200 !text-gray-600';
+    }
+  };
+
+  const button = (
+    <IconButton
+      size={size}
+      onClick={onClick}
+      disabled={disabled}
+      className={`!rounded ${getColorClass(color)}`}
+    >
+      {icon}
+    </IconButton>
+  );
+
+  return tooltip ? (
+    <Tooltip placement="top" title={tooltip}>
+      {button}
+    </Tooltip>
+  ) : (
+    button
+  );
+};
+
+export { DeleteButton, EditButton, ActionButton };
 export type { ActionButtonProps, DeleteButtonProps, EditButtonProps };

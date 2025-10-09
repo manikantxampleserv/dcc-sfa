@@ -7,6 +7,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useCurrentUser, type User } from '../hooks/useUsers';
+import { useLogout } from '../hooks/useAuth';
 import authService from '../services/auth/authService';
 
 interface AuthContextType {
@@ -15,7 +16,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   error: Error | null;
   refetchUser: () => void;
-  logout: () => Promise<void>;
+  logout: () => void;
+  isLoggingOut: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,8 +40,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isError,
   } = useCurrentUser();
 
+  const logoutMutation = useLogout({
+    onSuccess: () => {
+      setIsAuthenticated(false);
+      window.location.href = '/login';
+    },
+    onError: error => {
+      console.error('Logout error:', error);
+      setIsAuthenticated(false);
+      window.location.href = '/login';
+    },
+  });
+
   useEffect(() => {
-    // Update authentication status based on token
     const checkAuth = () => {
       const authStatus = authService.isAuthenticated();
       setIsAuthenticated(authStatus);
@@ -47,7 +60,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     checkAuth();
 
-    // Listen for auth changes
     const handleAuthChange = () => {
       checkAuth();
     };
@@ -60,7 +72,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // Update authentication status based on user data fetch
     if (isSuccess && user) {
       setIsAuthenticated(true);
     } else if (isError && !authService.isAuthenticated()) {
@@ -68,22 +79,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [isSuccess, isError, user]);
 
-  const logout = async () => {
-    try {
-      // Use authService logout which calls API and clears tokens
-      await authService.logout();
-
-      // Reset authentication state
-      setIsAuthenticated(false);
-
-      // Redirect to login page
-      window.location.href = '/login';
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Even if API call fails, clear local state and redirect
-      setIsAuthenticated(false);
-      window.location.href = '/login';
-    }
+  const logout = () => {
+    logoutMutation.mutate();
   };
 
   const contextValue: AuthContextType = {
@@ -93,6 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: error as Error | null,
     refetchUser,
     logout,
+    isLoggingOut: logoutMutation.isPending,
   };
 
   return (

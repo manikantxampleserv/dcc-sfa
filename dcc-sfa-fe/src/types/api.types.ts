@@ -119,6 +119,11 @@ export interface ApiResponse<T = any> {
     successful_logins: number;
     failed_logins: number;
     today_logins: number;
+    // API token statistics
+    total_tokens: number;
+    active_tokens: number;
+    revoked_tokens: number;
+    expired_tokens: number;
   };
 }
 

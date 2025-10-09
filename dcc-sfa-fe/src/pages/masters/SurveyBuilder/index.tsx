@@ -162,6 +162,7 @@ const SurveyBuilder: React.FC = () => {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   cursor: 'help',
+                  width: '250px',
                 }}
               >
                 {row.description}

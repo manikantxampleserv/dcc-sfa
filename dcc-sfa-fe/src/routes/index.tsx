@@ -21,6 +21,7 @@ import VehiclesManagement from 'pages/masters/Vehicles';
 import KpiTargetsManagement from 'pages/masters/KpiTargets';
 import PriceListsManagement from 'pages/masters/PriceLists';
 import LoginHistoryPage from 'pages/masters/LoginHistory';
+import ApiTokensPage from 'pages/masters/ApiTokens';
 import OrdersManagement from 'pages/transactions/Orders';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
@@ -65,7 +66,6 @@ const RouteExceptions = () => <h1>Route Exceptions</h1>;
 const AlertsReminders = () => <h1>Alerts & Reminders</h1>;
 
 // Settings Components
-const APITokens = () => <h1>API Tokens</h1>;
 const SystemSettings = () => <h1>System Settings</h1>;
 
 const router = createBrowserRouter([
@@ -300,7 +300,7 @@ const router = createBrowserRouter([
       // Settings Routes
       {
         path: '/settings/tokens',
-        element: <APITokens />,
+        element: <ApiTokensPage />,
       },
       {
         path: '/settings/system',
