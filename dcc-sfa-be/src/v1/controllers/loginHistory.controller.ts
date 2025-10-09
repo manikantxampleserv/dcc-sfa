@@ -122,18 +122,18 @@ export const loginHistoryController = {
 
       if (search) {
         where.OR = [
-          { ip_address: { contains: search as string, mode: 'insensitive' } },
-          { device_info: { contains: search as string, mode: 'insensitive' } },
-          { os_info: { contains: search as string, mode: 'insensitive' } },
-          { app_version: { contains: search as string, mode: 'insensitive' } },
+          { ip_address: { contains: search as string } },
+          { device_info: { contains: search as string } },
+          { os_info: { contains: search as string } },
+          { app_version: { contains: search as string } },
           {
-            failure_reason: { contains: search as string, mode: 'insensitive' },
+            failure_reason: { contains: search as string },
           },
           {
             users_login_history_user_idTousers: {
               OR: [
-                { name: { contains: search as string, mode: 'insensitive' } },
-                { email: { contains: search as string, mode: 'insensitive' } },
+                { name: { contains: search as string } },
+                { email: { contains: search as string } },
               ],
             },
           },

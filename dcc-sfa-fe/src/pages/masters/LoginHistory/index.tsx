@@ -58,9 +58,7 @@ const LoginHistoryPage: React.FC = () => {
   const successfulLogins =
     loginHistoryResponse?.stats?.successful_logins ??
     loginHistory.filter(lh => lh.login_status === 'success').length;
-  const failedLogins =
-    loginHistoryResponse?.stats?.failed_logins ??
-    loginHistory.filter(lh => lh.login_status === 'failed').length;
+  const failedLogins = loginHistoryResponse?.stats?.failed_logins ?? 0;
   const todayLogins = loginHistoryResponse?.stats?.today_logins ?? 0;
 
   const handleDeleteLoginHistory = useCallback(
@@ -179,6 +177,7 @@ const LoginHistoryPage: React.FC = () => {
         </Tooltip>
       ),
     },
+
     {
       id: 'login_status',
       label: 'Login Status',
@@ -191,6 +190,16 @@ const LoginHistoryPage: React.FC = () => {
           className="w-26"
           color={value === 'success' ? 'success' : 'error'}
         />
+      ),
+    },
+    {
+      id: 'failure_reason',
+      label: 'Failure Reason',
+      sortable: false,
+      render: value => (
+        <Typography variant="body2" className="text-gray-600">
+          {value || 'N/A'}
+        </Typography>
       ),
     },
     {
