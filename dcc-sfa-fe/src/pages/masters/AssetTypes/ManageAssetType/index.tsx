@@ -1,16 +1,16 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
-import React from 'react';
-import Button from 'shared/Button';
-import CustomDrawer from 'shared/Drawer';
-import Input from 'shared/Input';
-import Select from 'shared/Select';
 import {
   useCreateAssetType,
   useUpdateAssetType,
   type AssetType,
-} from '../../../../hooks/useAssetTypes';
-import { assetTypeValidationSchema } from '../../../../schemas/assetType.schema';
+} from 'hooks/useAssetTypes';
+import React from 'react';
+import { assetTypeValidationSchema } from 'schemas/assetType.schema';
+import Button from 'shared/Button';
+import CustomDrawer from 'shared/Drawer';
+import Input from 'shared/Input';
+import Select from 'shared/Select';
 
 interface ManageAssetTypeProps {
   selectedAssetType?: AssetType | null;
