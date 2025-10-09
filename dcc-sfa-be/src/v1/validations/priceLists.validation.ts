@@ -27,3 +27,5 @@ export const createPriceListsValidation = [
     .isISO8601()
     .withMessage('valid_to must be a valid ISO 8601 date'),
 ];
+
+export const updatePriceListValidation = [...createPriceListsValidation];

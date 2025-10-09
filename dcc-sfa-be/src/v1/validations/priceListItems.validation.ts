@@ -36,3 +36,6 @@ export const createPriceListItemsValidation = [
     .isIn(['Y', 'N'])
     .withMessage('is_active must be Y or N'),
 ];
+export const updatePriceListItemsValidation = [
+  ...createPriceListItemsValidation,
+];
