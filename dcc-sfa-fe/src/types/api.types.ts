@@ -114,6 +114,11 @@ export interface ApiResponse<T = any> {
     active_assets: number;
     inactive_assets: number;
     assets_this_month: number;
+    // Login history statistics
+    total_logins: number;
+    successful_logins: number;
+    failed_logins: number;
+    today_logins: number;
   };
 }
 

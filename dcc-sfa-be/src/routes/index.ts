@@ -29,6 +29,7 @@ import kpiTargets from '../v1/routes/kpiTargets.routes';
 import priceLists from '../v1/routes/priceLists.routes';
 import priceListsItems from '../v1/routes/priceListsItems.routes';
 import routePriceLists from '../v1/routes/routePriceLists.routes';
+import loginHistory from '../v1/routes/loginHistory.routes';
 
 const routes = Router();
 
@@ -61,6 +62,7 @@ routes.use('/v1', kpiTargets);
 routes.use('/v1', priceLists);
 routes.use('/v1', priceListsItems);
 routes.use('/v1', routePriceLists);
+routes.use('/v1', loginHistory);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

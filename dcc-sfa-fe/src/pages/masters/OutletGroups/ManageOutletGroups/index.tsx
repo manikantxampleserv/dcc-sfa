@@ -254,7 +254,7 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
             </Box>
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end !gap-3 !items-center">
             <Button
               type="button"
               variant="outlined"

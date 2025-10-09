@@ -1,5 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Download, Upload, Edit, Trash2, Eye, ShoppingCart, User, Calendar, DollarSign, Package, Truck, CheckCircle, XCircle, Clock, AlertTriangle, MoreVertical, FileText, CreditCard } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Filter,
+  Download,
+  Upload,
+  Edit,
+  Trash2,
+  Eye,
+  ShoppingCart,
+  User,
+  Calendar,
+  DollarSign,
+  Package,
+  Truck,
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  MoreVertical,
+  FileText,
+  CreditCard,
+} from 'lucide-react';
 
 interface Order {
   id: number;
@@ -8,7 +30,14 @@ interface Order {
   salesperson_id: number;
   order_date: string;
   delivery_date: string | null;
-  status: 'draft' | 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status:
+    | 'draft'
+    | 'pending'
+    | 'confirmed'
+    | 'processing'
+    | 'shipped'
+    | 'delivered'
+    | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   order_type: 'regular' | 'urgent' | 'promotional' | 'sample';
   payment_method: 'cash' | 'credit' | 'cheque' | 'bank_transfer';
@@ -89,7 +118,9 @@ export default function OrdersManagement() {
   const [approvalFilter, setApprovalFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>(
+    'create'
+  );
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [showDropdown, setShowDropdown] = useState<number | null>(null);
@@ -112,11 +143,11 @@ export default function OrdersManagement() {
         order_type: 'regular',
         payment_method: 'credit',
         payment_terms: 'Net 30',
-        subtotal: 2500.00,
-        discount_amount: 125.00,
-        tax_amount: 195.00,
-        shipping_amount: 50.00,
-        total_amount: 2620.00,
+        subtotal: 2500.0,
+        discount_amount: 125.0,
+        tax_amount: 195.0,
+        shipping_amount: 50.0,
+        total_amount: 2620.0,
         notes: 'Rush order for new product launch',
         shipping_address: '123 Main Street, New York, NY 10001',
         approval_status: 'approved',
@@ -130,7 +161,7 @@ export default function OrdersManagement() {
         customer_type: 'retailer',
         salesperson_name: 'Alex Johnson',
         approver_name: 'John Smith',
-        item_count: 5
+        item_count: 5,
       },
       {
         id: 2,
@@ -144,11 +175,11 @@ export default function OrdersManagement() {
         order_type: 'promotional',
         payment_method: 'bank_transfer',
         payment_terms: 'Net 15',
-        subtotal: 5000.00,
-        discount_amount: 500.00,
-        tax_amount: 360.00,
-        shipping_amount: 75.00,
-        total_amount: 4935.00,
+        subtotal: 5000.0,
+        discount_amount: 500.0,
+        tax_amount: 360.0,
+        shipping_amount: 75.0,
+        total_amount: 4935.0,
         notes: 'Promotional campaign order',
         shipping_address: '456 Business Ave, New York, NY 10002',
         approval_status: 'approved',
@@ -162,7 +193,7 @@ export default function OrdersManagement() {
         customer_type: 'wholesaler',
         salesperson_name: 'Maria Garcia',
         approver_name: 'John Smith',
-        item_count: 8
+        item_count: 8,
       },
       {
         id: 3,
@@ -176,11 +207,11 @@ export default function OrdersManagement() {
         order_type: 'sample',
         payment_method: 'cash',
         payment_terms: 'COD',
-        subtotal: 150.00,
-        discount_amount: 0.00,
-        tax_amount: 12.00,
-        shipping_amount: 25.00,
-        total_amount: 187.00,
+        subtotal: 150.0,
+        discount_amount: 0.0,
+        tax_amount: 12.0,
+        shipping_amount: 25.0,
+        total_amount: 187.0,
         notes: 'Sample order for evaluation',
         shipping_address: '789 Industrial Blvd, Los Angeles, CA 90001',
         approval_status: 'pending',
@@ -193,23 +224,49 @@ export default function OrdersManagement() {
         customer_code: 'OUT003',
         customer_type: 'distributor',
         salesperson_name: 'David Wilson',
-        approver_name: "",
-        item_count: 3
-      }
+        approver_name: '',
+        item_count: 3,
+      },
     ];
 
     // Mock customers data
     const mockCustomers: Customer[] = [
       { id: 1, name: 'Metro Supermarket', code: 'OUT001', type: 'retailer' },
       { id: 2, name: 'City Wholesale Hub', code: 'OUT002', type: 'wholesaler' },
-      { id: 3, name: 'Regional Distribution Center', code: 'OUT003', type: 'distributor' }
+      {
+        id: 3,
+        name: 'Regional Distribution Center',
+        code: 'OUT003',
+        type: 'distributor',
+      },
     ];
 
     // Mock products data
     const mockProducts: Product[] = [
-      { id: 1, name: 'Premium Wireless Headphones', code: 'PRD001', category: 'Electronics', unit_of_measure: 'Piece', base_price: 299.99 },
-      { id: 2, name: 'Smart Fitness Tracker', code: 'PRD002', category: 'Wearables', unit_of_measure: 'Piece', base_price: 199.99 },
-      { id: 3, name: 'Organic Coffee Beans', code: 'PRD003', category: 'Food & Beverage', unit_of_measure: 'Kilogram', base_price: 24.99 }
+      {
+        id: 1,
+        name: 'Premium Wireless Headphones',
+        code: 'PRD001',
+        category: 'Electronics',
+        unit_of_measure: 'Piece',
+        base_price: 299.99,
+      },
+      {
+        id: 2,
+        name: 'Smart Fitness Tracker',
+        code: 'PRD002',
+        category: 'Wearables',
+        unit_of_measure: 'Piece',
+        base_price: 199.99,
+      },
+      {
+        id: 3,
+        name: 'Organic Coffee Beans',
+        code: 'PRD003',
+        category: 'Food & Beverage',
+        unit_of_measure: 'Kilogram',
+        base_price: 24.99,
+      },
     ];
 
     // Mock employees data
@@ -217,7 +274,7 @@ export default function OrdersManagement() {
       { id: 101, name: 'John Smith', role: 'Manager' },
       { id: 201, name: 'Alex Johnson', role: 'Sales Representative' },
       { id: 202, name: 'Maria Garcia', role: 'Sales Representative' },
-      { id: 203, name: 'David Wilson', role: 'Sales Representative' }
+      { id: 203, name: 'David Wilson', role: 'Sales Representative' },
     ];
 
     setOrders(mockOrders);
@@ -228,23 +285,38 @@ export default function OrdersManagement() {
 
   // Filter orders based on search and filters
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.salesperson_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.notes?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || order.priority === priorityFilter;
+    const matchesSearch =
+      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.salesperson_name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      order.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === 'all' || order.status === statusFilter;
+    const matchesPriority =
+      priorityFilter === 'all' || order.priority === priorityFilter;
     const matchesType = typeFilter === 'all' || order.order_type === typeFilter;
-    const matchesApproval = approvalFilter === 'all' || order.approval_status === approvalFilter;
-    
-    return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesApproval;
+    const matchesApproval =
+      approvalFilter === 'all' || order.approval_status === approvalFilter;
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesPriority &&
+      matchesType &&
+      matchesApproval
+    );
   });
 
   // Pagination
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedOrders = filteredOrders.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   // Statistics
   const stats = {
@@ -257,8 +329,11 @@ export default function OrdersManagement() {
     delivered: orders.filter(o => o.status === 'delivered').length,
     cancelled: orders.filter(o => o.status === 'cancelled').length,
     totalValue: orders.reduce((sum, o) => sum + o.total_amount, 0),
-    avgOrderValue: orders.length > 0 ? orders.reduce((sum, o) => sum + o.total_amount, 0) / orders.length : 0,
-    pendingApproval: orders.filter(o => o.approval_status === 'pending').length
+    avgOrderValue:
+      orders.length > 0
+        ? orders.reduce((sum, o) => sum + o.total_amount, 0) / orders.length
+        : 0,
+    pendingApproval: orders.filter(o => o.approval_status === 'pending').length,
   };
 
   const handleCreate = () => {
@@ -281,13 +356,13 @@ export default function OrdersManagement() {
         unit: 'Piece',
         quantity: 2,
         unit_price: 299.99,
-        discount_amount: 30.00,
-        tax_amount: 43.20,
+        discount_amount: 30.0,
+        tax_amount: 43.2,
         total_amount: 613.18,
         notes: null,
         product_code: 'PRD001',
-        product_category: 'Electronics'
-      }
+        product_category: 'Electronics',
+      },
     ];
     setOrderItems(mockItems);
     setShowModal(true);
@@ -307,13 +382,13 @@ export default function OrdersManagement() {
         unit: 'Piece',
         quantity: 2,
         unit_price: 299.99,
-        discount_amount: 30.00,
-        tax_amount: 43.20,
+        discount_amount: 30.0,
+        tax_amount: 43.2,
         total_amount: 613.18,
         notes: null,
         product_code: 'PRD001',
-        product_category: 'Electronics'
-      }
+        product_category: 'Electronics',
+      },
     ];
     setOrderItems(mockItems);
     setShowModal(true);
@@ -321,16 +396,25 @@ export default function OrdersManagement() {
   };
 
   const handleDelete = (order: Order) => {
-    if (window.confirm(`Are you sure you want to delete order "${order.order_number}"?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete order "${order.order_number}"?`
+      )
+    ) {
       setOrders(orders.filter(o => o.id !== order.id));
     }
     setShowDropdown(null);
   };
 
   const handleStatusChange = (order: Order, newStatus: Order['status']) => {
-    const updatedOrders = orders.map(o => 
-      o.id === order.id 
-        ? { ...o, status: newStatus, updatedate: new Date().toISOString(), updatedby: 1 }
+    const updatedOrders = orders.map(o =>
+      o.id === order.id
+        ? {
+            ...o,
+            status: newStatus,
+            updatedate: new Date().toISOString(),
+            updatedby: 1,
+          }
         : o
     );
     setOrders(updatedOrders);
@@ -348,25 +432,35 @@ export default function OrdersManagement() {
         customer_name: customers.find(c => c.id === formData.parent_id)?.name,
         customer_code: customers.find(c => c.id === formData.parent_id)?.code,
         customer_type: customers.find(c => c.id === formData.parent_id)?.type,
-        salesperson_name: employees.find(e => e.id === formData.salesperson_id)?.name,
-        approver_name: formData.approved_by ? employees.find(e => e.id === formData.approved_by)?.name : null,
-        item_count: orderItems.length
+        salesperson_name: employees.find(e => e.id === formData.salesperson_id)
+          ?.name,
+        approver_name: formData.approved_by
+          ? employees.find(e => e.id === formData.approved_by)?.name
+          : null,
+        item_count: orderItems.length,
       };
       setOrders([...orders, newOrder]);
     } else if (modalMode === 'edit' && selectedOrder) {
-      const updatedOrders = orders.map(o => 
-        o.id === selectedOrder.id 
-          ? { 
-              ...o, 
-              ...formData, 
-              updatedate: new Date().toISOString(), 
+      const updatedOrders = orders.map(o =>
+        o.id === selectedOrder.id
+          ? {
+              ...o,
+              ...formData,
+              updatedate: new Date().toISOString(),
               updatedby: 1,
-              customer_name: customers.find(c => c.id === formData.parent_id)?.name,
-              customer_code: customers.find(c => c.id === formData.parent_id)?.code,
-              customer_type: customers.find(c => c.id === formData.parent_id)?.type,
-              salesperson_name: employees.find(e => e.id === formData.salesperson_id)?.name,
-              approver_name: formData.approved_by ? employees.find(e => e.id === formData.approved_by)?.name : null,
-              item_count: orderItems.length
+              customer_name: customers.find(c => c.id === formData.parent_id)
+                ?.name,
+              customer_code: customers.find(c => c.id === formData.parent_id)
+                ?.code,
+              customer_type: customers.find(c => c.id === formData.parent_id)
+                ?.type,
+              salesperson_name: employees.find(
+                e => e.id === formData.salesperson_id
+              )?.name,
+              approver_name: formData.approved_by
+                ? employees.find(e => e.id === formData.approved_by)?.name
+                : null,
+              item_count: orderItems.length,
             }
           : o
       );
@@ -378,7 +472,7 @@ export default function OrdersManagement() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(amount);
   };
 
@@ -390,7 +484,7 @@ export default function OrdersManagement() {
       processing: 'bg-purple-100 text-purple-800',
       shipped: 'bg-indigo-100 text-indigo-800',
       delivered: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800'
+      cancelled: 'bg-red-100 text-red-800',
     };
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
@@ -400,30 +494,40 @@ export default function OrdersManagement() {
       low: 'bg-green-100 text-green-800',
       medium: 'bg-yellow-100 text-yellow-800',
       high: 'bg-orange-100 text-orange-800',
-      urgent: 'bg-red-100 text-red-800'
+      urgent: 'bg-red-100 text-red-800',
     };
-    return colors[priority as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return (
+      colors[priority as keyof typeof colors] || 'bg-gray-100 text-gray-800'
+    );
   };
 
   const getApprovalColor = (status: string) => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800',
       approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800'
+      rejected: 'bg-red-100 text-red-800',
     };
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'draft': return <FileText className="w-4 h-4" />;
-      case 'pending': return <Clock className="w-4 h-4" />;
-      case 'confirmed': return <CheckCircle className="w-4 h-4" />;
-      case 'processing': return <Package className="w-4 h-4" />;
-      case 'shipped': return <Truck className="w-4 h-4" />;
-      case 'delivered': return <CheckCircle className="w-4 h-4" />;
-      case 'cancelled': return <XCircle className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
+      case 'draft':
+        return <FileText className="w-4 h-4" />;
+      case 'pending':
+        return <Clock className="w-4 h-4" />;
+      case 'confirmed':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'processing':
+        return <Package className="w-4 h-4" />;
+      case 'shipped':
+        return <Truck className="w-4 h-4" />;
+      case 'delivered':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled':
+        return <XCircle className="w-4 h-4" />;
+      default:
+        return <FileText className="w-4 h-4" />;
     }
   };
 
@@ -431,8 +535,12 @@ export default function OrdersManagement() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Orders Management</h1>
-        <p className="text-gray-600">Manage customer orders, track status, and process deliveries</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Orders Management
+        </h1>
+        <p className="text-gray-600">
+          Manage customer orders, track status, and process deliveries
+        </p>
       </div>
 
       {/* Statistics Cards */}
@@ -453,7 +561,9 @@ export default function OrdersManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Value</p>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalValue)}</p>
+              <p className="text-2xl font-bold text-green-600">
+                {formatCurrency(stats.totalValue)}
+              </p>
             </div>
             <div className="p-3 bg-green-100 rounded-full">
               <DollarSign className="w-6 h-6 text-green-600" />
@@ -464,8 +574,12 @@ export default function OrdersManagement() {
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-              <p className="text-2xl font-bold text-purple-600">{formatCurrency(stats.avgOrderValue)}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Avg Order Value
+              </p>
+              <p className="text-2xl font-bold text-purple-600">
+                {formatCurrency(stats.avgOrderValue)}
+              </p>
             </div>
             <div className="p-3 bg-purple-100 rounded-full">
               <DollarSign className="w-6 h-6 text-purple-600" />
@@ -476,8 +590,12 @@ export default function OrdersManagement() {
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Pending Approval</p>
-              <p className="text-3xl font-bold text-orange-600">{stats.pendingApproval}</p>
+              <p className="text-sm font-medium text-gray-600">
+                Pending Approval
+              </p>
+              <p className="text-3xl font-bold text-orange-600">
+                {stats.pendingApproval}
+              </p>
             </div>
             <div className="p-3 bg-orange-100 rounded-full">
               <AlertTriangle className="w-6 h-6 text-orange-600" />
@@ -493,27 +611,39 @@ export default function OrdersManagement() {
           <div className="text-sm text-gray-500">Draft</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+          <div className="text-2xl font-bold text-yellow-600">
+            {stats.pending}
+          </div>
           <div className="text-sm text-gray-500">Pending</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600">{stats.confirmed}</div>
+          <div className="text-2xl font-bold text-blue-600">
+            {stats.confirmed}
+          </div>
           <div className="text-sm text-gray-500">Confirmed</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-          <div className="text-2xl font-bold text-purple-600">{stats.processing}</div>
+          <div className="text-2xl font-bold text-purple-600">
+            {stats.processing}
+          </div>
           <div className="text-sm text-gray-500">Processing</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-          <div className="text-2xl font-bold text-indigo-600">{stats.shipped}</div>
+          <div className="text-2xl font-bold text-indigo-600">
+            {stats.shipped}
+          </div>
           <div className="text-sm text-gray-500">Shipped</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-          <div className="text-2xl font-bold text-green-600">{stats.delivered}</div>
+          <div className="text-2xl font-bold text-green-600">
+            {stats.delivered}
+          </div>
           <div className="text-sm text-gray-500">Delivered</div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4 text-center">
-          <div className="text-2xl font-bold text-red-600">{stats.cancelled}</div>
+          <div className="text-2xl font-bold text-red-600">
+            {stats.cancelled}
+          </div>
           <div className="text-sm text-gray-500">Cancelled</div>
         </div>
       </div>
@@ -528,14 +658,14 @@ export default function OrdersManagement() {
                 type="text"
                 placeholder="Search orders..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            
+
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={e => setStatusFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
@@ -550,7 +680,7 @@ export default function OrdersManagement() {
 
             <select
               value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
+              onChange={e => setPriorityFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Priority</option>
@@ -562,7 +692,7 @@ export default function OrdersManagement() {
 
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={e => setTypeFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Types</option>
@@ -574,7 +704,7 @@ export default function OrdersManagement() {
 
             <select
               value={approvalFilter}
-              onChange={(e) => setApprovalFilter(e.target.value)}
+              onChange={e => setApprovalFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Approval</option>
@@ -610,35 +740,68 @@ export default function OrdersManagement() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Info</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salesperson</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status & Priority</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approval</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Order Info
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Salesperson
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status & Priority
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Dates
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Approval
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+              {paginatedOrders.map(order => (
+                <tr
+                  key={order.id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{order.order_number}</div>
-                      <div className="text-sm text-gray-500 capitalize">{order.order_type} order</div>
-                      <div className="text-xs text-gray-400">{order.item_count} items</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {order.order_number}
+                      </div>
+                      <div className="text-sm text-gray-500 capitalize">
+                        {order.order_type} order
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {order.item_count} items
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>
-                      <div className="text-sm text-gray-500">{order.customer_code}</div>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-1 ${
-                        order.customer_type === 'distributor' ? 'bg-purple-100 text-purple-800' :
-                        order.customer_type === 'retailer' ? 'bg-blue-100 text-blue-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
+                      <div className="text-sm font-medium text-gray-900">
+                        {order.customer_name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {order.customer_code}
+                      </div>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-1 ${
+                          order.customer_type === 'distributor'
+                            ? 'bg-purple-100 text-purple-800'
+                            : order.customer_type === 'retailer'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-green-100 text-green-800'
+                        }`}
+                      >
                         {order.customer_type}
                       </span>
                     </div>
@@ -646,16 +809,22 @@ export default function OrdersManagement() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <User className="w-4 h-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-900">{order.salesperson_name}</span>
+                      <span className="text-sm text-gray-900">
+                        {order.salesperson_name}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="space-y-2">
-                      <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}
+                      >
                         {getStatusIcon(order.status)}
                         <span className="ml-1 capitalize">{order.status}</span>
                       </span>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(order.priority)}`}>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(order.priority)}`}
+                      >
                         {order.priority.toUpperCase()}
                       </span>
                     </div>
@@ -669,39 +838,54 @@ export default function OrdersManagement() {
                       {order.delivery_date && (
                         <div className="flex items-center mt-1">
                           <Truck className="w-4 h-4 text-gray-400 mr-1" />
-                          Delivery: {new Date(order.delivery_date).toLocaleDateString()}
+                          Delivery:{' '}
+                          {new Date(order.delivery_date).toLocaleDateString()}
                         </div>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm">
-                      <div className="font-medium text-gray-900">{formatCurrency(order.total_amount)}</div>
-                      <div className="text-gray-500">Subtotal: {formatCurrency(order.subtotal)}</div>
+                      <div className="font-medium text-gray-900">
+                        {formatCurrency(order.total_amount)}
+                      </div>
+                      <div className="text-gray-500">
+                        Subtotal: {formatCurrency(order.subtotal)}
+                      </div>
                       {order.discount_amount > 0 && (
-                        <div className="text-green-600">Discount: -{formatCurrency(order.discount_amount)}</div>
+                        <div className="text-green-600">
+                          Discount: -{formatCurrency(order.discount_amount)}
+                        </div>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getApprovalColor(order.approval_status)}`}>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getApprovalColor(order.approval_status)}`}
+                      >
                         {order.approval_status}
                       </span>
                       {order.approver_name && (
-                        <div className="text-xs text-gray-500 mt-1">by {order.approver_name}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          by {order.approver_name}
+                        </div>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="relative">
                       <button
-                        onClick={() => setShowDropdown(showDropdown === order.id ? null : order.id)}
+                        onClick={() =>
+                          setShowDropdown(
+                            showDropdown === order.id ? null : order.id
+                          )
+                        }
                         className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
-                      
+
                       {showDropdown === order.id && (
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
                           <div className="py-1">
@@ -719,24 +903,29 @@ export default function OrdersManagement() {
                               <Edit className="w-4 h-4 mr-2" />
                               Edit
                             </button>
-                            {order.status !== 'delivered' && order.status !== 'cancelled' && (
-                              <>
-                                <button
-                                  onClick={() => handleStatusChange(order, 'confirmed')}
-                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                >
-                                  <CheckCircle className="w-4 h-4 mr-2" />
-                                  Confirm Order
-                                </button>
-                                <button
-                                  onClick={() => handleStatusChange(order, 'cancelled')}
-                                  className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
-                                >
-                                  <XCircle className="w-4 h-4 mr-2" />
-                                  Cancel Order
-                                </button>
-                              </>
-                            )}
+                            {order.status !== 'delivered' &&
+                              order.status !== 'cancelled' && (
+                                <>
+                                  <button
+                                    onClick={() =>
+                                      handleStatusChange(order, 'confirmed')
+                                    }
+                                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Confirm Order
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleStatusChange(order, 'cancelled')
+                                    }
+                                    className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                                  >
+                                    <XCircle className="w-4 h-4 mr-2" />
+                                    Cancel Order
+                                  </button>
+                                </>
+                              )}
                             <button
                               onClick={() => handleDelete(order)}
                               className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
@@ -759,7 +948,9 @@ export default function OrdersManagement() {
         {totalPages > 1 && (
           <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
             <div className="text-sm text-gray-500">
-              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredOrders.length)} of {filteredOrders.length} orders
+              Showing {startIndex + 1} to{' '}
+              {Math.min(startIndex + itemsPerPage, filteredOrders.length)} of{' '}
+              {filteredOrders.length} orders
             </div>
             <div className="flex space-x-2">
               <button
@@ -783,7 +974,9 @@ export default function OrdersManagement() {
                 </button>
               ))}
               <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -825,12 +1018,26 @@ interface OrderModalProps {
   onSubmit: (data: any) => void;
 }
 
-function OrderModal({ mode, order, orderItems, setOrderItems, customers, products, employees, onClose, onSubmit }: OrderModalProps) {
+function OrderModal({
+  mode,
+  order,
+  orderItems,
+  setOrderItems,
+  customers,
+  products,
+  employees,
+  onClose,
+  onSubmit,
+}: OrderModalProps) {
   const [formData, setFormData] = useState({
     parent_id: order?.parent_id || '',
     salesperson_id: order?.salesperson_id || '',
-    order_date: order?.order_date ? order.order_date.split('T')[0] : new Date().toISOString().split('T')[0],
-    delivery_date: order?.delivery_date ? order.delivery_date.split('T')[0] : '',
+    order_date: order?.order_date
+      ? order.order_date.split('T')[0]
+      : new Date().toISOString().split('T')[0],
+    delivery_date: order?.delivery_date
+      ? order.delivery_date.split('T')[0]
+      : '',
     status: order?.status || 'draft',
     priority: order?.priority || 'medium',
     order_type: order?.order_type || 'regular',
@@ -845,7 +1052,7 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
     shipping_address: order?.shipping_address || '',
     approval_status: order?.approval_status || 'pending',
     approved_by: order?.approved_by || '',
-    is_active: order?.is_active || 'Y'
+    is_active: order?.is_active || 'Y',
   });
 
   const [newItem, setNewItem] = useState({
@@ -854,7 +1061,7 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
     unit_price: 0,
     discount_amount: 0,
     tax_amount: 0,
-    notes: ''
+    notes: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -864,9 +1071,13 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
         ...formData,
         parent_id: parseInt(formData.parent_id.toString()),
         salesperson_id: parseInt(formData.salesperson_id.toString()),
-        approved_by: formData.approved_by ? parseInt(formData.approved_by.toString()) : null,
+        approved_by: formData.approved_by
+          ? parseInt(formData.approved_by.toString())
+          : null,
         order_date: new Date(formData.order_date).toISOString(),
-        delivery_date: formData.delivery_date ? new Date(formData.delivery_date).toISOString() : null
+        delivery_date: formData.delivery_date
+          ? new Date(formData.delivery_date).toISOString()
+          : null,
       });
     }
   };
@@ -885,10 +1096,13 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
           unit_price: newItem.unit_price || product.base_price,
           discount_amount: newItem.discount_amount,
           tax_amount: newItem.tax_amount,
-          total_amount: (newItem.quantity * (newItem.unit_price || product.base_price)) - newItem.discount_amount + newItem.tax_amount,
+          total_amount:
+            newItem.quantity * (newItem.unit_price || product.base_price) -
+            newItem.discount_amount +
+            newItem.tax_amount,
           notes: newItem.notes || null,
           product_code: product.code,
-          product_category: product.category
+          product_category: product.category,
         };
         setOrderItems([...orderItems, item]);
         setNewItem({
@@ -897,7 +1111,7 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
           unit_price: 0,
           discount_amount: 0,
           tax_amount: 0,
-          notes: ''
+          notes: '',
         });
       }
     }
@@ -912,7 +1126,7 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(amount);
   };
 
@@ -921,7 +1135,11 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
       <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
-            {mode === 'create' ? 'Create New Order' : mode === 'edit' ? 'Edit Order' : 'Order Details'}
+            {mode === 'create'
+              ? 'Create New Order'
+              : mode === 'edit'
+                ? 'Edit Order'
+                : 'Order Details'}
           </h2>
         </div>
 
@@ -929,8 +1147,10 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Order Information */}
             <div className="space-y-6">
-              <h3 className="text-lg font-medium text-gray-900">Order Information</h3>
-              
+              <h3 className="text-lg font-medium text-gray-900">
+                Order Information
+              </h3>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -938,7 +1158,9 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                   </label>
                   <select
                     value={formData.parent_id}
-                    onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, parent_id: e.target.value })
+                    }
                     disabled={isReadOnly}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
@@ -958,17 +1180,24 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                   </label>
                   <select
                     value={formData.salesperson_id}
-                    onChange={(e) => setFormData({ ...formData, salesperson_id: e.target.value })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        salesperson_id: e.target.value,
+                      })
+                    }
                     disabled={isReadOnly}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                   >
                     <option value="">Select Salesperson</option>
-                    {employees.filter(emp => emp.role === 'Sales Representative').map(employee => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name}
-                      </option>
-                    ))}
+                    {employees
+                      .filter(emp => emp.role === 'Sales Representative')
+                      .map(employee => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -979,7 +1208,9 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                   <input
                     type="date"
                     value={formData.order_date}
-                    onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, order_date: e.target.value })
+                    }
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                   />
@@ -992,7 +1223,12 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                   <input
                     type="date"
                     value={formData.delivery_date}
-                    onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        delivery_date: e.target.value,
+                      })
+                    }
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                   />
@@ -1004,7 +1240,12 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                   </label>
                   <select
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as Order['status'] })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        status: e.target.value as Order['status'],
+                      })
+                    }
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                   >
@@ -1024,7 +1265,12 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                   </label>
                   <select
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as Order['priority'] })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        priority: e.target.value as Order['priority'],
+                      })
+                    }
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                   >
@@ -1041,7 +1287,12 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                   </label>
                   <select
                     value={formData.order_type}
-                    onChange={(e) => setFormData({ ...formData, order_type: e.target.value as Order['order_type'] })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        order_type: e.target.value as Order['order_type'],
+                      })
+                    }
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                   >
@@ -1058,7 +1309,13 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                   </label>
                   <select
                     value={formData.payment_method}
-                    onChange={(e) => setFormData({ ...formData, payment_method: e.target.value as Order['payment_method'] })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        payment_method: e.target
+                          .value as Order['payment_method'],
+                      })
+                    }
                     disabled={isReadOnly}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                   >
@@ -1077,7 +1334,9 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                 <input
                   type="text"
                   value={formData.payment_terms}
-                  onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, payment_terms: e.target.value })
+                  }
                   disabled={isReadOnly}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                   placeholder="e.g., Net 30, COD"
@@ -1090,7 +1349,12 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                 </label>
                 <textarea
                   value={formData.shipping_address}
-                  onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      shipping_address: e.target.value,
+                    })
+                  }
                   disabled={isReadOnly}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
@@ -1104,7 +1368,9 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                 </label>
                 <textarea
                   value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, notes: e.target.value })
+                  }
                   disabled={isReadOnly}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
@@ -1116,21 +1382,25 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
             {/* Order Items */}
             <div className="space-y-6">
               <h3 className="text-lg font-medium text-gray-900">Order Items</h3>
-              
+
               {!isReadOnly && (
                 <div className="bg-gray-50 p-4 rounded-lg space-y-4">
                   <h4 className="font-medium text-gray-900">Add Item</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Product</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Product
+                      </label>
                       <select
                         value={newItem.product_id}
-                        onChange={(e) => {
-                          const product = products.find(p => p.id === parseInt(e.target.value));
-                          setNewItem({ 
-                            ...newItem, 
+                        onChange={e => {
+                          const product = products.find(
+                            p => p.id === parseInt(e.target.value)
+                          );
+                          setNewItem({
+                            ...newItem,
                             product_id: e.target.value,
-                            unit_price: product?.base_price || 0
+                            unit_price: product?.base_price || 0,
                           });
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1144,32 +1414,53 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Quantity
+                      </label>
                       <input
                         type="number"
                         min="1"
                         value={newItem.quantity}
-                        onChange={(e) => setNewItem({ ...newItem, quantity: parseInt(e.target.value) || 1 })}
+                        onChange={e =>
+                          setNewItem({
+                            ...newItem,
+                            quantity: parseInt(e.target.value) || 1,
+                          })
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Unit Price</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Unit Price
+                      </label>
                       <input
                         type="number"
                         step="0.01"
                         value={newItem.unit_price}
-                        onChange={(e) => setNewItem({ ...newItem, unit_price: parseFloat(e.target.value) || 0 })}
+                        onChange={e =>
+                          setNewItem({
+                            ...newItem,
+                            unit_price: parseFloat(e.target.value) || 0,
+                          })
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Discount</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Discount
+                      </label>
                       <input
                         type="number"
                         step="0.01"
                         value={newItem.discount_amount}
-                        onChange={(e) => setNewItem({ ...newItem, discount_amount: parseFloat(e.target.value) || 0 })}
+                        onChange={e =>
+                          setNewItem({
+                            ...newItem,
+                            discount_amount: parseFloat(e.target.value) || 0,
+                          })
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -1186,12 +1477,16 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
 
               {/* Items List */}
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {orderItems.map((item) => (
+                {orderItems.map(item => (
                   <div key={item.id} className="bg-white border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h5 className="font-medium text-gray-900">{item.product_name}</h5>
-                        <p className="text-sm text-gray-500">{item.product_code} - {item.product_category}</p>
+                        <h5 className="font-medium text-gray-900">
+                          {item.product_name}
+                        </h5>
+                        <p className="text-sm text-gray-500">
+                          {item.product_code} - {item.product_category}
+                        </p>
                       </div>
                       {!isReadOnly && (
                         <button
@@ -1205,16 +1500,20 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="font-medium">Quantity:</span> {item.quantity} {item.unit}
+                        <span className="font-medium">Quantity:</span>{' '}
+                        {item.quantity} {item.unit}
                       </div>
                       <div>
-                        <span className="font-medium">Unit Price:</span> {formatCurrency(item.unit_price)}
+                        <span className="font-medium">Unit Price:</span>{' '}
+                        {formatCurrency(item.unit_price)}
                       </div>
                       <div>
-                        <span className="font-medium">Discount:</span> {formatCurrency(item.discount_amount)}
+                        <span className="font-medium">Discount:</span>{' '}
+                        {formatCurrency(item.discount_amount)}
                       </div>
                       <div>
-                        <span className="font-medium">Total:</span> {formatCurrency(item.total_amount)}
+                        <span className="font-medium">Total:</span>{' '}
+                        {formatCurrency(item.total_amount)}
                       </div>
                     </div>
                     {item.notes && (
@@ -1224,7 +1523,7 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
                     )}
                   </div>
                 ))}
-                
+
                 {orderItems.length === 0 && (
                   <div className="text-center text-gray-500 py-8">
                     No items added yet. Add items using the form above.
@@ -1260,37 +1559,59 @@ function OrderModal({ mode, order, orderItems, setOrderItems, customers, product
 
           {mode === 'view' && order && (
             <div className="border-t pt-6 space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">System Information</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                System Information
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="font-medium text-gray-700">Created:</span>
-                  <span className="ml-2 text-gray-600">{new Date(order.createdate).toLocaleString()}</span>
+                  <span className="ml-2 text-gray-600">
+                    {new Date(order.createdate).toLocaleString()}
+                  </span>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Created By:</span>
-                  <span className="ml-2 text-gray-600">User ID: {order.createdby}</span>
+                  <span className="ml-2 text-gray-600">
+                    User ID: {order.createdby}
+                  </span>
                 </div>
                 {order.approved_at && (
                   <>
                     <div>
-                      <span className="font-medium text-gray-700">Approved:</span>
-                      <span className="ml-2 text-gray-600">{new Date(order.approved_at).toLocaleString()}</span>
+                      <span className="font-medium text-gray-700">
+                        Approved:
+                      </span>
+                      <span className="ml-2 text-gray-600">
+                        {new Date(order.approved_at).toLocaleString()}
+                      </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">Approved By:</span>
-                      <span className="ml-2 text-gray-600">{order.approver_name}</span>
+                      <span className="font-medium text-gray-700">
+                        Approved By:
+                      </span>
+                      <span className="ml-2 text-gray-600">
+                        {order.approver_name}
+                      </span>
                     </div>
                   </>
                 )}
                 {order.updatedate && (
                   <>
                     <div>
-                      <span className="font-medium text-gray-700">Updated:</span>
-                      <span className="ml-2 text-gray-600">{new Date(order.updatedate).toLocaleString()}</span>
+                      <span className="font-medium text-gray-700">
+                        Updated:
+                      </span>
+                      <span className="ml-2 text-gray-600">
+                        {new Date(order.updatedate).toLocaleString()}
+                      </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">Updated By:</span>
-                      <span className="ml-2 text-gray-600">User ID: {order.updatedby}</span>
+                      <span className="font-medium text-gray-700">
+                        Updated By:
+                      </span>
+                      <span className="ml-2 text-gray-600">
+                        User ID: {order.updatedby}
+                      </span>
                     </div>
                   </>
                 )}

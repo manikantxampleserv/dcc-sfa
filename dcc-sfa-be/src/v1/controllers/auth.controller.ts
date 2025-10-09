@@ -1,10 +1,14 @@
-import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../../configs/jwt.config';
 
 const prisma = new PrismaClient();
+
+const truncateString = (str: string | undefined, maxLength: number): string => {
+  if (!str) return 'Unknown';
+  return str.length > maxLength ? str.substring(0, maxLength) : str;
+};
 
 const generateTokens = (user: any) => {
   const payload = {
@@ -81,10 +85,41 @@ export const login = async (req: any, res: any) => {
       },
     });
 
-    if (!user) return res.error('User not found', 404);
+    if (!user) {
+      console.log(
+        `Failed login attempt for unknown user: ${email} from IP: ${req.ip || req.connection.remoteAddress}`
+      );
+      return res.error('User not found', 404);
+    }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) return res.error('Invalid credentials', 401);
+    if (!isMatch) {
+      try {
+        const userAgent = req.get('User-Agent') || 'Unknown';
+        await prisma.login_history.create({
+          data: {
+            user_id: user.id,
+            login_time: new Date(),
+            ip_address: truncateString(
+              req.ip || req.connection.remoteAddress,
+              50
+            ),
+            device_info: truncateString(userAgent, 255),
+            os_info: truncateString(userAgent, 100),
+            app_version:
+              truncateString(req.get('X-App-Version'), 50) || '1.0.0',
+            login_status: 'failed',
+            failure_reason: 'Invalid credentials',
+            is_active: 'Y',
+            createdate: new Date(),
+            createdby: user.id,
+          },
+        });
+      } catch (error) {
+        console.error('Error creating failed login history:', error);
+      }
+      return res.error('Invalid credentials', 401);
+    }
 
     const { accessToken, refreshToken } = generateTokens(user);
 
@@ -100,6 +135,29 @@ export const login = async (req: any, res: any) => {
         created_date: new Date(),
       },
     });
+
+    try {
+      const userAgent = req.get('User-Agent') || 'Unknown';
+      await prisma.login_history.create({
+        data: {
+          user_id: user.id,
+          login_time: new Date(),
+          ip_address: truncateString(
+            req.ip || req.connection.remoteAddress,
+            50
+          ),
+          device_info: truncateString(userAgent, 255),
+          os_info: truncateString(userAgent, 100),
+          app_version: truncateString(req.get('X-App-Version'), 50) || '1.0.0',
+          login_status: 'success',
+          is_active: 'Y',
+          createdate: new Date(),
+          createdby: user.id,
+        },
+      });
+    } catch (error) {
+      console.error('Error creating successful login history:', error);
+    }
 
     return res.success('Login successful', {
       user: {
@@ -132,9 +190,21 @@ export const logout = async (req: any, res: any) => {
       },
       data: {
         is_revoked: true,
-        // is_active: 'N',
         updated_date: new Date(),
         updated_by: req.user.id,
+      },
+    });
+
+    await prisma.login_history.updateMany({
+      where: {
+        user_id: req.user.id,
+        logout_time: null,
+        login_status: 'success',
+      },
+      data: {
+        logout_time: new Date(),
+        updatedate: new Date(),
+        updatedby: req.user.id,
       },
     });
 

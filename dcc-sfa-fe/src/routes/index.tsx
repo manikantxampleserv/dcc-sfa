@@ -19,11 +19,12 @@ import AssetMasterManagement from 'pages/masters/AssetMaster';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import VehiclesManagement from 'pages/masters/Vehicles';
 import KpiTargetsManagement from 'pages/masters/KpiTargets';
+import PriceListsManagement from 'pages/masters/PriceLists';
+import LoginHistoryPage from 'pages/masters/LoginHistory';
 import OrdersManagement from 'pages/transactions/Orders';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-const Pricelists = () => <h1>Pricelists</h1>;
 const SalesTargetGroups = () => <h1>Sales Target Groups</h1>;
 const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
 
@@ -64,7 +65,6 @@ const RouteExceptions = () => <h1>Route Exceptions</h1>;
 const AlertsReminders = () => <h1>Alerts & Reminders</h1>;
 
 // Settings Components
-const LoginHistory = () => <h1>Login History</h1>;
 const APITokens = () => <h1>API Tokens</h1>;
 const SystemSettings = () => <h1>System Settings</h1>;
 
@@ -152,7 +152,11 @@ const router = createBrowserRouter([
       },
       {
         path: '/masters/pricelists',
-        element: <Pricelists />,
+        element: <PriceListsManagement />,
+      },
+      {
+        path: '/settings/login-history',
+        element: <LoginHistoryPage />,
       },
       {
         path: '/masters/sales-targets',
@@ -294,10 +298,6 @@ const router = createBrowserRouter([
       },
 
       // Settings Routes
-      {
-        path: '/settings/login-history',
-        element: <LoginHistory />,
-      },
       {
         path: '/settings/tokens',
         element: <APITokens />,

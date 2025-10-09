@@ -107,6 +107,7 @@ const Input: React.FC<InputProps> = ({
                 }
               : undefined,
           required: false,
+          className: type === 'date' ? '!uppercase' : undefined,
         },
         inputLabel: type === 'date' ? { shrink: true } : undefined,
         input: {
