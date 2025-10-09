@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { visuallyHidden } from '@mui/utils';
 import classNames from 'classnames';
+import { ArrowUpDown } from 'lucide-react';
 import React, { useMemo, useState, type ReactNode } from 'react';
 
 /**
@@ -83,7 +84,7 @@ export interface TableProps<T = any> {
   /** Initial column to sort by */
   initialOrderBy?: keyof T;
   /** Initial sort direction */
-  initialOrder?: 'asc' | 'desc';
+  initialOrder?: 'asc' | 'desc' | 'none';
   /** Enable sticky header */
   stickyHeader?: boolean;
   /** Maximum height of the table container */
@@ -110,8 +111,8 @@ export interface TableProps<T = any> {
   showSearch?: boolean;
 }
 
-/** Sort order type */
-type Order = 'asc' | 'desc';
+/** Sort order type with three states */
+type Order = 'asc' | 'desc' | 'none';
 
 /**
  * Comparator function for descending sort
@@ -142,6 +143,9 @@ function getComparator<Key extends keyof any>(
   order: Order,
   orderBy: Key
 ): (a: { [key in Key]: any }, b: { [key in Key]: any }) => number {
+  if (order === 'none') {
+    return () => 0; // No sorting
+  }
   return order === 'desc'
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
@@ -184,7 +188,9 @@ function TableHead<T>(props: TableHeadProps<T>) {
             key={String(column.id)}
             align={column.numeric ? 'right' : 'left'}
             padding={column.disablePadding ? 'none' : 'normal'}
-            sortDirection={orderBy === column.id ? order : false}
+            sortDirection={
+              orderBy === column.id && order !== 'none' ? order : false
+            }
             className={classNames(
               '!border-b !border-gray-200 !bg-blue-50 !font-semibold',
               '!whitespace-nowrap !text-gray-700 !p-4 !text-sm'
@@ -193,16 +199,24 @@ function TableHead<T>(props: TableHeadProps<T>) {
           >
             {sortable && column.sortable !== false ? (
               <MuiTableSortLabel
-                active={orderBy === column.id}
-                direction={orderBy === column.id ? order : 'asc'}
+                IconComponent={ArrowUpDown}
+                slotProps={{
+                  icon: {
+                    className: '!w-4 !h-4 !text-primary-500',
+                  },
+                }}
+                active={orderBy === column.id && order !== 'none'}
+                direction={
+                  orderBy === column.id && order !== 'none' ? order : 'asc'
+                }
                 onClick={createSortHandler(column.id)}
                 className={classNames(
                   'hover:!text-blue-600 !flex !justify-between',
-                  orderBy === column.id && '!text-blue-600'
+                  orderBy === column.id && order !== 'none' && '!text-blue-600'
                 )}
               >
                 {column.label}
-                {orderBy === column.id ? (
+                {orderBy === column.id && order !== 'none' ? (
                   <Box component="span" sx={visuallyHidden}>
                     {order === 'desc'
                       ? 'sorted descending'
@@ -290,7 +304,7 @@ export default function Table<T extends Record<string, any>>(
     emptyMessage = 'No data available',
     getRowId = (row: T, index: number) => row.id || index,
     initialOrderBy,
-    initialOrder = 'asc',
+    initialOrder = 'none',
     stickyHeader = false,
     maxHeight,
     totalCount = 0,
@@ -300,23 +314,51 @@ export default function Table<T extends Record<string, any>>(
   } = props;
 
   const [order, setOrder] = useState<Order>(initialOrder);
-  const [orderBy, setOrderBy] = useState<keyof T>(
-    initialOrderBy ||
-      (columns.find(col => col.sortable !== false)?.id as keyof T) ||
-      (columns[0]?.id as keyof T)
-  );
+  const [orderBy, setOrderBy] = useState<keyof T | ''>(() => {
+    /**
+     * If initialOrderBy is provided and initialOrder is not 'none', check if it's sortable
+     */
+    if (initialOrderBy && initialOrder !== 'none') {
+      const column = columns.find(col => col.id === initialOrderBy);
+      if (column && column.sortable !== false) {
+        return initialOrderBy;
+      }
+    }
+
+    /**
+     * No default sorting - table starts unsorted
+     */
+    return '';
+  });
 
   const handleRequestSort = (
     _event: React.MouseEvent<unknown>,
     property: keyof T | string
   ) => {
-    // Find the column to check if it's sortable
+    /**
+     * Find the column to check if it's sortable
+     */
     const column = columns.find(col => col.id === property);
-    if (column?.sortable === false) return; // Don't sort if explicitly disabled
+    if (column?.sortable === false)
+      return; /** Don't sort if explicitly disabled */
 
-    const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
-    setOrderBy(property);
+    // Three-state toggle: none -> asc -> desc -> none
+    if (orderBy !== property) {
+      // Different column: start with ascending
+      setOrder('asc');
+      setOrderBy(property);
+    } else {
+      // Same column: cycle through states
+      if (order === 'none') {
+        setOrder('asc');
+      } else if (order === 'asc') {
+        setOrder('desc');
+      } else {
+        // desc -> none
+        setOrder('none');
+        setOrderBy('');
+      }
+    }
   };
 
   const handleClick = (
@@ -332,7 +374,9 @@ export default function Table<T extends Record<string, any>>(
   };
 
   const visibleRows = useMemo(() => {
-    return sortable ? [...data].sort(getComparator(order, orderBy)) : data;
+    return sortable && orderBy && order !== 'none'
+      ? [...data].sort(getComparator(order, orderBy))
+      : data;
   }, [data, order, orderBy, sortable]);
 
   const emptyRows = 0;
@@ -355,7 +399,7 @@ export default function Table<T extends Record<string, any>>(
             >
               <TableHead
                 order={order}
-                orderBy={String(orderBy)}
+                orderBy={orderBy ? String(orderBy) : ''}
                 onRequestSort={() => {}}
                 columns={columns}
                 sortable={sortable}
@@ -401,7 +445,7 @@ export default function Table<T extends Record<string, any>>(
           >
             <TableHead
               order={order}
-              orderBy={String(orderBy)}
+              orderBy={orderBy ? String(orderBy) : ''}
               onRequestSort={handleRequestSort}
               columns={columns}
               sortable={sortable}

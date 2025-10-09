@@ -1,5 +1,5 @@
 import { Block, CheckCircle, PlayArrow, Stop } from '@mui/icons-material';
-import { Alert, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { Key, Shield } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
@@ -135,16 +135,41 @@ const ApiTokensPage: React.FC = () => {
       render: (_value, row) => {
         const user = row.users_api_tokens_user_idTousers;
         return (
-          <Box>
-            <Typography variant="body2" className="!text-gray-900">
-              {user?.name || 'N/A'}
-            </Typography>
-            <Typography variant="caption" className="!text-gray-500">
-              {user?.email || 'N/A'}
-            </Typography>
+          <Box className="!flex !gap-2 !items-center">
+            <Avatar
+              alt={user?.name}
+              className="!rounded !bg-primary-100 !text-primary-500"
+            >
+              {user?.name?.charAt(0) || 'U'}
+            </Avatar>
+            <Box className="!max-w-xs">
+              <Typography
+                variant="body1"
+                className="!text-gray-900 !leading-tight"
+              >
+                {user?.name || 'Unknown User'}
+              </Typography>
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !block !mt-0.5"
+              >
+                {user?.email || `ID: ${row.user_id}`}
+              </Typography>
+            </Box>
           </Box>
         );
       },
+    },
+    {
+      id: 'token_type',
+      label: 'Token Type',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.token_type || (
+            <span className="italic text-gray-400">No Token Type</span>
+          )}
+        </Typography>
+      ),
     },
     {
       id: 'device_id',
