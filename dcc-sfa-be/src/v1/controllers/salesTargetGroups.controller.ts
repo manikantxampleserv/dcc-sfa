@@ -104,19 +104,16 @@ export const salesTargetGroupsController = {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const salesTargetGroupsThisMonth =
-        await prisma.sales_target_groups.findMany({
+      const salesTargetGroupsThisMonth = await prisma.sales_target_groups.count(
+        {
           where: {
             createdate: {
               gte: startOfMonth,
               lte: endOfMonth,
             },
           },
-          include: {
-            sales_target_group_members_id: true,
-            sales_targets_groups: true,
-          },
-        });
+        }
+      );
       res.success(
         'Sales target groups retrieved successfully',
         data.map((g: any) => serializeSalesTargetGroup(g)),

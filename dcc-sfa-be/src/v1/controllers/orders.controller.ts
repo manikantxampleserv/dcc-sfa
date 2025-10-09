@@ -336,7 +336,7 @@ export const ordersController = {
           orders_currencies: true,
           orders_customers: true,
           orders_salesperson_users: true,
-          orders_items: true,
+          order_items: true,
           invoices: true,
         },
       });
