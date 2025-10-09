@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { AuthProvider, useAuth } from '../../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../../context/AuthContext';
 import AuthLoader from '../AuthLoader';
 
 interface AuthGuardProps {

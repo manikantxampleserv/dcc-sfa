@@ -6,9 +6,9 @@
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useCurrentUser, type User } from '../hooks/useUsers';
-import { useLogout } from '../hooks/useAuth';
-import authService from '../services/auth/authService';
+import { useCurrentUser, type User } from '../../hooks/useUsers';
+import { useLogout } from '../../hooks/useAuth';
+import authService from '../../services/auth/authService';
 
 interface AuthContextType {
   user: User | null;

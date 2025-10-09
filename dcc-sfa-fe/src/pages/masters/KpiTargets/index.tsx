@@ -147,15 +147,20 @@ const KpiTargetsManagement: React.FC = () => {
     {
       id: 'period',
       label: 'Period',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-gray-400" />
-          <Box className="text-xs">
-            <div>{formatDate(row.period_start)}</div>
-            <div className="text-gray-500">to {formatDate(row.period_end)}</div>
+      render: (_value, row) => {
+        const start = formatDate(row.period_start);
+        const end = formatDate(row.period_end);
+        return (
+          <Box className="flex flex-col items-start">
+            <Box className="flex items-center gap-1 mb-0.5">
+              <Calendar className="w-3 h-3 text-gray-400" />
+              <span className="text-xs font-medium text-gray-800">
+                {start} - {end}
+              </span>
+            </Box>
           </Box>
-        </Box>
-      ),
+        );
+      },
     },
     {
       id: 'measure_unit',

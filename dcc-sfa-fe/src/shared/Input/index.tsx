@@ -107,9 +107,11 @@ const Input: React.FC<InputProps> = ({
                 }
               : undefined,
           required: false,
-          className: type === 'date' ? '!uppercase' : undefined,
+          className:
+            type === 'date' || type === 'time' ? '!uppercase' : undefined,
         },
-        inputLabel: type === 'date' ? { shrink: true } : undefined,
+        inputLabel:
+          type === 'date' || type === 'time' ? { shrink: true } : undefined,
         input: {
           ...(type === 'search' && {
             endAdornment: <Search />,
