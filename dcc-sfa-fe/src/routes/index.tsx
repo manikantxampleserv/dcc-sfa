@@ -1,35 +1,35 @@
 import ProtectedRoute from 'components/ProtectedRoute';
-import Profile from 'pages/Profile';
 import Layout from 'layout';
 import Login from 'pages/auth/Login';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
+import ApiTokensPage from 'pages/masters/ApiTokens';
+import AssetMasterManagement from 'pages/masters/AssetMaster';
+import AssetTypesManagement from 'pages/masters/AssetTypes';
 import CompaniesManagement from 'pages/masters/Companies';
 import DepotsManagement from 'pages/masters/Depot';
+import KpiTargetsManagement from 'pages/masters/KpiTargets';
+import LoginHistoryPage from 'pages/masters/LoginHistory';
 import OutletsManagement from 'pages/masters/Outlet';
 import OutletDetail from 'pages/masters/Outlet/OutletDetail';
 import OutletGroupsManagement from 'pages/masters/OutletGroups';
+import PriceListsManagement from 'pages/masters/PriceLists';
 import ProductsManagement from 'pages/masters/Products';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
 import SurveyBuilder from 'pages/masters/SurveyBuilder';
 import Users from 'pages/masters/Users';
-import ZonesManagement from 'pages/masters/Zone';
-import AssetTypesManagement from 'pages/masters/AssetTypes';
-import AssetMasterManagement from 'pages/masters/AssetMaster';
-import WarehousesManagement from 'pages/masters/Warehouses';
+import UserDetail from 'pages/masters/Users/UserDetail';
 import VehiclesManagement from 'pages/masters/Vehicles';
-import KpiTargetsManagement from 'pages/masters/KpiTargets';
-import PriceListsManagement from 'pages/masters/PriceLists';
-import LoginHistoryPage from 'pages/masters/LoginHistory';
-import ApiTokensPage from 'pages/masters/ApiTokens';
+import WarehousesManagement from 'pages/masters/Warehouses';
+import ZonesManagement from 'pages/masters/Zone';
+import Profile from 'pages/Profile';
 import OrdersManagement from 'pages/transactions/Orders';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
 const SalesTargetGroups = () => <h1>Sales Target Groups</h1>;
 const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
-
-// Transaction Components
 const DeliveryScheduling = () => <h1>Delivery Scheduling</h1>;
 const ReturnRequests = () => <h1>Return Requests</h1>;
 const PaymentCollection = () => <h1>Payment Collection</h1>;
@@ -40,15 +40,9 @@ const AssetMaintenance = () => <h1>Asset Maintenance</h1>;
 const CoolerInstallations = () => <h1>Cooler Installations</h1>;
 const VanStock = () => <h1>Van Stock Load/Unload</h1>;
 const CompetitorActivity = () => <h1>Competitor Activity</h1>;
-
-// Tracking Components
 const RepLocationTracking = () => <h1>Rep Location Tracking</h1>;
 const RouteEffectiveness = () => <h1>Route Effectiveness</h1>;
-
-// Integration Components
 const ERPSyncLog = () => <h1>ERP Sync Log</h1>;
-
-// Reports Components
 const OrdersInvoicesReturns = () => <h1>Orders, Invoices, Returns</h1>;
 const SalesVsTarget = () => <h1>Sales vs Target</h1>;
 const AssetMovementStatus = () => <h1>Asset Movement/Status</h1>;
@@ -59,22 +53,16 @@ const RepProductivity = () => <h1>Rep Productivity Report</h1>;
 const CompetitorAnalysis = () => <h1>Competitor Analysis Report</h1>;
 const OutstandingCollection = () => <h1>Outstanding & Collection Report</h1>;
 const ActivityLogs = () => <h1>Activity Logs</h1>;
-
-// Workflows Components
 const ApprovalWorkflows = () => <h1>Approval Workflows</h1>;
 const RouteExceptions = () => <h1>Route Exceptions</h1>;
 const AlertsReminders = () => <h1>Alerts & Reminders</h1>;
-
-// Settings Components
 const SystemSettings = () => <h1>System Settings</h1>;
 
 const router = createBrowserRouter([
-  // Public routes
   {
     path: '/login',
     element: <Login />,
   },
-  // Protected routes
   {
     path: '/',
     element: (
@@ -83,7 +71,6 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      // Dashboard Routes
       {
         path: '/',
         element: <ExecutiveDashboard />,
@@ -93,7 +80,6 @@ const router = createBrowserRouter([
         element: <ExecutiveDashboard />,
       },
 
-      // Masters Routes
       {
         path: '/masters/company',
         element: <CompaniesManagement />,
@@ -101,6 +87,10 @@ const router = createBrowserRouter([
       {
         path: '/masters/users',
         element: <Users />,
+      },
+      {
+        path: '/masters/users/:id',
+        element: <UserDetail />,
       },
       {
         path: '/masters/roles',
@@ -174,8 +164,6 @@ const router = createBrowserRouter([
         path: '/masters/surveys',
         element: <SurveyBuilder />,
       },
-
-      // Transaction Routes
       {
         path: '/transactions/orders',
         element: <OrdersManagement />,
@@ -224,8 +212,6 @@ const router = createBrowserRouter([
         path: '/transactions/competitor',
         element: <CompetitorActivity />,
       },
-
-      // Tracking Routes
       {
         path: '/tracking/location',
         element: <RepLocationTracking />,
@@ -234,14 +220,10 @@ const router = createBrowserRouter([
         path: '/tracking/routes',
         element: <RouteEffectiveness />,
       },
-
-      // Integration Routes
       {
         path: '/integration/erp-sync',
         element: <ERPSyncLog />,
       },
-
-      // Reports Routes
       {
         path: '/reports/orders',
         element: <OrdersInvoicesReturns />,
@@ -282,8 +264,6 @@ const router = createBrowserRouter([
         path: '/reports/activity',
         element: <ActivityLogs />,
       },
-
-      // Workflows Routes
       {
         path: '/workflows/approvals',
         element: <ApprovalWorkflows />,
@@ -296,8 +276,6 @@ const router = createBrowserRouter([
         path: '/workflows/alerts',
         element: <AlertsReminders />,
       },
-
-      // Settings Routes
       {
         path: '/settings/tokens',
         element: <ApiTokensPage />,
