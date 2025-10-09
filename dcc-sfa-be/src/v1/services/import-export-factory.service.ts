@@ -11,6 +11,7 @@ import { AssetMasterImportExportService } from './implementations/assetMaster-im
 import { WarehousesImportExportService } from './implementations/warehouses-import-export.service';
 import { VehiclesImportExportService } from './implementations/vehicles-import-export.service';
 import { SurveysImportExportService } from './implementations/surveys-import-export.service';
+import { KpiTargetsImportExportService } from './implementations/kpiTargets-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -32,6 +33,7 @@ export class ImportExportFactory {
     ['warehouses', WarehousesImportExportService],
     ['vehicles', VehiclesImportExportService],
     ['surveys', SurveysImportExportService],
+    ['employee_kpi_targets', KpiTargetsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

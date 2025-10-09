@@ -18,6 +18,7 @@ import AssetTypesManagement from 'pages/masters/AssetTypes';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import VehiclesManagement from 'pages/masters/Vehicles';
+import KpiTargetsManagement from 'pages/masters/KpiTargets';
 import OrdersManagement from 'pages/transactions/Orders';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
@@ -25,7 +26,6 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 const Pricelists = () => <h1>Pricelists</h1>;
 const SalesTargetGroups = () => <h1>Sales Target Groups</h1>;
 const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
-const KPITargets = () => <h1>KPI Targets</h1>;
 
 // Transaction Components
 const DeliveryScheduling = () => <h1>Delivery Scheduling</h1>;
@@ -164,7 +164,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/masters/kpi-targets',
-        element: <KPITargets />,
+        element: <KpiTargetsManagement />,
       },
       {
         path: '/masters/surveys',

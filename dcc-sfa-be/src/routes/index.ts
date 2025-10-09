@@ -25,6 +25,7 @@ import customerGroupMembers from '../v1/routes/customerGroupMembers.routes';
 import customerDocuments from '../v1/routes/customerDocuments.routes';
 import surveys from '../v1/routes/surveys.routes';
 import assetImages from '../v1/routes/assetImages.routes';
+import kpiTargets from '../v1/routes/kpiTargets.routes';
 
 const routes = Router();
 
@@ -53,6 +54,7 @@ routes.use('/v1', customerGroupMembers);
 routes.use('/v1', customerDocuments);
 routes.use('/v1', surveys);
 routes.use('/v1', assetImages);
+routes.use('/v1', kpiTargets);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
