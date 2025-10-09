@@ -1055,31 +1055,31 @@ model pricelist_items {
   discount_percent         Decimal?   @db.Decimal(5, 2)
   effective_from           DateTime?  @db.Date
   effective_to             DateTime?  @db.Date
-  is_active                String     @default("Y", map: "DF__pricelist__is_ac__03DB89B3") @db.Char(1)
-  createdate               DateTime?  @default(now(), map: "DF__pricelist__creat__04CFADEC") @db.DateTime
+  is_active                String     @default("Y") @db.Char(1)
+  createdate               DateTime?  @default(now()) @db.DateTime
   createdby                Int
   updatedate               DateTime?  @db.DateTime
   updatedby                Int?
   log_inst                 Int?
-  pricelists               pricelists @relation(fields: [pricelist_id], references: [id], onUpdate: NoAction, map: "FK__pricelist__price__01F34141")
+  pricelist_item           pricelists @relation(fields: [pricelist_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   pricelist_items_products products   @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model pricelists {
-  id               Int                @id(map: "PK__pricelis__3213E83F602F704F") @default(autoincrement())
-  name             String             @db.NVarChar(100)
-  description      String?            @db.NVarChar(255)
-  currency_code    String?            @default("INR", map: "DF__pricelist__curre__7D2E8C24") @db.NVarChar(10)
-  valid_from       DateTime?          @db.Date
-  valid_to         DateTime?          @db.Date
-  is_active        String             @default("Y", map: "DF__pricelist__is_ac__7E22B05D") @db.Char(1)
-  createdate       DateTime?          @default(now(), map: "DF__pricelist__creat__7F16D496") @db.DateTime
-  createdby        Int
-  updatedate       DateTime?          @db.DateTime
-  updatedby        Int?
-  log_inst         Int?
-  pricelist_items  pricelist_items[]
-  route_pricelists route_pricelists[]
+  id              Int                @id() @default(autoincrement())
+  name            String             @db.NVarChar(100)
+  description     String?            @db.NVarChar(255)
+  currency_code   String?            @default("INR") @db.NVarChar(10)
+  valid_from      DateTime?          @db.Date
+  valid_to        DateTime?          @db.Date
+  is_active       String             @default("Y") @db.Char(1)
+  createdate      DateTime?          @default(now()) @db.DateTime
+  createdby       Int
+  updatedate      DateTime?          @db.DateTime
+  updatedby       Int?
+  log_inst        Int?
+  pricelist_item  pricelist_items[]
+  route_pricelist route_pricelists[]
 }
 
 model product_categories {
@@ -1359,16 +1359,16 @@ model route_plans {
 }
 
 model route_pricelists {
-  id           Int        @id(map: "PK__route_pr__3213E83F24BBEAF4") @default(autoincrement())
-  route_id     Int
-  pricelist_id Int
-  is_active    String     @default("Y", map: "DF__route_pri__is_ac__08A03ED0") @db.Char(1)
-  createdate   DateTime?  @default(now(), map: "DF__route_pri__creat__09946309") @db.DateTime
-  createdby    Int
-  updatedate   DateTime?  @db.DateTime
-  updatedby    Int?
-  log_inst     Int?
-  pricelists   pricelists @relation(fields: [pricelist_id], references: [id], onUpdate: NoAction, map: "FK__route_pri__price__07AC1A97")
+  id              Int        @id() @default(autoincrement())
+  route_id        Int
+  pricelist_id    Int
+  is_active       String     @default("Y") @db.Char(1)
+  createdate      DateTime?  @default(now()) @db.DateTime
+  createdby       Int
+  updatedate      DateTime?  @db.DateTime
+  updatedby       Int?
+  log_inst        Int?
+  route_pricelist pricelists @relation(fields: [pricelist_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model routes {
