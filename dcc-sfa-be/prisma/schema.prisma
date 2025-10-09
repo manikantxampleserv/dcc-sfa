@@ -964,7 +964,7 @@ model orders {
   orders_approved_by        users?               @relation("OrdersApprovedBy", fields: [approved_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
   orders_currencies         currencies?          @relation("OrdersCurrencies", fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   orders_customers          customers            @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  orders_salesperson        users                @relation("OrdersSalesperson", fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  orders_salesperson_users  users                @relation("OrdersSalesperson", fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model payment_lines {
