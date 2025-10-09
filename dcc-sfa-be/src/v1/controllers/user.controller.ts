@@ -331,10 +331,7 @@ export const userController = {
       }
 
       const existingUser = await prisma.users.findFirst({
-        where: {
-          id: targetUserId,
-          is_active: 'Y',
-        },
+        where: { id: targetUserId },
       });
 
       if (!existingUser) {
@@ -342,9 +339,10 @@ export const userController = {
         return;
       }
 
-      const { createdate, updatedate, password, id, ...userData } = req.body;
+      const { createdate, updatedate, password, id, is_active, ...userData } =
+        req.body;
 
-      const restrictedFields = ['role_id', 'is_active', 'employee_id', 'email'];
+      const restrictedFields = ['role_id', 'employee_id', 'email'];
       restrictedFields.forEach(field => {
         if (field in userData) delete userData[field];
       });
@@ -366,6 +364,7 @@ export const userController = {
 
         const fileExt = uploadedFile.originalname.split('.').pop();
         const fileName = `profiles/profile_${targetUserId}_${Date.now()}.${fileExt}`;
+
         try {
           profile_image_url = await uploadFile(
             uploadedFile.buffer,
@@ -393,11 +392,16 @@ export const userController = {
       if (userData.joining_date) {
         updateData.joining_date = new Date(userData.joining_date);
       }
+
       if (
         userData.reporting_to !== undefined &&
         userData.reporting_to !== null
       ) {
         updateData.reporting_to = Number(userData.reporting_to);
+      }
+
+      if (is_active !== undefined && is_active !== null) {
+        updateData.is_active = is_active;
       }
 
       const updatedUser = await prisma.users.update({
