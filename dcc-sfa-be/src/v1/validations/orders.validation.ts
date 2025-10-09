@@ -1,7 +1,6 @@
 import { body } from 'express-validator';
 
 export const createOrderValidation = [
-  body('order_number').notEmpty().withMessage('Order number is required'),
   body('parent_id').notEmpty().withMessage('Parent ID is required'),
   body('salesperson_id').notEmpty().withMessage('SalesPerson ID is required'),
   body('is_active')

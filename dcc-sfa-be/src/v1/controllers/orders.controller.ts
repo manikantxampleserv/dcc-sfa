@@ -33,8 +33,13 @@ interface OrderSerialized {
   updatedby?: number | null;
   log_inst?: number | null;
   currency?: { id: number; code: string; name: string } | null;
-  customer?: { id: number; name: string };
-  salesperson?: { id: number; name: string; email: string } | null;
+  customer?: { id: number; name: string; code: string; type: string };
+  salesperson?: {
+    id: number;
+    name: string;
+    email: string;
+    profile_image: string;
+  } | null;
   order_items?: {
     id: number;
     product_id: number;
@@ -86,15 +91,19 @@ const serializeOrder = (order: any): OrderSerialized => ({
       }
     : null,
   customer: order.orders_customers
-    ? { id: order.orders_customers.id, name: order.orders_customers.name }
+    ? {
+        id: order.orders_customers.id,
+        name: order.orders_customers.name,
+        code: order.orders_customers.code,
+        type: order.orders_customers.type,
+      }
     : undefined,
   salesperson: order.orders_salesperson_users
     ? {
         id: order.orders_salesperson_users.id,
-        name:
-          `${order.orders_salesperson_users.first_name || ''} ${order.orders_salesperson_users.last_name || ''}`.trim() ||
-          'N/A',
+        name: order.orders_salesperson_users.name || 'N/A',
         email: order.orders_salesperson_users.email,
+        profile_image: order.orders_salesperson_users.profile_image,
       }
     : null,
 
@@ -122,6 +131,85 @@ const serializeOrder = (order: any): OrderSerialized => ({
     })) || [],
 });
 
+async function generateOrderNumber(tx: any): Promise<string> {
+  const maxRetries = 10;
+  let retryCount = 0;
+
+  while (retryCount < maxRetries) {
+    try {
+      const lastOrder = await tx.orders.findFirst({
+        where: {
+          order_number: {
+            startsWith: 'ORD-',
+          },
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        select: {
+          order_number: true,
+        },
+      });
+
+      let nextNumber = 1;
+
+      if (lastOrder && lastOrder.order_number) {
+        const match = lastOrder.order_number.match(/ORD-(\d+)/);
+        if (match && match[1]) {
+          nextNumber = parseInt(match[1], 10) + 1;
+        }
+      }
+
+      const allOrders = await tx.orders.findMany({
+        where: {
+          order_number: {
+            startsWith: 'ORD-',
+          },
+        },
+        select: {
+          order_number: true,
+        },
+      });
+
+      for (const order of allOrders) {
+        const match = order.order_number.match(/ORD-(\d+)/);
+        if (match && match[1]) {
+          const num = parseInt(match[1], 10);
+          if (num >= nextNumber) {
+            nextNumber = num + 1;
+          }
+        }
+      }
+
+      const newOrderNumber = `ORD-${nextNumber.toString().padStart(5, '0')}`;
+
+      const exists = await tx.orders.findFirst({
+        where: {
+          order_number: newOrderNumber,
+        },
+      });
+
+      if (!exists) {
+        console.log(' Generated unique order number:', newOrderNumber);
+        return newOrderNumber;
+      }
+
+      console.log(' Order number exists, retrying...', newOrderNumber);
+      retryCount++;
+    } catch (error) {
+      console.error('Error generating order number:', error);
+      retryCount++;
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  const timestamp = Date.now();
+  const fallbackOrderNumber = `ORD-${timestamp}`;
+  console.log('⚠️ Using fallback order number:', fallbackOrderNumber);
+  return fallbackOrderNumber;
+}
+
 export const ordersController = {
   async createOrUpdateOrder(req: Request, res: Response) {
     const data = req.body;
@@ -130,19 +218,40 @@ export const ordersController = {
     try {
       const { orderItems, order_items, ...orderData } = data;
       const items = orderItems || order_items || [];
-      const orderId = orderData.id;
+      let orderId = orderData.id;
 
-      console.log('Processing order with items:', {
+      console.log(' Processing order with items:', {
         orderId,
+        orderNumber: orderData.order_number,
         itemsCount: items.length,
       });
 
       const result = await prisma.$transaction(
         async tx => {
           let order;
+          let isUpdate = false;
+
+          if (!orderId && orderData.order_number) {
+            const existingOrder = await tx.orders.findFirst({
+              where: { order_number: orderData.order_number },
+            });
+            if (existingOrder) {
+              orderId = existingOrder.id;
+              isUpdate = true;
+              console.log(' Found existing order by order_number:', orderId);
+            }
+          } else if (orderId) {
+            isUpdate = true;
+          }
+
+          let orderNumber = orderData.order_number;
+          if (!isUpdate && !orderNumber) {
+            orderNumber = await generateOrderNumber(tx);
+            console.log(' Generated new order number:', orderNumber);
+          }
 
           const orderPayload = {
-            order_number: orderData.order_number,
+            order_number: orderNumber,
             parent_id: orderData.parent_id,
             salesperson_id: orderData.salesperson_id,
             currency_id: orderData.currency_id || null,
@@ -168,17 +277,24 @@ export const ordersController = {
             is_active: orderData.is_active || 'Y',
           };
 
-          if (orderId) {
+          if (isUpdate && orderId) {
+            const updatePayload = { ...orderPayload };
+            if (!orderData.order_number) {
+              delete updatePayload.order_number;
+            }
+
             order = await tx.orders.update({
               where: { id: orderId },
               data: {
-                ...orderPayload,
+                ...updatePayload,
                 updatedate: new Date(),
                 updatedby: userId,
                 log_inst: { increment: 1 },
               },
             });
+            console.log(' Order updated, ID:', order.id);
           } else {
+            // Create new order
             order = await tx.orders.create({
               data: {
                 ...orderPayload,
@@ -187,9 +303,15 @@ export const ordersController = {
                 log_inst: 1,
               },
             });
+            console.log(' Order created, ID:', order.id);
           }
 
-          console.log('Order processed, ID:', order.id);
+          console.log(
+            ' Order processed - ID:',
+            order.id,
+            'Number:',
+            order.order_number
+          );
 
           const processedChildIds: number[] = [];
 
@@ -223,8 +345,27 @@ export const ordersController = {
               };
 
               if (item.id) {
-                itemsToUpdate.push({ id: item.id, data: itemData });
-                processedChildIds.push(item.id);
+                const existingItem = await tx.order_items.findFirst({
+                  where: {
+                    id: item.id,
+                    parent_id: order.id,
+                  },
+                });
+
+                if (existingItem) {
+                  // Item belongs to this order, update it
+                  itemsToUpdate.push({ id: item.id, data: itemData });
+                  processedChildIds.push(item.id);
+                  console.log(`Item ${item.id} will be updated`);
+                } else {
+                  itemsToCreate.push({
+                    ...itemData,
+                    parent_id: order.id,
+                  });
+                  console.log(
+                    ` Item ${item.id} doesn't belong to this order, creating new`
+                  );
+                }
               } else {
                 itemsToCreate.push({
                   ...itemData,
@@ -242,11 +383,20 @@ export const ordersController = {
               const newItems = await tx.order_items.findMany({
                 where: {
                   parent_id: order.id,
-                  id: { notIn: processedChildIds },
+                  id:
+                    processedChildIds.length > 0
+                      ? { notIn: processedChildIds }
+                      : undefined,
                 },
                 select: { id: true },
+                orderBy: { id: 'desc' },
+                take: createdItems.count,
               });
               processedChildIds.push(...newItems.map(item => item.id));
+              console.log(
+                ' New item IDs:',
+                newItems.map(item => item.id)
+              );
             }
 
             for (const { id, data } of itemsToUpdate) {
@@ -254,24 +404,41 @@ export const ordersController = {
                 where: { id },
                 data,
               });
-              console.log('Updated item ID:', id);
+              console.log(' Updated item ID:', id);
             }
 
-            if (orderId) {
-              const deletedCount = await tx.order_items.deleteMany({
+            if (isUpdate && orderId) {
+              const itemsToDelete = await tx.order_items.findMany({
                 where: {
                   parent_id: order.id,
-                  id: { notIn: processedChildIds },
+                  id:
+                    processedChildIds.length > 0
+                      ? { notIn: processedChildIds }
+                      : undefined,
                 },
+                select: { id: true },
               });
-              if (deletedCount.count > 0) {
-                console.log('Deleted items count:', deletedCount.count);
+
+              if (itemsToDelete.length > 0) {
+                const deletedCount = await tx.order_items.deleteMany({
+                  where: {
+                    parent_id: order.id,
+                    id: { notIn: processedChildIds },
+                  },
+                });
+                console.log(
+                  'Deleted items count:',
+                  deletedCount.count,
+                  'IDs:',
+                  itemsToDelete.map(i => i.id)
+                );
               }
             }
-          } else if (orderId) {
-            await tx.order_items.deleteMany({
+          } else if (isUpdate && orderId) {
+            const deletedCount = await tx.order_items.deleteMany({
               where: { parent_id: order.id },
             });
+            console.log(' Deleted all items, count:', deletedCount.count);
           }
 
           const finalOrder = await tx.orders.findUnique({
@@ -285,16 +452,21 @@ export const ordersController = {
             },
           });
 
+          console.log(
+            ' Final order items count:',
+            finalOrder?.order_items?.length || 0
+          );
+          if (finalOrder?.order_items && finalOrder.order_items.length > 0) {
+            console.log(' Sample item:', finalOrder.order_items[0]);
+          }
+
           return finalOrder;
         },
         {
-          maxWait: 5000,
-          timeout: 10000,
+          maxWait: 10000,
+          timeout: 20000,
         }
       );
-
-      console.log('Final order items count:', result?.order_items?.length || 0);
-      console.log('Sample item:', result?.order_items?.[0]);
 
       res.status(orderId ? 200 : 201).json({
         message: orderId
@@ -303,7 +475,7 @@ export const ordersController = {
         data: serializeOrder(result),
       });
     } catch (error: any) {
-      console.error('Error processing order:', error);
+      console.error(' Error processing order:', error);
       res.status(500).json({
         message: 'Failed to process order',
         error: error.message,
@@ -428,7 +600,7 @@ export const ordersController = {
           orders_currencies: true,
           orders_customers: true,
           orders_salesperson_users: true,
-          order_items: true, // ✅ Fixed: was order_items
+          order_items: true,
           invoices: true,
         },
       });

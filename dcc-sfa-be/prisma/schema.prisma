@@ -46,7 +46,7 @@ model users {
   login_history_login_history_user_idTousers                          login_history[]              @relation("login_history_user_idTousers")
   notifications                                                       notifications[]
   orders_approved_by                                                  orders[]                     @relation("OrdersApprovedBy")
-  orders_salesperson                                                  orders[]                     @relation("OrdersSalesperson")
+  orders_salesperson_users                                            orders[]                     @relation("OrdersSalesperson")
   payments_payments_collected_byTousers                               payments[]                   @relation("payments_collected_byTousers")
   price_history_price_history_approved_byTousers                      price_history[]              @relation("price_history_approved_byTousers")
   price_history_price_history_changed_byTousers                       price_history[]              @relation("price_history_changed_byTousers")
