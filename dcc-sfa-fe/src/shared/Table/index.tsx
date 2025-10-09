@@ -29,6 +29,7 @@ export interface TableColumn<T = any> {
   sortable?: boolean;
   width?: string | number;
   render?: (value: any, row: T) => ReactNode;
+  className?: string;
 }
 
 /**
@@ -192,7 +193,8 @@ function TableHead<T>(props: TableHeadProps<T>) {
               orderBy === column.id && order !== 'none' ? order : false
             }
             className={classNames(
-              '!border-b !border-gray-200 !bg-blue-50 !font-semibold',
+              column.className,
+              '!border-b !px-1.5 !border-gray-200 !bg-blue-50 !font-semibold',
               '!whitespace-nowrap !text-gray-700 !p-4 !text-sm'
             )}
             style={{ width: column.width }}
@@ -479,7 +481,7 @@ export default function Table<T extends Record<string, any>>(
                           key={String(column.id)}
                           align={column.numeric ? 'right' : 'left'}
                           padding={column.disablePadding ? 'none' : 'normal'}
-                          className="!border-b !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
+                          className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
                         >
                           {column.render
                             ? column.render(row[column.id], row)

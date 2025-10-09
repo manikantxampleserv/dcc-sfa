@@ -23,7 +23,7 @@ const EditButton: React.FC<EditButtonProps> = ({
   onClick,
   disabled = false,
   tooltip = 'Edit',
-  size = 'small',
+  size = 'medium',
 }) => {
   const button = (
     <IconButton
@@ -52,7 +52,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
   onClick,
   disabled = false,
   tooltip = 'Delete',
-  size = 'small',
+  size = 'medium',
   confirmDelete = true,
   itemName = 'this item',
 }) => {
