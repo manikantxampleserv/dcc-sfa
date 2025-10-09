@@ -187,7 +187,13 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
           </div>
 
           <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
-            <Select name="role_id" formik={formik} label="Role" required>
+            <Select
+              name="role_id"
+              formik={formik}
+              label="Role"
+              fullWidth
+              required
+            >
               {rolesLoading ? (
                 <MenuItem disabled>Loading roles...</MenuItem>
               ) : (
@@ -198,7 +204,13 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                 ))
               )}
             </Select>
-            <Select required name="is_active" formik={formik} label="Status">
+            <Select
+              required
+              name="is_active"
+              formik={formik}
+              label="Status"
+              fullWidth
+            >
               <MenuItem value="Y">Active</MenuItem>
               <MenuItem value="N">Inactive</MenuItem>
             </Select>
@@ -224,6 +236,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               name="reporting_to"
               formik={formik}
               required
+              fullWidth
               label="Reporting Manager"
             >
               {usersLoading ? (

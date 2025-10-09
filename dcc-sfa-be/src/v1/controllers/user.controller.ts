@@ -286,10 +286,7 @@ export const userController = {
 
       const id = Number(req.params.id);
       const user = await prisma.users.findFirst({
-        where: {
-          id,
-          is_active: 'Y',
-        },
+        where: { id },
         include: {
           user_role: true,
           companies: true,

@@ -238,7 +238,13 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                 placeholder="Enter role name"
                 required
               />
-              <Select name="is_active" formik={formik} label="Status" required>
+              <Select
+                name="is_active"
+                formik={formik}
+                label="Status"
+                fullWidth
+                required
+              >
                 <MenuItem value="Y">Active</MenuItem>
                 <MenuItem value="N">Inactive</MenuItem>
               </Select>

@@ -161,6 +161,7 @@ const UsersManagement: React.FC = () => {
     {
       id: 'action',
       label: 'Actions',
+      sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
           <EditButton
@@ -309,7 +310,7 @@ const UsersManagement: React.FC = () => {
         columns={userColumns}
         actions={
           <div className="flex justify-between w-full">
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
               <SearchInput
                 placeholder="Search Users"
                 value={search}

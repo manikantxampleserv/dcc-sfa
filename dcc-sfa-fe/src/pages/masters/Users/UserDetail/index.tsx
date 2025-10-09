@@ -1,34 +1,18 @@
 import {
   AccessTime,
-  ArrowLeft,
-  Business,
   Cancel,
   CheckCircle,
-  Email,
-  LocationOn,
   Person,
-  Phone,
   Security,
 } from '@mui/icons-material';
-import {
-  Alert,
-  Avatar,
-  Chip,
-  Divider,
-  IconButton,
-  Skeleton,
-  Typography,
-} from '@mui/material';
+import { Alert, Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useUser } from 'hooks/useUsers';
-import { Edit } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
-import Button from 'shared/Button';
+import { useParams } from 'react-router-dom';
 import { formatDate } from 'utils/dateUtils';
 
 const UserDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   if (!id || isNaN(parseInt(id, 10))) {
     throw new Error('Invalid user ID');
   }
@@ -38,55 +22,117 @@ const UserDetail: React.FC = () => {
 
   const user = userResponse?.data;
 
-  const handleBack = () => {
-    navigate('/masters/users');
-  };
-
-  const handleEdit = () => {
-    navigate(`/masters/users/edit/${userId}`);
-  };
-
   if (isLoading) {
     return (
-      <div className="w-full">
-        <div className="mb-6 flex items-center gap-4">
-          <Skeleton variant="circular" width={40} height={40} />
-          <Skeleton variant="text" width={200} height={32} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex-2">
+          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
+            <div className="!absolute !top-4 !right-4">
+              <Skeleton
+                variant="circular"
+                width={12}
+                height={12}
+                className="!bg-green-200"
+              />
+            </div>
+
             <Skeleton
               variant="circular"
-              width={120}
-              height={120}
-              className="mx-auto mb-4"
+              width={96}
+              height={96}
+              className="!mx-auto !mb-4 !border-3 !border-white"
             />
+
             <Skeleton
               variant="text"
-              width="80%"
+              width="70%"
               height={24}
-              className="mx-auto mb-2"
+              className="!mx-auto !mb-1"
             />
             <Skeleton
               variant="text"
+              width="50%"
+              height={16}
+              className="!mx-auto !mb-3"
+            />
+
+            <Skeleton
+              variant="rectangular"
               width="60%"
-              height={20}
-              className="mx-auto mb-4"
+              height={24}
+              className="!mx-auto !mb-4 !bg-green-50"
             />
-            <Skeleton variant="rectangular" width="100%" height={32} />
+
+            <div className="!space-y-3 !text-left">
+              <div className="!p-2 !bg-gray-50 !rounded-md">
+                <Skeleton
+                  variant="text"
+                  width="50%"
+                  height={10}
+                  className="!mb-1"
+                />
+                <Skeleton variant="text" width="70%" height={14} />
+              </div>
+              <div className="!p-2 !bg-gray-50 !rounded-md">
+                <Skeleton
+                  variant="text"
+                  width="40%"
+                  height={10}
+                  className="!mb-1"
+                />
+                <Skeleton variant="text" width="80%" height={14} />
+              </div>
+              <div className="!p-2 !bg-gray-50 !rounded-md">
+                <Skeleton
+                  variant="text"
+                  width="35%"
+                  height={10}
+                  className="!mb-1"
+                />
+                <Skeleton variant="text" width="60%" height={14} />
+              </div>
+            </div>
           </div>
-          <div className="md:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <Skeleton variant="text" width={200} height={32} className="mb-4" />
-            <Skeleton
-              variant="text"
-              width="100%"
-              height={20}
-              className="mb-2"
-            />
-            <Skeleton variant="text" width="80%" height={20} className="mb-2" />
-            <Skeleton variant="text" width="90%" height={20} className="mb-2" />
-            <Skeleton variant="text" width="70%" height={20} />
-          </div>
+        </div>
+
+        <div className="flex-4 !space-y-4">
+          {[1, 2, 3].map(card => (
+            <div
+              key={card}
+              className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden"
+            >
+              <div className="!absolute !top-0 !right-0 !w-20 !h-20 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-10 !translate-x-10"></div>
+              <div className="!relative !z-10">
+                <div className="!flex !items-center !gap-2 !mb-4">
+                  <div className="!p-1 !bg-blue-100 !rounded-md">
+                    <Skeleton
+                      variant="circular"
+                      width={16}
+                      height={16}
+                      className="!bg-blue-200"
+                    />
+                  </div>
+                  <Skeleton variant="text" width={140} height={20} />
+                </div>
+                <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                  {[1, 2, 3, 4].map(field => (
+                    <div key={field} className="!space-y-1">
+                      <Skeleton
+                        variant="text"
+                        width={`${50 + field * 8}%`}
+                        height={12}
+                      />
+                      <Skeleton
+                        variant="text"
+                        width={`${60 + field * 6}%`}
+                        height={16}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -98,18 +144,15 @@ const UserDetail: React.FC = () => {
     }
 
     return (
-      <div className="w-full">
-        <div className="mb-6 flex items-center gap-4">
-          <IconButton onClick={handleBack} className="p-2">
-            <ArrowLeft className="w-5 h-5" />
-          </IconButton>
-          <Typography variant="h4" className="font-bold text-gray-900">
-            Error Loading User
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-gradient-to-r from-red-600 via-pink-600 to-red-600 rounded-lg p-6 mb-6 text-white relative overflow-hidden shadow-lg">
+          <Alert severity="error" className="!mb-3">
+            Failed to load user details. Please try again.
+          </Alert>
+          <Typography variant="body2" className="!text-gray-600">
+            If this problem persists, please contact your system administrator.
           </Typography>
         </div>
-        <Alert severity="error">
-          Failed to load user details. Please try again.
-        </Alert>
       </div>
     );
   }
@@ -135,82 +178,56 @@ const UserDetail: React.FC = () => {
     children: React.ReactNode;
     icon?: React.ElementType;
   }) => (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <div className="flex items-center gap-2 mb-3">
-        {Icon && <Icon className="w-5 h-5 text-gray-600" />}
-        <Typography variant="h6" className="font-semibold text-gray-900">
-          {title}
-        </Typography>
-      </div>
-      {children}
-    </div>
-  );
-
-  const InfoRow = ({
-    label,
-    value,
-    icon: Icon,
-  }: {
-    label: string;
-    value: string | React.ReactNode;
-    icon?: React.ElementType;
-  }) => (
-    <div className="flex items-start gap-3 py-2">
-      {Icon && <Icon className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />}
-      <div className="flex-1">
-        <Typography variant="body2" className="text-gray-600 text-sm">
-          {label}
-        </Typography>
-        <Typography variant="body1" className="text-gray-900 font-medium">
-          {value || <span className="text-gray-400 italic">Not provided</span>}
-        </Typography>
+    <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!relative !z-10">
+        <div className="!flex !items-center !gap-2 !mb-4">
+          {Icon && (
+            <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+              <Icon className="!text-primary-500" />
+            </div>
+          )}
+          <Typography variant="h6" className="!font-bold !text-gray-900">
+            {title}
+          </Typography>
+        </div>
+        {children}
       </div>
     </div>
   );
 
   return (
-    <div className="w-full p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <IconButton onClick={handleBack} className="p-2">
-            <ArrowLeft className="w-5 h-5" />
-          </IconButton>
-          <div>
-            <Typography variant="h4" className="font-bold text-gray-900">
-              User Details
-            </Typography>
-            <Typography variant="body2" className="text-gray-600">
-              View and manage user information
-            </Typography>
+    <div className="flex items-start gap-4">
+      <div className="!flex-2">
+        <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
+          <div className="absolute top-3 right-3">
+            <div
+              className={`!w-2.5 !h-2.5 !rounded-full ${user.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'}`}
+            ></div>
           </div>
-        </div>
-        <Button
-          variant="contained"
-          startIcon={<Edit />}
-          onClick={handleEdit}
-          className="capitalize"
-        >
-          Edit User
-        </Button>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
-          <Avatar
-            src={user.profile_image || undefined}
-            className={classNames('w-24 h-24 mx-auto mb-4 text-2xl font-bold', {
-              'bg-green-100 text-green-600': user.is_active === 'Y',
-              'bg-gray-200 text-gray-600': user.is_active !== 'Y',
-            })}
-          >
-            {getInitials(user.name)}
-          </Avatar>
+          <div className="!relative !mb-4">
+            <Avatar
+              src={user.profile_image || undefined}
+              className={classNames(
+                '!w-24 !h-24 !mx-auto !text-xl !font-bold !border-3 !border-white !shadow-lg',
+                {
+                  '!bg-gradient-to-br !from-green-400 !to-green-600 !text-white':
+                    user.is_active === 'Y',
+                  '!bg-gradient-to-br !from-gray-400 !to-gray-600 !text-white':
+                    user.is_active === 'N',
+                }
+              )}
+            >
+              {getInitials(user.name)}
+            </Avatar>
+          </div>
 
-          <Typography variant="h5" className="font-bold text-gray-900 mb-2">
+          <Typography variant="h6" className="!font-bold !text-gray-900 !mb-1">
             {user.name}
           </Typography>
 
-          <Typography variant="body2" className="text-gray-600 mb-4">
+          <Typography variant="body2" className="!text-gray-600 !mb-3">
             {user.role?.name || 'No Role Assigned'}
           </Typography>
 
@@ -219,99 +236,281 @@ const UserDetail: React.FC = () => {
             label={user.is_active === 'Y' ? 'Active' : 'Inactive'}
             color={user.is_active === 'Y' ? 'success' : 'error'}
             size="small"
-            className="mb-4"
           />
 
-          <Divider className="my-4" />
+          <div className="!space-y-1 !text-left">
+            <div className="!p-1 !bg-gray-50 !rounded-md">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
+              >
+                Employee ID
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.employee_id || 'N/A'}
+              </Typography>
+            </div>
 
-          <div className="text-left space-y-2">
-            <InfoRow
-              label="Employee ID"
-              value={user.employee_id}
-              icon={Person}
-            />
-            <InfoRow label="Email" value={user.email} icon={Email} />
-            <InfoRow label="Phone" value={user.phone_number} icon={Phone} />
-            <InfoRow
-              label="Join Date"
-              value={formatDate(user.joining_date)}
-              icon={AccessTime}
-            />
+            <div className="!p-1 !bg-gray-50 !rounded-md">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
+              >
+                Contact
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.email}
+              </Typography>
+            </div>
+
+            <div className="!p-1 !bg-gray-50 !rounded-md">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
+              >
+                Phone
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.phone_number || 'N/A'}
+              </Typography>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="md:col-span-2 space-y-6">
-          <InfoCard title="Personal Information" icon={Person}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InfoRow label="Full Name" value={user.name} />
-              <InfoRow label="Email Address" value={user.email} icon={Email} />
-              <InfoRow
-                label="Phone Number"
-                value={user.phone_number}
-                icon={Phone}
-              />
-              <InfoRow label="Employee ID" value={user.employee_id} />
-              <div className="sm:col-span-2">
-                <InfoRow
-                  label="Address"
-                  value={user.address}
-                  icon={LocationOn}
+      <div className="!flex-4 !space-y-4">
+        <InfoCard title="Personal Information" icon={Person}>
+          <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Full Name
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.name}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Email Address
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.email}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Phone Number
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.phone_number || 'Not provided'}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Employee ID
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.employee_id || 'Not provided'}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5 md:!col-span-2">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Address
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.address || 'Not provided'}
+              </Typography>
+            </div>
+          </div>
+        </InfoCard>
+
+        <InfoCard title="Role & Organization" icon={Security}>
+          <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Role
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.role?.name || 'Not assigned'}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Company
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.company?.name || 'Not assigned'}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Depot
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.depot?.name || 'Not assigned'}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Zone
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.zone?.name || 'Not assigned'}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5 md:!col-span-2">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Reports To
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.reporting_manager?.name || 'Not assigned'}
+              </Typography>
+            </div>
+          </div>
+        </InfoCard>
+
+        <InfoCard title="Activity & Status" icon={AccessTime}>
+          <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Current Status
+              </Typography>
+              <div className="!mt-1">
+                <Chip
+                  icon={user.is_active === 'Y' ? <CheckCircle /> : <Cancel />}
+                  label={user.is_active === 'Y' ? 'Active' : 'Inactive'}
+                  color={user.is_active === 'Y' ? 'success' : 'error'}
+                  size="small"
                 />
               </div>
             </div>
-          </InfoCard>
 
-          <InfoCard title="Role & Organization" icon={Security}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InfoRow label="Role" value={user.role?.name} icon={Security} />
-              <InfoRow
-                label="Company"
-                value={user.company?.name}
-                icon={Business}
-              />
-              <InfoRow label="Depot" value={user.depot?.name} icon={Business} />
-              <InfoRow label="Zone" value={user.zone?.name} icon={LocationOn} />
-              <div className="sm:col-span-2">
-                <InfoRow
-                  label="Reports To"
-                  value={user.reporting_manager?.name}
-                  icon={Person}
-                />
-              </div>
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Join Date
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {formatDate(user.joining_date)}
+              </Typography>
             </div>
-          </InfoCard>
 
-          <InfoCard title="Activity & Status" icon={AccessTime}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InfoRow
-                label="Status"
-                value={
-                  <Chip
-                    icon={user.is_active === 'Y' ? <CheckCircle /> : <Cancel />}
-                    label={user.is_active === 'Y' ? 'Active' : 'Inactive'}
-                    color={user.is_active === 'Y' ? 'success' : 'error'}
-                    size="small"
-                  />
-                }
-              />
-              <InfoRow
-                label="Join Date"
-                value={formatDate(user.joining_date)}
-                icon={AccessTime}
-              />
-              <InfoRow
-                label="Last Login"
-                value={formatDate(user.last_login)}
-                icon={AccessTime}
-              />
-              <InfoRow
-                label="Created At"
-                value={formatDate(user.created_at)}
-                icon={AccessTime}
-              />
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Last Login
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {formatDate(user.last_login)}
+              </Typography>
             </div>
-          </InfoCard>
-        </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Member Since
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {formatDate(user.created_at)}
+              </Typography>
+            </div>
+          </div>
+        </InfoCard>
       </div>
     </div>
   );

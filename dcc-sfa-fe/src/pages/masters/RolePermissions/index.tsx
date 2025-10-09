@@ -22,11 +22,16 @@ const RolePermissions: React.FC = () => {
     data: rolesResponse,
     isLoading,
     error,
-  } = useRoles({ 
-    search, 
-    page, 
+  } = useRoles({
+    search,
+    page,
     limit,
-    isActive: statusFilter === 'all' ? undefined : statusFilter === 'active' ? 'Y' : 'N'
+    isActive:
+      statusFilter === 'all'
+        ? undefined
+        : statusFilter === 'active'
+          ? 'Y'
+          : 'N',
   });
 
   const roles = rolesResponse?.data || [];
@@ -104,6 +109,7 @@ const RolePermissions: React.FC = () => {
             onClick={() => handleDeleteRole(row.id)}
             tooltip={`Delete ${row.name}`}
             itemName={row.name}
+            confirmDelete={true}
           />
         </Box>
       ),

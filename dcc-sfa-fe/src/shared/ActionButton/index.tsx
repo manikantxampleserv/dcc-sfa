@@ -28,7 +28,10 @@ const EditButton: React.FC<EditButtonProps> = ({
   const button = (
     <IconButton
       size={size}
-      onClick={onClick}
+      onClick={e => {
+        e.stopPropagation();
+        onClick?.();
+      }}
       disabled={disabled}
       className="!bg-blue-100 !rounded hover:!bg-blue-200 !text-blue-600"
     >
@@ -56,7 +59,6 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
   const button = (
     <IconButton
       size={size}
-      onClick={confirmDelete ? undefined : onClick}
       disabled={disabled}
       className="!bg-red-100 !rounded hover:!bg-red-200 !text-red-600"
     >
@@ -77,7 +79,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
       {tooltipButton}
     </DeleteConfirmation>
   ) : (
-    tooltipButton
+    <div onClick={e => e.stopPropagation()}>{tooltipButton}</div>
   );
 };
 
