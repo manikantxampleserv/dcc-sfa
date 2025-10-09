@@ -350,13 +350,8 @@ export const rolePermissionsController = {
         return;
       }
 
-      await prisma.role_permissions.update({
+      await prisma.role_permissions.delete({
         where: { id: id },
-        data: {
-          is_active: 'N',
-          updatedby: req.user?.id ?? 0,
-          updatedate: new Date(),
-        },
       });
 
       res.success('Role permission deleted successfully', null, 200);
