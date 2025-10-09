@@ -143,11 +143,14 @@ export const createUser = async (
   userData: ManageUserPayload | FormData
 ): Promise<ApiResponse<User>> => {
   const response = await axiosInstance.post('/users', userData, {
-    headers: userData instanceof FormData ? {
-      'Content-Type': 'multipart/form-data',
-    } : {
-      'Content-Type': 'application/json',
-    },
+    headers:
+      userData instanceof FormData
+        ? {
+            'Content-Type': 'multipart/form-data',
+          }
+        : {
+            'Content-Type': 'application/json',
+          },
   });
   return response.data;
 };
@@ -163,11 +166,14 @@ export const updateUser = async (
   userData: UpdateUserPayload | FormData
 ): Promise<ApiResponse<User>> => {
   const response = await axiosInstance.put(`/users/${id}`, userData, {
-    headers: userData instanceof FormData ? {
-      'Content-Type': 'multipart/form-data',
-    } : {
-      'Content-Type': 'application/json',
-    },
+    headers:
+      userData instanceof FormData
+        ? {
+            'Content-Type': 'multipart/form-data',
+          }
+        : {
+            'Content-Type': 'application/json',
+          },
   });
   return response.data;
 };
@@ -204,11 +210,14 @@ export const updateUserProfile = async (
   profileData: UpdateProfilePayload | FormData
 ): Promise<ApiResponse<User>> => {
   const response = await axiosInstance.put('/users/me', profileData, {
-    headers: profileData instanceof FormData ? {
-      'Content-Type': 'multipart/form-data',
-    } : {
-      'Content-Type': 'application/json',
-    },
+    headers:
+      profileData instanceof FormData
+        ? {
+            'Content-Type': 'multipart/form-data',
+          }
+        : {
+            'Content-Type': 'application/json',
+          },
   });
   return response.data;
 };

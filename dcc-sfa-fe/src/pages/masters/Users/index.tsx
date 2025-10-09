@@ -2,7 +2,8 @@ import { Add, Block, CheckCircle } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useDeleteUser, useUsers, type User } from 'hooks/useUsers';
-import { Users as UsersIcon, UserCheck, UserX, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { UserCheck, UserPlus, Users as UsersIcon, UserX } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -13,6 +14,7 @@ import { formatDate } from 'utils/dateUtils';
 import ManageUsers from './ManageUsers';
 
 const UsersManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
@@ -202,6 +204,13 @@ const UsersManagement: React.FC = () => {
 
   const handlePageChange = (newPage: number) => setPage(newPage + 1);
 
+  const handleRowClick = useCallback(
+    (user: User) => {
+      navigate(`/masters/users/${user.id}`);
+    },
+    [navigate]
+  );
+
   return (
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
@@ -339,6 +348,7 @@ const UsersManagement: React.FC = () => {
         page={page - 1}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        onRowClick={handleRowClick}
         emptyMessage={
           search
             ? `No users found matching "${search}"`
