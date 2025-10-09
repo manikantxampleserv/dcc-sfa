@@ -309,10 +309,7 @@ export const rolesController = {
       }
 
       const existingRole = await prisma.roles.findFirst({
-        where: {
-          id: id,
-          is_active: 'Y',
-        },
+        where: { id: id },
       });
 
       if (!existingRole) {
@@ -333,22 +330,11 @@ export const rolesController = {
       }
 
       await prisma.$transaction(async tx => {
-        await tx.roles.update({
-          where: { id: id },
-          data: {
-            is_active: 'N',
-            updatedby: req.user?.id ?? 0,
-            updatedate: new Date(),
-          },
-        });
-
-        await tx.role_permissions.updateMany({
+        await tx.role_permissions.deleteMany({
           where: { role_id: id },
-          data: {
-            is_active: 'N',
-            updatedby: req.user?.id ?? 0,
-            updatedate: new Date(),
-          },
+        });
+        await tx.roles.delete({
+          where: { id },
         });
       });
 
