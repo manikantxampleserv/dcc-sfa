@@ -39,60 +39,117 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
 });
 
 export const priceListsController = {
-  async createPriceLists(req: any, res: any) {
+  async upsertPriceList(req: Request, res: Response) {
+    const data = req.body;
+    const userId = req.user?.id || 1;
+
     try {
-      const { priceListItems, ...priceListData } = req.body;
+      let priceList;
 
-      const priceList = await prisma.pricelists.create({
-        data: {
-          name: priceListData.name,
-          description: priceListData.description,
-          currency_code: priceListData.currency_code || 'INR',
-          valid_from: priceListData.valid_from
-            ? new Date(priceListData.valid_from)
-            : null,
-          valid_to: priceListData.valid_to
-            ? new Date(priceListData.valid_to)
-            : null,
-          is_active: priceListData.is_active || 'Y',
-          createdate: new Date(),
-          createdby: req.user?.id || 1,
-          log_inst: priceListData.log_inst || 1,
+      if (data.id) {
+        priceList = await prisma.pricelists.update({
+          where: { id: data.id },
+          data: {
+            name: data.name,
+            description: data.description,
+            currency_code: data.currency_code || 'INR',
+            valid_from: data.valid_from ? new Date(data.valid_from) : null,
+            valid_to: data.valid_to ? new Date(data.valid_to) : null,
+            is_active: data.is_active || 'Y',
+            updatedate: new Date(),
+            updatedby: userId,
+            log_inst: { increment: 1 },
+          },
+        });
+      } else {
+        priceList = await prisma.pricelists.create({
+          data: {
+            name: data.name,
+            description: data.description,
+            currency_code: data.currency_code || 'INR',
+            valid_from: data.valid_from ? new Date(data.valid_from) : null,
+            valid_to: data.valid_to ? new Date(data.valid_to) : null,
+            is_active: data.is_active || 'Y',
+            createdate: new Date(),
+            createdby: userId,
+            log_inst: 1,
+          },
+        });
+      }
 
-          pricelist_item: priceListItems?.length
-            ? {
-                create: priceListItems.map((item: any) => ({
-                  product_id: item.product_id,
-                  unit_price: item.unit_price,
-                  uom: item.uom,
-                  discount_percent: item.discount_percent,
-                  effective_from: item.effective_from
-                    ? new Date(item.effective_from)
-                    : null,
-                  effective_to: item.effective_to
-                    ? new Date(item.effective_to)
-                    : null,
-                  is_active: item.is_active || 'Y',
-                  createdate: new Date(),
-                  createdby: req.user?.id || 1,
-                  log_inst: item.log_inst || 1,
-                })),
-              }
-            : undefined,
-        },
+      if (Array.isArray(data.pricelist_item)) {
+        const existingItems = await prisma.pricelist_items.findMany({
+          where: { pricelist_id: priceList.id },
+        });
+
+        const requestIds = data.pricelist_item
+          .map((i: any) => i.id)
+          .filter(Boolean) as number[];
+
+        await prisma.pricelist_items.deleteMany({
+          where: {
+            pricelist_id: priceList.id,
+            id: { notIn: requestIds.length ? requestIds : [0] },
+          },
+        });
+
+        for (const item of data.pricelist_item) {
+          const itemData = {
+            product_id: item.product_id,
+            unit_price: item.unit_price,
+            uom: item.uom,
+            discount_percent: item.discount_percent,
+            effective_from: item.effective_from
+              ? new Date(item.effective_from)
+              : null,
+            effective_to: item.effective_to
+              ? new Date(item.effective_to)
+              : null,
+            is_active: item.is_active || 'Y',
+          };
+
+          if (item.id && existingItems.find(e => e.id === item.id)) {
+            await prisma.pricelist_items.update({
+              where: { id: item.id },
+              data: {
+                ...itemData,
+                updatedate: new Date(),
+                updatedby: userId,
+                log_inst: { increment: 1 },
+              },
+            });
+          } else {
+            await prisma.pricelist_items.create({
+              data: {
+                ...itemData,
+                pricelist_id: priceList.id,
+                createdate: new Date(),
+                createdby: userId,
+                log_inst: 1,
+              },
+            });
+          }
+        }
+      }
+
+      const finalPriceList = await prisma.pricelists.findUnique({
+        where: { id: priceList.id },
         include: {
           pricelist_item: true,
           route_pricelist: true,
         },
       });
 
-      res.status(201).json({
-        message: 'Price list created successfully',
-        data: priceList,
+      res.status(200).json({
+        message: 'Price list processed successfully',
+        data: serializePriceList(finalPriceList),
       });
     } catch (error: any) {
-      console.error('Create PriceList Error:', error);
-      res.status(500).json({ message: error.message });
+      console.error('Error processing price list:', error);
+      res.status(500).json({
+        message: 'Error processing price list',
+        error: error.message,
+      });
     }
   },
 
@@ -180,49 +237,6 @@ export const priceListsController = {
       });
     } catch (error: any) {
       console.error('Get PriceList Error:', error);
-      res.status(500).json({ message: error.message });
-    }
-  },
-
-  async updatePriceLists(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const existing = await prisma.pricelists.findUnique({
-        where: { id: Number(id) },
-      });
-
-      if (!existing)
-        return res.status(404).json({ message: 'Price list not found' });
-
-      const data = req.body;
-
-      const updatedPriceList = await prisma.pricelists.update({
-        where: { id: Number(id) },
-        data: {
-          name: data.name ?? existing.name,
-          description: data.description ?? existing.description,
-          currency_code: data.currency_code ?? existing.currency_code,
-          valid_from: data.valid_from
-            ? new Date(data.valid_from)
-            : existing.valid_from,
-          valid_to: data.valid_to ? new Date(data.valid_to) : existing.valid_to,
-          is_active: data.is_active ?? existing.is_active,
-          updatedate: new Date(),
-          updatedby: req.user?.id || 1,
-          log_inst: data.log_inst ?? existing.log_inst,
-        },
-        include: {
-          pricelist_item: true,
-          route_pricelist: true,
-        },
-      });
-
-      res.json({
-        message: 'Price list updated successfully',
-        data: updatedPriceList,
-      });
-    } catch (error: any) {
-      console.error('Update Price List Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
