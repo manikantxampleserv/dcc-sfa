@@ -82,15 +82,15 @@ const serializeOrder = (order: any): OrderSerialized => ({
   customer: order.orders_customers
     ? { id: order.orders_customers.id, name: order.orders_customers.name }
     : undefined,
-  salesperson: order.orders_salesperson
+  salesperson: order.orders_salesperson_users
     ? {
-        id: order.orders_salesperson.id,
-        name: order.orders_salesperson.name,
-        email: order.orders_salesperson.email,
+        id: order.orders_salesperson_users.id,
+        name: order.orders_salesperson_users.name,
+        email: order.orders_salesperson_users.email,
       }
     : null,
   order_items:
-    order.order_items?.map((oi: any) => ({
+    order.orders_items?.map((oi: any) => ({
       id: oi.id,
       product_id: oi.product_id,
       quantity: oi.quantity,

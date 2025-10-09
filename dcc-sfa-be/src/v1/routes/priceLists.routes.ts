@@ -15,7 +15,7 @@ router.post(
   authenticateToken,
   createPriceListsValidation,
   validate,
-  priceListsController.createPriceLists
+  priceListsController.upsertPriceList
 );
 
 router.get(
@@ -27,14 +27,6 @@ router.get(
   '/price-lists',
   authenticateToken,
   priceListsController.getAllPriceLists
-);
-
-router.put(
-  '/price-lists/:id',
-  authenticateToken,
-  updatePriceListValidation,
-  validate,
-  priceListsController.updatePriceLists
 );
 
 router.delete(
