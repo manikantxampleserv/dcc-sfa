@@ -89,13 +89,15 @@ const serializeOrder = (order: any): OrderSerialized => ({
         email: order.orders_salesperson_users.email,
       }
     : null,
+
   order_items:
     order.orders_items?.map((oi: any) => ({
       id: oi.id,
       product_id: oi.product_id,
       quantity: oi.quantity,
-      price: oi.price,
+      price: Number(oi.unit_price),
     })) || [],
+
   invoices:
     order.invoices?.map((inv: any) => ({
       id: inv.id,
@@ -106,32 +108,104 @@ const serializeOrder = (order: any): OrderSerialized => ({
 
 export const ordersController = {
   async createOrders(req: Request, res: Response) {
-    try {
-      const data = req.body;
+    const data = req.body;
+    const userId = req.user?.id || 1;
 
-      const order = await prisma.orders.create({
-        data: {
-          ...data,
-          is_active: data.is_active || 'Y',
-          createdate: new Date(),
-          createdby: req.user?.id || 1,
-          log_inst: data.log_inst || 1,
-        },
+    try {
+      let order;
+      const { id: _, order_items, ...parentData } = data;
+
+      if (data.id) {
+        order = await prisma.orders.update({
+          where: { id: data.id },
+          data: {
+            ...parentData,
+            updatedate: new Date(),
+            updatedby: userId,
+            log_inst: { increment: 1 },
+          },
+        });
+      } else {
+        order = await prisma.orders.create({
+          data: {
+            ...parentData,
+            createdate: new Date(),
+            createdby: userId,
+            log_inst: 1,
+            is_active: parentData.is_active || 'Y',
+          },
+        });
+      }
+
+      if (order_items !== undefined && Array.isArray(order_items)) {
+        const processedIds: number[] = [];
+
+        for (const item of order_items) {
+          const itemData = {
+            product_id: item.product_id,
+            product_name: item.product_name,
+            unit: item.unit,
+            quantity: item.quantity,
+            unit_price: item.price,
+            discount_amount: item.discount_amount,
+            tax_amount: item.tax_amount,
+            total_amount: item.total_amount,
+            notes: item.notes,
+            parent_id: order.id,
+          };
+
+          if (item.id) {
+            const exists = await prisma.order_items.findUnique({
+              where: { id: item.id },
+            });
+
+            if (exists) {
+              await prisma.order_items.update({
+                where: { id: item.id },
+                data: { ...itemData },
+              });
+              processedIds.push(item.id);
+              continue;
+            }
+          }
+
+          const newItem = await prisma.order_items.create({ data: itemData });
+          processedIds.push(newItem.id);
+        }
+
+        if (processedIds.length > 0) {
+          await prisma.order_items.deleteMany({
+            where: {
+              parent_id: order.id,
+              id: { notIn: processedIds },
+            },
+          });
+        } else {
+          await prisma.order_items.deleteMany({
+            where: {
+              parent_id: order.id,
+            },
+          });
+        }
+      }
+
+      const finalOrder = await prisma.orders.findUnique({
+        where: { id: order.id },
         include: {
           orders_currencies: true,
           orders_customers: true,
-          orders_salesperson: true,
-          order_items: true,
+          orders_salesperson_users: true,
+          orders_items: true,
           invoices: true,
         },
       });
 
-      res.status(201).json({
-        message: 'Order created successfully',
-        data: serializeOrder(order),
+      res.status(200).json({
+        message: 'Order processed successfully',
+        data: serializeOrder(finalOrder),
       });
     } catch (error: any) {
-      console.error('Create Order Error:', error);
+      console.error('Error processing order:', error);
       res.status(500).json({ message: error.message });
     }
   },
