@@ -1083,18 +1083,18 @@ model pricelists {
 }
 
 model product_categories {
-  id                     Int                      @id(map: "PK__product___3213E83FA4C0DB07") @default(autoincrement())
-  category_name          String                   @db.NVarChar(255)
-  description            String?
-  is_active              String                   @default("Y", map: "DF__product_c__is_ac__7908F585") @db.Char(1)
-  createdate             DateTime?                @default(now(), map: "DF__product_c__creat__79FD19BE") @db.DateTime
-  createdby              Int
-  updatedate             DateTime?                @db.DateTime
-  updatedby              Int?
-  log_inst               Int?
-  product_sub_categories product_sub_categories[]
-  sales_target_overrides sales_target_overrides[]
-  sales_targets          sales_targets[]
+  id                               Int                      @id(map: "PK__product___3213E83FA4C0DB07") @default(autoincrement())
+  category_name                    String                   @db.NVarChar(255)
+  description                      String?
+  is_active                        String                   @default("Y", map: "DF__product_c__is_ac__7908F585") @db.Char(1)
+  createdate                       DateTime?                @default(now(), map: "DF__product_c__creat__79FD19BE") @db.DateTime
+  createdby                        Int
+  updatedate                       DateTime?                @db.DateTime
+  updatedby                        Int?
+  log_inst                         Int?
+  product_sub_categories           product_sub_categories[]
+  sales_target_overrides           sales_target_overrides[]
+  sales_targets_product_categories sales_targets[]
 }
 
 model product_facing {
@@ -1413,43 +1413,43 @@ model sales_bonus_rules {
 }
 
 model sales_target_group_members {
-  id                    Int                 @id(map: "PK__sales_ta__3213E83FEC0392AD") @default(autoincrement())
-  sales_target_group_id Int
-  sales_person_id       Int
-  is_active             String              @default("Y", map: "DF__sales_tar__is_ac__056ECC6A") @db.Char(1)
-  createdate            DateTime?           @default(now(), map: "DF__sales_tar__creat__0662F0A3") @db.DateTime
-  createdby             Int
-  updatedate            DateTime?           @db.DateTime
-  updatedby             Int?
-  log_inst              Int?
-  sales_target_groups   sales_target_groups @relation(fields: [sales_target_group_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__sales__075714DC")
-  users                 users               @relation(fields: [sales_person_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__sales__084B3915")
+  id                            Int                 @id(map: "PK__sales_ta__3213E83FEC0392AD") @default(autoincrement())
+  sales_target_group_id         Int
+  sales_person_id               Int
+  is_active                     String              @default("Y", map: "DF__sales_tar__is_ac__056ECC6A") @db.Char(1)
+  createdate                    DateTime?           @default(now(), map: "DF__sales_tar__creat__0662F0A3") @db.DateTime
+  createdby                     Int
+  updatedate                    DateTime?           @db.DateTime
+  updatedby                     Int?
+  log_inst                      Int?
+  sales_target_group_members_id sales_target_groups @relation(fields: [sales_target_group_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__sales__075714DC")
+  users                         users               @relation(fields: [sales_person_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__sales__084B3915")
 }
 
 model sales_target_groups {
-  id                         Int                          @id(map: "PK__sales_ta__3213E83F167C6ACE") @default(autoincrement())
-  group_name                 String                       @db.NVarChar(255)
-  description                String?
-  is_active                  String                       @default("Y", map: "DF__sales_tar__is_ac__019E3B86") @db.Char(1)
-  createdate                 DateTime?                    @default(now(), map: "DF__sales_tar__creat__02925FBF") @db.DateTime
-  createdby                  Int
-  updatedate                 DateTime?                    @db.DateTime
-  updatedby                  Int?
-  log_inst                   Int?
-  sales_target_group_members sales_target_group_members[]
-  sales_targets              sales_targets[]
+  id                            Int                          @id() @default(autoincrement())
+  group_name                    String                       @db.NVarChar(255)
+  description                   String?
+  is_active                     String                       @default("Y") @db.Char(1)
+  createdate                    DateTime?                    @default(now()) @db.DateTime
+  createdby                     Int
+  updatedate                    DateTime?                    @db.DateTime
+  updatedby                     Int?
+  log_inst                      Int?
+  sales_target_group_members_id sales_target_group_members[]
+  sales_targets_groups          sales_targets[]
 }
 
 model sales_target_overrides {
-  id                  Int                @id(map: "PK__sales_ta__3213E83FB39F5FAA") @default(autoincrement())
+  id                  Int                @id() @default(autoincrement())
   sales_person_id     Int
   product_category_id Int
   target_quantity     Int
   target_amount       Decimal?           @db.Decimal(18, 2)
   start_date          DateTime           @db.Date
   end_date            DateTime           @db.Date
-  is_active           String             @default("Y", map: "DF__sales_tar__is_ac__10E07F16") @db.Char(1)
-  createdate          DateTime?          @default(now(), map: "DF__sales_tar__creat__11D4A34F") @db.DateTime
+  is_active           String             @default("Y") @db.Char(1)
+  createdate          DateTime?          @default(now()) @db.DateTime
   createdby           Int
   updatedate          DateTime?          @db.DateTime
   updatedby           Int?
@@ -1459,22 +1459,22 @@ model sales_target_overrides {
 }
 
 model sales_targets {
-  id                    Int                 @id(map: "PK__sales_ta__3213E83F40C62AE1") @default(autoincrement())
-  sales_target_group_id Int
-  product_category_id   Int
-  target_quantity       Int
-  target_amount         Decimal?            @db.Decimal(18, 2)
-  start_date            DateTime            @db.Date
-  end_date              DateTime            @db.Date
-  is_active             String              @default("Y", map: "DF__sales_tar__is_ac__0B27A5C0") @db.Char(1)
-  createdate            DateTime?           @default(now(), map: "DF__sales_tar__creat__0C1BC9F9") @db.DateTime
-  createdby             Int
-  updatedate            DateTime?           @db.DateTime
-  updatedby             Int?
-  log_inst              Int?
-  sales_bonus_rules     sales_bonus_rules[]
-  product_categories    product_categories  @relation(fields: [product_category_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__produ__0E04126B")
-  sales_target_groups   sales_target_groups @relation(fields: [sales_target_group_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__sales__0D0FEE32")
+  id                               Int                 @id() @default(autoincrement())
+  sales_target_group_id            Int
+  product_category_id              Int
+  target_quantity                  Int
+  target_amount                    Decimal?            @db.Decimal(18, 2)
+  start_date                       DateTime            @db.Date
+  end_date                         DateTime            @db.Date
+  is_active                        String              @default("Y") @db.Char(1)
+  createdate                       DateTime?           @default(now()) @db.DateTime
+  createdby                        Int
+  updatedate                       DateTime?           @db.DateTime
+  updatedby                        Int?
+  log_inst                         Int?
+  sales_bonus_rules                sales_bonus_rules[]
+  sales_targets_product_categories product_categories  @relation(fields: [product_category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  sales_targets_groups             sales_target_groups @relation(fields: [sales_target_group_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model serial_numbers {
