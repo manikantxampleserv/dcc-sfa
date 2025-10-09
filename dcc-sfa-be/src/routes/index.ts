@@ -25,6 +25,9 @@ import customerDocuments from '../v1/routes/customerDocuments.routes';
 import surveys from '../v1/routes/surveys.routes';
 import assetMaster from '../v1/routes/assetMaster.routes';
 import assetImages from '../v1/routes/assetImages.routes';
+import priceLists from '../v1/routes/priceLists.routes';
+import priceListsItems from '../v1/routes/priceListsItems.routes';
+import routePriceLists from '../v1/routes/routePriceLists.routes';
 
 const routes = Router();
 
@@ -53,6 +56,9 @@ routes.use('/v1', customerDocuments);
 routes.use('/v1', surveys);
 routes.use('/v1', assetMaster);
 routes.use('/v1', assetImages);
+routes.use('/v1', priceLists);
+routes.use('/v1', priceListsItems);
+routes.use('/v1', routePriceLists);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
