@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
 import { priceListsController } from '../controllers/priceLists.controller';
-import { createPriceListsValidation } from '../validations/priceLists.validation';
+import {
+  createPriceListsValidation,
+  updatePriceListValidation,
+} from '../validations/priceLists.validation';
 
 import { upload } from '../../utils/multer';
 import { validate } from '../../middlewares/validation.middleware';
@@ -31,6 +34,8 @@ router.get(
 router.put(
   '/price-lists/:id',
   authenticateToken,
+  updatePriceListValidation,
+  validate,
   priceListsController.updatePriceLists
 );
 

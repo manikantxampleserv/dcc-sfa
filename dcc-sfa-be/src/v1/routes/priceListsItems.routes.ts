@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
 import { priceListItemsController } from '../controllers/priceListsItems.controller';
-import { createPriceListItemsValidation } from '../validations/priceListItems.validation';
+import {
+  createPriceListItemsValidation,
+  updatePriceListItemsValidation,
+} from '../validations/priceListItems.validation';
 import { validate } from '../../middlewares/validation.middleware';
 
 const router = Router();
@@ -28,6 +31,8 @@ router.get(
 router.put(
   '/price-list-items/:id',
   authenticateToken,
+  updatePriceListItemsValidation,
+  validate,
   priceListItemsController.updatePriceListItems
 );
 
