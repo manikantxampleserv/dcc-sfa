@@ -31,7 +31,7 @@ import priceListsItems from '../v1/routes/priceListsItems.routes';
 import routePriceLists from '../v1/routes/routePriceLists.routes';
 import loginHistory from '../v1/routes/loginHistory.routes';
 import apiTokens from '../v1/routes/apiTokens.routes';
-
+import orderItems from '../v1/routes/orderItems.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -65,6 +65,7 @@ routes.use('/v1', priceListsItems);
 routes.use('/v1', routePriceLists);
 routes.use('/v1', loginHistory);
 routes.use('/v1/api-tokens', apiTokens);
+routes.use('/v1', orderItems);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

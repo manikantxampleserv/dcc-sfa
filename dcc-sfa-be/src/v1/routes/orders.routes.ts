@@ -11,7 +11,7 @@ router.post(
   authenticateToken,
   createOrderValidation,
   validate,
-  ordersController.createOrders
+  ordersController.createOrUpdateOrder
 );
 
 router.get('/orders/:id', authenticateToken, ordersController.getOrdersById);

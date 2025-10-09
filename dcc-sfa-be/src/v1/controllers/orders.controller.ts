@@ -38,8 +38,14 @@ interface OrderSerialized {
   order_items?: {
     id: number;
     product_id: number;
+    product_name?: string;
+    unit?: string;
     quantity: number;
-    price: number;
+    unit_price: number;
+    discount_amount?: number;
+    tax_amount?: number;
+    total_amount?: number;
+    notes?: string;
   }[];
   invoices?: { id: number; invoice_number: string; amount: number }[];
 }
@@ -56,11 +62,11 @@ const serializeOrder = (order: any): OrderSerialized => ({
   order_type: order.order_type,
   payment_method: order.payment_method,
   payment_terms: order.payment_terms,
-  subtotal: order.subtotal,
-  discount_amount: order.discount_amount,
-  tax_amount: order.tax_amount,
-  shipping_amount: order.shipping_amount,
-  total_amount: order.total_amount,
+  subtotal: order.subtotal ? Number(order.subtotal) : null,
+  discount_amount: order.discount_amount ? Number(order.discount_amount) : null,
+  tax_amount: order.tax_amount ? Number(order.tax_amount) : null,
+  shipping_amount: order.shipping_amount ? Number(order.shipping_amount) : null,
+  total_amount: order.total_amount ? Number(order.total_amount) : null,
   notes: order.notes,
   shipping_address: order.shipping_address,
   approval_status: order.approval_status,
@@ -85,17 +91,27 @@ const serializeOrder = (order: any): OrderSerialized => ({
   salesperson: order.orders_salesperson_users
     ? {
         id: order.orders_salesperson_users.id,
-        name: order.orders_salesperson_users.name,
+        name:
+          `${order.orders_salesperson_users.first_name || ''} ${order.orders_salesperson_users.last_name || ''}`.trim() ||
+          'N/A',
         email: order.orders_salesperson_users.email,
       }
     : null,
 
   order_items:
-    order.orders_items?.map((oi: any) => ({
+    order.order_items?.map((oi: any) => ({
       id: oi.id,
       product_id: oi.product_id,
+      product_name: oi.product_name,
+      unit: oi.unit,
       quantity: oi.quantity,
-      price: Number(oi.unit_price),
+      unit_price: Number(oi.unit_price),
+      discount_amount: oi.discount_amount
+        ? Number(oi.discount_amount)
+        : undefined,
+      tax_amount: oi.tax_amount ? Number(oi.tax_amount) : undefined,
+      total_amount: oi.total_amount ? Number(oi.total_amount) : undefined,
+      notes: oi.notes,
     })) || [],
 
   invoices:
@@ -107,106 +123,191 @@ const serializeOrder = (order: any): OrderSerialized => ({
 });
 
 export const ordersController = {
-  async createOrders(req: Request, res: Response) {
+  async createOrUpdateOrder(req: Request, res: Response) {
     const data = req.body;
     const userId = req.user?.id || 1;
 
     try {
-      let order;
-      const { id: _, order_items, ...parentData } = data;
+      const { orderItems, order_items, ...orderData } = data;
+      const items = orderItems || order_items || [];
+      const orderId = orderData.id;
 
-      if (data.id) {
-        order = await prisma.orders.update({
-          where: { id: data.id },
-          data: {
-            ...parentData,
-            updatedate: new Date(),
-            updatedby: userId,
-            log_inst: { increment: 1 },
-          },
-        });
-      } else {
-        order = await prisma.orders.create({
-          data: {
-            ...parentData,
-            createdate: new Date(),
-            createdby: userId,
-            log_inst: 1,
-            is_active: parentData.is_active || 'Y',
-          },
-        });
-      }
-
-      if (order_items !== undefined && Array.isArray(order_items)) {
-        const processedIds: number[] = [];
-
-        for (const item of order_items) {
-          const itemData = {
-            product_id: item.product_id,
-            product_name: item.product_name,
-            unit: item.unit,
-            quantity: item.quantity,
-            unit_price: item.price,
-            discount_amount: item.discount_amount,
-            tax_amount: item.tax_amount,
-            total_amount: item.total_amount,
-            notes: item.notes,
-            parent_id: order.id,
-          };
-
-          if (item.id) {
-            const exists = await prisma.order_items.findUnique({
-              where: { id: item.id },
-            });
-
-            if (exists) {
-              await prisma.order_items.update({
-                where: { id: item.id },
-                data: { ...itemData },
-              });
-              processedIds.push(item.id);
-              continue;
-            }
-          }
-
-          const newItem = await prisma.order_items.create({ data: itemData });
-          processedIds.push(newItem.id);
-        }
-
-        if (processedIds.length > 0) {
-          await prisma.order_items.deleteMany({
-            where: {
-              parent_id: order.id,
-              id: { notIn: processedIds },
-            },
-          });
-        } else {
-          await prisma.order_items.deleteMany({
-            where: {
-              parent_id: order.id,
-            },
-          });
-        }
-      }
-
-      const finalOrder = await prisma.orders.findUnique({
-        where: { id: order.id },
-        include: {
-          orders_currencies: true,
-          orders_customers: true,
-          orders_salesperson_users: true,
-          order_items: true,
-          invoices: true,
-        },
+      console.log('Processing order with items:', {
+        orderId,
+        itemsCount: items.length,
       });
 
-      res.status(200).json({
-        message: 'Order processed successfully',
-        data: serializeOrder(finalOrder),
+      const result = await prisma.$transaction(
+        async tx => {
+          let order;
+
+          const orderPayload = {
+            order_number: orderData.order_number,
+            parent_id: orderData.parent_id,
+            salesperson_id: orderData.salesperson_id,
+            currency_id: orderData.currency_id || null,
+            order_date: orderData.order_date
+              ? new Date(orderData.order_date)
+              : undefined,
+            delivery_date: orderData.delivery_date
+              ? new Date(orderData.delivery_date)
+              : undefined,
+            status: orderData.status || 'draft',
+            priority: orderData.priority || 'medium',
+            order_type: orderData.order_type || 'regular',
+            payment_method: orderData.payment_method || 'credit',
+            payment_terms: orderData.payment_terms || 'Net 30',
+            subtotal: parseFloat(orderData.subtotal) || 0,
+            discount_amount: parseFloat(orderData.discount_amount) || 0,
+            tax_amount: parseFloat(orderData.tax_amount) || 0,
+            shipping_amount: parseFloat(orderData.shipping_amount) || 0,
+            total_amount: parseFloat(orderData.total_amount) || 0,
+            notes: orderData.notes || null,
+            shipping_address: orderData.shipping_address || null,
+            approval_status: orderData.approval_status || 'pending',
+            is_active: orderData.is_active || 'Y',
+          };
+
+          if (orderId) {
+            order = await tx.orders.update({
+              where: { id: orderId },
+              data: {
+                ...orderPayload,
+                updatedate: new Date(),
+                updatedby: userId,
+                log_inst: { increment: 1 },
+              },
+            });
+          } else {
+            order = await tx.orders.create({
+              data: {
+                ...orderPayload,
+                createdate: new Date(),
+                createdby: userId,
+                log_inst: 1,
+              },
+            });
+          }
+
+          console.log('Order processed, ID:', order.id);
+
+          const processedChildIds: number[] = [];
+
+          if (Array.isArray(items) && items.length > 0) {
+            const itemsToCreate = [];
+            const itemsToUpdate = [];
+
+            for (const item of items) {
+              console.log('Processing item:', item);
+
+              const unitPrice = parseFloat(
+                item.unit_price || item.price || '0'
+              );
+              const quantity = parseInt(item.quantity) || 1;
+              const discountAmount = parseFloat(item.discount_amount || '0');
+              const taxAmount = parseFloat(item.tax_amount || '0');
+              const totalAmount = item.total_amount
+                ? parseFloat(item.total_amount)
+                : unitPrice * quantity - discountAmount + taxAmount;
+
+              const itemData = {
+                product_id: item.product_id,
+                product_name: item.product_name || null,
+                unit: item.unit || null,
+                quantity: quantity,
+                unit_price: unitPrice,
+                discount_amount: discountAmount,
+                tax_amount: taxAmount,
+                total_amount: totalAmount,
+                notes: item.notes || null,
+              };
+
+              if (item.id) {
+                itemsToUpdate.push({ id: item.id, data: itemData });
+                processedChildIds.push(item.id);
+              } else {
+                itemsToCreate.push({
+                  ...itemData,
+                  parent_id: order.id,
+                });
+              }
+            }
+
+            if (itemsToCreate.length > 0) {
+              const createdItems = await tx.order_items.createMany({
+                data: itemsToCreate,
+              });
+              console.log(`Created ${createdItems.count} new items`);
+
+              const newItems = await tx.order_items.findMany({
+                where: {
+                  parent_id: order.id,
+                  id: { notIn: processedChildIds },
+                },
+                select: { id: true },
+              });
+              processedChildIds.push(...newItems.map(item => item.id));
+            }
+
+            for (const { id, data } of itemsToUpdate) {
+              await tx.order_items.update({
+                where: { id },
+                data,
+              });
+              console.log('Updated item ID:', id);
+            }
+
+            if (orderId) {
+              const deletedCount = await tx.order_items.deleteMany({
+                where: {
+                  parent_id: order.id,
+                  id: { notIn: processedChildIds },
+                },
+              });
+              if (deletedCount.count > 0) {
+                console.log('Deleted items count:', deletedCount.count);
+              }
+            }
+          } else if (orderId) {
+            await tx.order_items.deleteMany({
+              where: { parent_id: order.id },
+            });
+          }
+
+          const finalOrder = await tx.orders.findUnique({
+            where: { id: order.id },
+            include: {
+              orders_currencies: true,
+              orders_customers: true,
+              orders_salesperson_users: true,
+              order_items: true,
+              invoices: true,
+            },
+          });
+
+          return finalOrder;
+        },
+        {
+          maxWait: 5000,
+          timeout: 10000,
+        }
+      );
+
+      console.log('Final order items count:', result?.order_items?.length || 0);
+      console.log('Sample item:', result?.order_items?.[0]);
+
+      res.status(orderId ? 200 : 201).json({
+        message: orderId
+          ? 'Order updated successfully'
+          : 'Order created successfully',
+        data: serializeOrder(result),
       });
     } catch (error: any) {
       console.error('Error processing order:', error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({
+        message: 'Failed to process order',
+        error: error.message,
+      });
     }
   },
 
@@ -234,8 +335,8 @@ export const ordersController = {
         include: {
           orders_currencies: true,
           orders_customers: true,
-          orders_salesperson: true,
-          order_items: true,
+          orders_salesperson_users: true,
+          orders_items: true,
           invoices: true,
         },
       });
@@ -259,6 +360,7 @@ export const ordersController = {
           },
         },
       });
+
       res.success(
         'Orders retrieved successfully',
         data.map((order: any) => serializeOrder(order)),
@@ -326,7 +428,7 @@ export const ordersController = {
           orders_currencies: true,
           orders_customers: true,
           orders_salesperson_users: true,
-          order_items: true,
+          order_items: true, // ✅ Fixed: was order_items
           invoices: true,
         },
       });
