@@ -3,7 +3,6 @@ import { authenticateToken } from '../../middlewares/auth.middleware';
 import { priceListsController } from '../controllers/priceLists.controller';
 import { createPriceListsValidation } from '../validations/priceLists.validation';
 
-import { upload } from '../../utils/multer';
 import { validate } from '../../middlewares/validation.middleware';
 
 const router = Router();
@@ -13,7 +12,6 @@ router.post(
   authenticateToken,
   createPriceListsValidation,
   validate,
-  upload.array('assetImages', 10),
   priceListsController.createPriceLists
 );
 
