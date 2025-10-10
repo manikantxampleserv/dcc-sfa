@@ -82,10 +82,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       parent_id: order?.parent_id || '',
       salesperson_id: order?.salesperson_id || '',
       currency_id: order?.currency_id || '8',
-      order_date: order?.order_date ? order.order_date.split('T')[0] : '',
-      delivery_date: order?.delivery_date
-        ? order.delivery_date.split('T')[0]
-        : '',
+      order_date: order?.order_date ? order.order_date : '',
+      delivery_date: order?.delivery_date ? order.delivery_date : '',
       status: order?.status || 'draft',
       priority: order?.priority || 'medium',
       order_type: order?.order_type || 'regular',
@@ -109,18 +107,20 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       try {
         const submitData = {
           ...values,
+          order_date: new Date(values.order_date).toISOString() || undefined,
           parent_id: Number(values.parent_id),
           salesperson_id: Number(values.salesperson_id),
           currency_id: values.currency_id
             ? Number(values.currency_id)
             : undefined,
-          delivery_date: values.delivery_date || undefined,
+          delivery_date:
+            new Date(values.delivery_date).toISOString() || undefined,
           notes: values.notes || undefined,
           shipping_address: values.shipping_address || undefined,
           approved_by: values.approved_by
             ? Number(values.approved_by)
             : undefined,
-          order_items: orderItems
+          orderItems: orderItems
             .filter(item => item.product_id !== '')
             .map(item => ({
               product_id: Number(item.product_id),

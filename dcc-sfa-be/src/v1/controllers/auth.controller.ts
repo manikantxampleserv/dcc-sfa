@@ -253,7 +253,7 @@ export const login = async (req: any, res: any) => {
       } catch (error) {
         console.error('Error creating failed login history:', error);
       }
-      return res.error('Invalid credentials', 401);
+      return res.error('Invalid credentials', 400);
     }
 
     const { accessToken, refreshToken } = generateTokens(user);
