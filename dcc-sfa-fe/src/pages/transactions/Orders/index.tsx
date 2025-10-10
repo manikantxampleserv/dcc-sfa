@@ -220,19 +220,6 @@ const OrdersManagement: React.FC = () => {
           >
             {row.customer?.code || 'N/A'}
           </Typography>
-          {row.customer?.type && (
-            <Chip
-              label={row.customer.type}
-              size="small"
-              className={`!text-xs !mt-1 ${
-                row.customer.type === 'distributor'
-                  ? '!bg-purple-100 !text-purple-800'
-                  : row.customer.type === 'retailer'
-                    ? '!bg-blue-100 !text-blue-800'
-                    : '!bg-green-100 !text-green-800'
-              }`}
-            />
-          )}
         </Box>
       ),
     },

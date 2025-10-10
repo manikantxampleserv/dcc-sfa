@@ -324,7 +324,8 @@ function handleClientError(error: AxiosError): Promise<never> {
   const status = error.response?.status || 400;
   const data = error.response?.data as ApiError;
 
-  const message = data?.message || error.message || 'Request failed';
+  const message =
+    data?.error || data?.message || error.message || 'Request failed';
 
   if (status === HttpStatusCode.UNPROCESSABLE_ENTITY) {
     return Promise.reject(
@@ -407,7 +408,8 @@ async function retryRequest(
 function createApiError(error: AxiosError): ApiErrorClass {
   const status = error.response?.status || 0;
   const data = error.response?.data as ApiError;
-  const message = data?.message || error.message || 'Unknown error';
+  const message =
+    data?.error || data?.message || error.message || 'Unknown error';
 
   let errorType: NetworkErrorTypeType = NetworkErrorType.SERVER_ERROR;
 

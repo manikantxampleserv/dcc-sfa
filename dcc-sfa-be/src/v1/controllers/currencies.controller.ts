@@ -86,12 +86,9 @@ export const currenciesController = {
     try {
       const data = req.body;
 
-      const newCode = await generateCurrenciesCode(data.name);
-
       const currency = await prisma.currencies.create({
         data: {
           ...data,
-          code: newCode,
           is_active: data.is_active || 'Y',
           is_base: data.is_base || 'N',
           createdate: new Date(),
@@ -154,6 +151,9 @@ export const currenciesController = {
       const inactiveCurrencies = await prisma.currencies.count({
         where: { is_active: 'N' },
       });
+      const baseCurrencies = await prisma.currencies.count({
+        where: { is_base: 'Y' },
+      });
 
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -175,6 +175,7 @@ export const currenciesController = {
           total_currencies: totalCurrencies,
           active_currencies: activeCurrencies,
           inactive_currencies: inactiveCurrencies,
+          base_currencies: baseCurrencies,
           currencies_in_month: currenciesInMonth,
         }
       );

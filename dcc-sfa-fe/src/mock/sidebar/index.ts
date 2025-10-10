@@ -49,6 +49,7 @@ const menuItems: MenuItem[] = [
       },
       { id: 'depots', label: 'Depots', href: '/masters/depots' },
       { id: 'zones', label: 'Zones', href: '/masters/zones' },
+      { id: 'currency', label: 'Currency', href: '/masters/currency' },
       { id: 'routes', label: 'Routes', href: '/masters/routes' },
       { id: 'outlet-master', label: 'Outlet Master', href: '/masters/outlets' },
       {

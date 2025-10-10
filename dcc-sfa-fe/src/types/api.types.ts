@@ -124,6 +124,11 @@ export interface ApiResponse<T = any> {
     active_tokens: number;
     revoked_tokens: number;
     expired_tokens: number;
+    // Currency statistics
+    total_currencies?: number;
+    active_currencies?: number;
+    inactive_currencies?: number;
+    base_currencies?: number;
   };
 }
 

@@ -54,10 +54,17 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
     },
     onError: (error, variables, context) => {
       if (context?.toastId) {
-        const errorMessage =
-          (error as any)?.response?.data?.message ||
-          (error as any)?.message ||
-          'Operation failed';
+        let errorMessage = 'Operation failed';
+
+        // Extract error message from axios error response
+        if ((error as any)?.response?.data) {
+          const responseData = (error as any).response.data;
+          errorMessage =
+            responseData.error || responseData.message || errorMessage;
+        } else if ((error as any)?.message) {
+          errorMessage = (error as any).message;
+        }
+
         toastService.update(context.toastId, errorMessage, 'error');
       }
       config.onError?.(error as TError, variables);

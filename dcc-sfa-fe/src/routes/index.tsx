@@ -7,6 +7,7 @@ import AssetMasterManagement from 'pages/masters/AssetMaster';
 import AssetTypesManagement from 'pages/masters/AssetTypes';
 import CompaniesManagement from 'pages/masters/Companies';
 import DepotsManagement from 'pages/masters/Depot';
+import CurrenciesManagement from 'pages/masters/Currencies';
 import KpiTargetsManagement from 'pages/masters/KpiTargets';
 import LoginHistoryPage from 'pages/masters/LoginHistory';
 import OutletsManagement from 'pages/masters/Outlet';
@@ -103,6 +104,10 @@ const router = createBrowserRouter([
       {
         path: '/masters/zones',
         element: <ZonesManagement />,
+      },
+      {
+        path: '/masters/currency',
+        element: <CurrenciesManagement />,
       },
       {
         path: '/masters/routes',
