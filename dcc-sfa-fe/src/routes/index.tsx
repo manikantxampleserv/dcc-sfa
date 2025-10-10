@@ -7,15 +7,17 @@ import ApiTokensPage from 'pages/masters/ApiTokens';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
 import AssetTypesManagement from 'pages/masters/AssetTypes';
 import CompaniesManagement from 'pages/masters/Companies';
-import DepotsManagement from 'pages/masters/Depot';
 import CurrenciesManagement from 'pages/masters/Currencies';
+import DepotsManagement from 'pages/masters/Depot';
 import KpiTargetsManagement from 'pages/masters/KpiTargets';
 import LoginHistoryPage from 'pages/masters/LoginHistory';
 import OutletsManagement from 'pages/masters/Outlet';
 import OutletDetail from 'pages/masters/Outlet/OutletDetail';
 import OutletGroupsManagement from 'pages/masters/OutletGroups';
 import PriceListsManagement from 'pages/masters/PriceLists';
+import ProductCategoriesManagement from 'pages/masters/ProductCategories';
 import ProductsManagement from 'pages/masters/Products';
+import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
 import SalesTargetGroupsManagement from 'pages/masters/SalesTargetGroups';
@@ -33,8 +35,6 @@ import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 const BrandManagement = () => <h1>Brand Management</h1>;
-const CategoriesManagement = () => <h1> Categories</h1>;
-const SubCategoriesManagement = () => <h1> Sub Categories</h1>;
 const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
 const DeliveryScheduling = () => <h1>Delivery Scheduling</h1>;
 const ReturnRequests = () => <h1>Return Requests</h1>;
@@ -160,12 +160,12 @@ const router = createBrowserRouter([
         element: <ProductsManagement />,
       },
       {
-        path: '/masters/categories',
-        element: <CategoriesManagement />,
+        path: '/masters/product-categories',
+        element: <ProductCategoriesManagement />,
       },
       {
-        path: '/masters/sub-categories',
-        element: <SubCategoriesManagement />,
+        path: '/masters/product-sub-categories',
+        element: <ProductSubCategoriesManagement />,
       },
       {
         path: '/masters/unit-of-measurement',

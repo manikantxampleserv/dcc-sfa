@@ -13,6 +13,10 @@
     "build": "concurrently --names \"BE,FE\" --prefix-colors \"blue,green\" \"npm run build --workspace=dcc-sfa-be\" \"npm run build --workspace=dcc-sfa-fe\"",
     "start": "concurrently --names \"BE,FE\" --prefix-colors \"blue,green\" --kill-others \"npm run start --workspace=dcc-sfa-be\" \"npm run preview --workspace=dcc-sfa-fe\"",
     "prisma:generate": "npm run prisma:generate --workspace=dcc-sfa-be",
+    "seed:clean": "npm run seed:clean --workspace=dcc-sfa-be",
+    "seed:generate": "npm run seed:generate --workspace=dcc-sfa-be",
+    "seed": "npm run seed --workspace=dcc-sfa-be",
+    "create:admin": "npm run create:admin --workspace=dcc-sfa-be",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "clean": "npx kill-port 4000 5173 && npx rimraf node_modules dcc-sfa-be/node_modules dcc-sfa-fe/node_modules"
   },

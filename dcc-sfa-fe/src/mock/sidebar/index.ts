@@ -79,14 +79,14 @@ const menuItems: MenuItem[] = [
         href: '/masters/brands',
       },
       {
-        id: 'categories',
-        label: 'Categories',
-        href: '/masters/categories',
+        id: 'product-categories',
+        label: 'Product Categories',
+        href: '/masters/product-categories',
       },
       {
-        id: 'sub-categories',
-        label: 'Sub Categories',
-        href: '/masters/sub-categories',
+        id: 'product-sub-categories',
+        label: 'Product Sub Categories',
+        href: '/masters/product-sub-categories',
       },
       {
         id: 'unit-of-measurement',

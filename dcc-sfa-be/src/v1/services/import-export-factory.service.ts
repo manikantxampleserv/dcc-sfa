@@ -16,6 +16,8 @@ import { PriceListsImportExportService } from './implementations/priceLists-impo
 import { LoginHistoryImportExportService } from './implementations/loginHistory-import-export.service';
 import { SalesTargetGroupsImportExportService } from './implementations/salesTargetGroups-import-export.service';
 import { SalesTargetsImportExportService } from './implementations/salesTargets-import-export.service';
+import { ProductCategoriesImportExportService } from './implementations/productCategories-import-export.service';
+import { ProductSubCategoriesImportExportService } from './implementations/productSubCategories-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -42,6 +44,8 @@ export class ImportExportFactory {
     ['login_history', LoginHistoryImportExportService],
     ['sales_target_groups', SalesTargetGroupsImportExportService],
     ['sales_targets', SalesTargetsImportExportService],
+    ['product_categories', ProductCategoriesImportExportService],
+    ['product_sub_categories', ProductSubCategoriesImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 
