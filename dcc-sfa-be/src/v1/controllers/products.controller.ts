@@ -57,6 +57,11 @@ const generateProductsCode = async (name: string) => {
   const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
   return code;
 };
+const normalizeToArray = (value: any) => {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+};
+
 const serializeProduct = (product: any): ProductSerialized => ({
   id: product.id,
   name: product.name,
@@ -73,48 +78,56 @@ const serializeProduct = (product: any): ProductSerialized => ({
   updatedate: product.updatedate,
   updatedby: product.updatedby,
   log_inst: product.log_inst,
-  batch_lots:
-    product.batch_lots_products?.map((b: any) => ({
-      id: b.id,
-      batch_number: b.batch_number,
-      quantity: b.quantity,
-    })) || [],
-  inventory_stock:
-    product.inventory_stock_products?.map((s: any) => ({
+
+  batch_lots: normalizeToArray(product.batch_lots_products).map((b: any) => ({
+    id: b.id,
+    batch_number: b.batch_number,
+    quantity: b.quantity,
+  })),
+
+  inventory_stock: normalizeToArray(product.inventory_stock_products).map(
+    (s: any) => ({
       id: s.id,
       location_id: s.location_id,
       current_stock: s.current_stock,
-    })) || [],
-  price_history:
-    product.price_history_products?.map((p: any) => ({
+    })
+  ),
+
+  price_history: normalizeToArray(product.price_history_products).map(
+    (p: any) => ({
       id: p.id,
       price: p.price,
       effective_date: p.effective_date,
-    })) || [],
-  order_items:
-    product.order_items?.map((oi: any) => ({
-      id: oi.id,
-      order_id: oi.order_id,
-      quantity: oi.quantity,
-      price: oi.price,
-    })) || [],
-  product_brands:
-    product.product_brands?.map((b: any) => ({
-      id: b.id,
-      name: b.name,
-      code: b.code,
-      logo: b.logo,
-    })) || [],
-  product_unit_of_measurement:
-    product.unit_of_measurement_products?.map((u: any) => ({
-      id: u.id,
-      name: u.name,
-    })) || [],
-  product_categories_products:
-    product.product_categories_products?.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-    })) || [],
+    })
+  ),
+
+  order_items: normalizeToArray(product.order_items).map((oi: any) => ({
+    id: oi.id,
+    order_id: oi.order_id,
+    quantity: oi.quantity,
+    price: oi.price,
+  })),
+
+  product_brands: normalizeToArray(product.product_brands).map((b: any) => ({
+    id: b.id,
+    name: b.name,
+    code: b.code,
+    logo: b.logo,
+  })),
+
+  product_unit_of_measurement: normalizeToArray(
+    product.unit_of_measurement_products
+  ).map((u: any) => ({
+    id: u.id,
+    name: u.name,
+  })),
+
+  product_categories_products: normalizeToArray(
+    product.product_categories_products
+  ).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+  })),
 });
 
 export const productsController = {
