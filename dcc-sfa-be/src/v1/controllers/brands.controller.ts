@@ -19,6 +19,25 @@ interface BrandSerialized {
   log_inst?: number | null;
 }
 
+const generateBrandCode = async (name: string) => {
+  const prefix = name.slice(0, 3).toUpperCase();
+
+  const lastBrand = await prisma.brands.findFirst({
+    orderBy: { id: 'desc' },
+    select: { code: true },
+  });
+
+  let newNumber = 1;
+  if (lastBrand && lastBrand.code) {
+    const match = lastBrand.code.match(/(\d+)$/);
+    if (match) {
+      newNumber = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+  return code;
+};
 const serializeBrand = (b: any): BrandSerialized => ({
   id: b.id,
   name: b.name,
@@ -51,7 +70,7 @@ export const brandsController = {
       const brand = await prisma.brands.create({
         data: {
           name: data.name,
-          code: data.code,
+          code: await generateBrandCode(data.name),
           description: data.description || null,
           logo: logoPath,
           is_active: data.is_active || 'Y',
