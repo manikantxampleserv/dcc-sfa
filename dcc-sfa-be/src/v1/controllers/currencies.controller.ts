@@ -23,25 +23,6 @@ interface CurrencySerialized {
   orders?: { id: number; order_number: string; total_amount: number }[];
 }
 
-const generateCurrenciesCode = async (name: string) => {
-  const prefix = name.slice(0, 3).toUpperCase();
-
-  const lastCurrency = await prisma.currencies.findFirst({
-    orderBy: { id: 'desc' },
-    select: { code: true },
-  });
-
-  let newNumber = 1;
-  if (lastCurrency && lastCurrency.code) {
-    const match = lastCurrency.code.match(/(\d+)$/);
-    if (match) {
-      newNumber = parseInt(match[1], 10) + 1;
-    }
-  }
-
-  const code = `${prefix}`;
-  return code;
-};
 const serializeCurrency = (currency: any): CurrencySerialized => ({
   id: currency.id,
   code: currency.code,
@@ -81,26 +62,58 @@ const serializeCurrency = (currency: any): CurrencySerialized => ({
     })) || [],
 });
 
+const handleBaseCurrency = async (
+  isBase: string,
+  currentCurrencyId?: number,
+  tx?: any
+) => {
+  const db = tx || prisma;
+
+  if (isBase === 'Y') {
+    await db.currencies.updateMany({
+      where: {
+        is_base: 'Y',
+        ...(currentCurrencyId && { id: { not: currentCurrencyId } }),
+      },
+      data: {
+        is_base: 'N',
+        updatedate: new Date(),
+      },
+    });
+  }
+};
 export const currenciesController = {
-  async createCurrencies(req: Request, res: Response) {
+  async createCurrencies(req: any, res: any) {
     try {
       const data = req.body;
+      const userId = req.user?.id || 1;
 
-      const currency = await prisma.currencies.create({
-        data: {
-          ...data,
-          is_active: data.is_active || 'Y',
-          is_base: data.is_base || 'N',
-          createdate: new Date(),
-          createdby: req.user?.id || 1,
-          log_inst: data.log_inst || 1,
-        },
-        include: {
-          credit_notes: true,
-          invoices: true,
-          payments: true,
-          orders_currencies: true,
-        },
+      const isBase = data.is_base || 'N';
+
+      const currency = await prisma.$transaction(async tx => {
+        if (isBase === 'Y') {
+          await handleBaseCurrency('Y', undefined, tx);
+        }
+
+        return await tx.currencies.create({
+          data: {
+            code: data.code,
+            name: data.name,
+            symbol: data.symbol,
+            exchange_rate_to_base: data.exchange_rate_to_base,
+            is_base: isBase,
+            is_active: data.is_active || 'Y',
+            createdate: new Date(),
+            createdby: userId,
+            log_inst: data.log_inst || 1,
+          },
+          include: {
+            credit_notes: true,
+            invoices: true,
+            payments: true,
+            orders_currencies: true,
+          },
+        });
       });
 
       res.status(201).json({
@@ -214,6 +227,8 @@ export const currenciesController = {
   async updateCurrencies(req: any, res: any) {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || 1;
+
       const existingCurrency = await prisma.currencies.findUnique({
         where: { id: Number(id) },
       });
@@ -221,21 +236,36 @@ export const currenciesController = {
       if (!existingCurrency)
         return res.status(404).json({ message: 'Currency not found' });
 
-      const data = {
-        ...req.body,
-        updatedate: new Date(),
-        updatedby: req.user?.id,
-      };
+      const data = req.body;
+      const isBase = data.is_base ?? existingCurrency.is_base;
 
-      const currency = await prisma.currencies.update({
-        where: { id: Number(id) },
-        data,
-        include: {
-          credit_notes: true,
-          invoices: true,
-          payments: true,
-          orders_currencies: true,
-        },
+      const currency = await prisma.$transaction(async tx => {
+        if (isBase === 'Y' && existingCurrency.is_base !== 'Y') {
+          await handleBaseCurrency('Y', Number(id), tx);
+        }
+
+        return await tx.currencies.update({
+          where: { id: Number(id) },
+          data: {
+            code: data.code ?? existingCurrency.code,
+            name: data.name ?? existingCurrency.name,
+            symbol: data.symbol ?? existingCurrency.symbol,
+            exchange_rate_to_base:
+              data.exchange_rate_to_base ??
+              existingCurrency.exchange_rate_to_base,
+            is_base: isBase,
+            is_active: data.is_active ?? existingCurrency.is_active,
+            updatedate: new Date(),
+            updatedby: userId,
+            log_inst: data.log_inst ?? existingCurrency.log_inst,
+          },
+          include: {
+            credit_notes: true,
+            invoices: true,
+            payments: true,
+            orders_currencies: true,
+          },
+        });
       });
 
       res.json({
@@ -247,7 +277,6 @@ export const currenciesController = {
       res.status(500).json({ message: error.message });
     }
   },
-
   async deleteCurrencies(req: Request, res: Response) {
     try {
       const { id } = req.params;
