@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { useApiMutation } from './useApiMutation';
 import * as userService from '../services/masters/Users';
 import type { ApiResponse } from '../types/api.types';
-import authService from 'services/auth/authService';
+import { tokenService } from 'services/auth/tokenService';
 export type {
   User,
   ManageUserPayload,
@@ -101,35 +101,35 @@ export const useUserProfile = (
  */
 export const useCurrentUser = () => {
   // Check auth status and force re-render when it changes
-  const [isAuthenticated, setIsAuthenticated] = useState(() => 
-    authService.isAuthenticated()
+  const [isAuthenticated, setIsAuthenticated] = useState(() =>
+    tokenService.isAuthenticated()
   );
-  
+
   useEffect(() => {
     // Check auth immediately on mount
     const checkAuth = () => {
-      const authStatus = authService.isAuthenticated();
+      const authStatus = tokenService.isAuthenticated();
       setIsAuthenticated(authStatus);
     };
-    
+
     checkAuth();
-    
+
     // Listen for custom auth events
     const handleAuthChange = () => {
       checkAuth();
     };
-    
+
     window.addEventListener('auth-change', handleAuthChange);
-    
+
     // Check periodically for token expiration
     const interval = setInterval(checkAuth, 5000); // Check every 5 seconds
-    
+
     return () => {
       window.removeEventListener('auth-change', handleAuthChange);
       clearInterval(interval);
     };
   }, []);
-  
+
   return useQuery({
     queryKey: [...userQueryKeys.profile(), isAuthenticated],
     queryFn: () => userService.getUserProfile(),

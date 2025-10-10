@@ -18,7 +18,6 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({
 }) => {
   return (
     <Box className="!fixed !inset-0 !flex !flex-col !items-center !justify-center !bg-gray-50 !z-50">
-      {/* Logo/Brand Section */}
       <Box className="!flex !items-center !gap-3 !mb-8">
         <Box className="!p-3 !bg-primary-100 !rounded-full">
           <Building2 className="w-8 h-8 text-primary-600" />
@@ -28,7 +27,6 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({
         </Typography>
       </Box>
 
-      {/* Loading Spinner */}
       <Box className="!flex !flex-col !items-center !gap-4">
         <CircularProgress
           size={48}

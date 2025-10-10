@@ -8,6 +8,7 @@
 import type { AxiosResponse } from 'axios';
 import axios, { AxiosError } from 'axios';
 import { tokenService } from '../services/auth/tokenService';
+import toastService from '../utils/toast';
 import type {
   ApiError,
   CustomAxiosRequestConfig,
@@ -33,7 +34,7 @@ const BASE_URL =
 /**
  * Request timeout in milliseconds
  */
-const REQUEST_TIMEOUT = 30000; // 30 seconds
+const REQUEST_TIMEOUT = 30000;
 
 /**
  * Maximum number of retry attempts for failed requests
@@ -43,7 +44,9 @@ const MAX_RETRY_ATTEMPTS = 3;
 /**
  * Delay between retry attempts in milliseconds
  */
-const RETRY_DELAY = 1000; // 1 second
+const RETRY_DELAY = 1000;
+
+let isSessionExpiredHandled = false;
 
 /**
  * Enhanced Axios Instance Configuration
@@ -57,7 +60,6 @@ const axiosInstance = axios.create({
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
   },
-  // Enable credentials for cross-origin requests if needed
   withCredentials: false,
 });
 
@@ -73,18 +75,15 @@ axiosInstance.interceptors.request.use(
    */
   (config: CustomAxiosRequestConfig): CustomAxiosRequestConfig => {
     try {
-      // Add timestamp to prevent caching issues
       config.metadata = {
         ...config.metadata,
         startTime: Date.now(),
       };
 
-      // Skip authentication for specific endpoints
       if (config.skipAuth) {
         return config;
       }
 
-      // Get token from secure storage
       const token = tokenService.getToken();
 
       if (token) {
@@ -153,11 +152,9 @@ axiosInstance.interceptors.response.use(
    */
   (response: CustomAxiosResponse): CustomAxiosResponse => {
     try {
-      // Calculate request duration
       const startTime = response.config.metadata?.startTime;
       const duration = startTime ? Date.now() - startTime : 0;
 
-      // Log response in development
       if (import.meta.env.VITE_APP_ENV === 'development') {
         console.log(
           `✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`,
@@ -169,9 +166,7 @@ axiosInstance.interceptors.response.use(
         );
       }
 
-      // Validate response structure
       if (response.data && typeof response.data === 'object') {
-        // Add metadata to response
         response.data.meta = {
           ...response.data.meta,
           requestDuration: duration,
@@ -194,23 +189,18 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError): Promise<any> => {
     const originalRequest = error.config as CustomAxiosRequestConfig;
 
-    // Skip error handling if requested
     if (originalRequest?.skipErrorHandling) {
       return Promise.reject(error);
     }
 
     try {
-      // Initialize retry count
       if (!originalRequest.retryCount) {
         originalRequest.retryCount = 0;
       }
 
-      // Handle different error scenarios
       if (error.response) {
-        // Server responded with error status
         const { status, data } = error.response;
 
-        // Log error in development
         if (import.meta.env.VITE_APP_ENV === 'development') {
           console.error(
             `❌ API Error: ${originalRequest.method?.toUpperCase()} ${originalRequest.url}`,
@@ -222,38 +212,31 @@ axiosInstance.interceptors.response.use(
           );
         }
 
-        // Handle authentication errors
         if (status === HttpStatusCode.UNAUTHORIZED) {
           return handleUnauthorizedError(originalRequest, error);
         }
 
-        // Handle forbidden errors
         if (status === HttpStatusCode.FORBIDDEN) {
           return handleForbiddenError(error);
         }
 
-        // Handle server errors with retry
         if (status >= 500 && originalRequest.retryCount < MAX_RETRY_ATTEMPTS) {
           return retryRequest(originalRequest);
         }
 
-        // Handle client errors
         if (status >= 400 && status < 500) {
           return handleClientError(error);
         }
       } else if (error.request) {
-        // Network error - retry if possible
         if (originalRequest.retryCount < MAX_RETRY_ATTEMPTS) {
           return retryRequest(originalRequest);
         }
 
         return handleNetworkError(error);
       } else {
-        // Request setup error
         return handleRequestError(error);
       }
 
-      // Default error handling
       return Promise.reject(createApiError(error));
     } catch (handlingError) {
       console.error('Error handling failed:', handlingError);
@@ -272,16 +255,46 @@ async function handleUnauthorizedError(
   _: CustomAxiosRequestConfig,
   error: AxiosError
 ): Promise<any> {
+  if (isSessionExpiredHandled) {
+    return Promise.reject(
+      new ApiErrorClass(
+        'Authentication required',
+        HttpStatusCode.UNAUTHORIZED,
+        NetworkErrorType.AUTHENTICATION_ERROR,
+        error
+      )
+    );
+  }
+
+  isSessionExpiredHandled = true;
   tokenService.clearAuth();
 
-  showNotification(
-    'Session expired. Please login again.',
-    NotificationType.WARNING
+  let countdown = 3;
+  const toastId = toastService.warning(
+    `Session expired. Redirecting to login in ${countdown}...`,
+    { autoClose: false, closeOnClick: false }
   );
 
-  // Redirect to login (you might want to use your router here)
+  const countdownInterval = setInterval(() => {
+    countdown--;
+    if (countdown > 0) {
+      toastService.update(
+        toastId,
+        `Session expired. Redirecting to login in ${countdown}...`,
+        'warning'
+      );
+    } else {
+      clearInterval(countdownInterval);
+      toastService.update(toastId, 'Redirecting to login...', 'warning');
+    }
+  }, 1000);
+
   if (typeof window !== 'undefined') {
-    window.location.href = '/login';
+    setTimeout(() => {
+      clearInterval(countdownInterval);
+      toastService.dismiss(toastId);
+      window.location.href = '/login';
+    }, 3000);
   }
 
   return Promise.reject(
@@ -388,7 +401,6 @@ async function retryRequest(
 ): Promise<any> {
   originalRequest.retryCount = (originalRequest.retryCount || 0) + 1;
 
-  // Exponential backoff delay
   const delay = RETRY_DELAY * Math.pow(2, originalRequest.retryCount - 1);
 
   console.log(
@@ -436,15 +448,22 @@ function generateRequestId(): string {
  * @param {NotificationTypeType} type - Notification type
  */
 function showNotification(message: string, type: NotificationTypeType): void {
-  // Implement based on your notification system (toast, snackbar, etc.)
-  if (import.meta.env.VITE_APP_ENV === 'development') {
-    console.log(`${type.toUpperCase()}: ${message}`);
+  switch (type) {
+    case NotificationType.SUCCESS:
+      toastService.success(message);
+      break;
+    case NotificationType.ERROR:
+      toastService.error(message);
+      break;
+    case NotificationType.WARNING:
+      toastService.warning(message);
+      break;
+    case NotificationType.INFO:
+      toastService.info(message);
+      break;
+    default:
+      toastService.info(message);
   }
-
-  // Example implementation:
-  // toast[type](message);
-  // or dispatch to notification store
-  // or use your preferred notification library
 }
 
 /**
@@ -465,44 +484,14 @@ export const createRequest = (
 };
 
 /**
- * Utility function to check if user is authenticated
- * @returns {boolean} Authentication status
- * @example
- * if (isAuthenticated()) {
- *   // Make authenticated request
- * } else {
- *   // Redirect to login
- * }
- */
-export const isAuthenticated = (): boolean => {
-  return tokenService.isAuthenticated();
-};
-
-/**
- * Utility function to get current user data
- * @returns {UserData | null} Current user data or null
- * @example
- * const user = getCurrentUser();
- * if (user) {
- *   console.log(`Welcome, ${user.username}!`);
- * }
- */
-export const getCurrentUser = () => {
-  return tokenService.getUser();
-};
-
-/**
- * Utility function to logout user
+ * Reset session expiration flag
  * @returns {void}
  * @example
- * // On logout button click
- * logout();
+ * // After successful login
+ * resetSessionExpiredFlag();
  */
-export const logout = (): void => {
-  tokenService.clearAuth();
-  if (typeof window !== 'undefined') {
-    window.location.href = '/login';
-  }
+export const resetSessionExpiredFlag = (): void => {
+  isSessionExpiredHandled = false;
 };
 
 /**

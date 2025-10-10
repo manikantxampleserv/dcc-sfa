@@ -19,13 +19,10 @@ interface AuthGuardProps {
 const AuthGuardContent: React.FC<AuthGuardProps> = ({ children }) => {
   const { isLoading } = useAuth();
 
-  // Only show loader on initial mount while checking auth
-  // Don't block rendering for user data fetch
   if (isLoading) {
     return <AuthLoader message="Loading..." />;
   }
 
-  // Render children - ProtectedRoute will handle auth redirects
   return <>{children}</>;
 };
 

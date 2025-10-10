@@ -21,7 +21,8 @@ import { useLogin } from 'hooks/useAuth';
 import { userQueryKeys } from 'hooks/useUsers';
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import authService, { type LoginRequest } from 'services/auth/authService';
+import { type LoginRequest } from 'services/auth/authService';
+import tokenService from 'services/auth/tokenService';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
 import * as Yup from 'yup';
@@ -87,7 +88,7 @@ const Login: React.FC = () => {
    * Check if user is already authenticated
    */
   useEffect(() => {
-    if (authService.isAuthenticated()) {
+    if (tokenService.isAuthenticated()) {
       navigate(from, { replace: true });
     }
   }, [navigate, from]);

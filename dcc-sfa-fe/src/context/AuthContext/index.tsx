@@ -8,7 +8,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useCurrentUser, type User } from '../../hooks/useUsers';
 import { useLogout } from '../../hooks/useAuth';
-import authService from '../../services/auth/authService';
+import { tokenService } from '../../services/auth/tokenService';
+import { resetSessionExpiredFlag } from '../../configs/axio.config';
 
 interface AuthContextType {
   user: User | null;
@@ -28,7 +29,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() =>
-    authService.isAuthenticated()
+    tokenService.isAuthenticated()
   );
 
   const {
@@ -54,7 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = () => {
-      const authStatus = authService.isAuthenticated();
+      const authStatus = tokenService.isAuthenticated();
       setIsAuthenticated(authStatus);
     };
 
@@ -74,7 +75,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     if (isSuccess && user) {
       setIsAuthenticated(true);
-    } else if (isError && !authService.isAuthenticated()) {
+      resetSessionExpiredFlag(); // Reset flag on successful authentication
+    } else if (isError && !tokenService.isAuthenticated()) {
       setIsAuthenticated(false);
     }
   }, [isSuccess, isError, user]);
@@ -111,24 +113,6 @@ export const useAuth = (): AuthContextType => {
   }
 
   return context;
-};
-
-/**
- * Hook to get current authenticated user
- * @returns Current user or null
- */
-export const useAuthUser = (): User | null => {
-  const { user } = useAuth();
-  return user;
-};
-
-/**
- * Hook to check if user is authenticated
- * @returns Boolean indicating authentication status
- */
-export const useIsAuthenticated = (): boolean => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated;
 };
 
 export default AuthContext;
