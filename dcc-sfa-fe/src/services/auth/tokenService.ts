@@ -20,15 +20,6 @@ export interface UserData {
 }
 
 /**
- * Interface for complete authentication state
- */
-export interface AuthState {
-  token: string;
-  user: UserData;
-  expiresAt?: number;
-}
-
-/**
  * Token Service Class
  * @description Handles all token-related operations with secure storage practices
  */
@@ -114,30 +105,6 @@ class TokenService {
   }
 
   /**
-   * Gets the complete authentication state
-   * @returns {AuthState | null} Complete auth state or null if not authenticated
-   * @example
-   * const authState = tokenService.getAuthState();
-   * if (authState) {
-   *   // User is authenticated
-   *   const { token, user } = authState;
-   * }
-   */
-  getAuthState(): AuthState | null {
-    const token = this.getToken();
-    const user = this.getUser();
-
-    if (!token || !user) {
-      return null;
-    }
-
-    const expiresAtStr = localStorage.getItem(this.EXPIRES_KEY);
-    const expiresAt = expiresAtStr ? parseInt(expiresAtStr) : undefined;
-
-    return { token, user, expiresAt };
-  }
-
-  /**
    * Checks if the current token is expired
    * @returns {boolean} True if token is expired or expiration check fails
    * @example
@@ -195,67 +162,6 @@ class TokenService {
       window.dispatchEvent(new Event('auth-change'));
     } catch (error) {
       console.error('Failed to clear auth data:', error);
-    }
-  }
-
-  /**
-   * Updates the stored user data (useful after profile updates)
-   * @param {UserData} user - Updated user data
-   * @returns {void}
-   * @example
-   * // After profile update
-   * tokenService.updateUser(updatedUserData);
-   */
-  updateUser(user: UserData): void {
-    try {
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    } catch (error) {
-      console.error('Failed to update user data:', error);
-      throw new Error('User data update failed');
-    }
-  }
-
-  /**
-   * Refreshes token expiration time
-   * @param {number} expiresIn - New expiration time in seconds
-   * @returns {void}
-   * @example
-   * // Extend token validity by 1 hour
-   * tokenService.refreshExpiration(3600);
-   */
-  refreshExpiration(expiresIn: number): void {
-    try {
-      const expiresAt = Date.now() + expiresIn * 1000;
-      localStorage.setItem(this.EXPIRES_KEY, expiresAt.toString());
-    } catch (error) {
-      console.error('Failed to refresh token expiration:', error);
-    }
-  }
-
-  /**
-   * Gets time remaining until token expires
-   * @returns {number} Seconds until expiration, or -1 if no expiration set
-   * @example
-   * const timeLeft = tokenService.getTimeUntilExpiration();
-   * if (timeLeft > 0 && timeLeft < 300) {
-   *   // Token expires in less than 5 minutes, show warning
-   * }
-   */
-  getTimeUntilExpiration(): number {
-    try {
-      const expiresAtStr = localStorage.getItem(this.EXPIRES_KEY);
-
-      if (!expiresAtStr) {
-        return -1; // No expiration set
-      }
-
-      const expiresAt = parseInt(expiresAtStr);
-      const timeLeft = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
-
-      return timeLeft;
-    } catch (error) {
-      console.error('Failed to get expiration time:', error);
-      return 0; // Return 0 on error for security
     }
   }
 }

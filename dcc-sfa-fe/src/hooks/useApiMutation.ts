@@ -54,9 +54,15 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
     },
     onError: (error, variables, context) => {
       if (context?.toastId) {
+        const status = (error as any)?.response?.status;
+        if (status === 401) {
+          toastService.dismiss(context.toastId);
+          config.onError?.(error as TError, variables);
+          return;
+        }
+
         let errorMessage = 'Operation failed';
 
-        // Extract error message from axios error response
         if ((error as any)?.response?.data) {
           const responseData = (error as any).response.data;
           errorMessage =

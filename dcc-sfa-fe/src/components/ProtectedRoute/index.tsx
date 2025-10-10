@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import authService from 'services/auth/authService';
+import { tokenService } from 'services/auth/tokenService';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,10 +20,9 @@ interface ProtectedRouteProps {
  */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const location = useLocation();
-  const isAuthenticated = authService.isAuthenticated();
+  const isAuthenticated = tokenService.isAuthenticated();
 
   if (!isAuthenticated) {
-    // Redirect to login with return path
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

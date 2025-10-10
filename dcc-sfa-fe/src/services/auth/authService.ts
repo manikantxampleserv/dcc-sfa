@@ -96,30 +96,6 @@ class AuthService {
   }
 
   /**
-   * Checks if user is currently authenticated
-   * @returns {boolean} Authentication status
-   */
-  isAuthenticated(): boolean {
-    return tokenService.isAuthenticated();
-  }
-
-  /**
-   * Gets current authenticated user data
-   * @returns {UserData | null} Current user data or null if not authenticated
-   */
-  getCurrentUser(): UserData | null {
-    return tokenService.getUser();
-  }
-
-  /**
-   * Gets current access token
-   * @returns {string | null} Current access token or null if not authenticated
-   */
-  getToken(): string | null {
-    return tokenService.getToken();
-  }
-
-  /**
    * Parses expiresIn string to seconds
    * @private
    * @param {string} expiresIn - Expiration string (e.g., "24h", "1d", "3600s")
