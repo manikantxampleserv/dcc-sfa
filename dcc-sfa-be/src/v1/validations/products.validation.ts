@@ -16,27 +16,6 @@ export const createProductValidation = [
     .isLength({ max: 1000 })
     .withMessage('Description cannot exceed 1000 characters'),
 
-  body('category')
-    .optional()
-    .isString()
-    .withMessage('Category must be a string')
-    .isLength({ max: 100 })
-    .withMessage('Category cannot exceed 100 characters'),
-
-  body('brand')
-    .optional()
-    .isString()
-    .withMessage('Brand must be a string')
-    .isLength({ max: 100 })
-    .withMessage('Brand cannot exceed 100 characters'),
-
-  body('unit_of_measure')
-    .optional()
-    .isString()
-    .withMessage('Unit of measure must be a string')
-    .isLength({ max: 50 })
-    .withMessage('Unit of measure cannot exceed 50 characters'),
-
   body('base_price')
     .optional()
     .isDecimal({ decimal_digits: '0,2' })

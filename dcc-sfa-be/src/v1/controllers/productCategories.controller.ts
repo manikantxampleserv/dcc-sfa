@@ -16,7 +16,7 @@ interface ProductCategorySerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  product_categories_sub_categories?: {
+  product_category?: {
     id: number;
     sub_category_name: string;
   } | null;
@@ -33,11 +33,10 @@ const serializeCategory = (cat: any): ProductCategorySerialized => ({
   updatedate: cat.updatedate,
   updatedby: cat.updatedby,
   log_inst: cat.log_inst,
-  product_categories_sub_categories: cat.product_categories_sub_categories
+  product_category: cat.product_category
     ? {
-        id: cat.product_categories_sub_categories.id,
-        sub_category_name:
-          cat.product_categories_sub_categories.sub_category_name,
+        id: cat.product_category.id,
+        sub_category_name: cat.product_category.sub_category_name,
       }
     : null,
 });
@@ -97,7 +96,7 @@ export const productCategoriesController = {
         page: pageNum,
         limit: limitNum,
         orderBy: { createdate: 'desc' },
-        include: { product_categories_sub_categories: true },
+        include: { product_category: true },
       });
 
       const totalProductCategories = await prisma.product_categories.count();
