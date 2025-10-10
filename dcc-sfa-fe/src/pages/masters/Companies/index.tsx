@@ -305,8 +305,8 @@ const CompaniesManagement: React.FC = () => {
         data={filteredCompanies}
         columns={companyColumns}
         actions={
-          <div className="flex justify-between w-full">
-            <div className="flex gap-3">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <SearchInput
                 placeholder="Search Companies"
                 value={search}

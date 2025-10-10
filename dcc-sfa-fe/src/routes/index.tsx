@@ -1,6 +1,7 @@
 import ProtectedRoute from 'components/ProtectedRoute';
 import Layout from 'layout';
 import Login from 'pages/auth/Login';
+import PrivacyPolicy from 'pages/auth/PrivacyPolicy';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
 import ApiTokensPage from 'pages/masters/ApiTokens';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
@@ -17,6 +18,8 @@ import PriceListsManagement from 'pages/masters/PriceLists';
 import ProductsManagement from 'pages/masters/Products';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
+import SalesTargetGroupsManagement from 'pages/masters/SalesTargetGroups';
+import SalesTargetsManagement from 'pages/masters/SalesTargets';
 import SurveyBuilder from 'pages/masters/SurveyBuilder';
 import Users from 'pages/masters/Users';
 import UserDetail from 'pages/masters/Users/UserDetail';
@@ -29,7 +32,9 @@ import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-const SalesTargetGroups = () => <h1>Sales Target Groups</h1>;
+const BrandManagement = () => <h1>Brand Management</h1>;
+const CategoriesManagement = () => <h1> Categories</h1>;
+const SubCategoriesManagement = () => <h1> Sub Categories</h1>;
 const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
 const DeliveryScheduling = () => <h1>Delivery Scheduling</h1>;
 const ReturnRequests = () => <h1>Return Requests</h1>;
@@ -58,11 +63,16 @@ const ApprovalWorkflows = () => <h1>Approval Workflows</h1>;
 const RouteExceptions = () => <h1>Route Exceptions</h1>;
 const AlertsReminders = () => <h1>Alerts & Reminders</h1>;
 const SystemSettings = () => <h1>System Settings</h1>;
+const UnitOfMeasurementManagement = () => <h1>Unit of Measurement</h1>;
 
 const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />,
+  },
+  {
+    path: '/privacy-policy',
+    element: <PrivacyPolicy />,
   },
   {
     path: '/',
@@ -81,6 +91,10 @@ const router = createBrowserRouter([
         element: <ExecutiveDashboard />,
       },
 
+      {
+        path: '/masters/brands',
+        element: <BrandManagement />,
+      },
       {
         path: '/masters/company',
         element: <CompaniesManagement />,
@@ -146,6 +160,18 @@ const router = createBrowserRouter([
         element: <ProductsManagement />,
       },
       {
+        path: '/masters/categories',
+        element: <CategoriesManagement />,
+      },
+      {
+        path: '/masters/sub-categories',
+        element: <SubCategoriesManagement />,
+      },
+      {
+        path: '/masters/unit-of-measurement',
+        element: <UnitOfMeasurementManagement />,
+      },
+      {
         path: '/masters/pricelists',
         element: <PriceListsManagement />,
       },
@@ -154,8 +180,12 @@ const router = createBrowserRouter([
         element: <LoginHistoryPage />,
       },
       {
+        path: '/masters/sales-target-groups',
+        element: <SalesTargetGroupsManagement />,
+      },
+      {
         path: '/masters/sales-targets',
-        element: <SalesTargetGroups />,
+        element: <SalesTargetsManagement />,
       },
       {
         path: '/masters/bonus-rules',

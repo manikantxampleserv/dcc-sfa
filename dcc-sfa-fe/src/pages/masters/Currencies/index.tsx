@@ -1,5 +1,11 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import {
+  useCurrencies,
+  useDeleteCurrency,
+  type Currency,
+} from 'hooks/useCurrencies';
+import { useExportToExcel } from 'hooks/useImportExport';
 import { DollarSign, TrendingUp, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -9,14 +15,8 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import {
-  useDeleteCurrency,
-  useCurrencies,
-  type Currency,
-} from '../../../hooks/useCurrencies';
-import { useExportToExcel } from '../../../hooks/useImportExport';
-import ManageCurrency from './ManageCurrency';
 import ImportCurrency from './ImportCurrency';
+import ManageCurrency from './ManageCurrency';
 
 const CurrenciesManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -53,7 +53,6 @@ const CurrenciesManagement: React.FC = () => {
   const deleteCurrencyMutation = useDeleteCurrency();
   const exportToExcelMutation = useExportToExcel();
 
-  // Statistics - Use API stats when available, fallback to local calculation
   const totalCurrencies = currenciesResponse?.stats?.total_currencies ?? 0;
   const activeCurrencies = currenciesResponse?.stats?.active_currencies ?? 0;
   const inactiveCurrencies =
@@ -318,8 +317,8 @@ const CurrenciesManagement: React.FC = () => {
         data={currencies}
         columns={currencyColumns}
         actions={
-          <div className="flex justify-between w-full">
-            <div className="flex gap-3">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <SearchInput
                 placeholder="Search Currencies"
                 value={search}
@@ -350,7 +349,7 @@ const CurrenciesManagement: React.FC = () => {
                 <MenuItem value="non-base">Non-Base</MenuItem>
               </Select>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               <PopConfirm
                 title="Export Currencies"
                 description="Are you sure you want to export the current currencies data to Excel? This will include all filtered results."

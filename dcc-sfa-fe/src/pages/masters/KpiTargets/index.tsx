@@ -305,8 +305,8 @@ const KpiTargetsManagement: React.FC = () => {
         data={kpiTargets}
         columns={kpiTargetsColumns}
         actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <SearchInput
                 placeholder="Search KPI Targets..."
                 value={search}

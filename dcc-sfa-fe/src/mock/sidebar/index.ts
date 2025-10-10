@@ -74,6 +74,26 @@ const menuItems: MenuItem[] = [
         href: '/masters/vehicles',
       },
       {
+        id: 'brands',
+        label: 'Brands',
+        href: '/masters/brands',
+      },
+      {
+        id: 'categories',
+        label: 'Categories',
+        href: '/masters/categories',
+      },
+      {
+        id: 'sub-categories',
+        label: 'Sub Categories',
+        href: '/masters/sub-categories',
+      },
+      {
+        id: 'unit-of-measurement',
+        label: 'Unit of Measurement',
+        href: '/masters/unit-of-measurement',
+      },
+      {
         id: 'product-catalog',
         label: 'Product Catalog',
         href: '/masters/products',
@@ -82,6 +102,11 @@ const menuItems: MenuItem[] = [
       {
         id: 'sales-target-groups',
         label: 'Sales Target Groups',
+        href: '/masters/sales-target-groups',
+      },
+      {
+        id: 'sales-targets',
+        label: 'Sales Targets',
         href: '/masters/sales-targets',
       },
       {

@@ -115,7 +115,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 <Avatar
                   alt={getUserDisplayName()}
                   src={currentUser?.profile_image || undefined}
-                  className="!w-10 !rounded !h-10 !bg-primary-500 !text-sm !font-medium !transition-colors"
+                  className="!w-8 !rounded !h-8 !bg-primary-500 !text-sm !font-medium !transition-colors"
                 >
                   {getUserInitials()}
                 </Avatar>

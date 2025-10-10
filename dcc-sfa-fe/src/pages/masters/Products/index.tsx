@@ -323,8 +323,8 @@ const ProductsManagement: React.FC = () => {
         data={products}
         columns={productColumns}
         actions={
-          <div className="flex justify-between w-full">
-            <div className="flex gap-3 items-center">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <SearchInput
                 placeholder="Search Products"
                 value={search}

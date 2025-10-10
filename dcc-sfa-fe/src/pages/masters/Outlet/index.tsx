@@ -483,8 +483,8 @@ const OutletsManagement: React.FC = () => {
         columns={outletColumns}
         onRowClick={(row: Customer) => navigate(`/masters/outlets/${row.id}`)}
         actions={
-          <div className="flex justify-between w-full">
-            <div className="flex items-center gap-3">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <SearchInput
                 placeholder="Search Outlets"
                 value={search}

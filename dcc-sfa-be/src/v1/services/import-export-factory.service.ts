@@ -14,6 +14,8 @@ import { SurveysImportExportService } from './implementations/surveys-import-exp
 import { KpiTargetsImportExportService } from './implementations/kpiTargets-import-export.service';
 import { PriceListsImportExportService } from './implementations/priceLists-import-export.service';
 import { LoginHistoryImportExportService } from './implementations/loginHistory-import-export.service';
+import { SalesTargetGroupsImportExportService } from './implementations/salesTargetGroups-import-export.service';
+import { SalesTargetsImportExportService } from './implementations/salesTargets-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -38,6 +40,8 @@ export class ImportExportFactory {
     ['employee_kpi_targets', KpiTargetsImportExportService],
     ['pricelists', PriceListsImportExportService],
     ['login_history', LoginHistoryImportExportService],
+    ['sales_target_groups', SalesTargetGroupsImportExportService],
+    ['sales_targets', SalesTargetsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

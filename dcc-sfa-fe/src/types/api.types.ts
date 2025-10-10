@@ -129,6 +129,11 @@ export interface ApiResponse<T = any> {
     active_currencies?: number;
     inactive_currencies?: number;
     base_currencies?: number;
+    // Sales target group statistics
+    total_sales_target_groups?: number;
+    active_sales_target_groups?: number;
+    inactive_sales_target_groups?: number;
+    sales_target_groups_this_month?: number;
   };
 }
 

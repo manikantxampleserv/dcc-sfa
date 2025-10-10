@@ -361,8 +361,8 @@ const SurveyBuilder: React.FC = () => {
         data={surveys}
         columns={surveyColumns}
         actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap gap-3">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <SearchInput
                 placeholder="Search Surveys..."
                 value={search}
@@ -398,7 +398,7 @@ const SurveyBuilder: React.FC = () => {
                 <MenuItem value="general">General</MenuItem>
               </Select>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <PopConfirm
                 title="Export Surveys"
                 description="Are you sure you want to export the current survey data to Excel? This will include all filtered results."
