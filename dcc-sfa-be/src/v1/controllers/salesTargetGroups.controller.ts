@@ -35,30 +35,119 @@ const serializeSalesTargetGroup = (stg: any): SalesTargetGroupSerialized => ({
 export const salesTargetGroupsController = {
   async createSalesTargetGroups(req: any, res: any) {
     try {
-      const data = req.body;
+      const { salesTargetMember = [], ...groupData } = req.body;
+      const userId = req.user?.id || 1;
+      const isUpdate = groupData.id && groupData.id > 0;
 
-      const newGroup = await prisma.sales_target_groups.create({
-        data: {
-          group_name: data.group_name,
-          description: data.description || null,
-          is_active: data.is_active || 'Y',
-          createdate: new Date(),
-          createdby: req.user?.id || 1,
-          log_inst: data.log_inst || 1,
-        },
-        include: {
-          sales_target_group_members_id: true,
-          sales_targets_groups: true,
-        },
+      const result = await prisma.$transaction(async tx => {
+        if (isUpdate) {
+          const groupId = Number(groupData.id);
+
+          const existingGroup = await tx.sales_target_groups.findUnique({
+            where: { id: groupId },
+          });
+
+          if (!existingGroup) {
+            throw new Error('Sales target group not found');
+          }
+
+          await tx.sales_target_groups.update({
+            where: { id: groupId },
+            data: {
+              group_name: groupData.group_name ?? existingGroup.group_name,
+              description: groupData.description ?? existingGroup.description,
+              is_active: groupData.is_active ?? existingGroup.is_active,
+              updatedate: new Date(),
+              updatedby: userId,
+              log_inst: groupData.log_inst ?? existingGroup.log_inst,
+            },
+          });
+
+          if (salesTargetMember.length > 0) {
+            const membersToUpdate = salesTargetMember.filter(
+              (m: any) => m.id && m.id > 0
+            );
+            const membersToCreate = salesTargetMember.filter(
+              (m: any) => !m.id || m.id <= 0
+            );
+
+            if (membersToUpdate.length > 0) {
+              await Promise.all(
+                membersToUpdate.map((member: any) =>
+                  tx.sales_target_group_members.update({
+                    where: { id: Number(member.id) },
+                    data: {
+                      sales_person_id: member.sales_person_id,
+                      is_active: member.is_active ?? 'Y',
+                      updatedate: new Date(),
+                      updatedby: userId,
+                      log_inst: member.log_inst ?? 1,
+                    },
+                  })
+                )
+              );
+            }
+
+            if (membersToCreate.length > 0) {
+              await tx.sales_target_group_members.createMany({
+                data: membersToCreate.map((member: any) => ({
+                  sales_target_group_id: groupId,
+                  sales_person_id: member.sales_person_id,
+                  is_active: member.is_active ?? 'Y',
+                  createdate: new Date(),
+                  createdby: userId,
+                  log_inst: member.log_inst ?? 1,
+                })),
+              });
+            }
+          }
+
+          return await tx.sales_target_groups.findUnique({
+            where: { id: groupId },
+            include: {
+              sales_target_group_members_id: true,
+              sales_targets_groups: true,
+            },
+          });
+        } else {
+          return await tx.sales_target_groups.create({
+            data: {
+              group_name: groupData.group_name,
+              description: groupData.description || null,
+              is_active: groupData.is_active || 'Y',
+              createdate: new Date(),
+              createdby: userId,
+              log_inst: groupData.log_inst || 1,
+              sales_target_group_members_id: {
+                create: salesTargetMember.map((member: any) => ({
+                  sales_person_id: member.sales_person_id,
+                  is_active: member.is_active ?? 'Y',
+                  createdate: new Date(),
+                  createdby: userId,
+                  log_inst: member.log_inst ?? 1,
+                })),
+              },
+            },
+            include: {
+              sales_target_group_members_id: true,
+              sales_targets_groups: true,
+            },
+          });
+        }
       });
 
-      res.status(201).json({
-        message: 'Sales target groups created successfully',
-        data: serializeSalesTargetGroup(newGroup),
+      res.status(isUpdate ? 200 : 201).json({
+        message: `Sales target group ${isUpdate ? 'updated' : 'created'} successfully`,
+        data: serializeSalesTargetGroup(result),
       });
     } catch (error: any) {
-      console.error('Create SalesTargetGroups Error:', error);
-      res.status(500).json({ message: error.message });
+      console.error('Upsert SalesTargetGroups Error:', error);
+      res
+        .status(error.message === 'Sales target group not found' ? 404 : 500)
+        .json({
+          message:
+            error.message || 'An error occurred while processing the request',
+        });
     }
   },
 

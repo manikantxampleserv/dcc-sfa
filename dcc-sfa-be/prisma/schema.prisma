@@ -54,7 +54,7 @@ model users {
   return_workflow_return_workflow_action_byTousers                    return_workflow[]            @relation("return_workflow_action_byTousers")
   route_exceptions_route_exceptions_sales_person_idTousers            route_exceptions[]           @relation("route_exceptions_sales_person_idTousers")
   route_plans_route_plans_sales_person_idTousers                      route_plans[]                @relation("route_plans_sales_person_idTousers")
-  sales_target_group_members                                          sales_target_group_members[]
+  sales_target_group_members_users                                    sales_target_group_members[]
   sales_target_overrides                                              sales_target_overrides[]
   stock_transfer_requests_stock_transfer_requests_approved_byTousers  stock_transfer_requests[]    @relation("stock_transfer_requests_approved_byTousers")
   stock_transfer_requests_stock_transfer_requests_requested_byTousers stock_transfer_requests[]    @relation("stock_transfer_requests_requested_byTousers")
@@ -1413,17 +1413,17 @@ model sales_bonus_rules {
 }
 
 model sales_target_group_members {
-  id                            Int                 @id(map: "PK__sales_ta__3213E83FEC0392AD") @default(autoincrement())
-  sales_target_group_id         Int
-  sales_person_id               Int
-  is_active                     String              @default("Y", map: "DF__sales_tar__is_ac__056ECC6A") @db.Char(1)
-  createdate                    DateTime?           @default(now(), map: "DF__sales_tar__creat__0662F0A3") @db.DateTime
-  createdby                     Int
-  updatedate                    DateTime?           @db.DateTime
-  updatedby                     Int?
-  log_inst                      Int?
-  sales_target_group_members_id sales_target_groups @relation(fields: [sales_target_group_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__sales__075714DC")
-  users                         users               @relation(fields: [sales_person_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__sales__084B3915")
+  id                               Int                 @id(map: "PK__sales_ta__3213E83FEC0392AD") @default(autoincrement())
+  sales_target_group_id            Int
+  sales_person_id                  Int
+  is_active                        String              @default("Y", map: "DF__sales_tar__is_ac__056ECC6A") @db.Char(1)
+  createdate                       DateTime?           @default(now(), map: "DF__sales_tar__creat__0662F0A3") @db.DateTime
+  createdby                        Int
+  updatedate                       DateTime?           @db.DateTime
+  updatedby                        Int?
+  log_inst                         Int?
+  sales_target_group_members_id    sales_target_groups @relation(fields: [sales_target_group_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__sales__075714DC")
+  sales_target_group_members_users users               @relation(fields: [sales_person_id], references: [id], onUpdate: NoAction, map: "FK__sales_tar__sales__084B3915")
 }
 
 model sales_target_groups {
