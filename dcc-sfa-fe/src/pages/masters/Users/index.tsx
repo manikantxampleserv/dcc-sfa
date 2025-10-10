@@ -309,8 +309,8 @@ const UsersManagement: React.FC = () => {
         data={users}
         columns={userColumns}
         actions={
-          <div className="flex justify-between w-full">
-            <div className="flex items-center gap-3">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <SearchInput
                 placeholder="Search Users"
                 value={search}

@@ -329,8 +329,8 @@ const ZonesManagement: React.FC = () => {
         data={zones}
         columns={zoneColumns}
         actions={
-          <div className="flex justify-between w-full">
-            <div className="flex gap-3">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <SearchInput
                 placeholder="Search Zones"
                 value={search}
@@ -364,7 +364,7 @@ const ZonesManagement: React.FC = () => {
                 ))}
               </Select>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               <PopConfirm
                 title="Export Zones"
                 description="Are you sure you want to export the current zones data to Excel? This will include all filtered results."

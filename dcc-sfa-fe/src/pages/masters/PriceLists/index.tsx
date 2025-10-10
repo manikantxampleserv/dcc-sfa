@@ -320,8 +320,8 @@ const PriceListsManagement: React.FC = () => {
         data={priceLists}
         columns={priceListsColumns}
         actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <SearchInput
                 placeholder="Search Price Lists..."
                 value={search}
@@ -340,7 +340,7 @@ const PriceListsManagement: React.FC = () => {
                 <MenuItem value="inactive">Inactive</MenuItem>
               </Select>
             </div>
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               <PopConfirm
                 title="Export Price Lists"
                 description="Are you sure you want to export the current price lists data to Excel? This will include all filtered results."

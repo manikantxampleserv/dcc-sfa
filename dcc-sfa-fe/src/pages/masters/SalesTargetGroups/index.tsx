@@ -1,12 +1,12 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { useExportToExcel } from 'hooks/useImportExport';
 import {
-  useDeleteWarehouse,
-  useWarehouses,
-  type Warehouse,
-} from 'hooks/useWarehouses';
-import { TrendingUp, Warehouse as WarehouseIcon } from 'lucide-react';
+  useSalesTargetGroups,
+  useDeleteSalesTargetGroup,
+  type SalesTargetGroup,
+} from 'hooks/useSalesTargetGroups';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { Users, TrendingUp, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -15,13 +15,13 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import ImportWarehouse from './ImportWarehouse';
-import ManageWarehouse from './ManageWarehouse';
+import ImportSalesTargetGroup from './ImportSalesTargetGroup';
+import ManageSalesTargetGroup from './ManageSalesTargetGroup';
 
-const WarehousesPage: React.FC = () => {
+const SalesTargetGroupsManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(
+  const [selectedGroup, setSelectedGroup] = useState<SalesTargetGroup | null>(
     null
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -30,57 +30,54 @@ const WarehousesPage: React.FC = () => {
   const [limit] = useState(10);
 
   const {
-    data: warehousesResponse,
+    data: groupsResponse,
     isLoading,
     error,
-  } = useWarehouses({
+  } = useSalesTargetGroups({
     search,
     page,
     limit,
-    isActive:
+    status:
       statusFilter === 'all'
         ? undefined
         : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
+          ? 'active'
+          : 'inactive',
   });
 
-  const warehouses = warehousesResponse?.data || [];
-  const totalCount = warehousesResponse?.meta?.total_count || 0;
-  const currentPage = (warehousesResponse?.meta?.current_page || 1) - 1;
+  const groups = groupsResponse?.data || [];
+  const totalCount = groupsResponse?.meta?.total || 0;
+  const currentPage = (groupsResponse?.meta?.page || 1) - 1;
 
-  const deleteWarehouseMutation = useDeleteWarehouse();
+  const deleteGroupMutation = useDeleteSalesTargetGroup();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalWarehouses =
-    warehousesResponse?.stats?.total_warehouses ?? warehouses.length;
-  const activeWarehouses =
-    warehousesResponse?.stats?.active_warehouses ??
-    warehouses.filter(w => w.is_active === 'Y').length;
-  const inactiveWarehouses =
-    warehousesResponse?.stats?.inactive_warehouses ??
-    warehouses.filter(w => w.is_active === 'N').length;
-  const newWarehousesThisMonth = warehousesResponse?.stats?.new_warehouses ?? 0;
+  const totalGroups = groupsResponse?.stats?.total_sales_target_groups ?? 0;
+  const activeGroups = groupsResponse?.stats?.active_sales_target_groups ?? 0;
+  const inactiveGroups =
+    groupsResponse?.stats?.inactive_sales_target_groups ?? 0;
+  const groupsThisMonth =
+    groupsResponse?.stats?.sales_target_groups_this_month ?? 0;
 
-  const handleCreateWarehouse = useCallback(() => {
-    setSelectedWarehouse(null);
+  const handleCreateGroup = useCallback(() => {
+    setSelectedGroup(null);
     setDrawerOpen(true);
   }, []);
 
-  const handleEditWarehouse = useCallback((warehouse: Warehouse) => {
-    setSelectedWarehouse(warehouse);
+  const handleEditGroup = useCallback((group: SalesTargetGroup) => {
+    setSelectedGroup(group);
     setDrawerOpen(true);
   }, []);
 
-  const handleDeleteWarehouse = useCallback(
+  const handleDeleteGroup = useCallback(
     async (id: number) => {
       try {
-        await deleteWarehouseMutation.mutateAsync(id);
+        await deleteGroupMutation.mutateAsync(id);
       } catch (error) {
-        console.error('Error deleting warehouse:', error);
+        console.error('Error deleting sales target group:', error);
       }
     },
-    [deleteWarehouseMutation]
+    [deleteGroupMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -96,52 +93,61 @@ const WarehousesPage: React.FC = () => {
     try {
       const filters = {
         search,
-        isActive:
+        status:
           statusFilter === 'all'
             ? undefined
             : statusFilter === 'active'
-              ? 'Y'
-              : 'N',
+              ? 'active'
+              : 'inactive',
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'warehouses',
+        tableName: 'sales_target_groups',
         filters,
       });
     } catch (error) {
-      console.error('Error exporting warehouses:', error);
+      console.error('Error exporting sales target groups:', error);
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const warehouseColumns: TableColumn<Warehouse>[] = [
+  // Define table columns
+  const groupColumns: TableColumn<SalesTargetGroup>[] = [
     {
-      id: 'name',
-      label: 'Warehouse Name',
+      id: 'group_name',
+      label: 'Group Name',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.name}
-            className="!rounded !bg-primary-100 !text-primary-500"
+            alt={row.group_name}
+            className="!rounded !bg-primary-100 !text-primary-600"
           >
-            <WarehouseIcon className="w-5 h-5" />
+            <Users className="w-5 h-5" />
           </Avatar>
           <Box>
-            <Typography variant="body1" className="!text-gray-900">
-              {row.name}
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
+            >
+              {row.group_name}
             </Typography>
-            <Typography variant="caption" className="!text-gray-500">
-              {row.location}
-            </Typography>
+            {row.description && (
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !block !mt-0.5"
+              >
+                {row.description}
+              </Typography>
+            )}
           </Box>
         </Box>
       ),
     },
     {
-      id: 'type',
-      label: 'Type',
+      id: 'sales_target_group_members',
+      label: 'Members',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900">
-          {row.type || <span className="italic text-gray-400">No Type</span>}
+          {row.sales_target_group_members?.length || 0} members
         </Typography>
       ),
     },
@@ -173,13 +179,13 @@ const WarehousesPage: React.FC = () => {
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
           <EditButton
-            onClick={() => handleEditWarehouse(row)}
-            tooltip={`Edit ${row.name}`}
+            onClick={() => handleEditGroup(row)}
+            tooltip={`Edit ${row.group_name}`}
           />
           <DeleteButton
-            onClick={() => handleDeleteWarehouse(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
+            onClick={() => handleDeleteGroup(row.id)}
+            tooltip={`Delete ${row.group_name}`}
+            itemName={row.group_name}
             confirmDelete={true}
           />
         </div>
@@ -192,10 +198,10 @@ const WarehousesPage: React.FC = () => {
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Warehouse Management
+            Sales Target Groups Management
           </p>
           <p className="!text-gray-500 text-sm">
-            Manage warehouses, storage facilities, and distribution centers
+            Manage sales target groups and assign sales personnel to groups
           </p>
         </Box>
       </Box>
@@ -205,71 +211,65 @@ const WarehousesPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Warehouses
-              </p>
+              <p className="text-sm font-medium text-gray-600">Total Groups</p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {totalWarehouses}
+                <p className="text-2xl font-bold text-gray-900">
+                  {totalGroups}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <WarehouseIcon className="w-6 h-6 text-primary-500" />
+              <Users className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-500">
-                Active Warehouses
-              </p>
+              <p className="text-sm font-medium text-gray-600">Active Groups</p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {activeWarehouses}
+                <p className="text-2xl font-bold text-green-600">
+                  {activeGroups}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-500" />
+              <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-red-500">
-                Inactive Warehouses
+              <p className="text-sm font-medium text-gray-600">
+                Inactive Groups
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-red-600">
-                  {inactiveWarehouses}
+                  {inactiveGroups}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <Block className="w-6 h-6 text-red-600" />
+              <XCircle className="w-6 h-6 text-red-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-purple-600">
-                New This Month
-              </p>
+              <p className="text-sm font-medium text-gray-600">This Month</p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {newWarehousesThisMonth}
+                  {groupsThisMonth}
                 </p>
               )}
             </div>
@@ -282,38 +282,40 @@ const WarehousesPage: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load warehouses. Please try again.
+          Failed to load sales target groups. Please try again.
         </Alert>
       )}
 
       <Table
-        data={warehouses}
-        columns={warehouseColumns}
+        data={groups}
+        columns={groupColumns}
         actions={
           <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <SearchInput
-                placeholder="Search Warehouses..."
+                placeholder="Search Sales Target Groups"
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
                 showClear={true}
-                className="!w-80"
+                fullWidth={false}
+                className="!min-w-80"
               />
               <Select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                className="!w-32"
+                className="!min-w-32"
+                size="small"
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="inactive">Inactive</MenuItem>
               </Select>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <PopConfirm
-                title="Export Warehouses"
-                description="Are you sure you want to export the current warehouses data to Excel? This will include all filtered results."
+                title="Export Sales Target Groups"
+                description="Are you sure you want to export the current sales target groups data to Excel? This will include all filtered results."
                 onConfirm={handleExportToExcel}
                 confirmText="Export"
                 cancelText="Cancel"
@@ -341,15 +343,15 @@ const WarehousesPage: React.FC = () => {
                 className="!capitalize"
                 disableElevation
                 startIcon={<Add />}
-                onClick={handleCreateWarehouse}
+                onClick={handleCreateGroup}
               >
                 Create
               </Button>
             </div>
           </div>
         }
-        getRowId={warehouse => warehouse.id}
-        initialOrderBy="name"
+        getRowId={group => group.id}
+        initialOrderBy="group_name"
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
@@ -357,19 +359,21 @@ const WarehousesPage: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No warehouses found matching "${search}"`
-            : 'No warehouses found in the system'
+            ? `No sales target groups found matching "${search}"`
+            : 'No sales target groups found in the system'
         }
       />
 
-      <ManageWarehouse
-        selectedWarehouse={selectedWarehouse}
-        setSelectedWarehouse={setSelectedWarehouse}
-        drawerOpen={drawerOpen}
-        setDrawerOpen={setDrawerOpen}
+      <ManageSalesTargetGroup
+        open={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+          setSelectedGroup(null);
+        }}
+        group={selectedGroup}
       />
 
-      <ImportWarehouse
+      <ImportSalesTargetGroup
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
       />
@@ -377,4 +381,4 @@ const WarehousesPage: React.FC = () => {
   );
 };
 
-export default WarehousesPage;
+export default SalesTargetGroupsManagement;

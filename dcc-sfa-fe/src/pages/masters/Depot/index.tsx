@@ -340,8 +340,8 @@ const DepotsManagement: React.FC = () => {
         data={depots}
         columns={depotColumns}
         actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap gap-3">
+          <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <SearchInput
                 placeholder="Search Depots..."
                 value={search}
@@ -372,7 +372,7 @@ const DepotsManagement: React.FC = () => {
                 ))}
               </Select>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <PopConfirm
                 title="Export Depots"
                 description="Are you sure you want to export the current depot data to Excel? This will include all filtered results."

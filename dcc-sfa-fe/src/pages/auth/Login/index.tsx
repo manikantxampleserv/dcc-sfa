@@ -371,7 +371,7 @@ const Login: React.FC = () => {
           </span>
           <MuiLink
             component={Link}
-            to="#"
+            to="/privacy-policy"
             className="text-gray-500 hover:text-gray-700 no-underline hover:underline transition-colors text-center sm:text-right"
           >
             Privacy Policy
