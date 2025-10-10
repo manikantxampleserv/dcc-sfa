@@ -9,9 +9,9 @@ interface ProductSerialized {
   name: string;
   code: string;
   description?: string | null;
-  category?: string | null;
-  brand?: string | null;
-  unit_of_measure?: string | null;
+  category: number;
+  brand: number;
+  unit_of_measurement: number;
   base_price?: number | null;
   tax_rate?: number | null;
   is_active: string;
@@ -33,6 +33,9 @@ interface ProductSerialized {
     quantity: number;
     price: number;
   }[];
+  product_brands: { id: number; name: string; code: string; logo: string }[];
+  product_unit_of_measurement: { id: number; name: string }[];
+  product_categories_products: { id: number; name: string }[];
 }
 
 const generateProductsCode = async (name: string) => {
@@ -61,7 +64,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
   description: product.description,
   category: product.category,
   brand: product.brand,
-  unit_of_measure: product.unit_of_measure,
+  unit_of_measurement: product.unit_of_measurement,
   base_price: product.base_price,
   tax_rate: product.tax_rate,
   is_active: product.is_active,
@@ -95,6 +98,23 @@ const serializeProduct = (product: any): ProductSerialized => ({
       quantity: oi.quantity,
       price: oi.price,
     })) || [],
+  product_brands:
+    product.product_brands?.map((b: any) => ({
+      id: b.id,
+      name: b.name,
+      code: b.code,
+      logo: b.logo,
+    })) || [],
+  product_unit_of_measurement:
+    product.unit_of_measurement_products?.map((u: any) => ({
+      id: u.id,
+      name: u.name,
+    })) || [],
+  product_categories_products:
+    product.product_categories_products?.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+    })) || [],
 });
 
 export const productsController = {
@@ -117,6 +137,9 @@ export const productsController = {
           inventory_stock_products: true,
           price_history_products: true,
           order_items: true,
+          product_brands: true,
+          product_unit_of_measurement: true,
+          product_categories_products: true,
         },
       });
 
@@ -163,6 +186,9 @@ export const productsController = {
           inventory_stock_products: true,
           price_history_products: true,
           order_items: true,
+          product_brands: true,
+          product_unit_of_measurement: true,
+          product_categories_products: true,
         },
       });
 
@@ -212,6 +238,9 @@ export const productsController = {
           inventory_stock_products: true,
           price_history_products: true,
           order_items: true,
+          product_brands: true,
+          product_unit_of_measurement: true,
+          product_categories_products: true,
         },
       });
 
@@ -252,6 +281,9 @@ export const productsController = {
           inventory_stock_products: true,
           price_history_products: true,
           order_items: true,
+          product_brands: true,
+          product_unit_of_measurement: true,
+          product_categories_products: true,
         },
       });
 

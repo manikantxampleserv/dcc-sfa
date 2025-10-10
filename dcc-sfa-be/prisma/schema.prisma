@@ -1083,16 +1083,17 @@ model pricelists {
 }
 
 model product_categories {
-  id                               Int                      @id(map: "PK__product___3213E83FA4C0DB07") @default(autoincrement())
+  id                               Int                      @id() @default(autoincrement())
   category_name                    String                   @db.NVarChar(255)
   description                      String?
-  is_active                        String                   @default("Y", map: "DF__product_c__is_ac__7908F585") @db.Char(1)
-  createdate                       DateTime?                @default(now(), map: "DF__product_c__creat__79FD19BE") @db.DateTime
+  is_active                        String                   @default("Y") @db.Char(1)
+  createdate                       DateTime?                @default(now()) @db.DateTime
   createdby                        Int
   updatedate                       DateTime?                @db.DateTime
   updatedby                        Int?
   log_inst                         Int?
-  product_sub_categories           product_sub_categories[]
+  product_category                 product_sub_categories[]
+  product_categories_products      products[]
   sales_target_overrides           sales_target_overrides[]
   sales_targets_product_categories sales_targets[]
 }
@@ -1119,8 +1120,8 @@ model product_facing {
 
 model product_sub_categories {
   id                  Int                @id(map: "PK__product___3213E83FAE970044") @default(autoincrement())
-  product_category_id Int
   sub_category_name   String             @db.NVarChar(255)
+  product_category_id Int
   description         String?
   is_active           String             @default("Y", map: "DF__product_s__is_ac__7CD98669") @db.Char(1)
   createdate          DateTime?          @default(now(), map: "DF__product_s__creat__7DCDAAA2") @db.DateTime
@@ -1128,7 +1129,7 @@ model product_sub_categories {
   updatedate          DateTime?          @db.DateTime
   updatedby           Int?
   log_inst            Int?
-  product_categories  product_categories @relation(fields: [product_category_id], references: [id], onUpdate: NoAction, map: "FK__product_s__produ__7EC1CEDB")
+  product_category    product_categories @relation(fields: [product_category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model product_warranty_policy {
@@ -1151,9 +1152,9 @@ model products {
   name                             String                    @db.NVarChar(255)
   code                             String                    @unique() @db.NVarChar(100)
   description                      String?
-  category                         String?                   @db.NVarChar(100)
-  brand                            String?                   @db.NVarChar(100)
-  unit_of_measure                  String?                   @db.NVarChar(50)
+  category_id                      Int
+  brand_id                         Int
+  unit_of_measurement              Int
   base_price                       Decimal?                  @db.Decimal(18, 2)
   tax_rate                         Decimal?                  @db.Decimal(5, 2)
   is_active                        String                    @default("Y") @db.Char(1)
@@ -1162,6 +1163,9 @@ model products {
   updatedate                       DateTime?                 @db.DateTime
   updatedby                        Int?
   log_inst                         Int?
+  product_categories_products      product_categories        @relation(fields: [category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  product_brands                   brands                    @relation(fields: [brand_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  product_unit_of_measurement      unit_of_measurement       @relation(fields: [unit_of_measurement], references: [id], onUpdate: NoAction, onDelete: Cascade)
   batch_lots_products              batch_lots[]
   credit_notes_products            credit_notes[]
   inventory_stock_products         inventory_stock[]
@@ -1179,6 +1183,36 @@ model products {
   van_inventory_products           van_inventory[]
   warranty_claims_products         warranty_claims[]
   credit_notes_items_products      credit_note_items[]
+}
+
+model brands {
+  id             Int        @id() @default(autoincrement())
+  name           String     @db.NVarChar(255)
+  code           String     @db.NVarChar(50)
+  description    String?    @db.NVarChar(500)
+  logo           String?    @db.NVarChar(500)
+  is_active      String     @default("Y") @db.Char(1)
+  createdate     DateTime?  @default(now()) @db.DateTime
+  createdby      Int
+  updatedate     DateTime?  @db.DateTime
+  updatedby      Int?
+  log_inst       Int?
+  product_brands products[]
+}
+
+model unit_of_measurement {
+  id                          Int        @id() @default(autoincrement())
+  name                        String     @db.NVarChar(255)
+  description                 String?    @db.NVarChar(500)
+  category                    String?    @db.NVarChar(50)
+  symbol                      String?    @db.NVarChar(10)
+  is_active                   String     @default("Y") @db.Char(1)
+  createdate                  DateTime?  @default(now()) @db.DateTime
+  createdby                   Int
+  updatedate                  DateTime?  @db.DateTime
+  updatedby                   Int?
+  log_inst                    Int?
+  product_unit_of_measurement products[]
 }
 
 model promotion_customer_types {
