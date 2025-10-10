@@ -36,6 +36,8 @@ import salesTargetGroups from '../v1/routes/salesTargetGroups.routes';
 import salesBonusRule from '../v1/routes/salesBonusRule.routes';
 import productCategoriesRoutes from '../v1/routes/productCategories.routes';
 import productSubCategoriesRoutes from '../v1/routes/productSubCategories.routes';
+import brandsRoutes from '../v1/routes/brands.routes';
+// import unitOfMeasurementRoutes from '../v1/routes/unitOfMeasurement.routes';
 
 const routes = Router();
 
@@ -75,6 +77,8 @@ routes.use('/v1', salesTargetGroups);
 routes.use('/v1', salesBonusRule);
 routes.use('/v1', productCategoriesRoutes);
 routes.use('/v1', productSubCategoriesRoutes);
+routes.use('/v1', brandsRoutes);
+// routes.use('/v1', unitOfMeasurementRoutes);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
