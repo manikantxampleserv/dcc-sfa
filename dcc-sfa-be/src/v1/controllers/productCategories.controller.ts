@@ -19,7 +19,7 @@ interface ProductCategorySerialized {
   product_category?: {
     id: number;
     sub_category_name: string;
-  }[];
+  } | null;
 }
 
 const serializeCategory = (cat: any): ProductCategorySerialized => ({
