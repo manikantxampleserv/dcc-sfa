@@ -34,11 +34,11 @@ const serializeCategory = (cat: any): ProductCategorySerialized => ({
   updatedby: cat.updatedby,
   log_inst: cat.log_inst,
   product_category: cat.product_category
-    ? cat.product_category.map((sub: any) => ({
-        id: sub.id,
-        sub_category_name: sub.sub_category_name,
-      }))
-    : [],
+    ? {
+        id: cat.product_category.id,
+        sub_category_name: cat.product_category.sub_category_name,
+      }
+    : null,
 });
 
 export const productCategoriesController = {

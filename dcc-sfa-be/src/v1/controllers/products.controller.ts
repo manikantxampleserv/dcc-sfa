@@ -9,8 +9,8 @@ interface ProductSerialized {
   name: string;
   code: string;
   description?: string | null;
-  category: number;
-  brand: number;
+  category_id: number;
+  brand_id: number;
   unit_of_measurement: number;
   base_price?: number | null;
   tax_rate?: number | null;
@@ -33,9 +33,9 @@ interface ProductSerialized {
     quantity: number;
     price: number;
   }[];
-  product_brands: { id: number; name: string; code: string; logo: string }[];
-  product_unit_of_measurement: { id: number; name: string }[];
-  product_categories_products: { id: number; name: string }[];
+  product_brand: { id: number; name: string; code: string; logo: string };
+  product_unit: { id: number; name: string };
+  product_category: { id: number; name: string };
 }
 
 const generateProductsCode = async (name: string) => {
@@ -57,6 +57,7 @@ const generateProductsCode = async (name: string) => {
   const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
   return code;
 };
+
 const normalizeToArray = (value: any) => {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
@@ -67,8 +68,8 @@ const serializeProduct = (product: any): ProductSerialized => ({
   name: product.name,
   code: product.code,
   description: product.description,
-  category: product.category,
-  brand: product.brand,
+  category_id: product.category_id,
+  brand_id: product.brand_id,
   unit_of_measurement: product.unit_of_measurement,
   base_price: product.base_price,
   tax_rate: product.tax_rate,
@@ -108,26 +109,22 @@ const serializeProduct = (product: any): ProductSerialized => ({
     price: oi.price,
   })),
 
-  product_brands: normalizeToArray(product.product_brands).map((b: any) => ({
-    id: b.id,
-    name: b.name,
-    code: b.code,
-    logo: b.logo,
-  })),
+  product_brand: {
+    id: product.product_brands?.id,
+    name: product.product_brands?.name,
+    code: product.product_brands?.code,
+    logo: product.product_brands?.logo,
+  },
 
-  product_unit_of_measurement: normalizeToArray(
-    product.unit_of_measurement_products
-  ).map((u: any) => ({
-    id: u.id,
-    name: u.name,
-  })),
+  product_unit: {
+    id: product.product_unit_of_measurement?.id,
+    name: product.product_unit_of_measurement?.name,
+  },
 
-  product_categories_products: normalizeToArray(
-    product.product_categories_products
-  ).map((c: any) => ({
-    id: c.id,
-    name: c.name,
-  })),
+  product_category: {
+    id: product.product_categories_products?.id,
+    name: product.product_categories_products?.name,
+  },
 });
 
 export const productsController = {
@@ -138,8 +135,14 @@ export const productsController = {
 
       const product = await prisma.products.create({
         data: {
-          ...data,
+          name: data.name,
           code: newCode,
+          description: data.description,
+          category_id: data.category_id,
+          brand_id: data.brand_id,
+          unit_of_measurement: data.unit_of_measurement,
+          base_price: data.base_price,
+          tax_rate: data.tax_rate,
           is_active: data.is_active || 'Y',
           createdate: new Date(),
           createdby: req.user?.id || 1,
@@ -179,8 +182,6 @@ export const productsController = {
           OR: [
             { name: { contains: searchLower } },
             { code: { contains: searchLower } },
-            { category: { contains: searchLower } },
-            { brand: { contains: searchLower } },
           ],
         }),
 
