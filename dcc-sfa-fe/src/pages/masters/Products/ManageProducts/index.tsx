@@ -1,10 +1,23 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
+import { useBrands, type Brand } from 'hooks/useBrands';
+import {
+  useProductCategories,
+  type ProductCategory,
+} from 'hooks/useProductCategories';
+import {
+  useProductSubCategories,
+  type ProductSubCategory,
+} from 'hooks/useProductSubCategories';
 import {
   useCreateProduct,
   useUpdateProduct,
   type Product,
 } from 'hooks/useProducts';
+import {
+  useUnitOfMeasurement,
+  type UnitOfMeasurement,
+} from 'hooks/useUnitOfMeasurement';
 import React from 'react';
 import { productValidationSchema } from 'schemas/product.schema';
 import Button from 'shared/Button';
@@ -35,13 +48,27 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
 
+  // Fetch dropdown data
+  const { data: categoriesResponse } = useProductCategories({ limit: 1000 });
+  const { data: subCategoriesResponse } = useProductSubCategories({
+    limit: 1000,
+  });
+  const { data: brandsResponse } = useBrands({ limit: 1000 });
+  const { data: unitsResponse } = useUnitOfMeasurement({ limit: 1000 });
+
+  const categories = categoriesResponse?.data || [];
+  const subCategories = subCategoriesResponse?.data || [];
+  const brands = brandsResponse?.data || [];
+  const units = unitsResponse?.data || [];
+
   const formik = useFormik({
     initialValues: {
       name: selectedProduct?.name || '',
       description: selectedProduct?.description || '',
-      category: selectedProduct?.category || '',
-      brand: selectedProduct?.brand || '',
-      unit_of_measure: selectedProduct?.unit_of_measure || '',
+      category_id: selectedProduct?.category_id || '',
+      sub_category_id: selectedProduct?.sub_category_id || '',
+      brand_id: selectedProduct?.brand_id || '',
+      unit_of_measurement: selectedProduct?.unit_of_measurement || '',
       base_price: selectedProduct?.base_price || '',
       tax_rate: selectedProduct?.tax_rate || '',
       is_active: selectedProduct?.is_active || 'Y',
@@ -53,9 +80,10 @@ const ManageProduct: React.FC<ManageProductProps> = ({
         const productData = {
           name: values.name,
           description: values.description || undefined,
-          category: values.category || undefined,
-          brand: values.brand || undefined,
-          unit_of_measure: values.unit_of_measure || undefined,
+          category_id: Number(values.category_id),
+          sub_category_id: Number(values.sub_category_id),
+          brand_id: Number(values.brand_id),
+          unit_of_measurement: Number(values.unit_of_measurement),
           base_price: values.base_price ? Number(values.base_price) : undefined,
           tax_rate: values.tax_rate ? Number(values.tax_rate) : undefined,
           is_active: values.is_active,
@@ -95,26 +123,52 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               required
             />
 
-            <Input
-              name="category"
+            <Select
+              name="category_id"
               label="Category"
-              placeholder="Enter product category"
               formik={formik}
-            />
+              required
+            >
+              {categories.map((category: ProductCategory) => (
+                <MenuItem key={category.id} value={category.id}>
+                  {category.category_name}
+                </MenuItem>
+              ))}
+            </Select>
 
-            <Input
-              name="brand"
-              label="Brand"
-              placeholder="Enter product brand"
+            <Select
+              name="sub_category_id"
+              label="Sub-Category"
               formik={formik}
-            />
+              required
+            >
+              {subCategories.map((subCategory: ProductSubCategory) => (
+                <MenuItem key={subCategory.id} value={subCategory.id}>
+                  {subCategory.sub_category_name}
+                </MenuItem>
+              ))}
+            </Select>
 
-            <Input
-              name="unit_of_measure"
-              label="Unit of Measure"
-              placeholder="e.g., Piece, Kilogram, Liter"
+            <Select name="brand_id" label="Brand" formik={formik} required>
+              {brands.map((brand: Brand) => (
+                <MenuItem key={brand.id} value={brand.id}>
+                  {brand.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="unit_of_measurement"
+              label="Unit of Measurement"
               formik={formik}
-            />
+              required
+            >
+              {units.map((unit: UnitOfMeasurement) => (
+                <MenuItem key={unit.id} value={unit.id}>
+                  {unit.name} {unit.symbol && `(${unit.symbol})`}
+                </MenuItem>
+              ))}
+            </Select>
 
             <Input
               name="base_price"
@@ -149,7 +203,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             </Box>
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center gap-2">
             <Button
               type="button"
               variant="outlined"

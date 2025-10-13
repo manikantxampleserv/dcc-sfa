@@ -285,8 +285,11 @@ export class SalesTargetsImportExportService extends ImportExportService<any> {
     return null;
   }
 
-  protected async prepareDataForImport(data: any[]): Promise<any[]> {
-    return data.map(item => this.transformDataForImport(item, 1));
+  protected async prepareDataForImport(
+    data: any,
+    userId: number
+  ): Promise<any> {
+    return this.transformDataForImport(data, userId);
   }
 
   protected async updateExisting(

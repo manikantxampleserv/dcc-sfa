@@ -1,6 +1,16 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
-import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { DollarSign, Package, Percent, Tag, TrendingUp } from 'lucide-react';
+import {
+  Alert,
+  Avatar,
+  Box,
+  Chip,
+  MenuItem,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import { useBrands, useDeleteBrand, type Brand } from 'hooks/useBrands';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { Tag, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -8,29 +18,24 @@ import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import {
-  useDeleteProduct,
-  useProducts,
-  type Product,
-} from '../../../hooks/useProducts';
-import { useExportToExcel } from '../../../hooks/useImportExport';
-import ManageProduct from './ManageProducts';
-import ImportProduct from './ImportProduct';
+import { formatDate } from 'utils/dateUtils';
+import ImportBrand from './ImportBrand';
+import ManageBrand from './ManageBrand';
 
-const ProductsManagement: React.FC = () => {
+const BrandsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const {
-    data: productsResponse,
+    data: brandsResponse,
     isLoading,
     error,
-  } = useProducts({
+  } = useBrands({
     search,
     page,
     limit,
@@ -42,38 +47,37 @@ const ProductsManagement: React.FC = () => {
           : 'inactive',
   });
 
-  const products = productsResponse?.data || [];
-  const totalCount = productsResponse?.meta?.total_count || 0;
-  const currentPage = (productsResponse?.meta?.current_page || 1) - 1;
+  const brands = brandsResponse?.data || [];
+  const totalCount = brandsResponse?.meta?.total_count || 0;
+  const currentPage = (brandsResponse?.meta?.current_page || 1) - 1;
 
-  const deleteProductMutation = useDeleteProduct();
+  const deleteBrandMutation = useDeleteBrand();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalProducts = productsResponse?.stats?.total_products ?? 0;
-  const activeProducts = productsResponse?.stats?.active_products ?? 0;
-  const inactiveProducts = productsResponse?.stats?.inactive_products ?? 0;
-  const newProductsThisMonth =
-    productsResponse?.stats?.new_products_this_month ?? 0;
+  const totalBrands = brandsResponse?.stats?.total_brands ?? 0;
+  const activeBrands = brandsResponse?.stats?.active_brands ?? 0;
+  const inactiveBrands = brandsResponse?.stats?.inactive_brands ?? 0;
+  const newBrandsThisMonth = brandsResponse?.stats?.new_brands_this_month ?? 0;
 
-  const handleCreateProduct = useCallback(() => {
-    setSelectedProduct(null);
+  const handleCreateBrand = useCallback(() => {
+    setSelectedBrand(null);
     setDrawerOpen(true);
   }, []);
 
-  const handleEditProduct = useCallback((product: Product) => {
-    setSelectedProduct(product);
+  const handleEditBrand = useCallback((brand: Brand) => {
+    setSelectedBrand(brand);
     setDrawerOpen(true);
   }, []);
 
-  const handleDeleteProduct = useCallback(
+  const handleDeleteBrand = useCallback(
     async (id: number) => {
       try {
-        await deleteProductMutation.mutateAsync(id);
+        await deleteBrandMutation.mutateAsync(id);
       } catch (error) {
-        console.error('Error deleting product:', error);
+        console.error('Error deleting brand:', error);
       }
     },
-    [deleteProductMutation]
+    [deleteBrandMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -98,43 +102,31 @@ const ProductsManagement: React.FC = () => {
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'products',
+        tableName: 'brands',
         filters,
       });
     } catch (error) {
-      console.error('Error exporting products:', error);
+      console.error('Error exporting brands:', error);
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const formatPrice = (price: number | null | undefined) => {
-    if (price === null || price === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
-
-  const formatPercentage = (percentage: number | null | undefined) => {
-    if (percentage === null || percentage === undefined) return 'N/A';
-    return `${Number(percentage || '0').toFixed(2)}%`;
-  };
-
-  const productColumns: TableColumn<Product>[] = [
+  const brandColumns: TableColumn<Brand>[] = [
     {
       id: 'name',
-      label: 'Product Info',
+      label: 'Brand Name',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
             alt={row.name}
-            className="!rounded !bg-primary-100 !text-primary-600"
+            className="!rounded !bg-primary-100 !text-primary-500"
+            src={row.logo || undefined}
           >
-            <Package className="w-5 h-5" />
+            <Tag className="w-5 h-5" />
           </Avatar>
-          <Box>
+          <Box className="!max-w-xs">
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight !font-medium"
+              className="!text-gray-900 !leading-tight"
             >
               {row.name}
             </Typography>
@@ -142,70 +134,24 @@ const ProductsManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.code}
+              Code: {row.code}
             </Typography>
           </Box>
         </Box>
       ),
     },
     {
-      id: 'category',
-      label: 'Category & Brand',
-      render: (_value, row) => (
-        <Box>
-          <Box className="flex items-center text-sm mt-1">
-            <TrendingUp className="w-4 h-4 text-gray-400 mr-2" />
-            {row.product_brand?.name || 'N/A'}
-          </Box>
-          <Box className="flex items-center text-xs text-gray-900">
-            <Tag className="w-4 h-4 text-gray-400 mr-2" />
-            {row.product_category?.category_name || 'N/A'}{' '}
-            {row.product_sub_category?.sub_category_name && (
-              <span className="text-gray-500 pl-0.5">
-                {`• ${row.product_sub_category?.sub_category_name}`}
-              </span>
-            )}
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      id: 'pricing',
-      label: 'Pricing',
-      render: (_value, row) => (
-        <Box>
-          <Box className="flex items-center text-sm text-gray-900">
-            <DollarSign className="w-4 h-4 text-gray-400 mr-2" />
-            {formatPrice(row.base_price)}
-          </Box>
-          {row.tax_rate && (
-            <Box className="flex items-center text-sm text-gray-500 mt-1">
-              <Percent className="w-4 h-4 text-gray-400 mr-2" />
-              {formatPercentage(row.tax_rate)} tax
-            </Box>
-          )}
-        </Box>
-      ),
-    },
-    {
-      id: 'unit_of_measurement',
-      label: 'Unit',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.product_unit?.name || 'N/A'}
-        </Typography>
-      ),
-    },
-    {
       id: 'description',
       label: 'Description',
       render: (_value, row) => (
-        <Typography
-          variant="body2"
-          className="!text-gray-700 !max-w-xs !truncate"
-        >
-          {row.description || 'N/A'}
-        </Typography>
+        <Tooltip title={row.description} placement="top" arrow>
+          <Typography
+            variant="body2"
+            className="!text-gray-900 !max-w-xs !truncate"
+          >
+            {row.description}
+          </Typography>
+        </Tooltip>
       ),
     },
     {
@@ -216,20 +162,18 @@ const ProductsManagement: React.FC = () => {
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
+          className="w-26"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),
     },
     {
       id: 'createdate',
-      label: 'Created',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-500">
-          {row.createdate
-            ? new Date(row.createdate).toLocaleDateString()
-            : 'N/A'}
-        </Typography>
-      ),
+      label: 'Created Date',
+      render: (_value, row) =>
+        formatDate(row.createdate) || (
+          <span className="italic text-gray-400">No Date</span>
+        ),
     },
     {
       id: 'action',
@@ -238,11 +182,11 @@ const ProductsManagement: React.FC = () => {
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
           <EditButton
-            onClick={() => handleEditProduct(row)}
+            onClick={() => handleEditBrand(row)}
             tooltip={`Edit ${row.name}`}
           />
           <DeleteButton
-            onClick={() => handleDeleteProduct(row.id)}
+            onClick={() => handleDeleteBrand(row.id)}
             tooltip={`Delete ${row.name}`}
             itemName={row.name}
             confirmDelete={true}
@@ -256,85 +200,83 @@ const ProductsManagement: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">
-            Products Management
-          </p>
+          <p className="!font-bold text-xl !text-gray-900">Brands Management</p>
           <p className="!text-gray-500 text-sm">
-            Manage your product catalog with pricing and inventory details
+            Manage brands for your organization
           </p>
         </Box>
       </Box>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Products
+              <p className="text-sm font-medium text-primary-500">
+                Total Brands
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-gray-900">
-                  {totalProducts}
+                <p className="text-2xl font-bold text-primary-500">
+                  {totalBrands}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-blue-600" />
+              <Tag className="w-6 h-6 text-primary-500" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Active Products
+              <p className="text-sm font-medium text-green-500">
+                Active Brands
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-green-600">
-                  {activeProducts}
+                <p className="text-2xl font-bold text-green-500">
+                  {activeBrands}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-green-600" />
+              <CheckCircle className="w-6 h-6 text-green-500" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Inactive Products
+              <p className="text-sm font-medium text-red-500">
+                Inactive Brands
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-red-600">
-                  {inactiveProducts}
+                  {inactiveBrands}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-red-600" />
+              <Block className="w-6 h-6 text-red-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-purple-600">
                 New This Month
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {newProductsThisMonth}
+                  {newBrandsThisMonth}
                 </p>
               )}
             </div>
@@ -347,30 +289,28 @@ const ProductsManagement: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load products. Please try again.
+          Failed to load brands. Please try again.
         </Alert>
       )}
 
       <Table
-        data={products}
-        columns={productColumns}
+        data={brands}
+        columns={brandColumns}
         actions={
           <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <SearchInput
-                placeholder="Search Products"
+                placeholder="Search Brands..."
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
                 showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
+                className="!w-80"
               />
               <Select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
+                className="!w-32"
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
@@ -379,8 +319,8 @@ const ProductsManagement: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <PopConfirm
-                title="Export Products"
-                description="Are you sure you want to export the current products data to Excel? This will include all filtered results."
+                title="Export Brands"
+                description="Are you sure you want to export the current brands data to Excel? This will include all filtered results."
                 onConfirm={handleExportToExcel}
                 confirmText="Export"
                 cancelText="Cancel"
@@ -408,14 +348,14 @@ const ProductsManagement: React.FC = () => {
                 className="!capitalize"
                 disableElevation
                 startIcon={<Add />}
-                onClick={handleCreateProduct}
+                onClick={handleCreateBrand}
               >
-                Add Product
+                Create
               </Button>
             </div>
           </div>
         }
-        getRowId={product => product.id}
+        getRowId={brand => brand.id}
         initialOrderBy="name"
         loading={isLoading}
         totalCount={totalCount}
@@ -424,19 +364,19 @@ const ProductsManagement: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No products found matching "${search}"`
-            : 'No products found in the system'
+            ? `No brands found matching "${search}"`
+            : 'No brands found in the system'
         }
       />
 
-      <ManageProduct
-        selectedProduct={selectedProduct}
-        setSelectedProduct={setSelectedProduct}
+      <ManageBrand
+        selectedBrand={selectedBrand}
+        setSelectedBrand={setSelectedBrand}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
       />
 
-      <ImportProduct
+      <ImportBrand
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
       />
@@ -444,4 +384,4 @@ const ProductsManagement: React.FC = () => {
   );
 };
 
-export default ProductsManagement;
+export default BrandsPage;

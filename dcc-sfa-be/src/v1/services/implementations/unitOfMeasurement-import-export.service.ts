@@ -5,29 +5,29 @@ import * as ExcelJS from 'exceljs';
 
 const prisma = new PrismaClient();
 
-export class ProductCategoriesImportExportService extends ImportExportService<any> {
-  protected modelName = 'product_categories' as const;
-  protected displayName = 'Product Categories';
-  protected uniqueFields = ['category_name'];
-  protected searchFields = ['category_name', 'description'];
+export class UnitOfMeasurementImportExportService extends ImportExportService<any> {
+  protected modelName = 'unit_of_measurement' as const;
+  protected displayName = 'Unit of Measurement';
+  protected uniqueFields = ['name'];
+  protected searchFields = ['name', 'description', 'category', 'symbol'];
 
   protected columns: ColumnDefinition[] = [
     {
-      key: 'category_name',
-      header: 'Category Name',
+      key: 'name',
+      header: 'Unit Name',
       width: 25,
       required: true,
       type: 'string',
       validation: value => {
-        if (!value) return 'Category name is required';
-        if (value.length < 2)
-          return 'Category name must be at least 2 characters';
+        if (!value) return 'Unit name is required';
+        if (value.length < 2) return 'Unit name must be at least 2 characters';
         if (value.length > 100)
-          return 'Category name must not exceed 100 characters';
+          return 'Unit name must not exceed 100 characters';
         return true;
       },
       transform: value => value.toString().trim(),
-      description: 'Name of the product category (required, 2-100 characters)',
+      description:
+        'Name of the unit of measurement (required, 2-100 characters)',
     },
     {
       key: 'description',
@@ -41,8 +41,35 @@ export class ProductCategoriesImportExportService extends ImportExportService<an
         return true;
       },
       transform: value => (value ? value.toString().trim() : null),
-      description:
-        'Description of the product category (optional, max 500 characters)',
+      description: 'Description of the unit (optional, max 500 characters)',
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      width: 20,
+      type: 'string',
+      validation: value => {
+        if (value && value.length > 50) {
+          return 'Category must not exceed 50 characters';
+        }
+        return true;
+      },
+      transform: value => (value ? value.toString().trim() : null),
+      description: 'Category of the unit (optional, max 50 characters)',
+    },
+    {
+      key: 'symbol',
+      header: 'Symbol',
+      width: 15,
+      type: 'string',
+      validation: value => {
+        if (value && value.length > 10) {
+          return 'Symbol must not exceed 10 characters';
+        }
+        return true;
+      },
+      transform: value => (value ? value.toString().trim() : null),
+      description: 'Symbol for the unit (optional, max 10 characters)',
     },
     {
       key: 'is_active',
@@ -62,29 +89,38 @@ export class ProductCategoriesImportExportService extends ImportExportService<an
   protected async getSampleData(): Promise<any[]> {
     return [
       {
-        category_name: 'Beverages',
-        description:
-          'All types of beverages including soft drinks, juices, and water',
+        name: 'Kilogram',
+        description: 'Unit of mass in the metric system',
+        category: 'Weight',
+        symbol: 'kg',
         is_active: 'Y',
       },
       {
-        category_name: 'Snacks',
-        description: 'Various snack items like chips, crackers, and nuts',
+        name: 'Liter',
+        description: 'Unit of volume in the metric system',
+        category: 'Volume',
+        symbol: 'L',
         is_active: 'Y',
       },
       {
-        category_name: 'Dairy Products',
-        description: 'Milk, cheese, yogurt, and other dairy items',
+        name: 'Meter',
+        description: 'Unit of length in the metric system',
+        category: 'Length',
+        symbol: 'm',
         is_active: 'Y',
       },
       {
-        category_name: 'Frozen Foods',
-        description: 'Frozen meals, ice cream, and frozen vegetables',
+        name: 'Piece',
+        description: 'Unit for counting individual items',
+        category: 'Count',
+        symbol: 'pcs',
         is_active: 'Y',
       },
       {
-        category_name: 'Health & Wellness',
-        description: 'Health supplements, vitamins, and wellness products',
+        name: 'Box',
+        description: 'Unit for packaged items',
+        category: 'Package',
+        symbol: 'box',
         is_active: 'N',
       },
     ];
@@ -92,46 +128,51 @@ export class ProductCategoriesImportExportService extends ImportExportService<an
 
   protected getColumnDescription(): string {
     return `
-# Product Categories Import Template
+# Unit of Measurement Import Template
 
 ## Required Fields:
-- **Category Name**: Name of the product category (2-100 characters)
+- **Unit Name**: Name of the unit of measurement (2-100 characters)
 
 ## Optional Fields:
-- **Description**: Description of the product category (max 500 characters)
-- **Is Active**: Whether the category is active (Y/N, defaults to Y)
+- **Description**: Description of the unit (max 500 characters)
+- **Category**: Category of the unit (max 50 characters)
+- **Symbol**: Symbol for the unit (max 10 characters)
+- **Is Active**: Whether the unit is active (Y/N, defaults to Y)
 
 ## Notes:
-- Category names must be unique across the system.
-- Active categories are available for use in products and sales targets.
-- Inactive categories are hidden but preserved for historical data.
-- Description helps users understand the category purpose.
+- Unit names must be unique across the system.
+- Active units are available for use in products and inventory.
+- Inactive units are hidden but preserved for historical data.
+- Categories help organize units (e.g., Weight, Volume, Length, Count).
+- Symbols are used for display purposes (e.g., kg, L, m, pcs).
     `;
   }
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
-    return data.map(category => ({
-      category_name: category.category_name,
-      description: category.description || '',
-      is_active: category.is_active || 'Y',
-      createdate: category.createdate?.toISOString().split('T')[0] || '',
-      createdby: category.createdby || '',
-      updatedate: category.updatedate?.toISOString().split('T')[0] || '',
-      updatedby: category.updatedby || '',
+    return data.map(unit => ({
+      name: unit.name,
+      description: unit.description || '',
+      category: unit.category || '',
+      symbol: unit.symbol || '',
+      is_active: unit.is_active || 'Y',
+      createdate: unit.createdate?.toISOString().split('T')[0] || '',
+      createdby: unit.createdby || '',
+      updatedate: unit.updatedate?.toISOString().split('T')[0] || '',
+      updatedby: unit.updatedby || '',
     }));
   }
 
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
-    const model = tx ? tx.product_categories : prisma.product_categories;
+    const model = tx ? tx.unit_of_measurement : prisma.unit_of_measurement;
 
-    const existingCategory = await model.findFirst({
+    const existingUnit = await model.findFirst({
       where: {
-        category_name: data.category_name,
+        name: data.name,
       },
     });
 
-    if (existingCategory) {
-      return `Product category "${data.category_name}" already exists`;
+    if (existingUnit) {
+      return `Unit of measurement "${data.name}" already exists`;
     }
 
     return null;
@@ -142,8 +183,10 @@ export class ProductCategoriesImportExportService extends ImportExportService<an
     userId: number
   ): Promise<any> {
     return {
-      category_name: data.category_name,
+      name: data.name,
       description: data.description || null,
+      category: data.category || null,
+      symbol: data.symbol || null,
       is_active: data.is_active || 'Y',
       createdate: new Date(),
       createdby: userId,
@@ -152,7 +195,7 @@ export class ProductCategoriesImportExportService extends ImportExportService<an
   }
 
   protected async validateForeignKeys(data: any[]): Promise<string | null> {
-    // Product categories don't have foreign key dependencies
+    // Unit of measurement doesn't have foreign key dependencies
     return null;
   }
 
@@ -168,12 +211,12 @@ export class ProductCategoriesImportExportService extends ImportExportService<an
     userId: number,
     tx?: any
   ): Promise<any> {
-    const model = tx ? tx.product_categories : prisma.product_categories;
+    const model = tx ? tx.unit_of_measurement : prisma.unit_of_measurement;
 
     // Find existing record based on unique fields
     const existing = await model.findFirst({
       where: {
-        category_name: data.category_name,
+        name: data.name,
       },
     });
 

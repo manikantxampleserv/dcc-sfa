@@ -10,15 +10,22 @@ export const productValidationSchema = yup.object().shape({
     .string()
     .max(1000, 'Description cannot exceed 1000 characters')
     .nullable(),
-  category: yup
-    .string()
-    .max(100, 'Category cannot exceed 100 characters')
-    .nullable(),
-  brand: yup.string().max(100, 'Brand cannot exceed 100 characters').nullable(),
-  unit_of_measure: yup
-    .string()
-    .max(50, 'Unit of measure cannot exceed 50 characters')
-    .nullable(),
+  category_id: yup
+    .number()
+    .required('Category is required')
+    .min(1, 'Please select a valid category'),
+  sub_category_id: yup
+    .number()
+    .required('Sub-category is required')
+    .min(1, 'Please select a valid sub-category'),
+  brand_id: yup
+    .number()
+    .required('Brand is required')
+    .min(1, 'Please select a valid brand'),
+  unit_of_measurement: yup
+    .number()
+    .required('Unit of measurement is required')
+    .min(1, 'Please select a valid unit of measurement'),
   base_price: yup.number().min(0, 'Base price must be at least 0').nullable(),
   tax_rate: yup
     .number()

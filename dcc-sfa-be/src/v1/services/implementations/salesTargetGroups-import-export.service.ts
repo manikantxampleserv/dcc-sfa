@@ -140,8 +140,11 @@ export class SalesTargetGroupsImportExportService extends ImportExportService<an
     return null;
   }
 
-  protected async prepareDataForImport(data: any[]): Promise<any[]> {
-    return data.map(item => this.transformDataForImport(item, 1));
+  protected async prepareDataForImport(
+    data: any,
+    userId: number
+  ): Promise<any> {
+    return this.transformDataForImport(data, userId);
   }
 
   protected async updateExisting(

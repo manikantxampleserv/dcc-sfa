@@ -15,6 +15,7 @@ import OutletsManagement from 'pages/masters/Outlet';
 import OutletDetail from 'pages/masters/Outlet/OutletDetail';
 import OutletGroupsManagement from 'pages/masters/OutletGroups';
 import PriceListsManagement from 'pages/masters/PriceLists';
+import BrandsManagement from 'pages/masters/Brands';
 import ProductCategoriesManagement from 'pages/masters/ProductCategories';
 import ProductsManagement from 'pages/masters/Products';
 import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
@@ -26,6 +27,7 @@ import SurveyBuilder from 'pages/masters/SurveyBuilder';
 import Users from 'pages/masters/Users';
 import UserDetail from 'pages/masters/Users/UserDetail';
 import VehiclesManagement from 'pages/masters/Vehicles';
+import UnitOfMeasurementManagement from 'pages/masters/UnitOfMeasurement';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import ZonesManagement from 'pages/masters/Zone';
 import Profile from 'pages/Profile';
@@ -34,7 +36,6 @@ import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-const BrandManagement = () => <h1>Brand Management</h1>;
 const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
 const DeliveryScheduling = () => <h1>Delivery Scheduling</h1>;
 const ReturnRequests = () => <h1>Return Requests</h1>;
@@ -63,7 +64,6 @@ const ApprovalWorkflows = () => <h1>Approval Workflows</h1>;
 const RouteExceptions = () => <h1>Route Exceptions</h1>;
 const AlertsReminders = () => <h1>Alerts & Reminders</h1>;
 const SystemSettings = () => <h1>System Settings</h1>;
-const UnitOfMeasurementManagement = () => <h1>Unit of Measurement</h1>;
 
 const router = createBrowserRouter([
   {
@@ -93,7 +93,7 @@ const router = createBrowserRouter([
 
       {
         path: '/masters/brands',
-        element: <BrandManagement />,
+        element: <BrandsManagement />,
       },
       {
         path: '/masters/company',

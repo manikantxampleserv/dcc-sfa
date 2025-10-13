@@ -27,6 +27,19 @@ import { useUsers } from '../../../hooks/useUsers';
 import { useZones } from '../../../hooks/useZones';
 import ManageOutlet from './ManageOutlet';
 
+export const BUSINESS_TYPES = [
+  'Retail',
+  'Wholesale',
+  'Corporate',
+  'Industrial',
+  'Healthcare',
+  'Automotive',
+  'Restaurant',
+  'Service',
+  'Manufacturing',
+  'Distribution',
+];
+
 const OutletsManagement: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -56,17 +69,17 @@ const OutletsManagement: React.FC = () => {
 
   const { data: usersResponse } = useUsers({
     page: 1,
-    limit: 1000, // Get all users for salesperson filtering
+    limit: 1000,
   });
 
   const { data: routesResponse } = useRoutes({
     page: 1,
-    limit: 100, // Get all routes
+    limit: 100,
   });
 
   const { data: zonesResponse } = useZones({
     page: 1,
-    limit: 100, // Get all zones
+    limit: 100,
   });
 
   const customers = customersResponse?.data || [];
@@ -78,34 +91,13 @@ const OutletsManagement: React.FC = () => {
 
   const deleteCustomerMutation = useDeleteCustomer();
 
-  // Statistics - Use API stats when available, fallback to local calculation
-  const totalCustomers =
-    customersResponse?.stats?.total_customers ?? customers.length;
-  const activeCustomers =
-    customersResponse?.stats?.active_customers ??
-    customers.filter(c => c.is_active === 'Y').length;
+  const totalCustomers = customersResponse?.stats?.total_customers ?? 0;
+  const activeCustomers = customersResponse?.stats?.active_customers ?? 0;
 
-  // Type-based statistics from API
-  const distributors =
-    customersResponse?.stats?.distributors ??
-    customers.filter(c => c.type === 'distributor').length;
-  const retailers =
-    customersResponse?.stats?.retailers ??
-    customers.filter(c => c.type === 'retailer').length;
-  const wholesalers =
-    customersResponse?.stats?.wholesellers ??
-    customers.filter(c => c.type === 'wholesaler').length;
+  const totalCreditLimit = customersResponse?.stats?.total_credit_limit ?? 0;
 
-  // Financial statistics from API
-  const totalCreditLimit = customersResponse?.stats?.total_credit_limit
-    ? parseFloat(customersResponse.stats.total_credit_limit)
-    : customers.reduce((sum, c) => sum + parseFloat(c.credit_limit || '0'), 0);
-  const totalOutstanding = customersResponse?.stats?.total_outstanding_amount
-    ? parseFloat(customersResponse.stats.total_outstanding_amount)
-    : customers.reduce(
-        (sum, c) => sum + parseFloat(c.outstanding_amount || '0'),
-        0
-      );
+  const totalOutstanding =
+    customersResponse?.stats?.total_outstanding_amount ?? 0;
 
   const handleCreateOutlet = useCallback(() => {
     setSelectedOutlet(null);
@@ -145,33 +137,60 @@ const OutletsManagement: React.FC = () => {
     }).format(parseFloat(amount));
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'distributor':
-        return 'bg-purple-100 text-purple-800';
-      case 'retailer':
+  const getBusinessTypeColor = (type: string) => {
+    switch ((type || '').toLowerCase()) {
+      case 'retail':
         return 'bg-blue-100 text-blue-800';
-      case 'wholesaler':
+      case 'wholesale':
         return 'bg-green-100 text-green-800';
+      case 'corporate':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'industrial':
+        return 'bg-gray-100 text-gray-700';
+      case 'healthcare':
+        return 'bg-pink-100 text-pink-800';
+      case 'automotive':
+        return 'bg-red-100 text-red-800';
+      case 'restaurant':
+        return 'bg-orange-100 text-orange-800';
+      case 'service':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'manufacturing':
+        return 'bg-purple-100 text-purple-800';
+      case 'distribution':
+        return 'bg-cyan-100 text-cyan-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'distributor':
-        return <TrendingUp className="w-4 h-4" />;
-      case 'retailer':
+  const getBusinessTypeIcon = (type: string) => {
+    switch ((type || '').toLowerCase()) {
+      case 'retail':
         return <Store className="w-4 h-4" />;
-      case 'wholesaler':
+      case 'wholesale':
         return <Users className="w-4 h-4" />;
+      case 'corporate':
+        return <TrendingUp className="w-4 h-4" />;
+      case 'industrial':
+        return <TrendingUp className="w-4 h-4" />;
+      case 'healthcare':
+        return <Users className="w-4 h-4" />;
+      case 'automotive':
+        return <TrendingUp className="w-4 h-4" />;
+      case 'restaurant':
+        return <Users className="w-4 h-4" />;
+      case 'service':
+        return <TrendingUp className="w-4 h-4" />;
+      case 'manufacturing':
+        return <TrendingUp className="w-4 h-4" />;
+      case 'distribution':
+        return <TrendingUp className="w-4 h-4" />;
       default:
         return <Store className="w-4 h-4" />;
     }
   };
 
-  // Define table columns with better separation
   const outletColumns: TableColumn<Customer>[] = [
     {
       id: 'name',
@@ -206,9 +225,9 @@ const OutletsManagement: React.FC = () => {
       label: 'Type',
       render: (_value, row) => (
         <span
-          className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(row.type || '')}`}
+          className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getBusinessTypeColor(row.type || '')}`}
         >
-          {getTypeIcon(row.type || '')}
+          {getBusinessTypeIcon(row.type || '')}
           <span className="ml-1 capitalize">{row.type || 'N/A'}</span>
         </span>
       ),
@@ -341,7 +360,6 @@ const OutletsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
@@ -419,59 +437,6 @@ const OutletsManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Type Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Distributors</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {distributors}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Retailers</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-blue-600">{retailers}</p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Store className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Wholesalers</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-600">
-                  {wholesalers}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {error && (
         <Alert severity="error" className="!mb-4">
           Failed to load outlets. Please try again.
@@ -511,9 +476,11 @@ const OutletsManagement: React.FC = () => {
                 size="small"
               >
                 <MenuItem value="all">All Types</MenuItem>
-                <MenuItem value="distributor">Distributors</MenuItem>
-                <MenuItem value="retailer">Retailers</MenuItem>
-                <MenuItem value="wholesaler">Wholesalers</MenuItem>
+                {BUSINESS_TYPES.map(type => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
               </Select>
             </div>
             <Button

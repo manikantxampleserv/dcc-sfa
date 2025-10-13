@@ -6,9 +6,10 @@ interface Product {
   name: string;
   code: string;
   description?: string | null;
-  category?: string | null;
-  brand?: string | null;
-  unit_of_measure?: string | null;
+  category_id: number;
+  sub_category_id: number;
+  brand_id: number;
+  unit_of_measurement: number;
   base_price?: number | null;
   tax_rate?: number | null;
   is_active: string;
@@ -30,14 +31,19 @@ interface Product {
     quantity: number;
     price: number;
   }[];
+  product_brand: { id: number; name: string; code: string; logo: string };
+  product_unit: { id: number; name: string };
+  product_category: { id: number; category_name: string };
+  product_sub_category: { id: number; sub_category_name: string };
 }
 
 interface ManageProductPayload {
   name: string;
   description?: string;
-  category?: string;
-  brand?: string;
-  unit_of_measure?: string;
+  category_id: number;
+  sub_category_id: number;
+  brand_id: number;
+  unit_of_measurement: number;
   base_price?: number;
   tax_rate?: number;
   is_active?: string;
@@ -46,9 +52,10 @@ interface ManageProductPayload {
 interface UpdateProductPayload {
   name?: string;
   description?: string;
-  category?: string;
-  brand?: string;
-  unit_of_measure?: string;
+  category_id?: number;
+  sub_category_id?: number;
+  brand_id?: number;
+  unit_of_measurement?: number;
   base_price?: number;
   tax_rate?: number;
   is_active?: string;
@@ -58,9 +65,9 @@ interface GetProductsParams {
   page?: number;
   limit?: number;
   search?: string;
-  isActive?: string;
-  category?: string;
-  brand?: string;
+  status?: string;
+  category_id?: number;
+  brand_id?: number;
 }
 
 interface PaginationMeta {
