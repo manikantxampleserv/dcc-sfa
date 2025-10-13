@@ -134,6 +134,31 @@ export interface ApiResponse<T = any> {
     active_sales_target_groups?: number;
     inactive_sales_target_groups?: number;
     sales_target_groups_this_month?: number;
+    // Product statistics
+    total_products?: number;
+    active_products?: number;
+    inactive_products?: number;
+    new_products_this_month?: number;
+    // Unit of measurement statistics
+    total_units?: number;
+    active_units?: number;
+    inactive_units?: number;
+    new_units_this_month?: number;
+    // Brand statistics
+    total_brands?: number;
+    active_brands?: number;
+    inactive_brands?: number;
+    new_brands_this_month?: number;
+    // Product category statistics
+    total_product_categories?: number;
+    active_product_categories?: number;
+    inactive_product_categories?: number;
+    new_product_categories_this_month?: number;
+    // Product sub category statistics
+    total_sub_categories?: number;
+    active_sub_categories?: number;
+    inactive_sub_categories?: number;
+    new_sub_categories_this_month?: number;
   };
 }
 

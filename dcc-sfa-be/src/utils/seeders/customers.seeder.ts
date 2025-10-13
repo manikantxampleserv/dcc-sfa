@@ -1,6 +1,6 @@
 /**
  * @fileoverview Customers Seeder
- * @description Creates 11 sample customers for testing and development
+ * @description Creates 100,000 random customers for testing and development
  * @author DCC-SFA Team
  * @version 1.0.0
  */
@@ -24,197 +24,235 @@ interface MockCustomer {
   is_active: string;
 }
 
-// Mock Customers Data (11 customers)
-const mockCustomers: MockCustomer[] = [
-  {
-    name: 'ABC Retail Store',
-    code: 'CUST-001',
-    type: 'Retail',
-    contact_person: 'John Smith',
-    email: 'john@abcretail.com',
-    phone_number: '+1-555-1001',
-    address: '123 Main Street',
-    city: 'New York',
-    state: 'NY',
-    zipcode: '10001',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'XYZ Wholesale',
-    code: 'CUST-002',
-    type: 'Wholesale',
-    contact_person: 'Jane Doe',
-    email: 'jane@xyzwholesale.com',
-    phone_number: '+1-555-1002',
-    address: '456 Commerce Ave',
-    city: 'Atlanta',
-    state: 'GA',
-    zipcode: '30301',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'Tech Solutions Inc',
-    code: 'CUST-003',
-    type: 'Corporate',
-    contact_person: 'Mike Johnson',
-    email: 'mike@techsolutions.com',
-    phone_number: '+1-555-1003',
-    address: '789 Tech Drive',
-    city: 'Los Angeles',
-    state: 'CA',
-    zipcode: '90001',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'Food Mart Chain',
-    code: 'CUST-004',
-    type: 'Retail',
-    contact_person: 'Sarah Wilson',
-    email: 'sarah@foodmart.com',
-    phone_number: '+1-555-1004',
-    address: '321 Food Street',
-    city: 'Chicago',
-    state: 'IL',
-    zipcode: '60601',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'Industrial Supplies Co',
-    code: 'CUST-005',
-    type: 'Industrial',
-    contact_person: 'David Brown',
-    email: 'david@industrialsupplies.com',
-    phone_number: '+1-555-1005',
-    address: '654 Industrial Blvd',
-    city: 'Miami',
-    state: 'FL',
-    zipcode: '33101',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'Health Plus Pharmacy',
-    code: 'CUST-006',
-    type: 'Healthcare',
-    contact_person: 'Lisa Garcia',
-    email: 'lisa@healthplus.com',
-    phone_number: '+1-555-1006',
-    address: '987 Health Lane',
-    city: 'Denver',
-    state: 'CO',
-    zipcode: '80201',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'Auto Parts Direct',
-    code: 'CUST-007',
-    type: 'Automotive',
-    contact_person: 'Tom Anderson',
-    email: 'tom@autopartsdirect.com',
-    phone_number: '+1-555-1007',
-    address: '147 Auto Street',
-    city: 'Phoenix',
-    state: 'AZ',
-    zipcode: '85001',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'Office Supply Hub',
-    code: 'CUST-008',
-    type: 'Corporate',
-    contact_person: 'Alex Martinez',
-    email: 'alex@officesupplyhub.com',
-    phone_number: '+1-555-1008',
-    address: '258 Office Plaza',
-    city: 'Seattle',
-    state: 'WA',
-    zipcode: '98101',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'Sports Equipment Store',
-    code: 'CUST-009',
-    type: 'Retail',
-    contact_person: 'Emma Davis',
-    email: 'emma@sportsequipment.com',
-    phone_number: '+1-555-1009',
-    address: '369 Sports Ave',
-    city: 'Houston',
-    state: 'TX',
-    zipcode: '77001',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'Electronics Outlet',
-    code: 'CUST-010',
-    type: 'Retail',
-    contact_person: 'Chris Taylor',
-    email: 'chris@electronicsoutlet.com',
-    phone_number: '+1-555-1010',
-    address: '741 Electronics Blvd',
-    city: 'Minneapolis',
-    state: 'MN',
-    zipcode: '55401',
-    zones_id: undefined,
-    is_active: 'Y',
-  },
-  {
-    name: 'Closed Business',
-    code: 'CUST-011',
-    type: 'Retail',
-    contact_person: 'Closed Owner',
-    email: 'closed@business.com',
-    phone_number: '+1-555-1011',
-    address: '852 Closed Street',
-    city: 'Cleveland',
-    state: 'OH',
-    zipcode: '44101',
-    zones_id: undefined,
-    is_active: 'N',
-  },
+// Sample data for random generation
+const businessTypes = [
+  'Retail',
+  'Wholesale',
+  'Corporate',
+  'Industrial',
+  'Healthcare',
+  'Automotive',
+  'Restaurant',
+  'Service',
+  'Manufacturing',
+  'Distribution',
+];
+const firstNames = [
+  'John',
+  'Jane',
+  'Mike',
+  'Sarah',
+  'David',
+  'Lisa',
+  'Tom',
+  'Alex',
+  'Emma',
+  'Chris',
+  'Maria',
+  'Robert',
+  'Jennifer',
+  'Michael',
+  'Linda',
+  'William',
+  'Elizabeth',
+  'James',
+  'Patricia',
+  'Richard',
+];
+const lastNames = [
+  'Smith',
+  'Johnson',
+  'Williams',
+  'Brown',
+  'Jones',
+  'Garcia',
+  'Miller',
+  'Davis',
+  'Rodriguez',
+  'Martinez',
+  'Hernandez',
+  'Lopez',
+  'Gonzalez',
+  'Wilson',
+  'Anderson',
+  'Thomas',
+  'Taylor',
+  'Moore',
+  'Jackson',
+  'Martin',
+];
+const cities = [
+  'New York',
+  'Los Angeles',
+  'Chicago',
+  'Houston',
+  'Phoenix',
+  'Philadelphia',
+  'San Antonio',
+  'San Diego',
+  'Dallas',
+  'San Jose',
+  'Austin',
+  'Jacksonville',
+  'Fort Worth',
+  'Columbus',
+  'Charlotte',
+  'San Francisco',
+  'Indianapolis',
+  'Seattle',
+  'Denver',
+  'Washington',
+];
+const states = [
+  'NY',
+  'CA',
+  'IL',
+  'TX',
+  'AZ',
+  'PA',
+  'FL',
+  'OH',
+  'NC',
+  'WA',
+  'CO',
+  'DC',
+  'IN',
+  'GA',
+  'MI',
+  'VA',
+  'TN',
+  'MA',
+  'MD',
+  'WI',
+];
+const streetTypes = [
+  'Street',
+  'Avenue',
+  'Road',
+  'Drive',
+  'Lane',
+  'Boulevard',
+  'Court',
+  'Place',
+  'Way',
+  'Circle',
+];
+const businessSuffixes = [
+  'Store',
+  'Shop',
+  'Mart',
+  'Center',
+  'Hub',
+  'Outlet',
+  'Market',
+  'Plaza',
+  'Mall',
+  'Depot',
+  'Warehouse',
+  'Distributors',
+  'Suppliers',
+  'Services',
+  'Solutions',
+  'Group',
+  'Corp',
+  'Inc',
+  'LLC',
+  'Co',
 ];
 
+// Generate random customer data
+function generateRandomCustomer(index: number): MockCustomer {
+  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+  const businessType =
+    businessTypes[Math.floor(Math.random() * businessTypes.length)];
+  const suffix =
+    businessSuffixes[Math.floor(Math.random() * businessSuffixes.length)];
+  const city = cities[Math.floor(Math.random() * cities.length)];
+  const state = states[Math.floor(Math.random() * states.length)];
+  const streetType =
+    streetTypes[Math.floor(Math.random() * streetTypes.length)];
+
+  const streetNumber = Math.floor(Math.random() * 9999) + 1;
+  const zipcode = Math.floor(Math.random() * 90000) + 10000;
+  const phoneNumber = `+1-555-${Math.floor(Math.random() * 9000) + 1000}`;
+
+  const businessName = `${businessType} ${suffix} ${index + 1}`;
+  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${businessName.toLowerCase().replace(/\s+/g, '')}.com`;
+
+  return {
+    name: businessName,
+    code: `CUST-${(index + 1).toString().padStart(6, '0')}`,
+    type: businessType,
+    contact_person: `${firstName} ${lastName}`,
+    email: email,
+    phone_number: phoneNumber,
+    address: `${streetNumber} ${city} ${streetType}`,
+    city: city,
+    state: state,
+    zipcode: zipcode.toString(),
+    zones_id: Math.floor(Math.random() * 10) + 1, // Random zone between 1-10
+    is_active: Math.random() > 0.1 ? 'Y' : 'N', // 90% active, 10% inactive
+  };
+}
+
 /**
- * Seed Customers with mock data
+ * Seed Customers with 100,000 random customers
  */
 export async function seedCustomers(): Promise<void> {
   try {
-    for (const customer of mockCustomers) {
-      const existingCustomer = await prisma.customers.findFirst({
-        where: { name: customer.name },
+    const totalCustomers = 100000;
+    const batchSize = 1000; // Process in batches of 1000
+    const totalBatches = Math.ceil(totalCustomers / batchSize);
+
+    console.log(
+      `Starting to seed ${totalCustomers} customers in ${totalBatches} batches...`
+    );
+
+    for (let batch = 0; batch < totalBatches; batch++) {
+      const startIndex = batch * batchSize;
+      const endIndex = Math.min(startIndex + batchSize, totalCustomers);
+      const batchSizeActual = endIndex - startIndex;
+
+      console.log(
+        `Processing batch ${batch + 1}/${totalBatches} (customers ${startIndex + 1}-${endIndex})...`
+      );
+
+      // Generate batch of customers
+      const customers = [];
+      for (let i = startIndex; i < endIndex; i++) {
+        customers.push(generateRandomCustomer(i));
+      }
+
+      // Insert batch using createMany for better performance
+      await prisma.customers.createMany({
+        data: customers.map(customer => ({
+          name: customer.name,
+          code: customer.code,
+          type: customer.type,
+          contact_person: customer.contact_person,
+          email: customer.email,
+          phone_number: customer.phone_number,
+          address: customer.address,
+          city: customer.city,
+          state: customer.state,
+          zipcode: customer.zipcode,
+          zones_id: customer.zones_id,
+          is_active: customer.is_active,
+          createdate: new Date(),
+          createdby: 1,
+          log_inst: 1,
+        })),
       });
 
-      if (!existingCustomer) {
-        await prisma.customers.create({
-          data: {
-            name: customer.name,
-            code: customer.code,
-            type: customer.type,
-            contact_person: customer.contact_person,
-            email: customer.email,
-            phone_number: customer.phone_number,
-            address: customer.address,
-            city: customer.city,
-            state: customer.state,
-            zipcode: customer.zipcode,
-            zones_id: customer.zones_id,
-            is_active: customer.is_active,
-            createdate: new Date(),
-            createdby: 1,
-            log_inst: 1,
-          },
-        });
-      }
+      console.log(
+        `Batch ${batch + 1} completed. Inserted ${batchSizeActual} customers.`
+      );
     }
+
+    console.log(`Successfully seeded ${totalCustomers} customers!`);
   } catch (error) {
+    console.error('Error seeding customers:', error);
     throw error;
   }
 }
@@ -224,10 +262,11 @@ export async function seedCustomers(): Promise<void> {
  */
 export async function clearCustomers(): Promise<void> {
   try {
-    await prisma.customers.deleteMany({});
+    console.log('Clearing all customers...');
+    const result = await prisma.customers.deleteMany({});
+    console.log(`Cleared ${result.count} customers.`);
   } catch (error) {
+    console.error('Error clearing customers:', error);
     throw error;
   }
 }
-
-export { mockCustomers };

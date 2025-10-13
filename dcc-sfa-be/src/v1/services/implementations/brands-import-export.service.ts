@@ -5,46 +5,44 @@ import * as ExcelJS from 'exceljs';
 
 const prisma = new PrismaClient();
 
-export class ProductSubCategoriesImportExportService extends ImportExportService<any> {
-  protected modelName = 'product_sub_categories' as const;
-  protected displayName = 'Product Sub Categories';
-  protected uniqueFields = ['sub_category_name', 'product_category_id'];
-  protected searchFields = ['sub_category_name', 'description'];
+export class BrandsImportExportService extends ImportExportService<any> {
+  protected modelName = 'brands' as const;
+  protected displayName = 'Brands';
+  protected uniqueFields = ['name'];
+  protected searchFields = ['name', 'code', 'description'];
 
   protected columns: ColumnDefinition[] = [
     {
-      key: 'sub_category_name',
-      header: 'Sub Category Name',
+      key: 'name',
+      header: 'Brand Name',
       width: 25,
       required: true,
       type: 'string',
       validation: value => {
-        if (!value) return 'Sub category name is required';
-        if (value.length < 2)
-          return 'Sub category name must be at least 2 characters';
+        if (!value) return 'Brand name is required';
+        if (value.length < 2) return 'Brand name must be at least 2 characters';
         if (value.length > 100)
-          return 'Sub category name must not exceed 100 characters';
+          return 'Brand name must not exceed 100 characters';
         return true;
       },
       transform: value => value.toString().trim(),
-      description:
-        'Name of the product sub category (required, 2-100 characters)',
+      description: 'Name of the brand (required, 2-100 characters)',
     },
     {
-      key: 'product_category_id',
-      header: 'Product Category ID',
-      width: 20,
-      required: true,
-      type: 'number',
+      key: 'code',
+      header: 'Brand Code',
+      width: 15,
+      type: 'string',
       validation: value => {
-        if (!value) return 'Product category ID is required';
-        const num = parseInt(value);
-        if (isNaN(num) || num < 1)
-          return 'Product category ID must be a positive integer';
+        if (value && value.length > 20) {
+          return 'Brand code must not exceed 20 characters';
+        }
         return true;
       },
-      transform: value => parseInt(value),
-      description: 'ID of the parent product category (required)',
+      transform: value =>
+        value ? value.toString().trim().toUpperCase() : null,
+      description:
+        'Brand code (optional, max 20 characters, auto-generated if not provided)',
     },
     {
       key: 'description',
@@ -58,8 +56,7 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
         return true;
       },
       transform: value => (value ? value.toString().trim() : null),
-      description:
-        'Description of the product sub category (optional, max 500 characters)',
+      description: 'Description of the brand (optional, max 500 characters)',
     },
     {
       key: 'is_active',
@@ -79,33 +76,33 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
   protected async getSampleData(): Promise<any[]> {
     return [
       {
-        sub_category_name: 'Soft Drinks',
-        product_category_id: 1,
-        description: 'Carbonated soft drinks and sodas',
+        name: 'Coca-Cola',
+        code: 'COC001',
+        description: 'World famous soft drink brand',
         is_active: 'Y',
       },
       {
-        sub_category_name: 'Energy Drinks',
-        product_category_id: 1,
-        description: 'Energy drinks and sports beverages',
+        name: 'Pepsi',
+        code: 'PEP001',
+        description: 'Popular cola brand competitor',
         is_active: 'Y',
       },
       {
-        sub_category_name: 'Potato Chips',
-        product_category_id: 2,
-        description: 'Various flavors of potato chips',
+        name: 'Nike',
+        code: 'NIK001',
+        description: 'Athletic footwear and apparel brand',
         is_active: 'Y',
       },
       {
-        sub_category_name: 'Nuts & Seeds',
-        product_category_id: 2,
-        description: 'Mixed nuts, almonds, and seeds',
+        name: 'Adidas',
+        code: 'ADI001',
+        description: 'German sportswear manufacturer',
         is_active: 'Y',
       },
       {
-        sub_category_name: 'Fresh Milk',
-        product_category_id: 3,
-        description: 'Fresh dairy milk products',
+        name: 'Apple',
+        code: 'APP001',
+        description: 'Technology and consumer electronics brand',
         is_active: 'N',
       },
     ];
@@ -113,53 +110,49 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
 
   protected getColumnDescription(): string {
     return `
-# Product Sub Categories Import Template
+# Brands Import Template
 
 ## Required Fields:
-- **Sub Category Name**: Name of the product sub category (2-100 characters)
-- **Product Category ID**: ID of the parent product category (must exist)
+- **Brand Name**: Name of the brand (2-100 characters)
 
 ## Optional Fields:
-- **Description**: Description of the product sub category (max 500 characters)
-- **Is Active**: Whether the sub category is active (Y/N, defaults to Y)
+- **Brand Code**: Brand code (max 20 characters, auto-generated if not provided)
+- **Description**: Description of the brand (max 500 characters)
+- **Is Active**: Whether the brand is active (Y/N, defaults to Y)
 
 ## Notes:
-- Sub category names must be unique within each product category.
-- Product category ID must reference an existing product category.
-- Active sub categories are available for use in products.
-- Inactive sub categories are hidden but preserved for historical data.
-- Description helps users understand the sub category purpose.
+- Brand names must be unique across the system.
+- Brand codes are auto-generated if not provided (first 3 letters + sequential number).
+- Active brands are available for use in products and sales targets.
+- Inactive brands are hidden but preserved for historical data.
+- Description helps users understand the brand purpose.
     `;
   }
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
-    return data.map(subCategory => ({
-      sub_category_name: subCategory.sub_category_name,
-      product_category_id: subCategory.product_category_id,
-      product_category_name: subCategory.product_category?.category_name || '',
-      description: subCategory.description || '',
-      is_active: subCategory.is_active || 'Y',
-      createdate: subCategory.createdate?.toISOString().split('T')[0] || '',
-      createdby: subCategory.createdby || '',
-      updatedate: subCategory.updatedate?.toISOString().split('T')[0] || '',
-      updatedby: subCategory.updatedby || '',
+    return data.map(brand => ({
+      name: brand.name,
+      code: brand.code,
+      description: brand.description || '',
+      is_active: brand.is_active || 'Y',
+      createdate: brand.createdate?.toISOString().split('T')[0] || '',
+      createdby: brand.createdby || '',
+      updatedate: brand.updatedate?.toISOString().split('T')[0] || '',
+      updatedby: brand.updatedby || '',
     }));
   }
 
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
-    const model = tx
-      ? tx.product_sub_categories
-      : prisma.product_sub_categories;
+    const model = tx ? tx.brands : prisma.brands;
 
-    const existingSubCategory = await model.findFirst({
+    const existingBrand = await model.findFirst({
       where: {
-        sub_category_name: data.sub_category_name,
-        product_category_id: data.product_category_id,
+        name: data.name,
       },
     });
 
-    if (existingSubCategory) {
-      return `Product sub category "${data.sub_category_name}" already exists for this product category`;
+    if (existingBrand) {
+      return `Brand "${data.name}" already exists`;
     }
 
     return null;
@@ -169,9 +162,29 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
     data: any,
     userId: number
   ): Promise<any> {
+    // Generate brand code if not provided
+    let code = data.code;
+    if (!code) {
+      const prefix = data.name.slice(0, 3).toUpperCase();
+      const lastBrand = await prisma.brands.findFirst({
+        orderBy: { id: 'desc' },
+        select: { code: true },
+      });
+
+      let newNumber = 1;
+      if (lastBrand && lastBrand.code) {
+        const match = lastBrand.code.match(/(\d+)$/);
+        if (match) {
+          newNumber = parseInt(match[1], 10) + 1;
+        }
+      }
+
+      code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+    }
+
     return {
-      sub_category_name: data.sub_category_name,
-      product_category_id: data.product_category_id,
+      name: data.name,
+      code: code,
       description: data.description || null,
       is_active: data.is_active || 'Y',
       createdate: new Date(),
@@ -181,23 +194,7 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
   }
 
   protected async validateForeignKeys(data: any[]): Promise<string | null> {
-    // Check if product categories exist
-    const categoryIds = [
-      ...new Set(data.map(item => item.product_category_id)),
-    ];
-    const existingCategories = await prisma.product_categories.findMany({
-      where: { id: { in: categoryIds } },
-      select: { id: true },
-    });
-    const existingCategoryIds = existingCategories.map(category => category.id);
-    const missingCategoryIds = categoryIds.filter(
-      id => !existingCategoryIds.includes(id)
-    );
-
-    if (missingCategoryIds.length > 0) {
-      return `Product categories with IDs ${missingCategoryIds.join(', ')} do not exist`;
-    }
-
+    // Brands don't have foreign key dependencies
     return null;
   }
 
@@ -213,15 +210,12 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
     userId: number,
     tx?: any
   ): Promise<any> {
-    const model = tx
-      ? tx.product_sub_categories
-      : prisma.product_sub_categories;
+    const model = tx ? tx.brands : prisma.brands;
 
     // Find existing record based on unique fields
     const existing = await model.findFirst({
       where: {
-        sub_category_name: data.sub_category_name,
-        product_category_id: data.product_category_id,
+        name: data.name,
       },
     });
 
@@ -243,9 +237,6 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
     const query: any = {
       where: options.filters,
       orderBy: options.orderBy || { id: 'desc' },
-      include: {
-        product_category: true,
-      },
     };
 
     if (options.limit) query.take = options.limit;
@@ -257,11 +248,6 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
 
     const exportColumns = [
       ...this.columns,
-      {
-        header: 'Product Category Name',
-        key: 'product_category_name',
-        width: 25,
-      },
       { header: 'Created Date', key: 'createdate', width: 20 },
       { header: 'Created By', key: 'createdby', width: 15 },
       { header: 'Updated Date', key: 'updatedate', width: 20 },
@@ -286,11 +272,7 @@ export class ProductSubCategoriesImportExportService extends ImportExportService
 
     const exportData = await this.transformDataForExport(data);
     exportData.forEach((row: any, index: number) => {
-      const excelRow = worksheet.addRow({
-        ...row,
-        product_category_name:
-          data[index]?.product_category?.category_name || '',
-      });
+      const excelRow = worksheet.addRow(row);
 
       if (index % 2 === 0) {
         excelRow.fill = {

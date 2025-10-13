@@ -22,26 +22,27 @@ async function createAdminUser() {
 
     const passwordHash = await bcrypt.hash('123456', 10);
 
-    await prisma.$executeRaw`SET IDENTITY_INSERT users ON`;
-
-    try {
-      await prisma.$executeRaw`
-        INSERT INTO users (
-          id, email, role_id, password_hash, name, parent_id, depot_id, zone_id,
-          phone_number, address, employee_id, joining_date, reporting_to,
-          profile_image, last_login, is_active, createdate, createdby, log_inst
-        ) VALUES (
-          1, ${`admin@gmail.com`}, 1, ${passwordHash}, ${`System Administrator`},
-          1, 1, 1, ${`+91-9999999999`}, ${`System Admin Address`}, ${`ADMIN001`},
-          ${`2024-01-01`}, NULL, NULL, NULL, ${`Y`}, GETDATE(), 1, 1
-        )
-      `;
-    } finally {
-      await prisma.$executeRaw`SET IDENTITY_INSERT users OFF`;
-    }
-
-    const adminUser = await prisma.users.findUnique({
-      where: { id: 1 },
+    const adminUser = await prisma.users.create({
+      data: {
+        email: 'admin@gmail.com',
+        role_id: 1,
+        password_hash: passwordHash,
+        name: 'System Administrator',
+        parent_id: 1,
+        depot_id: 1,
+        zone_id: 1,
+        phone_number: '+91-9999999999',
+        address: 'System Admin Address',
+        employee_id: 'ADMIN001',
+        joining_date: new Date('2024-01-01'),
+        reporting_to: null,
+        profile_image: null,
+        last_login: null,
+        is_active: 'Y',
+        createdate: new Date(),
+        createdby: 1,
+        log_inst: 1,
+      },
     });
 
     logger.success('Admin user created successfully!');

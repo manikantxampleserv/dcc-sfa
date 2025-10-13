@@ -18,6 +18,8 @@ import { SalesTargetGroupsImportExportService } from './implementations/salesTar
 import { SalesTargetsImportExportService } from './implementations/salesTargets-import-export.service';
 import { ProductCategoriesImportExportService } from './implementations/productCategories-import-export.service';
 import { ProductSubCategoriesImportExportService } from './implementations/productSubCategories-import-export.service';
+import { BrandsImportExportService } from './implementations/brands-import-export.service';
+import { UnitOfMeasurementImportExportService } from './implementations/unitOfMeasurement-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -46,6 +48,9 @@ export class ImportExportFactory {
     ['sales_targets', SalesTargetsImportExportService],
     ['product_categories', ProductCategoriesImportExportService],
     ['product_sub_categories', ProductSubCategoriesImportExportService],
+    ['brands', BrandsImportExportService],
+    ['unit_of_measurement', UnitOfMeasurementImportExportService],
+    ['products', ProductsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

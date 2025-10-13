@@ -358,7 +358,7 @@ const Login: React.FC = () => {
             fullWidth
             disabled={!formik.isValid || loginMutation.isPending}
             loading={loginMutation.isPending}
-            className="!py-2 sm:!py-3 !text-sm sm:!text-base !font-semibold !rounded-lg !bg-gradient-to-r !from-blue-600 !to-blue-700 hover:!from-blue-700 hover:!to-blue-800 !shadow-md hover:!shadow-lg !transition-all !duration-200"
+            className="!py-2 sm:!py-3 disabled:!text-gray-400 !text-sm sm:!text-base !font-semibold !rounded-lg !bg-gradient-to-r !from-blue-600 !to-blue-700 hover:!from-blue-700 hover:!to-blue-800 !shadow-md hover:!shadow-lg !transition-all !duration-200"
           >
             {loginMutation.isPending ? 'Signing In...' : 'Log In'}
           </Button>

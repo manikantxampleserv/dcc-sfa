@@ -35,7 +35,7 @@ interface ProductSerialized {
   }[];
   product_brand: { id: number; name: string; code: string; logo: string };
   product_unit: { id: number; name: string };
-  product_category: { id: number; name: string };
+  product_category: { id: number; category_name: string };
 }
 
 const generateProductsCode = async (name: string) => {
@@ -123,7 +123,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
 
   product_category: {
     id: product.product_categories_products?.id,
-    name: product.product_categories_products?.name,
+    category_name: product.product_categories_products?.category_name,
   },
 });
 

@@ -1,148 +1,86 @@
 import { ImportExportService } from '../base/import-export.service';
 import { ColumnDefinition } from '../../../types/import-export.types';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
 
 const prisma = new PrismaClient();
 
 export class ProductsImportExportService extends ImportExportService<any> {
   protected modelName = 'products' as const;
   protected displayName = 'Products';
-  protected uniqueFields = ['code'];
-  protected searchFields = [
-    'name',
-    'code',
-    'description',
-    'category',
-    'brand',
-    'unit_of_measure',
-  ];
-
-  private async generateProductCode(name: string, tx?: any): Promise<string> {
-    try {
-      const client = tx || prisma;
-      const prefix = name
-        .slice(0, 3)
-        .toUpperCase()
-        .replace(/[^A-Z]/g, 'X');
-
-      const lastProduct = await client.products.findFirst({
-        orderBy: { id: 'desc' },
-        select: { code: true },
-      });
-
-      let newNumber = 1;
-      if (lastProduct && lastProduct.code) {
-        const match = lastProduct.code.match(/(\d+)$/);
-        if (match) {
-          newNumber = parseInt(match[1], 10) + 1;
-        }
-      }
-
-      const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
-
-      const existingCode = await client.products.findFirst({
-        where: { code: code },
-      });
-
-      if (existingCode) {
-        newNumber++;
-        return `${prefix}${newNumber.toString().padStart(3, '0')}`;
-      }
-
-      return code;
-    } catch (error) {
-      console.error('Error generating product code:', error);
-      const prefix = name
-        .slice(0, 3)
-        .toUpperCase()
-        .replace(/[^A-Z]/g, 'X');
-      const timestamp = Date.now().toString().slice(-6);
-      return `${prefix}${timestamp}`;
-    }
-  }
+  protected uniqueFields = ['name'];
+  protected searchFields = ['name', 'code', 'description'];
 
   protected columns: ColumnDefinition[] = [
     {
       key: 'name',
       header: 'Product Name',
-      width: 30,
+      width: 25,
       required: true,
       type: 'string',
       validation: value => {
-        if (!value || value.length < 2)
+        if (!value) return 'Product name is required';
+        if (value.length < 2)
           return 'Product name must be at least 2 characters';
         if (value.length > 255)
-          return 'Product name must be less than 255 characters';
+          return 'Product name must not exceed 255 characters';
         return true;
       },
+      transform: value => value.toString().trim(),
       description: 'Name of the product (required, 2-255 characters)',
     },
     {
       key: 'description',
       header: 'Description',
-      width: 40,
-      type: 'string',
-      validation: value =>
-        !value ||
-        value.length <= 1000 ||
-        'Description must be less than 1000 characters',
-      description: 'Product description (optional, max 1000 chars)',
-    },
-    {
-      key: 'category',
-      header: 'Category',
-      width: 25,
-      type: 'string',
-      validation: value =>
-        !value ||
-        value.length <= 100 ||
-        'Category must be less than 100 characters',
-      description: 'Product category (optional, max 100 chars)',
-    },
-    {
-      key: 'brand',
-      header: 'Brand',
-      width: 25,
-      type: 'string',
-      validation: value =>
-        !value ||
-        value.length <= 100 ||
-        'Brand must be less than 100 characters',
-      description: 'Product brand (optional, max 100 chars)',
-    },
-    {
-      key: 'unit_of_measure',
-      header: 'Unit of Measure',
-      width: 20,
+      width: 30,
       type: 'string',
       validation: value => {
-        if (!value) return true;
-        if (value.length > 50)
-          return 'Unit of measure must be less than 50 characters';
-        const validUnits = [
-          'PCS',
-          'KG',
-          'LTR',
-          'MTR',
-          'BOX',
-          'PACK',
-          'DOZEN',
-          'CASE',
-          'BOTTLE',
-          'CAN',
-          'GRAM',
-          'POUND',
-          'GALLON',
-          'UNIT',
-        ];
-        if (!validUnits.includes(value.toUpperCase())) {
-          return `Unit of measure should be one of: ${validUnits.join(', ')}`;
+        if (value && value.length > 1000) {
+          return 'Description must not exceed 1000 characters';
         }
         return true;
       },
-      transform: value => (value ? value.toUpperCase() : null),
-      description:
-        'Unit of measurement: PCS, KG, LTR, MTR, BOX, PACK, DOZEN, CASE, BOTTLE, CAN, GRAM, POUND, GALLON, UNIT (optional)',
+      transform: value => (value ? value.toString().trim() : null),
+      description: 'Description of the product (optional, max 1000 characters)',
+    },
+    {
+      key: 'category_name',
+      header: 'Category Name',
+      width: 20,
+      required: true,
+      type: 'string',
+      validation: value => {
+        if (!value) return 'Category name is required';
+        return true;
+      },
+      transform: value => (value ? value.toString().trim() : null),
+      description: 'Name of the product category (required)',
+    },
+    {
+      key: 'brand_name',
+      header: 'Brand Name',
+      width: 20,
+      required: true,
+      type: 'string',
+      validation: value => {
+        if (!value) return 'Brand name is required';
+        return true;
+      },
+      transform: value => (value ? value.toString().trim() : null),
+      description: 'Name of the brand (required)',
+    },
+    {
+      key: 'unit_name',
+      header: 'Unit Name',
+      width: 15,
+      required: true,
+      type: 'string',
+      validation: value => {
+        if (!value) return 'Unit name is required';
+        return true;
+      },
+      transform: value => (value ? value.toString().trim() : null),
+      description: 'Name of the unit of measurement (required)',
     },
     {
       key: 'base_price',
@@ -150,17 +88,15 @@ export class ProductsImportExportService extends ImportExportService<any> {
       width: 15,
       type: 'number',
       validation: value => {
-        if (!value) return true;
-        const price = parseFloat(value);
-        if (isNaN(price)) return 'Base price must be a number';
-        if (price < 0) return 'Base price cannot be negative';
-        if (price > 9999999999999999.99)
-          return 'Base price exceeds maximum allowed value';
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue)) return 'Base price must be a valid number';
+          if (numValue < 0) return 'Base price must be at least 0';
+        }
         return true;
       },
-      transform: value => (value ? parseFloat(value) : null),
-      description:
-        'Base selling price (optional, positive number, max 9999999999999999.99)',
+      transform: value => (value ? Number(value) : null),
+      description: 'Base price of the product (optional, must be >= 0)',
     },
     {
       key: 'tax_rate',
@@ -168,14 +104,15 @@ export class ProductsImportExportService extends ImportExportService<any> {
       width: 15,
       type: 'number',
       validation: value => {
-        if (!value) return true;
-        const rate = parseFloat(value);
-        if (isNaN(rate)) return 'Tax rate must be a number';
-        if (rate < 0) return 'Tax rate cannot be negative';
-        if (rate > 100) return 'Tax rate cannot exceed 100%';
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue)) return 'Tax rate must be a valid number';
+          if (numValue < 0) return 'Tax rate must be at least 0';
+          if (numValue > 100) return 'Tax rate cannot exceed 100%';
+        }
         return true;
       },
-      transform: value => (value ? parseFloat(value) : null),
+      transform: value => (value ? Number(value) : null),
       description: 'Tax rate percentage (optional, 0-100)',
     },
     {
@@ -196,187 +133,224 @@ export class ProductsImportExportService extends ImportExportService<any> {
   protected async getSampleData(): Promise<any[]> {
     return [
       {
-        name: 'Coca Cola 500ml',
-        description: 'Refreshing cola drink in 500ml bottle',
-        category: 'Beverages',
-        brand: 'Coca Cola',
-        unit_of_measure: 'BOTTLE',
-        base_price: 2.5,
-        tax_rate: 10.0,
+        name: 'Coca Cola Classic',
+        description: 'Classic Coca Cola soft drink',
+        category_name: 'Food & Beverages',
+        brand_name: 'Coca Cola',
+        unit_name: 'Case',
+        base_price: 1.99,
+        tax_rate: 6.0,
         is_active: 'Y',
+      },
+      {
+        name: 'Potato Chips',
+        description: 'Crispy potato chips snack',
+        category_name: 'Food & Beverages',
+        brand_name: 'Generic',
+        unit_name: 'Case',
+        base_price: 2.49,
+        tax_rate: 6.0,
+        is_active: 'Y',
+      },
+      {
+        name: 'iPhone 15 Pro',
+        description: 'Latest Apple iPhone with advanced camera system',
+        category_name: 'Electronics',
+        brand_name: 'Apple',
+        unit_name: 'Piece',
+        base_price: 999.99,
+        tax_rate: 8.5,
+        is_active: 'Y',
+      },
+      {
+        name: 'Nike Running Shoes',
+        description: 'High-performance running shoes',
+        category_name: 'Clothing & Fashion',
+        brand_name: 'Fashion Brand',
+        unit_name: 'Piece',
+        base_price: 129.99,
+        tax_rate: 8.0,
+        is_active: 'Y',
+      },
+      {
+        name: 'Office Chair',
+        description: 'Ergonomic office chair with lumbar support',
+        category_name: 'Home & Garden',
+        brand_name: 'Office Furniture',
+        unit_name: 'Piece',
+        base_price: 199.99,
+        tax_rate: 8.0,
+        is_active: 'N',
       },
     ];
   }
 
-  protected getColumnDescription(key: string): string {
-    const column = this.columns.find(col => col.key === key);
-    return column?.description || '';
+  protected getColumnDescription(): string {
+    return `
+# Products Import Template
+
+## Required Fields:
+- **Product Name**: Name of the product (2-255 characters)
+- **Category Name**: Name of the product category (must exist in system)
+- **Brand Name**: Name of the brand (must exist in system)
+- **Unit Name**: Name of the unit of measurement (must exist in system)
+
+## Optional Fields:
+- **Description**: Description of the product (max 1000 characters)
+- **Base Price**: Base price of the product (must be >= 0)
+- **Tax Rate (%)**: Tax rate percentage (0-100)
+- **Is Active**: Whether the product is active (Y/N, defaults to Y)
+
+## Notes:
+- Product names must be unique across the system.
+- Category, Brand, and Unit names must match existing records in the system.
+- Base price and tax rate are optional but must be valid numbers if provided.
+- Active products are available for orders and sales.
+- Inactive products are hidden but preserved for historical data.
+    `;
   }
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
     return data.map(product => ({
       name: product.name,
-      code: product.code,
       description: product.description || '',
-      category: product.category || '',
-      brand: product.brand || '',
-      unit_of_measure: product.unit_of_measure || '',
-      base_price: product.base_price ? product.base_price.toString() : '',
-      tax_rate: product.tax_rate ? product.tax_rate.toString() : '',
+      category_name: product.product_category?.name || '',
+      brand_name: product.product_brand?.name || '',
+      unit_name: product.product_unit?.name || '',
+      base_price: product.base_price || '',
+      tax_rate: product.tax_rate || '',
       is_active: product.is_active || 'Y',
-      created_date: product.createdate
-        ? new Date(product.createdate).toISOString().split('T')[0]
-        : '',
-      created_by: product.createdby || '',
-      updated_date: product.updatedate
-        ? new Date(product.updatedate).toISOString().split('T')[0]
-        : '',
-      updated_by: product.updatedby || '',
+      createdate: product.createdate?.toISOString().split('T')[0] || '',
+      createdby: product.createdby || '',
+      updatedate: product.updatedate?.toISOString().split('T')[0] || '',
+      updatedby: product.updatedby || '',
     }));
   }
 
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
     const model = tx ? tx.products : prisma.products;
 
-    if (data.name && data.brand) {
-      const existingNameBrand = await model.findFirst({
-        where: {
-          name: data.name,
-          brand: data.brand,
-        },
-      });
+    const existingProduct = await model.findFirst({
+      where: {
+        name: data.name,
+      },
+    });
 
-      if (existingNameBrand) {
-        return `Product with name "${data.name}" already exists for brand "${data.brand}"`;
-      }
-    }
-
-    if (data.name && !data.brand) {
-      const existingName = await model.findFirst({
-        where: {
-          name: data.name,
-        },
-      });
-
-      if (existingName) {
-        return `Product with name "${data.name}" already exists`;
-      }
+    if (existingProduct) {
+      return `Product "${data.name}" already exists`;
     }
 
     return null;
+  }
+
+  protected async transformDataForImport(
+    data: any,
+    userId: number
+  ): Promise<any> {
+    // Find category by name
+    const category = await prisma.product_categories.findFirst({
+      where: {
+        category_name: data.category_name,
+      },
+    });
+
+    if (!category) {
+      throw new Error(`Category "${data.category_name}" not found`);
+    }
+
+    // Find brand by name
+    const brand = await prisma.brands.findFirst({
+      where: {
+        name: data.brand_name,
+      },
+    });
+
+    if (!brand) {
+      throw new Error(`Brand "${data.brand_name}" not found`);
+    }
+
+    // Find unit by name
+    const unit = await prisma.unit_of_measurement.findFirst({
+      where: {
+        name: data.unit_name,
+      },
+    });
+
+    if (!unit) {
+      throw new Error(`Unit of measurement "${data.unit_name}" not found`);
+    }
+
+    // Generate product code
+    const prefix = data.name.slice(0, 3).toUpperCase();
+    const lastProduct = await prisma.products.findFirst({
+      orderBy: { id: 'desc' },
+      select: { code: true },
+    });
+
+    let newNumber = 1;
+    if (lastProduct && lastProduct.code) {
+      const match = lastProduct.code.match(/(\d+)$/);
+      if (match) {
+        newNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+
+    return {
+      name: data.name,
+      code: code,
+      description: data.description || null,
+      category_id: category.id,
+      brand_id: brand.id,
+      unit_of_measurement: unit.id,
+      base_price: data.base_price || null,
+      tax_rate: data.tax_rate || null,
+      is_active: data.is_active || 'Y',
+      createdate: new Date(),
+      createdby: userId,
+      log_inst: 1,
+    };
   }
 
   protected async validateForeignKeys(
     data: any,
     tx?: any
   ): Promise<string | null> {
-    return null;
+    const errors: string[] = [];
+
+    // Check category exists
+    const category = await prisma.product_categories.findFirst({
+      where: { category_name: data.category_name },
+    });
+    if (!category) {
+      errors.push(`Category "${data.category_name}" not found`);
+    }
+
+    // Check brand exists
+    const brand = await prisma.brands.findFirst({
+      where: { name: data.brand_name },
+    });
+    if (!brand) {
+      errors.push(`Brand "${data.brand_name}" not found`);
+    }
+
+    // Check unit exists
+    const unit = await prisma.unit_of_measurement.findFirst({
+      where: { name: data.unit_name },
+    });
+    if (!unit) {
+      errors.push(`Unit of measurement "${data.unit_name}" not found`);
+    }
+
+    return errors.length > 0 ? errors.join('; ') : null;
   }
 
   protected async prepareDataForImport(
     data: any,
     userId: number
   ): Promise<any> {
-    const preparedData: any = {
-      name: data.name,
-      description: data.description || null,
-      category: data.category || null,
-      brand: data.brand || null,
-      unit_of_measure: data.unit_of_measure || null,
-      is_active: data.is_active || 'Y',
-      createdby: userId,
-      createdate: new Date(),
-      log_inst: 1,
-    };
-
-    if (data.base_price !== null && data.base_price !== undefined) {
-      preparedData.base_price = new Prisma.Decimal(data.base_price);
-    }
-
-    if (data.tax_rate !== null && data.tax_rate !== undefined) {
-      preparedData.tax_rate = new Prisma.Decimal(data.tax_rate);
-    }
-
-    return preparedData;
-  }
-
-  async importData(
-    data: any[],
-    userId: number,
-    options: any = {}
-  ): Promise<any> {
-    let success = 0;
-    let failed = 0;
-    const errors: string[] = [];
-    const importedData: any[] = [];
-    const detailedErrors: any[] = [];
-
-    for (const [index, row] of data.entries()) {
-      const rowNum = index + 2;
-
-      try {
-        const result = await prisma.$transaction(async tx => {
-          const duplicateCheck = await this.checkDuplicate(row, tx);
-
-          if (duplicateCheck) {
-            if (options.skipDuplicates) {
-              throw new Error(`Skipped - ${duplicateCheck}`);
-            } else if (options.updateExisting) {
-              return await this.updateExisting(row, userId, tx);
-            } else {
-              throw new Error(duplicateCheck);
-            }
-          }
-
-          const fkValidation = await this.validateForeignKeys(row, tx);
-          if (fkValidation) {
-            throw new Error(fkValidation);
-          }
-
-          const preparedData = await this.prepareDataForImport(row, userId);
-
-          const generatedCode = await this.generateProductCode(row.name, tx);
-          preparedData.code = generatedCode;
-
-          const created = await tx.products.create({
-            data: preparedData,
-          });
-
-          return created;
-        });
-
-        if (result) {
-          importedData.push(result);
-          success++;
-        }
-      } catch (error: any) {
-        failed++;
-        const errorMessage = error.message || 'Unknown error';
-        errors.push(`Row ${rowNum}: ${errorMessage}`);
-        detailedErrors.push({
-          row: rowNum,
-          errors: [
-            {
-              type: errorMessage.includes('does not exist')
-                ? 'foreign_key'
-                : errorMessage.includes('already exists')
-                  ? 'duplicate'
-                  : 'validation',
-              message: errorMessage,
-              action: 'rejected',
-            },
-          ],
-        });
-      }
-    }
-
-    return {
-      success,
-      failed,
-      errors,
-      data: importedData,
-      detailedErrors: detailedErrors.length > 0 ? detailedErrors : undefined,
-    };
+    return this.transformDataForImport(data, userId);
   }
 
   protected async updateExisting(
@@ -386,65 +360,35 @@ export class ProductsImportExportService extends ImportExportService<any> {
   ): Promise<any> {
     const model = tx ? tx.products : prisma.products;
 
+    // Find existing record based on unique fields
     const existing = await model.findFirst({
       where: {
         name: data.name,
-        brand: data.brand || undefined,
       },
     });
 
     if (!existing) return null;
 
-    const updateData: any = {
-      name: data.name,
-      description:
-        data.description !== undefined
-          ? data.description
-          : existing.description,
-      category: data.category !== undefined ? data.category : existing.category,
-      brand: data.brand !== undefined ? data.brand : existing.brand,
-      unit_of_measure:
-        data.unit_of_measure !== undefined
-          ? data.unit_of_measure
-          : existing.unit_of_measure,
-      is_active: data.is_active || existing.is_active,
+    const updateData = {
+      ...data,
       updatedby: userId,
       updatedate: new Date(),
     };
-
-    if (data.base_price !== null && data.base_price !== undefined) {
-      updateData.base_price = new Prisma.Decimal(data.base_price);
-    }
-
-    if (data.tax_rate !== null && data.tax_rate !== undefined) {
-      updateData.tax_rate = new Prisma.Decimal(data.tax_rate);
-    }
 
     return await model.update({
       where: { id: existing.id },
       data: updateData,
     });
   }
+
   async exportToExcel(options: any = {}): Promise<Buffer> {
     const query: any = {
       where: options.filters,
       orderBy: options.orderBy || { id: 'desc' },
       include: {
-        _count: {
-          select: {
-            batch_lots_products: true,
-            inventory_stock_products: true,
-            invoice_items_products: true,
-            order_items: true,
-            price_history_products: true,
-            pricelist_items_products: true,
-            stock_movements_products: true,
-            serial_numbers_products: true,
-            warranty_claims_products: true,
-            van_inventory_products: true,
-            return_requests_products: true,
-          },
-        },
+        product_brands: true,
+        product_unit_of_measurement: true,
+        product_categories_products: true,
       },
     };
 
@@ -452,26 +396,15 @@ export class ProductsImportExportService extends ImportExportService<any> {
 
     const data = await this.getModel().findMany(query);
 
-    const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
-
     const worksheet = workbook.addWorksheet(this.displayName);
 
     const exportColumns = [
-      { header: 'Product Code', key: 'code', width: 20 },
       ...this.columns,
-      { header: 'Total Batches', key: 'total_batches', width: 15 },
-      { header: 'Stock Locations', key: 'stock_locations', width: 15 },
-      { header: 'Invoice Items', key: 'invoice_items', width: 15 },
-      { header: 'Order Items', key: 'order_items', width: 15 },
-      { header: 'Price History', key: 'price_history', width: 15 },
-      { header: 'Stock Movements', key: 'stock_movements', width: 15 },
-      { header: 'Serial Numbers', key: 'serial_numbers', width: 15 },
-      { header: 'Warranty Claims', key: 'warranty_claims', width: 15 },
-      { header: 'Created Date', key: 'created_date', width: 20 },
-      { header: 'Created By', key: 'created_by', width: 15 },
-      { header: 'Updated Date', key: 'updated_date', width: 20 },
-      { header: 'Updated By', key: 'updated_by', width: 15 },
+      { header: 'Created Date', key: 'createdate', width: 20 },
+      { header: 'Created By', key: 'createdby', width: 15 },
+      { header: 'Updated Date', key: 'updatedate', width: 20 },
+      { header: 'Updated By', key: 'updatedby', width: 15 },
     ];
 
     worksheet.columns = exportColumns.map(col => ({
@@ -491,44 +424,7 @@ export class ProductsImportExportService extends ImportExportService<any> {
     headerRow.height = 25;
 
     const exportData = await this.transformDataForExport(data);
-    let totalProducts = 0;
-    let totalBasePrice = 0;
-    let activeCount = 0;
-    let inactiveCount = 0;
-    const categoryCount: any = {};
-    const brandCount: any = {};
-
     exportData.forEach((row: any, index: number) => {
-      const product = data[index] as any;
-
-      row.total_batches = product._count?.batch_lots_products || 0;
-      row.stock_locations = product._count?.inventory_stock_products || 0;
-      row.invoice_items = product._count?.invoice_items_products || 0;
-      row.order_items = product._count?.order_items || 0;
-      row.price_history = product._count?.price_history_products || 0;
-      row.stock_movements = product._count?.stock_movements_products || 0;
-      row.serial_numbers = product._count?.serial_numbers_products || 0;
-      row.warranty_claims = product._count?.warranty_claims_products || 0;
-
-      if (product.base_price) {
-        totalBasePrice += parseFloat(product.base_price.toString());
-      }
-      if (product.is_active === 'Y') {
-        activeCount++;
-      } else {
-        inactiveCount++;
-      }
-
-      if (product.category) {
-        categoryCount[product.category] =
-          (categoryCount[product.category] || 0) + 1;
-      }
-      if (product.brand) {
-        brandCount[product.brand] = (brandCount[product.brand] || 0) + 1;
-      }
-
-      totalProducts++;
-
       const excelRow = worksheet.addRow(row);
 
       if (index % 2 === 0) {
@@ -547,20 +443,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
           right: { style: 'thin' },
         };
       });
-
-      if (product.is_active === 'N') {
-        excelRow.getCell('is_active').font = { color: { argb: 'FFFF0000' } };
-      }
-
-      if (
-        product.base_price &&
-        parseFloat(product.base_price.toString()) > 1000
-      ) {
-        excelRow.getCell('base_price').font = {
-          color: { argb: 'FF0000FF' },
-          bold: true,
-        };
-      }
     });
 
     if (data.length > 0) {
@@ -569,48 +451,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
         to: `${String.fromCharCode(64 + exportColumns.length)}${data.length + 1}`,
       };
     }
-
-    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-
-    // Add summary sheet
-    const summarySheet = workbook.addWorksheet('Summary');
-    summarySheet.columns = [
-      { header: 'Metric', key: 'metric', width: 30 },
-      { header: 'Value', key: 'value', width: 20 },
-    ];
-
-    const summaryHeaderRow = summarySheet.getRow(1);
-    summaryHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    summaryHeaderRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' },
-    };
-
-    summarySheet.addRow({ metric: 'Total Products', value: totalProducts });
-    summarySheet.addRow({ metric: 'Active Products', value: activeCount });
-    summarySheet.addRow({ metric: 'Inactive Products', value: inactiveCount });
-    summarySheet.addRow({
-      metric: 'Average Base Price',
-      value:
-        totalProducts > 0 ? (totalBasePrice / totalProducts).toFixed(2) : 0,
-    });
-    summarySheet.addRow({ metric: '', value: '' });
-    summarySheet.addRow({ metric: 'Categories Breakdown', value: '' });
-
-    Object.keys(categoryCount).forEach(category => {
-      summarySheet.addRow({
-        metric: `  ${category}`,
-        value: categoryCount[category],
-      });
-    });
-
-    summarySheet.addRow({ metric: '', value: '' });
-    summarySheet.addRow({ metric: 'Brands Breakdown', value: '' });
-
-    Object.keys(brandCount).forEach(brand => {
-      summarySheet.addRow({ metric: `  ${brand}`, value: brandCount[brand] });
-    });
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);

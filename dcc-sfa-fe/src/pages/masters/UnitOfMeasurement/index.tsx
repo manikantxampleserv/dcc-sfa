@@ -1,6 +1,20 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
-import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { DollarSign, Package, Percent, Tag, TrendingUp } from 'lucide-react';
+import {
+  Alert,
+  Avatar,
+  Box,
+  Chip,
+  MenuItem,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import {
+  useUnitOfMeasurement,
+  useDeleteUnitOfMeasurement,
+  type UnitOfMeasurement,
+} from 'hooks/useUnitOfMeasurement';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { Ruler, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -8,29 +22,26 @@ import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import {
-  useDeleteProduct,
-  useProducts,
-  type Product,
-} from '../../../hooks/useProducts';
-import { useExportToExcel } from '../../../hooks/useImportExport';
-import ManageProduct from './ManageProducts';
-import ImportProduct from './ImportProduct';
+import { formatDate } from 'utils/dateUtils';
+import ImportUnitOfMeasurement from './ImportUnitOfMeasurement';
+import ManageUnitOfMeasurement from './ManageUnitOfMeasurement';
 
-const ProductsManagement: React.FC = () => {
+const UnitOfMeasurementPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<UnitOfMeasurement | null>(
+    null
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const {
-    data: productsResponse,
+    data: unitsResponse,
     isLoading,
     error,
-  } = useProducts({
+  } = useUnitOfMeasurement({
     search,
     page,
     limit,
@@ -42,38 +53,37 @@ const ProductsManagement: React.FC = () => {
           : 'inactive',
   });
 
-  const products = productsResponse?.data || [];
-  const totalCount = productsResponse?.meta?.total_count || 0;
-  const currentPage = (productsResponse?.meta?.current_page || 1) - 1;
+  const units = unitsResponse?.data || [];
+  const totalCount = unitsResponse?.meta?.total_count || 0;
+  const currentPage = (unitsResponse?.meta?.current_page || 1) - 1;
 
-  const deleteProductMutation = useDeleteProduct();
+  const deleteUnitMutation = useDeleteUnitOfMeasurement();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalProducts = productsResponse?.stats?.total_products ?? 0;
-  const activeProducts = productsResponse?.stats?.active_products ?? 0;
-  const inactiveProducts = productsResponse?.stats?.inactive_products ?? 0;
-  const newProductsThisMonth =
-    productsResponse?.stats?.new_products_this_month ?? 0;
+  const totalUnits = unitsResponse?.stats?.total_units ?? 0;
+  const activeUnits = unitsResponse?.stats?.active_units ?? 0;
+  const inactiveUnits = unitsResponse?.stats?.inactive_units ?? 0;
+  const newUnitsThisMonth = unitsResponse?.stats?.new_units_this_month ?? 0;
 
-  const handleCreateProduct = useCallback(() => {
-    setSelectedProduct(null);
+  const handleCreateUnit = useCallback(() => {
+    setSelectedUnit(null);
     setDrawerOpen(true);
   }, []);
 
-  const handleEditProduct = useCallback((product: Product) => {
-    setSelectedProduct(product);
+  const handleEditUnit = useCallback((unit: UnitOfMeasurement) => {
+    setSelectedUnit(unit);
     setDrawerOpen(true);
   }, []);
 
-  const handleDeleteProduct = useCallback(
+  const handleDeleteUnit = useCallback(
     async (id: number) => {
       try {
-        await deleteProductMutation.mutateAsync(id);
+        await deleteUnitMutation.mutateAsync(id);
       } catch (error) {
-        console.error('Error deleting product:', error);
+        console.error('Error deleting unit of measurement:', error);
       }
     },
-    [deleteProductMutation]
+    [deleteUnitMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -98,109 +108,65 @@ const ProductsManagement: React.FC = () => {
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'products',
+        tableName: 'unit_of_measurement',
         filters,
       });
     } catch (error) {
-      console.error('Error exporting products:', error);
+      console.error('Error exporting units of measurement:', error);
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const formatPrice = (price: number | null | undefined) => {
-    if (price === null || price === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
-
-  const formatPercentage = (percentage: number | null | undefined) => {
-    if (percentage === null || percentage === undefined) return 'N/A';
-    return `${Number(percentage || '0').toFixed(2)}%`;
-  };
-
-  const productColumns: TableColumn<Product>[] = [
+  const unitColumns: TableColumn<UnitOfMeasurement>[] = [
     {
       id: 'name',
-      label: 'Product Info',
+      label: 'Unit Name',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
             alt={row.name}
-            className="!rounded !bg-primary-100 !text-primary-600"
+            className="!rounded !bg-primary-100 !text-primary-500"
           >
-            <Package className="w-5 h-5" />
+            <Ruler className="w-5 h-5" />
           </Avatar>
-          <Box>
+          <Box className="!max-w-xs">
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight !font-medium"
+              className="!text-gray-900 !leading-tight"
             >
               {row.name}
             </Typography>
-            <Typography
-              variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
-            >
-              {row.code}
-            </Typography>
+            {row.symbol && (
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !block !mt-0.5"
+              >
+                Symbol: {row.symbol}
+              </Typography>
+            )}
+            {row.category && (
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !block !mt-0.5"
+              >
+                Category: {row.category}
+              </Typography>
+            )}
           </Box>
         </Box>
-      ),
-    },
-    {
-      id: 'category',
-      label: 'Category & Brand',
-      render: (_value, row) => (
-        <Box>
-          <Box className="flex items-center text-sm text-gray-900">
-            <Tag className="w-4 h-4 text-gray-400 mr-2" />
-            {row.product_category?.category_name || 'N/A'}
-          </Box>
-          <Box className="flex items-center text-sm text-gray-500 mt-1">
-            <TrendingUp className="w-4 h-4 text-gray-400 mr-2" />
-            {row.product_brand?.name || 'N/A'}
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      id: 'pricing',
-      label: 'Pricing',
-      render: (_value, row) => (
-        <Box>
-          <Box className="flex items-center text-sm text-gray-900">
-            <DollarSign className="w-4 h-4 text-gray-400 mr-2" />
-            {formatPrice(row.base_price)}
-          </Box>
-          {row.tax_rate && (
-            <Box className="flex items-center text-sm text-gray-500 mt-1">
-              <Percent className="w-4 h-4 text-gray-400 mr-2" />
-              {formatPercentage(row.tax_rate)} tax
-            </Box>
-          )}
-        </Box>
-      ),
-    },
-    {
-      id: 'unit_of_measurement',
-      label: 'Unit',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.product_unit?.name || 'N/A'}
-        </Typography>
       ),
     },
     {
       id: 'description',
       label: 'Description',
       render: (_value, row) => (
-        <Typography
-          variant="body2"
-          className="!text-gray-700 !max-w-xs !truncate"
-        >
-          {row.description || 'N/A'}
-        </Typography>
+        <Tooltip title={row.description} placement="top" arrow>
+          <Typography
+            variant="body2"
+            className="!text-gray-900 !max-w-xs !truncate"
+          >
+            {row.description}
+          </Typography>
+        </Tooltip>
       ),
     },
     {
@@ -211,20 +177,18 @@ const ProductsManagement: React.FC = () => {
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
+          className="w-26"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),
     },
     {
       id: 'createdate',
-      label: 'Created',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-500">
-          {row.createdate
-            ? new Date(row.createdate).toLocaleDateString()
-            : 'N/A'}
-        </Typography>
-      ),
+      label: 'Created Date',
+      render: (_value, row) =>
+        formatDate(row.createdate) || (
+          <span className="italic text-gray-400">No Date</span>
+        ),
     },
     {
       id: 'action',
@@ -233,11 +197,11 @@ const ProductsManagement: React.FC = () => {
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
           <EditButton
-            onClick={() => handleEditProduct(row)}
+            onClick={() => handleEditUnit(row)}
             tooltip={`Edit ${row.name}`}
           />
           <DeleteButton
-            onClick={() => handleDeleteProduct(row.id)}
+            onClick={() => handleDeleteUnit(row.id)}
             tooltip={`Delete ${row.name}`}
             itemName={row.name}
             confirmDelete={true}
@@ -252,84 +216,80 @@ const ProductsManagement: React.FC = () => {
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Products Management
+            Unit of Measurement Management
           </p>
           <p className="!text-gray-500 text-sm">
-            Manage your product catalog with pricing and inventory details
+            Manage units of measurement for your organization
           </p>
         </Box>
       </Box>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Products
+              <p className="text-sm font-medium text-primary-500">
+                Total Units
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-gray-900">
-                  {totalProducts}
+                <p className="text-2xl font-bold text-primary-500">
+                  {totalUnits}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-blue-600" />
+              <Ruler className="w-6 h-6 text-primary-500" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Active Products
-              </p>
+              <p className="text-sm font-medium text-green-500">Active Units</p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-green-600">
-                  {activeProducts}
+                <p className="text-2xl font-bold text-green-500">
+                  {activeUnits}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-green-600" />
+              <CheckCircle className="w-6 h-6 text-green-500" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Inactive Products
-              </p>
+              <p className="text-sm font-medium text-red-500">Inactive Units</p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-red-600">
-                  {inactiveProducts}
+                  {inactiveUnits}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-red-600" />
+              <Block className="w-6 h-6 text-red-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-purple-600">
                 New This Month
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {newProductsThisMonth}
+                  {newUnitsThisMonth}
                 </p>
               )}
             </div>
@@ -342,30 +302,28 @@ const ProductsManagement: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load products. Please try again.
+          Failed to load units of measurement. Please try again.
         </Alert>
       )}
 
       <Table
-        data={products}
-        columns={productColumns}
+        data={units}
+        columns={unitColumns}
         actions={
           <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <SearchInput
-                placeholder="Search Products"
+                placeholder="Search Units of Measurement..."
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
                 showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
+                className="!w-80"
               />
               <Select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
+                className="!w-32"
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
@@ -374,8 +332,8 @@ const ProductsManagement: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <PopConfirm
-                title="Export Products"
-                description="Are you sure you want to export the current products data to Excel? This will include all filtered results."
+                title="Export Units of Measurement"
+                description="Are you sure you want to export the current units of measurement data to Excel? This will include all filtered results."
                 onConfirm={handleExportToExcel}
                 confirmText="Export"
                 cancelText="Cancel"
@@ -403,14 +361,14 @@ const ProductsManagement: React.FC = () => {
                 className="!capitalize"
                 disableElevation
                 startIcon={<Add />}
-                onClick={handleCreateProduct}
+                onClick={handleCreateUnit}
               >
-                Add Product
+                Create
               </Button>
             </div>
           </div>
         }
-        getRowId={product => product.id}
+        getRowId={unit => unit.id}
         initialOrderBy="name"
         loading={isLoading}
         totalCount={totalCount}
@@ -419,19 +377,19 @@ const ProductsManagement: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No products found matching "${search}"`
-            : 'No products found in the system'
+            ? `No units of measurement found matching "${search}"`
+            : 'No units of measurement found in the system'
         }
       />
 
-      <ManageProduct
-        selectedProduct={selectedProduct}
-        setSelectedProduct={setSelectedProduct}
+      <ManageUnitOfMeasurement
+        selectedUnit={selectedUnit}
+        setSelectedUnit={setSelectedUnit}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
       />
 
-      <ImportProduct
+      <ImportUnitOfMeasurement
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
       />
@@ -439,4 +397,4 @@ const ProductsManagement: React.FC = () => {
   );
 };
 
-export default ProductsManagement;
+export default UnitOfMeasurementPage;
