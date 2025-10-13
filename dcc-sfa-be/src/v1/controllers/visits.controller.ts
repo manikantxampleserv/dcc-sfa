@@ -174,7 +174,7 @@ export const visitsController = {
       const activeVisits = await prisma.visits.count({
         where: { is_active: 'Y' },
       });
-      const inactiveZones = await prisma.zones.count({
+      const inactiveVisits = await prisma.visits.count({
         where: { is_active: 'N' },
       });
 
@@ -192,7 +192,7 @@ export const visitsController = {
         {
           total_visits: totalVisits,
           active_visits: activeVisits,
-          inactive_visits: inactiveZones,
+          inactive_visits: inactiveVisits,
           new_visits: newVisitsThisMonth,
         }
       );

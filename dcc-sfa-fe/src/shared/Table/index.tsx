@@ -418,6 +418,8 @@ export default function Table<T extends Record<string, any>>(
               count={totalCount}
               rowsPerPage={rowsPerPage}
               page={page}
+              showFirstButton
+              showLastButton
               onPageChange={handleChangePage}
               className="!border-t !border-gray-200 [&_.MuiTablePagination-toolbar]:!text-gray-700 [&_.MuiTablePagination-selectIcon]:!text-gray-500"
             />
@@ -504,6 +506,8 @@ export default function Table<T extends Record<string, any>>(
           <MuiTablePagination
             rowsPerPageOptions={[]}
             component="div"
+            showFirstButton
+            showLastButton
             count={totalCount}
             rowsPerPage={rowsPerPage}
             page={page}
