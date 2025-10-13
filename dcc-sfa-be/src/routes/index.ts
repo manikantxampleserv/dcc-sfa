@@ -39,6 +39,7 @@ import productCategories from '../v1/routes/productCategories.routes';
 import productSubCategories from '../v1/routes/productSubCategories.routes';
 import brandsRoutes from '../v1/routes/brands.routes';
 import unitOfMeasurementRoutes from '../v1/routes/unitOfMeasurement.routes';
+import deliverySchedules from '../v1/routes/deliverySchedules.routes';
 
 const routes = Router();
 
@@ -81,6 +82,7 @@ routes.use('/v1', productCategories);
 routes.use('/v1', productSubCategories);
 routes.use('/v1', brandsRoutes);
 routes.use('/v1', unitOfMeasurementRoutes);
+routes.use('/v1', deliverySchedules);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

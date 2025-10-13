@@ -40,7 +40,7 @@ model users {
   customer_assets_history_customer_assets_history_changed_byTousers   customer_assets_history[]    @relation("customer_assets_history_changed_byTousers")
   customer_documents_users                                            customer_documents[]
   customer_users                                                      customers[]
-  delivery_schedules                                                  delivery_schedules[]
+  delivery_schedules_users                                            delivery_schedules[]
   employee_kpi_targets_employee_kpi_targets_employee_idTousers        employee_kpi_targets[]       @relation("employee_kpi_targets_employee_idTousers")
   gps_logs_gps_logs_user_idTousers                                    gps_logs[]                   @relation("gps_logs_user_idTousers")
   login_history_login_history_user_idTousers                          login_history[]              @relation("login_history_user_idTousers")
@@ -50,7 +50,7 @@ model users {
   payments_payments_collected_byTousers                               payments[]                   @relation("payments_collected_byTousers")
   price_history_price_history_approved_byTousers                      price_history[]              @relation("price_history_approved_byTousers")
   price_history_price_history_changed_byTousers                       price_history[]              @relation("price_history_changed_byTousers")
-  return_requests_return_requests_approved_byTousers                  return_requests[]            @relation("return_requests_approved_byTousers")
+  return_requests_users                                               return_requests[]            @relation("ReturnRequestsUser")
   return_workflow_return_workflow_action_byTousers                    return_workflow[]            @relation("return_workflow_action_byTousers")
   route_exceptions_route_exceptions_sales_person_idTousers            route_exceptions[]           @relation("route_exceptions_sales_person_idTousers")
   route_plans_route_plans_sales_person_idTousers                      route_plans[]                @relation("route_plans_sales_person_idTousers")
@@ -679,31 +679,31 @@ model customers {
 }
 
 model delivery_schedules {
-  id                           Int       @id(map: "PK__delivery__3213E83F85B313EA") @default(autoincrement())
-  order_id                     Int
-  customer_id                  Int
-  scheduled_date               DateTime  @db.DateTime
-  scheduled_time_slot          String?   @db.NVarChar(20)
-  assigned_vehicle_id          Int?
-  assigned_driver_id           Int?
-  status                       String?   @default("scheduled", map: "DF__delivery___statu__57FD0775") @db.NVarChar(20)
-  priority                     String?   @default("medium", map: "DF__delivery___prior__59E54FE7") @db.NVarChar(10)
-  delivery_instructions        String?
-  actual_delivery_time         DateTime? @db.DateTime
-  delivery_proof               String?   @db.NVarChar(500)
-  customer_signature           String?   @db.NVarChar(Max)
-  failure_reason               String?   @db.NVarChar(500)
-  rescheduled_date             DateTime? @db.DateTime
-  is_active                    String    @default("Y", map: "DF__delivery___is_ac__5AD97420") @db.Char(1)
-  createdate                   DateTime? @default(now(), map: "DF__delivery___creat__5BCD9859") @db.DateTime
-  createdby                    Int
-  updatedate                   DateTime? @db.DateTime
-  updatedby                    Int?
-  log_inst                     Int?
-  vehicles                     vehicles? @relation(fields: [assigned_vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__delivery___assig__5EAA0504")
-  users                        users?    @relation(fields: [assigned_driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__delivery___assig__5F9E293D")
-  delivery_schedules_customers customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  orders                       orders    @relation(fields: [order_id], references: [id], onUpdate: NoAction, map: "FK__delivery___order__5CC1BC92")
+  id                                  Int       @id() @default(autoincrement())
+  order_id                            Int
+  customer_id                         Int
+  scheduled_date                      DateTime  @db.DateTime
+  scheduled_time_slot                 String?   @db.NVarChar(20)
+  assigned_vehicle_id                 Int?
+  assigned_driver_id                  Int?
+  status                              String?   @default("scheduled") @db.NVarChar(20)
+  priority                            String?   @default("medium") @db.NVarChar(10)
+  delivery_instructions               String?
+  actual_delivery_time                DateTime? @db.DateTime
+  delivery_proof                      String?   @db.NVarChar(500)
+  customer_signature                  String?   @db.NVarChar(Max)
+  failure_reason                      String?   @db.NVarChar(500)
+  rescheduled_date                    DateTime? @db.DateTime
+  is_active                           String    @default("Y") @db.Char(1)
+  createdate                          DateTime? @default(now()) @db.DateTime
+  createdby                           Int
+  updatedate                          DateTime? @db.DateTime
+  updatedby                           Int?
+  log_inst                            Int?
+  delivery_schedules_vehicles         vehicles? @relation(fields: [assigned_vehicle_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  delivery_schedules_users            users?    @relation(fields: [assigned_driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  delivery_schedules_customers        customers @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  delivery_schedules_customers_orders orders    @relation(fields: [order_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model digital_signatures {
@@ -736,8 +736,8 @@ model employee_kpi_actuals {
   actual_value           Decimal              @db.Decimal(18, 2)
   measured_date          DateTime
   remarks                String?              @db.NVarChar(500)
-  is_active              String               @default("Y", map: "DF__employee___is_ac__16644E42") @db.Char(1)
-  createdate             DateTime?            @default(now(), map: "DF__employee___creat__1758727B") @db.DateTime
+  is_active              String               @default("Y") @db.Char(1)
+  createdate             DateTime?            @default(now()) @db.DateTime
   createdby              Int
   updatedate             DateTime?            @db.DateTime
   updatedby              Int?
@@ -753,8 +753,8 @@ model employee_kpi_targets {
   measure_unit                                  String?                @db.NVarChar(50)
   period_start                                  DateTime               @db.Date
   period_end                                    DateTime               @db.Date
-  is_active                                     String                 @default("Y", map: "DF__employee___is_ac__0FB750B3") @db.Char(1)
-  createdate                                    DateTime?              @default(now(), map: "DF__employee___creat__10AB74EC") @db.DateTime
+  is_active                                     String                 @default("Y") @db.Char(1)
+  createdate                                    DateTime?              @default(now()) @db.DateTime
   createdby                                     Int
   updatedate                                    DateTime?              @db.DateTime
   updatedby                                     Int?
@@ -768,12 +768,12 @@ model gps_logs {
   user_id                       Int
   latitude                      Decimal   @db.Decimal(10, 8)
   longitude                     Decimal   @db.Decimal(11, 8)
-  log_time                      DateTime? @default(now(), map: "DF__gps_logs__log_ti__278EDA44")
+  log_time                      DateTime? @default(now())
   accuracy_meters               Int?
   speed_kph                     Decimal?  @db.Decimal(10, 2)
   battery_level                 Decimal?  @db.Decimal(5, 2)
   network_type                  String?   @db.NVarChar(20)
-  is_active                     String    @default("Y", map: "DF__gps_logs__is_act__2882FE7D") @db.Char(1)
+  is_active                     String    @default("Y") @db.Char(1)
   createdate                    DateTime? @default(now(), map: "DF__gps_logs__create__297722B6") @db.DateTime
   createdby                     Int
   updatedate                    DateTime? @db.DateTime
@@ -928,43 +928,43 @@ model order_items {
 }
 
 model orders {
-  id                        Int                  @id() @default(autoincrement())
-  order_number              String               @unique() @db.NVarChar(50)
-  parent_id                 Int
-  salesperson_id            Int
-  order_date                DateTime?            @default(now())
-  delivery_date             DateTime?
-  status                    String?              @default("draft") @db.NVarChar(20)
-  priority                  String?              @default("medium") @db.NVarChar(10)
-  order_type                String?              @default("regular") @db.NVarChar(20)
-  payment_method            String?              @default("credit") @db.NVarChar(20)
-  payment_terms             String?              @default("Net 30") @db.NVarChar(50)
-  subtotal                  Decimal?             @default(0) @db.Decimal(18, 2)
-  discount_amount           Decimal?             @default(0) @db.Decimal(18, 2)
-  tax_amount                Decimal?             @default(0) @db.Decimal(18, 2)
-  shipping_amount           Decimal?             @default(0) @db.Decimal(18, 2)
-  total_amount              Decimal?             @default(0) @db.Decimal(18, 2)
-  notes                     String?
-  shipping_address          String?
-  approval_status           String?              @default("pending") @db.NVarChar(20)
-  approved_by               Int?
-  approved_at               DateTime?
-  is_active                 String               @default("Y") @db.Char(1)
-  createdate                DateTime?            @default(now()) @db.DateTime
-  createdby                 Int
-  updatedate                DateTime?            @db.DateTime
-  updatedby                 Int?
-  log_inst                  Int?
-  currency_id               Int?
-  credit_notes              credit_notes[]
-  delivery_schedules        delivery_schedules[]
-  digital_signatures_orders digital_signatures[]
-  invoices                  invoices[]
-  order_items               order_items[]
-  orders_approved_by        users?               @relation("OrdersApprovedBy", fields: [approved_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  orders_currencies         currencies?          @relation("OrdersCurrencies", fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  orders_customers          customers            @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  orders_salesperson_users  users                @relation("OrdersSalesperson", fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  id                                  Int                  @id() @default(autoincrement())
+  order_number                        String               @unique() @db.NVarChar(50)
+  parent_id                           Int
+  salesperson_id                      Int
+  order_date                          DateTime?            @default(now())
+  delivery_date                       DateTime?
+  status                              String?              @default("draft") @db.NVarChar(20)
+  priority                            String?              @default("medium") @db.NVarChar(10)
+  order_type                          String?              @default("regular") @db.NVarChar(20)
+  payment_method                      String?              @default("credit") @db.NVarChar(20)
+  payment_terms                       String?              @default("Net 30") @db.NVarChar(50)
+  subtotal                            Decimal?             @default(0) @db.Decimal(18, 2)
+  discount_amount                     Decimal?             @default(0) @db.Decimal(18, 2)
+  tax_amount                          Decimal?             @default(0) @db.Decimal(18, 2)
+  shipping_amount                     Decimal?             @default(0) @db.Decimal(18, 2)
+  total_amount                        Decimal?             @default(0) @db.Decimal(18, 2)
+  notes                               String?
+  shipping_address                    String?
+  approval_status                     String?              @default("pending") @db.NVarChar(20)
+  approved_by                         Int?
+  approved_at                         DateTime?
+  is_active                           String               @default("Y") @db.Char(1)
+  createdate                          DateTime?            @default(now()) @db.DateTime
+  createdby                           Int
+  updatedate                          DateTime?            @db.DateTime
+  updatedby                           Int?
+  log_inst                            Int?
+  currency_id                         Int?
+  credit_notes                        credit_notes[]
+  delivery_schedules_customers_orders delivery_schedules[]
+  digital_signatures_orders           digital_signatures[]
+  invoices                            invoices[]
+  order_items                         order_items[]
+  orders_approved_by                  users?               @relation("OrdersApprovedBy", fields: [approved_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  orders_currencies                   currencies?          @relation("OrdersCurrencies", fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders_customers                    customers            @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  orders_salesperson_users            users                @relation("OrdersSalesperson", fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model payment_lines {
@@ -1297,26 +1297,26 @@ model refund_lines {
 }
 
 model return_requests {
-  id                                       Int             @id(map: "PK__return_r__3213E83F6CDDCB6E") @default(autoincrement())
-  customer_id                              Int
-  product_id                               Int
-  serial_id                                Int?
-  return_date                              DateTime?       @default(now(), map: "DF__return_re__retur__373B3228")
-  reason                                   String?         @db.NVarChar(500)
-  status                                   String?         @default("pending", map: "DF__return_re__statu__39237A9A") @db.NVarChar(20)
-  approved_by                              Int?
-  approved_date                            DateTime?
-  resolution_notes                         String?
-  is_active                                String          @default("Y", map: "DF__return_re__is_ac__3A179ED3") @db.Char(1)
-  createdate                               DateTime?       @default(now(), map: "DF__return_re__creat__3B0BC30C") @db.DateTime
-  createdby                                Int
-  updatedate                               DateTime?       @db.DateTime
-  updatedby                                Int?
-  log_inst                                 Int?
-  users_return_requests_approved_byTousers users?          @relation("return_requests_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__return_re__appro__3EDC53F0")
-  return_requests_customers                customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  return_requests_products                 products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  serial_numbers                           serial_numbers? @relation(fields: [serial_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__return_re__seria__3DE82FB7")
+  id                             Int             @id() @default(autoincrement())
+  customer_id                    Int
+  product_id                     Int
+  serial_id                      Int?
+  return_date                    DateTime?       @default(now())
+  reason                         String?         @db.NVarChar(500)
+  status                         String?         @default("pending") @db.NVarChar(20)
+  approved_by                    Int?
+  approved_date                  DateTime?
+  resolution_notes               String?
+  is_active                      String          @default("Y") @db.Char(1)
+  createdate                     DateTime?       @default(now()) @db.DateTime
+  createdby                      Int
+  updatedate                     DateTime?       @db.DateTime
+  updatedby                      Int?
+  log_inst                       Int?
+  return_requests_users          users?          @relation("ReturnRequestsUser", fields: [approved_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  return_requests_customers      customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  return_requests_products       products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  return_requests_serial_numbers serial_numbers? @relation(fields: [serial_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model return_workflow {
@@ -1515,29 +1515,29 @@ model sales_targets {
 }
 
 model serial_numbers {
-  id                       Int               @id(map: "PK__serial_n__3213E83FF27AFA1D") @default(autoincrement())
-  product_id               Int
-  serial_number            String            @unique(map: "UQ__serial_n__BED14FEECBB93DDA") @db.NVarChar(100)
-  batch_id                 Int?
-  status                   String?           @default("available", map: "DF__serial_nu__statu__12FDD1B2") @db.NVarChar(20)
-  customer_id              Int?
-  sold_date                DateTime?
-  warranty_expiry          DateTime?
-  location_id              Int?
-  is_active                String            @default("Y", map: "DF__serial_nu__is_ac__13F1F5EB") @db.Char(1)
-  createdate               DateTime?         @default(now(), map: "DF__serial_nu__creat__14E61A24") @db.DateTime
-  createdby                Int
-  updatedate               DateTime?         @db.DateTime
-  updatedby                Int?
-  log_inst                 Int?
-  return_requests          return_requests[]
-  batch_lots               batch_lots?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__batch__16CE6296")
-  serial_numbers_customers customers?        @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  depots                   depots?           @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__locat__18B6AB08")
-  serial_numbers_products  products          @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  stock_movements          stock_movements[]
-  van_inventory            van_inventory[]
-  warranty_claims          warranty_claims[]
+  id                             Int               @id(map: "PK__serial_n__3213E83FF27AFA1D") @default(autoincrement())
+  product_id                     Int
+  serial_number                  String            @unique(map: "UQ__serial_n__BED14FEECBB93DDA") @db.NVarChar(100)
+  batch_id                       Int?
+  status                         String?           @default("available", map: "DF__serial_nu__statu__12FDD1B2") @db.NVarChar(20)
+  customer_id                    Int?
+  sold_date                      DateTime?
+  warranty_expiry                DateTime?
+  location_id                    Int?
+  is_active                      String            @default("Y", map: "DF__serial_nu__is_ac__13F1F5EB") @db.Char(1)
+  createdate                     DateTime?         @default(now(), map: "DF__serial_nu__creat__14E61A24") @db.DateTime
+  createdby                      Int
+  updatedate                     DateTime?         @db.DateTime
+  updatedby                      Int?
+  log_inst                       Int?
+  return_requests_serial_numbers return_requests[]
+  batch_lots                     batch_lots?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__batch__16CE6296")
+  serial_numbers_customers       customers?        @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  depots                         depots?           @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__locat__18B6AB08")
+  serial_numbers_products        products          @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  stock_movements                stock_movements[]
+  van_inventory                  van_inventory[]
+  warranty_claims                warranty_claims[]
 }
 
 model settings {
@@ -1701,36 +1701,36 @@ model van_inventory {
 }
 
 model vehicles {
-  id                   Int                  @id(map: "PK__vehicles__3213E83F01A4632B") @default(autoincrement())
-  vehicle_number       String               @unique(map: "UQ__vehicles__2D703C2A0E6CCDF9") @db.NVarChar(20)
-  type                 String               @db.NVarChar(20)
-  make                 String?              @db.NVarChar(50)
-  model                String?              @db.NVarChar(50)
-  year                 Int?
-  capacity             Decimal?             @db.Decimal(10, 2)
-  fuel_type            String?              @db.NVarChar(20)
-  current_latitude     Decimal?             @db.Decimal(10, 8)
-  current_longitude    Decimal?             @db.Decimal(11, 8)
-  last_location_update DateTime?
-  assigned_to          Int?
-  status               String?              @default("available", map: "DF__vehicles__status__09C96D33") @db.NVarChar(20)
-  fuel_level           Decimal?             @db.Decimal(5, 2)
-  mileage              Decimal?             @db.Decimal(10, 2)
-  last_service_date    DateTime?
-  next_service_due     DateTime?
-  insurance_expiry     DateTime?
-  registration_expiry  DateTime?
-  is_active            String               @default("Y", map: "DF__vehicles__is_act__0ABD916C") @db.Char(1)
-  createdate           DateTime?            @default(now(), map: "DF__vehicles__create__0BB1B5A5") @db.DateTime
-  createdby            Int
-  updatedate           DateTime?            @db.DateTime
-  updatedby            Int?
-  log_inst             Int?
-  warehouse_id         Int?
-  warehouse_name       String?              @db.NVarChar(100)
-  delivery_schedules   delivery_schedules[]
-  users                users?               @relation(fields: [assigned_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__vehicles__assign__0CA5D9DE")
-  warehouses           warehouses?          @relation(fields: [warehouse_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__vehicles__wareho__0E591826")
+  id                          Int                  @id() @default(autoincrement())
+  vehicle_number              String               @unique() @db.NVarChar(20)
+  type                        String               @db.NVarChar(20)
+  make                        String?              @db.NVarChar(50)
+  model                       String?              @db.NVarChar(50)
+  year                        Int?
+  capacity                    Decimal?             @db.Decimal(10, 2)
+  fuel_type                   String?              @db.NVarChar(20)
+  current_latitude            Decimal?             @db.Decimal(10, 8)
+  current_longitude           Decimal?             @db.Decimal(11, 8)
+  last_location_update        DateTime?
+  assigned_to                 Int?
+  status                      String?              @default("available") @db.NVarChar(20)
+  fuel_level                  Decimal?             @db.Decimal(5, 2)
+  mileage                     Decimal?             @db.Decimal(10, 2)
+  last_service_date           DateTime?
+  next_service_due            DateTime?
+  insurance_expiry            DateTime?
+  registration_expiry         DateTime?
+  is_active                   String               @default("Y") @db.Char(1)
+  createdate                  DateTime?            @default(now()) @db.DateTime
+  createdby                   Int
+  updatedate                  DateTime?            @db.DateTime
+  updatedby                   Int?
+  log_inst                    Int?
+  warehouse_id                Int?
+  warehouse_name              String?              @db.NVarChar(100)
+  delivery_schedules_vehicles delivery_schedules[]
+  users                       users?               @relation(fields: [assigned_to], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  warehouses                  warehouses?          @relation(fields: [warehouse_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model visit_attachments {
