@@ -36,6 +36,7 @@ interface ProductSerialized {
   product_brand: { id: number; name: string; code: string; logo: string };
   product_unit: { id: number; name: string };
   product_category: { id: number; category_name: string };
+  product_sub_category: { id: number; sub_category_name: string };
 }
 
 const generateProductsCode = async (name: string) => {
@@ -125,6 +126,11 @@ const serializeProduct = (product: any): ProductSerialized => ({
     id: product.product_categories_products?.id,
     category_name: product.product_categories_products?.category_name,
   },
+  product_sub_category: {
+    id: product.product_sub_categories_products?.id,
+    sub_category_name:
+      product.product_sub_categories_products?.sub_category_name,
+  },
 });
 
 export const productsController = {
@@ -139,6 +145,7 @@ export const productsController = {
           code: newCode,
           description: data.description,
           category_id: data.category_id,
+          sub_category_id: data.sub_category_id,
           brand_id: data.brand_id,
           unit_of_measurement: data.unit_of_measurement,
           base_price: data.base_price,
@@ -147,7 +154,7 @@ export const productsController = {
           createdate: new Date(),
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
-        },
+        } as any,
         include: {
           batch_lots_products: true,
           inventory_stock_products: true,
@@ -156,6 +163,7 @@ export const productsController = {
           product_brands: true,
           product_unit_of_measurement: true,
           product_categories_products: true,
+          product_sub_categories_products: true,
         },
       });
 
@@ -203,6 +211,7 @@ export const productsController = {
           product_brands: true,
           product_unit_of_measurement: true,
           product_categories_products: true,
+          product_sub_categories_products: true,
         },
       });
 
@@ -255,6 +264,7 @@ export const productsController = {
           product_brands: true,
           product_unit_of_measurement: true,
           product_categories_products: true,
+          product_sub_categories_products: true,
         },
       });
 
@@ -298,6 +308,7 @@ export const productsController = {
           product_brands: true,
           product_unit_of_measurement: true,
           product_categories_products: true,
+          product_sub_categories_products: true,
         },
       });
 
