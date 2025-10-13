@@ -1119,17 +1119,18 @@ model product_facing {
 }
 
 model product_sub_categories {
-  id                  Int                @id(map: "PK__product___3213E83FAE970044") @default(autoincrement())
-  sub_category_name   String             @db.NVarChar(255)
-  product_category_id Int
-  description         String?
-  is_active           String             @default("Y", map: "DF__product_s__is_ac__7CD98669") @db.Char(1)
-  createdate          DateTime?          @default(now(), map: "DF__product_s__creat__7DCDAAA2") @db.DateTime
-  createdby           Int
-  updatedate          DateTime?          @db.DateTime
-  updatedby           Int?
-  log_inst            Int?
-  product_category    product_categories @relation(fields: [product_category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  id                              Int                @id(map: "PK__product___3213E83FAE970044") @default(autoincrement())
+  sub_category_name               String             @db.NVarChar(255)
+  product_category_id             Int
+  description                     String?
+  is_active                       String             @default("Y", map: "DF__product_s__is_ac__7CD98669") @db.Char(1)
+  createdate                      DateTime?          @default(now(), map: "DF__product_s__creat__7DCDAAA2") @db.DateTime
+  createdby                       Int
+  updatedate                      DateTime?          @db.DateTime
+  updatedby                       Int?
+  log_inst                        Int?
+  product_category                product_categories @relation(fields: [product_category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  product_sub_categories_products products[]
 }
 
 model product_warranty_policy {
@@ -1153,6 +1154,7 @@ model products {
   code                             String                    @unique() @db.NVarChar(100)
   description                      String?
   category_id                      Int
+  sub_category_id                  Int
   brand_id                         Int
   unit_of_measurement              Int
   base_price                       Decimal?                  @db.Decimal(18, 2)
@@ -1164,6 +1166,7 @@ model products {
   updatedby                        Int?
   log_inst                         Int?
   product_categories_products      product_categories        @relation(fields: [category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  product_sub_categories_products  product_sub_categories    @relation(fields: [sub_category_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   product_brands                   brands                    @relation(fields: [brand_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   product_unit_of_measurement      unit_of_measurement       @relation(fields: [unit_of_measurement], references: [id], onUpdate: NoAction, onDelete: Cascade)
   batch_lots_products              batch_lots[]
