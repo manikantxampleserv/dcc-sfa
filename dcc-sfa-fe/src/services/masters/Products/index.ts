@@ -7,6 +7,7 @@ interface Product {
   code: string;
   description?: string | null;
   category_id: number;
+  sub_category_id: number;
   brand_id: number;
   unit_of_measurement: number;
   base_price?: number | null;
@@ -32,13 +33,15 @@ interface Product {
   }[];
   product_brand: { id: number; name: string; code: string; logo: string };
   product_unit: { id: number; name: string };
-  product_category: { id: number; name: string };
+  product_category: { id: number; category_name: string };
+  product_sub_category: { id: number; sub_category_name: string };
 }
 
 interface ManageProductPayload {
   name: string;
   description?: string;
   category_id: number;
+  sub_category_id: number;
   brand_id: number;
   unit_of_measurement: number;
   base_price?: number;
@@ -50,6 +53,7 @@ interface UpdateProductPayload {
   name?: string;
   description?: string;
   category_id?: number;
+  sub_category_id?: number;
   brand_id?: number;
   unit_of_measurement?: number;
   base_price?: number;

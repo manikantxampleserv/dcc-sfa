@@ -44,43 +44,71 @@ export class ProductsImportExportService extends ImportExportService<any> {
       description: 'Description of the product (optional, max 1000 characters)',
     },
     {
-      key: 'category_name',
-      header: 'Category Name',
-      width: 20,
-      required: true,
-      type: 'string',
-      validation: value => {
-        if (!value) return 'Category name is required';
-        return true;
-      },
-      transform: value => (value ? value.toString().trim() : null),
-      description: 'Name of the product category (required)',
-    },
-    {
-      key: 'brand_name',
-      header: 'Brand Name',
-      width: 20,
-      required: true,
-      type: 'string',
-      validation: value => {
-        if (!value) return 'Brand name is required';
-        return true;
-      },
-      transform: value => (value ? value.toString().trim() : null),
-      description: 'Name of the brand (required)',
-    },
-    {
-      key: 'unit_name',
-      header: 'Unit Name',
+      key: 'category_id',
+      header: 'Category ID',
       width: 15,
       required: true,
-      type: 'string',
+      type: 'number',
       validation: value => {
-        if (!value) return 'Unit name is required';
+        if (!value) return 'Category ID is required';
+        const numValue = Number(value);
+        if (isNaN(numValue)) return 'Category ID must be a valid number';
+        if (numValue < 1) return 'Category ID must be greater than 0';
         return true;
       },
-      transform: value => (value ? value.toString().trim() : null),
-      description: 'Name of the unit of measurement (required)',
+      transform: value => (value ? Number(value) : null),
+      description:
+        'ID of the product category (required, must exist in system)',
+    },
+    {
+      key: 'sub_category_id',
+      header: 'Sub-Category ID',
+      width: 18,
+      required: true,
+      type: 'number',
+      validation: value => {
+        if (!value) return 'Sub-category ID is required';
+        const numValue = Number(value);
+        if (isNaN(numValue)) return 'Sub-category ID must be a valid number';
+        if (numValue < 1) return 'Sub-category ID must be greater than 0';
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description:
+        'ID of the product sub-category (required, must exist in system)',
+    },
+    {
+      key: 'brand_id',
+      header: 'Brand ID',
+      width: 15,
+      required: true,
+      type: 'number',
+      validation: value => {
+        if (!value) return 'Brand ID is required';
+        const numValue = Number(value);
+        if (isNaN(numValue)) return 'Brand ID must be a valid number';
+        if (numValue < 1) return 'Brand ID must be greater than 0';
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description: 'ID of the brand (required, must exist in system)',
+    },
+    {
+      key: 'unit_of_measurement',
+      header: 'Unit ID',
+      width: 12,
+      required: true,
+      type: 'number',
+      validation: value => {
+        if (!value) return 'Unit ID is required';
+        const numValue = Number(value);
+        if (isNaN(numValue)) return 'Unit ID must be a valid number';
+        if (numValue < 1) return 'Unit ID must be greater than 0';
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description:
+        'ID of the unit of measurement (required, must exist in system)',
     },
     {
       key: 'base_price',
@@ -135,9 +163,10 @@ export class ProductsImportExportService extends ImportExportService<any> {
       {
         name: 'Coca Cola Classic',
         description: 'Classic Coca Cola soft drink',
-        category_name: 'Food & Beverages',
-        brand_name: 'Coca Cola',
-        unit_name: 'Case',
+        category_id: 2, // Food & Beverages
+        sub_category_id: 1, // Soft Drinks (assuming this exists)
+        brand_id: 2, // Coca Cola
+        unit_of_measurement: 2, // Case
         base_price: 1.99,
         tax_rate: 6.0,
         is_active: 'Y',
@@ -145,9 +174,10 @@ export class ProductsImportExportService extends ImportExportService<any> {
       {
         name: 'Potato Chips',
         description: 'Crispy potato chips snack',
-        category_name: 'Food & Beverages',
-        brand_name: 'Generic',
-        unit_name: 'Case',
+        category_id: 2, // Food & Beverages
+        sub_category_id: 2, // Snacks (assuming this exists)
+        brand_id: 3, // Generic
+        unit_of_measurement: 2, // Case
         base_price: 2.49,
         tax_rate: 6.0,
         is_active: 'Y',
@@ -155,9 +185,10 @@ export class ProductsImportExportService extends ImportExportService<any> {
       {
         name: 'iPhone 15 Pro',
         description: 'Latest Apple iPhone with advanced camera system',
-        category_name: 'Electronics',
-        brand_name: 'Apple',
-        unit_name: 'Piece',
+        category_id: 1, // Electronics
+        sub_category_id: 3, // Smartphones (assuming this exists)
+        brand_id: 1, // Apple
+        unit_of_measurement: 1, // Piece
         base_price: 999.99,
         tax_rate: 8.5,
         is_active: 'Y',
@@ -165,9 +196,10 @@ export class ProductsImportExportService extends ImportExportService<any> {
       {
         name: 'Nike Running Shoes',
         description: 'High-performance running shoes',
-        category_name: 'Clothing & Fashion',
-        brand_name: 'Fashion Brand',
-        unit_name: 'Piece',
+        category_id: 3, // Clothing & Fashion
+        sub_category_id: 4, // Footwear (assuming this exists)
+        brand_id: 4, // Fashion Brand
+        unit_of_measurement: 1, // Piece
         base_price: 129.99,
         tax_rate: 8.0,
         is_active: 'Y',
@@ -175,9 +207,10 @@ export class ProductsImportExportService extends ImportExportService<any> {
       {
         name: 'Office Chair',
         description: 'Ergonomic office chair with lumbar support',
-        category_name: 'Home & Garden',
-        brand_name: 'Office Furniture',
-        unit_name: 'Piece',
+        category_id: 4, // Home & Garden
+        sub_category_id: 5, // Furniture (assuming this exists)
+        brand_id: 5, // Office Furniture
+        unit_of_measurement: 1, // Piece
         base_price: 199.99,
         tax_rate: 8.0,
         is_active: 'N',
@@ -191,9 +224,10 @@ export class ProductsImportExportService extends ImportExportService<any> {
 
 ## Required Fields:
 - **Product Name**: Name of the product (2-255 characters)
-- **Category Name**: Name of the product category (must exist in system)
-- **Brand Name**: Name of the brand (must exist in system)
-- **Unit Name**: Name of the unit of measurement (must exist in system)
+- **Category ID**: ID of the product category (must exist in system)
+- **Sub-Category ID**: ID of the product sub-category (must exist in system)
+- **Brand ID**: ID of the brand (must exist in system)
+- **Unit ID**: ID of the unit of measurement (must exist in system)
 
 ## Optional Fields:
 - **Description**: Description of the product (max 1000 characters)
@@ -203,10 +237,11 @@ export class ProductsImportExportService extends ImportExportService<any> {
 
 ## Notes:
 - Product names must be unique across the system.
-- Category, Brand, and Unit names must match existing records in the system.
+- Category ID, Sub-Category ID, Brand ID, and Unit ID must match existing records in the system.
 - Base price and tax rate are optional but must be valid numbers if provided.
 - Active products are available for orders and sales.
 - Inactive products are hidden but preserved for historical data.
+- Use the system's master data to get the correct IDs for categories, sub-categories, brands, and units.
     `;
   }
 
@@ -214,9 +249,10 @@ export class ProductsImportExportService extends ImportExportService<any> {
     return data.map(product => ({
       name: product.name,
       description: product.description || '',
-      category_name: product.product_category?.name || '',
-      brand_name: product.product_brand?.name || '',
-      unit_name: product.product_unit?.name || '',
+      category_id: product.category_id || '',
+      sub_category_id: product.sub_category_id || '',
+      brand_id: product.brand_id || '',
+      unit_of_measurement: product.unit_of_measurement || '',
       base_price: product.base_price || '',
       tax_rate: product.tax_rate || '',
       is_active: product.is_active || 'Y',
@@ -247,37 +283,52 @@ export class ProductsImportExportService extends ImportExportService<any> {
     data: any,
     userId: number
   ): Promise<any> {
-    // Find category by name
+    // Validate category exists by ID
     const category = await prisma.product_categories.findFirst({
       where: {
-        category_name: data.category_name,
+        id: data.category_id,
       },
     });
 
     if (!category) {
-      throw new Error(`Category "${data.category_name}" not found`);
+      throw new Error(`Category with ID "${data.category_id}" not found`);
     }
 
-    // Find brand by name
+    // Validate sub-category exists by ID
+    const subCategory = await prisma.product_sub_categories.findFirst({
+      where: {
+        id: data.sub_category_id,
+      },
+    });
+
+    if (!subCategory) {
+      throw new Error(
+        `Sub-category with ID "${data.sub_category_id}" not found`
+      );
+    }
+
+    // Validate brand exists by ID
     const brand = await prisma.brands.findFirst({
       where: {
-        name: data.brand_name,
+        id: data.brand_id,
       },
     });
 
     if (!brand) {
-      throw new Error(`Brand "${data.brand_name}" not found`);
+      throw new Error(`Brand with ID "${data.brand_id}" not found`);
     }
 
-    // Find unit by name
+    // Validate unit exists by ID
     const unit = await prisma.unit_of_measurement.findFirst({
       where: {
-        name: data.unit_name,
+        id: data.unit_of_measurement,
       },
     });
 
     if (!unit) {
-      throw new Error(`Unit of measurement "${data.unit_name}" not found`);
+      throw new Error(
+        `Unit of measurement with ID "${data.unit_of_measurement}" not found`
+      );
     }
 
     // Generate product code
@@ -301,9 +352,10 @@ export class ProductsImportExportService extends ImportExportService<any> {
       name: data.name,
       code: code,
       description: data.description || null,
-      category_id: category.id,
-      brand_id: brand.id,
-      unit_of_measurement: unit.id,
+      category_id: data.category_id,
+      sub_category_id: data.sub_category_id,
+      brand_id: data.brand_id,
+      unit_of_measurement: data.unit_of_measurement,
       base_price: data.base_price || null,
       tax_rate: data.tax_rate || null,
       is_active: data.is_active || 'Y',
@@ -319,28 +371,38 @@ export class ProductsImportExportService extends ImportExportService<any> {
   ): Promise<string | null> {
     const errors: string[] = [];
 
-    // Check category exists
+    // Check category exists by ID
     const category = await prisma.product_categories.findFirst({
-      where: { category_name: data.category_name },
+      where: { id: data.category_id },
     });
     if (!category) {
-      errors.push(`Category "${data.category_name}" not found`);
+      errors.push(`Category with ID "${data.category_id}" not found`);
     }
 
-    // Check brand exists
+    // Check sub-category exists by ID
+    const subCategory = await prisma.product_sub_categories.findFirst({
+      where: { id: data.sub_category_id },
+    });
+    if (!subCategory) {
+      errors.push(`Sub-category with ID "${data.sub_category_id}" not found`);
+    }
+
+    // Check brand exists by ID
     const brand = await prisma.brands.findFirst({
-      where: { name: data.brand_name },
+      where: { id: data.brand_id },
     });
     if (!brand) {
-      errors.push(`Brand "${data.brand_name}" not found`);
+      errors.push(`Brand with ID "${data.brand_id}" not found`);
     }
 
-    // Check unit exists
+    // Check unit exists by ID
     const unit = await prisma.unit_of_measurement.findFirst({
-      where: { name: data.unit_name },
+      where: { id: data.unit_of_measurement },
     });
     if (!unit) {
-      errors.push(`Unit of measurement "${data.unit_name}" not found`);
+      errors.push(
+        `Unit of measurement with ID "${data.unit_of_measurement}" not found`
+      );
     }
 
     return errors.length > 0 ? errors.join('; ') : null;
@@ -389,6 +451,7 @@ export class ProductsImportExportService extends ImportExportService<any> {
         product_brands: true,
         product_unit_of_measurement: true,
         product_categories_products: true,
+        product_sub_categories_products: true,
       },
     };
 

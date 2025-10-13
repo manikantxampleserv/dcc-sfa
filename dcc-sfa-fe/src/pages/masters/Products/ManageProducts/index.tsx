@@ -6,6 +6,10 @@ import {
   type ProductCategory,
 } from 'hooks/useProductCategories';
 import {
+  useProductSubCategories,
+  type ProductSubCategory,
+} from 'hooks/useProductSubCategories';
+import {
   useCreateProduct,
   useUpdateProduct,
   type Product,
@@ -46,10 +50,14 @@ const ManageProduct: React.FC<ManageProductProps> = ({
 
   // Fetch dropdown data
   const { data: categoriesResponse } = useProductCategories({ limit: 1000 });
+  const { data: subCategoriesResponse } = useProductSubCategories({
+    limit: 1000,
+  });
   const { data: brandsResponse } = useBrands({ limit: 1000 });
   const { data: unitsResponse } = useUnitOfMeasurement({ limit: 1000 });
 
   const categories = categoriesResponse?.data || [];
+  const subCategories = subCategoriesResponse?.data || [];
   const brands = brandsResponse?.data || [];
   const units = unitsResponse?.data || [];
 
@@ -58,6 +66,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       name: selectedProduct?.name || '',
       description: selectedProduct?.description || '',
       category_id: selectedProduct?.category_id || '',
+      sub_category_id: selectedProduct?.sub_category_id || '',
       brand_id: selectedProduct?.brand_id || '',
       unit_of_measurement: selectedProduct?.unit_of_measurement || '',
       base_price: selectedProduct?.base_price || '',
@@ -72,6 +81,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
           name: values.name,
           description: values.description || undefined,
           category_id: Number(values.category_id),
+          sub_category_id: Number(values.sub_category_id),
           brand_id: Number(values.brand_id),
           unit_of_measurement: Number(values.unit_of_measurement),
           base_price: values.base_price ? Number(values.base_price) : undefined,
@@ -122,6 +132,19 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               {categories.map((category: ProductCategory) => (
                 <MenuItem key={category.id} value={category.id}>
                   {category.category_name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="sub_category_id"
+              label="Sub-Category"
+              formik={formik}
+              required
+            >
+              {subCategories.map((subCategory: ProductSubCategory) => (
+                <MenuItem key={subCategory.id} value={subCategory.id}>
+                  {subCategory.sub_category_name}
                 </MenuItem>
               ))}
             </Select>

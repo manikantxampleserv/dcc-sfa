@@ -153,13 +153,18 @@ const ProductsManagement: React.FC = () => {
       label: 'Category & Brand',
       render: (_value, row) => (
         <Box>
-          <Box className="flex items-center text-sm text-gray-900">
-            <Tag className="w-4 h-4 text-gray-400 mr-2" />
-            {row.product_category?.category_name || 'N/A'}
-          </Box>
-          <Box className="flex items-center text-sm text-gray-500 mt-1">
+          <Box className="flex items-center text-sm mt-1">
             <TrendingUp className="w-4 h-4 text-gray-400 mr-2" />
             {row.product_brand?.name || 'N/A'}
+          </Box>
+          <Box className="flex items-center text-xs text-gray-900">
+            <Tag className="w-4 h-4 text-gray-400 mr-2" />
+            {row.product_category?.category_name || 'N/A'}{' '}
+            {row.product_sub_category?.sub_category_name && (
+              <span className="text-gray-500 pl-0.5">
+                {`• ${row.product_sub_category?.sub_category_name}`}
+              </span>
+            )}
           </Box>
         </Box>
       ),

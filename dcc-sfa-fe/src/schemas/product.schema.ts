@@ -14,6 +14,10 @@ export const productValidationSchema = yup.object().shape({
     .number()
     .required('Category is required')
     .min(1, 'Please select a valid category'),
+  sub_category_id: yup
+    .number()
+    .required('Sub-category is required')
+    .min(1, 'Please select a valid sub-category'),
   brand_id: yup
     .number()
     .required('Brand is required')
