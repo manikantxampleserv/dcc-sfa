@@ -40,6 +40,7 @@ import productSubCategories from '../v1/routes/productSubCategories.routes';
 import brandsRoutes from '../v1/routes/brands.routes';
 import unitOfMeasurementRoutes from '../v1/routes/unitOfMeasurement.routes';
 import deliverySchedules from '../v1/routes/deliverySchedules.routes';
+import returnRequests from '../v1/routes/returnRequests.routes';
 
 const routes = Router();
 
@@ -83,6 +84,7 @@ routes.use('/v1', productSubCategories);
 routes.use('/v1', brandsRoutes);
 routes.use('/v1', unitOfMeasurementRoutes);
 routes.use('/v1', deliverySchedules);
+routes.use('/v1', returnRequests);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
