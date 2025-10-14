@@ -607,7 +607,7 @@ export abstract class ImportExportService<T> {
             detailedErrors.length > 0 ? detailedErrors : undefined,
         };
       },
-      { timeout: 60000 }
+      { timeout: 300000 }
     );
 
     return results;
