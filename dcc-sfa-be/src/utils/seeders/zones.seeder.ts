@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import logger from '../../configs/logger';
 
 const prisma = new PrismaClient();
 
@@ -127,6 +128,23 @@ const mockZones: MockZone[] = [
  */
 export async function seedZones(): Promise<void> {
   try {
+    // Get available companies for parent_id
+    const companies = await prisma.companies.findMany({
+      select: { id: true, name: true },
+      where: { is_active: 'Y' },
+    });
+
+    if (companies.length === 0) {
+      logger.warn('No active companies found. Skipping zones seeding.');
+      return;
+    }
+
+    // Use the first company for all zones
+    const company = companies[0];
+
+    let zonesCreated = 0;
+    let zonesSkipped = 0;
+
     for (const zone of mockZones) {
       const existingZone = await prisma.zones.findFirst({
         where: { name: zone.name },
@@ -138,7 +156,7 @@ export async function seedZones(): Promise<void> {
             name: zone.name,
             code: zone.code,
             description: zone.description,
-            parent_id: zone.parent_id,
+            parent_id: company.id, // Use actual company ID instead of hardcoded
             depot_id: zone.depot_id,
             supervisor_id: zone.supervisor_id,
             is_active: zone.is_active,
@@ -147,9 +165,18 @@ export async function seedZones(): Promise<void> {
             log_inst: 1,
           },
         });
+
+        zonesCreated++;
+      } else {
+        zonesSkipped++;
       }
     }
+
+    logger.info(
+      `Zones seeding completed: ${zonesCreated} created, ${zonesSkipped} skipped`
+    );
   } catch (error) {
+    logger.error('Error seeding zones:', error);
     throw error;
   }
 }

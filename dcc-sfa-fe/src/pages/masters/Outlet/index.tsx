@@ -6,9 +6,7 @@ import {
   MapPin,
   Phone,
   Store,
-  TrendingUp,
   UserCheck,
-  Users,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -26,19 +24,11 @@ import { useRoutes } from '../../../hooks/useRoutes';
 import { useUsers } from '../../../hooks/useUsers';
 import { useZones } from '../../../hooks/useZones';
 import ManageOutlet from './ManageOutlet';
-
-export const BUSINESS_TYPES = [
-  'Retail',
-  'Wholesale',
-  'Corporate',
-  'Industrial',
-  'Healthcare',
-  'Automotive',
-  'Restaurant',
-  'Service',
-  'Manufacturing',
-  'Distribution',
-];
+import {
+  BUSINESS_TYPES,
+  getBusinessTypeChipColor,
+  getBusinessTypeIcon,
+} from './utils';
 
 const OutletsManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -137,60 +127,6 @@ const OutletsManagement: React.FC = () => {
     }).format(parseFloat(amount));
   };
 
-  const getBusinessTypeColor = (type: string) => {
-    switch ((type || '').toLowerCase()) {
-      case 'retail':
-        return 'bg-blue-100 text-blue-800';
-      case 'wholesale':
-        return 'bg-green-100 text-green-800';
-      case 'corporate':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'industrial':
-        return 'bg-gray-100 text-gray-700';
-      case 'healthcare':
-        return 'bg-pink-100 text-pink-800';
-      case 'automotive':
-        return 'bg-red-100 text-red-800';
-      case 'restaurant':
-        return 'bg-orange-100 text-orange-800';
-      case 'service':
-        return 'bg-indigo-100 text-indigo-800';
-      case 'manufacturing':
-        return 'bg-purple-100 text-purple-800';
-      case 'distribution':
-        return 'bg-cyan-100 text-cyan-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getBusinessTypeIcon = (type: string) => {
-    switch ((type || '').toLowerCase()) {
-      case 'retail':
-        return <Store className="w-4 h-4" />;
-      case 'wholesale':
-        return <Users className="w-4 h-4" />;
-      case 'corporate':
-        return <TrendingUp className="w-4 h-4" />;
-      case 'industrial':
-        return <TrendingUp className="w-4 h-4" />;
-      case 'healthcare':
-        return <Users className="w-4 h-4" />;
-      case 'automotive':
-        return <TrendingUp className="w-4 h-4" />;
-      case 'restaurant':
-        return <Users className="w-4 h-4" />;
-      case 'service':
-        return <TrendingUp className="w-4 h-4" />;
-      case 'manufacturing':
-        return <TrendingUp className="w-4 h-4" />;
-      case 'distribution':
-        return <TrendingUp className="w-4 h-4" />;
-      default:
-        return <Store className="w-4 h-4" />;
-    }
-  };
-
   const outletColumns: TableColumn<Customer>[] = [
     {
       id: 'name',
@@ -224,12 +160,14 @@ const OutletsManagement: React.FC = () => {
       id: 'type',
       label: 'Type',
       render: (_value, row) => (
-        <span
-          className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getBusinessTypeColor(row.type || '')}`}
-        >
-          {getBusinessTypeIcon(row.type || '')}
-          <span className="ml-1 capitalize">{row.type || 'N/A'}</span>
-        </span>
+        <Chip
+          icon={getBusinessTypeIcon(row.type || '')}
+          label={row.type || 'N/A'}
+          size="small"
+          variant="outlined"
+          className="!capitalize !px-1"
+          color={getBusinessTypeChipColor(row.type || '')}
+        />
       ),
     },
     {

@@ -3,7 +3,6 @@ import {
   authenticateToken,
   requireAnyModulePermission,
 } from '../../middlewares/auth.middleware';
-import { validate } from '../../middlewares/validation.middleware';
 import { MODULES, ACTIONS } from '../../configs/permissions.config';
 import { userController } from '../controllers/user.controller';
 import {

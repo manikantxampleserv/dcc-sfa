@@ -131,7 +131,10 @@ export const updateSalesTargetGroup = async (
   groupData: UpdateSalesTargetGroupPayload
 ): Promise<ApiResponse<SalesTargetGroup>> => {
   try {
-    const response = await api.put(`/sales-target-groups/${id}`, groupData);
+    const response = await api.post(`/sales-target-groups`, {
+      ...groupData,
+      id,
+    });
     return response.data;
   } catch (error: any) {
     console.error('Error updating sales target group:', error);

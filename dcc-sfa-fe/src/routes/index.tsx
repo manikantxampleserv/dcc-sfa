@@ -23,6 +23,7 @@ import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
 import SalesTargetGroupsManagement from 'pages/masters/SalesTargetGroups';
 import SalesTargetsManagement from 'pages/masters/SalesTargets';
+import SalesBonusRulesManagement from 'pages/masters/SalesBonusRules';
 import SurveyBuilder from 'pages/masters/SurveyBuilder';
 import Users from 'pages/masters/Users';
 import UserDetail from 'pages/masters/Users/UserDetail';
@@ -33,13 +34,12 @@ import ZonesManagement from 'pages/masters/Zone';
 import Profile from 'pages/Profile';
 import OrdersManagement from 'pages/transactions/Orders';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
+import DeliveryScheduling from 'pages/transactions/DeliveryScheduling';
+import ReturnRequests from 'pages/transactions/ReturnRequests';
+import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
+import PaymentCollection from 'pages/transactions/PaymentCollection';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-
-const SalesBonusRules = () => <h1>Sales Bonus Rules</h1>;
-const DeliveryScheduling = () => <h1>Delivery Scheduling</h1>;
-const ReturnRequests = () => <h1>Return Requests</h1>;
-const PaymentCollection = () => <h1>Payment Collection</h1>;
 const InvoiceManagement = () => <h1>Invoice Management</h1>;
 const CreditNotes = () => <h1>Credit Notes</h1>;
 const AssetMovement = () => <h1>Asset Movement</h1>;
@@ -188,8 +188,8 @@ const router = createBrowserRouter([
         element: <SalesTargetsManagement />,
       },
       {
-        path: '/masters/bonus-rules',
-        element: <SalesBonusRules />,
+        path: '/masters/sales-bonus-rules',
+        element: <SalesBonusRulesManagement />,
       },
       {
         path: '/masters/kpi-targets',
@@ -210,6 +210,10 @@ const router = createBrowserRouter([
       {
         path: '/transactions/returns',
         element: <ReturnRequests />,
+      },
+      {
+        path: '/transactions/returns/:id',
+        element: <ReturnRequestDetail />,
       },
       {
         path: '/transactions/payments',

@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import logger from '../../configs/logger';
 
 const prisma = new PrismaClient();
 
@@ -223,6 +224,23 @@ const mockDepots: MockDepot[] = [
  */
 export async function seedDepots(): Promise<void> {
   try {
+    // Get available companies for parent_id
+    const companies = await prisma.companies.findMany({
+      select: { id: true, name: true },
+      where: { is_active: 'Y' },
+    });
+
+    if (companies.length === 0) {
+      logger.warn('No active companies found. Skipping depots seeding.');
+      return;
+    }
+
+    // Use the first company for all depots
+    const company = companies[0];
+
+    let depotsCreated = 0;
+    let depotsSkipped = 0;
+
     for (const depot of mockDepots) {
       const existingDepot = await prisma.depots.findFirst({
         where: { name: depot.name },
@@ -231,7 +249,7 @@ export async function seedDepots(): Promise<void> {
       if (!existingDepot) {
         await prisma.depots.create({
           data: {
-            parent_id: depot.parent_id,
+            parent_id: company.id, // Use actual company ID instead of hardcoded
             name: depot.name,
             code: depot.code,
             address: depot.address,
@@ -251,9 +269,18 @@ export async function seedDepots(): Promise<void> {
             log_inst: 1,
           },
         });
+
+        depotsCreated++;
+      } else {
+        depotsSkipped++;
       }
     }
+
+    logger.info(
+      `Depots seeding completed: ${depotsCreated} created, ${depotsSkipped} skipped`
+    );
   } catch (error) {
+    logger.error('Error seeding depots:', error);
     throw error;
   }
 }

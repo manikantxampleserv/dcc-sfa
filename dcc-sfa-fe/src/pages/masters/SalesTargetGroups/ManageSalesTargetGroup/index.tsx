@@ -26,6 +26,7 @@ interface ManageSalesTargetGroupProps {
 interface MemberFormData {
   sales_person_id: number | '';
   is_active: string;
+  id?: number | null;
 }
 
 const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
@@ -57,6 +58,7 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
         groupResponse.data.sales_target_group_members?.map(member => ({
           sales_person_id: member.sales_person_id,
           is_active: member.is_active,
+          id: member.id,
         })) || [];
       setMembers(items);
       formik.setFieldValue('members', items);
@@ -85,6 +87,7 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
             .map(member => ({
               sales_person_id: Number(member.sales_person_id),
               is_active: member.is_active,
+              id: member.id || undefined,
             })),
         };
 
@@ -107,6 +110,7 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
     const newMember: MemberFormData = {
       sales_person_id: '',
       is_active: 'Y',
+      id: null,
     };
     const updatedMembers = [...members, newMember];
     setMembers(updatedMembers);

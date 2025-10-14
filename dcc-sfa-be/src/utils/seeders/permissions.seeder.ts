@@ -17,118 +17,160 @@ interface MockPermission {
   is_active: string;
 }
 
-// Mock Permissions Data (11 permissions)
-const mockPermissions: MockPermission[] = [
-  {
-    name: 'View Dashboard',
-    module: 'dashboard',
-    action: 'read',
-    description: 'View dashboard and analytics',
-    is_active: 'Y',
-  },
-  {
-    name: 'Manage Users',
-    module: 'users',
-    action: 'write',
-    description: 'Create, update, and delete users',
-    is_active: 'Y',
-  },
-  {
-    name: 'View Reports',
-    module: 'reports',
-    action: 'read',
-    description: 'Access to all reports and analytics',
-    is_active: 'Y',
-  },
-  {
-    name: 'Manage Orders',
-    module: 'orders',
-    action: 'write',
-    description: 'Create, update, and process orders',
-    is_active: 'Y',
-  },
-  {
-    name: 'Manage Inventory',
-    module: 'inventory',
-    action: 'write',
-    description: 'Stock management and inventory operations',
-    is_active: 'Y',
-  },
-  {
-    name: 'Manage Customers',
-    module: 'customers',
-    action: 'write',
-    description: 'Customer data management and updates',
-    is_active: 'Y',
-  },
-  {
-    name: 'Manage Products',
-    module: 'products',
-    action: 'write',
-    description: 'Product catalog management',
-    is_active: 'Y',
-  },
-  {
-    name: 'Manage Sales Targets',
-    module: 'sales',
-    action: 'write',
-    description: 'Sales target setting and management',
-    is_active: 'Y',
-  },
-  {
-    name: 'Manage Routes',
-    module: 'routes',
-    action: 'write',
-    description: 'Route planning and management',
-    is_active: 'Y',
-  },
-  {
-    name: 'Manage Assets',
-    module: 'assets',
-    action: 'write',
-    description: 'Asset tracking and management',
-    is_active: 'Y',
-  },
-  {
-    name: 'System Settings',
-    module: 'settings',
-    action: 'admin',
-    description: 'System configuration and settings',
-    is_active: 'N',
-  },
+const MODULES = [
+  // Dashboards
+  'dashboard',
+
+  // Masters
+  'company',
+  'user',
+  'role',
+  'depot',
+  'zone',
+  'currency',
+  'route',
+  'outlet',
+  'outlet-group',
+  'asset-type',
+  'asset-master',
+  'warehouse',
+  'vehicle',
+  'brand',
+  'product-category',
+  'product-sub-category',
+  'unit-of-measurement',
+  'product',
+  'pricelist',
+  'sales-target-group',
+  'sales-target',
+  'sales-bonus-rule',
+  'kpi-target',
+  'survey',
+
+  // Transactions
+  'order',
+  'delivery',
+  'return',
+  'payment',
+  'invoice',
+  'credit-note',
+  'visit',
+  'asset-movement',
+  'maintenance',
+  'installation',
+  'van-stock',
+  'competitor',
+
+  // Tracking
+  'location',
+  'route-effectiveness',
+
+  // Integration
+  'erp-sync',
+
+  // Reports
+  'report',
+
+  // Workflows
+  'approval',
+  'exception',
+  'alert',
+
+  // Settings
+  'profile',
+  'login-history',
+  'token',
+  'setting',
 ];
+
+const ACTIONS = [
+  { key: 'read', name: 'Read', description: 'View and access data' },
+  { key: 'create', name: 'Create', description: 'Create new records' },
+  { key: 'update', name: 'Update', description: 'Modify existing records' },
+  { key: 'delete', name: 'Delete', description: 'Remove records' },
+];
+
+const mockPermissions: MockPermission[] = [];
+
+// Modules that should not have delete permissions (read-only or system modules)
+const READ_ONLY_MODULES = [
+  'dashboard',
+  'reports',
+  'location',
+  'route-effectiveness',
+  'erp-sync',
+  'profile',
+  'login-history',
+];
+
+// Generate CRUD permissions for each module
+MODULES.forEach(module => {
+  ACTIONS.forEach(action => {
+    // Skip delete action for read-only modules
+    if (READ_ONLY_MODULES.includes(module) && action.key === 'delete') {
+      return;
+    }
+
+    // Skip write/update/delete for settings (admin only)
+    if (module === 'settings' && action.key !== 'read') {
+      return;
+    }
+
+    // Format module name for display
+    const moduleDisplayName = module
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+
+    mockPermissions.push({
+      name: `${module}.${action.key}`,
+      module,
+      action: action.key,
+      description: `${action.description} for ${moduleDisplayName} module`,
+      is_active: 'Y',
+    });
+  });
+});
 
 /**
  * Seed Permissions with mock data
  */
 export async function seedPermissions(): Promise<void> {
   try {
+    // Use createMany for better performance
+    const permissionsToCreate = [];
+
     for (const permission of mockPermissions) {
       const existingPermission = await prisma.permissions.findFirst({
         where: {
           name: permission.name,
-          module: permission.module,
-          action: permission.action,
         },
       });
 
       if (!existingPermission) {
-        await prisma.permissions.create({
-          data: {
-            name: permission.name,
-            module: permission.module,
-            action: permission.action,
-            description: permission.description,
-            is_active: permission.is_active,
-            createdate: new Date(),
-            createdby: 1,
-            updatedate: new Date(),
-            updatedby: 1,
-          },
+        permissionsToCreate.push({
+          name: permission.name,
+          module: permission.module,
+          action: permission.action,
+          description: permission.description,
+          is_active: permission.is_active,
+          createdate: new Date(),
+          createdby: 1,
+          updatedate: new Date(),
+          updatedby: 1,
         });
       }
     }
+
+    if (permissionsToCreate.length > 0) {
+      await prisma.permissions.createMany({
+        data: permissionsToCreate,
+      });
+    } else {
+      // do nothing
+    }
   } catch (error) {
+    console.error('Error seeding permissions:', error);
     throw error;
   }
 }

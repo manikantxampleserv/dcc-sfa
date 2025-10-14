@@ -1,0 +1,453 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+interface MockSalesBonusRule {
+  group_name: string;
+  category_name: string;
+  start_date: Date;
+  end_date: Date;
+  achievement_min_percent: number;
+  achievement_max_percent: number;
+  bonus_amount?: number;
+  bonus_percent?: number;
+  is_active: string;
+}
+
+const mockSalesBonusRules: MockSalesBonusRule[] = [
+  {
+    group_name: 'North Region Sales Team',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 80.0,
+    achievement_max_percent: 99.9,
+    bonus_amount: 500.0,
+    bonus_percent: undefined,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'North Region Sales Team',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 100.0,
+    achievement_max_percent: 120.0,
+    bonus_amount: 1000.0,
+    bonus_percent: 5.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'North Region Sales Team',
+    category_name: 'Electronics',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 90.0,
+    achievement_max_percent: 110.0,
+    bonus_amount: undefined,
+    bonus_percent: 3.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'North Region Sales Team',
+    category_name: 'Electronics',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 110.1,
+    achievement_max_percent: 150.0,
+    bonus_amount: 1500.0,
+    bonus_percent: 7.5,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'South Region Sales Team',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 85.0,
+    achievement_max_percent: 99.9,
+    bonus_amount: 600.0,
+    bonus_percent: undefined,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'South Region Sales Team',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 100.0,
+    achievement_max_percent: 130.0,
+    bonus_amount: 1200.0,
+    bonus_percent: 6.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'South Region Sales Team',
+    category_name: 'Clothing & Apparel',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 80.0,
+    achievement_max_percent: 100.0,
+    bonus_amount: undefined,
+    bonus_percent: 2.5,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'South Region Sales Team',
+    category_name: 'Clothing & Apparel',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 100.1,
+    achievement_max_percent: 140.0,
+    bonus_amount: 800.0,
+    bonus_percent: 4.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'East Region Sales Team',
+    category_name: 'Electronics',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 90.0,
+    achievement_max_percent: 110.0,
+    bonus_amount: 750.0,
+    bonus_percent: undefined,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'East Region Sales Team',
+    category_name: 'Electronics',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 110.1,
+    achievement_max_percent: 160.0,
+    bonus_amount: 1800.0,
+    bonus_percent: 8.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'East Region Sales Team',
+    category_name: 'Home & Garden',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 80.0,
+    achievement_max_percent: 100.0,
+    bonus_amount: undefined,
+    bonus_percent: 2.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'East Region Sales Team',
+    category_name: 'Home & Garden',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 100.1,
+    achievement_max_percent: 130.0,
+    bonus_amount: 400.0,
+    bonus_percent: 3.5,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'West Region Sales Team',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 85.0,
+    achievement_max_percent: 99.9,
+    bonus_amount: 450.0,
+    bonus_percent: undefined,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'West Region Sales Team',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 100.0,
+    achievement_max_percent: 125.0,
+    bonus_amount: 900.0,
+    bonus_percent: 4.5,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'West Region Sales Team',
+    category_name: 'Clothing & Apparel',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 80.0,
+    achievement_max_percent: 100.0,
+    bonus_amount: undefined,
+    bonus_percent: 2.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'West Region Sales Team',
+    category_name: 'Clothing & Apparel',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 100.1,
+    achievement_max_percent: 135.0,
+    bonus_amount: 600.0,
+    bonus_percent: 3.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Premium Account Managers',
+    category_name: 'Electronics',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 95.0,
+    achievement_max_percent: 110.0,
+    bonus_amount: 2000.0,
+    bonus_percent: undefined,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Premium Account Managers',
+    category_name: 'Electronics',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 110.1,
+    achievement_max_percent: 200.0,
+    bonus_amount: 5000.0,
+    bonus_percent: 10.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Premium Account Managers',
+    category_name: 'Home & Garden',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 90.0,
+    achievement_max_percent: 110.0,
+    bonus_amount: undefined,
+    bonus_percent: 4.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Premium Account Managers',
+    category_name: 'Home & Garden',
+    start_date: new Date('2024-01-01'),
+    end_date: new Date('2024-03-31'),
+    achievement_min_percent: 110.1,
+    achievement_max_percent: 150.0,
+    bonus_amount: 1500.0,
+    bonus_percent: 6.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Corporate Sales Division',
+    category_name: 'Electronics',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 100.0,
+    achievement_max_percent: 120.0,
+    bonus_amount: 3000.0,
+    bonus_percent: undefined,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Corporate Sales Division',
+    category_name: 'Electronics',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 120.1,
+    achievement_max_percent: 200.0,
+    bonus_amount: 8000.0,
+    bonus_percent: 12.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Corporate Sales Division',
+    category_name: 'Home & Garden',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 95.0,
+    achievement_max_percent: 115.0,
+    bonus_amount: undefined,
+    bonus_percent: 5.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Corporate Sales Division',
+    category_name: 'Home & Garden',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 115.1,
+    achievement_max_percent: 180.0,
+    bonus_amount: 2000.0,
+    bonus_percent: 7.5,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Retail Sales Force',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 80.0,
+    achievement_max_percent: 100.0,
+    bonus_amount: 300.0,
+    bonus_percent: undefined,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Retail Sales Force',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 100.1,
+    achievement_max_percent: 130.0,
+    bonus_amount: 600.0,
+    bonus_percent: 3.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Retail Sales Force',
+    category_name: 'Clothing & Apparel',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 85.0,
+    achievement_max_percent: 105.0,
+    bonus_amount: undefined,
+    bonus_percent: 2.5,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Retail Sales Force',
+    category_name: 'Clothing & Apparel',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 105.1,
+    achievement_max_percent: 140.0,
+    bonus_amount: 500.0,
+    bonus_percent: 3.5,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Wholesale Distribution Team',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 90.0,
+    achievement_max_percent: 110.0,
+    bonus_amount: 1000.0,
+    bonus_percent: undefined,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Wholesale Distribution Team',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 110.1,
+    achievement_max_percent: 150.0,
+    bonus_amount: 2500.0,
+    bonus_percent: 6.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Wholesale Distribution Team',
+    category_name: 'Electronics',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 95.0,
+    achievement_max_percent: 115.0,
+    bonus_amount: undefined,
+    bonus_percent: 4.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'Wholesale Distribution Team',
+    category_name: 'Electronics',
+    start_date: new Date('2024-04-01'),
+    end_date: new Date('2024-06-30'),
+    achievement_min_percent: 115.1,
+    achievement_max_percent: 170.0,
+    bonus_amount: 3000.0,
+    bonus_percent: 8.0,
+    is_active: 'Y',
+  },
+  {
+    group_name: 'New Market Expansion',
+    category_name: 'Food & Beverages',
+    start_date: new Date('2023-01-01'),
+    end_date: new Date('2023-12-31'),
+    achievement_min_percent: 70.0,
+    achievement_max_percent: 90.0,
+    bonus_amount: 200.0,
+    bonus_percent: undefined,
+    is_active: 'N',
+  },
+  {
+    group_name: 'Seasonal Sales Team',
+    category_name: 'Clothing & Apparel',
+    start_date: new Date('2023-11-01'),
+    end_date: new Date('2023-12-31'),
+    achievement_min_percent: 80.0,
+    achievement_max_percent: 100.0,
+    bonus_amount: undefined,
+    bonus_percent: 1.5,
+    is_active: 'N',
+  },
+];
+
+export async function seedSalesBonusRules(): Promise<void> {
+  const salesTargets = await prisma.sales_targets.findMany({
+    select: {
+      id: true,
+      sales_target_group_id: true,
+      product_category_id: true,
+      start_date: true,
+      end_date: true,
+      sales_targets_groups: {
+        select: { group_name: true },
+      },
+      sales_targets_product_categories: {
+        select: { category_name: true },
+      },
+    },
+  });
+
+  for (const rule of mockSalesBonusRules) {
+    const target = salesTargets.find(
+      t =>
+        t.sales_targets_groups?.group_name === rule.group_name &&
+        t.sales_targets_product_categories?.category_name ===
+          rule.category_name &&
+        t.start_date.getTime() === rule.start_date.getTime() &&
+        t.end_date.getTime() === rule.end_date.getTime()
+    );
+
+    if (target) {
+      const existingRule = await prisma.sales_bonus_rules.findFirst({
+        where: {
+          sales_target_id: target.id,
+          achievement_min_percent: rule.achievement_min_percent,
+          achievement_max_percent: rule.achievement_max_percent,
+        },
+      });
+
+      if (!existingRule) {
+        await prisma.sales_bonus_rules.create({
+          data: {
+            sales_target_id: target.id,
+            achievement_min_percent: rule.achievement_min_percent,
+            achievement_max_percent: rule.achievement_max_percent,
+            bonus_amount: rule.bonus_amount || null,
+            bonus_percent: rule.bonus_percent || null,
+            is_active: rule.is_active,
+            createdate: new Date(),
+            createdby: 1,
+            log_inst: 1,
+          },
+        });
+      }
+    }
+  }
+}
+
+export async function clearSalesBonusRules(): Promise<void> {
+  await prisma.sales_bonus_rules.deleteMany({});
+}
+
+export { mockSalesBonusRules };

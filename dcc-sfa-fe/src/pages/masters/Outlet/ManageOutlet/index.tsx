@@ -48,7 +48,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
     initialValues: {
       name: selectedOutlet?.name || '',
       zones_id: selectedOutlet?.zones_id?.toString() || '',
-      type: selectedOutlet?.type || 'retailer',
+      type: selectedOutlet?.type || 'Retail',
       contact_person: selectedOutlet?.contact_person || '',
       phone_number: selectedOutlet?.phone_number || '',
       email: selectedOutlet?.email || '',
@@ -133,9 +133,16 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
             />
 
             <Select name="type" label="Outlet Type" formik={formik}>
-              <MenuItem value="retailer">Retailer</MenuItem>
-              <MenuItem value="wholesaler">Wholesaler</MenuItem>
-              <MenuItem value="distributor">Distributor</MenuItem>
+              <MenuItem value="Retail">Retail</MenuItem>
+              <MenuItem value="Wholesale">Wholesale</MenuItem>
+              <MenuItem value="Corporate">Corporate</MenuItem>
+              <MenuItem value="Industrial">Industrial</MenuItem>
+              <MenuItem value="Healthcare">Healthcare</MenuItem>
+              <MenuItem value="Automotive">Automotive</MenuItem>
+              <MenuItem value="Restaurant">Restaurant</MenuItem>
+              <MenuItem value="Service">Service</MenuItem>
+              <MenuItem value="Manufacturing">Manufacturing</MenuItem>
+              <MenuItem value="Distribution">Distribution</MenuItem>
             </Select>
 
             <Input

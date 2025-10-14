@@ -1,10 +1,3 @@
-/**
- * @fileoverview Orders Seeder
- * @description Creates 11 sample orders for testing and development
- * @author DCC-SFA Team
- * @version 1.0.0
- */
-
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -31,11 +24,10 @@ interface MockOrder {
   is_active: string;
 }
 
-// Mock Orders Data (11 orders)
 const mockOrders: MockOrder[] = [
   {
     order_number: 'ORD-001',
-    customer_name: 'TechCorp Solutions',
+    customer_name: 'Retail Store 1',
     order_date: new Date('2024-01-15'),
     delivery_date: new Date('2024-01-20'),
     status: 'delivered',
@@ -56,7 +48,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-002',
-    customer_name: 'TechCorp Solutions',
+    customer_name: 'Wholesale Hub 2',
     order_date: new Date('2024-01-16'),
     delivery_date: new Date('2024-01-22'),
     status: 'pending',
@@ -77,7 +69,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-003',
-    customer_name: 'Global Industries',
+    customer_name: 'Corporate Center 3',
     order_date: new Date('2024-01-17'),
     delivery_date: new Date('2024-01-25'),
     status: 'shipped',
@@ -98,7 +90,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-004',
-    customer_name: 'Global Industries',
+    customer_name: 'Industrial Supplies Co 5',
     order_date: new Date('2024-01-18'),
     delivery_date: new Date('2024-01-26'),
     status: 'processing',
@@ -119,7 +111,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-005',
-    customer_name: 'Metro Logistics',
+    customer_name: 'Healthcare Solutions 6',
     order_date: new Date('2024-01-19'),
     delivery_date: new Date('2024-01-28'),
     status: 'delivered',
@@ -140,7 +132,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-006',
-    customer_name: 'Metro Logistics',
+    customer_name: 'Automotive Parts 7',
     order_date: new Date('2024-01-20'),
     delivery_date: new Date('2024-01-30'),
     status: 'cancelled',
@@ -161,7 +153,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-007',
-    customer_name: 'Coastal Enterprises',
+    customer_name: 'Restaurant Chain 8',
     order_date: new Date('2024-01-21'),
     delivery_date: new Date('2024-02-01'),
     status: 'pending',
@@ -182,7 +174,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-008',
-    customer_name: 'Coastal Enterprises',
+    customer_name: 'Service Providers 9',
     order_date: new Date('2024-01-22'),
     delivery_date: new Date('2024-02-02'),
     status: 'shipped',
@@ -203,7 +195,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-009',
-    customer_name: 'Mountain Supply Co',
+    customer_name: 'Manufacturing Co 10',
     order_date: new Date('2024-01-23'),
     delivery_date: new Date('2024-02-05'),
     status: 'processing',
@@ -224,7 +216,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-010',
-    customer_name: 'Mountain Supply Co',
+    customer_name: 'Distribution Hub 11',
     order_date: new Date('2024-01-24'),
     delivery_date: new Date('2024-02-08'),
     status: 'delivered',
@@ -245,7 +237,7 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-011',
-    customer_name: 'Defunct Industries',
+    customer_name: 'Closed Business',
     order_date: new Date('2020-01-01'),
     delivery_date: new Date('2020-01-10'),
     status: 'cancelled',
@@ -266,71 +258,64 @@ const mockOrders: MockOrder[] = [
   },
 ];
 
-/**
- * Seed Orders with mock data
- */
 export async function seedOrders(): Promise<void> {
-  try {
-    // Get all customers for lookup
-    const customers = await prisma.customers.findMany({
-      select: { id: true, name: true },
+  const customers = await prisma.customers.findMany({
+    select: { id: true, name: true },
+    take: 11, // Only get first 11 customers
+  });
+
+  if (customers.length === 0) {
+    console.log('No customers found. Please run customers seeder first.');
+    return;
+  }
+
+  for (let i = 0; i < mockOrders.length; i++) {
+    const order = mockOrders[i];
+    const existingOrder = await prisma.orders.findFirst({
+      where: { order_number: order.order_number },
     });
 
-    for (const order of mockOrders) {
-      const existingOrder = await prisma.orders.findFirst({
-        where: { order_number: order.order_number },
+    if (!existingOrder) {
+      // Use the customer at the same index, or cycle through if we have fewer customers
+      const customer = customers[i % customers.length];
+
+      await prisma.orders.create({
+        data: {
+          order_number: order.order_number,
+          parent_id: customer.id,
+          salesperson_id: 1,
+          order_date: order.order_date,
+          delivery_date: order.delivery_date,
+          status: order.status,
+          priority: order.priority,
+          order_type: order.order_type,
+          payment_method: order.payment_method,
+          payment_terms: order.payment_terms,
+          subtotal: order.subtotal,
+          discount_amount: order.discount_amount,
+          tax_amount: order.tax_amount,
+          shipping_amount: order.shipping_amount,
+          total_amount: order.total_amount,
+          notes: order.notes,
+          shipping_address: order.shipping_address,
+          approval_status: order.approval_status,
+          approved_by: order.approval_status === 'approved' ? 1 : null,
+          approved_at: order.approved_at,
+          is_active: order.is_active,
+          createdate: new Date(),
+          createdby: 1,
+          log_inst: 1,
+        },
       });
-
-      if (!existingOrder) {
-        // Find the customer ID
-        const customer = customers.find(c => c.name === order.customer_name);
-
-        if (customer) {
-          await prisma.orders.create({
-            data: {
-              order_number: order.order_number,
-              parent_id: customer.id,
-              salesperson_id: 1, // Use admin user ID
-              order_date: order.order_date,
-              delivery_date: order.delivery_date,
-              status: order.status,
-              priority: order.priority,
-              order_type: order.order_type,
-              payment_method: order.payment_method,
-              payment_terms: order.payment_terms,
-              subtotal: order.subtotal,
-              discount_amount: order.discount_amount,
-              tax_amount: order.tax_amount,
-              shipping_amount: order.shipping_amount,
-              total_amount: order.total_amount,
-              notes: order.notes,
-              shipping_address: order.shipping_address,
-              approval_status: order.approval_status,
-              approved_by: order.approval_status === 'approved' ? 1 : null, // Use admin user ID if approved
-              approved_at: order.approved_at,
-              is_active: order.is_active,
-              createdate: new Date(),
-              createdby: 1,
-              log_inst: 1,
-            },
-          });
-        }
-      }
     }
-  } catch (error) {
-    throw error;
   }
 }
 
-/**
- * Clear Orders data
- */
 export async function clearOrders(): Promise<void> {
-  try {
-    await prisma.orders.deleteMany({});
-  } catch (error) {
-    throw error;
-  }
+  // Delete order items first due to foreign key constraints
+  await prisma.order_items.deleteMany({});
+  // Then delete orders
+  await prisma.orders.deleteMany({});
 }
 
 export { mockOrders };

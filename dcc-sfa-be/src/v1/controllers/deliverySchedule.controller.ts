@@ -27,12 +27,21 @@ interface DeliveryScheduleSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  vehicle?: { id: number; registration_number: string } | null;
-  driver?: { id: number; name: string } | null;
-  customer?: { id: number; name: string } | null;
+  vehicle?: {
+    id: number;
+    registration_number: string;
+    type: string;
+    vehicle_number: string;
+  } | null;
+  driver?: {
+    id: number;
+    name: string;
+    email: string;
+    profile_image: string;
+  } | null;
+  customer?: { id: number; name: string; code: string; type: string } | null;
   order?: { id: number; order_number: string } | null;
 }
-
 const serializeDelivery = (d: any): DeliveryScheduleSerialized => ({
   id: d.id,
   order_id: d.order_id,
@@ -59,18 +68,24 @@ const serializeDelivery = (d: any): DeliveryScheduleSerialized => ({
     ? {
         id: d.delivery_schedules_vehicles.id,
         registration_number: d.delivery_schedules_vehicles.registration_number,
+        type: d.delivery_schedules_vehicles.type,
+        vehicle_number: d.delivery_schedules_vehicles.vehicle_number,
       }
     : null,
   driver: d.delivery_schedules_users
     ? {
         id: d.delivery_schedules_users.id,
         name: d.delivery_schedules_users.name,
+        email: d.delivery_schedules_users.email,
+        profile_image: d.delivery_schedules_users.profile_image,
       }
     : null,
   customer: d.delivery_schedules_customers
     ? {
         id: d.delivery_schedules_customers.id,
         name: d.delivery_schedules_customers.name,
+        code: d.delivery_schedules_customers.code,
+        type: d.delivery_schedules_customers.type,
       }
     : null,
   order: d.delivery_schedules_customers_orders
@@ -145,12 +160,30 @@ export const deliverySchedulesController = {
 
   async getAllDeliverySchedules(req: any, res: any) {
     try {
-      const { page, limit, status } = req.query;
+      const { page, limit, status, priority, isActive, search } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
 
       const filters: any = {
-        ...(status && { status: { contains: status, mode: 'insensitive' } }),
+        ...(status && { status: status }),
+        ...(priority && { priority: priority }),
+        ...(isActive && { is_active: isActive }),
+        ...(search && {
+          OR: [
+            { delivery_instructions: { contains: search as string } },
+            { failure_reason: { contains: search as string } },
+            {
+              delivery_schedules_customers: {
+                name: { contains: search as string },
+              },
+            },
+            {
+              delivery_schedules_customers_orders: {
+                order_number: { contains: search as string },
+              },
+            },
+          ],
+        }),
       };
 
       const { data, pagination } = await paginate({

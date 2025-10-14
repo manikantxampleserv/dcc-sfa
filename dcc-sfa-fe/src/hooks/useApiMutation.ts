@@ -35,10 +35,39 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
       const toastId = toastService.loading(config.loadingMessage);
       return { toastId };
     },
+    /**
+     * Handles successful mutation response
+     * @param data - Response data from the mutation
+     * @param variables - Variables passed to the mutation
+     * @param context - Context containing toast ID
+     */
     onSuccess: (data, variables, context) => {
       if (context?.toastId) {
-        const successMessage =
-          (data as any)?.message || 'Operation completed successfully!';
+        /**
+         * Extract success message from different possible response structures
+         * @type {string}
+         */
+        let successMessage = 'Operation completed successfully!';
+
+        if (data && typeof data === 'object') {
+          /**
+           * Check if data has a message property directly (new workflow service structure)
+           */
+          if ('message' in data && typeof data.message === 'string') {
+            successMessage = data.message;
+          } else if (
+            /**
+             * Check if data has a nested response structure (legacy structure)
+             */
+            'data' in data &&
+            data.data &&
+            typeof data.data === 'object' &&
+            'message' in data.data
+          ) {
+            successMessage = data.data.message as string;
+          }
+        }
+
         toastService.update(context.toastId, successMessage, 'success');
       }
 
@@ -52,6 +81,12 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
 
       config.onSuccess?.(data, variables);
     },
+    /**
+     * Handles mutation errors
+     * @param error - Error object from the mutation
+     * @param variables - Variables passed to the mutation
+     * @param context - Context containing toast ID
+     */
     onError: (error, variables, context) => {
       if (context?.toastId) {
         const status = (error as any)?.response?.status;
@@ -61,7 +96,11 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
           return;
         }
 
-        let errorMessage = 'Operation failed';
+        /**
+         * Default error message
+         * @type {string}
+         */
+        let errorMessage: string = 'Operation failed';
 
         if ((error as any)?.response?.data) {
           const responseData = (error as any).response.data;

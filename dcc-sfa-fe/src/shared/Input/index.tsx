@@ -108,10 +108,14 @@ const Input: React.FC<InputProps> = ({
               : undefined,
           required: false,
           className:
-            type === 'date' || type === 'time' ? '!uppercase' : undefined,
+            type === 'date' || type === 'time' || type === 'datetime-local'
+              ? '!uppercase'
+              : undefined,
         },
         inputLabel:
-          type === 'date' || type === 'time' ? { shrink: true } : undefined,
+          type === 'date' || type === 'time' || type === 'datetime-local'
+            ? { shrink: true }
+            : undefined,
         input: {
           ...(type === 'search' && {
             endAdornment: <Search />,

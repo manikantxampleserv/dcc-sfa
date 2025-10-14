@@ -31,6 +31,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
+import { getBusinessTypeIcon } from '../utils';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -302,16 +303,39 @@ const OutletDetail: React.FC = () => {
     }))
   );
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'distributor':
-        return 'bg-purple-100 text-purple-800';
-      case 'retailer':
-        return 'bg-blue-100 text-blue-800';
-      case 'wholesaler':
-        return 'bg-green-100 text-green-800';
+  const getBusinessTypeChipColor = (
+    type: string
+  ):
+    | 'default'
+    | 'primary'
+    | 'secondary'
+    | 'error'
+    | 'info'
+    | 'success'
+    | 'warning' => {
+    switch ((type || '').toLowerCase()) {
+      case 'retail':
+        return 'primary';
+      case 'wholesale':
+        return 'success';
+      case 'corporate':
+        return 'warning';
+      case 'industrial':
+        return 'default';
+      case 'healthcare':
+        return 'info';
+      case 'automotive':
+        return 'error';
+      case 'restaurant':
+        return 'warning';
+      case 'service':
+        return 'secondary';
+      case 'manufacturing':
+        return 'info';
+      case 'distribution':
+        return 'success';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'default';
     }
   };
 
@@ -339,11 +363,14 @@ const OutletDetail: React.FC = () => {
               color={customer.is_active === 'Y' ? 'success' : 'error'}
             />
             {customer.type && (
-              <span
-                className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(customer.type)}`}
-              >
-                <span className="capitalize">{customer.type}</span>
-              </span>
+              <Chip
+                icon={getBusinessTypeIcon(customer.type || '')}
+                label={customer.type || 'N/A'}
+                size="small"
+                variant="outlined"
+                className="!capitalize !px-1"
+                color={getBusinessTypeChipColor(customer.type || '')}
+              />
             )}
           </Box>
           <Typography variant="body2" className="!text-gray-500 !mt-1">

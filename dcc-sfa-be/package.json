@@ -14,9 +14,6 @@
     "seed:clean": "ts-node src/utils/seeders/index.ts clear",
     "seed:generate": "ts-node src/utils/seeders/index.ts seed",
     "seed": "npm run seed:clean && npm run seed:generate",
-    "seed:mock": "ts-node src/utils/seeders/index.ts",
-    "create:admin": "ts-node src/scripts/createAdminUser.ts",
-    "clean:seeders": "ts-node src/scripts/cleanSeeders.ts",
     "lint": "echo \"No linting configured for backend yet\""
   },
   "devDependencies": {

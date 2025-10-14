@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import logger from '../../configs/logger';
 
 const prisma = new PrismaClient();
 
@@ -310,67 +311,96 @@ export async function seedVisits(): Promise<void> {
     // Get all customers, routes, and zones for lookup
     const customers = await prisma.customers.findMany({
       select: { id: true, name: true },
-    });
-    
-    const routes = await prisma.routes.findMany({
-      select: { id: true, name: true },
-    });
-    
-    const zones = await prisma.zones.findMany({
-      select: { id: true, name: true },
+      where: { is_active: 'Y' },
     });
 
-    for (const visit of mockVisits) {
+    const routes = await prisma.routes.findMany({
+      select: { id: true, name: true },
+      where: { is_active: 'Y' },
+    });
+
+    const zones = await prisma.zones.findMany({
+      select: { id: true, name: true },
+      where: { is_active: 'Y' },
+    });
+
+    if (customers.length === 0) {
+      logger.warn('No active customers found. Skipping visits seeding.');
+      return;
+    }
+
+    if (routes.length === 0) {
+      logger.warn('No active routes found. Skipping visits seeding.');
+      return;
+    }
+
+    if (zones.length === 0) {
+      logger.warn('No active zones found. Skipping visits seeding.');
+      return;
+    }
+
+    let visitsCreated = 0;
+    let visitsSkipped = 0;
+
+    for (let i = 0; i < mockVisits.length; i++) {
+      const visit = mockVisits[i];
+
+      // Use actual customers, routes, and zones by cycling through them
+      const customer = customers[i % customers.length];
+      const route =
+        routes.find(r => r.name === visit.route_name) ||
+        routes[i % routes.length];
+      const zone = zones[i % zones.length];
+
       const existingVisit = await prisma.visits.findFirst({
-        where: { 
-          AND: [
-            { customer_id: customers.find(c => c.name === visit.customer_name)?.id },
-            { visit_date: visit.visit_date }
-          ]
+        where: {
+          AND: [{ customer_id: customer.id }, { visit_date: visit.visit_date }],
         },
       });
 
       if (!existingVisit) {
-        // Find the customer, route, and zone IDs
-        const customer = customers.find(c => c.name === visit.customer_name);
-        const route = routes.find(r => r.name === visit.route_name);
-        const zone = zones.find(z => z.name === visit.zone_name);
+        await prisma.visits.create({
+          data: {
+            customer_id: customer.id,
+            sales_person_id: 1, // Use admin user ID
+            route_id: route.id,
+            zones_id: zone.id,
+            visit_date: visit.visit_date,
+            visit_time: visit.visit_time,
+            purpose: visit.purpose,
+            status: visit.status,
+            start_time: visit.start_time,
+            end_time: visit.end_time,
+            duration: visit.duration,
+            start_latitude: visit.start_latitude,
+            start_longitude: visit.start_longitude,
+            end_latitude: visit.end_latitude,
+            end_longitude: visit.end_longitude,
+            check_in_time: visit.check_in_time,
+            check_out_time: visit.check_out_time,
+            orders_created: visit.orders_created,
+            amount_collected: visit.amount_collected,
+            visit_notes: visit.visit_notes,
+            customer_feedback: visit.customer_feedback,
+            next_visit_date: visit.next_visit_date,
+            is_active: visit.is_active,
+            createdate: new Date(),
+            createdby: 1,
+            log_inst: 1,
+          },
+        });
 
-        if (customer && route && zone) {
-          await prisma.visits.create({
-            data: {
-              customer_id: customer.id,
-              sales_person_id: 1, // Use admin user ID
-              route_id: route.id,
-              zones_id: zone.id,
-              visit_date: visit.visit_date,
-              visit_time: visit.visit_time,
-              purpose: visit.purpose,
-              status: visit.status,
-              start_time: visit.start_time,
-              end_time: visit.end_time,
-              duration: visit.duration,
-              start_latitude: visit.start_latitude,
-              start_longitude: visit.start_longitude,
-              end_latitude: visit.end_latitude,
-              end_longitude: visit.end_longitude,
-              check_in_time: visit.check_in_time,
-              check_out_time: visit.check_out_time,
-              orders_created: visit.orders_created,
-              amount_collected: visit.amount_collected,
-              visit_notes: visit.visit_notes,
-              customer_feedback: visit.customer_feedback,
-              next_visit_date: visit.next_visit_date,
-              is_active: visit.is_active,
-              createdate: new Date(),
-              createdby: 1,
-              log_inst: 1,
-            },
-          });
-        }
+        visitsCreated++;
+      } else {
+        visitsSkipped++;
       }
     }
+
+    logger.info(
+      `Visits seeding completed: ${visitsCreated} created, ${visitsSkipped} skipped`
+    );
   } catch (error) {
+    logger.error('Error seeding visits:', error);
     throw error;
   }
 }

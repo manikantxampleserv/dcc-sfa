@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
+import { ReturnWorkflowService } from '../services/returnWorkflow.service';
 
 const prisma = new PrismaClient();
 
@@ -44,6 +45,7 @@ interface ReturnRequestSerialized {
     name: string;
     email: string;
   } | null;
+  workflow_steps?: any[];
 }
 
 const serializeReturnRequest = (rr: any): ReturnRequestSerialized => ({
@@ -94,6 +96,7 @@ const serializeReturnRequest = (rr: any): ReturnRequestSerialized => ({
         email: rr.return_requests_users.email,
       }
     : null,
+  workflow_steps: rr.workflow_steps || [],
 });
 
 export const returnRequestsController = {
@@ -142,15 +145,42 @@ export const returnRequestsController = {
 
   async getAllReturnRequests(req: Request, res: Response) {
     try {
-      const { page, limit, search } = req.query;
+      const {
+        page,
+        limit,
+        search,
+        status,
+        customer_id,
+        product_id,
+        is_active,
+      } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
 
       const filters: any = {
+        ...(status && { status: status }),
+        ...(customer_id && { customer_id: parseInt(customer_id as string) }),
+        ...(product_id && { product_id: parseInt(product_id as string) }),
+        ...(is_active && { is_active: is_active }),
         ...(search && {
           OR: [
-            { reason: { contains: search as string, mode: 'insensitive' } },
-            { status: { contains: search as string, mode: 'insensitive' } },
+            { reason: { contains: search as string } },
+            { status: { contains: search as string } },
+            {
+              resolution_notes: {
+                contains: search as string,
+              },
+            },
+            {
+              return_requests_customers: {
+                name: { contains: search as string },
+              },
+            },
+            {
+              return_requests_products: {
+                name: { contains: search as string },
+              },
+            },
           ],
         }),
       };
@@ -169,10 +199,55 @@ export const returnRequestsController = {
         },
       });
 
+      const totalRequests = await prisma.return_requests.count({
+        where: filters,
+      });
+      const pendingRequests = await prisma.return_requests.count({
+        where: { ...filters, status: 'pending' },
+      });
+      const approvedRequests = await prisma.return_requests.count({
+        where: { ...filters, status: 'approved' },
+      });
+      const rejectedRequests = await prisma.return_requests.count({
+        where: { ...filters, status: 'rejected' },
+      });
+      const processingRequests = await prisma.return_requests.count({
+        where: { ...filters, status: 'processing' },
+      });
+      const completedRequests = await prisma.return_requests.count({
+        where: { ...filters, status: 'completed' },
+      });
+      const cancelledRequests = await prisma.return_requests.count({
+        where: { ...filters, status: 'cancelled' },
+      });
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const newRequestsThisMonth = await prisma.return_requests.count({
+        where: {
+          ...filters,
+          createdate: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
+      });
+
       res.json({
         message: 'Return requests retrieved successfully',
         data: data.map((rr: any) => serializeReturnRequest(rr)),
         pagination,
+        stats: {
+          total_requests: totalRequests,
+          pending_requests: pendingRequests,
+          approved_requests: approvedRequests,
+          rejected_requests: rejectedRequests,
+          processing_requests: processingRequests,
+          completed_requests: completedRequests,
+          cancelled_requests: cancelledRequests,
+          new_requests_this_month: newRequestsThisMonth,
+        },
       });
     } catch (error: any) {
       console.error('Get Return Requests Error:', error);
@@ -196,9 +271,17 @@ export const returnRequestsController = {
       if (!rr)
         return res.status(404).json({ message: 'Return request not found' });
 
+      // Get workflow steps
+      const workflowSteps = await ReturnWorkflowService.getWorkflowSteps(
+        Number(id)
+      );
+
+      const serializedRequest = serializeReturnRequest(rr);
+      serializedRequest.workflow_steps = workflowSteps;
+
       res.json({
         message: 'Return request fetched successfully',
-        data: serializeReturnRequest(rr),
+        data: serializedRequest,
       });
     } catch (error: any) {
       console.error('Get Return Request Error:', error);

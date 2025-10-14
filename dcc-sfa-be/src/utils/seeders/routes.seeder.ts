@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import logger from '../../configs/logger';
 
 const prisma = new PrismaClient();
 
@@ -22,14 +23,14 @@ interface MockRoute {
   is_active: string;
 }
 
-// Mock Routes Data (11 routes)
+// Mock Routes Data (11 routes) - Using actual depot names from depot seeder
 const mockRoutes: MockRoute[] = [
   {
     name: 'North Downtown Route',
     code: 'RT-NORTH-001',
     description: 'Delivery route covering north downtown area',
-    company_name: 'TechCorp Solutions',
-    depot_name: 'Main Depot',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Main Depot - North Region',
     start_location: 'Main Depot',
     end_location: 'North Downtown',
     estimated_distance: 25.5,
@@ -40,8 +41,8 @@ const mockRoutes: MockRoute[] = [
     name: 'South Business District',
     code: 'RT-SOUTH-001',
     description: 'Route for south business district deliveries',
-    company_name: 'TechCorp Solutions',
-    depot_name: 'Secondary Depot',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Secondary Depot - South Region',
     start_location: 'South Depot',
     end_location: 'Business District',
     estimated_distance: 32.0,
@@ -52,8 +53,8 @@ const mockRoutes: MockRoute[] = [
     name: 'West Industrial Zone',
     code: 'RT-WEST-001',
     description: 'Industrial zone delivery route',
-    company_name: 'TechCorp Solutions',
-    depot_name: 'Main Depot',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Warehouse Depot - West Region',
     start_location: 'Main Depot',
     end_location: 'Industrial Zone',
     estimated_distance: 18.7,
@@ -64,8 +65,8 @@ const mockRoutes: MockRoute[] = [
     name: 'East Residential Area',
     code: 'RT-EAST-001',
     description: 'Residential area delivery route',
-    company_name: 'Global Industries',
-    depot_name: 'Regional Depot',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Central Distribution Hub',
     start_location: 'Regional Depot',
     end_location: 'East Residential',
     estimated_distance: 28.3,
@@ -76,8 +77,8 @@ const mockRoutes: MockRoute[] = [
     name: 'Central Mall Circuit',
     code: 'RT-CENTRAL-001',
     description: 'Shopping mall and retail circuit',
-    company_name: 'Global Industries',
-    depot_name: 'Distribution Center',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Express Logistics Center',
     start_location: 'Distribution Center',
     end_location: 'Central Mall',
     estimated_distance: 15.2,
@@ -88,8 +89,8 @@ const mockRoutes: MockRoute[] = [
     name: 'Suburban Express',
     code: 'RT-SUBURB-001',
     description: 'Express route to suburban areas',
-    company_name: 'Metro Logistics',
-    depot_name: 'Urban Hub',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Cold Storage Facility',
     start_location: 'Urban Hub',
     end_location: 'Suburban Areas',
     estimated_distance: 45.8,
@@ -100,8 +101,8 @@ const mockRoutes: MockRoute[] = [
     name: 'University District',
     code: 'RT-UNI-001',
     description: 'University and student housing route',
-    company_name: 'Metro Logistics',
-    depot_name: 'Suburban Center',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Regional Sorting Center',
     start_location: 'Suburban Center',
     end_location: 'University District',
     estimated_distance: 22.1,
@@ -112,8 +113,8 @@ const mockRoutes: MockRoute[] = [
     name: 'Coastal Highway',
     code: 'RT-COAST-001',
     description: 'Coastal highway delivery route',
-    company_name: 'Coastal Enterprises',
-    depot_name: 'Coastal Warehouse',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Bulk Storage Warehouse',
     start_location: 'Coastal Warehouse',
     end_location: 'Coastal Towns',
     estimated_distance: 67.4,
@@ -124,8 +125,8 @@ const mockRoutes: MockRoute[] = [
     name: 'Port Authority Route',
     code: 'RT-PORT-001',
     description: 'Port and shipping district route',
-    company_name: 'Coastal Enterprises',
-    depot_name: 'Port Facility',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Cross-Dock Facility',
     start_location: 'Port Facility',
     end_location: 'Port District',
     estimated_distance: 12.9,
@@ -136,8 +137,8 @@ const mockRoutes: MockRoute[] = [
     name: 'Mountain Pass Route',
     code: 'RT-MOUNTAIN-001',
     description: 'Mountain region delivery route',
-    company_name: 'Mountain Supply Co',
-    depot_name: 'Mountain Base',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Hazmat Storage Depot',
     start_location: 'Mountain Base',
     end_location: 'Mountain Towns',
     estimated_distance: 89.6,
@@ -148,8 +149,8 @@ const mockRoutes: MockRoute[] = [
     name: 'Discontinued Route',
     code: 'RT-DISC-001',
     description: 'Route no longer in service',
-    company_name: 'Defunct Industries',
-    depot_name: 'Closed Depot',
+    company_name: 'Ampleserv Technologies Pvt. Ltd.',
+    depot_name: 'Decommissioned Depot',
     start_location: 'Closed Depot',
     end_location: 'Nowhere',
     estimated_distance: 0.0,
@@ -163,32 +164,49 @@ const mockRoutes: MockRoute[] = [
  */
 export async function seedRoutes(): Promise<void> {
   try {
-    // Get all companies and depots for lookup
-    const companies = await prisma.companies.findMany({
+    // Get all zones and depots for lookup
+    const zones = await prisma.zones.findMany({
       select: { id: true, name: true },
+      where: { is_active: 'Y' },
     });
-    
+
     const depots = await prisma.depots.findMany({
       select: { id: true, name: true },
+      where: { is_active: 'Y' },
     });
+
+    if (zones.length === 0) {
+      logger.warn('No active zones found. Skipping routes seeding.');
+      return;
+    }
+
+    if (depots.length === 0) {
+      logger.warn('No active depots found. Skipping routes seeding.');
+      return;
+    }
+
+    // Use the first zone for all routes (parent_id references zones, not companies)
+    const zone = zones[0];
+
+    let routesCreated = 0;
+    let routesSkipped = 0;
 
     for (const route of mockRoutes) {
       const existingRoute = await prisma.routes.findFirst({
-        where: { name: route.name },
+        where: { code: route.code },
       });
 
       if (!existingRoute) {
-        // Find the company and depot IDs
-        const company = companies.find(c => c.name === route.company_name);
+        // Find the depot by name
         const depot = depots.find(d => d.name === route.depot_name);
 
-        if (company && depot) {
+        if (depot) {
           await prisma.routes.create({
             data: {
               name: route.name,
               code: route.code,
               description: route.description,
-              parent_id: company.id,
+              parent_id: zone.id, // parent_id references zones, not companies
               depot_id: depot.id,
               salesperson_id: 1, // Use admin user ID
               start_location: route.start_location,
@@ -201,10 +219,24 @@ export async function seedRoutes(): Promise<void> {
               log_inst: 1,
             },
           });
+
+          routesCreated++;
+        } else {
+          logger.warn(
+            `Depot not found: ${route.depot_name} for route ${route.name}`
+          );
+          routesSkipped++;
         }
+      } else {
+        routesSkipped++;
       }
     }
+
+    logger.info(
+      `Routes seeding completed: ${routesCreated} created, ${routesSkipped} skipped`
+    );
   } catch (error) {
+    logger.error('Error seeding routes:', error);
     throw error;
   }
 }

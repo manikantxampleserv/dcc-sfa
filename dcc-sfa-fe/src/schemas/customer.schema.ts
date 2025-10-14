@@ -9,7 +9,21 @@ export const customerValidationSchema = yup.object().shape({
   zones_id: yup.string().nullable(),
   type: yup
     .string()
-    .oneOf(['distributor', 'retailer', 'wholesaler'], 'Invalid customer type')
+    .oneOf(
+      [
+        'Retail',
+        'Wholesale',
+        'Corporate',
+        'Industrial',
+        'Healthcare',
+        'Automotive',
+        'Restaurant',
+        'Service',
+        'Manufacturing',
+        'Distribution',
+      ],
+      'Invalid customer type'
+    )
     .nullable(),
   contact_person: yup
     .string()

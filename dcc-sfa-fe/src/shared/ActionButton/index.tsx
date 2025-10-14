@@ -87,7 +87,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   onClick,
   disabled = false,
   tooltip = 'Action',
-  size = 'small',
+  size = 'medium',
   icon,
   color = 'primary',
 }) => {

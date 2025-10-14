@@ -16,10 +16,14 @@ import { PriceListsImportExportService } from './implementations/priceLists-impo
 import { LoginHistoryImportExportService } from './implementations/loginHistory-import-export.service';
 import { SalesTargetGroupsImportExportService } from './implementations/salesTargetGroups-import-export.service';
 import { SalesTargetsImportExportService } from './implementations/salesTargets-import-export.service';
+import { SalesBonusRulesImportExportService } from './implementations/salesBonusRules-import-export.service';
 import { ProductCategoriesImportExportService } from './implementations/productCategories-import-export.service';
 import { ProductSubCategoriesImportExportService } from './implementations/productSubCategories-import-export.service';
 import { BrandsImportExportService } from './implementations/brands-import-export.service';
 import { UnitOfMeasurementImportExportService } from './implementations/unitOfMeasurement-import-export.service';
+import { DeliverySchedulesImportExportService } from './implementations/deliverySchedules-import-export.service';
+import { ReturnRequestsImportExportService } from './implementations/returnRequests-import-export.service';
+import { PaymentsImportExportService } from './implementations/payments-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -46,10 +50,14 @@ export class ImportExportFactory {
     ['login_history', LoginHistoryImportExportService],
     ['sales_target_groups', SalesTargetGroupsImportExportService],
     ['sales_targets', SalesTargetsImportExportService],
+    ['sales_bonus_rules', SalesBonusRulesImportExportService],
     ['product_categories', ProductCategoriesImportExportService],
     ['product_sub_categories', ProductSubCategoriesImportExportService],
     ['brands', BrandsImportExportService],
     ['unit_of_measurement', UnitOfMeasurementImportExportService],
+    ['delivery_schedules', DeliverySchedulesImportExportService],
+    ['return_requests', ReturnRequestsImportExportService],
+    ['payments', PaymentsImportExportService],
     ['products', ProductsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);

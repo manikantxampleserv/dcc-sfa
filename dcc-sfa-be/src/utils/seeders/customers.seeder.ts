@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import logger from '../../configs/logger';
 
 const prisma = new PrismaClient();
 
@@ -158,7 +159,10 @@ const BUSINESS_SUFFIXES = [
   'Co',
 ];
 
-function generateRandomCustomer(index: number): MockCustomer {
+function generateRandomCustomer(
+  index: number,
+  zoneIds: number[]
+): MockCustomer {
   const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
   const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
   const businessType =
@@ -187,7 +191,7 @@ function generateRandomCustomer(index: number): MockCustomer {
     city,
     state,
     zipcode: zipcode.toString(),
-    zones_id: Math.floor(Math.random() * 10) + 1,
+    zones_id: zoneIds[Math.floor(Math.random() * zoneIds.length)],
     is_active: Math.random() > 0.1 ? 'Y' : 'N',
   };
 }
@@ -197,33 +201,52 @@ export async function seedCustomers(): Promise<void> {
   const BATCH_SIZE = 1000;
   const totalBatches = Math.ceil(TOTAL_CUSTOMERS / BATCH_SIZE);
 
+  // Get available zone IDs to ensure valid foreign key references
+  const availableZones = await prisma.zones.findMany({
+    select: { id: true },
+    where: { is_active: 'Y' },
+  });
+
+  if (availableZones.length === 0) {
+    return;
+  }
+
+  const zoneIds = availableZones.map(zone => zone.id);
+
   for (let batch = 0; batch < totalBatches; batch++) {
     const startIndex = batch * BATCH_SIZE;
     const endIndex = Math.min(startIndex + BATCH_SIZE, TOTAL_CUSTOMERS);
 
     const customers = Array.from({ length: endIndex - startIndex }, (_, i) =>
-      generateRandomCustomer(startIndex + i)
+      generateRandomCustomer(startIndex + i, zoneIds)
     );
 
-    await prisma.customers.createMany({
-      data: customers.map(customer => ({
-        name: customer.name,
-        code: customer.code,
-        type: customer.type,
-        contact_person: customer.contact_person,
-        email: customer.email,
-        phone_number: customer.phone_number,
-        address: customer.address,
-        city: customer.city,
-        state: customer.state,
-        zipcode: customer.zipcode,
-        zones_id: customer.zones_id,
-        is_active: customer.is_active,
-        createdate: new Date(),
-        createdby: 1,
-        log_inst: 1,
-      })),
-    });
+    try {
+      const result = await prisma.customers.createMany({
+        data: customers.map(customer => ({
+          name: customer.name,
+          code: customer.code,
+          type: customer.type,
+          contact_person: customer.contact_person,
+          email: customer.email,
+          phone_number: customer.phone_number,
+          address: customer.address,
+          city: customer.city,
+          state: customer.state,
+          zipcode: customer.zipcode,
+          zones_id: customer.zones_id,
+          is_active: customer.is_active,
+          createdate: new Date(),
+          createdby: 1,
+          log_inst: 1,
+        })),
+      });
+      logger.info(
+        `Batch ${batch + 1}/${totalBatches} completed (${result.count} customers created)`
+      );
+    } catch (error: any) {
+      logger.info(`Batch ${batch + 1}/${totalBatches} Skipped`);
+    }
   }
 }
 

@@ -34,9 +34,26 @@ import {
   seedUnitOfMeasurement,
 } from './unitOfMeasurement.seeder';
 import { clearVehicles, seedVehicles } from './vehicles.seeder';
+import { clearUsers, seedUsers } from './users.seeder';
 import { clearVisits, seedVisits } from './visits.seeder';
 import { clearWarehouses, seedWarehouses } from './warehouses.seeder';
 import { clearZones, seedZones } from './zones.seeder';
+import {
+  clearSalesTargetGroups,
+  seedSalesTargetGroups,
+} from './salesTargetGroups.seeder';
+import { clearSalesTargets, seedSalesTargets } from './salesTargets.seeder';
+import {
+  clearSalesBonusRules,
+  seedSalesBonusRules,
+} from './salesBonusRules.seeder';
+import {
+  clearSurveyTemplates,
+  seedSurveyTemplates,
+} from './survey-templates.seeder';
+import { clearKPITargets, seedKPITargets } from './kpi-targets.seeder';
+import { clearOutletGroups, seedOutletGroups } from './outlet-groups.seeder';
+import { clearPricelists, seedPricelists } from './pricelists.seeder';
 
 const prisma = new PrismaClient();
 
@@ -97,6 +114,42 @@ const seeders = {
     clear: clearBrands,
     name: 'Brands',
   },
+  'sales-target-groups': {
+    seed: seedSalesTargetGroups,
+    clear: clearSalesTargetGroups,
+    name: 'Sales Target Groups',
+  },
+  'sales-targets': {
+    seed: seedSalesTargets,
+    clear: clearSalesTargets,
+    name: 'Sales Targets',
+  },
+  'sales-bonus-rules': {
+    seed: seedSalesBonusRules,
+    clear: clearSalesBonusRules,
+    name: 'Sales Bonus Rules',
+  },
+  'survey-templates': {
+    seed: seedSurveyTemplates,
+    clear: clearSurveyTemplates,
+    name: 'Survey Templates',
+  },
+  'kpi-targets': {
+    seed: seedKPITargets,
+    clear: clearKPITargets,
+    name: 'KPI Targets',
+  },
+  'outlet-groups': {
+    seed: seedOutletGroups,
+    clear: clearOutletGroups,
+    name: 'Outlet Groups',
+  },
+  pricelists: {
+    seed: seedPricelists,
+    clear: clearPricelists,
+    name: 'Pricelists',
+  },
+  users: { seed: seedUsers, clear: clearUsers, name: 'Users' },
 };
 
 /**
@@ -152,8 +205,8 @@ export async function seedAll(): Promise<void> {
 
     // Seed in correct dependency order
     // 1. Core system data (no dependencies)
-    await seedSection('roles');
     await seedSection('permissions');
+    await seedSection('roles');
     await seedSection('currencies');
     await seedSection('unit-of-measurement');
 
@@ -161,6 +214,9 @@ export async function seedAll(): Promise<void> {
     await seedSection('companies');
     await seedSection('depots');
     await seedSection('zones');
+
+    // 3. Users (depends on roles, companies, depots, zones)
+    await seedSection('users');
 
     // 4. Product hierarchy
     await seedSection('brands');
@@ -182,6 +238,15 @@ export async function seedAll(): Promise<void> {
     await seedSection('orders');
     await seedSection('visits');
 
+    // 8. Sales management
+    await seedSection('sales-target-groups');
+    await seedSection('sales-targets');
+    await seedSection('sales-bonus-rules');
+    await seedSection('survey-templates');
+    await seedSection('kpi-targets');
+    await seedSection('outlet-groups');
+    await seedSection('pricelists');
+
     logger.success('All seeding completed successfully!');
   } catch (error) {
     logger.error('Seeding failed:', error);
@@ -202,6 +267,15 @@ export async function clearAll(): Promise<void> {
     // 7. Operations (clear first - depends on users, customers, products)
     await clearSection('visits');
     await clearSection('orders');
+
+    // 8. Sales management
+    await clearSection('pricelists');
+    await clearSection('outlet-groups');
+    await clearSection('kpi-targets');
+    await clearSection('survey-templates');
+    await clearSection('sales-bonus-rules');
+    await clearSection('sales-targets');
+    await clearSection('sales-target-groups');
 
     // 6. Customer management (clear before routes due to foreign key)
     await clearSection('customers');
@@ -297,11 +371,21 @@ export {
 } from './productCategories.seeder';
 export { clearProducts, seedProducts } from './products.seeder';
 export {
+  clearSalesTargetGroups,
+  seedSalesTargetGroups,
+} from './salesTargetGroups.seeder';
+export { clearSalesTargets, seedSalesTargets } from './salesTargets.seeder';
+export {
+  clearSalesBonusRules,
+  seedSalesBonusRules,
+} from './salesBonusRules.seeder';
+export {
   clearProductSubCategories,
   seedProductSubCategories,
 } from './productSubCategories.seeder';
 export { clearRoles, seedRoles } from './roles.seeder';
 export { clearRoutes, seedRoutes } from './routes.seeder';
+export { clearUsers, seedUsers } from './users.seeder';
 export { clearVehicles, seedVehicles } from './vehicles.seeder';
 export { clearVisits, seedVisits } from './visits.seeder';
 export { clearWarehouses, seedWarehouses } from './warehouses.seeder';
@@ -366,6 +450,7 @@ Sections:
   companies                - Company data (11 records)
   depots                   - Depot locations (11 records)
   zones                    - Sales zones (11 records)
+  users                    - Users including admin (12 records)
   currencies               - Currency data (11 records)
   asset-types              - Asset types (11 records)
   warehouses               - Warehouse data (11 records)
@@ -380,6 +465,13 @@ Sections:
   routes                   - Delivery routes (11 records)
   visits                   - Customer visits (11 records)
   asset-master             - Asset inventory (11 records)
+  sales-target-groups      - Sales target groups (11 records)
+  sales-targets            - Sales targets (11 records)
+  sales-bonus-rules        - Sales bonus rules (11 records)
+  survey-templates          - Survey templates (11 records)
+  kpi-targets             - KPI targets (16 records)
+  outlet-groups            - Outlet groups (15 records)
+  pricelists               - Pricelists (15 records)
 
 Examples:
   ts-node src/utils/seeders/index.ts seed                           # Seed all sections

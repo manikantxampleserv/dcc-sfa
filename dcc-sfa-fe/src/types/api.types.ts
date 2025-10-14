@@ -30,6 +30,13 @@ export interface ApiResponse<T = any> {
     limit?: number;
     totalPages?: number;
   };
+  pagination?: {
+    current_page: number;
+    total_pages: number;
+    total_count: number;
+    has_next: boolean;
+    has_previous: boolean;
+  };
   stats?: {
     // Company statistics
     total_companies?: number;
@@ -159,6 +166,24 @@ export interface ApiResponse<T = any> {
     active_sub_categories?: number;
     inactive_sub_categories?: number;
     new_sub_categories_this_month?: number;
+    // Return request statistics
+    total_requests?: number;
+    pending_requests?: number;
+    approved_requests?: number;
+    processing_requests?: number;
+    completed_requests?: number;
+    rejected_requests?: number;
+    cancelled_requests?: number;
+    new_requests_this_month?: number;
+    // Payment statistics
+    total_payments?: number;
+    active_payments?: number;
+    inactive_payments?: number;
+    total_amount?: number;
+    payments_this_month?: number;
+    amount_this_month?: number;
+    pending_collections?: number;
+    overdue_amount?: number;
   };
 }
 

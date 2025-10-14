@@ -112,7 +112,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'sales-bonus-rules',
         label: 'Sales Bonus Rules',
-        href: '/masters/bonus-rules',
+        href: '/masters/sales-bonus-rules',
       },
       { id: 'kpi-targets', label: 'KPI Targets', href: '/masters/kpi-targets' },
       {

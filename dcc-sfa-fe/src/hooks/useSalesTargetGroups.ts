@@ -14,8 +14,8 @@ import {
   updateSalesTargetGroup,
   type GetSalesTargetGroupsParams,
   type ManageSalesTargetGroupPayload,
-  type UpdateSalesTargetGroupPayload,
   type SalesTargetGroup,
+  type UpdateSalesTargetGroupPayload,
 } from '../services/masters/SalesTargetGroups';
 import { useApiMutation } from './useApiMutation';
 
@@ -131,6 +131,6 @@ export const useDeleteSalesTargetGroup = (options?: {
 export type {
   GetSalesTargetGroupsParams,
   ManageSalesTargetGroupPayload,
-  UpdateSalesTargetGroupPayload,
   SalesTargetGroup,
+  UpdateSalesTargetGroupPayload,
 };
