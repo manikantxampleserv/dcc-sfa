@@ -33,14 +33,16 @@ import WarehousesManagement from 'pages/masters/Warehouses';
 import ZonesManagement from 'pages/masters/Zone';
 import Profile from 'pages/Profile';
 import OrdersManagement from 'pages/transactions/Orders';
+import InvoicesManagement from 'pages/transactions/Invoices';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import DeliveryScheduling from 'pages/transactions/DeliveryScheduling';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
 import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
 import PaymentCollection from 'pages/transactions/PaymentCollection';
+import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-const InvoiceManagement = () => <h1>Invoice Management</h1>;
+
 const CreditNotes = () => <h1>Credit Notes</h1>;
 const AssetMovement = () => <h1>Asset Movement</h1>;
 const AssetMaintenance = () => <h1>Asset Maintenance</h1>;
@@ -220,8 +222,12 @@ const router = createBrowserRouter([
         element: <PaymentCollection />,
       },
       {
+        path: '/transactions/payments/:id',
+        element: <PaymentDetail />,
+      },
+      {
         path: '/transactions/invoices',
-        element: <InvoiceManagement />,
+        element: <InvoicesManagement />,
       },
       {
         path: '/transactions/credit-notes',

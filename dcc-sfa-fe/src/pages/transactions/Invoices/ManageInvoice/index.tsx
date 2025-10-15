@@ -2,13 +2,17 @@ import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
 import { useCustomers } from 'hooks/useCustomers';
-import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
+import {
+  useCreateInvoice,
+  useInvoice,
+  useUpdateInvoice,
+} from 'hooks/useInvoices';
+import { useOrders } from 'hooks/useOrders';
 import { useProducts } from 'hooks/useProducts';
-import { useUsers } from 'hooks/useUsers';
 import { Package, Plus } from 'lucide-react';
 import React, { useState } from 'react';
-import { orderValidationSchema } from 'schemas/order.schema';
-import type { Order } from 'services/masters/Orders';
+import { invoiceValidationSchema } from 'schemas/invoice.schema';
+import type { Invoice } from 'services/masters/Invoices';
 import { DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -16,13 +20,13 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 
-interface ManageOrderProps {
+interface ManageInvoiceProps {
   open: boolean;
   onClose: () => void;
-  order?: Order | null;
+  invoice?: Invoice | null;
 }
 
-interface OrderItemFormData {
+interface InvoiceItemFormData {
   product_id: number | '';
   quantity: string;
   unit_price: string;
@@ -31,35 +35,38 @@ interface OrderItemFormData {
   notes: string;
 }
 
-const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
-  const isEdit = !!order;
-  const [orderItems, setOrderItems] = useState<OrderItemFormData[]>([]);
+const ManageInvoice: React.FC<ManageInvoiceProps> = ({
+  open,
+  onClose,
+  invoice,
+}) => {
+  const isEdit = !!invoice;
+  const [invoiceItems, setInvoiceItems] = useState<InvoiceItemFormData[]>([]);
 
   const { data: customersResponse } = useCustomers({ limit: 1000 });
   const { data: productsResponse } = useProducts({ limit: 1000 });
-  const { data: usersResponse } = useUsers({ limit: 1000 });
+  const { data: ordersResponse } = useOrders({ limit: 1000 });
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
-  const { data: orderResponse } = useOrder(order?.id || 0);
+  const { data: invoiceResponse } = useInvoice(invoice?.id || 0);
 
   const customers = customersResponse?.data || [];
   const products = productsResponse?.data || [];
-  const users = usersResponse?.data || [];
+  const orders = ordersResponse?.data || [];
   const currencies = currenciesResponse?.data || [];
-  const salespeople = users;
 
-  const createOrderMutation = useCreateOrder();
-  const updateOrderMutation = useUpdateOrder();
+  const createInvoiceMutation = useCreateInvoice();
+  const updateInvoiceMutation = useUpdateInvoice();
 
   const handleCancel = () => {
     onClose();
-    setOrderItems([]);
+    setInvoiceItems([]);
     formik.resetForm();
   };
 
   React.useEffect(() => {
-    if (order && orderResponse?.data) {
+    if (invoice && invoiceResponse?.data) {
       const items =
-        orderResponse.data.order_items?.map(item => ({
+        invoiceResponse.data.invoice_items?.map(item => ({
           product_id: item.product_id,
           quantity: item.quantity.toString(),
           unit_price: item.unit_price.toString(),
@@ -67,59 +74,59 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           tax_amount: (item.tax_amount || 0).toString(),
           notes: item.notes || '',
         })) || [];
-      setOrderItems(items);
-      formik.setFieldValue('order_items', items);
+      setInvoiceItems(items);
+      formik.setFieldValue('invoice_items', items);
     } else {
-      setOrderItems([]);
-      formik.setFieldValue('order_items', []);
+      setInvoiceItems([]);
+      formik.setFieldValue('invoice_items', []);
     }
-  }, [order, orderResponse]);
+  }, [invoice?.id, invoiceResponse?.data?.id]);
 
   const formik = useFormik({
     initialValues: {
-      order_number: order?.order_number || '',
-      parent_id: order?.parent_id || '',
-      salesperson_id: order?.salesperson_id || '',
-      currency_id: order?.currency_id || '8',
-      order_date: order?.order_date ? order.order_date : '',
-      delivery_date: order?.delivery_date ? order.delivery_date : '',
-      status: order?.status || 'draft',
-      priority: order?.priority || 'medium',
-      order_type: order?.order_type || 'regular',
-      payment_method: order?.payment_method || 'credit',
-      payment_terms: order?.payment_terms || 'Net 30',
-      subtotal: order?.subtotal || 0,
-      discount_amount: order?.discount_amount || 0,
-      tax_amount: order?.tax_amount || 0,
-      shipping_amount: order?.shipping_amount || 0,
-      total_amount: order?.total_amount || 0,
-      notes: order?.notes || '',
-      shipping_address: order?.shipping_address || '',
-      approval_status: order?.approval_status || 'pending',
-      approved_by: order?.approved_by || '',
-      is_active: order?.is_active || 'Y',
-      order_items: [],
+      invoice_number: invoice?.invoice_number || '',
+      parent_id: invoice?.parent_id || '',
+      customer_id: invoice?.customer_id || '',
+      currency_id:
+        invoice?.currency_id ||
+        (currencies.length > 0 ? currencies[0].id.toString() : ''),
+      invoice_date: invoice?.invoice_date
+        ? invoice.invoice_date.split('T')[0]
+        : '',
+      due_date: invoice?.due_date ? invoice.due_date.split('T')[0] : '',
+      status: invoice?.status || 'draft',
+      payment_method: invoice?.payment_method || 'credit',
+      subtotal: invoice?.subtotal || 0,
+      discount_amount: invoice?.discount_amount || 0,
+      tax_amount: invoice?.tax_amount || 0,
+      shipping_amount: invoice?.shipping_amount || 0,
+      total_amount: invoice?.total_amount || 0,
+      amount_paid: invoice?.amount_paid || 0,
+      balance_due: invoice?.balance_due || 0,
+      notes: invoice?.notes || '',
+      billing_address: invoice?.billing_address || '',
+      is_active: invoice?.is_active || 'Y',
+      invoice_items: [],
     },
-    validationSchema: orderValidationSchema,
+    validationSchema: invoiceValidationSchema,
     enableReinitialize: true,
     onSubmit: async values => {
       try {
         const submitData = {
           ...values,
-          order_date: new Date(values.order_date).toISOString() || undefined,
+          invoice_date:
+            new Date(values.invoice_date).toISOString() || undefined,
           parent_id: Number(values.parent_id),
-          salesperson_id: Number(values.salesperson_id),
+          customer_id: Number(values.customer_id),
           currency_id: values.currency_id
             ? Number(values.currency_id)
             : undefined,
-          delivery_date:
-            new Date(values.delivery_date).toISOString() || undefined,
-          notes: values.notes || undefined,
-          shipping_address: values.shipping_address || undefined,
-          approved_by: values.approved_by
-            ? Number(values.approved_by)
+          due_date: values.due_date
+            ? new Date(values.due_date).toISOString()
             : undefined,
-          orderItems: orderItems
+          notes: values.notes || undefined,
+          billing_address: values.billing_address || undefined,
+          invoiceItems: invoiceItems
             .filter(item => item.product_id !== '')
             .map(item => ({
               product_id: Number(item.product_id),
@@ -131,23 +138,23 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             })),
         };
 
-        if (isEdit && order) {
-          await updateOrderMutation.mutateAsync({
-            id: order.id,
+        if (isEdit && invoice) {
+          await updateInvoiceMutation.mutateAsync({
+            id: invoice.id,
             ...submitData,
           });
         } else {
-          await createOrderMutation.mutateAsync(submitData);
+          await createInvoiceMutation.mutateAsync(submitData);
         }
         handleCancel();
       } catch (error) {
-        console.log('Error submitting order:', error);
+        console.log('Error submitting invoice:', error);
       }
     },
   });
 
-  const addOrderItem = () => {
-    const newItem: OrderItemFormData = {
+  const addInvoiceItem = () => {
+    const newItem: InvoiceItemFormData = {
       product_id: '',
       quantity: '1',
       unit_price: '0',
@@ -155,35 +162,35 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       tax_amount: '0',
       notes: '',
     };
-    const updatedItems = [...orderItems, newItem];
-    setOrderItems(updatedItems);
-    formik.setFieldValue('order_items', updatedItems);
+    const updatedItems = [...invoiceItems, newItem];
+    setInvoiceItems(updatedItems);
+    formik.setFieldValue('invoice_items', updatedItems);
   };
 
-  const removeOrderItem = (index: number) => {
-    const updatedItems = orderItems.filter((_, i) => i !== index);
-    setOrderItems(updatedItems);
-    formik.setFieldValue('order_items', updatedItems);
+  const removeInvoiceItem = (index: number) => {
+    const updatedItems = invoiceItems.filter((_, i) => i !== index);
+    setInvoiceItems(updatedItems);
+    formik.setFieldValue('invoice_items', updatedItems);
   };
 
-  const updateOrderItem = (
+  const updateInvoiceItem = (
     index: number,
-    field: keyof OrderItemFormData,
+    field: keyof InvoiceItemFormData,
     value: string
   ) => {
-    const updatedItems = [...orderItems];
+    const updatedItems = [...invoiceItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
-    setOrderItems(updatedItems);
-    formik.setFieldValue('order_items', updatedItems);
+    setInvoiceItems(updatedItems);
+    formik.setFieldValue('invoice_items', updatedItems);
   };
 
-  const orderItemsWithIndex = orderItems.map((item, index) => ({
+  const invoiceItemsWithIndex = invoiceItems.map((item, index) => ({
     ...item,
     _index: index,
   }));
 
-  const orderItemsColumns: TableColumn<
-    OrderItemFormData & { _index: number }
+  const invoiceItemsColumns: TableColumn<
+    InvoiceItemFormData & { _index: number }
   >[] = [
     {
       id: 'product_id',
@@ -192,7 +199,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         <Select
           value={row.product_id}
           onChange={e =>
-            updateOrderItem(row._index, 'product_id', e.target.value)
+            updateInvoiceItem(row._index, 'product_id', e.target.value)
           }
           size="small"
           className="!min-w-60"
@@ -214,7 +221,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         <Input
           value={row.quantity}
           onChange={e =>
-            updateOrderItem(row._index, 'quantity', e.target.value)
+            updateInvoiceItem(row._index, 'quantity', e.target.value)
           }
           placeholder="1"
           type="number"
@@ -230,7 +237,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         <Input
           value={row.unit_price}
           onChange={e =>
-            updateOrderItem(row._index, 'unit_price', e.target.value)
+            updateInvoiceItem(row._index, 'unit_price', e.target.value)
           }
           placeholder="0.00"
           type="number"
@@ -241,12 +248,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     },
     {
       id: 'discount_amount',
-      label: 'Discount Amount',
+      label: 'Discount',
       render: (_value, row) => (
         <Input
           value={row.discount_amount}
           onChange={e =>
-            updateOrderItem(row._index, 'discount_amount', e.target.value)
+            updateInvoiceItem(row._index, 'discount_amount', e.target.value)
           }
           placeholder="0.00"
           type="number"
@@ -257,12 +264,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     },
     {
       id: 'tax_amount',
-      label: 'Tax Amount',
+      label: 'Tax',
       render: (_value, row) => (
         <Input
           value={row.tax_amount}
           onChange={e =>
-            updateOrderItem(row._index, 'tax_amount', e.target.value)
+            updateInvoiceItem(row._index, 'tax_amount', e.target.value)
           }
           placeholder="0.00"
           type="number"
@@ -271,35 +278,25 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         />
       ),
     },
-
     {
       id: 'actions',
       label: 'Actions',
       sortable: false,
       render: (_value, row) => (
         <DeleteButton
-          onClick={() => removeOrderItem(row._index)}
+          onClick={() => removeInvoiceItem(row._index)}
           tooltip="Remove item"
           confirmDelete={true}
           size="medium"
-          itemName="order item"
+          itemName="invoice item"
         />
       ),
     },
   ];
 
   const getCurrencyCode = (currencyId: string | number) => {
-    const currencyMap: Record<string, string> = {
-      '1': 'INR',
-      '2': 'USD',
-      '3': 'EUR',
-      '4': 'GBP',
-      '5': 'JPY',
-      '6': 'AUD',
-      '7': 'CAD',
-      '8': 'TZS',
-    };
-    return currencyMap[String(currencyId)] || 'INR';
+    const currency = currencies.find(c => c.id === Number(currencyId));
+    return currency?.code || 'USD';
   };
 
   const formatCurrency = (
@@ -313,21 +310,23 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     }).format(amount);
   };
 
-  const calculateOrderTotals = () => {
-    const subtotal = orderItems.reduce(
+  const totals = React.useMemo(() => {
+    const subtotal = invoiceItems.reduce(
       (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
       0
     );
-    const discountAmount = orderItems.reduce(
+    const discountAmount = invoiceItems.reduce(
       (sum, item) => sum + Number(item.discount_amount),
       0
     );
-    const taxAmount = orderItems.reduce(
+    const taxAmount = invoiceItems.reduce(
       (sum, item) => sum + Number(item.tax_amount),
       0
     );
-    const shippingAmount = 0;
+    const shippingAmount = Number(formik.values.shipping_amount) || 0;
     const totalAmount = subtotal - discountAmount + taxAmount + shippingAmount;
+    const amountPaid = Number(formik.values.amount_paid) || 0;
+    const balanceDue = totalAmount - amountPaid;
 
     return {
       subtotal,
@@ -335,33 +334,61 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       tax_amount: taxAmount,
       shipping_amount: shippingAmount,
       total_amount: totalAmount,
+      amount_paid: amountPaid,
+      balance_due: balanceDue,
     };
-  };
+  }, [invoiceItems, formik.values.shipping_amount, formik.values.amount_paid]);
 
-  const totals = calculateOrderTotals();
-
-  console.log(formik.values);
+  // Update formik values when totals change
+  React.useEffect(() => {
+    formik.setFieldValue('subtotal', totals.subtotal);
+    formik.setFieldValue('discount_amount', totals.discount_amount);
+    formik.setFieldValue('tax_amount', totals.tax_amount);
+    formik.setFieldValue('shipping_amount', totals.shipping_amount);
+    formik.setFieldValue('total_amount', totals.total_amount);
+    formik.setFieldValue('balance_due', totals.balance_due);
+  }, [
+    totals.subtotal,
+    totals.discount_amount,
+    totals.tax_amount,
+    totals.shipping_amount,
+    totals.total_amount,
+    totals.balance_due,
+  ]);
 
   return (
     <CustomDrawer
       open={open}
       setOpen={handleCancel}
-      title={isEdit ? 'Edit Order' : 'Create Order'}
+      title={isEdit ? 'Edit Invoice' : 'Create Invoice'}
       size="larger"
     >
       <Box className="!p-5">
-        <form onSubmit={formik.handleSubmit} className="!space-y-5">
+        <form onSubmit={formik.handleSubmit} className="!space-y-5 mb-10">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
             <Box className="md:!col-span-2">
               <Typography
                 variant="h6"
                 className="!font-semibold !text-gray-900"
               >
-                Order Information
+                Invoice Information
               </Typography>
             </Box>
 
-            <Select name="parent_id" label="Customer" formik={formik} required>
+            <Select name="parent_id" label="Order" formik={formik} required>
+              {orders.map(order => (
+                <MenuItem key={order.id} value={order.id}>
+                  {order.order_number} - {order.customer?.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="customer_id"
+              label="Customer"
+              formik={formik}
+              required
+            >
               {customers.map(customer => (
                 <MenuItem key={customer.id} value={customer.id}>
                   {customer.name} ({customer.code})
@@ -369,22 +396,9 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               ))}
             </Select>
 
-            <Select
-              name="salesperson_id"
-              label="Salesperson"
-              formik={formik}
-              required
-            >
-              {salespeople.map(salesperson => (
-                <MenuItem key={salesperson.id} value={salesperson.id}>
-                  {salesperson.name}
-                </MenuItem>
-              ))}
-            </Select>
-
             <Input
-              name="order_date"
-              label="Order Date"
+              name="invoice_date"
+              label="Invoice Date"
               type="date"
               formik={formik}
               required
@@ -392,8 +406,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             />
 
             <Input
-              name="delivery_date"
-              label="Delivery Date"
+              name="due_date"
+              label="Due Date"
               type="date"
               formik={formik}
               slotProps={{ inputLabel: { shrink: true } }}
@@ -414,31 +428,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
 
             <Select name="status" label="Status" formik={formik} required>
               <MenuItem value="draft">Draft</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="confirmed">Confirmed</MenuItem>
-              <MenuItem value="processing">Processing</MenuItem>
-              <MenuItem value="shipped">Shipped</MenuItem>
-              <MenuItem value="delivered">Delivered</MenuItem>
+              <MenuItem value="sent">Sent</MenuItem>
+              <MenuItem value="paid">Paid</MenuItem>
+              <MenuItem value="overdue">Overdue</MenuItem>
               <MenuItem value="cancelled">Cancelled</MenuItem>
-            </Select>
-
-            <Select name="priority" label="Priority" formik={formik} required>
-              <MenuItem value="low">Low</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="high">High</MenuItem>
-              <MenuItem value="urgent">Urgent</MenuItem>
-            </Select>
-
-            <Select
-              name="order_type"
-              label="Order Type"
-              formik={formik}
-              required
-            >
-              <MenuItem value="regular">Regular</MenuItem>
-              <MenuItem value="urgent">Urgent</MenuItem>
-              <MenuItem value="promotional">Promotional</MenuItem>
-              <MenuItem value="sample">Sample</MenuItem>
             </Select>
 
             <Select
@@ -449,22 +442,33 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             >
               <MenuItem value="cash">Cash</MenuItem>
               <MenuItem value="credit">Credit</MenuItem>
-              <MenuItem value="cheque">Cheque</MenuItem>
+              <MenuItem value="debit">Debit</MenuItem>
+              <MenuItem value="check">Check</MenuItem>
               <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
+              <MenuItem value="online">Online Payment</MenuItem>
             </Select>
 
             <Input
-              name="payment_terms"
-              label="Payment Terms"
-              placeholder="e.g., Net 30, COD"
+              name="shipping_amount"
+              label="Shipping Amount"
+              placeholder="0.00"
+              type="number"
+              formik={formik}
+            />
+
+            <Input
+              name="amount_paid"
+              label="Amount Paid"
+              placeholder="0.00"
+              type="number"
               formik={formik}
             />
 
             <Box className="md:!col-span-2">
               <Input
-                name="shipping_address"
-                label="Shipping Address"
-                placeholder="Enter shipping address"
+                name="billing_address"
+                label="Billing Address"
+                placeholder="Enter billing address"
                 formik={formik}
                 multiline
                 rows={3}
@@ -475,7 +479,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               <Input
                 name="notes"
                 label="Notes"
-                placeholder="Enter order notes"
+                placeholder="Enter invoice notes"
                 formik={formik}
                 multiline
                 rows={3}
@@ -489,31 +493,31 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 variant="h6"
                 className="!font-semibold !text-gray-900"
               >
-                Order Items
+                Invoice Items
               </Typography>
               <Button
                 type="button"
                 variant="outlined"
                 startIcon={<Plus />}
-                onClick={addOrderItem}
+                onClick={addInvoiceItem}
                 size="small"
               >
                 Add Item
               </Button>
             </Box>
 
-            {orderItems.length > 0 && (
+            {invoiceItems.length > 0 && (
               <Table
-                data={orderItemsWithIndex}
-                columns={orderItemsColumns}
+                data={invoiceItemsWithIndex}
+                columns={invoiceItemsColumns}
                 getRowId={row => row._index.toString()}
                 pagination={false}
                 sortable={false}
-                emptyMessage="No order items added yet."
+                emptyMessage="No invoice items added yet."
               />
             )}
 
-            {orderItems.length === 0 && (
+            {invoiceItems.length === 0 && (
               <Box className="!text-center !py-8 !text-gray-500">
                 <Package className="w-12 h-12 text-gray-400 mx-auto mb-2" />
                 <Typography variant="body2">
@@ -522,13 +526,13 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               </Box>
             )}
 
-            {orderItems.length > 0 && (
+            {invoiceItems.length > 0 && (
               <Box className="!bg-gray-50 !rounded-lg !mt-4">
                 <Typography
                   variant="h6"
                   className="!font-semibold !text-gray-900 !mb-2"
                 >
-                  Order Summary
+                  Invoice Summary
                 </Typography>
                 <Box className="!space-y-2">
                   <Box className="!flex !justify-between">
@@ -571,11 +575,33 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                   <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
                     <Box className="!flex !justify-between">
                       <Typography variant="subtitle2" className="!font-bold">
-                        Total:
+                        Total Amount:
                       </Typography>
                       <Typography variant="subtitle2" className="!font-bold">
                         {formatCurrency(
                           totals.total_amount,
+                          getCurrencyCode(formik.values.currency_id)
+                        )}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box className="!flex !justify-between">
+                    <Typography variant="body2">Amount Paid:</Typography>
+                    <Typography variant="body2">
+                      {formatCurrency(
+                        totals.amount_paid,
+                        getCurrencyCode(formik.values.currency_id)
+                      )}
+                    </Typography>
+                  </Box>
+                  <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
+                    <Box className="!flex !justify-between">
+                      <Typography variant="subtitle2" className="!font-bold">
+                        Balance Due:
+                      </Typography>
+                      <Typography variant="subtitle2" className="!font-bold">
+                        {formatCurrency(
+                          totals.balance_due,
                           getCurrencyCode(formik.values.currency_id)
                         )}
                       </Typography>
@@ -592,7 +618,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               variant="outlined"
               onClick={handleCancel}
               disabled={
-                createOrderMutation.isPending || updateOrderMutation.isPending
+                createInvoiceMutation.isPending ||
+                updateInvoiceMutation.isPending
               }
             >
               Cancel
@@ -601,10 +628,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               type="submit"
               variant="contained"
               disabled={
-                createOrderMutation.isPending || updateOrderMutation.isPending
+                createInvoiceMutation.isPending ||
+                updateInvoiceMutation.isPending
               }
             >
-              {createOrderMutation.isPending || updateOrderMutation.isPending
+              {createInvoiceMutation.isPending ||
+              updateInvoiceMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'
@@ -619,4 +648,4 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   );
 };
 
-export default ManageOrder;
+export default ManageInvoice;

@@ -22,4 +22,43 @@ router.delete(
   paymentsController.deletePayment
 );
 
+// Payment Lines Routes
+router.post(
+  '/payments/:paymentId/lines',
+  authenticateToken,
+  paymentsController.createPaymentLine
+);
+router.get(
+  '/payments/:paymentId/lines',
+  authenticateToken,
+  paymentsController.getPaymentLines
+);
+router.delete(
+  '/payments/:paymentId/lines/:lineId',
+  authenticateToken,
+  paymentsController.deletePaymentLine
+);
+
+// Payment Refunds Routes
+router.post(
+  '/payments/:paymentId/refunds',
+  authenticateToken,
+  paymentsController.createPaymentRefund
+);
+router.get(
+  '/payments/:paymentId/refunds',
+  authenticateToken,
+  paymentsController.getPaymentRefunds
+);
+router.put(
+  '/payments/:paymentId/refunds/:refundId',
+  authenticateToken,
+  paymentsController.updatePaymentRefund
+);
+router.delete(
+  '/payments/:paymentId/refunds/:refundId',
+  authenticateToken,
+  paymentsController.deletePaymentRefund
+);
+
 export default router;

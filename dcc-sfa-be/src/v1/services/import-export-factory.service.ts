@@ -24,6 +24,7 @@ import { UnitOfMeasurementImportExportService } from './implementations/unitOfMe
 import { DeliverySchedulesImportExportService } from './implementations/deliverySchedules-import-export.service';
 import { ReturnRequestsImportExportService } from './implementations/returnRequests-import-export.service';
 import { PaymentsImportExportService } from './implementations/payments-import-export.service';
+import { InvoicesImportExportService } from './implementations/invoices-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -58,6 +59,7 @@ export class ImportExportFactory {
     ['delivery_schedules', DeliverySchedulesImportExportService],
     ['return_requests', ReturnRequestsImportExportService],
     ['payments', PaymentsImportExportService],
+    ['invoices', InvoicesImportExportService],
     ['products', ProductsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);

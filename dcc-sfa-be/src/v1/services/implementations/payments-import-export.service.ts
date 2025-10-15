@@ -10,6 +10,11 @@ export class PaymentsImportExportService extends ImportExportService<any> {
   protected uniqueFields = ['payment_number'];
   protected searchFields = ['payment_number', 'reference_number', 'notes'];
 
+  // Cache for foreign key validation
+  private customerIds: Set<number> = new Set();
+  private userIds: Set<number> = new Set();
+  private currencyIds: Set<number> = new Set();
+
   protected columns: ColumnDefinition[] = [
     {
       key: 'customer_id',
@@ -198,6 +203,8 @@ export class PaymentsImportExportService extends ImportExportService<any> {
   }
 
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
+    // For now, we'll keep the individual duplicate check
+    // In the future, this could be optimized with batch checking
     const model = tx ? tx.payments : prisma.payments;
 
     const existing = await model.findFirst({
@@ -221,33 +228,17 @@ export class PaymentsImportExportService extends ImportExportService<any> {
     data: any,
     tx?: any
   ): Promise<string | null> {
-    // Validate customer exists
-    const customerModel = tx ? tx.customers : prisma.customers;
-    const customer = await customerModel.findUnique({
-      where: { id: data.customer_id },
-    });
-    if (!customer) {
+    // Use cached data for validation instead of database queries
+    if (!this.customerIds.has(data.customer_id)) {
       return `Customer with ID ${data.customer_id} does not exist`;
     }
 
-    // Validate user exists
-    const userModel = tx ? tx.users : prisma.users;
-    const user = await userModel.findUnique({
-      where: { id: data.collected_by },
-    });
-    if (!user) {
+    if (!this.userIds.has(data.collected_by)) {
       return `User with ID ${data.collected_by} does not exist`;
     }
 
-    // Validate currency exists if provided
-    if (data.currency_id) {
-      const currencyModel = tx ? tx.currencies : prisma.currencies;
-      const currency = await currencyModel.findUnique({
-        where: { id: data.currency_id },
-      });
-      if (!currency) {
-        return `Currency with ID ${data.currency_id} does not exist`;
-      }
+    if (data.currency_id && !this.currencyIds.has(data.currency_id)) {
+      return `Currency with ID ${data.currency_id} does not exist`;
     }
 
     return null;
@@ -257,7 +248,7 @@ export class PaymentsImportExportService extends ImportExportService<any> {
     data: any,
     userId: number
   ): Promise<any> {
-    const paymentNumber = await this.generatePaymentNumber();
+    const paymentNumber = this.generatePaymentNumber();
 
     return {
       payment_number: paymentNumber,
@@ -276,10 +267,61 @@ export class PaymentsImportExportService extends ImportExportService<any> {
     };
   }
 
-  private async generatePaymentNumber(): Promise<string> {
-    const count = await prisma.payments.count();
-    const nextNumber = count + 1;
+  private paymentCounter = 0;
+  private basePaymentCount = 0;
+
+  private async initializePaymentCounter(): Promise<void> {
+    if (this.basePaymentCount === 0) {
+      this.basePaymentCount = await prisma.payments.count();
+    }
+  }
+
+  private async preloadForeignKeys(): Promise<void> {
+    // Pre-load all valid IDs in one query each
+    const [customers, users, currencies] = await Promise.all([
+      prisma.customers.findMany({
+        select: { id: true },
+        where: { is_active: 'Y' },
+      }),
+      prisma.users.findMany({
+        select: { id: true },
+        where: { is_active: 'Y' },
+      }),
+      prisma.currencies.findMany({
+        select: { id: true },
+        where: { is_active: 'Y' },
+      }),
+    ]);
+
+    // Populate the sets
+    this.customerIds = new Set(customers.map(c => c.id));
+    this.userIds = new Set(users.map(u => u.id));
+    this.currencyIds = new Set(currencies.map(c => c.id));
+  }
+
+  private generatePaymentNumber(): string {
+    this.paymentCounter++;
+    const nextNumber = this.basePaymentCount + this.paymentCounter;
     return `PAY-${nextNumber.toString().padStart(6, '0')}`;
+  }
+
+  // Override the base import method to initialize caches
+  async importData(
+    data: any[],
+    userId: number,
+    options: any = {}
+  ): Promise<any> {
+    // Initialize caches before processing
+    await Promise.all([
+      this.initializePaymentCounter(),
+      this.preloadForeignKeys(),
+    ]);
+
+    // Reset counter for this import batch
+    this.paymentCounter = 0;
+
+    // Call parent import method
+    return super.importData(data, userId, options);
   }
 
   protected getColumnDescription(key: string): string {

@@ -102,6 +102,9 @@ export const paymentsController = {
         data: {
           ...data,
           payment_number: `PAY-${Date.now()}`,
+          reference_number:
+            data.reference_number ||
+            `REF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           payment_date: new Date(data.payment_date),
           total_amount: Number(data.total_amount),
           createdby: data.createdby ? Number(data.createdby) : 1,
@@ -273,6 +276,20 @@ export const paymentsController = {
           payments_customers: true,
           users_payments_collected_byTousers: true,
           currencies: true,
+          payment_lines: {
+            include: {
+              invoices: true,
+            },
+          },
+          payment_refunds: {
+            include: {
+              refund_lines: {
+                include: {
+                  invoices: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -301,7 +318,13 @@ export const paymentsController = {
         return res.status(404).json({ message: 'Payment not found' });
       }
 
-      const data = { ...req.body, updatedate: new Date() };
+      const data = {
+        ...req.body,
+        updatedate: new Date(),
+        ...(req.body.reference_number === undefined && {
+          reference_number: `REF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        }),
+      };
 
       const payment = await prisma.payments.update({
         where: { id: Number(id) },
@@ -339,6 +362,261 @@ export const paymentsController = {
       res.json({ message: 'Payment deleted successfully' });
     } catch (error: any) {
       console.error('Delete Payment Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  // Payment Lines Management
+  async createPaymentLine(req: Request, res: Response) {
+    try {
+      const { paymentId } = req.params;
+      const data = req.body;
+
+      // Validate required fields
+      if (!data.invoice_id) {
+        return res.status(400).json({ message: 'Invoice ID is required' });
+      }
+      if (!data.amount_applied) {
+        return res.status(400).json({ message: 'Amount applied is required' });
+      }
+
+      // Check if payment exists
+      const payment = await prisma.payments.findUnique({
+        where: { id: Number(paymentId) },
+      });
+
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+
+      // Check if invoice exists
+      const invoice = await prisma.invoices.findUnique({
+        where: { id: Number(data.invoice_id) },
+      });
+
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+
+      const paymentLine = await prisma.payment_lines.create({
+        data: {
+          parent_id: Number(paymentId),
+          invoice_id: Number(data.invoice_id),
+          invoice_number: invoice.invoice_number,
+          invoice_date: invoice.invoice_date,
+          amount_applied: Number(data.amount_applied),
+          notes: data.notes || null,
+        },
+        include: {
+          invoices: true,
+        },
+      });
+
+      res.status(201).json({
+        message: 'Payment line created successfully',
+        data: paymentLine,
+      });
+    } catch (error: any) {
+      console.error('Create Payment Line Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getPaymentLines(req: Request, res: Response) {
+    try {
+      const { paymentId } = req.params;
+
+      const paymentLines = await prisma.payment_lines.findMany({
+        where: { parent_id: Number(paymentId) },
+        include: {
+          invoices: true,
+        },
+        orderBy: { id: 'desc' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Payment lines retrieved successfully',
+        data: paymentLines,
+      });
+    } catch (error: any) {
+      console.error('Get Payment Lines Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async deletePaymentLine(req: Request, res: Response) {
+    try {
+      const { paymentId, lineId } = req.params;
+
+      const existingLine = await prisma.payment_lines.findFirst({
+        where: {
+          id: Number(lineId),
+          parent_id: Number(paymentId),
+        },
+      });
+
+      if (!existingLine) {
+        return res.status(404).json({ message: 'Payment line not found' });
+      }
+
+      await prisma.payment_lines.delete({
+        where: { id: Number(lineId) },
+      });
+
+      res.json({ message: 'Payment line deleted successfully' });
+    } catch (error: any) {
+      console.error('Delete Payment Line Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  // Payment Refunds Management
+  async createPaymentRefund(req: Request, res: Response) {
+    try {
+      const { paymentId } = req.params;
+      const data = req.body;
+
+      // Validate required fields
+      if (!data.amount) {
+        return res.status(400).json({ message: 'Refund amount is required' });
+      }
+      if (!data.reason) {
+        return res.status(400).json({ message: 'Refund reason is required' });
+      }
+
+      // Check if payment exists
+      const payment = await prisma.payments.findUnique({
+        where: { id: Number(paymentId) },
+      });
+
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+
+      const refund = await prisma.payment_refunds.create({
+        data: {
+          parent_id: Number(paymentId),
+          refund_date: new Date(data.refund_date || new Date()),
+          amount: Number(data.amount),
+          reason: data.reason,
+          reference_number: data.reference_number || null,
+          method: data.method || null,
+          status: data.status || 'initiated',
+          notes: data.notes || null,
+          createdby: data.createdby || 1,
+          log_inst: data.log_inst || 1,
+        },
+        include: {
+          refund_lines: {
+            include: {
+              invoices: true,
+            },
+          },
+        },
+      });
+
+      res.status(201).json({
+        message: 'Payment refund created successfully',
+        data: refund,
+      });
+    } catch (error: any) {
+      console.error('Create Payment Refund Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getPaymentRefunds(req: Request, res: Response) {
+    try {
+      const { paymentId } = req.params;
+
+      const refunds = await prisma.payment_refunds.findMany({
+        where: { parent_id: Number(paymentId) },
+        include: {
+          refund_lines: {
+            include: {
+              invoices: true,
+            },
+          },
+        },
+        orderBy: { createdate: 'desc' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Payment refunds retrieved successfully',
+        data: refunds,
+      });
+    } catch (error: any) {
+      console.error('Get Payment Refunds Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async updatePaymentRefund(req: Request, res: Response) {
+    try {
+      const { paymentId, refundId } = req.params;
+      const data = req.body;
+
+      const existingRefund = await prisma.payment_refunds.findFirst({
+        where: {
+          id: Number(refundId),
+          parent_id: Number(paymentId),
+        },
+      });
+
+      if (!existingRefund) {
+        return res.status(404).json({ message: 'Payment refund not found' });
+      }
+
+      const refund = await prisma.payment_refunds.update({
+        where: { id: Number(refundId) },
+        data: {
+          ...data,
+          updatedate: new Date(),
+          updatedby: data.updatedby || 1,
+        },
+        include: {
+          refund_lines: {
+            include: {
+              invoices: true,
+            },
+          },
+        },
+      });
+
+      res.json({
+        message: 'Payment refund updated successfully',
+        data: refund,
+      });
+    } catch (error: any) {
+      console.error('Update Payment Refund Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async deletePaymentRefund(req: Request, res: Response) {
+    try {
+      const { paymentId, refundId } = req.params;
+
+      const existingRefund = await prisma.payment_refunds.findFirst({
+        where: {
+          id: Number(refundId),
+          parent_id: Number(paymentId),
+        },
+      });
+
+      if (!existingRefund) {
+        return res.status(404).json({ message: 'Payment refund not found' });
+      }
+
+      await prisma.payment_refunds.delete({
+        where: { id: Number(refundId) },
+      });
+
+      res.json({ message: 'Payment refund deleted successfully' });
+    } catch (error: any) {
+      console.error('Delete Payment Refund Error:', error);
       res.status(500).json({ message: error.message });
     }
   },

@@ -34,7 +34,7 @@ const BASE_URL =
 /**
  * Request timeout in milliseconds
  */
-const REQUEST_TIMEOUT = 30000;
+const REQUEST_TIMEOUT = 300000; // 5 minutes to match backend transaction timeout
 
 /**
  * Maximum number of retry attempts for failed requests

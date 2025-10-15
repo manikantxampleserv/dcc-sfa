@@ -42,6 +42,7 @@ import unitOfMeasurementRoutes from '../v1/routes/unitOfMeasurement.routes';
 import deliverySchedules from '../v1/routes/deliverySchedules.routes';
 import returnRequests from '../v1/routes/returnRequests.routes';
 import payments from '../v1/routes/payments.routes';
+import invoices from '../v1/routes/invoices.routes';
 import workflow from '../v1/routes/workflow.routes';
 
 const routes = Router();
@@ -88,6 +89,7 @@ routes.use('/v1', unitOfMeasurementRoutes);
 routes.use('/v1', deliverySchedules);
 routes.use('/v1', returnRequests);
 routes.use('/v1', payments);
+routes.use('/v1', invoices);
 routes.use('/v1/workflow', workflow);
 
 routes.get('/', (_: any, res: any) => {

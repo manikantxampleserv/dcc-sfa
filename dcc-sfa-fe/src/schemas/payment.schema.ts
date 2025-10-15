@@ -52,10 +52,6 @@ export const paymentValidationSchema = Yup.object({
       'Please select a valid payment method'
     ),
 
-  reference_number: Yup.string()
-    .optional()
-    .max(100, 'Reference number must not exceed 100 characters'),
-
   total_amount: Yup.number()
     .required('Total amount is required')
     .min(0.01, 'Amount must be greater than 0')

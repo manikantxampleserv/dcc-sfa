@@ -1,6 +1,7 @@
 import { Add, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { useDeleteInvoice, useInvoices, type Invoice } from 'hooks/useInvoices';
 import {
   AlertTriangle,
   Calendar,
@@ -8,76 +9,84 @@ import {
   Clock,
   DollarSign,
   FileText,
-  Package,
-  ShoppingCart,
-  Truck,
+  Receipt,
   XCircle,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import { useDeleteOrder, useOrders, type Order } from 'hooks/useOrders';
-import ImportOrder from './ImportOrder';
-import ManageOrder from './ManageOrder';
+import ImportInvoice from './ImportInvoice';
+import InvoiceDetail from './InvoiceDetail';
+import ManageInvoice from './ManageInvoice';
 
-const OrdersManagement: React.FC = () => {
+const InvoicesManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const {
-    data: ordersResponse,
+    data: invoicesResponse,
     isLoading,
     error,
-  } = useOrders({
+  } = useInvoices({
     search,
     page,
     limit,
     status: statusFilter === 'all' ? undefined : statusFilter,
   });
 
-  const orders = ordersResponse?.data || [];
-  const totalCount = ordersResponse?.meta?.total || 0;
-  const currentPage = (ordersResponse?.meta?.page || 1) - 1;
+  const invoices = invoicesResponse?.data || [];
+  const totalCount = invoicesResponse?.meta?.total || 0;
+  const currentPage = (invoicesResponse?.meta?.page || 1) - 1;
 
-  const deleteOrderMutation = useDeleteOrder();
+  const deleteInvoiceMutation = useDeleteInvoice();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalOrders = orders.length;
-  const totalValue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-  const avgOrderValue = totalOrders > 0 ? totalValue / totalOrders : 0;
-  const pendingApproval = orders.filter(
-    o => o.approval_status === 'pending'
-  ).length;
+  const totalInvoices = invoices.length;
+  const totalAmount = invoices.reduce(
+    (sum, i) => sum + (i.total_amount || 0),
+    0
+  );
+  const totalPaid = invoices.reduce((sum, i) => sum + (i.amount_paid || 0), 0);
+  const totalBalance = invoices.reduce(
+    (sum, i) => sum + (i.balance_due || 0),
+    0
+  );
 
-  const handleCreateOrder = useCallback(() => {
-    setSelectedOrder(null);
+  const handleCreateInvoice = useCallback(() => {
+    setSelectedInvoice(null);
     setDrawerOpen(true);
   }, []);
 
-  const handleEditOrder = useCallback((order: Order) => {
-    setSelectedOrder(order);
+  const handleEditInvoice = useCallback((invoice: Invoice) => {
+    setSelectedInvoice(invoice);
     setDrawerOpen(true);
   }, []);
 
-  const handleDeleteOrder = useCallback(
+  const handleViewInvoice = useCallback((invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setDetailDrawerOpen(true);
+  }, []);
+
+  const handleDeleteInvoice = useCallback(
     async (id: number) => {
       try {
-        await deleteOrderMutation.mutateAsync(id);
+        await deleteInvoiceMutation.mutateAsync(id);
       } catch (error) {
-        console.error('Error deleting order:', error);
+        console.error('Error deleting invoice:', error);
       }
     },
-    [deleteOrderMutation]
+    [deleteInvoiceMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -97,11 +106,11 @@ const OrdersManagement: React.FC = () => {
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'orders',
+        tableName: 'invoices',
         filters,
       });
     } catch (error) {
-      console.error('Error exporting orders:', error);
+      console.error('Error exporting invoices:', error);
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
@@ -116,35 +125,10 @@ const OrdersManagement: React.FC = () => {
   const getStatusColor = (status: string) => {
     const colors = {
       draft: '!bg-gray-100 !text-gray-800',
-      pending: '!bg-yellow-100 !text-yellow-800',
-      confirmed: '!bg-blue-100 !text-blue-800',
-      processing: '!bg-purple-100 !text-purple-800',
-      shipped: '!bg-indigo-100 !text-indigo-800',
-      delivered: '!bg-green-100 !text-green-800',
-      cancelled: '!bg-red-100 !text-red-800',
-    };
-    return (
-      colors[status as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
-    );
-  };
-
-  const getPriorityColor = (priority: string) => {
-    const colors = {
-      low: '!bg-green-100 !text-green-800',
-      medium: '!bg-yellow-100 !text-yellow-800',
-      high: '!bg-orange-100 !text-orange-800',
-      urgent: '!bg-red-100 !text-red-800',
-    };
-    return (
-      colors[priority as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
-    );
-  };
-
-  const getApprovalColor = (status: string) => {
-    const colors = {
-      pending: '!bg-yellow-100 !text-yellow-800',
-      approved: '!bg-green-100 !text-green-800',
-      rejected: '!bg-red-100 !text-red-800',
+      sent: '!bg-blue-100 !text-blue-800',
+      paid: '!bg-green-100 !text-green-800',
+      overdue: '!bg-red-100 !text-red-800',
+      cancelled: '!bg-gray-100 !text-gray-800',
     };
     return (
       colors[status as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
@@ -154,49 +138,49 @@ const OrdersManagement: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'draft':
-        return <Package className="w-4 h-4" />;
-      case 'pending':
+        return <FileText className="w-4 h-4" />;
+      case 'sent':
         return <Clock className="w-4 h-4" />;
-      case 'confirmed':
+      case 'paid':
         return <CheckCircleIcon className="w-4 h-4" />;
-      case 'processing':
-        return <Package className="w-4 h-4" />;
-      case 'shipped':
-        return <Truck className="w-4 h-4" />;
-      case 'delivered':
-        return <CheckCircleIcon className="w-4 h-4" />;
+      case 'overdue':
+        return <AlertTriangle className="w-4 h-4" />;
       case 'cancelled':
         return <XCircle className="w-4 h-4" />;
       default:
-        return <Package className="w-4 h-4" />;
+        return <FileText className="w-4 h-4" />;
     }
   };
 
-  const orderColumns: TableColumn<Order>[] = [
+  const isOverdue = (invoice: Invoice) => {
+    if (!invoice.due_date || !invoice.balance_due) return false;
+    return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
+  };
+
+  const invoiceColumns: TableColumn<Invoice>[] = [
     {
-      id: 'order_info',
-      label: 'Order Info',
+      id: 'invoice_info',
+      label: 'Invoice Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.order_number}
+            alt={row.invoice_number}
             className="!rounded !bg-primary-100 !text-primary-500"
           >
-            <FileText className="w-5 h-5" />
+            <Receipt className="w-5 h-5" />
           </Avatar>
           <Box>
             <Typography
               variant="body1"
               className="!text-gray-900 !leading-tight"
             >
-              {row.order_number}
+              {row.invoice_number}
             </Typography>
             <Typography
               variant="caption"
-              className="!text-gray-500 !capitalize !text-xs !block !mt-0.5"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.order_type || 'regular'} order •{' '}
-              {row.order_items?.length || 0} items
+              {row.invoice_items?.length || 0} items • Order #{row.parent_id}
             </Typography>
           </Box>
         </Box>
@@ -220,35 +204,8 @@ const OrdersManagement: React.FC = () => {
       ),
     },
     {
-      id: 'salesperson',
-      label: 'Sales erson',
-      render: (_value, row) => (
-        <Box className="flex items-center !gap-2">
-          <Avatar
-            alt={row.salesperson?.name}
-            src={row.salesperson?.profile_image || 'mkx'}
-            className="!rounded !bg-primary-100 !text-primary-600"
-          />
-          <Box>
-            <Typography
-              variant="body2"
-              className="!text-gray-900 !leading-tight"
-            >
-              {row.salesperson?.name || 'N/A'}
-            </Typography>
-            <Typography
-              variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
-            >
-              {row.salesperson?.email || 'N/A'}
-            </Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
       id: 'status',
-      label: 'Status & Priority',
+      label: 'Status',
       render: (_value, row) => (
         <Box className="flex !gap-2 items-center">
           <Chip
@@ -257,11 +214,13 @@ const OrdersManagement: React.FC = () => {
             size="small"
             className={`!text-xs !capitalize ${getStatusColor(row.status || 'draft')} !min-w-20`}
           />
-          <Chip
-            label={(row.priority || 'medium').toUpperCase()}
-            size="small"
-            className={`!text-xs !capitalize ${getPriorityColor(row.priority || 'medium')} !min-w-20`}
-          />
+          {isOverdue(row) && (
+            <Chip
+              label="OVERDUE"
+              size="small"
+              className="!text-xs !bg-red-100 !text-red-800 !font-bold"
+            />
+          )}
         </Box>
       ),
     },
@@ -272,64 +231,52 @@ const OrdersManagement: React.FC = () => {
         <Box>
           <Box className="flex items-center text-sm text-gray-900">
             <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-            Order:{' '}
-            {row.order_date
-              ? new Date(row.order_date).toLocaleDateString()
+            Invoice:{' '}
+            {row.invoice_date
+              ? new Date(row.invoice_date).toLocaleDateString()
               : 'N/A'}
           </Box>
-          {row.delivery_date && (
+          {row.due_date && (
             <Box className="flex items-center text-sm text-gray-500 mt-1">
-              <Truck className="w-4 h-4 text-gray-400 mr-1" />
-              Delivery: {new Date(row.delivery_date).toLocaleDateString()}
+              <Clock className="w-4 h-4 text-gray-400 mr-1" />
+              Due: {new Date(row.due_date).toLocaleDateString()}
             </Box>
           )}
         </Box>
       ),
     },
     {
-      id: 'amount',
-      label: 'Amount',
+      id: 'amounts',
+      label: 'Amounts',
       render: (_value, row) => (
         <Box>
           <Typography variant="body2" className="!text-gray-900 !font-medium">
-            {formatCurrency(row.total_amount)}
+            Total: {formatCurrency(row.total_amount)}
           </Typography>
           <Typography
             variant="caption"
-            className="!text-gray-500 !text-xs !block !mt-0.5"
+            className="!text-green-600 !text-xs !block !mt-0.5"
           >
-            Subtotal: {formatCurrency(row.subtotal)}
+            Paid: {formatCurrency(row.amount_paid)}
           </Typography>
-          {row.discount_amount && row.discount_amount > 0 && (
+          {row.balance_due && row.balance_due > 0 && (
             <Typography
               variant="caption"
-              className="!text-green-600 !text-xs !block !mt-0.5"
+              className="!text-red-600 !text-xs !block !mt-0.5"
             >
-              Discount: -{formatCurrency(row.discount_amount)}
+              Balance: {formatCurrency(row.balance_due)}
             </Typography>
           )}
         </Box>
       ),
     },
     {
-      id: 'approval',
-      label: 'Approval',
+      id: 'payment_method',
+      label: 'Payment Method',
       render: (_value, row) => (
-        <Box>
-          <Chip
-            label={row.approval_status || 'pending'}
-            size="small"
-            className={`!text-xs !capitalize ${getApprovalColor(row.approval_status || 'pending')} !min-w-20`}
-          />
-          {row.approved_at && (
-            <Typography
-              variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-1"
-            >
-              by {row.salesperson?.name || 'N/A'}
-            </Typography>
-          )}
-        </Box>
+        <Typography variant="body2" className="!text-gray-600 !capitalize">
+          {row.payment_method?.replaceAll('_', ' ') || 'N/A'}
+        </Typography>
       ),
     },
     {
@@ -338,14 +285,20 @@ const OrdersManagement: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
+          <ActionButton
+            onClick={() => handleViewInvoice(row)}
+            tooltip="View invoice details"
+            icon={<FileText />}
+            color="success"
+          />
           <EditButton
-            onClick={() => handleEditOrder(row)}
-            tooltip={`Edit ${row.order_number}`}
+            onClick={() => handleEditInvoice(row)}
+            tooltip={`Edit ${row.invoice_number}`}
           />
           <DeleteButton
-            onClick={() => handleDeleteOrder(row.id)}
-            tooltip={`Delete ${row.order_number}`}
-            itemName={row.order_number}
+            onClick={() => handleDeleteInvoice(row.id)}
+            tooltip={`Delete ${row.invoice_number}`}
+            itemName={row.invoice_number}
             confirmDelete={true}
           />
         </div>
@@ -356,7 +309,7 @@ const OrdersManagement: React.FC = () => {
   if (error) {
     return (
       <Alert severity="error" className="mb-4">
-        Error loading orders: {error.message}
+        Error loading invoices: {error.message}
       </Alert>
     );
   }
@@ -365,9 +318,12 @@ const OrdersManagement: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">Orders Management</p>
+          <p className="!font-bold text-xl !text-gray-900">
+            Invoices Management
+          </p>
           <p className="!text-gray-500 text-sm">
-            Manage customer orders, track status, and process deliveries
+            Manage customer invoices, track payments, and monitor outstanding
+            balances
           </p>
         </Box>
       </Box>
@@ -378,30 +334,30 @@ const OrdersManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-primary-500">
-                Total Orders
+                Total Invoices
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-primary-500">
-                  {totalOrders}
+                  {totalInvoices}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6 text-primary-500" />
+              <Receipt className="w-6 h-6 text-primary-500" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-500">Total Value</p>
+              <p className="text-sm font-medium text-green-500">Total Amount</p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-green-500">
-                  {formatCurrency(totalValue)}
+                  {formatCurrency(totalAmount)}
                 </p>
               )}
             </div>
@@ -413,38 +369,36 @@ const OrdersManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-purple-600">
-                Avg Order Value
-              </p>
+              <p className="text-sm font-medium text-blue-600">Amount Paid</p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(avgOrderValue)}
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(totalPaid)}
                 </p>
               )}
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-purple-600" />
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <CheckCircleIcon className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-orange-600">
-                Pending Approval
+              <p className="text-sm font-medium text-red-600">
+                Outstanding Balance
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-orange-600">
-                  {pendingApproval}
+                <p className="text-2xl font-bold text-red-600">
+                  {formatCurrency(totalBalance)}
                 </p>
               )}
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-orange-600" />
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
             </div>
           </div>
         </div>
@@ -452,18 +406,18 @@ const OrdersManagement: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load orders. Please try again.
+          Failed to load invoices. Please try again.
         </Alert>
       )}
 
       <Table
-        data={orders}
-        columns={orderColumns}
+        data={invoices}
+        columns={invoiceColumns}
         actions={
           <div className="flex justify-between gap-3 items-center flex-wrap">
             <div className="flex flex-wrap items-center gap-3">
               <SearchInput
-                placeholder="Search Orders..."
+                placeholder="Search Invoices..."
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
@@ -477,18 +431,16 @@ const OrdersManagement: React.FC = () => {
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="draft">Draft</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="confirmed">Confirmed</MenuItem>
-                <MenuItem value="processing">Processing</MenuItem>
-                <MenuItem value="shipped">Shipped</MenuItem>
-                <MenuItem value="delivered">Delivered</MenuItem>
+                <MenuItem value="sent">Sent</MenuItem>
+                <MenuItem value="paid">Paid</MenuItem>
+                <MenuItem value="overdue">Overdue</MenuItem>
                 <MenuItem value="cancelled">Cancelled</MenuItem>
               </Select>
             </div>
             <div className="flex gap-2 items-center">
               <PopConfirm
-                title="Export Orders"
-                description="Are you sure you want to export the current orders data to Excel? This will include all filtered results."
+                title="Export Invoices"
+                description="Are you sure you want to export the current invoices data to Excel? This will include all filtered results."
                 onConfirm={handleExportToExcel}
                 confirmText="Export"
                 cancelText="Cancel"
@@ -516,15 +468,15 @@ const OrdersManagement: React.FC = () => {
                 className="!capitalize"
                 disableElevation
                 startIcon={<Add />}
-                onClick={handleCreateOrder}
+                onClick={handleCreateInvoice}
               >
                 Create
               </Button>
             </div>
           </div>
         }
-        getRowId={order => order.id}
-        initialOrderBy="order_number"
+        getRowId={invoice => invoice.id}
+        initialOrderBy="invoice_number"
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
@@ -532,18 +484,24 @@ const OrdersManagement: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No orders found matching "${search}"`
-            : 'No orders found in the system'
+            ? `No invoices found matching "${search}"`
+            : 'No invoices found in the system'
         }
       />
 
-      <ManageOrder
+      <ManageInvoice
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        order={selectedOrder}
+        invoice={selectedInvoice}
       />
 
-      <ImportOrder
+      <InvoiceDetail
+        open={detailDrawerOpen}
+        onClose={() => setDetailDrawerOpen(false)}
+        invoice={selectedInvoice}
+      />
+
+      <ImportInvoice
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
       />
@@ -551,4 +509,4 @@ const OrdersManagement: React.FC = () => {
   );
 };
 
-export default OrdersManagement;
+export default InvoicesManagement;

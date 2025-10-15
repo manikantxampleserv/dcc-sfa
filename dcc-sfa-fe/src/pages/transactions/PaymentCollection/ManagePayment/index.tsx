@@ -1,10 +1,13 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
+import { useCurrencies } from 'hooks/useCurrencies';
+import { useCustomers } from 'hooks/useCustomers';
 import {
   useCreatePayment,
   useUpdatePayment,
   type Payment,
 } from 'hooks/usePayments';
+import { useUsers } from 'hooks/useUsers';
 import React from 'react';
 import { paymentValidationSchema } from 'schemas/payment.schema';
 import Button from 'shared/Button';
@@ -35,6 +38,15 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
   const createPaymentMutation = useCreatePayment();
   const updatePaymentMutation = useUpdatePayment();
 
+  // Fetch data for dropdowns
+  const { data: customersResponse } = useCustomers({ limit: 1000 });
+  const { data: usersResponse } = useUsers({ limit: 1000 });
+  const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
+
+  const customers = customersResponse?.data || [];
+  const users = usersResponse?.data || [];
+  const currencies = currenciesResponse?.data || [];
+
   const formik = useFormik({
     initialValues: {
       customer_id: selectedPayment?.customer_id?.toString() || '',
@@ -43,7 +55,6 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
         : '',
       collected_by: selectedPayment?.collected_by?.toString() || '',
       method: selectedPayment?.method || 'cash',
-      reference_number: selectedPayment?.reference_number || '',
       total_amount: selectedPayment?.total_amount?.toString() || '',
       notes: selectedPayment?.notes || '',
       currency_id: selectedPayment?.currency_id?.toString() || '',
@@ -58,7 +69,6 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
           payment_date: values.payment_date || '',
           collected_by: Number(values.collected_by),
           method: values.method || 'cash',
-          reference_number: values.reference_number || undefined,
           total_amount: Number(values.total_amount),
           notes: values.notes || undefined,
           currency_id: values.currency_id
@@ -88,19 +98,26 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Payment' : 'Create Payment'}
-      size="medium"
+      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             <Box className="md:!col-span-2">
-              <Input
+              <Select
                 name="customer_id"
-                label="Customer ID"
-                placeholder="Enter customer ID"
+                label="Customer"
                 formik={formik}
                 required
-              />
+                fullWidth
+              >
+                <MenuItem value="">Select Customer</MenuItem>
+                {customers.map(customer => (
+                  <MenuItem key={customer.id} value={customer.id.toString()}>
+                    {customer.name} ({customer.code})
+                  </MenuItem>
+                ))}
+              </Select>
             </Box>
 
             <Input
@@ -111,13 +128,19 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
               required
             />
 
-            <Input
+            <Select
               name="collected_by"
               label="Collected By"
-              placeholder="Enter collector ID"
               formik={formik}
               required
-            />
+            >
+              <MenuItem value="">Select User</MenuItem>
+              {users.map(user => (
+                <MenuItem key={user.id} value={user.id.toString()}>
+                  {user.name} ({user.email})
+                </MenuItem>
+              ))}
+            </Select>
 
             <Select
               name="method"
@@ -134,13 +157,6 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
             </Select>
 
             <Input
-              name="reference_number"
-              label="Reference Number"
-              placeholder="Enter reference number"
-              formik={formik}
-            />
-
-            <Input
               name="total_amount"
               label="Total Amount"
               type="number"
@@ -149,12 +165,14 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
               required
             />
 
-            <Input
-              name="currency_id"
-              label="Currency ID"
-              placeholder="Enter currency ID"
-              formik={formik}
-            />
+            <Select name="currency_id" label="Currency" formik={formik}>
+              <MenuItem value="">Select Currency</MenuItem>
+              {currencies.map(currency => (
+                <MenuItem key={currency.id} value={currency.id.toString()}>
+                  {currency.name} ({currency.code})
+                </MenuItem>
+              ))}
+            </Select>
 
             <Select name="is_active" label="Status" formik={formik} required>
               <MenuItem value="Y">Active</MenuItem>

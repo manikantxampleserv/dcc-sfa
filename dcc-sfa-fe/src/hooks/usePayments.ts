@@ -16,6 +16,13 @@ export type {
   UpdatePaymentPayload,
   GetPaymentsParams,
   PaymentStats,
+  PaymentLine,
+  PaymentRefund,
+  RefundLine,
+  CreatePaymentLinePayload,
+  UpdatePaymentLinePayload,
+  CreatePaymentRefundPayload,
+  UpdatePaymentRefundPayload,
 } from '../services/masters/Payments';
 
 /**
@@ -109,5 +116,132 @@ export const useDeletePayment = () => {
     mutationFn: paymentService.deletePayment,
     invalidateQueries: ['payments'],
     loadingMessage: 'Deleting payment...',
+  });
+};
+
+// Payment Lines Hooks
+/**
+ * Hook to fetch payment lines
+ * @param paymentId - Payment ID
+ * @param options - React Query options
+ * @returns Query result with payment lines data
+ */
+export const usePaymentLines = (
+  paymentId: number,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<paymentService.PaymentLine[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: [...paymentQueryKeys.detail(paymentId), 'lines'],
+    queryFn: () => paymentService.fetchPaymentLines(paymentId),
+    enabled: !!paymentId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    ...options,
+  });
+};
+
+/**
+ * Hook to create payment line with automatic toast notifications
+ * @returns Mutation object for creating payment line
+ */
+export const useCreatePaymentLine = () => {
+  return useApiMutation({
+    mutationFn: ({
+      paymentId,
+      ...data
+    }: { paymentId: number } & paymentService.CreatePaymentLinePayload) =>
+      paymentService.createPaymentLine(paymentId, data),
+    invalidateQueries: ['payments'],
+    loadingMessage: 'Creating payment line...',
+  });
+};
+
+/**
+ * Hook to delete payment line with automatic toast notifications
+ * @returns Mutation object for deleting payment line
+ */
+export const useDeletePaymentLine = () => {
+  return useApiMutation({
+    mutationFn: ({
+      paymentId,
+      lineId,
+    }: { paymentId: number; lineId: number }) =>
+      paymentService.deletePaymentLine(paymentId, lineId),
+    invalidateQueries: ['payments'],
+    loadingMessage: 'Deleting payment line...',
+  });
+};
+
+// Payment Refunds Hooks
+/**
+ * Hook to fetch payment refunds
+ * @param paymentId - Payment ID
+ * @param options - React Query options
+ * @returns Query result with payment refunds data
+ */
+export const usePaymentRefunds = (
+  paymentId: number,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<paymentService.PaymentRefund[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: [...paymentQueryKeys.detail(paymentId), 'refunds'],
+    queryFn: () => paymentService.fetchPaymentRefunds(paymentId),
+    enabled: !!paymentId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    ...options,
+  });
+};
+
+/**
+ * Hook to create payment refund with automatic toast notifications
+ * @returns Mutation object for creating payment refund
+ */
+export const useCreatePaymentRefund = () => {
+  return useApiMutation({
+    mutationFn: ({
+      paymentId,
+      ...data
+    }: { paymentId: number } & paymentService.CreatePaymentRefundPayload) =>
+      paymentService.createPaymentRefund(paymentId, data),
+    invalidateQueries: ['payments'],
+    loadingMessage: 'Creating payment refund...',
+  });
+};
+
+/**
+ * Hook to update payment refund with automatic toast notifications
+ * @returns Mutation object for updating payment refund
+ */
+export const useUpdatePaymentRefund = () => {
+  return useApiMutation({
+    mutationFn: ({
+      paymentId,
+      refundId,
+      ...data
+    }: { paymentId: number; refundId: number } & paymentService.UpdatePaymentRefundPayload) =>
+      paymentService.updatePaymentRefund(paymentId, refundId, data),
+    invalidateQueries: ['payments'],
+    loadingMessage: 'Updating payment refund...',
+  });
+};
+
+/**
+ * Hook to delete payment refund with automatic toast notifications
+ * @returns Mutation object for deleting payment refund
+ */
+export const useDeletePaymentRefund = () => {
+  return useApiMutation({
+    mutationFn: ({
+      paymentId,
+      refundId,
+    }: { paymentId: number; refundId: number }) =>
+      paymentService.deletePaymentRefund(paymentId, refundId),
+    invalidateQueries: ['payments'],
+    loadingMessage: 'Deleting payment refund...',
   });
 };

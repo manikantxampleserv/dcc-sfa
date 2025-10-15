@@ -1,32 +1,33 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import {
-  Alert,
-  Avatar,
-  Box,
-  Chip,
-  MenuItem,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import { DollarSign, TrendingUp } from 'lucide-react';
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  Upload,
+  Visibility,
+} from '@mui/icons-material';
+import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { DollarSign } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
+import { useExportToExcel } from '../../../hooks/useImportExport';
 import {
   useDeletePayment,
   usePayments,
   type Payment,
 } from '../../../hooks/usePayments';
-import { useExportToExcel } from '../../../hooks/useImportExport';
 import { formatDate } from '../../../utils/dateUtils';
 import ImportPayment from './ImportPayment';
 import ManagePayment from './ManagePayment';
 
 const PaymentCollection: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -52,8 +53,8 @@ const PaymentCollection: React.FC = () => {
   });
 
   const payments = paymentsResponse?.data || [];
-  const totalCount = paymentsResponse?.meta?.total_count || 0;
-  const currentPage = (paymentsResponse?.meta?.current_page || 1) - 1;
+  const totalCount = paymentsResponse?.pagination?.total_count || 0;
+  const currentPage = (paymentsResponse?.pagination?.current_page || 1) - 1;
 
   const deletePaymentMutation = useDeletePayment();
   const exportToExcelMutation = useExportToExcel();
@@ -61,8 +62,7 @@ const PaymentCollection: React.FC = () => {
   const totalPayments = paymentsResponse?.stats?.total_payments ?? 0;
   const activePayments = paymentsResponse?.stats?.active_payments ?? 0;
   const inactivePayments = paymentsResponse?.stats?.inactive_payments ?? 0;
-  const newPaymentsThisMonth =
-    paymentsResponse?.stats?.payments_this_month ?? 0;
+  const totalAmount = paymentsResponse?.stats?.total_amount ?? 0;
 
   const handleCreatePayment = useCallback(() => {
     setSelectedPayment(null);
@@ -73,6 +73,13 @@ const PaymentCollection: React.FC = () => {
     setSelectedPayment(payment);
     setDrawerOpen(true);
   }, []);
+
+  const handleViewPayment = useCallback(
+    (payment: Payment) => {
+      navigate(`/transactions/payments/${payment.id}`);
+    },
+    [navigate]
+  );
 
   const handleDeletePayment = useCallback(
     async (id: number) => {
@@ -135,38 +142,97 @@ const PaymentCollection: React.FC = () => {
               {row.payment_number}
             </Typography>
             {row.customer?.name && (
-              <Tooltip title={row.customer.name} placement="top" arrow>
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !block !mt-0.5"
-                  title={row.customer.name}
-                  sx={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    maxWidth: '300px',
-                    cursor: 'help',
-                  }}
-                >
-                  {row.customer.name}
-                </Typography>
-              </Tooltip>
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !block !mt-0.5"
+                title={row.customer.name}
+                sx={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  maxWidth: '300px',
+                  cursor: 'help',
+                }}
+              >
+                {row.customer.name}
+              </Typography>
             )}
           </Box>
         </Box>
       ),
     },
     {
+      id: 'payment_date',
+      label: 'Payment Date',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.payment_date ? (
+            formatDate(row.payment_date)
+          ) : (
+            <span className="italic text-gray-400">No Date</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
       id: 'method',
       label: 'Payment Method',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.method || (
+        <Typography variant="body2" className="!text-gray-900 !capitalize">
+          {row.method?.replaceAll('_', ' ') || (
             <span className="italic text-gray-400">No Method</span>
           )}
         </Typography>
+      ),
+    },
+    {
+      id: 'reference_number',
+      label: 'Reference',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.reference_number || (
+            <span className="italic text-gray-400">No Reference</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'currency',
+      label: 'Currency',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.currency ? (
+            <span className="!font-medium">
+              {row.currency.code} ({row.currency.name})
+            </span>
+          ) : (
+            <span className="italic text-gray-400">No Currency</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'collected_by_user',
+      label: 'Collected By',
+      render: (_value, row) => (
+        <Box className="!flex !items-center !gap-2">
+          <Avatar
+            alt={row.collected_by_user?.name}
+            className="!w-10 !h-10 !rounded !bg-green-100 !text-green-600"
+          >
+            {row.collected_by_user?.name?.[0] || '?'}
+          </Avatar>
+          <Box>
+            <Typography variant="body2" className="!text-gray-900 !font-medium">
+              {row.collected_by_user?.name || 'Unknown'}
+            </Typography>
+            <Typography variant="caption" className="!text-gray-500 !text-xs">
+              {row.collected_by_user?.email || 'N/A'}
+            </Typography>
+          </Box>
+        </Box>
       ),
     },
     {
@@ -175,10 +241,29 @@ const PaymentCollection: React.FC = () => {
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900">
           {row.total_amount ? (
-            `$${row.total_amount.toFixed(2)}`
+            `${row.currency?.code} ${row.total_amount.toFixed(2)}`
           ) : (
             <span className="italic text-gray-400">No Amount</span>
           )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'notes',
+      label: 'Notes',
+      render: (_value, row) => (
+        <Typography
+          variant="body2"
+          className="!text-gray-900 !max-w-xs"
+          sx={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {row.notes || <span className="italic text-gray-400">No Notes</span>}
         </Typography>
       ),
     },
@@ -209,6 +294,12 @@ const PaymentCollection: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
+          <ActionButton
+            onClick={() => handleViewPayment(row)}
+            tooltip={`View ${row.payment_number}`}
+            icon={<Visibility />}
+            color="success"
+          />
           <EditButton
             onClick={() => handleEditPayment(row)}
             tooltip={`Edit ${row.payment_number}`}
@@ -239,7 +330,7 @@ const PaymentCollection: React.FC = () => {
       </Box>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -300,19 +391,19 @@ const PaymentCollection: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-purple-600">
-                New This Month
+              <p className="text-sm font-medium text-emerald-600">
+                Total Amount
               </p>
               {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+                <div className="h-7 w-20 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {newPaymentsThisMonth}
+                <p className="text-2xl font-bold text-emerald-600">
+                  ${totalAmount.toFixed(2)}
                 </p>
               )}
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
+            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-emerald-600" />
             </div>
           </div>
         </div>
@@ -336,7 +427,7 @@ const PaymentCollection: React.FC = () => {
                 onChange={handleSearchChange}
                 debounceMs={400}
                 showClear={true}
-                className="!w-80"
+                className="lg:!min-w-80"
               />
               <Select
                 value={statusFilter}
@@ -348,7 +439,7 @@ const PaymentCollection: React.FC = () => {
                 <MenuItem value="inactive">Inactive</MenuItem>
               </Select>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <PopConfirm
                 title="Export Payments"
                 description="Are you sure you want to export the current payments data to Excel? This will include all filtered results."
