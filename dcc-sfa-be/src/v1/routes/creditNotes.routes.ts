@@ -12,7 +12,7 @@ router.post(
   validate,
   creditNotesController.upsertCreditNote
 );
-// router.post(
+// router.post(/
 //   '/transaction/credit-notes',
 //   authenticateToken,
 //   createCreditNotesValidator,

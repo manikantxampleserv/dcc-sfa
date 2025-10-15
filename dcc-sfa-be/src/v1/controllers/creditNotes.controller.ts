@@ -143,14 +143,12 @@ const serializeCreditNote = (cn: any): CreditNoteSerialized => ({
     : [],
 });
 
-// Auto-generate credit note number function
 async function generateCreditNoteNumber(tx: any): Promise<string> {
   const maxRetries = 10;
   let retryCount = 0;
 
   while (retryCount < maxRetries) {
     try {
-      // Find the last credit note with CN- prefix
       const lastCreditNote = await tx.credit_notes.findFirst({
         where: {
           credit_note_number: {
@@ -174,7 +172,6 @@ async function generateCreditNoteNumber(tx: any): Promise<string> {
         }
       }
 
-      // Double-check all credit notes to find the highest number
       const allCreditNotes = await tx.credit_notes.findMany({
         where: {
           credit_note_number: {
@@ -198,7 +195,6 @@ async function generateCreditNoteNumber(tx: any): Promise<string> {
 
       const newCreditNoteNumber = `CN-${nextNumber.toString().padStart(5, '0')}`;
 
-      // Verify uniqueness
       const exists = await tx.credit_notes.findFirst({
         where: {
           credit_note_number: newCreditNoteNumber,
@@ -207,31 +203,27 @@ async function generateCreditNoteNumber(tx: any): Promise<string> {
 
       if (!exists) {
         console.log(
-          '✅ Generated unique credit note number:',
+          ' Generated unique credit note number:',
           newCreditNoteNumber
         );
         return newCreditNoteNumber;
       }
 
       console.log(
-        '⚠️ Credit note number exists, retrying...',
+        ' Credit note number exists, retrying...',
         newCreditNoteNumber
       );
       retryCount++;
     } catch (error) {
-      console.error('❌ Error generating credit note number:', error);
+      console.error(' Error generating credit note number:', error);
       retryCount++;
       await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
-  // Fallback to timestamp-based number
   const timestamp = Date.now();
   const fallbackCreditNoteNumber = `CN-${timestamp}`;
-  console.log(
-    '⚠️ Using fallback credit note number:',
-    fallbackCreditNoteNumber
-  );
+  console.log(' Using fallback credit note number:', fallbackCreditNoteNumber);
   return fallbackCreditNoteNumber;
 }
 
@@ -274,7 +266,6 @@ export const creditNotesController = {
         );
 
         creditNote = await prisma.$transaction(async tx => {
-          // Delete removed items
           if (itemsToDelete.length > 0) {
             await tx.credit_note_items.deleteMany({
               where: {
@@ -521,6 +512,14 @@ export const creditNotesController = {
           credit_notes_products: true,
           credit_notes_orders: true,
           credit_note_currencies: true,
+          credit_notes_items: {
+            select: {
+              id: true,
+              product_id: true,
+              product_name: true,
+              unit: true,
+            },
+          },
         },
       });
       const totalCreditNotes = await prisma.credit_notes.count();

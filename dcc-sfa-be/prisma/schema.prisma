@@ -75,6 +75,7 @@ model users {
   depots_supervisior                                                  depots[]                     @relation("DeportsSupervisior")
   depots_coodrinator                                                  depots[]                     @relation("DepotsCoodrinator")
   routes_salesperson                                                  routes[]
+  asset_movements_performed_by                                        asset_movements[]
 }
 
 model roles {
@@ -260,21 +261,22 @@ model asset_master {
 }
 
 model asset_movements {
-  id                     Int          @id(map: "PK__asset_mo__3213E83FA5DAA4BE") @default(autoincrement())
-  asset_id               Int
-  from_location          String?      @db.NVarChar(255)
-  to_location            String?      @db.NVarChar(255)
-  movement_type          String?      @db.NVarChar(50)
-  movement_date          DateTime     @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
-  performed_by           String?      @db.NVarChar(100)
-  notes                  String?      @db.NVarChar(255)
-  is_active              String       @default("Y", map: "DF__asset_mov__is_ac__6A1BB7B0") @db.Char(1)
-  createdate             DateTime?    @default(now(), map: "DF__asset_mov__creat__6B0FDBE9") @db.DateTime
-  createdby              Int
-  updatedate             DateTime?    @db.DateTime
-  updatedby              Int?
-  log_inst               Int?
-  asset_movements_master asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  id                           Int          @id() @default(autoincrement())
+  asset_id                     Int
+  from_location                String?      @db.NVarChar(255)
+  to_location                  String?      @db.NVarChar(255)
+  movement_type                String?      @db.NVarChar(50)
+  movement_date                DateTime     @default(now()) @db.DateTime
+  performed_by                 Int
+  notes                        String?      @db.NVarChar(255)
+  is_active                    String       @default("Y") @db.Char(1)
+  createdate                   DateTime?    @default(now()) @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime?    @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  asset_movements_master       asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  asset_movements_performed_by users        @relation(fields: [performed_by], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model asset_types {
