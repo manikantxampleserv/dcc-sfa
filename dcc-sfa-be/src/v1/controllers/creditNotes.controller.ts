@@ -310,10 +310,10 @@ export const creditNotesController = {
         });
       }
     } catch (error: any) {
-      console.error('Upsert Credit Note Error:', error);
+      console.error(' Error processing order:', error);
       res.status(500).json({
-        message: error.message,
-        error: process.env.NODE_ENV === 'development' ? error : undefined,
+        message: 'Failed to process order',
+        error: error.message,
       });
     }
   },
