@@ -206,7 +206,7 @@ async function generateOrderNumber(tx: any): Promise<string> {
 
   const timestamp = Date.now();
   const fallbackOrderNumber = `ORD-${timestamp}`;
-  console.log('⚠️ Using fallback order number:', fallbackOrderNumber);
+  console.log(' Using fallback order number:', fallbackOrderNumber);
   return fallbackOrderNumber;
 }
 
@@ -294,7 +294,6 @@ export const ordersController = {
             });
             console.log(' Order updated, ID:', order.id);
           } else {
-            // Create new order
             order = await tx.orders.create({
               data: {
                 ...orderPayload,
@@ -353,7 +352,6 @@ export const ordersController = {
                 });
 
                 if (existingItem) {
-                  // Item belongs to this order, update it
                   itemsToUpdate.push({ id: item.id, data: itemData });
                   processedChildIds.push(item.id);
                   console.log(`Item ${item.id} will be updated`);

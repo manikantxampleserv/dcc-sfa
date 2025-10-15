@@ -144,6 +144,90 @@ const serializeCreditNote = (cn: any): CreditNoteSerialized => ({
     : [],
 });
 
+async function generateCreditNoteNumber(tx: any): Promise<string> {
+  const maxRetries = 10;
+  let retryCount = 0;
+
+  while (retryCount < maxRetries) {
+    try {
+      const lastCreditNote = await tx.credit_notes.findFirst({
+        where: {
+          credit_note_number: {
+            startsWith: 'CN-',
+          },
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        select: {
+          credit_note_number: true,
+        },
+      });
+
+      let nextNumber = 1;
+
+      if (lastCreditNote && lastCreditNote.credit_note_number) {
+        const match = lastCreditNote.credit_note_number.match(/CN-(\d+)/);
+        if (match && match[1]) {
+          nextNumber = parseInt(match[1], 10) + 1;
+        }
+      }
+
+      const allCreditNotes = await tx.credit_notes.findMany({
+        where: {
+          credit_note_number: {
+            startsWith: 'CN-',
+          },
+        },
+        select: {
+          credit_note_number: true,
+        },
+      });
+
+      for (const creditNote of allCreditNotes) {
+        const match = creditNote.credit_note_number.match(/CN-(\d+)/);
+        if (match && match[1]) {
+          const num = parseInt(match[1], 10);
+          if (num >= nextNumber) {
+            nextNumber = num + 1;
+          }
+        }
+      }
+
+      const newCreditNoteNumber = `CN-${nextNumber.toString().padStart(5, '0')}`;
+
+      const exists = await tx.credit_notes.findFirst({
+        where: {
+          credit_note_number: newCreditNoteNumber,
+        },
+      });
+
+      if (!exists) {
+        console.log(
+          ' Generated unique credit note number:',
+          newCreditNoteNumber
+        );
+        return newCreditNoteNumber;
+      }
+
+      console.log(
+        ' Credit note number exists, retrying...',
+        newCreditNoteNumber
+      );
+      retryCount++;
+    } catch (error) {
+      console.error(' Error generating credit note number:', error);
+      retryCount++;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  const timestamp = Date.now();
+  const fallbackCreditNoteNumber = `CN-${timestamp}`;
+  console.log(' Using fallback credit note number:', fallbackCreditNoteNumber);
+  return fallbackCreditNoteNumber;
+}
+
 export const creditNotesController = {
   async upsertCreditNote(req: Request, res: Response) {
     try {
@@ -272,36 +356,68 @@ export const creditNotesController = {
           data: serializeCreditNote(creditNote),
         });
       } else {
-        creditNote = await prisma.credit_notes.create({
-          data: {
-            ...processedData,
+        creditNote = await prisma.$transaction(async tx => {
+          const creditNoteNumber = data.credit_note_number
+            ? data.credit_note_number
+            : await generateCreditNoteNumber(tx);
+
+          const processedData = {
+            credit_note_number: creditNoteNumber,
+            parent_id: data.parent_id,
+            products_id: data.products_id,
+            customer_id: data.customer_id,
+            credit_note_date: data.credit_note_date
+              ? new Date(data.credit_note_date)
+              : new Date(),
+            due_date: data.due_date ? new Date(data.due_date) : undefined,
+            status: data.status || 'draft',
+            reason: data.reason,
+            payment_method: data.payment_method || 'credit',
+            subtotal: data.subtotal || 0,
+            discount_amount: data.discount_amount || 0,
+            tax_amount: data.tax_amount || 0,
+            shipping_amount: data.shipping_amount || 0,
+            total_amount: data.total_amount || 0,
+            amount_applied: data.amount_applied || 0,
+            balance_due: data.balance_due,
+            notes: data.notes,
+            billing_address: data.billing_address,
+            currency_id: data.currency_id,
+            is_active: data.is_active || 'Y',
+            log_inst: 1,
             createdate: new Date(),
             createdby: userId,
-            credit_notes_items: {
-              create: creditNoteItems.map((item: CreditNoteItemInput) => ({
-                product_id: item.product_id,
-                product_name: item.product_name,
-                unit: item.unit,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                discount_amount: item.discount_amount || 0,
-                tax_amount: item.tax_amount || 0,
-                total_amount: item.total_amount,
-                notes: item.notes,
-              })),
-            },
-          },
-          include: {
-            credit_notes_customers: true,
-            credit_notes_products: true,
-            credit_notes_orders: true,
-            credit_note_currencies: true,
-            credit_notes_items: {
-              include: {
-                credit_notes_items_products: true,
+          };
+
+          return await tx.credit_notes.create({
+            data: {
+              ...processedData,
+              credit_notes_items: {
+                create: creditNoteItems.map((item: CreditNoteItemInput) => ({
+                  product_id: item.product_id,
+                  product_name: item.product_name,
+                  unit: item.unit,
+                  quantity: item.quantity,
+                  unit_price: item.unit_price,
+                  discount_amount: item.discount_amount || 0,
+                  tax_amount: item.tax_amount || 0,
+                  total_amount: item.total_amount,
+                  notes: item.notes,
+                })),
               },
             },
-          },
+            include: {
+              credit_notes_customers: true,
+              credit_notes_products: true,
+              credit_notes_orders: true,
+              credit_note_currencies: true,
+              credit_notes_items: {
+                include: {
+                  credit_notes_items_products: true,
+                },
+              },
+            },
+          });
         });
 
         res.status(201).json({
@@ -312,8 +428,8 @@ export const creditNotesController = {
     } catch (error: any) {
       console.error('Upsert Credit Note Error:', error);
       res.status(500).json({
-        message: error.message,
-        error: process.env.NODE_ENV === 'development' ? error : undefined,
+        message: 'Failed to process order',
+        error: error.message,
       });
     }
   },

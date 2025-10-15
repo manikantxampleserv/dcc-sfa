@@ -1,9 +1,6 @@
 import { body } from 'express-validator';
 
 export const createCreditNotesValidator = [
-  body('credit_note_number')
-    .notEmpty()
-    .withMessage('Credit Note Number is required'),
   body('parent_id').notEmpty().withMessage('Parent ID is required'),
   body('customer_id').notEmpty().withMessage('Customer ID is required'),
   body('credit_note_date')
