@@ -8,6 +8,8 @@ const router = Router();
 router.post(
   '/transaction/credit-notes',
   authenticateToken,
+  createCreditNotesValidator,
+  validate,
   creditNotesController.upsertCreditNote
 );
 // router.post(
