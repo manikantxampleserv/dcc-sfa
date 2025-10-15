@@ -25,6 +25,7 @@ import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import ImportCreditNote from './ImportCreditNote';
 import ManageCreditNote from './ManageCreditNote';
+import CreditNoteDetail from './CreditNoteDetail';
 
 const CreditNotesManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -33,6 +34,7 @@ const CreditNotesManagement: React.FC = () => {
   const [selectedCreditNote, setSelectedCreditNote] =
     useState<CreditNote | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -74,6 +76,11 @@ const CreditNotesManagement: React.FC = () => {
   const handleEditCreditNote = useCallback((creditNote: CreditNote) => {
     setSelectedCreditNote(creditNote);
     setDrawerOpen(true);
+  }, []);
+
+  const handleViewCreditNote = useCallback((creditNote: CreditNote) => {
+    setSelectedCreditNote(creditNote);
+    setDetailDrawerOpen(true);
   }, []);
 
   const handleDeleteCreditNote = useCallback(
@@ -165,7 +172,8 @@ const CreditNotesManagement: React.FC = () => {
           <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight"
+              className="!text-gray-900 !leading-tight !cursor-pointer !hover:!text-primary-500 !hover:!underline"
+              onClick={() => handleViewCreditNote(row)}
             >
               {row.credit_note_number}
             </Typography>
@@ -222,7 +230,7 @@ const CreditNotesManagement: React.FC = () => {
             icon={getStatusIcon(row.status || 'draft')}
             label={row.status || 'draft'}
             size="small"
-            className={`!text-xs !capitalize ${getStatusColor(row.status || 'draft')} !min-w-20`}
+            className={`!text-xs !px-1 !capitalize ${getStatusColor(row.status || 'draft')} !min-w-20`}
           />
         </Box>
       ),
@@ -283,9 +291,9 @@ const CreditNotesManagement: React.FC = () => {
           </Typography>
           <Typography
             variant="caption"
-            className="!text-gray-500 !text-xs !block !mt-0.5"
+            className="!text-gray-500 capitalize !text-xs !block !mt-0.5"
           >
-            {row.payment_method || 'N/A'}
+            {row.payment_method?.replaceAll('_', ' ') || 'N/A'}
           </Typography>
         </Box>
       ),
@@ -504,6 +512,12 @@ const CreditNotesManagement: React.FC = () => {
       <ImportCreditNote
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
+      />
+
+      <CreditNoteDetail
+        open={detailDrawerOpen}
+        onClose={() => setDetailDrawerOpen(false)}
+        creditNote={selectedCreditNote}
       />
     </>
   );

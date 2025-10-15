@@ -19,6 +19,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
+import { formatForDateInput } from 'utils/dateUtils';
 
 interface ManageCreditNoteProps {
   open: boolean;
@@ -70,14 +71,24 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
       const items =
         creditNoteResponse.data.creditNoteItems?.map(item => ({
           product_id: item.product_id,
-          quantity: item.quantity.toString(),
-          unit_price: item.unit_price.toString(),
+          quantity: (item as any).quantity?.toString() || '1',
+          unit_price: item.unit_price?.toString() || '0',
           discount_amount: (item.discount_amount || 0).toString(),
           tax_amount: (item.tax_amount || 0).toString(),
           notes: item.notes || '',
         })) || [];
       setCreditNoteItems(items);
       formik.setFieldValue('creditNoteItems', items);
+
+      // Update form values with properly formatted dates
+      formik.setFieldValue(
+        'credit_note_date',
+        formatForDateInput(creditNoteResponse.data.credit_note_date)
+      );
+      formik.setFieldValue(
+        'due_date',
+        formatForDateInput(creditNoteResponse.data.due_date)
+      );
     } else {
       setCreditNoteItems([]);
       formik.setFieldValue('creditNoteItems', []);
@@ -86,14 +97,14 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
 
   const formik = useFormik({
     initialValues: {
-      parent_id: creditNote?.parent_id || '',
-      customer_id: creditNote?.customer_id || '',
+      parent_id: creditNote?.parent_id?.toString() || '',
+      customer_id: creditNote?.customer_id?.toString() || '',
       currency_id:
-        creditNote?.currency_id || currenciesResponse?.data?.[0]?.id || '',
-      credit_note_date: creditNote?.credit_note_date
-        ? creditNote.credit_note_date
-        : '',
-      due_date: creditNote?.due_date ? creditNote.due_date : '',
+        creditNote?.currency_id?.toString() ||
+        currenciesResponse?.data?.[0]?.id?.toString() ||
+        '',
+      credit_note_date: formatForDateInput(creditNote?.credit_note_date),
+      due_date: formatForDateInput(creditNote?.due_date),
       status: creditNote?.status || 'draft',
       reason: creditNote?.reason || '',
       payment_method: creditNote?.payment_method || 'credit',
@@ -206,7 +217,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
         >
           <MenuItem value="">Select Product</MenuItem>
           {products.map(product => (
-            <MenuItem key={product.id} value={product.id}>
+            <MenuItem key={product.id} value={product.id?.toString() || ''}>
               {product.name}
             </MenuItem>
           ))}
@@ -367,7 +378,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
               required
             >
               {orders.map(order => (
-                <MenuItem key={order.id} value={order.id}>
+                <MenuItem key={order.id} value={order.id?.toString() || ''}>
                   {order.order_number} - {order.customer?.name}
                 </MenuItem>
               ))}
@@ -380,7 +391,10 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
               required
             >
               {customers.map(customer => (
-                <MenuItem key={customer.id} value={customer.id}>
+                <MenuItem
+                  key={customer.id}
+                  value={customer.id?.toString() || ''}
+                >
                   {customer.name} ({customer.code})
                 </MenuItem>
               ))}
@@ -411,7 +425,10 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
               required
             >
               {currencies.map(currency => (
-                <MenuItem key={currency.id} value={currency.id}>
+                <MenuItem
+                  key={currency.id}
+                  value={currency.id?.toString() || ''}
+                >
                   {currency.code} - {currency.name}
                 </MenuItem>
               ))}
