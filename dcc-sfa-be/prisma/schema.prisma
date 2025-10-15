@@ -456,72 +456,72 @@ model coolers {
 }
 
 model credit_note_items {
-  id                          Int          @id(map: "PK__credit_n__3213E83F19D9154C") @default(autoincrement())
+  id                          Int          @id() @default(autoincrement())
   parent_id                   Int
   product_id                  Int
   product_name                String?      @db.NVarChar(255)
   unit                        String?      @db.NVarChar(50)
-  quantity                    Int          @default(1, map: "DF__credit_no__quant__3C34F16F")
-  unit_price                  Decimal      @default(0, map: "DF__credit_no__unit___3D2915A8") @db.Decimal(18, 2)
-  discount_amount             Decimal?     @default(0, map: "DF__credit_no__disco__3E1D39E1") @db.Decimal(18, 2)
-  tax_amount                  Decimal?     @default(0, map: "DF__credit_no__tax_a__3F115E1A") @db.Decimal(18, 2)
+  quantity                    Int          @default(1)
+  unit_price                  Decimal      @default(0) @db.Decimal(18, 2)
+  discount_amount             Decimal?     @default(0) @db.Decimal(18, 2)
+  tax_amount                  Decimal?     @default(0) @db.Decimal(18, 2)
   total_amount                Decimal?     @db.Decimal(18, 2)
   notes                       String?      @db.NVarChar(500)
-  credit_notes                credit_notes @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  credit_notes_items          credit_notes @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   credit_notes_items_products products     @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model credit_notes {
-  id                     Int                 @id(map: "PK__credit_n__3213E83F7845CC17") @default(autoincrement())
-  credit_note_number     String              @unique(map: "UQ__credit_n__72E3FB855AAA8AF7") @db.NVarChar(50)
+  id                     Int                 @id() @default(autoincrement())
+  credit_note_number     String              @unique() @db.NVarChar(50)
   parent_id              Int
   products_id            Int?
   customer_id            Int
-  credit_note_date       DateTime?           @default(now(), map: "DF__credit_no__credi__2B0A656D")
+  credit_note_date       DateTime?           @default(now())
   due_date               DateTime?
-  status                 String?             @default("draft", map: "DF__credit_no__statu__2CF2ADDF") @db.NVarChar(20)
+  status                 String?             @default("draft") @db.NVarChar(20)
   reason                 String?             @db.NVarChar(255)
-  payment_method         String?             @default("credit", map: "DF__credit_no__payme__2EDAF651") @db.NVarChar(20)
-  subtotal               Decimal?            @default(0, map: "DF__credit_no__subto__2FCF1A8A") @db.Decimal(18, 2)
-  discount_amount        Decimal?            @default(0, map: "DF__credit_no__disco__30C33EC3") @db.Decimal(18, 2)
-  tax_amount             Decimal?            @default(0, map: "DF__credit_no__tax_a__31B762FC") @db.Decimal(18, 2)
-  shipping_amount        Decimal?            @default(0, map: "DF__credit_no__shipp__32AB8735") @db.Decimal(18, 2)
-  total_amount           Decimal?            @default(0, map: "DF__credit_no__total__339FAB6E") @db.Decimal(18, 2)
-  amount_applied         Decimal?            @default(0, map: "DF__credit_no__amoun__3493CFA7") @db.Decimal(18, 2)
+  payment_method         String?             @default("credit") @db.NVarChar(20)
+  subtotal               Decimal?            @default(0) @db.Decimal(18, 2)
+  discount_amount        Decimal?            @default(0) @db.Decimal(18, 2)
+  tax_amount             Decimal?            @default(0) @db.Decimal(18, 2)
+  shipping_amount        Decimal?            @default(0) @db.Decimal(18, 2)
+  total_amount           Decimal?            @default(0) @db.Decimal(18, 2)
+  amount_applied         Decimal?            @default(0) @db.Decimal(18, 2)
   balance_due            Decimal?            @db.Decimal(19, 2)
   notes                  String?
   billing_address        String?
-  is_active              String              @default("Y", map: "DF__credit_no__is_ac__3587F3E0") @db.Char(1)
-  createdate             DateTime?           @default(now(), map: "DF__credit_no__creat__367C1819") @db.DateTime
+  is_active              String              @default("Y") @db.Char(1)
+  createdate             DateTime?           @default(now()) @db.DateTime
   createdby              Int
   updatedate             DateTime?           @db.DateTime
   updatedby              Int?
   log_inst               Int?
   currency_id            Int?
-  credit_note_items      credit_note_items[]
-  currencies             currencies?         @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__credit_no__curre__671F4F74")
-  credit_notes_customers customers           @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__custo__3864608B")
-  orders                 orders              @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__credit_no__paren__37703C52")
-  credit_notes_products  products?           @relation(fields: [products_id], references: [id], onDelete: Cascade)
+  credit_notes_items     credit_note_items[]
+  credit_note_currencies currencies?         @relation(fields: [currency_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  credit_notes_customers customers           @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  credit_notes_orders    orders              @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  credit_notes_products  products?           @relation(fields: [products_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model currencies {
-  id                    Int            @id(map: "PK__currenci__3213E83F79F58F94") @default(autoincrement())
-  code                  String         @unique(map: "UQ__currenci__357D4CF905DDBF7E") @db.NVarChar(10)
-  name                  String         @db.NVarChar(100)
-  symbol                String?        @db.NVarChar(10)
-  exchange_rate_to_base Decimal?       @db.Decimal(18, 6)
-  is_base               String?        @default("N", map: "DF__currencie__is_ba__6166761E") @db.Char(1)
-  is_active             String         @default("Y", map: "DF__currencie__is_ac__625A9A57") @db.Char(1)
-  createdate            DateTime?      @default(now(), map: "DF__currencie__creat__634EBE90") @db.DateTime
-  createdby             Int
-  updatedate            DateTime?      @db.DateTime
-  updatedby             Int?
-  log_inst              Int?
-  credit_notes          credit_notes[]
-  invoices              invoices[]
-  payments              payments[]
-  orders_currencies     orders[]       @relation("OrdersCurrencies")
+  id                     Int            @id(map: "PK__currenci__3213E83F79F58F94") @default(autoincrement())
+  code                   String         @unique(map: "UQ__currenci__357D4CF905DDBF7E") @db.NVarChar(10)
+  name                   String         @db.NVarChar(100)
+  symbol                 String?        @db.NVarChar(10)
+  exchange_rate_to_base  Decimal?       @db.Decimal(18, 6)
+  is_base                String?        @default("N", map: "DF__currencie__is_ba__6166761E") @db.Char(1)
+  is_active              String         @default("Y", map: "DF__currencie__is_ac__625A9A57") @db.Char(1)
+  createdate             DateTime?      @default(now(), map: "DF__currencie__creat__634EBE90") @db.DateTime
+  createdby              Int
+  updatedate             DateTime?      @db.DateTime
+  updatedby              Int?
+  log_inst               Int?
+  credit_note_currencies credit_notes[]
+  invoices               invoices[]
+  payments               payments[]
+  orders_currencies      orders[]       @relation("OrdersCurrencies")
 }
 
 model customer_assets {
@@ -956,7 +956,7 @@ model orders {
   updatedby                           Int?
   log_inst                            Int?
   currency_id                         Int?
-  credit_notes                        credit_notes[]
+  credit_notes_orders                 credit_notes[]
   delivery_schedules_customers_orders delivery_schedules[]
   digital_signatures_orders           digital_signatures[]
   invoices                            invoices[]
