@@ -70,7 +70,7 @@ interface CreditNoteSerialized {
   updatedby?: number | null;
   log_inst?: number | null;
   currency_id?: number | null;
-  customer?: { id: number; name: string } | null;
+  customer?: { id: number; name: string; code: string } | null;
   product?: { id: number; name: string } | null;
   order?: { id: number; order_number: string } | null;
   currency?: { id: number; code: string } | null;
@@ -105,7 +105,11 @@ const serializeCreditNote = (cn: any): CreditNoteSerialized => ({
   log_inst: cn.log_inst,
   currency_id: cn.currency_id,
   customer: cn.credit_notes_customers
-    ? { id: cn.credit_notes_customers.id, name: cn.credit_notes_customers.name }
+    ? {
+        id: cn.credit_notes_customers.id,
+        name: cn.credit_notes_customers.name,
+        code: cn.credit_notes_customers.code,
+      }
     : null,
   product: cn.credit_notes_products
     ? { id: cn.credit_notes_products.id, name: cn.credit_notes_products.name }
@@ -513,12 +517,8 @@ export const creditNotesController = {
           credit_notes_orders: true,
           credit_note_currencies: true,
           credit_notes_items: {
-            select: {
-              id: true,
-              product_id: true,
-              product_name: true,
-              unit: true,
-              quantity: true,
+            include: {
+              credit_notes_items_products: true,
             },
           },
         },
@@ -571,12 +571,8 @@ export const creditNotesController = {
           credit_notes_orders: true,
           credit_note_currencies: true,
           credit_notes_items: {
-            select: {
-              id: true,
-              product_id: true,
-              product_name: true,
-              unit: true,
-              quantity: true,
+            include: {
+              credit_notes_items_products: true,
             },
           },
         },
