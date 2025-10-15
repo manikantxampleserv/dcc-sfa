@@ -19,7 +19,6 @@ import {
 } from '../services/masters/Invoices';
 import { useApiMutation } from './useApiMutation';
 
-// Query Keys
 export const invoiceKeys = {
   all: ['invoices'] as const,
   lists: () => [...invoiceKeys.all, 'list'] as const,
@@ -65,7 +64,6 @@ export const useCreateInvoice = (options?: {
     mutationFn: createInvoice,
     loadingMessage: 'Creating invoice...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch invoices list
       queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
       options?.onSuccess?.(data, variables);
     },
@@ -95,7 +93,6 @@ export const useUpdateInvoice = (options?: {
     }: { id: number } & UpdateInvoicePayload) => updateInvoice(id, invoiceData),
     loadingMessage: 'Updating invoice...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch invoices list and specific invoice
       queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
       queryClient.invalidateQueries({
         queryKey: invoiceKeys.detail(variables.id),
@@ -119,7 +116,6 @@ export const useDeleteInvoice = (options?: {
     mutationFn: deleteInvoice,
     loadingMessage: 'Deleting invoice...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch invoices list
       queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() });
       options?.onSuccess?.(data, variables);
     },

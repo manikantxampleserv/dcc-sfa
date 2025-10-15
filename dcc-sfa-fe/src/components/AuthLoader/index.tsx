@@ -108,7 +108,7 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({
             </div>
 
             {/* Stats Cards Skeleton */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               {[1, 2, 3, 4].map(index => (
                 <div
                   key={index}

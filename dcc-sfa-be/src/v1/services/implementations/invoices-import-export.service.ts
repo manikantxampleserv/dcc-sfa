@@ -15,7 +15,6 @@ export class InvoicesImportExportService extends ImportExportService<any> {
     'billing_address',
   ];
 
-  // Cache for foreign key validation
   private customerIds: Set<number> = new Set();
   private orderIds: Set<number> = new Set();
   private currencyIds: Set<number> = new Set();
@@ -290,7 +289,6 @@ export class InvoicesImportExportService extends ImportExportService<any> {
 
   protected async getSampleData(): Promise<any[]> {
     try {
-      // Get actual IDs from database
       const [customer, order, currency] = await Promise.all([
         prisma.customers.findFirst({ where: { is_active: 'Y' } }),
         prisma.orders.findFirst({ where: { is_active: 'Y' } }),
@@ -346,7 +344,6 @@ export class InvoicesImportExportService extends ImportExportService<any> {
         },
       ];
     } catch (error) {
-      // Fallback to default sample data
       return [
         {
           invoice_number: 'INV-2024-001',
@@ -392,7 +389,6 @@ export class InvoicesImportExportService extends ImportExportService<any> {
     data: any,
     tx?: any
   ): Promise<string | null> {
-    // Use cached data for validation instead of database queries
     if (!this.customerIds.has(data.customer_id)) {
       return `Customer with ID ${data.customer_id} does not exist`;
     }
@@ -438,7 +434,6 @@ export class InvoicesImportExportService extends ImportExportService<any> {
   }
 
   private async preloadForeignKeys(): Promise<void> {
-    // Pre-load all valid IDs in one query each
     const [customers, orders, currencies] = await Promise.all([
       prisma.customers.findMany({
         select: { id: true },
@@ -454,22 +449,18 @@ export class InvoicesImportExportService extends ImportExportService<any> {
       }),
     ]);
 
-    // Populate the sets
     this.customerIds = new Set(customers.map(c => c.id));
     this.orderIds = new Set(orders.map(o => o.id));
     this.currencyIds = new Set(currencies.map(c => c.id));
   }
 
-  // Override the base import method to initialize caches
   async importData(
     data: any[],
     userId: number,
     options: any = {}
   ): Promise<any> {
-    // Initialize caches before processing
     await this.preloadForeignKeys();
 
-    // Call parent import method
     return super.importData(data, userId, options);
   }
 

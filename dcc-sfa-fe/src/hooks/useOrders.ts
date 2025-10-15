@@ -92,7 +92,6 @@ export const useUpdateOrder = (options?: {
       updateOrder(id, orderData),
     loadingMessage: 'Updating order...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch orders list and specific order
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
       queryClient.invalidateQueries({
         queryKey: orderKeys.detail(variables.id),
@@ -116,7 +115,6 @@ export const useDeleteOrder = (options?: {
     mutationFn: deleteOrder,
     loadingMessage: 'Deleting order...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch orders list
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
       options?.onSuccess?.(data, variables);
     },

@@ -7,8 +7,10 @@ import {
   Calendar,
   CheckCircle as CheckCircleIcon,
   Clock,
+  CreditCard,
   DollarSign,
   FileText,
+  Package,
   Receipt,
   XCircle,
 } from 'lucide-react';
@@ -21,6 +23,8 @@ import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import ImportInvoice from './ImportInvoice';
 import InvoiceDetail from './InvoiceDetail';
+import InvoiceItemsManagement from './InvoiceItemsManagement';
+import InvoicePaymentTracking from './InvoicePaymentTracking';
 import ManageInvoice from './ManageInvoice';
 
 const InvoicesManagement: React.FC = () => {
@@ -30,6 +34,9 @@ const InvoicesManagement: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [itemsDrawerOpen, setItemsDrawerOpen] = useState(false);
+  const [paymentTrackingDrawerOpen, setPaymentTrackingDrawerOpen] =
+    useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -46,8 +53,8 @@ const InvoicesManagement: React.FC = () => {
   });
 
   const invoices = invoicesResponse?.data || [];
-  const totalCount = invoicesResponse?.meta?.total || 0;
-  const currentPage = (invoicesResponse?.meta?.page || 1) - 1;
+  const totalCount = invoicesResponse?.pagination?.total_count || 0;
+  const currentPage = (invoicesResponse?.pagination?.current_page || 1) - 1;
 
   const deleteInvoiceMutation = useDeleteInvoice();
   const exportToExcelMutation = useExportToExcel();
@@ -76,6 +83,16 @@ const InvoicesManagement: React.FC = () => {
   const handleViewInvoice = useCallback((invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setDetailDrawerOpen(true);
+  }, []);
+
+  const handleManageItems = useCallback((invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setItemsDrawerOpen(true);
+  }, []);
+
+  const handlePaymentTracking = useCallback((invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setPaymentTrackingDrawerOpen(true);
   }, []);
 
   const handleDeleteInvoice = useCallback(
@@ -291,6 +308,18 @@ const InvoicesManagement: React.FC = () => {
             icon={<FileText />}
             color="success"
           />
+          <ActionButton
+            onClick={() => handleManageItems(row)}
+            tooltip="Manage invoice items"
+            icon={<Package />}
+            color="info"
+          />
+          <ActionButton
+            onClick={() => handlePaymentTracking(row)}
+            tooltip="Track payments"
+            icon={<CreditCard />}
+            color="secondary"
+          />
           <EditButton
             onClick={() => handleEditInvoice(row)}
             tooltip={`Edit ${row.invoice_number}`}
@@ -329,7 +358,7 @@ const InvoicesManagement: React.FC = () => {
       </Box>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -499,6 +528,20 @@ const InvoicesManagement: React.FC = () => {
         open={detailDrawerOpen}
         onClose={() => setDetailDrawerOpen(false)}
         invoice={selectedInvoice}
+      />
+
+      <InvoiceItemsManagement
+        key={`items-management-${selectedInvoice?.id || 0}`}
+        open={itemsDrawerOpen}
+        onClose={() => setItemsDrawerOpen(false)}
+        invoiceId={selectedInvoice?.id || 0}
+      />
+
+      <InvoicePaymentTracking
+        key={`payment-tracking-${selectedInvoice?.id || 0}`}
+        open={paymentTrackingDrawerOpen}
+        onClose={() => setPaymentTrackingDrawerOpen(false)}
+        invoiceId={selectedInvoice?.id || 0}
       />
 
       <ImportInvoice

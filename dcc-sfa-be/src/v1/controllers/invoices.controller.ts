@@ -140,11 +140,9 @@ export const invoicesController = {
         return res.status(400).json({ message: 'Payment method is required' });
       }
 
-      // Generate invoice number if not provided
       const invoiceNumber = data.invoice_number || `INV-${Date.now()}`;
 
       const invoice = await prisma.$transaction(async tx => {
-        // Create the invoice
         const newInvoice = await tx.invoices.create({
           data: {
             invoice_number: invoiceNumber,
@@ -176,25 +174,47 @@ export const invoicesController = {
           },
         });
 
-        // Create invoice items if provided
         if (data.invoiceItems && data.invoiceItems.length > 0) {
+          const productIds = data.invoiceItems.map((item: any) =>
+            Number(item.product_id)
+          );
+          const products = await tx.products.findMany({
+            where: { id: { in: productIds } },
+            include: {
+              product_unit_of_measurement: true,
+            },
+          });
+
+          const productMap = new Map(products.map(p => [p.id, p]));
+
           await tx.invoice_items.createMany({
-            data: data.invoiceItems.map((item: any) => ({
-              parent_id: newInvoice.id,
-              product_id: Number(item.product_id),
-              quantity: Number(item.quantity),
-              unit_price: Number(item.unit_price),
-              discount_amount: Number(item.discount_amount) || 0,
-              tax_amount: Number(item.tax_amount) || 0,
-              notes: item.notes || null,
-            })),
+            data: data.invoiceItems.map((item: any) => {
+              const product = productMap.get(Number(item.product_id));
+              return {
+                parent_id: newInvoice.id,
+                product_id: Number(item.product_id),
+                product_name: product?.name || '',
+                unit:
+                  product?.product_unit_of_measurement?.name ||
+                  product?.product_unit_of_measurement?.symbol ||
+                  'pcs',
+                quantity: Number(item.quantity),
+                unit_price: Number(item.unit_price),
+                discount_amount: Number(item.discount_amount) || 0,
+                tax_amount: Number(item.tax_amount) || 0,
+                total_amount:
+                  Number(item.quantity) * Number(item.unit_price) -
+                  (Number(item.discount_amount) || 0) +
+                  (Number(item.tax_amount) || 0),
+                notes: item.notes || null,
+              };
+            }),
           });
         }
 
         return newInvoice;
       });
 
-      // Fetch the complete invoice with items
       const completeInvoice = await prisma.invoices.findUnique({
         where: { id: invoice.id },
         include: {
@@ -372,113 +392,6 @@ export const invoicesController = {
         return res.status(404).json({ message: 'Invoice not found' });
       }
 
-      const invoice = await prisma.$transaction(async tx => {
-        // Extract invoice items from data to avoid passing them to the main update
-        const { invoiceItems, invoice_items, ...invoiceData } = data;
-
-        // Validate currency_id if provided
-        if (data.currency_id) {
-          const currencyExists = await tx.currencies.findUnique({
-            where: { id: Number(data.currency_id) },
-          });
-          if (!currencyExists) {
-            throw new Error(
-              `Currency with ID ${data.currency_id} does not exist`
-            );
-          }
-        }
-
-        // Validate customer_id
-        const customerExists = await tx.customers.findUnique({
-          where: { id: Number(data.customer_id) },
-        });
-        if (!customerExists) {
-          throw new Error(
-            `Customer with ID ${data.customer_id} does not exist`
-          );
-        }
-
-        // Validate parent_id (order_id) if provided
-        if (data.parent_id) {
-          const orderExists = await tx.orders.findUnique({
-            where: { id: Number(data.parent_id) },
-          });
-          if (!orderExists) {
-            throw new Error(`Order with ID ${data.parent_id} does not exist`);
-          }
-        }
-
-        // Update the invoice
-        const updatedInvoice = await tx.invoices.update({
-          where: { id: Number(id) },
-          data: {
-            invoice_number: data.invoice_number,
-            parent_id: data.parent_id ? Number(data.parent_id) : 0,
-            customer_id: Number(data.customer_id),
-            currency_id: data.currency_id
-              ? Number(data.currency_id)
-              : undefined,
-            invoice_date: data.invoice_date
-              ? new Date(data.invoice_date)
-              : undefined,
-            due_date: data.due_date ? new Date(data.due_date) : undefined,
-            status: data.status,
-            payment_method: data.payment_method,
-            subtotal: data.subtotal ? Number(data.subtotal) : undefined,
-            discount_amount: data.discount_amount
-              ? Number(data.discount_amount)
-              : undefined,
-            tax_amount: data.tax_amount ? Number(data.tax_amount) : undefined,
-            shipping_amount: data.shipping_amount
-              ? Number(data.shipping_amount)
-              : undefined,
-            total_amount: data.total_amount
-              ? Number(data.total_amount)
-              : undefined,
-            amount_paid: data.amount_paid
-              ? Number(data.amount_paid)
-              : undefined,
-            balance_due: data.balance_due
-              ? Number(data.balance_due)
-              : undefined,
-            notes: data.notes || undefined,
-            billing_address: data.billing_address || undefined,
-            is_active: data.is_active,
-            updatedate: new Date(),
-            updatedby: data.updatedby || 1,
-          },
-          include: {
-            invoices_customers: true,
-            currencies: true,
-            orders: true,
-          },
-        });
-
-        // Update invoice items if provided
-        if (data.invoiceItems && data.invoiceItems.length > 0) {
-          // Delete existing items
-          await tx.invoice_items.deleteMany({
-            where: { parent_id: Number(id) },
-          });
-
-          // Create new items
-          await tx.invoice_items.createMany({
-            data: data.invoiceItems.map((item: any) => ({
-              parent_id: Number(id),
-              product_id: Number(item.product_id),
-              quantity: Number(item.quantity),
-              unit_price: Number(item.unit_price),
-              discount_amount: Number(item.discount_amount) || 0,
-              tax_amount: Number(item.tax_amount) || 0,
-              notes: item.notes || null,
-            })),
-          });
-        }
-
-        return updatedInvoice;
-      });
-
-      // Fetch the complete invoice with items
       const completeInvoice = await prisma.invoices.findUnique({
         where: { id: Number(id) },
         include: {
@@ -515,18 +428,475 @@ export const invoicesController = {
       }
 
       await prisma.$transaction(async tx => {
-        // Delete invoice items first
         await tx.invoice_items.deleteMany({
           where: { parent_id: Number(id) },
         });
 
-        // Delete the invoice
         await tx.invoices.delete({ where: { id: Number(id) } });
       });
 
       res.json({ message: 'Invoice deleted successfully' });
     } catch (error: any) {
       console.error('Delete Invoice Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async createInvoicePaymentLine(req: Request, res: Response) {
+    try {
+      const { invoiceId } = req.params;
+      const data = req.body;
+
+      if (!data.payment_id) {
+        return res.status(400).json({ message: 'Payment ID is required' });
+      }
+      if (!data.amount_applied) {
+        return res.status(400).json({ message: 'Amount applied is required' });
+      }
+
+      const invoice = await prisma.invoices.findUnique({
+        where: { id: Number(invoiceId) },
+      });
+
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+
+      const payment = await prisma.payments.findUnique({
+        where: { id: Number(data.payment_id) },
+      });
+
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+
+      const paymentLine = await prisma.payment_lines.create({
+        data: {
+          parent_id: Number(data.payment_id),
+          invoice_id: Number(invoiceId),
+          invoice_number: invoice.invoice_number,
+          invoice_date: invoice.invoice_date,
+          amount_applied: Number(data.amount_applied),
+          notes: data.notes || null,
+        },
+        include: {
+          invoices: true,
+          payments: {
+            include: {
+              payments_customers: true,
+              users_payments_collected_byTousers: true,
+              currencies: true,
+            },
+          },
+        },
+      });
+
+      res.status(201).json({
+        message: 'Payment line created successfully',
+        data: paymentLine,
+      });
+    } catch (error: any) {
+      console.error('Create Invoice Payment Line Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getInvoicePaymentLines(req: Request, res: Response) {
+    try {
+      const { invoiceId } = req.params;
+
+      const paymentLines = await prisma.payment_lines.findMany({
+        where: { invoice_id: Number(invoiceId) },
+        include: {
+          invoices: true,
+          payments: {
+            include: {
+              payments_customers: true,
+              users_payments_collected_byTousers: true,
+              currencies: true,
+            },
+          },
+        },
+        orderBy: { id: 'desc' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Payment lines retrieved successfully',
+        data: paymentLines,
+      });
+    } catch (error: any) {
+      console.error('Get Invoice Payment Lines Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async updateInvoicePaymentLine(req: Request, res: Response) {
+    try {
+      const { invoiceId, lineId } = req.params;
+      const data = req.body;
+
+      const existingLine = await prisma.payment_lines.findFirst({
+        where: {
+          id: Number(lineId),
+          invoice_id: Number(invoiceId),
+        },
+      });
+
+      if (!existingLine) {
+        return res.status(404).json({ message: 'Payment line not found' });
+      }
+
+      const paymentLine = await prisma.payment_lines.update({
+        where: { id: Number(lineId) },
+        data: {
+          amount_applied: data.amount_applied
+            ? Number(data.amount_applied)
+            : undefined,
+          notes: data.notes !== undefined ? data.notes : undefined,
+        },
+        include: {
+          invoices: true,
+          payments: {
+            include: {
+              payments_customers: true,
+              users_payments_collected_byTousers: true,
+              currencies: true,
+            },
+          },
+        },
+      });
+
+      res.json({
+        message: 'Payment line updated successfully',
+        data: paymentLine,
+      });
+    } catch (error: any) {
+      console.error('Update Invoice Payment Line Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async deleteInvoicePaymentLine(req: Request, res: Response) {
+    try {
+      const { invoiceId, lineId } = req.params;
+
+      const existingLine = await prisma.payment_lines.findFirst({
+        where: {
+          id: Number(lineId),
+          invoice_id: Number(invoiceId),
+        },
+      });
+
+      if (!existingLine) {
+        return res.status(404).json({ message: 'Payment line not found' });
+      }
+
+      await prisma.payment_lines.delete({
+        where: { id: Number(lineId) },
+      });
+
+      res.json({ message: 'Payment line deleted successfully' });
+    } catch (error: any) {
+      console.error('Delete Invoice Payment Line Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async bulkUpdateInvoicePaymentLines(req: Request, res: Response) {
+    try {
+      const { invoiceId } = req.params;
+      const { paymentLines } = req.body;
+
+      if (!Array.isArray(paymentLines)) {
+        return res
+          .status(400)
+          .json({ message: 'Payment lines must be an array' });
+      }
+
+      const invoice = await prisma.invoices.findUnique({
+        where: { id: Number(invoiceId) },
+      });
+
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+
+      const result = await prisma.$transaction(async tx => {
+        await tx.payment_lines.deleteMany({
+          where: { invoice_id: Number(invoiceId) },
+        });
+
+        const newPaymentLines = [];
+        for (const line of paymentLines) {
+          if (line.payment_id && line.amount_applied) {
+            const paymentLine = await tx.payment_lines.create({
+              data: {
+                parent_id: Number(line.payment_id),
+                invoice_id: Number(invoiceId),
+                invoice_number: invoice.invoice_number,
+                invoice_date: invoice.invoice_date,
+                amount_applied: Number(line.amount_applied),
+                notes: line.notes || null,
+              },
+            });
+            newPaymentLines.push(paymentLine);
+          }
+        }
+
+        return newPaymentLines;
+      });
+
+      res.json({
+        message: 'Payment lines updated successfully',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('Bulk Update Invoice Payment Lines Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async createInvoiceItem(req: Request, res: Response) {
+    try {
+      const { invoiceId } = req.params;
+      const data = req.body;
+
+      if (!data.product_id) {
+        return res.status(400).json({ message: 'Product ID is required' });
+      }
+      if (!data.quantity) {
+        return res.status(400).json({ message: 'Quantity is required' });
+      }
+      if (!data.unit_price) {
+        return res.status(400).json({ message: 'Unit price is required' });
+      }
+
+      const invoice = await prisma.invoices.findUnique({
+        where: { id: Number(invoiceId) },
+      });
+
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+
+      const product = await prisma.products.findUnique({
+        where: { id: Number(data.product_id) },
+        include: {
+          product_unit_of_measurement: true,
+        },
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+
+      const invoiceItem = await prisma.invoice_items.create({
+        data: {
+          parent_id: Number(invoiceId),
+          product_id: Number(data.product_id),
+          product_name: product.name,
+          unit:
+            product.product_unit_of_measurement?.name ||
+            product.product_unit_of_measurement?.symbol ||
+            'pcs',
+          quantity: Number(data.quantity),
+          unit_price: Number(data.unit_price),
+          discount_amount: Number(data.discount_amount) || 0,
+          tax_amount: Number(data.tax_amount) || 0,
+          total_amount:
+            Number(data.quantity) * Number(data.unit_price) -
+            (Number(data.discount_amount) || 0) +
+            (Number(data.tax_amount) || 0),
+          notes: data.notes || null,
+        },
+        include: {
+          invoice_items_products: true,
+        },
+      });
+
+      res.status(201).json({
+        message: 'Invoice item created successfully',
+        data: invoiceItem,
+      });
+    } catch (error: any) {
+      console.error('Create Invoice Item Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getInvoiceItems(req: Request, res: Response) {
+    try {
+      const { invoiceId } = req.params;
+
+      const invoiceItems = await prisma.invoice_items.findMany({
+        where: { parent_id: Number(invoiceId) },
+        include: {
+          invoice_items_products: {
+            include: {
+              product_unit_of_measurement: true,
+            },
+          },
+        },
+        orderBy: { id: 'asc' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Invoice items retrieved successfully',
+        data: invoiceItems,
+      });
+    } catch (error: any) {
+      console.error('Get Invoice Items Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async updateInvoiceItem(req: Request, res: Response) {
+    try {
+      const { invoiceId, itemId } = req.params;
+      const data = req.body;
+
+      const existingItem = await prisma.invoice_items.findFirst({
+        where: {
+          id: Number(itemId),
+          parent_id: Number(invoiceId),
+        },
+      });
+
+      if (!existingItem) {
+        return res.status(404).json({ message: 'Invoice item not found' });
+      }
+
+      const invoiceItem = await prisma.invoice_items.update({
+        where: { id: Number(itemId) },
+        data: {
+          quantity: data.quantity ? Number(data.quantity) : undefined,
+          unit_price: data.unit_price ? Number(data.unit_price) : undefined,
+          discount_amount:
+            data.discount_amount !== undefined
+              ? Number(data.discount_amount)
+              : undefined,
+          tax_amount:
+            data.tax_amount !== undefined ? Number(data.tax_amount) : undefined,
+          total_amount:
+            data.quantity && data.unit_price
+              ? Number(data.quantity) * Number(data.unit_price) -
+                (Number(data.discount_amount) || 0) +
+                (Number(data.tax_amount) || 0)
+              : undefined,
+          notes: data.notes !== undefined ? data.notes : undefined,
+        },
+        include: {
+          invoice_items_products: true,
+        },
+      });
+
+      res.json({
+        message: 'Invoice item updated successfully',
+        data: invoiceItem,
+      });
+    } catch (error: any) {
+      console.error('Update Invoice Item Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async deleteInvoiceItem(req: Request, res: Response) {
+    try {
+      const { invoiceId, itemId } = req.params;
+
+      const existingItem = await prisma.invoice_items.findFirst({
+        where: {
+          id: Number(itemId),
+          parent_id: Number(invoiceId),
+        },
+      });
+
+      if (!existingItem) {
+        return res.status(404).json({ message: 'Invoice item not found' });
+      }
+
+      await prisma.invoice_items.delete({
+        where: { id: Number(itemId) },
+      });
+
+      res.json({ message: 'Invoice item deleted successfully' });
+    } catch (error: any) {
+      console.error('Delete Invoice Item Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async bulkUpdateInvoiceItems(req: Request, res: Response) {
+    try {
+      const { invoiceId } = req.params;
+      const { invoiceItems } = req.body;
+
+      if (!Array.isArray(invoiceItems)) {
+        return res
+          .status(400)
+          .json({ message: 'Invoice items must be an array' });
+      }
+
+      const invoice = await prisma.invoices.findUnique({
+        where: { id: Number(invoiceId) },
+      });
+
+      if (!invoice) {
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+
+      const result = await prisma.$transaction(async tx => {
+        await tx.invoice_items.deleteMany({
+          where: { parent_id: Number(invoiceId) },
+        });
+
+        const newInvoiceItems = [];
+        for (const item of invoiceItems) {
+          if (item.product_id && item.quantity && item.unit_price) {
+            const product = await tx.products.findUnique({
+              where: { id: Number(item.product_id) },
+              include: {
+                product_unit_of_measurement: true,
+              },
+            });
+
+            if (product) {
+              const invoiceItem = await tx.invoice_items.create({
+                data: {
+                  parent_id: Number(invoiceId),
+                  product_id: Number(item.product_id),
+                  product_name: product.name,
+                  unit:
+                    product.product_unit_of_measurement?.name ||
+                    product.product_unit_of_measurement?.symbol ||
+                    'pcs',
+                  quantity: Number(item.quantity),
+                  unit_price: Number(item.unit_price),
+                  discount_amount: Number(item.discount_amount) || 0,
+                  tax_amount: Number(item.tax_amount) || 0,
+                  total_amount:
+                    Number(item.quantity) * Number(item.unit_price) -
+                    (Number(item.discount_amount) || 0) +
+                    (Number(item.tax_amount) || 0),
+                  notes: item.notes || null,
+                },
+              });
+              newInvoiceItems.push(invoiceItem);
+            }
+          }
+        }
+
+        return newInvoiceItems;
+      });
+
+      res.json({
+        message: 'Invoice items updated successfully',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('Bulk Update Invoice Items Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
