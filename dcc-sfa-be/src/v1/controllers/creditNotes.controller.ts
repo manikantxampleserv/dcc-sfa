@@ -21,6 +21,7 @@ interface CreditNoteInput {
   id?: number;
   credit_note_number: string;
   parent_id: number;
+
   products_id?: number;
   customer_id: number;
   credit_note_date?: Date | string;
