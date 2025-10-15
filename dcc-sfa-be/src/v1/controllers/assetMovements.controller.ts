@@ -75,6 +75,8 @@ export const assetMovementsController = {
       const assetMovement = await prisma.asset_movements.create({
         data: {
           ...data,
+          movement_date: new Date(data.movement_date),
+
           createdby: req.user?.id || 1,
           createdate: new Date(),
           log_inst: data.log_inst || 1,
@@ -211,6 +213,8 @@ export const assetMovementsController = {
         where: { id: Number(id) },
         data: {
           ...req.body,
+          movement_date: new Date(req.body.movement_date),
+
           updatedby: req.user?.id || 1,
           updatedate: new Date(),
         },

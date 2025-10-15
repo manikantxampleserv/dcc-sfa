@@ -569,6 +569,14 @@ export const creditNotesController = {
           credit_notes_products: true,
           credit_notes_orders: true,
           credit_note_currencies: true,
+          credit_notes_items: {
+            select: {
+              id: true,
+              product_id: true,
+              product_name: true,
+              unit: true,
+            },
+          },
         },
       });
       if (!creditNote) {
