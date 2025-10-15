@@ -467,6 +467,11 @@ model credit_note_items {
   tax_amount                  Decimal?     @default(0) @db.Decimal(18, 2)
   total_amount                Decimal?     @db.Decimal(18, 2)
   notes                       String?      @db.NVarChar(500)
+  createdate                  DateTime?    @default(now()) @db.DateTime
+  createdby                   Int
+  updatedate                  DateTime?    @db.DateTime
+  updatedby                   Int?
+  log_inst                    Int?
   credit_notes_items          credit_notes @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   credit_notes_items_products products     @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }

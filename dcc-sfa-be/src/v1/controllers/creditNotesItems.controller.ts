@@ -17,6 +17,10 @@ interface CreditNoteItemSerialized {
   total_amount?: string | null;
   notes?: string | null;
   createdate?: Date | null;
+  createdby: number;
+  updatedate?: Date | null;
+  updatedby?: number | null;
+  log_inst?: number | null;
   credit_notes_items_products?: {
     id: number;
     name: string;
@@ -41,6 +45,10 @@ const serializeCreditNoteItem = (item: any): CreditNoteItemSerialized => ({
   total_amount: item.total_amount?.toString() || '0',
   notes: item.notes,
   createdate: item.createdate || null,
+  createdby: item.createdby,
+  updatedate: item.updatedate || null,
+  updatedby: item.updatedby || null,
+  log_inst: item.log_inst || null,
   credit_notes_items_products: item.credit_notes_items_products
     ? {
         id: item.credit_notes_items_products.id,
