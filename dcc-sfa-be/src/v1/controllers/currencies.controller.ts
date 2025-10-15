@@ -108,7 +108,7 @@ export const currenciesController = {
             log_inst: data.log_inst || 1,
           },
           include: {
-            credit_notes: true,
+            credit_note_currencies: true,
             invoices: true,
             payments: true,
             orders_currencies: true,
@@ -150,7 +150,7 @@ export const currenciesController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          credit_notes: true,
+          credit_note_currencies: true,
           invoices: true,
           payments: true,
           orders_currencies: true,
@@ -204,7 +204,7 @@ export const currenciesController = {
       const currency = await prisma.currencies.findUnique({
         where: { id: Number(id) },
         include: {
-          credit_notes: true,
+          credit_note_currencies: true,
           invoices: true,
           payments: true,
           orders_currencies: true,
@@ -260,7 +260,7 @@ export const currenciesController = {
             log_inst: data.log_inst ?? existingCurrency.log_inst,
           },
           include: {
-            credit_notes: true,
+            credit_note_currencies: true,
             invoices: true,
             payments: true,
             orders_currencies: true,
