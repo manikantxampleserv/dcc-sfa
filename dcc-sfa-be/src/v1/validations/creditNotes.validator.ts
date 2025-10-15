@@ -17,8 +17,8 @@ export const createCreditNotesValidator = [
   body('total_amount').notEmpty().withMessage('Total Amount is required'),
   body('amount_applied').notEmpty().withMessage('Amount Applied is required'),
   body('balance_due').notEmpty().withMessage('Balance Due is required'),
-  body('notes').notEmpty().withMessage('Notes is required'),
-  body('billing_address').notEmpty().withMessage('Billing Address is required'),
-  body('is_active').notEmpty().withMessage('Is Active is required'),
+  body('notes').optional(),
+  body('billing_address').optional(),
+  body('is_active').optional(),
   body('currency_id').notEmpty().withMessage('Currency ID is required'),
 ];

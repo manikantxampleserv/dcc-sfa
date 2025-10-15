@@ -25,6 +25,7 @@ import { DeliverySchedulesImportExportService } from './implementations/delivery
 import { ReturnRequestsImportExportService } from './implementations/returnRequests-import-export.service';
 import { PaymentsImportExportService } from './implementations/payments-import-export.service';
 import { InvoicesImportExportService } from './implementations/invoices-import-export.service';
+import { CreditNotesImportExportService } from './implementations/creditNotes-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -60,6 +61,7 @@ export class ImportExportFactory {
     ['return_requests', ReturnRequestsImportExportService],
     ['payments', PaymentsImportExportService],
     ['invoices', InvoicesImportExportService],
+    ['credit_notes', CreditNotesImportExportService],
     ['products', ProductsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);

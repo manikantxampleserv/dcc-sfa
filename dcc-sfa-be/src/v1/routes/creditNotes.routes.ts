@@ -12,13 +12,6 @@ router.post(
   validate,
   creditNotesController.upsertCreditNote
 );
-// router.post(/
-//   '/transaction/credit-notes',
-//   authenticateToken,
-//   createCreditNotesValidator,
-//   validate,
-//   creditNotesController.createCreditNotes
-// );
 router.get(
   '/transaction/credit-notes',
   authenticateToken,
@@ -28,11 +21,6 @@ router.get(
   '/transaction/credit-notes/:id',
   authenticateToken,
   creditNotesController.getCreditNoteById
-);
-router.put(
-  '/transaction/credit-notes/:id',
-  authenticateToken,
-  creditNotesController.updateCreditNotes
 );
 router.delete(
   '/transaction/credit-notes/:id',
