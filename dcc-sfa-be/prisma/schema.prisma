@@ -76,6 +76,7 @@ model users {
   depots_coodrinator                                                  depots[]                     @relation("DepotsCoodrinator")
   routes_salesperson                                                  routes[]
   asset_movements_performed_by                                        asset_movements[]
+  asset_maintenance_technician                                        asset_maintenance[]
 }
 
 model roles {
@@ -221,21 +222,22 @@ model asset_images {
 }
 
 model asset_maintenance {
-  id                       Int          @id(map: "PK__asset_ma__3213E83FDAF15AFD") @default(autoincrement())
-  asset_id                 Int
-  maintenance_date         DateTime     @db.Date
-  issue_reported           String?      @db.NVarChar(255)
-  action_taken             String?      @db.NVarChar(255)
-  technician               String?      @db.NVarChar(100)
-  cost                     Decimal?     @db.Decimal(10, 2)
-  remarks                  String?      @db.NVarChar(255)
-  is_active                String       @default("Y", map: "DF__asset_mai__is_ac__6EE06CCD") @db.Char(1)
-  createdate               DateTime?    @default(now(), map: "DF__asset_mai__creat__6FD49106") @db.DateTime
-  createdby                Int
-  updatedate               DateTime?    @db.DateTime
-  updatedby                Int?
-  log_inst                 Int?
-  asset_maintenance_master asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  id                           Int          @id() @default(autoincrement())
+  asset_id                     Int
+  maintenance_date             DateTime     @db.Date
+  issue_reported               String?      @db.NVarChar(255)
+  action_taken                 String?      @db.NVarChar(255)
+  technician_id                Int
+  cost                         Decimal?     @db.Decimal(10, 2)
+  remarks                      String?      @db.NVarChar(255)
+  is_active                    String       @default("Y") @db.Char(1)
+  createdate                   DateTime?    @default(now()) @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime?    @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  asset_maintenance_master     asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  asset_maintenance_technician users        @relation(fields: [technician_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model asset_master {

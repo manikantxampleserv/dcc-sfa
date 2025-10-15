@@ -23,6 +23,10 @@ interface AssetMovementSerialized {
     id: number;
     name: string;
     serial_number: string;
+    asset_master_asset_types?: {
+      id: number;
+      name: string;
+    } | null;
   } | null;
   asset_movements_performed_by?: {
     id: number;
@@ -51,6 +55,14 @@ const serializeAssetMovement = (movement: any): AssetMovementSerialized => ({
         id: movement.asset_movements_master.id,
         name: movement.asset_movements_master.name,
         serial_number: movement.asset_movements_master.serial_number,
+        asset_master_asset_types: movement.asset_movements_master
+          .asset_master_asset_types
+          ? {
+              id: movement.asset_movements_master.asset_master_asset_types.id,
+              name: movement.asset_movements_master.asset_master_asset_types
+                .name,
+            }
+          : null,
       }
     : null,
   asset_movements_performed_by: movement.asset_movements_performed_by
@@ -82,7 +94,13 @@ export const assetMovementsController = {
           log_inst: data.log_inst || 1,
         },
         include: {
-          asset_movements_master: true,
+          asset_movements_master: {
+            include: {
+              asset_master_asset_types: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           asset_movements_performed_by: true,
         },
       });
@@ -125,17 +143,17 @@ export const assetMovementsController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          asset_movements_master: true,
+          asset_movements_master: {
+            include: {
+              asset_master_asset_types: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           asset_movements_performed_by: true,
         },
       });
 
-      const activeCount = await prisma.asset_movements.count({
-        where: { is_active: 'Y' },
-      });
-      const inactiveCount = await prisma.asset_movements.count({
-        where: { is_active: 'N' },
-      });
       const totalAssetMovements = await prisma.asset_movements.count();
       const activeAssetMovements = await prisma.asset_movements.count({
         where: { is_active: 'Y' },
@@ -179,7 +197,13 @@ export const assetMovementsController = {
       const movement = await prisma.asset_movements.findUnique({
         where: { id: Number(id) },
         include: {
-          asset_movements_master: true,
+          asset_movements_master: {
+            include: {
+              asset_master_asset_types: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           asset_movements_performed_by: true,
         },
       });
@@ -218,8 +242,14 @@ export const assetMovementsController = {
           updatedby: req.user?.id || 1,
           updatedate: new Date(),
         },
-        include: {
-          asset_movements_master: true,
+        select: {
+          asset_movements_master: {
+            include: {
+              asset_master_asset_types: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           asset_movements_performed_by: true,
         },
       });
