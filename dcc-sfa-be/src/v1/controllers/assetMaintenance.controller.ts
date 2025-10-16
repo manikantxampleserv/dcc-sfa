@@ -23,11 +23,16 @@ interface AssetMaintenanceSerialized {
     id: number;
     name: string;
     serial_number: string;
+    asset_master_asset_types?: {
+      id: number;
+      name: string;
+    } | null;
   } | null;
   asset_maintenance_technician?: {
     id: number;
     name: string;
     email: string;
+    profile_image: string | null;
   } | null;
 }
 
@@ -51,6 +56,13 @@ const serializeAssetMaintenance = (m: any): AssetMaintenanceSerialized => ({
         id: m.asset_maintenance_master.id,
         name: m.asset_maintenance_master.name,
         serial_number: m.asset_maintenance_master.serial_number,
+        asset_master_asset_types: m.asset_maintenance_master
+          .asset_master_asset_types
+          ? {
+              id: m.asset_maintenance_master.asset_master_asset_types.id,
+              name: m.asset_maintenance_master.asset_master_asset_types.name,
+            }
+          : null,
       }
     : null,
   asset_maintenance_technician: m.asset_maintenance_technician
@@ -58,6 +70,7 @@ const serializeAssetMaintenance = (m: any): AssetMaintenanceSerialized => ({
         id: m.asset_maintenance_technician.id,
         name: m.asset_maintenance_technician.name,
         email: m.asset_maintenance_technician.email,
+        profile_image: m.asset_maintenance_technician.profile_image,
       }
     : null,
 });
@@ -115,7 +128,13 @@ export const assetMaintenanceController = {
           log_inst: data.log_inst || 1,
         },
         include: {
-          asset_maintenance_master: true,
+          asset_maintenance_master: {
+            include: {
+              asset_master_asset_types: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           asset_maintenance_technician: true,
         },
       });
@@ -157,7 +176,13 @@ export const assetMaintenanceController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          asset_maintenance_master: true,
+          asset_maintenance_master: {
+            include: {
+              asset_master_asset_types: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           asset_maintenance_technician: true,
         },
       });
@@ -206,7 +231,13 @@ export const assetMaintenanceController = {
       const record = await prisma.asset_maintenance.findUnique({
         where: { id: Number(id) },
         include: {
-          asset_maintenance_master: true,
+          asset_maintenance_master: {
+            include: {
+              asset_master_asset_types: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           asset_maintenance_technician: true,
         },
       });
@@ -244,7 +275,13 @@ export const assetMaintenanceController = {
           updatedate: new Date(),
         },
         include: {
-          asset_maintenance_master: true,
+          asset_maintenance_master: {
+            include: {
+              asset_master_asset_types: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           asset_maintenance_technician: true,
         },
       });
