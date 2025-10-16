@@ -5,6 +5,7 @@ import PrivacyPolicy from 'pages/auth/PrivacyPolicy';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
 import ApiTokensPage from 'pages/masters/ApiTokens';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
+import AssetMaintenanceManagement from 'pages/masters/AssetMaintenance';
 import AssetMovementManagement from 'pages/masters/AssetMovement';
 import AssetTypesManagement from 'pages/masters/AssetTypes';
 import BrandsManagement from 'pages/masters/Brands';
@@ -46,7 +47,6 @@ import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-const AssetMaintenance = () => <h1>Asset Maintenance</h1>;
 const CoolerInstallations = () => <h1>Cooler Installations</h1>;
 const VanStock = () => <h1>Van Stock Load/Unload</h1>;
 const RepLocationTracking = () => <h1>Rep Location Tracking</h1>;
@@ -247,7 +247,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/transactions/maintenance',
-        element: <AssetMaintenance />,
+        element: <AssetMaintenanceManagement />,
       },
       {
         path: '/transactions/installations',
