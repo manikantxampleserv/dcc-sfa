@@ -34,15 +34,15 @@ export class VisitsImportExportService extends ImportExportService<any> {
     },
     {
       key: 'sales_person_id',
-      header: 'Salesperson ID',
+      header: 'Sales Person ID',
       width: 15,
       required: true,
       type: 'number',
       validation: value => {
-        if (!value) return 'Salesperson ID is required';
+        if (!value) return 'Sales Person ID is required';
         const id = parseInt(value);
         if (isNaN(id) || id <= 0)
-          return 'Salesperson ID must be a positive number';
+          return 'Sales Person ID must be a positive number';
         return true;
       },
       transform: value => parseInt(value),
@@ -357,15 +357,10 @@ export class VisitsImportExportService extends ImportExportService<any> {
         if (!value) return true;
         if (isNaN(Date.parse(value)))
           return 'Invalid date format (use YYYY-MM-DD)';
-        const nextVisit = new Date(value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (nextVisit < today) return 'Next visit date cannot be in the past';
         return true;
       },
       transform: value => (value ? new Date(value) : null),
-      description:
-        'Date for next planned visit (optional, cannot be past date)',
+      description: 'Date for next planned visit (optional)',
     },
     {
       key: 'is_active',
@@ -383,12 +378,49 @@ export class VisitsImportExportService extends ImportExportService<any> {
   ];
 
   protected async getSampleData(): Promise<any[]> {
+    // Fetch actual IDs from database to ensure validity
+    const customers = await prisma.customers.findMany({
+      take: 3,
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+    const users = await prisma.users.findMany({
+      take: 2,
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+    const routes = await prisma.routes.findMany({
+      take: 2,
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+    const zones = await prisma.zones.findMany({
+      take: 2,
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+
+    const customerIds = customers.map(c => c.id);
+    const userIds = users.map(u => u.id);
+    const routeIds = routes.map(r => r.id);
+    const zoneIds = zones.map(z => z.id);
+
+    const customerId1 = customerIds[0] || 999;
+    const customerId2 = customerIds[1] || 999;
+    const customerId3 = customerIds[2] || 999;
+    const userId1 = userIds[0] || 999;
+    const userId2 = userIds[1] || 999;
+    const routeId1 = routeIds[0] || null;
+    const routeId2 = routeIds[1] || null;
+    const zoneId1 = zoneIds[0] || null;
+    const zoneId2 = zoneIds[1] || null;
+
     return [
       {
-        customer_id: 1,
-        sales_person_id: 1,
-        route_id: 1,
-        zones_id: 1,
+        customer_id: customerId1,
+        sales_person_id: userId1,
+        route_id: routeId1,
+        zones_id: zoneId1,
         visit_date: '2024-01-15',
         visit_time: '10:00',
         purpose: 'sales',
@@ -410,10 +442,10 @@ export class VisitsImportExportService extends ImportExportService<any> {
         is_active: 'Y',
       },
       {
-        customer_id: 2,
-        sales_person_id: 1,
-        route_id: 1,
-        zones_id: 1,
+        customer_id: customerId2,
+        sales_person_id: userId1,
+        route_id: routeId1,
+        zones_id: zoneId1,
         visit_date: '2024-01-16',
         visit_time: '14:00',
         purpose: 'collection',
@@ -435,10 +467,10 @@ export class VisitsImportExportService extends ImportExportService<any> {
         is_active: 'Y',
       },
       {
-        customer_id: 3,
-        sales_person_id: 2,
-        route_id: 2,
-        zones_id: 2,
+        customer_id: customerId3,
+        sales_person_id: userId2,
+        route_id: routeId2,
+        zones_id: zoneId2,
         visit_date: '2024-01-17',
         visit_time: '09:30',
         purpose: 'survey',

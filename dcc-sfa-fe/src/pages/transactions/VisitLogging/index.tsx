@@ -1,13 +1,16 @@
-import { Add, Block, CheckCircle } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { useUsers } from 'hooks/useUsers';
+import { useDeleteVisit, useVisits, type Visit } from 'hooks/useVisits';
 import {
   Calendar,
   Clock,
   MapPin,
+  Route as RouteIcon,
   User,
   UserCheck,
   XCircle,
-  Route as RouteIcon,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -16,22 +19,8 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import { useUsers } from '../../../hooks/useUsers';
-import { useRoutes } from '../../../hooks/useRoutes';
-import { useZones } from '../../../hooks/useZones';
-import {
-  useDeleteVisit,
-  useVisits,
-  type Visit,
-} from '../../../hooks/useVisits';
 import ManageVisit from './ManageVisit';
-
-interface Customer {
-  id: number;
-  name: string;
-  email?: string;
-  phone?: string;
-}
+import ImportVisit from './ImportVisit';
 
 const VisitLogging: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -39,6 +28,7 @@ const VisitLogging: React.FC = () => {
   const [salespersonFilter, setSalespersonFilter] = useState('all');
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
@@ -65,51 +55,19 @@ const VisitLogging: React.FC = () => {
     limit: 1000, // Get all users for salesperson filtering
   });
 
-  const { data: routesResponse } = useRoutes({
-    page: 1,
-    limit: 100, // Get all routes
-  });
-
-  const { data: zonesResponse } = useZones({
-    page: 1,
-    limit: 100, // Get all zones
-  });
-
   const visits = visitsResponse?.data || [];
   const users = usersResponse?.data || [];
-  const routes = routesResponse?.data || [];
-  const zones = zonesResponse?.data || [];
   const totalCount = visitsResponse?.meta?.total || 0;
   const currentPage = (visitsResponse?.meta?.page || 1) - 1;
 
   const deleteVisitMutation = useDeleteVisit();
-
-  // Mock customers data - replace with actual API call
-  const customers: Customer[] = [
-    { id: 1, name: 'ABC Store', email: 'abc@store.com', phone: '+1234567890' },
-    {
-      id: 2,
-      name: 'XYZ Market',
-      email: 'xyz@market.com',
-      phone: '+1234567891',
-    },
-    {
-      id: 3,
-      name: 'Quick Mart',
-      email: 'quick@mart.com',
-      phone: '+1234567892',
-    },
-  ];
+  const exportToExcelMutation = useExportToExcel();
 
   // Statistics - Use API stats when available, fallback to local calculation
-  const totalVisits = visitsResponse?.stats?.total_visits ?? visits.length;
-  const activeVisits =
-    visitsResponse?.stats?.active_visits ??
-    visits.filter(v => v.is_active === 'Y').length;
-  const inactiveVisits =
-    visitsResponse?.stats?.inactive_visits ??
-    visits.filter(v => v.is_active === 'N').length;
-  const newVisitsThisMonth = visitsResponse?.stats?.new_visits || 0;
+  const totalVisits = visitsResponse?.stats?.total_visits ?? 0;
+  const activeVisits = visitsResponse?.stats?.active_visits ?? 0;
+  const inactiveVisits = visitsResponse?.stats?.inactive_visits ?? 0;
+  const newVisitsThisMonth = visitsResponse?.stats?.new_visits ?? 0;
 
   const handleCreateVisit = useCallback(() => {
     setSelectedVisit(null);
@@ -140,6 +98,24 @@ const VisitLogging: React.FC = () => {
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
   };
+
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      const filters = {
+        search,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        salesperson:
+          salespersonFilter === 'all' ? undefined : Number(salespersonFilter),
+      };
+
+      await exportToExcelMutation.mutateAsync({
+        tableName: 'visits',
+        filters,
+      });
+    } catch (error) {
+      console.error('Error exporting visits:', error);
+    }
+  }, [exportToExcelMutation, search, statusFilter, salespersonFilter]);
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -193,14 +169,14 @@ const VisitLogging: React.FC = () => {
     },
     {
       id: 'salesperson',
-      label: 'Salesperson',
+      label: 'Sales Person',
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <UserCheck className="w-3 h-3 text-gray-400" />
           <span className="text-sm">
             {row.salesperson?.name || (
               <span className="text-sm italic text-gray-500">
-                No Salesperson
+                No Sales Person
               </span>
             )}
           </span>
@@ -256,7 +232,7 @@ const VisitLogging: React.FC = () => {
       label: 'Status',
       render: (_value, row) => (
         <span
-          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+          className={`inline-flex px-2 py-1 text-xs capitalize font-semibold rounded-full ${getStatusColor(
             row.status || ''
           )}`}
         >
@@ -336,7 +312,7 @@ const VisitLogging: React.FC = () => {
       </Box>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -421,8 +397,8 @@ const VisitLogging: React.FC = () => {
         data={visits}
         columns={visitColumns}
         actions={
-          <div className="flex justify-between w-full">
-            <div className="flex gap-3">
+          <div className="flex justify-between !items-center gap-2 flex-wrap w-full">
+            <div className="flex gap-2 items-center flex-wrap">
               <SearchInput
                 placeholder="Search Visits"
                 value={search}
@@ -448,7 +424,7 @@ const VisitLogging: React.FC = () => {
                 className="!min-w-60"
                 size="small"
               >
-                <MenuItem value="all">All Salespeople</MenuItem>
+                <MenuItem value="all">All Sales Persons</MenuItem>
                 {salespeople.map(salesperson => (
                   <MenuItem
                     key={salesperson.id}
@@ -459,15 +435,34 @@ const VisitLogging: React.FC = () => {
                 ))}
               </Select>
             </div>
-            <Button
-              variant="contained"
-              className="!capitalize"
-              disableElevation
-              startIcon={<Add />}
-              onClick={handleCreateVisit}
-            >
-              Create Visit
-            </Button>
+            <div className="flex gap-2 items-center">
+              <Button
+                variant="outlined"
+                className="!capitalize"
+                startIcon={<Download />}
+                disabled={exportToExcelMutation.isPending}
+                onClick={handleExportToExcel}
+              >
+                {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+              </Button>
+              <Button
+                variant="outlined"
+                className="!capitalize"
+                startIcon={<Upload />}
+                onClick={() => setImportModalOpen(true)}
+              >
+                Import
+              </Button>
+              <Button
+                variant="contained"
+                className="!capitalize"
+                disableElevation
+                startIcon={<Add />}
+                onClick={handleCreateVisit}
+              >
+                Create Visit
+              </Button>
+            </div>
           </div>
         }
         getRowId={visit => visit.id}
@@ -489,10 +484,11 @@ const VisitLogging: React.FC = () => {
         setSelectedVisit={setSelectedVisit}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        customers={customers}
-        users={users}
-        routes={routes}
-        zones={zones}
+      />
+
+      <ImportVisit
+        drawerOpen={importModalOpen}
+        setDrawerOpen={setImportModalOpen}
       />
     </>
   );

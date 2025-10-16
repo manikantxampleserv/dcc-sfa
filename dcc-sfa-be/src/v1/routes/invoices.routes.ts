@@ -26,4 +26,42 @@ router.put(
 );
 router.delete('/invoices/:id', invoicesController.deleteInvoice);
 
+// Invoice Payment Lines Routes
+router.post(
+  '/invoices/:invoiceId/payment-lines',
+  invoicesController.createInvoicePaymentLine
+);
+router.get(
+  '/invoices/:invoiceId/payment-lines',
+  invoicesController.getInvoicePaymentLines
+);
+router.put(
+  '/invoices/:invoiceId/payment-lines/:lineId',
+  invoicesController.updateInvoicePaymentLine
+);
+router.delete(
+  '/invoices/:invoiceId/payment-lines/:lineId',
+  invoicesController.deleteInvoicePaymentLine
+);
+router.put(
+  '/invoices/:invoiceId/payment-lines',
+  invoicesController.bulkUpdateInvoicePaymentLines
+);
+
+// Invoice Items Routes
+router.post('/invoices/:invoiceId/items', invoicesController.createInvoiceItem);
+router.get('/invoices/:invoiceId/items', invoicesController.getInvoiceItems);
+router.put(
+  '/invoices/:invoiceId/items/:itemId',
+  invoicesController.updateInvoiceItem
+);
+router.delete(
+  '/invoices/:invoiceId/items/:itemId',
+  invoicesController.deleteInvoiceItem
+);
+router.put(
+  '/invoices/:invoiceId/items',
+  invoicesController.bulkUpdateInvoiceItems
+);
+
 export default router;

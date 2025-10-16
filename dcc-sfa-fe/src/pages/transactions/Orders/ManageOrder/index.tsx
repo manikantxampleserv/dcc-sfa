@@ -289,17 +289,9 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   ];
 
   const getCurrencyCode = (currencyId: string | number) => {
-    const currencyMap: Record<string, string> = {
-      '1': 'INR',
-      '2': 'USD',
-      '3': 'EUR',
-      '4': 'GBP',
-      '5': 'JPY',
-      '6': 'AUD',
-      '7': 'CAD',
-      '8': 'TZS',
-    };
-    return currencyMap[String(currencyId)] || 'INR';
+    const currencies = currenciesResponse?.data || [];
+    const currency = currencies.find(c => c.id === Number(currencyId));
+    return currency?.code || 'USD';
   };
 
   const formatCurrency = (

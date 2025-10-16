@@ -34,6 +34,8 @@ import ZonesManagement from 'pages/masters/Zone';
 import Profile from 'pages/Profile';
 import OrdersManagement from 'pages/transactions/Orders';
 import InvoicesManagement from 'pages/transactions/Invoices';
+import CreditNotesManagement from 'pages/transactions/CreditNotes';
+import AssetMovementManagement from 'pages/masters/AssetMovement';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import DeliveryScheduling from 'pages/transactions/DeliveryScheduling';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
@@ -43,8 +45,6 @@ import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-const CreditNotes = () => <h1>Credit Notes</h1>;
-const AssetMovement = () => <h1>Asset Movement</h1>;
 const AssetMaintenance = () => <h1>Asset Maintenance</h1>;
 const CoolerInstallations = () => <h1>Cooler Installations</h1>;
 const VanStock = () => <h1>Van Stock Load/Unload</h1>;
@@ -231,7 +231,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/transactions/credit-notes',
-        element: <CreditNotes />,
+        element: <CreditNotesManagement />,
       },
       {
         path: '/transactions/visits',
@@ -239,7 +239,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/transactions/asset-movement',
-        element: <AssetMovement />,
+        element: <AssetMovementManagement />,
       },
       {
         path: '/transactions/maintenance',

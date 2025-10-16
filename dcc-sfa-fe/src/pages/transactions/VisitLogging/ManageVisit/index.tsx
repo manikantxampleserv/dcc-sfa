@@ -1,32 +1,23 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCreateVisit, useUpdateVisit, type Visit } from 'hooks/useVisits';
+import { useCustomers } from 'hooks/useCustomers';
+import { useUsers } from 'hooks/useUsers';
+import { useRoutes } from 'hooks/useRoutes';
+import { useZones } from 'hooks/useZones';
 import React from 'react';
 import { visitValidationSchema } from 'schemas/visit.schema';
-import type { User } from 'services/masters/Users';
-import type { Route } from 'services/masters/Routes';
-import type { Zone } from 'services/masters/Zones';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-
-interface Customer {
-  id: number;
-  name: string;
-  email?: string;
-  phone?: string;
-}
+import { formatForDateInput } from 'utils/dateUtils';
 
 interface ManageVisitProps {
   selectedVisit?: Visit | null;
   setSelectedVisit: (visit: Visit | null) => void;
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
-  customers: Customer[];
-  users: User[];
-  routes: Route[];
-  zones: Zone[];
 }
 
 const ManageVisit: React.FC<ManageVisitProps> = ({
@@ -34,12 +25,19 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
   setSelectedVisit,
   drawerOpen,
   setDrawerOpen,
-  customers,
-  users,
-  routes,
-  zones,
 }) => {
   const isEdit = !!selectedVisit;
+
+  // Fetch data using hooks
+  const customersResponse = useCustomers({ limit: 1000 }); // Get all customers
+  const usersResponse = useUsers({ limit: 1000 }); // Get all users
+  const routesResponse = useRoutes({ limit: 1000 }); // Get all routes
+  const zonesResponse = useZones({ limit: 1000 }); // Get all zones
+
+  const customers = customersResponse?.data?.data || [];
+  const users = usersResponse?.data?.data || [];
+  const routes = routesResponse?.data?.data || [];
+  const zones = zonesResponse?.data?.data || [];
 
   const handleCancel = () => {
     setSelectedVisit(null);
@@ -55,9 +53,7 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
       sales_person_id: selectedVisit?.sales_person_id?.toString() || '',
       route_id: selectedVisit?.route_id?.toString() || '',
       zones_id: selectedVisit?.zones_id?.toString() || '',
-      visit_date: selectedVisit?.visit_date
-        ? selectedVisit.visit_date.split('T')[0]
-        : '',
+      visit_date: formatForDateInput(selectedVisit?.visit_date),
       visit_time: selectedVisit?.visit_time || '',
       purpose: selectedVisit?.purpose || '',
       status: selectedVisit?.status || 'planned',
@@ -69,9 +65,7 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
       amount_collected: selectedVisit?.amount_collected || '',
       visit_notes: selectedVisit?.visit_notes || '',
       customer_feedback: selectedVisit?.customer_feedback || '',
-      next_visit_date: selectedVisit?.next_visit_date
-        ? selectedVisit.next_visit_date.split('T')[0]
-        : '',
+      next_visit_date: formatForDateInput(selectedVisit?.next_visit_date),
       is_active: selectedVisit?.is_active || 'Y',
     },
     validationSchema: visitValidationSchema,
@@ -117,9 +111,6 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
     },
   });
 
-  // Show all users as potential salespeople
-  const salespeople = users;
-
   return (
     <CustomDrawer
       open={drawerOpen}
@@ -139,24 +130,21 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
               <MenuItem value="">Select Customer</MenuItem>
               {customers.map(customer => (
                 <MenuItem key={customer.id} value={customer.id.toString()}>
-                  {customer.name}
+                  {customer.name} ({customer.code})
                 </MenuItem>
               ))}
             </Select>
 
             <Select
               name="sales_person_id"
-              label="Salesperson"
+              label="Sales Person"
               formik={formik}
               required
             >
-              <MenuItem value="">Select Salesperson</MenuItem>
-              {salespeople.map(salesperson => (
-                <MenuItem
-                  key={salesperson.id}
-                  value={salesperson.id.toString()}
-                >
-                  {salesperson.name}
+              <MenuItem value="">Select Sales Person</MenuItem>
+              {users.map(user => (
+                <MenuItem key={user.id} value={user.id.toString()}>
+                  {user.name} ({user.email})
                 </MenuItem>
               ))}
             </Select>
@@ -218,6 +206,7 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
             />
 
             <Input
+              type="number"
               name="amount_collected"
               label="Amount Collected"
               formik={formik}
@@ -264,7 +253,7 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
             </Box>
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center gap-2 flex-wrap">
             <Button
               type="button"
               variant="outlined"

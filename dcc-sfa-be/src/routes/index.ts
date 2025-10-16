@@ -45,6 +45,11 @@ import payments from '../v1/routes/payments.routes';
 import invoices from '../v1/routes/invoices.routes';
 import workflow from '../v1/routes/workflow.routes';
 import creditNotes from '../v1/routes/creditNotes.routes';
+import creditNotesItems from '../v1/routes/creditNotesItems.routes';
+import assetMovements from '../v1/routes/assetMovements.routes';
+import assetMaintenance from '../v1/routes/assetMaintenance.routes';
+import assetWarrantyClaims from '../v1/routes/assetWarrantyClaims.routes';
+
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -92,6 +97,10 @@ routes.use('/v1', payments);
 routes.use('/v1', invoices);
 routes.use('/v1/workflow', workflow);
 routes.use('/v1', creditNotes);
+routes.use('/v1', creditNotesItems);
+routes.use('/v1', assetMovements);
+routes.use('/v1', assetMaintenance);
+routes.use('/v1', assetWarrantyClaims);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
