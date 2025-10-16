@@ -49,6 +49,7 @@ import CoolerInstallationDetail from 'pages/transactions/CoolerInstallations/Coo
 import CoolerInspectionsManagement from 'pages/transactions/CoolerInspections';
 import CoolerInspectionDetail from 'pages/transactions/CoolerInspections/CoolerInspectionDetail';
 import StockTransferRequestsManagement from 'pages/masters/StockTransferRequests';
+import StockMovementsManagement from 'pages/masters/StockMovements';
 import VanStockManagement from 'pages/masters/VanStock';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
@@ -272,6 +273,10 @@ const router = createBrowserRouter([
       {
         path: '/transactions/stock-transfer',
         element: <StockTransferRequestsManagement />,
+      },
+      {
+        path: '/transactions/stock-movements',
+        element: <StockMovementsManagement />,
       },
       {
         path: '/transactions/van-stock',

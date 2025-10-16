@@ -112,7 +112,7 @@ const VanStockPage: React.FC = () => {
   const vanInventoryColumns: TableColumn<VanInventory>[] = [
     {
       id: 'user_id',
-      label: 'Sales Person',
+      label: 'Van Inventory User',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar

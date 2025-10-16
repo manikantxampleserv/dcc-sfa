@@ -116,7 +116,7 @@ export const stockMovementsController = {
 
   async getAllStockMovements(req: any, res: any) {
     try {
-      const { page, limit, search, status } = req.query;
+      const { page, limit, search, status, movement_type } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -126,10 +126,14 @@ export const stockMovementsController = {
           OR: [
             { movement_type: { contains: searchLower } },
             { reference_type: { contains: searchLower } },
+            { remarks: { contains: searchLower } },
           ],
         }),
         ...(status && {
           is_active: status.toLowerCase() === 'active' ? 'Y' : 'N',
+        }),
+        ...(movement_type && {
+          movement_type: movement_type,
         }),
       };
 
@@ -146,11 +150,47 @@ export const stockMovementsController = {
         },
       });
 
+      // Calculate statistics
+      const [
+        totalStockMovements,
+        activeStockMovements,
+        inactiveStockMovements,
+        stockMovementsThisMonth,
+        totalInMovements,
+        totalOutMovements,
+        totalTransferMovements,
+      ] = await Promise.all([
+        prisma.stock_movements.count(),
+        prisma.stock_movements.count({ where: { is_active: 'Y' } }),
+        prisma.stock_movements.count({ where: { is_active: 'N' } }),
+        prisma.stock_movements.count({
+          where: {
+            createdate: {
+              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            },
+          },
+        }),
+        prisma.stock_movements.count({ where: { movement_type: 'IN' } }),
+        prisma.stock_movements.count({ where: { movement_type: 'OUT' } }),
+        prisma.stock_movements.count({ where: { movement_type: 'TRANSFER' } }),
+      ]);
+
+      const stats = {
+        total_stock_movements: totalStockMovements,
+        active_stock_movements: activeStockMovements,
+        inactive_stock_movements: inactiveStockMovements,
+        stock_movements_this_month: stockMovementsThisMonth,
+        total_in_movements: totalInMovements,
+        total_out_movements: totalOutMovements,
+        total_transfer_movements: totalTransferMovements,
+      };
+
       res.success(
         'Stock Movements retrieved successfully',
         data.map((sm: any) => serializeStockMovement(sm)),
         200,
-        pagination
+        pagination,
+        stats
       );
     } catch (error: any) {
       console.error('Get All Stock Movements Error:', error);

@@ -2,11 +2,11 @@ import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
 import {
-  useDeleteStockTransferRequest,
-  useStockTransferRequests,
-  type StockTransferRequest,
-} from 'hooks/useStockTransferRequests';
-import { TrendingUp, Truck, XCircle } from 'lucide-react';
+  useDeleteStockMovement,
+  useStockMovements,
+  type StockMovement,
+} from 'hooks/useStockMovements';
+import { ArrowDown, ArrowRightLeft, ArrowUp, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -15,24 +15,25 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import ImportStockTransferRequest from './ImportStockTransferRequest';
-import ManageStockTransferRequest from './ManageStockTransferRequest';
+import ImportStockMovement from './ImportStockMovement';
+import ManageStockMovement from './ManageStockMovement';
 
-const StockTransferRequestsManagement: React.FC = () => {
+const StockMovementsManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedRequest, setSelectedRequest] =
-    useState<StockTransferRequest | null>(null);
+  const [movementTypeFilter, setMovementTypeFilter] = useState('all');
+  const [selectedMovement, setSelectedMovement] =
+    useState<StockMovement | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const {
-    data: requestsResponse,
+    data: movementsResponse,
     isLoading,
     error,
-  } = useStockTransferRequests({
+  } = useStockMovements({
     search,
     page,
     limit,
@@ -42,43 +43,43 @@ const StockTransferRequestsManagement: React.FC = () => {
         : statusFilter === 'active'
           ? 'active'
           : 'inactive',
+    movement_type:
+      movementTypeFilter === 'all' ? undefined : movementTypeFilter,
   });
 
-  const requests = requestsResponse?.data || [];
-  const totalCount = requestsResponse?.meta?.total || 0;
-  const currentPage = (requestsResponse?.meta?.page || 1) - 1;
+  const movements = movementsResponse?.data || [];
+  const totalCount = movementsResponse?.meta?.total || 0;
+  const currentPage = (movementsResponse?.meta?.page || 1) - 1;
 
-  const deleteRequestMutation = useDeleteStockTransferRequest();
+  const deleteMovementMutation = useDeleteStockMovement();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalRequests =
-    requestsResponse?.stats?.total_stock_transfer_requests ?? 0;
-  const activeRequests =
-    requestsResponse?.stats?.active_stock_transfer_requests ?? 0;
-  const inactiveRequests =
-    requestsResponse?.stats?.inactive_stock_transfer_requests ?? 0;
-  const requestsThisMonth =
-    requestsResponse?.stats?.stock_transfer_requests_this_month ?? 0;
+  const totalMovements = movementsResponse?.stats?.total_stock_movements ?? 0;
 
-  const handleCreateRequest = useCallback(() => {
-    setSelectedRequest(null);
+  const movementsThisMonth =
+    movementsResponse?.stats?.stock_movements_this_month ?? 0;
+  const totalInMovements = movementsResponse?.stats?.total_in_movements ?? 0;
+  const totalOutMovements = movementsResponse?.stats?.total_out_movements ?? 0;
+
+  const handleCreateMovement = useCallback(() => {
+    setSelectedMovement(null);
     setDrawerOpen(true);
   }, []);
 
-  const handleEditRequest = useCallback((request: StockTransferRequest) => {
-    setSelectedRequest(request);
+  const handleEditMovement = useCallback((movement: StockMovement) => {
+    setSelectedMovement(movement);
     setDrawerOpen(true);
   }, []);
 
-  const handleDeleteRequest = useCallback(
+  const handleDeleteMovement = useCallback(
     async (id: number) => {
       try {
-        await deleteRequestMutation.mutateAsync(id);
+        await deleteMovementMutation.mutateAsync(id);
       } catch (error) {
-        console.error('Error deleting stock transfer request:', error);
+        console.error('Error deleting stock movement:', error);
       }
     },
-    [deleteRequestMutation]
+    [deleteMovementMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -100,152 +101,170 @@ const StockTransferRequestsManagement: React.FC = () => {
             : statusFilter === 'active'
               ? 'active'
               : 'inactive',
+        movement_type:
+          movementTypeFilter === 'all' ? undefined : movementTypeFilter,
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'stock_transfer_requests',
+        tableName: 'stock_movements',
         filters,
       });
     } catch (error) {
-      console.error('Error exporting stock transfer requests:', error);
+      console.error('Error exporting stock movements:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter]);
+  }, [exportToExcelMutation, search, statusFilter, movementTypeFilter]);
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return 'warning';
-      case 'approved':
-        return 'success';
-      case 'rejected':
-        return 'error';
-      case 'in_progress':
-        return 'info';
-      case 'completed':
-        return 'success';
+  const getMovementTypeIcon = (type: string) => {
+    switch (type?.toUpperCase()) {
+      case 'IN':
+        return <ArrowDown className="w-4 h-4 text-green-600" />;
+      case 'OUT':
+        return <ArrowUp className="w-4 h-4 text-red-600" />;
+      case 'TRANSFER':
+        return <ArrowRightLeft className="w-4 h-4 text-blue-600" />;
       default:
-        return 'default';
+        return <ArrowRightLeft className="w-4 h-4 text-gray-600" />;
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return 'Pending';
-      case 'approved':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      case 'in_progress':
-        return 'In Progress';
-      case 'completed':
-        return 'Completed';
+  const getMovementTypeLabel = (type: string) => {
+    switch (type?.toUpperCase()) {
+      case 'IN':
+        return 'Stock In';
+      case 'OUT':
+        return 'Stock Out';
+      case 'TRANSFER':
+        return 'Transfer';
       default:
-        return status || 'Unknown';
+        return type || 'Unknown';
     }
   };
 
   // Define table columns
-  const requestColumns: TableColumn<StockTransferRequest>[] = [
+  const movementColumns: TableColumn<StockMovement>[] = [
     {
-      id: 'request_number',
-      label: 'Request Number',
+      id: 'movement_type',
+      label: 'Movement',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.request_number}
+            alt={row.movement_type}
             className="!rounded !bg-primary-100 !text-primary-600"
+            sx={{ width: 32, height: 32 }}
           >
-            <Truck className="w-5 h-5" />
+            {getMovementTypeIcon(row.movement_type)}
           </Avatar>
           <Box>
             <Typography
               variant="body1"
               className="!text-gray-900 !leading-tight !font-medium"
             >
-              {row.request_number}
+              {getMovementTypeLabel(row.movement_type)}
             </Typography>
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.source_type} → {row.destination_type}
+              {row.reference_type
+                ? `${row.reference_type} #${row.reference_id}`
+                : 'Direct Movement'}
             </Typography>
           </Box>
         </Box>
       ),
     },
     {
-      id: 'source',
-      label: 'Source',
+      id: 'product',
+      label: 'Product',
       render: (_value, row) => (
         <Box>
           <Typography variant="body2" className="!text-gray-900 !font-medium">
-            {row.source?.name || `ID: ${row.source_id}`}
+            {row.product?.name || `ID: ${row.product_id}`}
           </Typography>
           <Typography variant="caption" className="!text-gray-500">
-            {row.source_type}
+            {row.product?.code || 'No Code'}
           </Typography>
         </Box>
       ),
     },
     {
-      id: 'destination',
-      label: 'Destination',
+      id: 'quantity',
+      label: 'Quantity',
       render: (_value, row) => (
-        <Box>
-          <Typography variant="body2" className="!text-gray-900 !font-medium">
-            {row.destination?.name || `ID: ${row.destination_id}`}
-          </Typography>
-          <Typography variant="caption" className="!text-gray-500">
-            {row.destination_type}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      id: 'requested_by_user',
-      label: 'Requested By',
-      render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
-          <Avatar
-            alt={row.requested_by_user?.name || 'Unknown'}
-            className="!rounded !bg-primary-100 !text-primary-600"
-            sx={{ width: 32, height: 32 }}
+        <Box className="!text-center">
+          <Typography
+            variant="body2"
+            className={`${
+              row.movement_type?.toUpperCase() === 'IN'
+                ? '!text-green-600'
+                : row.movement_type?.toUpperCase() === 'OUT'
+                  ? '!text-red-600'
+                  : '!text-blue-600'
+            }`}
           >
-            {row.requested_by_user?.name?.charAt(0) || '?'}
-          </Avatar>
-          <Box>
-            <Typography variant="body2" className="!text-gray-900 !font-medium">
-              {row.requested_by_user?.name || 'Unknown User'}
-            </Typography>
-            <Typography variant="caption" className="!text-gray-500">
-              {row.requested_by_user?.email || `ID: ${row.requested_by}`}
-            </Typography>
-          </Box>
+            {row.movement_type?.toUpperCase() === 'IN'
+              ? '+'
+              : row.movement_type?.toUpperCase() === 'OUT'
+                ? '-'
+                : '±'}{' '}
+            {row.quantity}
+          </Typography>
         </Box>
       ),
     },
     {
-      id: 'status',
-      label: 'Status',
+      id: 'locations',
+      label: 'Locations',
       render: (_value, row) => (
-        <Chip
-          label={getStatusLabel(row.status || 'pending')}
-          size="small"
-          className="w-24"
-          color={getStatusColor(row.status || 'pending') as any}
-        />
+        <Box>
+          {row.from_location && (
+            <Typography variant="caption" className="!text-gray-500 !block">
+              From: {row.from_location.name}
+            </Typography>
+          )}
+          {row.to_location && (
+            <Typography variant="caption" className="!text-gray-500 !block">
+              To: {row.to_location.name}
+            </Typography>
+          )}
+          {!row.from_location && !row.to_location && (
+            <Typography variant="caption" className="!text-gray-400 !italic">
+              No location specified
+            </Typography>
+          )}
+        </Box>
       ),
     },
     {
-      id: 'transfer_lines',
-      label: 'Items',
+      id: 'batch_serial',
+      label: 'Batch/Serial',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.transfer_lines?.length || 0} items
-        </Typography>
+        <Box>
+          {row.batch_id && (
+            <Typography variant="caption" className="!text-gray-600 !block">
+              Batch: {row.batch_id}
+            </Typography>
+          )}
+          {row.serial_id && (
+            <Typography variant="caption" className="!text-gray-600 !block">
+              Serial: {row.serial_id}
+            </Typography>
+          )}
+          {!row.batch_id && !row.serial_id && (
+            <Typography variant="caption" className="!text-gray-400 !italic">
+              No batch/serial
+            </Typography>
+          )}
+        </Box>
       ),
+    },
+    {
+      id: 'movement_date',
+      label: 'Date',
+      render: (_value, row) =>
+        formatDate(row.movement_date) || (
+          <span className="italic text-gray-400">No Date</span>
+        ),
     },
     {
       id: 'is_active',
@@ -262,7 +281,7 @@ const StockTransferRequestsManagement: React.FC = () => {
     },
     {
       id: 'createdate',
-      label: 'Created Date',
+      label: 'Created',
       render: (_value, row) =>
         formatDate(row.createdate) || (
           <span className="italic text-gray-400">No Date</span>
@@ -275,13 +294,13 @@ const StockTransferRequestsManagement: React.FC = () => {
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
           <EditButton
-            onClick={() => handleEditRequest(row)}
-            tooltip={`Edit ${row.request_number}`}
+            onClick={() => handleEditMovement(row)}
+            tooltip={`Edit movement ${row.id}`}
           />
           <DeleteButton
-            onClick={() => handleDeleteRequest(row.id)}
-            tooltip={`Delete ${row.request_number}`}
-            itemName={row.request_number}
+            onClick={() => handleDeleteMovement(row.id)}
+            tooltip={`Delete movement ${row.id}`}
+            itemName={`movement ${row.id}`}
             confirmDelete={true}
           />
         </div>
@@ -294,10 +313,11 @@ const StockTransferRequestsManagement: React.FC = () => {
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Stock Transfer Requests Management
+            Stock Movements Management
           </p>
           <p className="!text-gray-500 text-sm">
-            Manage stock transfer requests between warehouses and locations
+            Track and manage all stock movements including in, out, and transfer
+            operations
           </p>
         </Box>
       </Box>
@@ -308,56 +328,52 @@ const StockTransferRequestsManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">
-                Total Requests
+                Total Movements
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-gray-900">
-                  {totalRequests}
+                  {totalMovements}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Truck className="w-6 h-6 text-blue-600" />
+              <ArrowRightLeft className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Active Requests
-              </p>
+              <p className="text-sm font-medium text-gray-600">Stock In</p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-green-600">
-                  {activeRequests}
+                  {totalInMovements}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+              <ArrowDown className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
-                Inactive Requests
-              </p>
+              <p className="text-sm font-medium text-gray-600">Stock Out</p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-red-600">
-                  {inactiveRequests}
+                  {totalOutMovements}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <XCircle className="w-6 h-6 text-red-600" />
+              <ArrowUp className="w-6 h-6 text-red-600" />
             </div>
           </div>
         </div>
@@ -369,7 +385,7 @@ const StockTransferRequestsManagement: React.FC = () => {
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {requestsThisMonth}
+                  {movementsThisMonth}
                 </p>
               )}
             </div>
@@ -382,18 +398,18 @@ const StockTransferRequestsManagement: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load stock transfer requests. Please try again.
+          Failed to load stock movements. Please try again.
         </Alert>
       )}
 
       <Table
-        data={requests}
-        columns={requestColumns}
+        data={movements}
+        columns={movementColumns}
         actions={
           <div className="flex justify-between w-full items-center flex-wrap gap-2">
             <div className="flex items-center flex-wrap gap-2">
               <SearchInput
-                placeholder="Search Stock Transfer Requests"
+                placeholder="Search Stock Movements"
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
@@ -411,11 +427,22 @@ const StockTransferRequestsManagement: React.FC = () => {
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="inactive">Inactive</MenuItem>
               </Select>
+              <Select
+                value={movementTypeFilter}
+                onChange={e => setMovementTypeFilter(e.target.value)}
+                className="!min-w-32"
+                size="small"
+              >
+                <MenuItem value="all">All Types</MenuItem>
+                <MenuItem value="IN">Stock In</MenuItem>
+                <MenuItem value="OUT">Stock Out</MenuItem>
+                <MenuItem value="TRANSFER">Transfer</MenuItem>
+              </Select>
             </div>
             <div className="flex items-center flex-wrap gap-2">
               <PopConfirm
-                title="Export Stock Transfer Requests"
-                description="Are you sure you want to export the current stock transfer requests data to Excel? This will include all filtered results."
+                title="Export Stock Movements"
+                description="Are you sure you want to export the current stock movements data to Excel? This will include all filtered results."
                 onConfirm={handleExportToExcel}
                 confirmText="Export"
                 cancelText="Cancel"
@@ -443,15 +470,15 @@ const StockTransferRequestsManagement: React.FC = () => {
                 className="!capitalize"
                 disableElevation
                 startIcon={<Add />}
-                onClick={handleCreateRequest}
+                onClick={handleCreateMovement}
               >
                 Create
               </Button>
             </div>
           </div>
         }
-        getRowId={request => request.id}
-        initialOrderBy="request_number"
+        getRowId={movement => movement.id}
+        initialOrderBy="createdate"
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
@@ -459,21 +486,21 @@ const StockTransferRequestsManagement: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No stock transfer requests found matching "${search}"`
-            : 'No stock transfer requests found in the system'
+            ? `No stock movements found matching "${search}"`
+            : 'No stock movements found in the system'
         }
       />
 
-      <ManageStockTransferRequest
+      <ManageStockMovement
         open={drawerOpen}
         onClose={() => {
           setDrawerOpen(false);
-          setSelectedRequest(null);
+          setSelectedMovement(null);
         }}
-        request={selectedRequest}
+        movement={selectedMovement}
       />
 
-      <ImportStockTransferRequest
+      <ImportStockMovement
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
       />
@@ -481,4 +508,4 @@ const StockTransferRequestsManagement: React.FC = () => {
   );
 };
 
-export default StockTransferRequestsManagement;
+export default StockMovementsManagement;

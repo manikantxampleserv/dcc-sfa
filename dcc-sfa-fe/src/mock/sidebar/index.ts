@@ -184,6 +184,11 @@ const menuItems: MenuItem[] = [
         href: '/transactions/stock-transfer',
       },
       {
+        id: 'stock-movements',
+        label: 'Stock Movements',
+        href: '/transactions/stock-movements',
+      },
+      {
         id: 'van-stock',
         label: 'Van Stock Load/Unload',
         href: '/transactions/van-stock',

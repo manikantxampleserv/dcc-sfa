@@ -1,5 +1,7 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
+import { useProducts } from 'hooks/useProducts';
+import { useUsers } from 'hooks/useUsers';
 import {
   useCreateVanInventory,
   useUpdateVanInventory,
@@ -11,8 +13,6 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import { useUsers } from 'hooks/useUsers';
-import { useProducts } from 'hooks/useProducts';
 
 interface ManageVanInventoryProps {
   selectedVanInventory?: VanInventory | null;
@@ -131,7 +131,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             <Box>
               <Select
                 name="user_id"
-                label="Sales Person"
+                label="Van Inventory User"
                 formik={formik}
                 required
                 fullWidth
@@ -239,10 +239,10 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               updateVanInventoryMutation.isPending
                 ? isEdit
                   ? 'Updating...'
-                  : 'Loading...'
+                  : 'Creating...'
                 : isEdit
-                  ? 'Update Stock'
-                  : 'Load Stock'}{' '}
+                  ? 'Update'
+                  : 'Create'}{' '}
             </Button>
           </Box>
         </form>

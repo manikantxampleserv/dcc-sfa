@@ -204,6 +204,14 @@ export interface ApiResponse<T = any> {
     active_records: number;
     inactive_records: number;
     van_inventory: number;
+    // Stock movement statistics
+    total_stock_movements: number;
+    active_stock_movements: number;
+    inactive_stock_movements: number;
+    stock_movements_this_month: number;
+    total_in_movements: number;
+    total_out_movements: number;
+    total_transfer_movements: number;
   };
 }
 
