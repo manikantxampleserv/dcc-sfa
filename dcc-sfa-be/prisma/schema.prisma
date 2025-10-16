@@ -83,6 +83,7 @@ model roles {
   id               Int                @id() @default(autoincrement())
   name             String             @unique @db.NVarChar(100)
   description      String?            @db.NVarChar(500)
+  level            Int                @default(1)
   is_active        String             @default("Y") @db.Char(1)
   createdate       DateTime?          @default(now()) @db.DateTime
   createdby        Int
@@ -119,6 +120,7 @@ model role_permissions {
   log_inst         Int?
   roles_permission roles?       @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   permission       permissions? @relation(fields: [permission_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+
 }
 
 model depots {

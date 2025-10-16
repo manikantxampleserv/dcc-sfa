@@ -342,10 +342,10 @@ export const userController = {
       const { createdate, updatedate, password, id, is_active, ...userData } =
         req.body;
 
-      const restrictedFields = ['role_id', 'employee_id', 'email'];
-      restrictedFields.forEach(field => {
-        if (field in userData) delete userData[field];
-      });
+      // const restrictedFields = ['role_id', 'employee_id', 'email'];
+      // restrictedFields.forEach(field => {
+      //   if (field in userData) delete userData[field];
+      // });
 
       let profile_image_url: string | undefined;
 
@@ -402,6 +402,10 @@ export const userController = {
 
       if (is_active !== undefined && is_active !== null) {
         updateData.is_active = is_active;
+      }
+
+      if (updateData.role_id) {
+        updateData.role_id = Number(updateData.role_id);
       }
 
       const updatedUser = await prisma.users.update({
