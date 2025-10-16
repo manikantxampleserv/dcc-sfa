@@ -20,6 +20,10 @@ export interface AssetMovement {
     id: number;
     name: string;
     serial_number: string;
+    asset_master_asset_types?: {
+      id: number;
+      name: string;
+    } | null;
   } | null;
   asset_movements_performed_by?: {
     id: number;

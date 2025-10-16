@@ -9,18 +9,18 @@ import {
   Typography,
 } from '@mui/material';
 import {
-  useAssetMovements,
-  useDeleteAssetMovement,
-  type AssetMovement,
-} from 'hooks/useAssetMovement';
+  useCompetitorActivities,
+  useDeleteCompetitorActivity,
+  type CompetitorActivity,
+} from 'hooks/useCompetitorActivity';
 import { useExportToExcel } from 'hooks/useImportExport';
 import {
-  ArrowRight,
+  Building2,
   Calendar,
-  FileText,
-  MapPin,
-  Package,
-  User,
+  DollarSign,
+  Eye,
+  Image,
+  Target,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -30,62 +30,64 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import ImportAssetMovement from './ImportAssetMovement';
-import ManageAssetMovement from './ManageAssetMovement';
+import ImportCompetitorActivity from './ImportCompetitorActivity';
+import ManageCompetitorActivity from './ManageCompetitorActivity';
 
-const AssetMovementManagement: React.FC = () => {
+const CompetitorActivityManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedMovement, setSelectedMovement] =
-    useState<AssetMovement | null>(null);
+  const [selectedActivity, setSelectedActivity] =
+    useState<CompetitorActivity | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const {
-    data: assetMovementResponse,
+    data: competitorActivityResponse,
     isLoading,
     error,
-  } = useAssetMovements({
+  } = useCompetitorActivities({
     search,
     page,
     limit,
     status: statusFilter === 'all' ? undefined : statusFilter,
   });
 
-  const assetMovements = assetMovementResponse?.data || [];
-  const totalCount = assetMovementResponse?.meta?.total_count || 0;
-  const currentPage = (assetMovementResponse?.meta?.current_page || 1) - 1;
+  const competitorActivities = competitorActivityResponse?.data || [];
+  const totalCount = competitorActivityResponse?.meta?.total_count || 0;
+  const currentPage = (competitorActivityResponse?.meta?.current_page || 1) - 1;
 
-  const deleteAssetMovementMutation = useDeleteAssetMovement();
+  const deleteCompetitorActivityMutation = useDeleteCompetitorActivity();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalMovements = assetMovementResponse?.stats?.total_records ?? 0;
-  const activeMovements = assetMovementResponse?.stats?.active_records ?? 0;
-  const inactiveMovements = assetMovementResponse?.stats?.inactive_records ?? 0;
-  const movementsThisMonth =
-    assetMovementResponse?.stats?.this_month_records ?? 0;
+  const totalActivities = competitorActivityResponse?.stats?.total_records ?? 0;
+  const activeActivities =
+    competitorActivityResponse?.stats?.active_records ?? 0;
+  const inactiveActivities =
+    competitorActivityResponse?.stats?.inactive_records ?? 0;
+  const activitiesThisMonth =
+    competitorActivityResponse?.stats?.this_month_records ?? 0;
 
-  const handleCreateMovement = useCallback(() => {
-    setSelectedMovement(null);
+  const handleCreateActivity = useCallback(() => {
+    setSelectedActivity(null);
     setDrawerOpen(true);
   }, []);
 
-  const handleEditMovement = useCallback((movement: AssetMovement) => {
-    setSelectedMovement(movement);
+  const handleEditActivity = useCallback((activity: CompetitorActivity) => {
+    setSelectedActivity(activity);
     setDrawerOpen(true);
   }, []);
 
-  const handleDeleteMovement = useCallback(
+  const handleDeleteActivity = useCallback(
     async (id: number) => {
       try {
-        await deleteAssetMovementMutation.mutateAsync(id);
+        await deleteCompetitorActivityMutation.mutateAsync(id);
       } catch (error) {
-        console.error('Error deleting asset movement:', error);
+        console.error('Error deleting competitor activity:', error);
       }
     },
-    [deleteAssetMovementMutation]
+    [deleteCompetitorActivityMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -105,125 +107,143 @@ const AssetMovementManagement: React.FC = () => {
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'asset_movements',
+        tableName: 'competitor_activity',
         filters,
       });
     } catch (error) {
-      console.error('Error exporting asset movements:', error);
+      console.error('Error exporting competitor activities:', error);
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const getMovementTypeColor = (
-    type: string
+  const getVisibilityScoreColor = (
+    score: number | null
   ): 'primary' | 'success' | 'secondary' | 'error' | 'warning' | 'default' => {
-    const typeLower = type.toLowerCase();
-    const colors: Record<
-      string,
-      'primary' | 'success' | 'secondary' | 'error' | 'warning' | 'default'
-    > = {
-      transfer: 'primary',
-      maintenance: 'warning',
-      repair: 'error',
-      disposal: 'secondary',
-      return: 'success',
-      other: 'default',
-    };
-    return colors[typeLower as keyof typeof colors] || 'default';
+    if (score === null || score === undefined) return 'default';
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'primary';
+    if (score >= 40) return 'warning';
+    return 'error';
   };
 
-  const assetMovementColumns: TableColumn<AssetMovement>[] = [
+  const competitorActivityColumns: TableColumn<CompetitorActivity>[] = [
     {
-      id: 'asset_info',
-      label: 'Asset Info',
+      id: 'customer_info',
+      label: 'Customer Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.asset_movements_master?.serial_number || 'Asset'}
+            alt={row.competitor_activity_customers?.name || 'Customer'}
             className="!rounded !bg-primary-100 !text-primary-500"
           >
-            <Package className="w-5 h-5" />
+            <Building2 className="w-5 h-5" />
           </Avatar>
           <Box>
             <Typography
               variant="body1"
               className="!text-gray-900 !leading-tight"
             >
-              {row.asset_movements_master?.asset_master_asset_types?.name ||
-                'Unknown Asset'}
+              {row.competitor_activity_customers?.name || 'Unknown Customer'}
             </Typography>
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.asset_movements_master?.serial_number ||
-                `Asset #${row.asset_id}`}
+              {row.competitor_activity_customers?.code ||
+                `Customer #${row.customer_id}`}
             </Typography>
           </Box>
         </Box>
       ),
     },
     {
-      id: 'movement_details',
-      label: 'Movement Details',
+      id: 'brand_product',
+      label: 'Brand & Product',
       render: (_value, row) => (
-        <Box className="flex items-center gap-2">
-          <Box className="flex items-center gap-1">
-            <MapPin className="w-3 h-3 text-gray-400" />
-            <span className="text-xs">{row.from_location || 'Unknown'}</span>
-          </Box>
-          <ArrowRight className="w-3 h-3 text-gray-400" />
-          <Box className="flex items-center gap-1">
-            <MapPin className="w-3 h-3 text-gray-400" />
-            <span className="text-xs">{row.to_location || 'Unknown'}</span>
-          </Box>
+        <Box>
+          <Typography
+            variant="body1"
+            className="!text-gray-900 !leading-tight !font-medium"
+          >
+            {row.brand_name}
+          </Typography>
+          {row.product_name && (
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.product_name}
+            </Typography>
+          )}
         </Box>
       ),
     },
     {
-      id: 'movement_type',
-      label: 'Type',
-      render: (_value, row) => (
-        <Chip
-          label={row.movement_type || 'Other'}
-          color={getMovementTypeColor(row.movement_type || 'other')}
-          size="small"
-          className="!capitalize"
-        />
-      ),
-    },
-    {
-      id: 'performed_by',
-      label: 'Performed By',
+      id: 'price',
+      label: 'Price',
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
-          <User className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.asset_movements_performed_by?.name || 'Unknown User'}
+          <DollarSign className="w-3 h-3 text-gray-400" />
+          <span className="text-xs font-medium">
+            {row.observed_price
+              ? `${Number(row.observed_price).toFixed(2)}`
+              : 'N/A'}
           </span>
         </Box>
       ),
     },
     {
-      id: 'movement_date',
-      label: 'Date',
+      id: 'visibility_score',
+      label: 'Visibility',
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">{formatDate(row.movement_date)}</span>
+          <Eye className="w-3 h-3 text-gray-400" />
+          <Chip
+            label={row.visibility_score ? `${row.visibility_score}%` : 'N/A'}
+            color={getVisibilityScoreColor(row.visibility_score ?? null)}
+            size="small"
+          />
         </Box>
       ),
     },
     {
-      id: 'notes',
-      label: 'Notes',
+      id: 'promotion',
+      label: 'Promotion',
+      render: (_value, row) => (
+        <Tooltip
+          title={row.promotion_details || 'No promotion details'}
+          placement="top"
+          arrow
+        >
+          <Box className="flex items-center gap-1">
+            <Target className="w-3 h-3 text-gray-400" />
+            <span className="text-xs truncate max-w-24">
+              {row.promotion_details || 'None'}
+            </span>
+          </Box>
+        </Tooltip>
+      ),
+    },
+    {
+      id: 'visit_info',
+      label: 'Visit Info',
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
-          <FileText className="w-3 h-3 text-gray-400" />
-          <Tooltip title={row.notes || 'No notes'} placement="top" arrow>
-            <span className="text-xs truncate max-w-32">
-              {row.notes || 'No notes'}
-            </span>
-          </Tooltip>
+          <Calendar className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">
+            {row.visits ? formatDate(row.visits.visit_date) : 'No visit'}
+          </span>
+        </Box>
+      ),
+    },
+    {
+      id: 'image',
+      label: 'Image',
+      render: (_value, row) => (
+        <Box className="flex items-center gap-1">
+          <Image className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">
+            {row.image_url ? 'Available' : 'None'}
+          </span>
         </Box>
       ),
     },
@@ -246,13 +266,13 @@ const AssetMovementManagement: React.FC = () => {
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
           <EditButton
-            onClick={() => handleEditMovement(row)}
-            tooltip={`Edit Movement #${row.id}`}
+            onClick={() => handleEditActivity(row)}
+            tooltip={`Edit Activity #${row.id}`}
           />
           <DeleteButton
-            onClick={() => handleDeleteMovement(row.id)}
-            tooltip={`Delete Movement #${row.id}`}
-            itemName={`Movement #${row.id}`}
+            onClick={() => handleDeleteActivity(row.id)}
+            tooltip={`Delete Activity #${row.id}`}
+            itemName={`Activity #${row.id}`}
             confirmDelete={true}
           />
         </div>
@@ -264,9 +284,11 @@ const AssetMovementManagement: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">Asset Movements</p>
+          <p className="!font-bold text-xl !text-gray-900">
+            Competitor Activities
+          </p>
           <p className="!text-gray-500 text-sm">
-            Track and manage asset movements across locations
+            Track competitor activities, pricing, and market intelligence
           </p>
         </Box>
       </Box>
@@ -277,18 +299,18 @@ const AssetMovementManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-primary-500">
-                Total Movements
+                Total Activities
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-primary-500">
-                  {totalMovements}
+                  {totalActivities}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <ArrowRight className="w-6 h-6 text-primary-500" />
+              <Target className="w-6 h-6 text-primary-500" />
             </div>
           </div>
         </div>
@@ -296,13 +318,13 @@ const AssetMovementManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-green-500">
-                Active Movements
+                Active Activities
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-green-500">
-                  {activeMovements}
+                  {activeActivities}
                 </p>
               )}
             </div>
@@ -315,13 +337,13 @@ const AssetMovementManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-red-500">
-                Inactive Movements
+                Inactive Activities
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-red-500">
-                  {inactiveMovements}
+                  {inactiveActivities}
                 </p>
               )}
             </div>
@@ -338,7 +360,7 @@ const AssetMovementManagement: React.FC = () => {
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {movementsThisMonth}
+                  {activitiesThisMonth}
                 </p>
               )}
             </div>
@@ -351,18 +373,18 @@ const AssetMovementManagement: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load asset movements. Please try again.
+          Failed to load competitor activities. Please try again.
         </Alert>
       )}
 
       <Table
-        data={assetMovements}
-        columns={assetMovementColumns}
+        data={competitorActivities}
+        columns={competitorActivityColumns}
         actions={
           <div className="flex justify-between w-full items-center flex-wrap gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <SearchInput
-                placeholder="Search Movements..."
+                placeholder="Search Activities..."
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
@@ -381,8 +403,8 @@ const AssetMovementManagement: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <PopConfirm
-                title="Export Asset Movements"
-                description="Are you sure you want to export the current asset movement data to Excel? This will include all filtered results."
+                title="Export Competitor Activities"
+                description="Are you sure you want to export the current competitor activity data to Excel? This will include all filtered results."
                 onConfirm={handleExportToExcel}
                 confirmText="Export"
                 cancelText="Cancel"
@@ -410,15 +432,15 @@ const AssetMovementManagement: React.FC = () => {
                 className="!capitalize"
                 disableElevation
                 startIcon={<Add />}
-                onClick={handleCreateMovement}
+                onClick={handleCreateActivity}
               >
                 Create
               </Button>
             </div>
           </div>
         }
-        getRowId={movement => movement.id}
-        initialOrderBy="movement_date"
+        getRowId={activity => activity.id}
+        initialOrderBy="createdate"
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
@@ -426,19 +448,19 @@ const AssetMovementManagement: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No asset movements found matching "${search}"`
-            : 'No asset movements found in the system'
+            ? `No competitor activities found matching "${search}"`
+            : 'No competitor activities found in the system'
         }
       />
 
-      <ManageAssetMovement
-        selectedMovement={selectedMovement}
-        setSelectedMovement={setSelectedMovement}
+      <ManageCompetitorActivity
+        selectedActivity={selectedActivity}
+        setSelectedActivity={setSelectedActivity}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
       />
 
-      <ImportAssetMovement
+      <ImportCompetitorActivity
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
       />
@@ -446,4 +468,4 @@ const AssetMovementManagement: React.FC = () => {
   );
 };
 
-export default AssetMovementManagement;
+export default CompetitorActivityManagement;

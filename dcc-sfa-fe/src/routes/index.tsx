@@ -5,8 +5,11 @@ import PrivacyPolicy from 'pages/auth/PrivacyPolicy';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
 import ApiTokensPage from 'pages/masters/ApiTokens';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
+import AssetMovementManagement from 'pages/masters/AssetMovement';
 import AssetTypesManagement from 'pages/masters/AssetTypes';
+import BrandsManagement from 'pages/masters/Brands';
 import CompaniesManagement from 'pages/masters/Companies';
+import CompetitorActivityManagement from 'pages/masters/CompetitorActivity';
 import CurrenciesManagement from 'pages/masters/Currencies';
 import DepotsManagement from 'pages/masters/Depot';
 import KpiTargetsManagement from 'pages/masters/KpiTargets';
@@ -15,40 +18,37 @@ import OutletsManagement from 'pages/masters/Outlet';
 import OutletDetail from 'pages/masters/Outlet/OutletDetail';
 import OutletGroupsManagement from 'pages/masters/OutletGroups';
 import PriceListsManagement from 'pages/masters/PriceLists';
-import BrandsManagement from 'pages/masters/Brands';
 import ProductCategoriesManagement from 'pages/masters/ProductCategories';
 import ProductsManagement from 'pages/masters/Products';
 import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
+import SalesBonusRulesManagement from 'pages/masters/SalesBonusRules';
 import SalesTargetGroupsManagement from 'pages/masters/SalesTargetGroups';
 import SalesTargetsManagement from 'pages/masters/SalesTargets';
-import SalesBonusRulesManagement from 'pages/masters/SalesBonusRules';
 import SurveyBuilder from 'pages/masters/SurveyBuilder';
+import UnitOfMeasurementManagement from 'pages/masters/UnitOfMeasurement';
 import Users from 'pages/masters/Users';
 import UserDetail from 'pages/masters/Users/UserDetail';
 import VehiclesManagement from 'pages/masters/Vehicles';
-import UnitOfMeasurementManagement from 'pages/masters/UnitOfMeasurement';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import ZonesManagement from 'pages/masters/Zone';
 import Profile from 'pages/Profile';
-import OrdersManagement from 'pages/transactions/Orders';
-import InvoicesManagement from 'pages/transactions/Invoices';
 import CreditNotesManagement from 'pages/transactions/CreditNotes';
-import AssetMovementManagement from 'pages/masters/AssetMovement';
-import SurveyAnswers from 'pages/transactions/VisitLogging';
 import DeliveryScheduling from 'pages/transactions/DeliveryScheduling';
-import ReturnRequests from 'pages/transactions/ReturnRequests';
-import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
+import InvoicesManagement from 'pages/transactions/Invoices';
+import OrdersManagement from 'pages/transactions/Orders';
 import PaymentCollection from 'pages/transactions/PaymentCollection';
 import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
+import ReturnRequests from 'pages/transactions/ReturnRequests';
+import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
+import SurveyAnswers from 'pages/transactions/VisitLogging';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 const AssetMaintenance = () => <h1>Asset Maintenance</h1>;
 const CoolerInstallations = () => <h1>Cooler Installations</h1>;
 const VanStock = () => <h1>Van Stock Load/Unload</h1>;
-const CompetitorActivity = () => <h1>Competitor Activity</h1>;
 const RepLocationTracking = () => <h1>Rep Location Tracking</h1>;
 const RouteEffectiveness = () => <h1>Route Effectiveness</h1>;
 const ERPSyncLog = () => <h1>ERP Sync Log</h1>;
@@ -242,6 +242,10 @@ const router = createBrowserRouter([
         element: <AssetMovementManagement />,
       },
       {
+        path: '/transactions/competitor',
+        element: <CompetitorActivityManagement />,
+      },
+      {
         path: '/transactions/maintenance',
         element: <AssetMaintenance />,
       },
@@ -252,10 +256,6 @@ const router = createBrowserRouter([
       {
         path: '/transactions/van-stock',
         element: <VanStock />,
-      },
-      {
-        path: '/transactions/competitor',
-        element: <CompetitorActivity />,
       },
       {
         path: '/tracking/location',
