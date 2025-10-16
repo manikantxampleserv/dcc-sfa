@@ -6,7 +6,15 @@ export const createStockTransferRequestValidation = [
   body('destination_type')
     .notEmpty()
     .withMessage('Destination type is required'),
-  body('destination_id').notEmpty().withMessage('Destination ID is required'),
+  body('destination_id')
+    .notEmpty()
+    .withMessage('Destination ID is required')
+    .custom((value, { req }) => {
+      if (value === req.body.source_id) {
+        throw new Error('Source and destination cannot be the same');
+      }
+      return true;
+    }),
   body('requested_by').notEmpty().withMessage('Requested by is required'),
   body('stock_transfer_lines')
     .notEmpty()

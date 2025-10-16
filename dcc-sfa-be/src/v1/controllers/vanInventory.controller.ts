@@ -156,7 +156,7 @@ export const vanInventoryController = {
       });
 
       const now = new Date();
-      const vanInventory = await prisma.van_inventory.findMany({
+      const vanInventory = await prisma.van_inventory.count({
         where: {
           createdate: {
             gte: new Date(now.getFullYear(), now.getMonth(), 1),

@@ -11,7 +11,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import * as Yup from 'yup';
 
-interface ImportAssetTypeProps {
+interface ImportVanInventoryProps {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
 }
@@ -20,7 +20,7 @@ const importValidationSchema = Yup.object({
   file: Yup.mixed().required('Please select a file to import'),
 });
 
-const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
+const ImportVanInventory: React.FC<ImportVanInventoryProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
@@ -60,7 +60,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
 
   const handleDownloadSample = async () => {
     try {
-      await downloadTemplateMutation.mutateAsync('asset_types');
+      await downloadTemplateMutation.mutateAsync('van_inventory');
     } catch (error) {
       console.error('Failed to download template:', error);
     }
@@ -85,7 +85,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
 
     try {
       await importDataMutation.mutateAsync({
-        tableName: 'asset_types',
+        tableName: 'van_inventory',
         file: uploadedFile,
         options: {
           batchSize: 100,
@@ -113,15 +113,16 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
-      title="Import Asset Types"
+      title="Import Van Inventory"
       size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
-              Upload an Excel file to import multiple asset types. Download the
-              sample file to see the required format.
+              Upload an Excel file to import multiple van inventory records.
+              Download the sample file to see the required format. Make sure
+              User IDs and Product IDs exist in the system.
             </Typography>
           </Alert>
 
@@ -341,4 +342,4 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
   );
 };
 
-export default ImportAssetType;
+export default ImportVanInventory;

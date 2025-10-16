@@ -48,10 +48,11 @@ import CoolerInstallationsManagement from 'pages/transactions/CoolerInstallation
 import CoolerInstallationDetail from 'pages/transactions/CoolerInstallations/CoolerInstallationDetail';
 import CoolerInspectionsManagement from 'pages/transactions/CoolerInspections';
 import CoolerInspectionDetail from 'pages/transactions/CoolerInspections/CoolerInspectionDetail';
+import StockTransferRequestsManagement from 'pages/masters/StockTransferRequests';
+import VanStockManagement from 'pages/masters/VanStock';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-const StockTransferRequests = () => <h1>Stock Transfer Requests</h1>;
-const VanStock = () => <h1>Van Stock Load/Unload</h1>;
+
 const RepLocationTracking = () => <h1>Rep Location Tracking</h1>;
 const RouteEffectiveness = () => <h1>Route Effectiveness</h1>;
 const ERPSyncLog = () => <h1>ERP Sync Log</h1>;
@@ -270,11 +271,11 @@ const router = createBrowserRouter([
       },
       {
         path: '/transactions/stock-transfer',
-        element: <StockTransferRequests />,
+        element: <StockTransferRequestsManagement />,
       },
       {
         path: '/transactions/van-stock',
-        element: <VanStock />,
+        element: <VanStockManagement />,
       },
       {
         path: '/tracking/location',
