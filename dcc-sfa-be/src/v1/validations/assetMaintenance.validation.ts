@@ -16,8 +16,4 @@ export const createAssetMaintenanceValidation = [
     .withMessage('Action taken must be a string'),
   body('cost').optional().isFloat().withMessage('Cost must be a float'),
   body('remarks').optional().isString().withMessage('Remarks must be a string'),
-  body('is_active').isBoolean().withMessage('Is active must be a boolean'),
-  body('createdby').isInt().withMessage('Created by must be an integer'),
-  body('updatedby').isInt().withMessage('Updated by must be an integer'),
-  body('log_inst').isInt().withMessage('Log instance must be an integer'),
 ];

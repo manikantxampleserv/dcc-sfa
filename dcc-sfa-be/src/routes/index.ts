@@ -49,6 +49,7 @@ import creditNotesItems from '../v1/routes/creditNotesItems.routes';
 import assetMovements from '../v1/routes/assetMovements.routes';
 import assetMaintenance from '../v1/routes/assetMaintenance.routes';
 import competitorActivity from '../v1/routes/competitorActivity.routes';
+import assetWarrantyClaims from '../v1/routes/assetWarrantyClaims.routes';
 
 const routes = Router();
 
@@ -101,6 +102,7 @@ routes.use('/v1', creditNotesItems);
 routes.use('/v1', assetMovements);
 routes.use('/v1', assetMaintenance);
 routes.use('/v1', competitorActivity);
+routes.use('/v1', assetWarrantyClaims);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

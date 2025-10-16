@@ -231,6 +231,90 @@ async function generateCreditNoteNumber(tx: any): Promise<string> {
   return fallbackCreditNoteNumber;
 }
 
+async function generateCreditNoteNumber(tx: any): Promise<string> {
+  const maxRetries = 10;
+  let retryCount = 0;
+
+  while (retryCount < maxRetries) {
+    try {
+      const lastCreditNote = await tx.credit_notes.findFirst({
+        where: {
+          credit_note_number: {
+            startsWith: 'CN-',
+          },
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        select: {
+          credit_note_number: true,
+        },
+      });
+
+      let nextNumber = 1;
+
+      if (lastCreditNote && lastCreditNote.credit_note_number) {
+        const match = lastCreditNote.credit_note_number.match(/CN-(\d+)/);
+        if (match && match[1]) {
+          nextNumber = parseInt(match[1], 10) + 1;
+        }
+      }
+
+      const allCreditNotes = await tx.credit_notes.findMany({
+        where: {
+          credit_note_number: {
+            startsWith: 'CN-',
+          },
+        },
+        select: {
+          credit_note_number: true,
+        },
+      });
+
+      for (const creditNote of allCreditNotes) {
+        const match = creditNote.credit_note_number.match(/CN-(\d+)/);
+        if (match && match[1]) {
+          const num = parseInt(match[1], 10);
+          if (num >= nextNumber) {
+            nextNumber = num + 1;
+          }
+        }
+      }
+
+      const newCreditNoteNumber = `CN-${nextNumber.toString().padStart(5, '0')}`;
+
+      const exists = await tx.credit_notes.findFirst({
+        where: {
+          credit_note_number: newCreditNoteNumber,
+        },
+      });
+
+      if (!exists) {
+        console.log(
+          ' Generated unique credit note number:',
+          newCreditNoteNumber
+        );
+        return newCreditNoteNumber;
+      }
+
+      console.log(
+        ' Credit note number exists, retrying...',
+        newCreditNoteNumber
+      );
+      retryCount++;
+    } catch (error) {
+      console.error(' Error generating credit note number:', error);
+      retryCount++;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  const timestamp = Date.now();
+  const fallbackCreditNoteNumber = `CN-${timestamp}`;
+  console.log(' Using fallback credit note number:', fallbackCreditNoteNumber);
+  return fallbackCreditNoteNumber;
+}
+
 export const creditNotesController = {
   async upsertCreditNote(req: Request, res: Response) {
     try {
