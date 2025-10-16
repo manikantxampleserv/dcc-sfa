@@ -153,7 +153,6 @@ model depots {
   depots_manager         users?            @relation("DeportsManager", fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   depots_supervisior     users?            @relation("DeportsSupervisior", fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   depots_coodrinator     users?            @relation("DepotsCoodrinator", fields: [coordinator_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  stock_movements_depots stock_movements[] @relation("stock_movements_to_location_idTodepots")
 }
 
 model api_tokens {
@@ -1564,28 +1563,29 @@ model settings {
 }
 
 model stock_movements {
-  id                       Int             @id(map: "PK__stock_mo__3213E83FF52C8600") @default(autoincrement())
-  product_id               Int
-  batch_id                 Int?
-  serial_id                Int?
-  movement_type            String          @db.NVarChar(20)
-  reference_type           String?         @db.NVarChar(50)
-  reference_id             Int?
-  from_location_id         Int?
-  to_location_id           Int?
-  quantity                 Int
-  movement_date            DateTime?       @default(now(), map: "DF__stock_mov__movem__1E6F845E")
-  remarks                  String?         @db.NVarChar(500)
-  is_active                String          @default("Y", map: "DF__stock_mov__is_ac__1F63A897") @db.Char(1)
-  createdate               DateTime?       @default(now(), map: "DF__stock_mov__creat__2057CCD0") @db.DateTime
-  createdby                Int
-  updatedate               DateTime?       @db.DateTime
-  updatedby                Int?
-  log_inst                 Int?
-  batch_lots               batch_lots?     @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_mov__batch__22401542")
-  stock_movements_products products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__stock_mov__produ__214BF109")
-  serial_numbers           serial_numbers? @relation(fields: [serial_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_mov__seria__2334397B")
-  stock_movements_depots   depots?         @relation("stock_movements_to_location_idTodepots", fields: [to_location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                            Int             @id() @default(autoincrement())
+  product_id                    Int
+  batch_id                      Int?
+  serial_id                     Int?
+  movement_type                 String          @db.NVarChar(20)
+  reference_type                String?         @db.NVarChar(50)
+  reference_id                  Int?
+  from_location_id              Int?
+  to_location_id                Int?
+  quantity                      Int
+  movement_date                 DateTime?       @default(now())
+  remarks                       String?         @db.NVarChar(500)
+  is_active                     String          @default("Y") @db.Char(1)
+  createdate                    DateTime?       @default(now()) @db.DateTime
+  createdby                     Int
+  updatedate                    DateTime?       @db.DateTime
+  updatedby                     Int?
+  log_inst                      Int?
+  batch_lots                    batch_lots?     @relation(fields: [batch_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stock_movements_products      products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  serial_numbers                serial_numbers? @relation(fields: [serial_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock_movements_from_location warehouses?     @relation("StockMovementsFromLocationToWarehouses", fields: [from_location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  stock_movements_to_location   warehouses?     @relation("StockMovementsToLocationToWarehouses", fields: [to_location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model stock_transfer_lines {
@@ -1836,6 +1836,8 @@ model warehouses {
   vehicles                            vehicles[]
   stock_transfer_requests_source      stock_transfer_requests[] @relation("StockTransferRequestsSource")
   stock_transfer_requests_destination stock_transfer_requests[] @relation("StockTransferRequestsDestination")
+  stock_movements_from_location       stock_movements[]         @relation("StockMovementsFromLocationToWarehouses")
+  stock_movements_to_location         stock_movements[]         @relation("StockMovementsToLocationToWarehouses")
 }
 
 model warranty_claims {
