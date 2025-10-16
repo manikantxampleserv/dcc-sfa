@@ -97,20 +97,20 @@ export const assetMaintenanceController = {
         });
       }
 
-      if (
-        asset.warranty_expiry &&
-        new Date(data.maintenance_date) > asset.warranty_expiry
-      ) {
-        return res.status(400).json({
-          message: 'Maintenance date is beyond the warranty expiry date.',
-        });
-      }
+      // if (
+      //   asset.warranty_expiry &&
+      //   new Date(data.maintenance_date) > asset.warranty_expiry
+      // ) {
+      //   return res.status(400).json({
+      //     message: 'Maintenance date is beyond the warranty expiry date.',
+      //   });
+      // }
 
       const record = await prisma.asset_maintenance.create({
         data: {
           ...data,
           maintenance_date: new Date(data.maintenance_date),
-          createdby: req.user?.id || data.createdby || 1,
+          createdby: req.user?.id || 1,
           createdate: new Date(),
           log_inst: data.log_inst || 1,
         },
