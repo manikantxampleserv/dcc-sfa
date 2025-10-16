@@ -44,10 +44,13 @@ import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
 import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
+import CoolerInstallationsManagement from 'pages/transactions/CoolerInstallations';
+import CoolerInstallationDetail from 'pages/transactions/CoolerInstallations/CoolerInstallationDetail';
+import CoolerInspectionsManagement from 'pages/transactions/CoolerInspections';
+import CoolerInspectionDetail from 'pages/transactions/CoolerInspections/CoolerInspectionDetail';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-
-const CoolerInstallations = () => <h1>Cooler Installations</h1>;
+const StockTransferRequests = () => <h1>Stock Transfer Requests</h1>;
 const VanStock = () => <h1>Van Stock Load/Unload</h1>;
 const RepLocationTracking = () => <h1>Rep Location Tracking</h1>;
 const RouteEffectiveness = () => <h1>Route Effectiveness</h1>;
@@ -251,7 +254,23 @@ const router = createBrowserRouter([
       },
       {
         path: '/transactions/installations',
-        element: <CoolerInstallations />,
+        element: <CoolerInstallationsManagement />,
+      },
+      {
+        path: '/transactions/installations/:id',
+        element: <CoolerInstallationDetail />,
+      },
+      {
+        path: '/transactions/inspections',
+        element: <CoolerInspectionsManagement />,
+      },
+      {
+        path: '/transactions/inspections/:id',
+        element: <CoolerInspectionDetail />,
+      },
+      {
+        path: '/transactions/stock-transfer',
+        element: <StockTransferRequests />,
       },
       {
         path: '/transactions/van-stock',

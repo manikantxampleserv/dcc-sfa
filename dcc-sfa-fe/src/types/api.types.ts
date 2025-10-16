@@ -184,6 +184,16 @@ export interface ApiResponse<T = any> {
     amount_this_month?: number;
     pending_collections?: number;
     overdue_amount?: number;
+    // Cooler installation statistics
+    total_coolers?: number;
+    active_coolers?: number;
+    inactive_coolers?: number;
+    new_coolers_this_month?: number;
+    // Cooler inspection statistics
+    total_inspections?: number;
+    active_inspections?: number;
+    inactive_inspections?: number;
+    new_inspections_this_month?: number;
   };
 }
 

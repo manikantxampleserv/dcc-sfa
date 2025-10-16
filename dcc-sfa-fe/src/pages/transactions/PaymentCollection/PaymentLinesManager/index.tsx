@@ -97,7 +97,7 @@ const PaymentLinesManager: React.FC<PaymentLinesManagerProps> = ({
   };
 
   const totalAllocated = paymentLines.reduce(
-    (sum, line) => sum + (line.amount_applied || 0),
+    (sum, line) => sum + Number(line.amount_applied || '0'),
     0
   );
 
@@ -157,7 +157,7 @@ const PaymentLinesManager: React.FC<PaymentLinesManagerProps> = ({
                   variant="caption"
                   className="!text-gray-600 !text-xs"
                 >
-                  ${totalAllocated.toFixed(2)}
+                  ${Number(totalAllocated || '0').toFixed(2)}
                 </Typography>
               </div>
             </div>
@@ -289,7 +289,7 @@ const PaymentLinesManager: React.FC<PaymentLinesManagerProps> = ({
                         variant="caption"
                         className="!font-semibold !text-green-600 !text-xs"
                       >
-                        ${line.amount_applied?.toFixed(2)}
+                        ${Number(line.amount_applied || '0').toFixed(2)}
                       </Typography>
                       <div className="!flex !items-center !gap-1">
                         <Button

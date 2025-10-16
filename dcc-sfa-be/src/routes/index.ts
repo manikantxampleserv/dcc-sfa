@@ -49,6 +49,8 @@ import creditNotesItems from '../v1/routes/creditNotesItems.routes';
 import assetMovements from '../v1/routes/assetMovements.routes';
 import assetMaintenance from '../v1/routes/assetMaintenance.routes';
 import competitorActivity from '../v1/routes/competitorActivity.routes';
+import coolerInstallations from '../v1/routes/coolerInstallations.routes';
+import coolerInspections from '../v1/routes/coolerInspections.routes';
 import assetWarrantyClaims from '../v1/routes/assetWarrantyClaims.routes';
 
 const routes = Router();
@@ -102,6 +104,8 @@ routes.use('/v1', creditNotesItems);
 routes.use('/v1', assetMovements);
 routes.use('/v1', assetMaintenance);
 routes.use('/v1', competitorActivity);
+routes.use('/v1', coolerInstallations);
+routes.use('/v1', coolerInspections);
 routes.use('/v1', assetWarrantyClaims);
 
 routes.get('/', (_: any, res: any) => {

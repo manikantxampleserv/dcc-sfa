@@ -14,14 +14,7 @@ import {
   type AssetMovement,
 } from 'hooks/useAssetMovement';
 import { useExportToExcel } from 'hooks/useImportExport';
-import {
-  ArrowRight,
-  Calendar,
-  FileText,
-  MapPin,
-  Package,
-  User,
-} from 'lucide-react';
+import { ArrowRight, Calendar, FileText, MapPin, Package } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -195,11 +188,26 @@ const AssetMovementManagement: React.FC = () => {
       id: 'performed_by',
       label: 'Performed By',
       render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <User className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.asset_movements_performed_by?.name || 'Unknown User'}
-          </span>
+        <Box className="!flex !gap-2 !items-center">
+          <Avatar
+            alt={row.asset_movements_performed_by?.name}
+            src={row.asset_movements_performed_by?.profile_image || 'mkx'}
+            className="!rounded !bg-primary-100 !text-primary-500"
+          />
+          <Box>
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
+            >
+              {row.asset_movements_performed_by?.name || 'Unknown User'}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.asset_movements_performed_by?.email || 'Unknown Email'}
+            </Typography>
+          </Box>
         </Box>
       ),
     },

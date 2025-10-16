@@ -29,6 +29,7 @@ export interface AssetMovement {
     id: number;
     name: string;
     email: string;
+    profile_image: string;
   } | null;
 }
 

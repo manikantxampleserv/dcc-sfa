@@ -1,86 +1,98 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import {
-  Alert,
-  Avatar,
-  Box,
-  Chip,
-  MenuItem,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  Upload,
+  Visibility,
+} from '@mui/icons-material';
+import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import {
-  useAssetMaintenances,
-  useDeleteAssetMaintenance,
-  type AssetMaintenance,
-} from 'hooks/useAssetMaintenance';
+  useCoolerInstallations,
+  useDeleteCoolerInstallation,
+  type CoolerInstallation,
+} from 'hooks/useCoolerInstallations';
 import { useExportToExcel } from 'hooks/useImportExport';
-import { Calendar, DollarSign, FileText, Package, Wrench } from 'lucide-react';
+import { Calendar, Droplets, Package, Thermometer } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import ImportAssetMaintenance from './ImportAssetMaintenance';
-import ManageAssetMaintenance from './ManageAssetMaintenance';
+import ImportCoolerInstallation from './ImportCoolerInstallation';
+import ManageCoolerInstallation from './ManageCoolerInstallation';
 
-const AssetMaintenanceManagement: React.FC = () => {
+const CoolerInstallationsManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedMaintenance, setSelectedMaintenance] =
-    useState<AssetMaintenance | null>(null);
+  const [operationalStatusFilter, setOperationalStatusFilter] = useState('all');
+  const [selectedInstallation, setSelectedInstallation] =
+    useState<CoolerInstallation | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const {
-    data: assetMaintenanceResponse,
+    data: coolerInstallationsResponse,
     isLoading,
     error,
-  } = useAssetMaintenances({
+  } = useCoolerInstallations({
     search,
     page,
     limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
+    isActive: statusFilter === 'all' ? undefined : statusFilter,
+    status:
+      operationalStatusFilter === 'all' ? undefined : operationalStatusFilter,
   });
 
-  const assetMaintenances = assetMaintenanceResponse?.data || [];
-  const totalCount = assetMaintenanceResponse?.meta?.total_count || 0;
-  const currentPage = (assetMaintenanceResponse?.meta?.current_page || 1) - 1;
+  const coolerInstallations = coolerInstallationsResponse?.data || [];
+  const totalCount = coolerInstallationsResponse?.meta?.total_count || 0;
+  const currentPage =
+    (coolerInstallationsResponse?.meta?.current_page || 1) - 1;
 
-  const deleteAssetMaintenanceMutation = useDeleteAssetMaintenance();
+  const deleteCoolerInstallationMutation = useDeleteCoolerInstallation();
   const exportToExcelMutation = useExportToExcel();
+  const stats = coolerInstallationsResponse?.stats;
+  const totalInstallations = stats?.total_coolers ?? 0;
+  const activeInstallations = stats?.active_coolers ?? 0;
+  const inactiveInstallations = stats?.inactive_coolers ?? 0;
+  const installationsThisMonth = stats?.new_coolers_this_month ?? 0;
 
-  const totalMaintenances = assetMaintenanceResponse?.stats?.total_records ?? 0;
-  const activeMaintenances =
-    assetMaintenanceResponse?.stats?.active_records ?? 0;
-  const inactiveMaintenances =
-    assetMaintenanceResponse?.stats?.inactive_records ?? 0;
-  const maintenancesThisMonth =
-    assetMaintenanceResponse?.stats?.this_month_records ?? 0;
-
-  const handleCreateMaintenance = useCallback(() => {
-    setSelectedMaintenance(null);
+  const handleCreateInstallation = useCallback(() => {
+    setSelectedInstallation(null);
     setDrawerOpen(true);
   }, []);
 
-  const handleEditMaintenance = useCallback((maintenance: AssetMaintenance) => {
-    setSelectedMaintenance(maintenance);
-    setDrawerOpen(true);
-  }, []);
+  const handleEditInstallation = useCallback(
+    (installation: CoolerInstallation) => {
+      setSelectedInstallation(installation);
+      setDrawerOpen(true);
+    },
+    []
+  );
 
-  const handleDeleteMaintenance = useCallback(
+  const handleViewInstallation = useCallback(
+    (installation: CoolerInstallation) => {
+      navigate(`/transactions/installations/${installation.id}`);
+    },
+    [navigate]
+  );
+
+  const handleDeleteInstallation = useCallback(
     async (id: number) => {
       try {
-        await deleteAssetMaintenanceMutation.mutateAsync(id);
+        await deleteCoolerInstallationMutation.mutateAsync(id);
       } catch (error) {
-        console.error('Error deleting asset maintenance:', error);
+        console.error('Error deleting cooler installation:', error);
       }
     },
-    [deleteAssetMaintenanceMutation]
+    [deleteCoolerInstallationMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -96,66 +108,138 @@ const AssetMaintenanceManagement: React.FC = () => {
     try {
       const filters = {
         search,
-        status: statusFilter === 'all' ? undefined : statusFilter,
+        isActive: statusFilter === 'all' ? undefined : statusFilter,
+        status:
+          operationalStatusFilter === 'all'
+            ? undefined
+            : operationalStatusFilter,
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'asset_maintenance',
+        tableName: 'cooler_installations',
         filters,
       });
     } catch (error) {
-      console.error('Error exporting asset maintenances:', error);
+      console.error('Error exporting cooler installations:', error);
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const assetMaintenanceColumns: TableColumn<AssetMaintenance>[] = [
+  const getStatusColor = (status?: string | null) => {
+    switch (status) {
+      case 'working':
+        return 'success';
+      case 'maintenance':
+        return 'warning';
+      case 'broken':
+        return 'error';
+      case 'offline':
+        return 'default';
+      default:
+        return 'default';
+    }
+  };
+
+  const coolerInstallationColumns: TableColumn<CoolerInstallation>[] = [
     {
-      id: 'asset_info',
-      label: 'Asset Info',
+      id: 'cooler_info',
+      label: 'Cooler Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.asset_maintenance_master?.serial_number || 'Asset'}
-            className="!rounded !bg-primary-100 !text-primary-500"
+            alt={row.code}
+            className="!rounded !bg-blue-100 !text-blue-500"
           >
-            <Package className="w-5 h-5" />
+            <Droplets className="w-5 h-5" />
           </Avatar>
           <Box>
             <Typography
               variant="body1"
               className="!text-gray-900 !leading-tight"
             >
-              {row.asset_maintenance_master?.asset_master_asset_types?.name ||
-                'Unknown Asset'}
+              {row.code}
             </Typography>
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.asset_maintenance_master?.serial_number ||
-                `Asset #${row.asset_id}`}
+              {row.brand && row.model
+                ? `${row.brand} ${row.model}`
+                : 'Unknown Model'}
             </Typography>
           </Box>
         </Box>
       ),
     },
     {
-      id: 'maintenance_details',
-      label: 'Maintenance Details',
+      id: 'customer',
+      label: 'Customer',
+      render: (_value, row) => (
+        <Box className="flex items-center gap-1">
+          <Avatar
+            alt={row.customer?.name || 'Customer'}
+            src={'mkx'}
+            className="!rounded !bg-primary-100 !text-primary-600"
+          />
+          <Box className="flex flex-col">
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
+            >
+              {row.customer?.name || 'Unknown Customer'}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.customer?.code ?? ''}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'installation_details',
+      label: 'Installation Details',
       render: (_value, row) => (
         <Box className="flex flex-col gap-1">
           <Box className="flex items-center gap-1">
-            <Wrench className="w-3 h-3 text-gray-400" />
+            <Calendar className="w-3 h-3 text-gray-400" />
             <span className="text-xs">
-              {row.issue_reported || 'No issue reported'}
+              {row.install_date
+                ? formatDate(row.install_date)
+                : 'Not installed'}
             </span>
           </Box>
-          <Box className="flex items-center gap-1">
-            <FileText className="w-3 h-3 text-gray-400" />
-            <span className="text-xs">
-              {row.action_taken || 'No action taken'}
-            </span>
-          </Box>
+          {row.capacity && (
+            <Box className="flex items-center gap-1">
+              <Package className="w-3 h-3 text-gray-400" />
+              <span className="text-xs">{row.capacity}L</span>
+            </Box>
+          )}
+        </Box>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      render: (_value, row) => (
+        <Chip
+          label={row.status || 'Unknown'}
+          size="small"
+          color={getStatusColor(row.status)}
+          className="!capitalize"
+        />
+      ),
+    },
+    {
+      id: 'temperature',
+      label: 'Temperature',
+      render: (_value, row) => (
+        <Box className="flex items-center gap-1">
+          <Thermometer className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">
+            {row.temperature ? `${row.temperature}°C` : 'N/A'}
+          </span>
         </Box>
       ),
     },
@@ -165,61 +249,37 @@ const AssetMaintenanceManagement: React.FC = () => {
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Avatar
-            alt={row.asset_maintenance_technician?.name}
-            src={row.asset_maintenance_technician?.profile_image || 'mkx'}
-            className="!rounded !bg-primary-100 !text-primary-500"
+            alt={row.technician?.name || 'Technician'}
+            src={row.technician?.profile_image || 'mkx'}
+            className="!rounded !bg-primary-100 !text-primary-600"
           />
 
-          <Box>
+          <Box className="flex flex-col">
             <Typography
               variant="body1"
               className="!text-gray-900 !leading-tight"
             >
-              {row.asset_maintenance_technician?.name || 'Unknown Technician'}
+              {row.technician?.name || 'No technician'}
             </Typography>
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.asset_maintenance_technician?.email || 'Unknown Email'}
+              {row.technician?.email || 'No email'}
             </Typography>
           </Box>
         </Box>
       ),
     },
     {
-      id: 'maintenance_date',
-      label: 'Date',
+      id: 'next_service',
+      label: 'Next Service',
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Calendar className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">{formatDate(row.maintenance_date)}</span>
-        </Box>
-      ),
-    },
-    {
-      id: 'cost',
-      label: 'Cost',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <DollarSign className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {row.cost ? `$${row.cost.toFixed(2)}` : 'N/A'}
+            {row.next_service_due ? formatDate(row.next_service_due) : 'N/A'}
           </span>
-        </Box>
-      ),
-    },
-    {
-      id: 'remarks',
-      label: 'Remarks',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <FileText className="w-3 h-3 text-gray-400" />
-          <Tooltip title={row.remarks || 'No remarks'} placement="top" arrow>
-            <span className="text-xs truncate max-w-32">
-              {row.remarks || 'No remarks'}
-            </span>
-          </Tooltip>
         </Box>
       ),
     },
@@ -241,14 +301,20 @@ const AssetMaintenanceManagement: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
+          <ActionButton
+            onClick={() => handleViewInstallation(row)}
+            tooltip="View cooler installation details"
+            icon={<Visibility />}
+            color="success"
+          />
           <EditButton
-            onClick={() => handleEditMaintenance(row)}
-            tooltip={`Edit Maintenance #${row.id}`}
+            onClick={() => handleEditInstallation(row)}
+            tooltip={`Edit Installation ${row.code}`}
           />
           <DeleteButton
-            onClick={() => handleDeleteMaintenance(row.id)}
-            tooltip={`Delete Maintenance #${row.id}`}
-            itemName={`Maintenance #${row.id}`}
+            onClick={() => handleDeleteInstallation(row.id)}
+            tooltip={`Delete Installation ${row.code}`}
+            itemName={`Installation ${row.code}`}
             confirmDelete={true}
           />
         </div>
@@ -260,9 +326,11 @@ const AssetMaintenanceManagement: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">Asset Maintenance</p>
+          <p className="!font-bold text-xl !text-gray-900">
+            Cooler Installations
+          </p>
           <p className="!text-gray-500 text-sm">
-            Track and manage asset maintenance records
+            Track and manage cooler installations across customers
           </p>
         </Box>
       </Box>
@@ -272,19 +340,19 @@ const AssetMaintenanceManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Maintenance
+              <p className="text-sm font-medium text-blue-500">
+                Total Installations
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {totalMaintenances}
+                <p className="text-2xl font-bold text-blue-500">
+                  {totalInstallations}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Wrench className="w-6 h-6 text-primary-500" />
+              <Droplets className="w-6 h-6 text-blue-500" />
             </div>
           </div>
         </div>
@@ -292,13 +360,13 @@ const AssetMaintenanceManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-green-500">
-                Active Maintenance
+                Active Installations
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-green-500">
-                  {activeMaintenances}
+                  {activeInstallations}
                 </p>
               )}
             </div>
@@ -311,13 +379,13 @@ const AssetMaintenanceManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-red-500">
-                Inactive Maintenance
+                Inactive Installations
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-red-500">
-                  {inactiveMaintenances}
+                  {inactiveInstallations}
                 </p>
               )}
             </div>
@@ -334,7 +402,7 @@ const AssetMaintenanceManagement: React.FC = () => {
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {maintenancesThisMonth}
+                  {installationsThisMonth}
                 </p>
               )}
             </div>
@@ -347,18 +415,18 @@ const AssetMaintenanceManagement: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load asset maintenance records. Please try again.
+          Failed to load cooler installations. Please try again.
         </Alert>
       )}
 
       <Table
-        data={assetMaintenances}
-        columns={assetMaintenanceColumns}
+        data={coolerInstallations}
+        columns={coolerInstallationColumns}
         actions={
           <div className="flex justify-between w-full items-center flex-wrap gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <SearchInput
-                placeholder="Search Maintenance Records..."
+                placeholder="Search Cooler Installations..."
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
@@ -371,14 +439,25 @@ const AssetMaintenanceManagement: React.FC = () => {
                 className="!w-32"
               >
                 <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
+                <MenuItem value="Y">Active</MenuItem>
+                <MenuItem value="N">Inactive</MenuItem>
+              </Select>
+              <Select
+                value={operationalStatusFilter}
+                onChange={e => setOperationalStatusFilter(e.target.value)}
+                className="!w-40"
+              >
+                <MenuItem value="all">All Operational</MenuItem>
+                <MenuItem value="working">Working</MenuItem>
+                <MenuItem value="maintenance">Maintenance</MenuItem>
+                <MenuItem value="broken">Broken</MenuItem>
+                <MenuItem value="offline">Offline</MenuItem>
               </Select>
             </div>
             <div className="flex items-center gap-2">
               <PopConfirm
-                title="Export Asset Maintenance"
-                description="Are you sure you want to export the current asset maintenance data to Excel? This will include all filtered results."
+                title="Export Cooler Installations"
+                description="Are you sure you want to export the current cooler installations data to Excel? This will include all filtered results."
                 onConfirm={handleExportToExcel}
                 confirmText="Export"
                 cancelText="Cancel"
@@ -406,15 +485,15 @@ const AssetMaintenanceManagement: React.FC = () => {
                 className="!capitalize"
                 disableElevation
                 startIcon={<Add />}
-                onClick={handleCreateMaintenance}
+                onClick={handleCreateInstallation}
               >
                 Create
               </Button>
             </div>
           </div>
         }
-        getRowId={maintenance => maintenance.id}
-        initialOrderBy="maintenance_date"
+        getRowId={installation => installation.id}
+        initialOrderBy="install_date"
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
@@ -422,19 +501,19 @@ const AssetMaintenanceManagement: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No asset maintenance records found matching "${search}"`
-            : 'No asset maintenance records found in the system'
+            ? `No cooler installations found matching "${search}"`
+            : 'No cooler installations found in the system'
         }
       />
 
-      <ManageAssetMaintenance
-        selectedMaintenance={selectedMaintenance}
-        setSelectedMaintenance={setSelectedMaintenance}
+      <ManageCoolerInstallation
+        selectedInstallation={selectedInstallation}
+        setSelectedInstallation={setSelectedInstallation}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
       />
 
-      <ImportAssetMaintenance
+      <ImportCoolerInstallation
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
       />
@@ -442,4 +521,4 @@ const AssetMaintenanceManagement: React.FC = () => {
   );
 };
 
-export default AssetMaintenanceManagement;
+export default CoolerInstallationsManagement;

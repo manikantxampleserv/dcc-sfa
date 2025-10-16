@@ -1,14 +1,14 @@
+import type { IconType } from 'react-icons';
 import {
-  MdDashboard,
-  MdBusiness,
-  MdShoppingCart,
-  MdMap,
-  MdSync,
   MdBarChart,
+  MdBusiness,
+  MdDashboard,
+  MdMap,
   MdNotifications,
   MdSettings,
+  MdShoppingCart,
+  MdSync,
 } from 'react-icons/md';
-import type { IconType } from 'react-icons';
 
 export interface MenuItem {
   id: string;
@@ -172,6 +172,16 @@ const menuItems: MenuItem[] = [
         id: 'cooler-installations',
         label: 'Cooler Installations',
         href: '/transactions/installations',
+      },
+      {
+        id: 'cooler-inspections',
+        label: 'Cooler Inspections',
+        href: '/transactions/inspections',
+      },
+      {
+        id: 'stock-transfer-requests',
+        label: 'Stock Transfer Requests',
+        href: '/transactions/stock-transfer',
       },
       {
         id: 'van-stock',
