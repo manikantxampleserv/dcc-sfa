@@ -2,6 +2,8 @@ import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import { useProducts } from 'hooks/useProducts';
 import { useUsers } from 'hooks/useUsers';
+import { useVehicles } from 'hooks/useVehicles';
+import { useDepots } from 'hooks/useDepots';
 import {
   useCreateVanInventory,
   useUpdateVanInventory,
@@ -44,9 +46,13 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   // Fetch related data
   const { data: usersResponse } = useUsers({ limit: 1000 });
   const { data: productsResponse } = useProducts({ limit: 1000 });
+  const { data: vehiclesResponse } = useVehicles({ limit: 1000 });
+  const { data: depotsResponse } = useDepots({ limit: 1000 });
   // TODO: Implement batch lots and serial numbers hooks
   const users = usersResponse?.data || [];
   const products = productsResponse?.data || [];
+  const vehicles = vehiclesResponse?.data || [];
+  const depots = depotsResponse?.data || [];
   const batchLots: any[] = [];
   const serialNumbers: any[] = [];
 
@@ -59,6 +65,9 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       quantity: selectedVanInventory?.quantity || '',
       reserved_quantity: selectedVanInventory?.reserved_quantity || 0,
       available_quantity: selectedVanInventory?.available_quantity || '',
+      vehicle_id: selectedVanInventory?.vehicle_id || '',
+      location_type: selectedVanInventory?.location_type || 'van',
+      location_id: selectedVanInventory?.location_id || '',
       is_active: selectedVanInventory?.is_active || 'Y',
     },
     validationSchema: vanInventoryValidationSchema,
@@ -77,6 +86,9 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           available_quantity: values.available_quantity
             ? Number(values.available_quantity)
             : undefined,
+          vehicle_id: values.vehicle_id ? Number(values.vehicle_id) : null,
+          location_type: values.location_type,
+          location_id: values.location_id ? Number(values.location_id) : null,
           is_active: values.is_active,
         };
 
@@ -207,6 +219,35 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               type="number"
               disabled
             />
+
+            <Select name="vehicle_id" label="Vehicle" formik={formik}>
+              <MenuItem value="">
+                <em>No Vehicle</em>
+              </MenuItem>
+              {vehicles.map((vehicle: any) => (
+                <MenuItem key={vehicle.id} value={vehicle.id}>
+                  {vehicle.vehicle_number} ({vehicle.type})
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select name="location_type" label="Location Type" formik={formik}>
+              <MenuItem value="van">Van</MenuItem>
+              <MenuItem value="warehouse">Warehouse</MenuItem>
+              <MenuItem value="depot">Depot</MenuItem>
+              <MenuItem value="store">Store</MenuItem>
+            </Select>
+
+            <Select name="location_id" label="Location/Depot" formik={formik}>
+              <MenuItem value="">
+                <em>No Location</em>
+              </MenuItem>
+              {depots.map((depot: any) => (
+                <MenuItem key={depot.id} value={depot.id}>
+                  {depot.name} ({depot.code})
+                </MenuItem>
+              ))}
+            </Select>
 
             <Select name="is_active" label="Status" formik={formik} required>
               <MenuItem value="Y">Active</MenuItem>

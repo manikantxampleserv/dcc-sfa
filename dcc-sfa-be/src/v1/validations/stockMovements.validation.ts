@@ -75,6 +75,11 @@ export const createStockMovementValidation = [
     .isLength({ max: 1000 })
     .withMessage('Remarks must be less than 1000 characters'),
 
+  body('van_inventory_id')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Van inventory ID must be a positive integer'),
+
   body('is_active')
     .optional()
     .isIn(['Y', 'N'])
@@ -152,6 +157,11 @@ export const updateStockMovementValidation = [
     .withMessage('Remarks must be a string')
     .isLength({ max: 1000 })
     .withMessage('Remarks must be less than 1000 characters'),
+
+  body('van_inventory_id')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Van inventory ID must be a positive integer'),
 
   body('is_active')
     .optional()

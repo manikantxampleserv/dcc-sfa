@@ -23,9 +23,16 @@ interface StockMovementSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  van_inventory_id?: number | null;
   product?: { id: number; name: string; code: string } | null;
   from_location?: { id: number; name: string } | null;
   to_location?: { id: number; name: string } | null;
+  van_inventory?: {
+    id: number;
+    user_id: number;
+    product_id: number;
+    quantity: number;
+  } | null;
 }
 
 const serializeStockMovement = (sm: any): StockMovementSerialized => ({
@@ -47,6 +54,7 @@ const serializeStockMovement = (sm: any): StockMovementSerialized => ({
   updatedate: sm.updatedate,
   updatedby: sm.updatedby,
   log_inst: sm.log_inst,
+  van_inventory_id: sm.van_inventory_id,
   product: sm.stock_movements_products
     ? {
         id: sm.stock_movements_products.id,
@@ -64,6 +72,14 @@ const serializeStockMovement = (sm: any): StockMovementSerialized => ({
     ? {
         id: sm.stock_movements_to_location.id,
         name: sm.stock_movements_to_location.name,
+      }
+    : null,
+  van_inventory: sm.van_inventory
+    ? {
+        id: sm.van_inventory.id,
+        user_id: sm.van_inventory.user_id,
+        product_id: sm.van_inventory.product_id,
+        quantity: sm.van_inventory.quantity,
       }
     : null,
 });
@@ -93,6 +109,7 @@ export const stockMovementsController = {
           to_location_id: data.to_location_id,
           quantity: data.quantity,
           remarks: data.remarks,
+          van_inventory_id: data.van_inventory_id,
           createdby: req.user?.id || 1,
           is_active: data.is_active || 'Y',
           log_inst: data.log_inst || 1,
@@ -101,6 +118,7 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
+          van_inventory: true,
         },
       });
 
@@ -147,6 +165,7 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
+          van_inventory: true,
         },
       });
 
@@ -207,6 +226,7 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
+          van_inventory: true,
         },
       });
 
@@ -246,6 +266,7 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
+          van_inventory: true,
         },
       });
 

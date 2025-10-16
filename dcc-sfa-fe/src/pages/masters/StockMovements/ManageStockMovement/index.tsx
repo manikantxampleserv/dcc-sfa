@@ -3,6 +3,7 @@ import { useFormik } from 'formik';
 import { useProducts } from 'hooks/useProducts';
 import { useUpsertStockMovement } from 'hooks/useStockMovements';
 import { useWarehouses } from 'hooks/useWarehouses';
+import { useVanInventory } from 'hooks/useVanInventory';
 import React from 'react';
 import { stockMovementValidationSchema } from 'schemas/stockMovement.schema';
 import type { StockMovement } from 'services/masters/StockMovements';
@@ -26,9 +27,11 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
 
   const { data: warehousesResponse } = useWarehouses({ limit: 1000 });
   const { data: productsResponse } = useProducts({ limit: 1000 });
+  const { data: vanInventoryResponse } = useVanInventory({ limit: 1000 });
 
   const warehouses = warehousesResponse?.data || [];
   const products = productsResponse?.data || [];
+  const vanInventory = vanInventoryResponse?.data || [];
 
   const upsertMovementMutation = useUpsertStockMovement();
 
@@ -50,6 +53,7 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
       quantity: movement?.quantity || '',
       movement_date: movement?.movement_date || '',
       remarks: movement?.remarks || '',
+      van_inventory_id: movement?.van_inventory_id || '',
       is_active: movement?.is_active || 'Y',
     },
     validationSchema: stockMovementValidationSchema,
@@ -75,6 +79,9 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
           quantity: Number(values.quantity),
           movement_date: values.movement_date || null,
           remarks: values.remarks || null,
+          van_inventory_id: values.van_inventory_id
+            ? Number(values.van_inventory_id)
+            : null,
           is_active: values.is_active,
         };
 
@@ -183,6 +190,22 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
               type="datetime-local"
               formik={formik}
             />
+
+            <Select
+              name="van_inventory_id"
+              label="Van Inventory"
+              formik={formik}
+            >
+              <MenuItem value="">
+                <em>No Van Inventory</em>
+              </MenuItem>
+              {vanInventory.map((item: any) => (
+                <MenuItem key={item.id} value={item.id}>
+                  {item.product?.name} - {item.user?.name} (Qty: {item.quantity}
+                  )
+                </MenuItem>
+              ))}
+            </Select>
 
             <Select name="is_active" label="Status" formik={formik} required>
               <MenuItem value="Y">Active</MenuItem>

@@ -1,6 +1,6 @@
-import { ImportExportService } from '../base/import-export.service';
-import { ColumnDefinition } from '../../../types/import-export.types';
 import { PrismaClient } from '@prisma/client';
+import { ColumnDefinition } from '../../../types/import-export.types';
+import { ImportExportService } from '../base/import-export.service';
 
 const prisma = new PrismaClient();
 
@@ -120,6 +120,50 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       description: 'Available quantity (optional, calculated automatically)',
     },
     {
+      key: 'vehicle_id',
+      header: 'Vehicle ID',
+      width: 15,
+      type: 'number',
+      validation: value => {
+        if (!value) return true; // Optional field
+        const numValue = Number(value);
+        if (isNaN(numValue) || numValue <= 0)
+          return 'Vehicle ID must be a positive number';
+        return true;
+      },
+      description: 'ID of the vehicle (optional, positive integer)',
+    },
+    {
+      key: 'location_type',
+      header: 'Location Type',
+      width: 15,
+      type: 'string',
+      defaultValue: 'van',
+      validation: value => {
+        if (!value) return true; // Optional field
+        const validTypes = ['van', 'warehouse', 'depot', 'store'];
+        return (
+          validTypes.includes(value.toLowerCase()) || 'Invalid location type'
+        );
+      },
+      transform: value => (value ? value.toString().toLowerCase() : 'van'),
+      description: 'Location type (van, warehouse, depot, store)',
+    },
+    {
+      key: 'location_id',
+      header: 'Location ID',
+      width: 15,
+      type: 'number',
+      validation: value => {
+        if (!value) return true; // Optional field
+        const numValue = Number(value);
+        if (isNaN(numValue) || numValue <= 0)
+          return 'Location ID must be a positive number';
+        return true;
+      },
+      description: 'ID of the location/depot (optional, positive integer)',
+    },
+    {
       key: 'is_active',
       header: 'Is Active',
       width: 12,
@@ -135,35 +179,99 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
   ];
 
   protected async getSampleData(): Promise<any[]> {
+    // Fetch actual IDs from database to ensure validity
+    const users = await prisma.users.findMany({
+      take: 3,
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+    const products = await prisma.products.findMany({
+      take: 3,
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+    const vehicles = await prisma.vehicles.findMany({
+      take: 3,
+      select: { id: true, vehicle_number: true },
+      orderBy: { id: 'asc' },
+    });
+    const depots = await prisma.depots.findMany({
+      take: 3,
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+    const batches = await prisma.batch_lots.findMany({
+      take: 3,
+      select: { id: true, batch_number: true },
+      orderBy: { id: 'asc' },
+    });
+    const serials = await prisma.serial_numbers.findMany({
+      take: 3,
+      select: { id: true, serial_number: true },
+      orderBy: { id: 'asc' },
+    });
+
+    const userIds = users.map(u => u.id);
+    const productIds = products.map(p => p.id);
+    const vehicleIds = vehicles.map(v => v.id);
+    const depotIds = depots.map(d => d.id);
+    const batchIds = batches.map(b => b.id);
+    const serialIds = serials.map(s => s.id);
+
+    const userId1 = userIds[0] || 1;
+    const userId2 = userIds[1] || 1;
+    const userId3 = userIds[2] || 1;
+    const productId1 = productIds[0] || 1;
+    const productId2 = productIds[1] || 1;
+    const productId3 = productIds[2] || 1;
+    const vehicleId1 = vehicleIds[0] || 1;
+    const vehicleId2 = vehicleIds[1] || 1;
+    const vehicleId3 = vehicleIds[2] || 1;
+    const depotId1 = depotIds[0] || 1;
+    const depotId2 = depotIds[1] || 1;
+    const depotId3 = depotIds[2] || 1;
+    const batchId1 = batchIds[0] || null;
+    const batchId2 = batchIds[1] || null;
+    const serialId1 = serialIds[0] || null;
+
     return [
       {
-        user_id: 1,
-        product_id: 1,
-        batch_id: 1,
+        user_id: userId1,
+        product_id: productId1,
+        batch_id: batchId1,
         serial_no_id: null,
         quantity: 50,
         reserved_quantity: 5,
         available_quantity: 45,
+        vehicle_id: vehicleId1,
+        location_type: 'van',
+        location_id: depotId1,
         is_active: 'Y',
       },
       {
-        user_id: 2,
-        product_id: 2,
+        user_id: userId2,
+        product_id: productId2,
         batch_id: null,
-        serial_no_id: 1,
+        serial_no_id: serialId1,
         quantity: 25,
         reserved_quantity: 0,
         available_quantity: 25,
+        vehicle_id: vehicleId2,
+        location_type: 'van',
+        location_id: depotId2,
         is_active: 'Y',
       },
       {
-        user_id: 1,
-        product_id: 3,
-        batch_id: 2,
+        user_id: userId3,
+        product_id: productId3,
+        batch_id: batchId2,
         serial_no_id: null,
         quantity: 100,
         reserved_quantity: 10,
         available_quantity: 90,
+        vehicle_id: vehicleId3,
+        location_type: 'van',
+        location_id: depotId3,
         is_active: 'Y',
       },
     ];
@@ -183,6 +291,9 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       quantity: vanInventory.quantity || 0,
       reserved_quantity: vanInventory.reserved_quantity || 0,
       available_quantity: vanInventory.available_quantity || '',
+      vehicle_id: vanInventory.vehicle_id || '',
+      location_type: vanInventory.location_type || 'van',
+      location_id: vanInventory.location_id || '',
       is_active: vanInventory.is_active || 'Y',
       created_date: vanInventory.createdate?.toISOString().split('T')[0] || '',
       created_by: vanInventory.createdby || '',
@@ -220,6 +331,8 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
     const productModel = tx ? tx.products : prisma.products;
     const batchModel = tx ? tx.batch_lots : prisma.batch_lots;
     const serialModel = tx ? tx.serial_numbers : prisma.serial_numbers;
+    const vehicleModel = tx ? tx.vehicles : prisma.vehicles;
+    const locationModel = tx ? tx.depots : prisma.depots;
 
     // Validate user exists
     const user = await userModel.findUnique({
@@ -257,6 +370,26 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       }
     }
 
+    // Validate vehicle exists (if provided)
+    if (data.vehicle_id) {
+      const vehicle = await vehicleModel.findUnique({
+        where: { id: data.vehicle_id },
+      });
+      if (!vehicle) {
+        return `Vehicle with ID ${data.vehicle_id} does not exist`;
+      }
+    }
+
+    // Validate location exists (if provided)
+    if (data.location_id) {
+      const location = await locationModel.findUnique({
+        where: { id: data.location_id },
+      });
+      if (!location) {
+        return `Location with ID ${data.location_id} does not exist`;
+      }
+    }
+
     return null;
   }
 
@@ -269,6 +402,9 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       available_quantity:
         data.available_quantity ||
         data.quantity - (data.reserved_quantity || 0),
+      vehicle_id: data.vehicle_id ? parseInt(data.vehicle_id) : null,
+      location_id: data.location_id ? parseInt(data.location_id) : null,
+      location_type: data.location_type || 'van',
       createdby: userId,
       createdate: new Date(),
       log_inst: 1,
@@ -300,6 +436,9 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
         available_quantity:
           data.available_quantity ||
           data.quantity - (data.reserved_quantity || 0),
+        vehicle_id: data.vehicle_id ? parseInt(data.vehicle_id) : null,
+        location_id: data.location_id ? parseInt(data.location_id) : null,
+        location_type: data.location_type || 'van',
         updatedby: userId,
         updatedate: new Date(),
       },
@@ -323,6 +462,12 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
         serial_numbers: {
           select: { id: true, serial_number: true, status: true },
         },
+        vehicle: {
+          select: { id: true, vehicle_number: true, type: true },
+        },
+        location: {
+          select: { id: true, name: true, code: true },
+        },
       },
     };
 
@@ -339,6 +484,8 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       { header: 'Product Name', key: 'product_name', width: 25 },
       { header: 'Batch Number', key: 'batch_number', width: 20 },
       { header: 'Serial Number', key: 'serial_number', width: 20 },
+      { header: 'Vehicle Number', key: 'vehicle_number', width: 20 },
+      { header: 'Location Name', key: 'location_name', width: 20 },
       { header: 'Created Date', key: 'created_date', width: 15 },
       { header: 'Created By', key: 'created_by', width: 15 },
       { header: 'Updated Date', key: 'updated_date', width: 15 },
@@ -369,6 +516,8 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
         product_name: data[index]?.van_inventory_products?.name || '',
         batch_number: data[index]?.batch_lots?.batch_number || '',
         serial_number: data[index]?.serial_numbers?.serial_number || '',
+        vehicle_number: data[index]?.vehicle?.vehicle_number || '',
+        location_name: data[index]?.location?.name || '',
       });
 
       if (index % 2 === 0) {

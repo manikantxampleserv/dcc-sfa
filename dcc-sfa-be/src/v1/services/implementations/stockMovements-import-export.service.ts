@@ -162,6 +162,20 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
       description: 'Movement remarks (optional, max 1000 characters)',
     },
     {
+      key: 'van_inventory_id',
+      header: 'Van Inventory ID',
+      width: 18,
+      type: 'number',
+      validation: value => {
+        if (!value) return true; // Optional field
+        const num = parseInt(value);
+        if (isNaN(num) || num <= 0)
+          return 'Van inventory ID must be a positive number';
+        return true;
+      },
+      description: 'Van inventory ID (optional, must be valid van inventory)',
+    },
+    {
       key: 'is_active',
       header: 'Is Active',
       width: 12,
@@ -211,6 +225,7 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
         quantity: 100,
         movement_date: '2024-01-20',
         remarks: 'Initial stock receipt',
+        van_inventory_id: null,
         is_active: 'Y',
       },
       {
@@ -225,6 +240,7 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
         quantity: 50,
         movement_date: '2024-01-21',
         remarks: 'Stock sold to customer',
+        van_inventory_id: 1,
         is_active: 'Y',
       },
       {
@@ -239,6 +255,7 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
         quantity: 25,
         movement_date: '2024-01-22',
         remarks: 'Inter-warehouse transfer',
+        van_inventory_id: null,
         is_active: 'Y',
       },
     ];
@@ -262,6 +279,7 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
       quantity: movement.quantity,
       movement_date: movement.movement_date?.toISOString().split('T')[0] || '',
       remarks: movement.remarks || '',
+      van_inventory_id: movement.van_inventory_id || '',
       is_active: movement.is_active || 'Y',
       created_date: movement.createdate?.toISOString().split('T')[0] || '',
       created_by: movement.createdby || '',
@@ -338,6 +356,18 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
       }
     }
 
+    // Validate van_inventory_id if provided
+    if (data.van_inventory_id) {
+      const vanInventory = await prisma.van_inventory.findFirst({
+        where: { id: data.van_inventory_id },
+        select: { id: true, user_id: true, product_id: true },
+      });
+
+      if (!vanInventory) {
+        return `Van inventory with ID ${data.van_inventory_id} does not exist. Please check the van inventory ID or create the van inventory first.`;
+      }
+    }
+
     return null;
   }
 
@@ -370,6 +400,10 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
           ? parseInt(data.to_location_id)
           : null,
       quantity: parseInt(data.quantity),
+      van_inventory_id:
+        data.van_inventory_id && data.van_inventory_id !== ''
+          ? parseInt(data.van_inventory_id)
+          : null,
       createdby: userId,
       createdate: new Date(),
       log_inst: 1,
@@ -429,6 +463,7 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
         stock_movements_products: true,
         stock_movements_from_location: true,
         stock_movements_to_location: true,
+        van_inventory: true,
       },
     };
 
@@ -445,6 +480,12 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
       { header: 'Product Code', key: 'product_code', width: 15 },
       { header: 'From Location Name', key: 'from_location_name', width: 25 },
       { header: 'To Location Name', key: 'to_location_name', width: 25 },
+      { header: 'Van Inventory User', key: 'van_inventory_user', width: 20 },
+      {
+        header: 'Van Inventory Product',
+        key: 'van_inventory_product',
+        width: 25,
+      },
       { header: 'Created Date', key: 'created_date', width: 15 },
       { header: 'Created By', key: 'created_by', width: 15 },
       { header: 'Updated Date', key: 'updated_date', width: 15 },
@@ -476,6 +517,8 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
         from_location_name:
           data[index]?.stock_movements_from_location?.name || '',
         to_location_name: data[index]?.stock_movements_to_location?.name || '',
+        van_inventory_user: data[index]?.van_inventory?.user_id || '',
+        van_inventory_product: data[index]?.van_inventory?.product_id || '',
       });
 
       if (index % 2 === 0) {

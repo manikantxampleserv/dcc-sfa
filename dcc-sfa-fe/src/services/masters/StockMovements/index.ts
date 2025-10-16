@@ -27,6 +27,7 @@ interface StockMovement {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  van_inventory_id?: number | null;
 
   product?: {
     id: number;
@@ -43,6 +44,13 @@ interface StockMovement {
     id: number;
     name: string;
   } | null;
+
+  van_inventory?: {
+    id: number;
+    user_id: number;
+    product_id: number;
+    quantity: number;
+  } | null;
 }
 
 interface ManageStockMovementPayload {
@@ -58,6 +66,7 @@ interface ManageStockMovementPayload {
   quantity: number;
   movement_date?: string | null;
   remarks?: string | null;
+  van_inventory_id?: number | null;
   is_active?: string;
 }
 
@@ -73,6 +82,7 @@ interface UpdateStockMovementPayload {
   quantity?: number;
   movement_date?: string | null;
   remarks?: string | null;
+  van_inventory_id?: number | null;
   is_active?: string;
 }
 
@@ -85,6 +95,7 @@ interface GetStockMovementsParams {
   product_id?: number;
   from_location_id?: number;
   to_location_id?: number;
+  van_inventory_id?: number;
 }
 
 interface PaginationMeta {

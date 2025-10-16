@@ -309,7 +309,7 @@ const ImportVanInventory: React.FC<ImportVanInventoryProps> = ({
             )}
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center gap-2">
             <Button
               type="button"
               variant="outlined"

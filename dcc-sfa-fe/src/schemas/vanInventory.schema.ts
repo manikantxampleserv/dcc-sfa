@@ -46,6 +46,23 @@ export const vanInventoryValidationSchema = Yup.object({
     .integer('Available quantity must be an integer')
     .optional(),
 
+  vehicle_id: Yup.number()
+    .positive('Vehicle ID must be a positive number')
+    .integer('Vehicle ID must be an integer')
+    .nullable()
+    .optional(),
+
+  location_type: Yup.string()
+    .oneOf(['van', 'warehouse', 'depot', 'store'], 'Invalid location type')
+    .default('van')
+    .optional(),
+
+  location_id: Yup.number()
+    .positive('Location ID must be a positive number')
+    .integer('Location ID must be an integer')
+    .nullable()
+    .optional(),
+
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Must be Y or N')
     .default('Y')

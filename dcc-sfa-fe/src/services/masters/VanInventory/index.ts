@@ -24,6 +24,9 @@ interface VanInventory {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  vehicle_id?: number | null;
+  location_type?: string | null;
+  location_id?: number | null;
   product?: {
     id: number;
     name: string;
@@ -44,6 +47,16 @@ interface VanInventory {
     serial_number: string;
     status: string;
   } | null;
+  vehicle?: {
+    id: number;
+    vehicle_number: string;
+    type: string;
+  } | null;
+  location?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
 }
 
 interface ManageVanInventoryPayload {
@@ -54,6 +67,9 @@ interface ManageVanInventoryPayload {
   quantity?: number;
   reserved_quantity?: number;
   available_quantity?: number;
+  vehicle_id?: number | null;
+  location_type?: string;
+  location_id?: number | null;
   is_active?: string;
   createdby?: number;
 }
@@ -66,6 +82,9 @@ interface UpdateVanInventoryPayload {
   quantity?: number;
   reserved_quantity?: number;
   available_quantity?: number;
+  vehicle_id?: number | null;
+  location_type?: string;
+  location_id?: number | null;
   is_active?: string;
   updatedby?: number;
 }
@@ -77,6 +96,9 @@ interface GetVanInventoryParams {
   status?: string;
   user_id?: number;
   product_id?: number;
+  vehicle_id?: number;
+  location_type?: string;
+  location_id?: number;
 }
 
 interface PaginationMeta {

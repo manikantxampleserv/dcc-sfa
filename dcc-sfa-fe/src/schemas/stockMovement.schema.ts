@@ -59,6 +59,10 @@ export const stockMovementValidationSchema = Yup.object({
     .nullable()
     .max(1000, 'Remarks must be less than 1000 characters'),
 
+  van_inventory_id: Yup.number()
+    .nullable()
+    .min(1, 'Van inventory ID must be a positive number'),
+
   is_active: Yup.string()
     .required('Status is required')
     .oneOf(['Y', 'N'], 'Status must be Active or Inactive'),
