@@ -194,6 +194,24 @@ export interface ApiResponse<T = any> {
     active_inspections?: number;
     inactive_inspections?: number;
     new_inspections_this_month?: number;
+    // Stock transfer request statistics
+    total_stock_transfer_requests?: number;
+    active_stock_transfer_requests?: number;
+    inactive_stock_transfer_requests?: number;
+    stock_transfer_requests_this_month?: number;
+    // Van inventory statistics
+    total_records: number;
+    active_records: number;
+    inactive_records: number;
+    van_inventory: number;
+    // Stock movement statistics
+    total_stock_movements: number;
+    active_stock_movements: number;
+    inactive_stock_movements: number;
+    stock_movements_this_month: number;
+    total_in_movements: number;
+    total_out_movements: number;
+    total_transfer_movements: number;
   };
 }
 

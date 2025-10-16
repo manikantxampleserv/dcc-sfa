@@ -1,20 +1,12 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
-import {
-  Alert,
-  Avatar,
-  Box,
-  Chip,
-  MenuItem,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import {
-  useAssetTypes,
-  useDeleteAssetType,
-  type AssetType,
-} from 'hooks/useAssetTypes';
+import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
-import { Package, TrendingUp } from 'lucide-react';
+import {
+  useDeleteStockTransferRequest,
+  useStockTransferRequests,
+  type StockTransferRequest,
+} from 'hooks/useStockTransferRequests';
+import { TrendingUp, Truck, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -23,73 +15,70 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import ImportAssetType from './ImportAssetType';
-import ManageAssetType from './ManageAssetType';
+import ImportStockTransferRequest from './ImportStockTransferRequest';
+import ManageStockTransferRequest from './ManageStockTransferRequest';
 
-const AssetTypesPage: React.FC = () => {
+const StockTransferRequestsManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedAssetType, setSelectedAssetType] = useState<AssetType | null>(
-    null
-  );
+  const [selectedRequest, setSelectedRequest] =
+    useState<StockTransferRequest | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const {
-    data: assetTypesResponse,
+    data: requestsResponse,
     isLoading,
     error,
-  } = useAssetTypes({
+  } = useStockTransferRequests({
     search,
     page,
     limit,
-    isActive:
+    status:
       statusFilter === 'all'
         ? undefined
         : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
+          ? 'active'
+          : 'inactive',
   });
 
-  const assetTypes = assetTypesResponse?.data || [];
-  const totalCount = assetTypesResponse?.meta?.total_count || 0;
-  const currentPage = (assetTypesResponse?.meta?.current_page || 1) - 1;
+  const requests = requestsResponse?.data || [];
+  const totalCount = requestsResponse?.meta?.total || 0;
+  const currentPage = (requestsResponse?.meta?.page || 1) - 1;
 
-  const deleteAssetTypeMutation = useDeleteAssetType();
+  const deleteRequestMutation = useDeleteStockTransferRequest();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalAssetTypes =
-    assetTypesResponse?.stats?.total_asset_types ?? assetTypes.length;
-  const activeAssetTypes =
-    assetTypesResponse?.stats?.active_asset_types ??
-    assetTypes.filter(at => at.is_active === 'Y').length;
-  const inactiveAssetTypes =
-    assetTypesResponse?.stats?.inactive_asset_types ??
-    assetTypes.filter(at => at.is_active === 'N').length;
-  const newAssetTypesThisMonth =
-    assetTypesResponse?.stats?.new_asset_types ?? 0;
+  const totalRequests =
+    requestsResponse?.stats?.total_stock_transfer_requests ?? 0;
+  const activeRequests =
+    requestsResponse?.stats?.active_stock_transfer_requests ?? 0;
+  const inactiveRequests =
+    requestsResponse?.stats?.inactive_stock_transfer_requests ?? 0;
+  const requestsThisMonth =
+    requestsResponse?.stats?.stock_transfer_requests_this_month ?? 0;
 
-  const handleCreateAssetType = useCallback(() => {
-    setSelectedAssetType(null);
+  const handleCreateRequest = useCallback(() => {
+    setSelectedRequest(null);
     setDrawerOpen(true);
   }, []);
 
-  const handleEditAssetType = useCallback((assetType: AssetType) => {
-    setSelectedAssetType(assetType);
+  const handleEditRequest = useCallback((request: StockTransferRequest) => {
+    setSelectedRequest(request);
     setDrawerOpen(true);
   }, []);
 
-  const handleDeleteAssetType = useCallback(
+  const handleDeleteRequest = useCallback(
     async (id: number) => {
       try {
-        await deleteAssetTypeMutation.mutateAsync(id);
+        await deleteRequestMutation.mutateAsync(id);
       } catch (error) {
-        console.error('Error deleting asset type:', error);
+        console.error('Error deleting stock transfer request:', error);
       }
     },
-    [deleteAssetTypeMutation]
+    [deleteRequestMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -105,95 +94,168 @@ const AssetTypesPage: React.FC = () => {
     try {
       const filters = {
         search,
-        isActive:
+        status:
           statusFilter === 'all'
             ? undefined
             : statusFilter === 'active'
-              ? 'Y'
-              : 'N',
+              ? 'active'
+              : 'inactive',
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'asset_types',
+        tableName: 'stock_transfer_requests',
         filters,
       });
     } catch (error) {
-      console.error('Error exporting asset types:', error);
+      console.error('Error exporting stock transfer requests:', error);
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const assetTypeColumns: TableColumn<AssetType>[] = [
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'warning';
+      case 'approved':
+        return 'success';
+      case 'rejected':
+        return 'error';
+      case 'in_progress':
+        return 'info';
+      case 'completed':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'Pending';
+      case 'approved':
+        return 'Approved';
+      case 'rejected':
+        return 'Rejected';
+      case 'in_progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status || 'Unknown';
+    }
+  };
+
+  // Define table columns
+  const requestColumns: TableColumn<StockTransferRequest>[] = [
     {
-      id: 'name',
-      label: 'Asset Type Name',
+      id: 'request_number',
+      label: 'Request Number',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.name}
-            className="!rounded !bg-primary-100 !text-primary-500"
+            alt={row.request_number}
+            className="!rounded !bg-primary-100 !text-primary-600"
           >
-            <Package className="w-5 h-5" />
+            <Truck className="w-5 h-5" />
           </Avatar>
-          <Box className="!max-w-xs">
+          <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight"
+              className="!text-gray-900 !leading-tight !font-medium"
             >
-              {row.name}
+              {row.request_number}
             </Typography>
-            {row.description && (
-              <Tooltip title={row.description} placement="top" arrow>
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !block !mt-0.5"
-                  title={row.description}
-                  sx={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    maxWidth: '300px',
-                    cursor: 'help',
-                  }}
-                >
-                  {row.description}
-                </Typography>
-              </Tooltip>
-            )}
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.source_type} → {row.destination_type}
+            </Typography>
           </Box>
         </Box>
       ),
     },
     {
-      id: 'category',
-      label: 'Category',
+      id: 'source',
+      label: 'Source',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.category || (
-            <span className="italic text-gray-400">No Category</span>
-          )}
-        </Typography>
+        <Box>
+          <Typography variant="body2" className="!text-gray-900 !font-medium">
+            {row.source?.name || `ID: ${row.source_id}`}
+          </Typography>
+          <Typography variant="caption" className="!text-gray-500">
+            {row.source_type}
+          </Typography>
+        </Box>
       ),
     },
     {
-      id: 'brand',
-      label: 'Brand',
+      id: 'destination',
+      label: 'Destination',
+      render: (_value, row) => (
+        <Box>
+          <Typography variant="body2" className="!text-gray-900 !font-medium">
+            {row.destination?.name || `ID: ${row.destination_id}`}
+          </Typography>
+          <Typography variant="caption" className="!text-gray-500">
+            {row.destination_type}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      id: 'requested_by_user',
+      label: 'Requested By',
+      render: (_value, row) => (
+        <Box className="!flex !gap-2 !items-center">
+          <Avatar
+            alt={row.requested_by_user?.name || 'Unknown'}
+            className="!rounded !bg-primary-100 !text-primary-600"
+            sx={{ width: 32, height: 32 }}
+          >
+            {row.requested_by_user?.name?.charAt(0) || '?'}
+          </Avatar>
+          <Box>
+            <Typography variant="body2" className="!text-gray-900 !font-medium">
+              {row.requested_by_user?.name || 'Unknown User'}
+            </Typography>
+            <Typography variant="caption" className="!text-gray-500">
+              {row.requested_by_user?.email || `ID: ${row.requested_by}`}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      render: (_value, row) => (
+        <Chip
+          label={getStatusLabel(row.status || 'pending')}
+          size="small"
+          className="w-24"
+          color={getStatusColor(row.status || 'pending') as any}
+        />
+      ),
+    },
+    {
+      id: 'transfer_lines',
+      label: 'Items',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900">
-          {row.brand || <span className="italic text-gray-400">No Brand</span>}
+          {row.transfer_lines?.length || 0} items
         </Typography>
       ),
     },
     {
       id: 'is_active',
-      label: 'Status',
+      label: 'Active',
       render: is_active => (
         <Chip
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
-          className="w-26"
+          className="w-20"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),
@@ -213,13 +275,13 @@ const AssetTypesPage: React.FC = () => {
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
           <EditButton
-            onClick={() => handleEditAssetType(row)}
-            tooltip={`Edit ${row.name}`}
+            onClick={() => handleEditRequest(row)}
+            tooltip={`Edit ${row.request_number}`}
           />
           <DeleteButton
-            onClick={() => handleDeleteAssetType(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
+            onClick={() => handleDeleteRequest(row.id)}
+            tooltip={`Delete ${row.request_number}`}
+            itemName={row.request_number}
             confirmDelete={true}
           />
         </div>
@@ -232,10 +294,10 @@ const AssetTypesPage: React.FC = () => {
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Asset Types Management
+            Stock Transfer Requests Management
           </p>
           <p className="!text-gray-500 text-sm">
-            Manage asset types, categories, and brands for your organization
+            Manage stock transfer requests between warehouses and locations
           </p>
         </Box>
       </Box>
@@ -245,67 +307,69 @@ const AssetTypesPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Asset Types
+              <p className="text-sm font-medium text-gray-600">
+                Total Requests
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {totalAssetTypes}
+                <p className="text-2xl font-bold text-gray-900">
+                  {totalRequests}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-primary-500" />
+              <Truck className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-500">Active Types</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {activeAssetTypes}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-500">Inactive Types</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-600">
-                  {inactiveAssetTypes}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <Block className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-600">
-                New This Month
+              <p className="text-sm font-medium text-gray-600">
+                Active Requests
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
+                <p className="text-2xl font-bold text-green-600">
+                  {activeRequests}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                Inactive Requests
+              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-red-600">
+                  {inactiveRequests}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <XCircle className="w-6 h-6 text-red-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">This Month</p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {newAssetTypesThisMonth}
+                  {requestsThisMonth}
                 </p>
               )}
             </div>
@@ -318,38 +382,40 @@ const AssetTypesPage: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load asset types. Please try again.
+          Failed to load stock transfer requests. Please try again.
         </Alert>
       )}
 
       <Table
-        data={assetTypes}
-        columns={assetTypeColumns}
+        data={requests}
+        columns={requestColumns}
         actions={
           <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <SearchInput
-                placeholder="Search Asset Types..."
+                placeholder="Search Stock Transfer Requests"
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
                 showClear={true}
-                className="!w-80"
+                fullWidth={false}
+                className="!min-w-80"
               />
               <Select
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                className="!w-32"
+                className="!min-w-32"
+                size="small"
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="inactive">Inactive</MenuItem>
               </Select>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center flex-wrap gap-2">
               <PopConfirm
-                title="Export Asset Types"
-                description="Are you sure you want to export the current asset types data to Excel? This will include all filtered results."
+                title="Export Stock Transfer Requests"
+                description="Are you sure you want to export the current stock transfer requests data to Excel? This will include all filtered results."
                 onConfirm={handleExportToExcel}
                 confirmText="Export"
                 cancelText="Cancel"
@@ -377,15 +443,15 @@ const AssetTypesPage: React.FC = () => {
                 className="!capitalize"
                 disableElevation
                 startIcon={<Add />}
-                onClick={handleCreateAssetType}
+                onClick={handleCreateRequest}
               >
                 Create
               </Button>
             </div>
           </div>
         }
-        getRowId={assetType => assetType.id}
-        initialOrderBy="name"
+        getRowId={request => request.id}
+        initialOrderBy="request_number"
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
@@ -393,19 +459,21 @@ const AssetTypesPage: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No asset types found matching "${search}"`
-            : 'No asset types found in the system'
+            ? `No stock transfer requests found matching "${search}"`
+            : 'No stock transfer requests found in the system'
         }
       />
 
-      <ManageAssetType
-        selectedAssetType={selectedAssetType}
-        setSelectedAssetType={setSelectedAssetType}
-        drawerOpen={drawerOpen}
-        setDrawerOpen={setDrawerOpen}
+      <ManageStockTransferRequest
+        open={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+          setSelectedRequest(null);
+        }}
+        request={selectedRequest}
       />
 
-      <ImportAssetType
+      <ImportStockTransferRequest
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
       />
@@ -413,4 +481,4 @@ const AssetTypesPage: React.FC = () => {
   );
 };
 
-export default AssetTypesPage;
+export default StockTransferRequestsManagement;

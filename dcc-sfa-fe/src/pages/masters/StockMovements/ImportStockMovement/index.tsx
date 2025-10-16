@@ -11,7 +11,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import * as Yup from 'yup';
 
-interface ImportAssetTypeProps {
+interface ImportStockMovementProps {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
 }
@@ -20,7 +20,7 @@ const importValidationSchema = Yup.object({
   file: Yup.mixed().required('Please select a file to import'),
 });
 
-const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
+const ImportStockMovement: React.FC<ImportStockMovementProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
@@ -30,7 +30,6 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // API hooks
   const downloadTemplateMutation = useDownloadTemplate();
   const importDataMutation = useImportData({
     onSuccess: data => {
@@ -60,7 +59,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
 
   const handleDownloadSample = async () => {
     try {
-      await downloadTemplateMutation.mutateAsync('asset_types');
+      await downloadTemplateMutation.mutateAsync('stock_movements');
     } catch (error) {
       console.error('Failed to download template:', error);
     }
@@ -85,7 +84,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
 
     try {
       await importDataMutation.mutateAsync({
-        tableName: 'asset_types',
+        tableName: 'stock_movements',
         file: uploadedFile,
         options: {
           batchSize: 100,
@@ -93,7 +92,6 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
           updateExisting: false,
         },
       });
-      // Results are handled in the mutation onSuccess callback
     } catch (error) {
       console.error('Import failed:', error);
     }
@@ -113,19 +111,18 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
-      title="Import Asset Types"
+      title="Import Stock Movements"
       size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
-              Upload an Excel file to import multiple asset types. Download the
-              sample file to see the required format.
+              Upload an Excel file to import multiple stock movements. Download
+              the sample file to see the required format.
             </Typography>
           </Alert>
 
-          {/* Download Sample Section */}
           <Box className="!p-4 !border !border-gray-200 !rounded-lg">
             <Box className="!flex !items-center !justify-between">
               <Box className="!flex !items-center !gap-3">
@@ -151,7 +148,6 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
             </Box>
           </Box>
 
-          {/* Upload Section */}
           <Box className="!p-4 !border !border-gray-200 !rounded-lg">
             <Typography variant="subtitle1" className="!font-medium !mb-3">
               Upload File
@@ -278,7 +274,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
                           >
                             Import Errors ({importResults.errors.length}):
                           </Typography>
-                          <Box className="!bg-red-50 !rounded-lg !max-h-32 !overflow-y-auto !p-2">
+                          <Box className="!bg-red-50 !rounded-lg !p-2">
                             {importResults.errors
                               .slice(0, 10)
                               .map((error: string, index: number) => (
@@ -308,7 +304,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
             )}
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center !gap-2">
             <Button
               type="button"
               variant="outlined"
@@ -341,4 +337,4 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
   );
 };
 
-export default ImportAssetType;
+export default ImportStockMovement;

@@ -20,10 +20,15 @@ interface VanInventorySerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  vehicle_id?: number | null;
+  location_type?: string | null;
+  location_id?: number | null;
   product?: { id: number; name: string; code: string } | null;
   user?: { id: number; name: string; email: string } | null;
   batch?: { id: number; batch_number: string; quantity: number } | null;
   serial_number?: { id: number; serial_number: string; status: string } | null;
+  vehicle?: { id: number; vehicle_number: string; type: string } | null;
+  location?: { id: number; name: string; code: string } | null;
 }
 
 const serializeVanInventory = (item: any): VanInventorySerialized => ({
@@ -42,6 +47,9 @@ const serializeVanInventory = (item: any): VanInventorySerialized => ({
   updatedate: item.updatedate,
   updatedby: item.updatedby,
   log_inst: item.log_inst,
+  vehicle_id: item.vehicle_id,
+  location_type: item.location_type,
+  location_id: item.location_id,
   product: item.van_inventory_products
     ? {
         id: item.van_inventory_products.id,
@@ -70,6 +78,20 @@ const serializeVanInventory = (item: any): VanInventorySerialized => ({
         status: item.serial_numbers.status,
       }
     : null,
+  vehicle: item.vehicle
+    ? {
+        id: item.vehicle.id,
+        vehicle_number: item.vehicle.vehicle_number,
+        type: item.vehicle.type,
+      }
+    : null,
+  location: item.location
+    ? {
+        id: item.location.id,
+        name: item.location.name,
+        code: item.location.code,
+      }
+    : null,
 });
 
 export const vanInventoryController = {
@@ -91,6 +113,9 @@ export const vanInventoryController = {
           quantity: data.quantity || 0,
           reserved_quantity: data.reserved_quantity || 0,
           available_quantity: data.available_quantity || data.quantity || 0,
+          vehicle_id: data.vehicle_id || null,
+          location_type: data.location_type || 'van',
+          location_id: data.location_id || null,
           is_active: data.is_active || 'Y',
           createdate: new Date(),
           createdby: req.user?.id || 1,
@@ -101,6 +126,8 @@ export const vanInventoryController = {
           van_inventory_users: true,
           batch_lots: true,
           serial_numbers: true,
+          vehicle: true,
+          location: true,
         },
       });
 
@@ -144,6 +171,8 @@ export const vanInventoryController = {
           van_inventory_users: true,
           batch_lots: true,
           serial_numbers: true,
+          vehicle: true,
+          location: true,
         },
       });
 
@@ -156,7 +185,7 @@ export const vanInventoryController = {
       });
 
       const now = new Date();
-      const vanInventory = await prisma.van_inventory.findMany({
+      const vanInventory = await prisma.van_inventory.count({
         where: {
           createdate: {
             gte: new Date(now.getFullYear(), now.getMonth(), 1),
@@ -193,6 +222,8 @@ export const vanInventoryController = {
           van_inventory_users: true,
           batch_lots: true,
           serial_numbers: true,
+          vehicle: true,
+          location: true,
         },
       });
 
@@ -231,6 +262,8 @@ export const vanInventoryController = {
           van_inventory_users: true,
           batch_lots: true,
           serial_numbers: true,
+          vehicle: true,
+          location: true,
         },
       });
 

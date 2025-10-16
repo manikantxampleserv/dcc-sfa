@@ -179,14 +179,19 @@ const menuItems: MenuItem[] = [
         href: '/transactions/inspections',
       },
       {
-        id: 'stock-transfer-requests',
-        label: 'Stock Transfer Requests',
-        href: '/transactions/stock-transfer',
-      },
-      {
         id: 'van-stock',
         label: 'Van Stock Load/Unload',
         href: '/transactions/van-stock',
+      },
+      {
+        id: 'stock-movements',
+        label: 'Stock Movements',
+        href: '/transactions/stock-movements',
+      },
+      {
+        id: 'stock-transfer-requests',
+        label: 'Stock Transfer Requests',
+        href: '/transactions/stock-transfer',
       },
       {
         id: 'competitor-activity',

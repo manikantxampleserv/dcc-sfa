@@ -23,9 +23,16 @@ interface StockMovementSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  van_inventory_id?: number | null;
   product?: { id: number; name: string; code: string } | null;
   from_location?: { id: number; name: string } | null;
   to_location?: { id: number; name: string } | null;
+  van_inventory?: {
+    id: number;
+    user_id: number;
+    product_id: number;
+    quantity: number;
+  } | null;
 }
 
 const serializeStockMovement = (sm: any): StockMovementSerialized => ({
@@ -47,6 +54,7 @@ const serializeStockMovement = (sm: any): StockMovementSerialized => ({
   updatedate: sm.updatedate,
   updatedby: sm.updatedby,
   log_inst: sm.log_inst,
+  van_inventory_id: sm.van_inventory_id,
   product: sm.stock_movements_products
     ? {
         id: sm.stock_movements_products.id,
@@ -64,6 +72,14 @@ const serializeStockMovement = (sm: any): StockMovementSerialized => ({
     ? {
         id: sm.stock_movements_to_location.id,
         name: sm.stock_movements_to_location.name,
+      }
+    : null,
+  van_inventory: sm.van_inventory
+    ? {
+        id: sm.van_inventory.id,
+        user_id: sm.van_inventory.user_id,
+        product_id: sm.van_inventory.product_id,
+        quantity: sm.van_inventory.quantity,
       }
     : null,
 });
@@ -93,6 +109,7 @@ export const stockMovementsController = {
           to_location_id: data.to_location_id,
           quantity: data.quantity,
           remarks: data.remarks,
+          van_inventory_id: data.van_inventory_id,
           createdby: req.user?.id || 1,
           is_active: data.is_active || 'Y',
           log_inst: data.log_inst || 1,
@@ -101,6 +118,7 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
+          van_inventory: true,
         },
       });
 
@@ -116,7 +134,7 @@ export const stockMovementsController = {
 
   async getAllStockMovements(req: any, res: any) {
     try {
-      const { page, limit, search, status } = req.query;
+      const { page, limit, search, status, movement_type } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -126,10 +144,14 @@ export const stockMovementsController = {
           OR: [
             { movement_type: { contains: searchLower } },
             { reference_type: { contains: searchLower } },
+            { remarks: { contains: searchLower } },
           ],
         }),
         ...(status && {
           is_active: status.toLowerCase() === 'active' ? 'Y' : 'N',
+        }),
+        ...(movement_type && {
+          movement_type: movement_type,
         }),
       };
 
@@ -143,14 +165,51 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
+          van_inventory: true,
         },
       });
+
+      // Calculate statistics
+      const [
+        totalStockMovements,
+        activeStockMovements,
+        inactiveStockMovements,
+        stockMovementsThisMonth,
+        totalInMovements,
+        totalOutMovements,
+        totalTransferMovements,
+      ] = await Promise.all([
+        prisma.stock_movements.count(),
+        prisma.stock_movements.count({ where: { is_active: 'Y' } }),
+        prisma.stock_movements.count({ where: { is_active: 'N' } }),
+        prisma.stock_movements.count({
+          where: {
+            createdate: {
+              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            },
+          },
+        }),
+        prisma.stock_movements.count({ where: { movement_type: 'IN' } }),
+        prisma.stock_movements.count({ where: { movement_type: 'OUT' } }),
+        prisma.stock_movements.count({ where: { movement_type: 'TRANSFER' } }),
+      ]);
+
+      const stats = {
+        total_stock_movements: totalStockMovements,
+        active_stock_movements: activeStockMovements,
+        inactive_stock_movements: inactiveStockMovements,
+        stock_movements_this_month: stockMovementsThisMonth,
+        total_in_movements: totalInMovements,
+        total_out_movements: totalOutMovements,
+        total_transfer_movements: totalTransferMovements,
+      };
 
       res.success(
         'Stock Movements retrieved successfully',
         data.map((sm: any) => serializeStockMovement(sm)),
         200,
-        pagination
+        pagination,
+        stats
       );
     } catch (error: any) {
       console.error('Get All Stock Movements Error:', error);
@@ -167,6 +226,7 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
+          van_inventory: true,
         },
       });
 
@@ -206,6 +266,7 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
+          van_inventory: true,
         },
       });
 

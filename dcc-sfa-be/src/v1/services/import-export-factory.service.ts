@@ -31,6 +31,9 @@ import { AssetMaintenanceImportExportService } from './implementations/assetMain
 import { CompetitorActivityImportExportService } from './implementations/competitorActivity-import-export.service';
 import { CoolerInstallationsImportExportService } from './implementations/coolerInstallations-import-export.service';
 import { CoolerInspectionsImportExportService } from './implementations/coolerInspections-import-export.service';
+import { StockTransferRequestsImportExportService } from './implementations/stockTransferRequests-import-export.service';
+import { StockMovementsImportExportService } from './implementations/stockMovements-import-export.service';
+import { VanInventoryImportExportService } from './implementations/vanInventory-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -72,6 +75,9 @@ export class ImportExportFactory {
     ['competitor_activity', CompetitorActivityImportExportService],
     ['cooler_installations', CoolerInstallationsImportExportService],
     ['cooler_inspections', CoolerInspectionsImportExportService],
+    ['stock_transfer_requests', StockTransferRequestsImportExportService],
+    ['stock_movements', StockMovementsImportExportService],
+    ['van_inventory', VanInventoryImportExportService],
     ['products', ProductsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);

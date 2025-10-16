@@ -1,20 +1,6 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
-import {
-  Alert,
-  Avatar,
-  Box,
-  Chip,
-  MenuItem,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import {
-  useAssetTypes,
-  useDeleteAssetType,
-  type AssetType,
-} from 'hooks/useAssetTypes';
-import { useExportToExcel } from 'hooks/useImportExport';
-import { Package, TrendingUp } from 'lucide-react';
+import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { Truck, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -22,30 +8,35 @@ import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
-import ImportAssetType from './ImportAssetType';
-import ManageAssetType from './ManageAssetType';
+import {
+  useVanInventory,
+  useDeleteVanInventory,
+  type VanInventory,
+} from '../../../hooks/useVanInventory';
+import { useExportToExcel } from '../../../hooks/useImportExport';
+import { formatDate } from '../../../utils/dateUtils';
+import ImportVanInventory from './ImportVanInventory';
+import ManageVanInventory from './ManageVanInventory';
 
-const AssetTypesPage: React.FC = () => {
+const VanStockPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedAssetType, setSelectedAssetType] = useState<AssetType | null>(
-    null
-  );
+  const [selectedVanInventory, setSelectedVanInventory] =
+    useState<VanInventory | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
   const {
-    data: assetTypesResponse,
+    data: vanInventoryResponse,
     isLoading,
     error,
-  } = useAssetTypes({
+  } = useVanInventory({
     search,
     page,
     limit,
-    isActive:
+    status:
       statusFilter === 'all'
         ? undefined
         : statusFilter === 'active'
@@ -53,43 +44,39 @@ const AssetTypesPage: React.FC = () => {
           : 'N',
   });
 
-  const assetTypes = assetTypesResponse?.data || [];
-  const totalCount = assetTypesResponse?.meta?.total_count || 0;
-  const currentPage = (assetTypesResponse?.meta?.current_page || 1) - 1;
+  const vanInventory = vanInventoryResponse?.data || [];
+  const totalCount = vanInventoryResponse?.meta?.total_count || 0;
+  const currentPage = (vanInventoryResponse?.meta?.current_page || 1) - 1;
 
-  const deleteAssetTypeMutation = useDeleteAssetType();
+  const deleteVanInventoryMutation = useDeleteVanInventory();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalAssetTypes =
-    assetTypesResponse?.stats?.total_asset_types ?? assetTypes.length;
-  const activeAssetTypes =
-    assetTypesResponse?.stats?.active_asset_types ??
-    assetTypes.filter(at => at.is_active === 'Y').length;
-  const inactiveAssetTypes =
-    assetTypesResponse?.stats?.inactive_asset_types ??
-    assetTypes.filter(at => at.is_active === 'N').length;
-  const newAssetTypesThisMonth =
-    assetTypesResponse?.stats?.new_asset_types ?? 0;
+  const totalVanInventory = vanInventoryResponse?.stats?.total_records ?? 0;
+  const activeVanInventory = vanInventoryResponse?.stats?.active_records ?? 0;
+  const inactiveVanInventory =
+    vanInventoryResponse?.stats?.inactive_records ?? 0;
+  const newVanInventoryThisMonth =
+    vanInventoryResponse?.stats?.van_inventory ?? 0;
 
-  const handleCreateAssetType = useCallback(() => {
-    setSelectedAssetType(null);
+  const handleCreateVanInventory = useCallback(() => {
+    setSelectedVanInventory(null);
     setDrawerOpen(true);
   }, []);
 
-  const handleEditAssetType = useCallback((assetType: AssetType) => {
-    setSelectedAssetType(assetType);
+  const handleEditVanInventory = useCallback((vanInventory: VanInventory) => {
+    setSelectedVanInventory(vanInventory);
     setDrawerOpen(true);
   }, []);
 
-  const handleDeleteAssetType = useCallback(
+  const handleDeleteVanInventory = useCallback(
     async (id: number) => {
       try {
-        await deleteAssetTypeMutation.mutateAsync(id);
+        await deleteVanInventoryMutation.mutateAsync(id);
       } catch (error) {
-        console.error('Error deleting asset type:', error);
+        console.error('Error deleting van inventory:', error);
       }
     },
-    [deleteAssetTypeMutation]
+    [deleteVanInventoryMutation]
   );
 
   const handleSearchChange = useCallback((value: string) => {
@@ -105,7 +92,7 @@ const AssetTypesPage: React.FC = () => {
     try {
       const filters = {
         search,
-        isActive:
+        status:
           statusFilter === 'all'
             ? undefined
             : statusFilter === 'active'
@@ -114,75 +101,128 @@ const AssetTypesPage: React.FC = () => {
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'asset_types',
+        tableName: 'van_inventory',
         filters,
       });
     } catch (error) {
-      console.error('Error exporting asset types:', error);
+      console.error('Error exporting van inventory:', error);
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const assetTypeColumns: TableColumn<AssetType>[] = [
+  const vanInventoryColumns: TableColumn<VanInventory>[] = [
     {
-      id: 'name',
-      label: 'Asset Type Name',
+      id: 'user_id',
+      label: 'Van Inventory User',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.name}
+            alt={row.user?.name || 'Unknown'}
             className="!rounded !bg-primary-100 !text-primary-500"
           >
-            <Package className="w-5 h-5" />
+            <Truck className="w-5 h-5" />
           </Avatar>
           <Box className="!max-w-xs">
             <Typography
               variant="body1"
               className="!text-gray-900 !leading-tight"
             >
-              {row.name}
+              {row.user?.name || 'Unknown User'}
             </Typography>
-            {row.description && (
-              <Tooltip title={row.description} placement="top" arrow>
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !block !mt-0.5"
-                  title={row.description}
-                  sx={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    maxWidth: '300px',
-                    cursor: 'help',
-                  }}
-                >
-                  {row.description}
-                </Typography>
-              </Tooltip>
-            )}
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.user?.email || 'No email'}
+            </Typography>
           </Box>
         </Box>
       ),
     },
     {
-      id: 'category',
-      label: 'Category',
+      id: 'product_id',
+      label: 'Product',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.category || (
-            <span className="italic text-gray-400">No Category</span>
-          )}
-        </Typography>
+        <Box className="!max-w-xs">
+          <Typography variant="body1" className="!text-gray-900 !leading-tight">
+            {row.product?.name || 'Unknown Product'}
+          </Typography>
+          <Typography
+            variant="caption"
+            className="!text-gray-500 !text-xs !block !mt-0.5"
+          >
+            Code: {row.product?.code || 'N/A'}
+          </Typography>
+        </Box>
       ),
     },
     {
-      id: 'brand',
-      label: 'Brand',
+      id: 'quantity',
+      label: 'Stock Levels',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.brand || <span className="italic text-gray-400">No Brand</span>}
+        <Box className="!space-y-1">
+          <Box className="!flex !items-center !gap-2">
+            <Typography variant="body2" className="!text-gray-600">
+              Total:
+            </Typography>
+            <Typography variant="body2" className="!font-medium !text-gray-900">
+              {row.quantity || 0}
+            </Typography>
+          </Box>
+          <Box className="!flex !items-center !gap-2">
+            <Typography variant="body2" className="!text-gray-600">
+              Reserved:
+            </Typography>
+            <Typography
+              variant="body2"
+              className="!font-medium !text-orange-600"
+            >
+              {row.reserved_quantity || 0}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'available_quantity',
+      label: 'Available',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!font-medium">
+          {row.available_quantity || 0}
         </Typography>
+      ),
+    },
+
+    {
+      id: 'batch_id',
+      label: 'Batch/Serial',
+      render: (_value, row) => (
+        <Box className="!space-y-1">
+          {row.batch && (
+            <Box>
+              <Typography variant="caption" className="!text-gray-500">
+                Batch:
+              </Typography>
+              <Typography variant="body2" className="!font-medium">
+                {row.batch.batch_number}
+              </Typography>
+            </Box>
+          )}
+          {row.serial_number && (
+            <Box>
+              <Typography variant="caption" className="!text-gray-500">
+                Serial:
+              </Typography>
+              <Typography variant="body2" className="!font-medium">
+                {row.serial_number.serial_number}
+              </Typography>
+            </Box>
+          )}
+          {!row.batch && !row.serial_number && (
+            <Typography variant="body2" className="!italic !text-gray-400">
+              No batch/serial
+            </Typography>
+          )}
+        </Box>
       ),
     },
     {
@@ -199,27 +239,31 @@ const AssetTypesPage: React.FC = () => {
       ),
     },
     {
-      id: 'createdate',
-      label: 'Created Date',
-      render: (_value, row) =>
-        formatDate(row.createdate) || (
+      id: 'last_updated',
+      label: 'Last Updated',
+      render: (_value, row) => {
+        const formattedDate = formatDate(row.last_updated);
+        return formattedDate ? (
+          <span>{formattedDate}</span>
+        ) : (
           <span className="italic text-gray-400">No Date</span>
-        ),
+        );
+      },
     },
     {
-      id: 'action',
+      id: 'id',
       label: 'Actions',
       sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
           <EditButton
-            onClick={() => handleEditAssetType(row)}
-            tooltip={`Edit ${row.name}`}
+            onClick={() => handleEditVanInventory(row)}
+            tooltip={`Edit ${row.product?.name || 'Van Inventory'}`}
           />
           <DeleteButton
-            onClick={() => handleDeleteAssetType(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
+            onClick={() => handleDeleteVanInventory(row.id)}
+            tooltip={`Delete ${row.product?.name || 'Van Inventory'}`}
+            itemName={row.product?.name || 'Van Inventory'}
             confirmDelete={true}
           />
         </div>
@@ -232,10 +276,11 @@ const AssetTypesPage: React.FC = () => {
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Asset Types Management
+            Van Stock Load/Unload Management
           </p>
           <p className="!text-gray-500 text-sm">
-            Manage asset types, categories, and brands for your organization
+            Manage van inventory, stock levels, and load/unload operations for
+            sales personnel
           </p>
         </Box>
       </Box>
@@ -246,30 +291,32 @@ const AssetTypesPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-primary-500">
-                Total Asset Types
+                Total Records
               </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-primary-500">
-                  {totalAssetTypes}
+                  {totalVanInventory}
                 </p>
               )}
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-primary-500" />
+              <Truck className="w-6 h-6 text-primary-500" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-500">Active Types</p>
+              <p className="text-sm font-medium text-green-500">
+                Active Records
+              </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-green-500">
-                  {activeAssetTypes}
+                  {activeVanInventory}
                 </p>
               )}
             </div>
@@ -281,12 +328,14 @@ const AssetTypesPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-red-500">Inactive Types</p>
+              <p className="text-sm font-medium text-red-500">
+                Inactive Records
+              </p>
               {isLoading ? (
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-red-600">
-                  {inactiveAssetTypes}
+                  {inactiveVanInventory}
                 </p>
               )}
             </div>
@@ -305,7 +354,7 @@ const AssetTypesPage: React.FC = () => {
                 <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-purple-600">
-                  {newAssetTypesThisMonth}
+                  {newVanInventoryThisMonth}
                 </p>
               )}
             </div>
@@ -318,18 +367,18 @@ const AssetTypesPage: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load asset types. Please try again.
+          Failed to load van inventory. Please try again.
         </Alert>
       )}
 
       <Table
-        data={assetTypes}
-        columns={assetTypeColumns}
+        data={vanInventory}
+        columns={vanInventoryColumns}
         actions={
           <div className="flex justify-between w-full items-center flex-wrap gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <SearchInput
-                placeholder="Search Asset Types..."
+                placeholder="Search Van Inventory..."
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
@@ -348,8 +397,8 @@ const AssetTypesPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <PopConfirm
-                title="Export Asset Types"
-                description="Are you sure you want to export the current asset types data to Excel? This will include all filtered results."
+                title="Export Van Inventory"
+                description="Are you sure you want to export the current van inventory data to Excel? This will include all filtered results."
                 onConfirm={handleExportToExcel}
                 confirmText="Export"
                 cancelText="Cancel"
@@ -366,7 +415,6 @@ const AssetTypesPage: React.FC = () => {
               </PopConfirm>
               <Button
                 variant="outlined"
-                className="!capitalize"
                 startIcon={<Upload />}
                 onClick={() => setImportModalOpen(true)}
               >
@@ -374,18 +422,16 @@ const AssetTypesPage: React.FC = () => {
               </Button>
               <Button
                 variant="contained"
-                className="!capitalize"
-                disableElevation
                 startIcon={<Add />}
-                onClick={handleCreateAssetType}
+                onClick={handleCreateVanInventory}
               >
                 Create
               </Button>
             </div>
           </div>
         }
-        getRowId={assetType => assetType.id}
-        initialOrderBy="name"
+        getRowId={vanInventory => vanInventory.id}
+        initialOrderBy="last_updated"
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
@@ -393,19 +439,19 @@ const AssetTypesPage: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No asset types found matching "${search}"`
-            : 'No asset types found in the system'
+            ? `No van inventory found matching "${search}"`
+            : 'No van inventory found in the system'
         }
       />
 
-      <ManageAssetType
-        selectedAssetType={selectedAssetType}
-        setSelectedAssetType={setSelectedAssetType}
+      <ManageVanInventory
+        selectedVanInventory={selectedVanInventory}
+        setSelectedVanInventory={setSelectedVanInventory}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
       />
 
-      <ImportAssetType
+      <ImportVanInventory
         drawerOpen={importModalOpen}
         setDrawerOpen={setImportModalOpen}
       />
@@ -413,4 +459,4 @@ const AssetTypesPage: React.FC = () => {
   );
 };
 
-export default AssetTypesPage;
+export default VanStockPage;
