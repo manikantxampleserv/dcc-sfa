@@ -50,7 +50,9 @@ import assetMovements from '../v1/routes/assetMovements.routes';
 import assetMaintenance from '../v1/routes/assetMaintenance.routes';
 import competitorActivity from '../v1/routes/competitorActivity.routes';
 import assetWarrantyClaims from '../v1/routes/assetWarrantyClaims.routes';
-
+import vanInventory from '../v1/routes/vanInventory.routes';
+import stockTransferRequests from '../v1/routes/stockTransferRequests.routes';
+import stockTransferLines from '../v1/routes/stockTransferLines.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -103,6 +105,9 @@ routes.use('/v1', assetMovements);
 routes.use('/v1', assetMaintenance);
 routes.use('/v1', competitorActivity);
 routes.use('/v1', assetWarrantyClaims);
+routes.use('/v1', vanInventory);
+routes.use('/v1', stockTransferRequests);
+routes.use('/v1', stockTransferLines);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

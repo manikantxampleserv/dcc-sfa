@@ -8,75 +8,75 @@ datasource db {
 }
 
 model users {
-  id                                                                  Int                          @id(map: "PK__users__3213E83F0D3B3A05") @default(autoincrement())
-  email                                                               String                       @unique(map: "UQ__users__AB6E616419303B34") @db.NVarChar(255)
-  role_id                                                             Int
-  password_hash                                                       String                       @db.NVarChar(255)
-  name                                                                String                       @db.NVarChar(255)
-  parent_id                                                           Int?
-  depot_id                                                            Int?
-  zone_id                                                             Int?
-  phone_number                                                        String?                      @db.NVarChar(20)
-  address                                                             String?                      @db.NVarChar(500)
-  employee_id                                                         String?                      @db.NVarChar(50)
-  joining_date                                                        DateTime?                    @db.Date
-  reporting_to                                                        Int?
-  profile_image                                                       String?                      @db.NVarChar(500)
-  last_login                                                          DateTime?
-  is_active                                                           String                       @default("Y", map: "DF__users__is_active__3B75D760") @db.Char(1)
-  createdate                                                          DateTime?                    @default(now(), map: "DF__users__createdat__3C69FB99") @db.DateTime
-  createdby                                                           Int
-  updatedate                                                          DateTime?                    @db.DateTime
-  updatedby                                                           Int?
-  log_inst                                                            Int?
-  api_tokens_api_tokens_user_idTousers                                api_tokens[]                 @relation("api_tokens_user_idTousers")
-  approval_workflows_approval_workflows_final_approved_byTousers      approval_workflows[]         @relation("approval_workflows_final_approved_byTousers")
-  approval_workflows_approval_workflows_rejected_byTousers            approval_workflows[]         @relation("approval_workflows_rejected_byTousers")
-  approval_workflows_approval_workflows_requested_byTousers           approval_workflows[]         @relation("approval_workflows_requested_byTousers")
-  audit_logs_audit_logs_changed_byTousers                             audit_logs[]                 @relation("audit_logs_changed_byTousers")
-  cooler_inspections                                                  cooler_inspections[]
-  coolers                                                             coolers[]
-  customer_assets                                                     customer_assets[]
-  customer_assets_history_customer_assets_history_changed_byTousers   customer_assets_history[]    @relation("customer_assets_history_changed_byTousers")
-  customer_documents_users                                            customer_documents[]
-  customer_users                                                      customers[]
-  delivery_schedules_users                                            delivery_schedules[]
-  employee_kpi_targets_employee_kpi_targets_employee_idTousers        employee_kpi_targets[]       @relation("employee_kpi_targets_employee_idTousers")
-  gps_logs_gps_logs_user_idTousers                                    gps_logs[]                   @relation("gps_logs_user_idTousers")
-  login_history_login_history_user_idTousers                          login_history[]              @relation("login_history_user_idTousers")
-  notifications                                                       notifications[]
-  orders_approved_by                                                  orders[]                     @relation("OrdersApprovedBy")
-  orders_salesperson_users                                            orders[]                     @relation("OrdersSalesperson")
-  payments_payments_collected_byTousers                               payments[]                   @relation("payments_collected_byTousers")
-  price_history_price_history_approved_byTousers                      price_history[]              @relation("price_history_approved_byTousers")
-  price_history_price_history_changed_byTousers                       price_history[]              @relation("price_history_changed_byTousers")
-  return_requests_users                                               return_requests[]            @relation("ReturnRequestsUser")
-  return_workflow_return_workflow_action_byTousers                    return_workflow[]            @relation("return_workflow_action_byTousers")
-  route_exceptions_route_exceptions_sales_person_idTousers            route_exceptions[]           @relation("route_exceptions_sales_person_idTousers")
-  route_plans_route_plans_sales_person_idTousers                      route_plans[]                @relation("route_plans_sales_person_idTousers")
-  sales_target_group_members_users                                    sales_target_group_members[]
-  sales_target_overrides                                              sales_target_overrides[]
-  stock_transfer_requests_stock_transfer_requests_approved_byTousers  stock_transfer_requests[]    @relation("stock_transfer_requests_approved_byTousers")
-  stock_transfer_requests_stock_transfer_requests_requested_byTousers stock_transfer_requests[]    @relation("stock_transfer_requests_requested_byTousers")
-  survey_responses_submitted_by_users                                 survey_responses[]           @relation("survey_responses_submitted_users")
-  companies                                                           companies?                   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  users                                                               users?                       @relation("usersTousers", fields: [reporting_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__reporting__403A8C7D")
-  other_users                                                         users[]                      @relation("usersTousers")
-  user_zones                                                          zones?                       @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  vehicles                                                            vehicles[]
-  visit_tasks                                                         visit_tasks[]
-  visits_salesperson                                                  visits[]
-  workflow_steps_workflow_steps_assigned_user_idTousers               workflow_steps[]             @relation("workflow_steps_assigned_user_idTousers")
-  workflow_steps_workflow_steps_processed_byTousers                   workflow_steps[]             @relation("workflow_steps_processed_byTousers")
-  user_role                                                           roles                        @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  user_depot                                                          depots?                      @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users_van_inventory_user_idTousers                                  van_inventory[]              @relation("van_inventory_user_idTousers")
-  depots_manager                                                      depots[]                     @relation("DeportsManager")
-  depots_supervisior                                                  depots[]                     @relation("DeportsSupervisior")
-  depots_coodrinator                                                  depots[]                     @relation("DepotsCoodrinator")
-  routes_salesperson                                                  routes[]
-  asset_movements_performed_by                                        asset_movements[]
-  asset_maintenance_technician                                        asset_maintenance[]
+  id                                                                Int                          @id(map: "PK__users__3213E83F0D3B3A05") @default(autoincrement())
+  email                                                             String                       @unique(map: "UQ__users__AB6E616419303B34") @db.NVarChar(255)
+  role_id                                                           Int
+  password_hash                                                     String                       @db.NVarChar(255)
+  name                                                              String                       @db.NVarChar(255)
+  parent_id                                                         Int?
+  depot_id                                                          Int?
+  zone_id                                                           Int?
+  phone_number                                                      String?                      @db.NVarChar(20)
+  address                                                           String?                      @db.NVarChar(500)
+  employee_id                                                       String?                      @db.NVarChar(50)
+  joining_date                                                      DateTime?                    @db.Date
+  reporting_to                                                      Int?
+  profile_image                                                     String?                      @db.NVarChar(500)
+  last_login                                                        DateTime?
+  is_active                                                         String                       @default("Y", map: "DF__users__is_active__3B75D760") @db.Char(1)
+  createdate                                                        DateTime?                    @default(now(), map: "DF__users__createdat__3C69FB99") @db.DateTime
+  createdby                                                         Int
+  updatedate                                                        DateTime?                    @db.DateTime
+  updatedby                                                         Int?
+  log_inst                                                          Int?
+  api_tokens_api_tokens_user_idTousers                              api_tokens[]                 @relation("api_tokens_user_idTousers")
+  approval_workflows_approval_workflows_final_approved_byTousers    approval_workflows[]         @relation("approval_workflows_final_approved_byTousers")
+  approval_workflows_approval_workflows_rejected_byTousers          approval_workflows[]         @relation("approval_workflows_rejected_byTousers")
+  approval_workflows_approval_workflows_requested_byTousers         approval_workflows[]         @relation("approval_workflows_requested_byTousers")
+  audit_logs_audit_logs_changed_byTousers                           audit_logs[]                 @relation("audit_logs_changed_byTousers")
+  cooler_inspections                                                cooler_inspections[]
+  coolers                                                           coolers[]
+  customer_assets                                                   customer_assets[]
+  customer_assets_history_customer_assets_history_changed_byTousers customer_assets_history[]    @relation("customer_assets_history_changed_byTousers")
+  customer_documents_users                                          customer_documents[]
+  customer_users                                                    customers[]
+  delivery_schedules_users                                          delivery_schedules[]
+  employee_kpi_targets_employee_kpi_targets_employee_idTousers      employee_kpi_targets[]       @relation("employee_kpi_targets_employee_idTousers")
+  gps_logs_gps_logs_user_idTousers                                  gps_logs[]                   @relation("gps_logs_user_idTousers")
+  login_history_login_history_user_idTousers                        login_history[]              @relation("login_history_user_idTousers")
+  notifications                                                     notifications[]
+  orders_approved_by                                                orders[]                     @relation("OrdersApprovedBy")
+  orders_salesperson_users                                          orders[]                     @relation("OrdersSalesperson")
+  payments_payments_collected_byTousers                             payments[]                   @relation("payments_collected_byTousers")
+  price_history_price_history_approved_byTousers                    price_history[]              @relation("price_history_approved_byTousers")
+  price_history_price_history_changed_byTousers                     price_history[]              @relation("price_history_changed_byTousers")
+  return_requests_users                                             return_requests[]            @relation("ReturnRequestsUser")
+  return_workflow_return_workflow_action_byTousers                  return_workflow[]            @relation("return_workflow_action_byTousers")
+  route_exceptions_route_exceptions_sales_person_idTousers          route_exceptions[]           @relation("route_exceptions_sales_person_idTousers")
+  route_plans_route_plans_sales_person_idTousers                    route_plans[]                @relation("route_plans_sales_person_idTousers")
+  sales_target_group_members_users                                  sales_target_group_members[]
+  sales_target_overrides                                            sales_target_overrides[]
+  stock_transfer_requests_approved_by                               stock_transfer_requests[]    @relation("StockTransferRequestsApprovedBy")
+  stock_transfer_requests_requested_by                              stock_transfer_requests[]    @relation("StockTransferRequestsRequestedBy")
+  survey_responses_submitted_by_users                               survey_responses[]           @relation("survey_responses_submitted_users")
+  companies                                                         companies?                   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  users                                                             users?                       @relation("usersTousers", fields: [reporting_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__reporting__403A8C7D")
+  other_users                                                       users[]                      @relation("usersTousers")
+  user_zones                                                        zones?                       @relation(fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  vehicles                                                          vehicles[]
+  visit_tasks                                                       visit_tasks[]
+  visits_salesperson                                                visits[]
+  workflow_steps_workflow_steps_assigned_user_idTousers             workflow_steps[]             @relation("workflow_steps_assigned_user_idTousers")
+  workflow_steps_workflow_steps_processed_byTousers                 workflow_steps[]             @relation("workflow_steps_processed_byTousers")
+  user_role                                                         roles                        @relation(fields: [role_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  user_depot                                                        depots?                      @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  van_inventory_users                                               van_inventory[]              @relation("VanInventoryUsers")
+  depots_manager                                                    depots[]                     @relation("DeportsManager")
+  depots_supervisior                                                depots[]                     @relation("DeportsSupervisior")
+  depots_coodrinator                                                depots[]                     @relation("DepotsCoodrinator")
+  routes_salesperson                                                routes[]
+  asset_movements_performed_by                                      asset_movements[]
+  asset_maintenance_technician                                      asset_maintenance[]
 }
 
 model roles {
@@ -1589,43 +1589,45 @@ model stock_movements {
 }
 
 model stock_transfer_lines {
-  id                            Int                     @id(map: "PK__stock_tr__3213E83F97C7F43D") @default(autoincrement())
+  id                            Int                     @id() @default(autoincrement())
   stock_transfer_request_id     Int
   product_id                    Int
   batch_id                      Int?
   quantity                      Int
-  is_active                     String                  @default("Y", map: "DF__stock_tra__is_ac__7D63964E") @db.Char(1)
-  createdate                    DateTime?               @default(now(), map: "DF__stock_tra__creat__7E57BA87") @db.DateTime
+  is_active                     String                  @default("Y") @db.Char(1)
+  createdate                    DateTime?               @default(now()) @db.DateTime
   createdby                     Int
   updatedate                    DateTime?               @db.DateTime
   updatedby                     Int?
   log_inst                      Int?
-  batch_lots                    batch_lots?             @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_tra__batch__01342732")
+  batch_lots                    batch_lots?             @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   stock_transfer_lines_products products                @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  stock_transfer_requests       stock_transfer_requests @relation(fields: [stock_transfer_request_id], references: [id], onUpdate: NoAction, map: "FK__stock_tra__stock__7F4BDEC0")
+  stock_transfer_requests       stock_transfer_requests @relation(fields: [stock_transfer_request_id], references: [id], onUpdate: NoAction)
 }
 
 model stock_transfer_requests {
-  id                                                Int                    @id(map: "PK__stock_tr__3213E83FC0C09F9C") @default(autoincrement())
-  request_number                                    String                 @unique(map: "UQ__stock_tr__8EF03D9CED73044D") @db.NVarChar(50)
-  source_type                                       String                 @db.NVarChar(20)
-  source_id                                         Int
-  destination_type                                  String                 @db.NVarChar(20)
-  destination_id                                    Int
-  requested_by                                      Int
-  requested_at                                      DateTime?              @default(now(), map: "DF__stock_tra__reque__72E607DB") @db.DateTime
-  status                                            String?                @default("pending", map: "DF__stock_tra__statu__74CE504D") @db.NVarChar(20)
-  approved_by                                       Int?
-  approved_at                                       DateTime?              @db.DateTime
-  is_active                                         String                 @default("Y", map: "DF__stock_tra__is_ac__75C27486") @db.Char(1)
-  createdate                                        DateTime?              @default(now(), map: "DF__stock_tra__creat__76B698BF") @db.DateTime
-  createdby                                         Int
-  updatedate                                        DateTime?              @db.DateTime
-  updatedby                                         Int?
-  log_inst                                          Int?
-  stock_transfer_lines                              stock_transfer_lines[]
-  users_stock_transfer_requests_approved_byTousers  users?                 @relation("stock_transfer_requests_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__stock_tra__appro__789EE131")
-  users_stock_transfer_requests_requested_byTousers users                  @relation("stock_transfer_requests_requested_byTousers", fields: [requested_by], references: [id], onUpdate: NoAction, map: "FK__stock_tra__reque__77AABCF8")
+  id                                   Int                    @id() @default(autoincrement())
+  request_number                       String                 @unique() @db.NVarChar(50)
+  source_type                          String                 @db.NVarChar(20)
+  source_id                            Int
+  destination_type                     String                 @db.NVarChar(20)
+  destination_id                       Int
+  requested_by                         Int
+  requested_at                         DateTime?              @default(now()) @db.DateTime
+  status                               String?                @default("pending") @db.NVarChar(20)
+  approved_by                          Int?
+  approved_at                          DateTime?              @db.DateTime
+  is_active                            String                 @default("Y") @db.Char(1)
+  createdate                           DateTime?              @default(now()) @db.DateTime
+  createdby                            Int
+  updatedate                           DateTime?              @db.DateTime
+  updatedby                            Int?
+  log_inst                             Int?
+  stock_transfer_lines                 stock_transfer_lines[]
+  stock_transfer_requests_source       warehouses             @relation("StockTransferRequestsSource", fields: [source_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock_transfer_requests_destination  warehouses             @relation("StockTransferRequestsDestination", fields: [destination_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock_transfer_requests_approved_by  users?                 @relation("StockTransferRequestsApprovedBy", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock_transfer_requests_requested_by users                  @relation("StockTransferRequestsRequestedBy", fields: [requested_by], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model survey_answers {
@@ -1688,25 +1690,25 @@ model surveys {
 }
 
 model van_inventory {
-  id                                 Int             @id(map: "PK__van_inve__3213E83FB5C9B02F") @default(autoincrement())
-  user_id                            Int
-  product_id                         Int
-  batch_id                           Int?
-  serial_no_id                       Int?
-  quantity                           Int?            @default(0, map: "DF__van_inven__quant__63A3C44B")
-  reserved_quantity                  Int?            @default(0, map: "DF__van_inven__reser__6497E884")
-  available_quantity                 Int?
-  last_updated                       DateTime?       @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
-  is_active                          String          @default("Y", map: "DF__van_inven__is_ac__668030F6") @db.Char(1)
-  createdate                         DateTime?       @default(now(), map: "DF__van_inven__creat__6774552F") @db.DateTime
-  createdby                          Int
-  updatedate                         DateTime?       @db.DateTime
-  updatedby                          Int?
-  log_inst                           Int?
-  batch_lots                         batch_lots?     @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__van_inven__batch__6A50C1DA")
-  van_inventory_products             products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  serial_numbers                     serial_numbers? @relation(fields: [serial_no_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__van_inven__seria__6B44E613")
-  users_van_inventory_user_idTousers users           @relation("van_inventory_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction, map: "FK__van_inven__user___68687968")
+  id                     Int             @id() @default(autoincrement())
+  user_id                Int
+  product_id             Int
+  batch_id               Int?
+  serial_no_id           Int?
+  quantity               Int?            @default(0)
+  reserved_quantity      Int?            @default(0)
+  available_quantity     Int?
+  last_updated           DateTime?       @default(now()) @db.DateTime
+  is_active              String          @default("Y") @db.Char(1)
+  createdate             DateTime?       @default(now()) @db.DateTime
+  createdby              Int
+  updatedate             DateTime?       @db.DateTime
+  updatedby              Int?
+  log_inst               Int?
+  batch_lots             batch_lots?     @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  van_inventory_products products        @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  serial_numbers         serial_numbers? @relation(fields: [serial_no_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  van_inventory_users    users           @relation("VanInventoryUsers", fields: [user_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model vehicles {
@@ -1821,17 +1823,19 @@ model visits {
 }
 
 model warehouses {
-  id         Int        @id(map: "PK__warehous__3213E83FD829B8DE") @default(autoincrement())
-  name       String     @db.NVarChar(100)
-  type       String?    @db.NVarChar(50)
-  location   String?    @db.NVarChar(255)
-  is_active  String?    @default("Y", map: "DF__warehouse__is_ac__0C70CFB4") @db.Char(1)
-  createdate DateTime?  @default(now(), map: "DF__warehouse__creat__0D64F3ED") @db.DateTime
-  createdby  Int
-  updatedate DateTime?  @db.DateTime
-  updatedby  Int?
-  log_inst   Int?
-  vehicles   vehicles[]
+  id                                  Int                       @id(map: "PK__warehous__3213E83FD829B8DE") @default(autoincrement())
+  name                                String                    @db.NVarChar(100)
+  type                                String?                   @db.NVarChar(50)
+  location                            String?                   @db.NVarChar(255)
+  is_active                           String?                   @default("Y", map: "DF__warehouse__is_ac__0C70CFB4") @db.Char(1)
+  createdate                          DateTime?                 @default(now(), map: "DF__warehouse__creat__0D64F3ED") @db.DateTime
+  createdby                           Int
+  updatedate                          DateTime?                 @db.DateTime
+  updatedby                           Int?
+  log_inst                            Int?
+  vehicles                            vehicles[]
+  stock_transfer_requests_source      stock_transfer_requests[] @relation("StockTransferRequestsSource")
+  stock_transfer_requests_destination stock_transfer_requests[] @relation("StockTransferRequestsDestination")
 }
 
 model warranty_claims {
