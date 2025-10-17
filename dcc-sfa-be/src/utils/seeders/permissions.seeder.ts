@@ -87,6 +87,7 @@ const ACTIONS = [
   { key: 'read', name: 'Read', description: 'View and access data' },
   { key: 'create', name: 'Create', description: 'Create new records' },
   { key: 'update', name: 'Update', description: 'Modify existing records' },
+  { key: 'approve', name: 'Approve', description: 'Approve records' },
   { key: 'delete', name: 'Delete', description: 'Remove records' },
 ];
 

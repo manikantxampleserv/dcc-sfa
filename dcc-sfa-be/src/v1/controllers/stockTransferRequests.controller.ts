@@ -411,11 +411,48 @@ export const stockTransferRequestsController = {
         },
       });
 
+      const [
+        totalRequests,
+        activeRequests,
+        inactiveRequests,
+        requestsThisMonth,
+        pendingRequests,
+        approvedRequests,
+        inProgressRequests,
+      ] = await Promise.all([
+        prisma.stock_transfer_requests.count(),
+        prisma.stock_transfer_requests.count({ where: { is_active: 'Y' } }),
+        prisma.stock_transfer_requests.count({ where: { is_active: 'N' } }),
+        prisma.stock_transfer_requests.count({
+          where: {
+            createdate: {
+              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            },
+          },
+        }),
+        prisma.stock_transfer_requests.count({ where: { status: 'pending' } }),
+        prisma.stock_transfer_requests.count({ where: { status: 'approved' } }),
+        prisma.stock_transfer_requests.count({
+          where: { status: 'in_progress' },
+        }),
+      ]);
+
+      const stats = {
+        total_requests: totalRequests,
+        active_requests: activeRequests,
+        inactive_requests: inactiveRequests,
+        requests_this_month: requestsThisMonth,
+        pending_requests: pendingRequests,
+        approved_requests: approvedRequests,
+        in_progress_requests: inProgressRequests,
+      };
+
       res.success(
         'Stock Transfer Requests fetched successfully',
         data.map((r: any) => serializeStockTransferRequest(r)),
         200,
-        pagination
+        pagination,
+        stats
       );
     } catch (error: any) {
       console.error('Get Stock Transfer Requests Error:', error);

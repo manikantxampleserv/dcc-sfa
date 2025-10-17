@@ -108,6 +108,9 @@ export const stockMovementsController = {
           from_location_id: data.from_location_id,
           to_location_id: data.to_location_id,
           quantity: data.quantity,
+          movement_date: data.movement_date
+            ? new Date(data.movement_date)
+            : new Date(),
           remarks: data.remarks,
           van_inventory_id: data.van_inventory_id,
           createdby: req.user?.id || 1,
@@ -257,6 +260,9 @@ export const stockMovementsController = {
         ...req.body,
         updatedate: new Date(),
         updatedby: req.user?.id || 1,
+        movement_date: req.body.movement_date
+          ? new Date(req.body.movement_date)
+          : undefined,
       };
 
       const updated = await prisma.stock_movements.update({
