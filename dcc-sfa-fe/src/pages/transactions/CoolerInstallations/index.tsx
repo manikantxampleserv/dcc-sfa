@@ -163,7 +163,7 @@ const CoolerInstallationsManagement: React.FC = () => {
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
               {row.brand && row.model
-                ? `${row.brand} ${row.model}`
+                ? `${row.brand} • ${row.model}`
                 : 'Unknown Model'}
             </Typography>
           </Box>
@@ -445,7 +445,7 @@ const CoolerInstallationsManagement: React.FC = () => {
               <Select
                 value={operationalStatusFilter}
                 onChange={e => setOperationalStatusFilter(e.target.value)}
-                className="!w-40"
+                className="!w-50"
               >
                 <MenuItem value="all">All Operational</MenuItem>
                 <MenuItem value="working">Working</MenuItem>

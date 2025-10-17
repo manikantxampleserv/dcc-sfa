@@ -221,7 +221,7 @@ const PaymentRefundsManager: React.FC<PaymentRefundsManagerProps> = ({
                   variant="caption"
                   className="!text-gray-600 !text-xs"
                 >
-                  ${totalRefunded.toFixed(2)}
+                  ${Number(totalRefunded || '0').toFixed(2)}
                 </Typography>
               </div>
             </div>
@@ -390,7 +390,7 @@ const PaymentRefundsManager: React.FC<PaymentRefundsManagerProps> = ({
                         variant="body2"
                         className="!font-semibold !text-red-600"
                       >
-                        ${refund.amount?.toFixed(2)}
+                        ${Number(refund.amount || '0')?.toFixed(2)}
                       </Typography>
                       <div className="!flex !items-center !gap-1">
                         <Button

@@ -195,10 +195,9 @@ export interface ApiResponse<T = any> {
     inactive_inspections?: number;
     new_inspections_this_month?: number;
     // Stock transfer request statistics
-    total_stock_transfer_requests?: number;
-    active_stock_transfer_requests?: number;
-    inactive_stock_transfer_requests?: number;
-    stock_transfer_requests_this_month?: number;
+    active_requests?: number;
+    inactive_requests?: number;
+    requests_this_month?: number;
     // Van inventory statistics
     total_records: number;
     active_records: number;

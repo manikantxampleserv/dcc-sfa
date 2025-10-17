@@ -154,7 +154,7 @@ const CurrenciesManagement: React.FC = () => {
       label: 'Exchange Rate',
       render: rate => (
         <Typography variant="body2" className="!text-gray-900">
-          {rate ? Number(rate).toFixed(6) : 'N/A'}
+          {rate ? Number(rate).toFixed(2) : 'N/A'}
         </Typography>
       ),
     },

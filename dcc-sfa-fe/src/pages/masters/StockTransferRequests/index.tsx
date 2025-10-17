@@ -51,14 +51,10 @@ const StockTransferRequestsManagement: React.FC = () => {
   const deleteRequestMutation = useDeleteStockTransferRequest();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalRequests =
-    requestsResponse?.stats?.total_stock_transfer_requests ?? 0;
-  const activeRequests =
-    requestsResponse?.stats?.active_stock_transfer_requests ?? 0;
-  const inactiveRequests =
-    requestsResponse?.stats?.inactive_stock_transfer_requests ?? 0;
-  const requestsThisMonth =
-    requestsResponse?.stats?.stock_transfer_requests_this_month ?? 0;
+  const totalRequests = requestsResponse?.stats?.total_requests ?? 0;
+  const activeRequests = requestsResponse?.stats?.active_requests ?? 0;
+  const inactiveRequests = requestsResponse?.stats?.inactive_requests ?? 0;
+  const requestsThisMonth = requestsResponse?.stats?.requests_this_month ?? 0;
 
   const handleCreateRequest = useCallback(() => {
     setSelectedRequest(null);
