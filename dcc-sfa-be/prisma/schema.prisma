@@ -90,7 +90,6 @@ model roles {
   updatedate       DateTime?          @db.DateTime
   updatedby        Int?
   log_inst         Int?
-  level            Int                @default(1)
   roles_permission role_permissions[]
   user_role        users[]
 }

@@ -526,7 +526,6 @@
 //   },
 // };
 
-// controllers/rolesController.ts
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { paginate } from '../../utils/paginate';
@@ -582,7 +581,6 @@ export const rolesController = {
         permissions = [],
       } = req.body;
 
-      // Check if user has sufficient level to create this role
       const userScope = await PermissionService.getDataAccessScope(req.user.id);
       if (userScope.level < level) {
         res.error('Cannot create role with higher level than your own', 403);
