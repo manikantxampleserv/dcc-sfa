@@ -1,49 +1,40 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
 import { rolesController } from '../../v1/controllers/role.controller';
-import {
-  checkPermission,
-  requireMinLevel,
-} from '../../middlewares/checkPermission';
+import { validateRole } from '../validations/role.validation';
 
 const router = Router();
 
-router.get(
-  '/roles',
-  authenticateToken,
+router.get('/roles', authenticateToken, rolesController.getAllRoles);
 
-  rolesController.getAllRoles
-);
-
-router.get(
-  '/roles/:id',
-  authenticateToken,
-
-  rolesController.getRoleById
-);
+router.get('/roles/:id', authenticateToken, rolesController.getRoleById);
 
 router.post(
   '/roles',
   authenticateToken,
-  // checkPermission('Role Management', 'create'),
-  // requireMinLevel(4),
+  validateRole,
   rolesController.createRole
 );
 
 router.put(
   '/roles/:id',
   authenticateToken,
-  // checkPermission('Role Management', 'edit'),
-  // requireMinLevel(4),
+  validateRole,
   rolesController.updateRole
 );
 
-router.delete(
-  '/roles/:id',
+router.delete('/roles/:id', authenticateToken, rolesController.deleteRole);
+
+router.post(
+  '/roles/:id/permissions',
   authenticateToken,
-  // checkPermission('Role Management', 'delete'),
-  // requireMinLevel(5),
-  rolesController.deleteRole
+  rolesController.assignPermissions
+);
+
+router.get(
+  '/roles/:id/permissions',
+  authenticateToken,
+  rolesController.getRolePermissions
 );
 
 export default router;

@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requireAnyModulePermission,
+} from '../../middlewares/auth.middleware';
 import { MODULES, ACTIONS } from '../../configs/permissions.config';
 import { userController } from '../controllers/user.controller';
 import {
@@ -7,7 +10,6 @@ import {
   updateUserValidation,
 } from '../validations/user.validation';
 import { upload } from '../../utils/multer';
-import { checkPermission } from '../../middlewares/checkPermission';
 
 const router = Router();
 
@@ -15,7 +17,9 @@ router.post(
   '/users',
   upload.single('profile_image'),
   authenticateToken,
-  checkPermission(MODULES.USER, ACTIONS.CREATE),
+  requireAnyModulePermission([
+    { module: MODULES.USER, action: ACTIONS.CREATE },
+  ]),
   createUserValidation,
   userController.createUser
 );
@@ -38,7 +42,7 @@ router.put(
   '/users/:id',
   authenticateToken,
   upload.single('profile_image'),
-  checkPermission(MODULES.USER, ACTIONS.UPDATE),
+
   updateUserValidation,
   userController.updateUser
 );
@@ -46,7 +50,7 @@ router.put(
 router.delete(
   '/users/:id',
   authenticateToken,
-  checkPermission(MODULES.USER, ACTIONS.DELETE),
+
   userController.deleteUser
 );
 
