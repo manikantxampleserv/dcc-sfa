@@ -22,10 +22,28 @@ router.get(
   rolesController.getRoleById
 );
 
-router.post('/roles', authenticateToken, rolesController.createRole);
+router.post(
+  '/roles',
+  authenticateToken,
+  // checkPermission('Role Management', 'create'),
+  // requireMinLevel(4),
+  rolesController.createRole
+);
 
-router.put('/roles/:id', authenticateToken, rolesController.updateRole);
+router.put(
+  '/roles/:id',
+  authenticateToken,
+  // checkPermission('Role Management', 'edit'),
+  // requireMinLevel(4),
+  rolesController.updateRole
+);
 
-router.delete('/roles/:id', authenticateToken, rolesController.deleteRole);
+router.delete(
+  '/roles/:id',
+  authenticateToken,
+  // checkPermission('Role Management', 'delete'),
+  // requireMinLevel(5),
+  rolesController.deleteRole
+);
 
 export default router;
