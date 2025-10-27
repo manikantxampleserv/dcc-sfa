@@ -43,7 +43,7 @@ export const useCoolerInstallations = (
   return useQuery({
     queryKey: coolerInstallationQueryKeys.list(params),
     queryFn: () => coolerInstallationService.fetchCoolerInstallations(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -65,7 +65,7 @@ export const useCoolerInstallation = (
     queryKey: coolerInstallationQueryKeys.detail(id),
     queryFn: () => coolerInstallationService.fetchCoolerInstallationById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

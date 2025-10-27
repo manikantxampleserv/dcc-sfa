@@ -35,6 +35,15 @@ import VehiclesManagement from 'pages/masters/Vehicles';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import ZonesManagement from 'pages/masters/Zone';
 import Profile from 'pages/Profile';
+import OrdersInvoicesReturnsReport from 'pages/reports/OrdersInvoicesReturnsReport';
+import SalesVsTargetReport from 'pages/reports/SalesVsTargetReport';
+import AssetMovementStatusReport from 'pages/reports/AssetMovementStatusReport';
+import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
+import PromoEffectivenessReport from 'pages/reports/PromoEffectivenessReport';
+import RegionTerritorySalesReport from 'pages/reports/RegionTerritorySalesReport';
+import RepProductivityReport from 'pages/reports/RepProductivityReport';
+import CompetitorAnalysisReport from 'pages/reports/CompetitorAnalysisReport';
+import OutstandingCollectionReport from 'pages/reports/OutstandingCollectionReport';
 import CreditNotesManagement from 'pages/transactions/CreditNotes';
 import DeliveryScheduling from 'pages/transactions/DeliveryScheduling';
 import InvoicesManagement from 'pages/transactions/Invoices';
@@ -54,18 +63,9 @@ import VanStockManagement from 'pages/masters/VanStock';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-const RepLocationTracking = () => <h1>Rep Location Tracking</h1>;
+import RepLocationTracking from 'pages/tracking/RepLocationTracking';
 const RouteEffectiveness = () => <h1>Route Effectiveness</h1>;
 const ERPSyncLog = () => <h1>ERP Sync Log</h1>;
-const OrdersInvoicesReturns = () => <h1>Orders, Invoices, Returns</h1>;
-const SalesVsTarget = () => <h1>Sales vs Target</h1>;
-const AssetMovementStatus = () => <h1>Asset Movement/Status</h1>;
-const VisitFrequency = () => <h1>Visit Frequency/Completion</h1>;
-const PromoEffectiveness = () => <h1>Promo Effectiveness</h1>;
-const RegionTerritory = () => <h1>Region/Territory Sales Report</h1>;
-const RepProductivity = () => <h1>Rep Productivity Report</h1>;
-const CompetitorAnalysis = () => <h1>Competitor Analysis Report</h1>;
-const OutstandingCollection = () => <h1>Outstanding & Collection Report</h1>;
 const ActivityLogs = () => <h1>Activity Logs</h1>;
 const ApprovalWorkflows = () => <h1>Approval Workflows</h1>;
 const RouteExceptions = () => <h1>Route Exceptions</h1>;
@@ -296,39 +296,39 @@ const router = createBrowserRouter([
       },
       {
         path: '/reports/orders',
-        element: <OrdersInvoicesReturns />,
+        element: <OrdersInvoicesReturnsReport />,
       },
       {
         path: '/reports/sales-target',
-        element: <SalesVsTarget />,
+        element: <SalesVsTargetReport />,
       },
       {
         path: '/reports/asset-status',
-        element: <AssetMovementStatus />,
+        element: <AssetMovementStatusReport />,
       },
       {
         path: '/reports/visits',
-        element: <VisitFrequency />,
+        element: <VisitFrequencyCompletionReport />,
       },
       {
         path: '/reports/promos',
-        element: <PromoEffectiveness />,
+        element: <PromoEffectivenessReport />,
       },
       {
         path: '/reports/territory',
-        element: <RegionTerritory />,
+        element: <RegionTerritorySalesReport />,
       },
       {
         path: '/reports/productivity',
-        element: <RepProductivity />,
+        element: <RepProductivityReport />,
       },
       {
         path: '/reports/competitor',
-        element: <CompetitorAnalysis />,
+        element: <CompetitorAnalysisReport />,
       },
       {
         path: '/reports/collection',
-        element: <OutstandingCollection />,
+        element: <OutstandingCollectionReport />,
       },
       {
         path: '/reports/activity',

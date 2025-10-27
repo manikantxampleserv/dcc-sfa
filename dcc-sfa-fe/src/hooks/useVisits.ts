@@ -35,7 +35,7 @@ export const useVisits = (params?: GetVisitsParams) => {
   return useQuery({
     queryKey: visitKeys.list(params || {}),
     queryFn: () => fetchVisits(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -47,7 +47,7 @@ export const useVisit = (id: number) => {
     queryKey: visitKeys.detail(id),
     queryFn: () => fetchVisitById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

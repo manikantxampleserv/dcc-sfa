@@ -40,7 +40,7 @@ export const useAssetMovements = (
   return useQuery({
     queryKey: assetMovementQueryKeys.list(params),
     queryFn: () => assetMovementService.fetchAssetMovements(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -62,7 +62,7 @@ export const useAssetMovementById = (
     queryKey: assetMovementQueryKeys.detail(id),
     queryFn: () => assetMovementService.fetchAssetMovementById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

@@ -36,7 +36,7 @@ export const useSalesTargetGroups = (params?: GetSalesTargetGroupsParams) => {
   return useQuery({
     queryKey: salesTargetGroupKeys.list(params || {}),
     queryFn: () => fetchSalesTargetGroups(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -48,7 +48,7 @@ export const useSalesTargetGroup = (id: number) => {
     queryKey: salesTargetGroupKeys.detail(id),
     queryFn: () => fetchSalesTargetGroupById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

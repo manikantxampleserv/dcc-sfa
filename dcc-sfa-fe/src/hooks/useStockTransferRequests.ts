@@ -37,7 +37,7 @@ export const useStockTransferRequests = (
   return useQuery({
     queryKey: stockTransferRequestKeys.list(params || {}),
     queryFn: () => fetchStockTransferRequests(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -49,7 +49,7 @@ export const useStockTransferRequest = (id: number) => {
     queryKey: stockTransferRequestKeys.detail(id),
     queryFn: () => fetchStockTransferRequestById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

@@ -45,7 +45,7 @@ export const useReturnRequests = (
   return useQuery({
     queryKey: returnRequestQueryKeys.list(params),
     queryFn: () => returnRequestService.fetchReturnRequests(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -67,7 +67,7 @@ export const useReturnRequest = (
     queryKey: returnRequestQueryKeys.detail(id),
     queryFn: () => returnRequestService.fetchReturnRequestById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

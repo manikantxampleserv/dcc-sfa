@@ -42,7 +42,7 @@ export const usePriceLists = (
   return useQuery({
     queryKey: priceListsQueryKeys.list(params),
     queryFn: () => priceListsService.fetchPriceLists(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -64,7 +64,7 @@ export const usePriceListById = (
     queryKey: priceListsQueryKeys.detail(id),
     queryFn: () => priceListsService.fetchPriceListById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

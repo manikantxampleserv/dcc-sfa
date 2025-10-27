@@ -46,7 +46,7 @@ export const useDeliverySchedules = (
   return useQuery({
     queryKey: deliveryScheduleQueryKeys.list(params),
     queryFn: () => deliveryScheduleService.fetchDeliverySchedules(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -68,7 +68,7 @@ export const useDeliverySchedule = (
     queryKey: deliveryScheduleQueryKeys.detail(id),
     queryFn: () => deliveryScheduleService.fetchDeliveryScheduleById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

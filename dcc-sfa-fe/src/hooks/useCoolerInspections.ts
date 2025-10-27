@@ -39,7 +39,7 @@ export const useCoolerInspections = (
   return useQuery({
     queryKey: coolerInspectionQueryKeys.list(params),
     queryFn: () => coolerInspectionService.fetchCoolerInspections(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -61,7 +61,7 @@ export const useCoolerInspection = (
     queryKey: coolerInspectionQueryKeys.detail(id),
     queryFn: () => coolerInspectionService.fetchCoolerInspectionById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

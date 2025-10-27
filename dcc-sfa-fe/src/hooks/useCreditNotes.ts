@@ -36,7 +36,7 @@ export const useCreditNotes = (params?: GetCreditNotesParams) => {
   return useQuery({
     queryKey: creditNoteKeys.list(params || {}),
     queryFn: () => fetchCreditNotes(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -48,7 +48,7 @@ export const useCreditNote = (id: number) => {
     queryKey: creditNoteKeys.detail(id),
     queryFn: () => fetchCreditNoteById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

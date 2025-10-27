@@ -43,7 +43,7 @@ export const useProductSubCategories = (
     queryKey: productSubCategoriesQueryKeys.list(params),
     queryFn: () =>
       productSubCategoriesService.fetchProductSubCategories(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -65,7 +65,7 @@ export const useProductSubCategoryById = (
     queryKey: productSubCategoriesQueryKeys.detail(id),
     queryFn: () => productSubCategoriesService.fetchProductSubCategoryById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

@@ -44,7 +44,7 @@ export const useVanInventory = (
   return useQuery({
     queryKey: vanInventoryQueryKeys.list(params),
     queryFn: () => vanInventoryService.fetchVanInventory(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -66,7 +66,7 @@ export const useVanInventoryById = (
     queryKey: vanInventoryQueryKeys.detail(id),
     queryFn: () => vanInventoryService.fetchVanInventoryById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

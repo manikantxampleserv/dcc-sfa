@@ -36,7 +36,7 @@ export const useSurveys = (params?: GetSurveysParams) => {
   return useQuery({
     queryKey: surveyKeys.list(params || {}),
     queryFn: () => fetchSurveys(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -48,7 +48,7 @@ export const useSurvey = (id: number) => {
     queryKey: surveyKeys.detail(id),
     queryFn: () => fetchSurveyById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

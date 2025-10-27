@@ -35,7 +35,7 @@ export const useZones = (params?: GetZonesParams) => {
   return useQuery({
     queryKey: zoneKeys.list(params || {}),
     queryFn: () => fetchZones(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -47,7 +47,7 @@ export const useZone = (id: number) => {
     queryKey: zoneKeys.detail(id),
     queryFn: () => fetchZoneById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

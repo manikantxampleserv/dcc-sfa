@@ -28,13 +28,12 @@ import {
  * @description Can be overridden via environment variables
  */
 
-const BASE_URL =
-  import.meta.env?.VITE_API_BASE_URL || 'http://192.168.29.169:4000/api/v1';
+const BASE_URL = import.meta.env?.VITE_API_BASE_URL;
 
 /**
  * Request timeout in milliseconds
  */
-const REQUEST_TIMEOUT = 300000; // 5 minutes to match backend transaction timeout
+const REQUEST_TIMEOUT = 300000;
 
 /**
  * Maximum number of retry attempts for failed requests

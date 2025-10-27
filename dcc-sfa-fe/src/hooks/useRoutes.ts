@@ -35,7 +35,7 @@ export const useRoutes = (params?: GetRoutesParams) => {
   return useQuery({
     queryKey: routeKeys.list(params || {}),
     queryFn: () => fetchRoutes(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -47,7 +47,7 @@ export const useRoute = (id: number) => {
     queryKey: routeKeys.detail(id),
     queryFn: () => fetchRouteById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

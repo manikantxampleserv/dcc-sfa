@@ -40,7 +40,7 @@ export const useBrands = (
   return useQuery({
     queryKey: brandsQueryKeys.list(params),
     queryFn: () => brandsService.fetchBrands(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -59,7 +59,7 @@ export const useBrandById = (
     queryKey: brandsQueryKeys.detail(id),
     queryFn: () => brandsService.fetchBrandById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

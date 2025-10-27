@@ -44,7 +44,7 @@ export const useDepots = (
   return useQuery({
     queryKey: depotQueryKeys.list(params),
     queryFn: () => depotService.fetchDepots(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -66,7 +66,7 @@ export const useDepot = (
     queryKey: depotQueryKeys.detail(id),
     queryFn: () => depotService.fetchDepotById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

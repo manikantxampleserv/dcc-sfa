@@ -42,7 +42,7 @@ export const useProductCategories = (
   return useQuery({
     queryKey: productCategoriesQueryKeys.list(params),
     queryFn: () => productCategoriesService.fetchProductCategories(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -64,7 +64,7 @@ export const useProductCategoryById = (
     queryKey: productCategoriesQueryKeys.detail(id),
     queryFn: () => productCategoriesService.fetchProductCategoryById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

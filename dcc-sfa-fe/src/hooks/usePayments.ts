@@ -52,7 +52,7 @@ export const usePayments = (
   return useQuery({
     queryKey: paymentQueryKeys.list(params),
     queryFn: () => paymentService.fetchPayments(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -74,7 +74,7 @@ export const usePayment = (
     queryKey: paymentQueryKeys.detail(id),
     queryFn: () => paymentService.fetchPaymentById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -137,7 +137,7 @@ export const usePaymentLines = (
     queryKey: [...paymentQueryKeys.detail(paymentId), 'lines'],
     queryFn: () => paymentService.fetchPaymentLines(paymentId),
     enabled: !!paymentId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -167,8 +167,10 @@ export const useDeletePaymentLine = () => {
     mutationFn: ({
       paymentId,
       lineId,
-    }: { paymentId: number; lineId: number }) =>
-      paymentService.deletePaymentLine(paymentId, lineId),
+    }: {
+      paymentId: number;
+      lineId: number;
+    }) => paymentService.deletePaymentLine(paymentId, lineId),
     invalidateQueries: ['payments'],
     loadingMessage: 'Deleting payment line...',
   });
@@ -192,7 +194,7 @@ export const usePaymentRefunds = (
     queryKey: [...paymentQueryKeys.detail(paymentId), 'refunds'],
     queryFn: () => paymentService.fetchPaymentRefunds(paymentId),
     enabled: !!paymentId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -223,7 +225,10 @@ export const useUpdatePaymentRefund = () => {
       paymentId,
       refundId,
       ...data
-    }: { paymentId: number; refundId: number } & paymentService.UpdatePaymentRefundPayload) =>
+    }: {
+      paymentId: number;
+      refundId: number;
+    } & paymentService.UpdatePaymentRefundPayload) =>
       paymentService.updatePaymentRefund(paymentId, refundId, data),
     invalidateQueries: ['payments'],
     loadingMessage: 'Updating payment refund...',
@@ -239,8 +244,10 @@ export const useDeletePaymentRefund = () => {
     mutationFn: ({
       paymentId,
       refundId,
-    }: { paymentId: number; refundId: number }) =>
-      paymentService.deletePaymentRefund(paymentId, refundId),
+    }: {
+      paymentId: number;
+      refundId: number;
+    }) => paymentService.deletePaymentRefund(paymentId, refundId),
     invalidateQueries: ['payments'],
     loadingMessage: 'Deleting payment refund...',
   });

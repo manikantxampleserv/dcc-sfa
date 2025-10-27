@@ -35,7 +35,7 @@ export const useInvoices = (params?: GetInvoicesParams) => {
   return useQuery({
     queryKey: invoiceKeys.list(params || {}),
     queryFn: () => fetchInvoices(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -47,7 +47,7 @@ export const useInvoice = (id: number) => {
     queryKey: invoiceKeys.detail(id),
     queryFn: () => fetchInvoiceById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

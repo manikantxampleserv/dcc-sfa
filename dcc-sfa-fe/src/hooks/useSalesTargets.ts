@@ -40,7 +40,7 @@ export const useSalesTargets = (
   return useQuery({
     queryKey: salesTargetsQueryKeys.list(params),
     queryFn: () => salesTargetsService.fetchSalesTargets(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -62,7 +62,7 @@ export const useSalesTargetById = (
     queryKey: salesTargetsQueryKeys.detail(id),
     queryFn: () => salesTargetsService.fetchSalesTargetById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

@@ -44,7 +44,7 @@ export const useWarehouses = (
   return useQuery({
     queryKey: warehouseQueryKeys.list(params),
     queryFn: () => warehouseService.fetchWarehouses(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -66,7 +66,7 @@ export const useWarehouse = (
     queryKey: warehouseQueryKeys.detail(id),
     queryFn: () => warehouseService.fetchWarehouseById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

@@ -47,7 +47,7 @@ export const useUsers = (
   return useQuery({
     queryKey: userQueryKeys.list(params),
     queryFn: () => userService.fetchUsers(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -69,7 +69,7 @@ export const useUser = (
     queryKey: userQueryKeys.detail(id),
     queryFn: () => userService.fetchUserById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -133,7 +133,7 @@ export const useCurrentUser = () => {
   return useQuery({
     queryKey: [...userQueryKeys.profile(), isAuthenticated],
     queryFn: () => userService.getUserProfile(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
     refetchOnWindowFocus: true,
     refetchOnMount: true,

@@ -44,7 +44,7 @@ export const useVehicles = (
   return useQuery({
     queryKey: vehicleQueryKeys.list(params),
     queryFn: () => vehicleService.fetchVehicles(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -66,7 +66,7 @@ export const useVehicle = (
     queryKey: vehicleQueryKeys.detail(id),
     queryFn: () => vehicleService.fetchVehicleById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

@@ -41,7 +41,7 @@ export const useSalesBonusRules = (
   return useQuery({
     queryKey: salesBonusRulesQueryKeys.list(params),
     queryFn: () => salesBonusRulesService.fetchSalesBonusRules(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -63,7 +63,7 @@ export const useSalesBonusRuleById = (
     queryKey: salesBonusRulesQueryKeys.detail(id),
     queryFn: () => salesBonusRulesService.fetchSalesBonusRuleById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

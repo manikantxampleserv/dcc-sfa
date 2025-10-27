@@ -460,7 +460,7 @@ const VisitLogging: React.FC = () => {
                 startIcon={<Add />}
                 onClick={handleCreateVisit}
               >
-                Create Visit
+                Create
               </Button>
             </div>
           </div>

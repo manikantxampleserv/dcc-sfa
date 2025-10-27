@@ -35,7 +35,7 @@ export const useOrders = (params?: GetOrdersParams) => {
   return useQuery({
     queryKey: orderKeys.list(params || {}),
     queryFn: () => fetchOrders(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -47,7 +47,7 @@ export const useOrder = (id: number) => {
     queryKey: orderKeys.detail(id),
     queryFn: () => fetchOrderById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

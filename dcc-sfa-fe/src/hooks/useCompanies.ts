@@ -36,7 +36,7 @@ export const useCompanies = (params?: companyService.GetCompaniesParams) => {
   return useQuery({
     queryKey: companyQueryKeys.list(params),
     queryFn: () => companyService.fetchCompanies(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -50,7 +50,7 @@ export const useCompany = (id: number) => {
     queryKey: companyQueryKeys.detail(id),
     queryFn: () => companyService.fetchCompanyById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

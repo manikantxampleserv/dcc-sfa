@@ -48,7 +48,7 @@ export const useLoginHistory = (
   return useQuery({
     queryKey: loginHistoryQueryKeys.list(params),
     queryFn: () => loginHistoryService.fetchLoginHistory(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -70,7 +70,7 @@ export const useLoginHistoryById = (
     queryKey: loginHistoryQueryKeys.detail(id),
     queryFn: () => loginHistoryService.fetchLoginHistoryById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

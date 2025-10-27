@@ -44,7 +44,7 @@ export const useAssetTypes = (
   return useQuery({
     queryKey: assetTypeQueryKeys.list(params),
     queryFn: () => assetTypeService.fetchAssetTypes(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -66,7 +66,7 @@ export const useAssetType = (
     queryKey: assetTypeQueryKeys.detail(id),
     queryFn: () => assetTypeService.fetchAssetTypeById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

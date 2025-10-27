@@ -36,7 +36,7 @@ export const useStockMovements = (params?: GetStockMovementsParams) => {
   return useQuery({
     queryKey: stockMovementKeys.list(params || {}),
     queryFn: () => fetchStockMovements(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -48,7 +48,7 @@ export const useStockMovement = (id: number) => {
     queryKey: stockMovementKeys.detail(id),
     queryFn: () => fetchStockMovementById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

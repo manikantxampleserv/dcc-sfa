@@ -45,7 +45,7 @@ export const useRoles = (
   return useQuery({
     queryKey: roleQueryKeys.list(params),
     queryFn: () => roleService.fetchRoles(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -67,7 +67,7 @@ export const useRole = (
     queryKey: roleQueryKeys.detail(id),
     queryFn: () => roleService.fetchRoleById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

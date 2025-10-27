@@ -36,7 +36,7 @@ export const useCurrencies = (params?: GetCurrenciesParams) => {
   return useQuery({
     queryKey: currencyKeys.list(params || {}),
     queryFn: () => fetchCurrencies(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -48,7 +48,7 @@ export const useCurrency = (id: number) => {
     queryKey: currencyKeys.detail(id),
     queryFn: () => fetchCurrencyById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

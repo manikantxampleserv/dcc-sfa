@@ -41,7 +41,7 @@ export const useAssetMaintenances = (
   return useQuery({
     queryKey: assetMaintenanceQueryKeys.list(params),
     queryFn: () => assetMaintenanceService.fetchAssetMaintenances(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -63,7 +63,7 @@ export const useAssetMaintenanceById = (
     queryKey: assetMaintenanceQueryKeys.detail(id),
     queryFn: () => assetMaintenanceService.fetchAssetMaintenanceById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

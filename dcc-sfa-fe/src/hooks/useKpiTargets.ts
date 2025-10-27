@@ -40,7 +40,7 @@ export const useKpiTargets = (
   return useQuery({
     queryKey: kpiTargetsQueryKeys.list(params),
     queryFn: () => kpiTargetsService.fetchKpiTargets(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -62,7 +62,7 @@ export const useKpiTargetById = (
     queryKey: kpiTargetsQueryKeys.detail(id),
     queryFn: () => kpiTargetsService.fetchKpiTargetById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

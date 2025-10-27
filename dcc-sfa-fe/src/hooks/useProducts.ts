@@ -36,7 +36,7 @@ export const useProducts = (params?: GetProductsParams) => {
   return useQuery({
     queryKey: productKeys.list(params || {}),
     queryFn: () => fetchProducts(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -48,7 +48,7 @@ export const useProduct = (id: number) => {
     queryKey: productKeys.detail(id),
     queryFn: () => fetchProductById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

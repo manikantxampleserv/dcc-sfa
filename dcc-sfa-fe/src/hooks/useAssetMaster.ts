@@ -40,7 +40,7 @@ export const useAssetMaster = (
   return useQuery({
     queryKey: assetMasterQueryKeys.list(params),
     queryFn: () => assetMasterService.fetchAssetMaster(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -62,7 +62,7 @@ export const useAssetMasterById = (
     queryKey: assetMasterQueryKeys.detail(id),
     queryFn: () => assetMasterService.fetchAssetMasterById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

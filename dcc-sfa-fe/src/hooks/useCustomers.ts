@@ -36,7 +36,7 @@ export const useCustomers = (params?: GetCustomersParams) => {
   return useQuery({
     queryKey: customerKeys.list(params || {}),
     queryFn: () => fetchCustomers(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -48,7 +48,7 @@ export const useCustomer = (id: number) => {
     queryKey: customerKeys.detail(id),
     queryFn: () => fetchCustomerById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

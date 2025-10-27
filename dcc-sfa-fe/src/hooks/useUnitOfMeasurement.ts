@@ -42,7 +42,7 @@ export const useUnitOfMeasurement = (
   return useQuery({
     queryKey: unitOfMeasurementQueryKeys.list(params),
     queryFn: () => unitOfMeasurementService.fetchUnitOfMeasurement(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -64,7 +64,7 @@ export const useUnitOfMeasurementById = (
     queryKey: unitOfMeasurementQueryKeys.detail(id),
     queryFn: () => unitOfMeasurementService.fetchUnitOfMeasurementById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

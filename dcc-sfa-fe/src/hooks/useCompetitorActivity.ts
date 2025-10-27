@@ -42,7 +42,7 @@ export const useCompetitorActivities = (
   return useQuery({
     queryKey: competitorActivityQueryKeys.list(params),
     queryFn: () => competitorActivityService.fetchCompetitorActivities(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
@@ -64,7 +64,7 @@ export const useCompetitorActivityById = (
     queryKey: competitorActivityQueryKeys.detail(id),
     queryFn: () => competitorActivityService.fetchCompetitorActivityById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

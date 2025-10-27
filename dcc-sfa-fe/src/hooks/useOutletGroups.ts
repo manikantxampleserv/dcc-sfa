@@ -36,7 +36,7 @@ export const useOutletGroups = (params?: GetOutletGroupsParams) => {
   return useQuery({
     queryKey: outletGroupKeys.list(params || {}),
     queryFn: () => fetchOutletGroups(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -48,7 +48,7 @@ export const useOutletGroup = (id: number) => {
     queryKey: outletGroupKeys.detail(id),
     queryFn: () => fetchOutletGroupById(id),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 

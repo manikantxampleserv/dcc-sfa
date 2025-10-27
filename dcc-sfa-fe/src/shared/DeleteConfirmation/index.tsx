@@ -187,7 +187,7 @@ const PopConfirm: React.FC<PopConfirmProps> = ({
             style={{
               left: `${position.arrowLeft}px`,
               transform: 'translateX(-50%)',
-              filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))',
+              // filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))',
             }}
           />
 
