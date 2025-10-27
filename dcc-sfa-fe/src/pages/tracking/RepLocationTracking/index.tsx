@@ -1,26 +1,49 @@
-import { Chip, MenuItem, Skeleton } from '@mui/material';
 import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  MenuItem,
+  Skeleton,
+} from '@mui/material';
+import {
+  useCreateGPSLog,
   useGPSTrackingData,
   useRealTimeGPSTracking,
 } from 'hooks/useGPSTracking';
 import { useUsers } from 'hooks/useUsers';
 import {
-  MapPin,
-  Users,
-  Clock,
-  Navigation,
-  Battery,
-  Signal,
   Activity,
+  Battery,
+  Clock,
+  MapPin,
+  Navigation,
+  Users,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import Button from 'shared/Button';
 import Select from 'shared/Select';
 import { formatDate } from 'utils/dateUtils';
+import toastService from 'utils/toast';
+import LocationDetail from './LocationDetail';
+import LocationTestGPS from './LocationTestGPS';
 
 const RepLocationTracking: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState<number | undefined>(
     undefined
   );
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedRep, setSelectedRep] = useState<any>(null);
+  const [testGPSData, setTestGPSData] = useState({
+    latitude: '24.7136',
+    longitude: '46.6753',
+    accuracy_meters: '10',
+    speed_kph: '45.5',
+    battery_level: '85',
+    network_type: '4G',
+  });
 
   const { data: realTimeData, isLoading: isLoadingRealTime } =
     useRealTimeGPSTracking();
@@ -28,6 +51,8 @@ const RepLocationTracking: React.FC = () => {
     useGPSTrackingData({
       user_id: selectedUserId,
     });
+
+  const createGPSLog = useCreateGPSLog();
 
   const { data: usersData } = useUsers();
   const users = usersData?.data || [];
@@ -43,6 +68,38 @@ const RepLocationTracking: React.FC = () => {
   };
 
   const isLoading = isLoadingRealTime || isLoadingTracking;
+
+  const handleRepCardClick = (rep: any) => {
+    if (rep.latitude && rep.longitude) {
+      setSelectedRep(rep);
+      setDetailDrawerOpen(true);
+    } else {
+      toastService.warning('GPS is not active for this representative');
+    }
+  };
+
+  const handleOpenGoogleMaps = (latitude: number, longitude: number) => {
+    const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    window.open(url, '_blank');
+  };
+
+  const handleTestGPSSubmit = () => {
+    createGPSLog.mutate({
+      latitude: parseFloat(testGPSData.latitude),
+      longitude: parseFloat(testGPSData.longitude),
+      accuracy_meters: testGPSData.accuracy_meters
+        ? parseInt(testGPSData.accuracy_meters)
+        : undefined,
+      speed_kph: testGPSData.speed_kph
+        ? parseFloat(testGPSData.speed_kph)
+        : undefined,
+      battery_level: testGPSData.battery_level
+        ? parseFloat(testGPSData.battery_level)
+        : undefined,
+      network_type: testGPSData.network_type || undefined,
+    });
+    setTestDialogOpen(false);
+  };
 
   const SummaryStatsSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -118,13 +175,22 @@ const RepLocationTracking: React.FC = () => {
             representatives
           </p>
         </div>
-        <Chip
-          icon={<Clock className="w-4 h-4" />}
-          label={`Last Update: ${formatDate(summary.timestamp)}`}
-          color="primary"
-          variant="outlined"
-          className="hidden md:flex"
-        />
+        <div className="flex items-center gap-3">
+          {/* <Button
+            onClick={() => setTestDialogOpen(true)}
+            startIcon={<Plus className="w-5 h-5" />}
+            variant="contained"
+            color="primary"
+          >
+            Test GPS Log
+          </Button> */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-blue-500 text-blue-700 rounded-full bg-blue-50">
+            <Clock className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              Last Update: {formatDate(summary.timestamp)}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Filter */}
@@ -235,9 +301,8 @@ const RepLocationTracking: React.FC = () => {
           {realTimeGPS.map((rep: any) => (
             <div
               key={rep.user_id}
-              className={`bg-white shadow-sm p-6 rounded-lg border border-gray-100 transition-shadow cursor-pointer hover:shadow-md ${
-                rep.latitude && rep.longitude ? 'border-green-200' : ''
-              }`}
+              className="bg-white shadow-sm p-6 rounded-lg border border-gray-100 transition-shadow cursor-pointer hover:shadow-md"
+              onClick={() => handleRepCardClick(rep)}
             >
               <div className="flex items-start gap-3">
                 <div
@@ -266,59 +331,30 @@ const RepLocationTracking: React.FC = () => {
                   </div>
 
                   {rep.latitude && rep.longitude ? (
-                    <>
-                      <div className="space-y-1.5 text-sm">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600">
-                            {Number(rep.latitude).toFixed(4)},{' '}
-                            {Number(rep.longitude).toFixed(4)}
+                    <div className="flex items-center gap-4 pt-1">
+                      {rep.speed_kph !== null && (
+                        <div className="flex items-center gap-1.5 text-sm">
+                          <Activity className="w-4 h-4 text-orange-500" />
+                          <span className="text-gray-700 font-medium">
+                            {rep.speed_kph.toFixed(0)} km/h
                           </span>
                         </div>
-
-                        {rep.speed_kph !== null && (
-                          <div className="flex items-center gap-2">
-                            <Activity className="w-4 h-4 text-gray-400" />
-                            <span className="text-gray-600">
-                              {rep.speed_kph.toFixed(1)} km/h
-                            </span>
-                          </div>
-                        )}
-
-                        {rep.accuracy_meters && (
-                          <div className="flex items-center gap-2">
-                            <Signal className="w-4 h-4 text-gray-400" />
-                            <span className="text-gray-600">
-                              ±{rep.accuracy_meters}m accuracy
-                            </span>
-                          </div>
-                        )}
-
-                        {rep.battery_level !== null && (
-                          <div className="flex items-center gap-2">
-                            <Battery className="w-4 h-4 text-gray-400" />
-                            <Chip
-                              label={`${rep.battery_level}%`}
-                              size="small"
-                              color={
-                                rep.battery_level > 50
-                                  ? 'success'
-                                  : rep.battery_level > 20
-                                    ? 'warning'
-                                    : 'error'
-                              }
-                            />
-                          </div>
-                        )}
-
-                        {rep.last_update && (
-                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-2">
-                            <Clock className="w-3 h-3" />
-                            {formatDate(rep.last_update)}
-                          </div>
-                        )}
-                      </div>
-                    </>
+                      )}
+                      {rep.battery_level !== null && (
+                        <div className="flex items-center gap-1.5 text-sm">
+                          <Battery className="w-4 h-4 text-purple-500" />
+                          <span className="text-gray-700 font-medium">
+                            {rep.battery_level}%
+                          </span>
+                        </div>
+                      )}
+                      {rep.last_update && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500 ml-auto">
+                          <Clock className="w-3 h-3" />
+                          {formatDate(rep.last_update)}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="text-sm text-gray-500 italic">
                       No location data available
@@ -340,6 +376,166 @@ const RepLocationTracking: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Test GPS Log Dialog */}
+      <Dialog
+        open={testDialogOpen}
+        onClose={() => setTestDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle className="!font-bold !text-xl">
+          Create Test GPS Log
+        </DialogTitle>
+        <Divider />
+        <DialogContent className="!pt-4">
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Latitude <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="any"
+                value={testGPSData.latitude}
+                onChange={e => {
+                  setTestGPSData({
+                    ...testGPSData,
+                    latitude: e.target.value,
+                  });
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Longitude <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="any"
+                value={testGPSData.longitude}
+                onChange={e =>
+                  setTestGPSData({
+                    ...testGPSData,
+                    longitude: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Accuracy (meters)
+              </label>
+              <input
+                type="number"
+                value={testGPSData.accuracy_meters}
+                onChange={e =>
+                  setTestGPSData({
+                    ...testGPSData,
+                    accuracy_meters: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Speed (km/h)
+              </label>
+              <input
+                type="number"
+                value={testGPSData.speed_kph}
+                onChange={e =>
+                  setTestGPSData({
+                    ...testGPSData,
+                    speed_kph: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Battery Level (%)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={testGPSData.battery_level}
+                onChange={e =>
+                  setTestGPSData({
+                    ...testGPSData,
+                    battery_level: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Network Type
+              </label>
+              <input
+                type="text"
+                value={testGPSData.network_type}
+                onChange={e =>
+                  setTestGPSData({
+                    ...testGPSData,
+                    network_type: e.target.value,
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+              />
+            </div>
+          </div>
+        </DialogContent>
+        <Divider />
+        <DialogActions className="!px-6 !py-4">
+          <Button
+            onClick={() => setTestDialogOpen(false)}
+            variant="text"
+            color="primary"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleTestGPSSubmit}
+            variant="contained"
+            color="primary"
+            loading={createGPSLog.isPending}
+            loadingText="Creating..."
+            disabled={createGPSLog.isPending}
+          >
+            Create GPS Log
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Test GPS Log Dialog */}
+      <LocationTestGPS
+        open={testDialogOpen}
+        onClose={() => setTestDialogOpen(false)}
+        onSubmit={handleTestGPSSubmit}
+        isLoading={createGPSLog.isPending}
+      />
+
+      {/* GPS Detail Drawer */}
+      <LocationDetail
+        open={detailDrawerOpen}
+        onClose={() => setDetailDrawerOpen(false)}
+        rep={selectedRep}
+        onOpenMaps={handleOpenGoogleMaps}
+      />
     </div>
   );
 };

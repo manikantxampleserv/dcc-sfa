@@ -8,6 +8,87 @@ const prisma = new PrismaClient();
  */
 export const gpsTrackingController = {
   /**
+   * Create GPS Log
+   * POST /api/v1/tracking/gps
+   * Creates a new GPS log entry (typically from mobile app)
+   */
+  async createGPSLog(req: Request, res: Response) {
+    try {
+      // Get user ID from authentication token
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User ID not found in authentication token',
+        });
+      }
+
+      const {
+        latitude,
+        longitude,
+        accuracy_meters,
+        speed_kph,
+        battery_level,
+        network_type,
+        log_time,
+      } = req.body;
+
+      // Create GPS log entry
+      const gpsLog = await prisma.gps_logs.create({
+        data: {
+          user_id: userId,
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          accuracy_meters: accuracy_meters || null,
+          speed_kph: speed_kph ? speed_kph.toString() : null,
+          battery_level: battery_level ? battery_level.toString() : null,
+          network_type: network_type || null,
+          log_time: log_time ? new Date(log_time) : new Date(),
+          is_active: 'Y',
+          createdby: userId,
+          updatedby: userId,
+        },
+        include: {
+          users_gps_logs_user_idTousers: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              employee_id: true,
+            },
+          },
+        },
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'GPS log created successfully',
+        data: {
+          id: gpsLog.id,
+          user_id: gpsLog.user_id,
+          user_name: gpsLog.users_gps_logs_user_idTousers?.name || 'N/A',
+          latitude: Number(gpsLog.latitude),
+          longitude: Number(gpsLog.longitude),
+          log_time: gpsLog.log_time,
+          accuracy_meters: gpsLog.accuracy_meters,
+          speed_kph: gpsLog.speed_kph ? Number(gpsLog.speed_kph) : null,
+          battery_level: gpsLog.battery_level
+            ? Number(gpsLog.battery_level)
+            : null,
+          network_type: gpsLog.network_type,
+        },
+      });
+    } catch (error: any) {
+      console.error('Create GPS Log Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to create GPS log',
+      });
+    }
+  },
+
+  /**
    * Get GPS Tracking Data
    * GET /api/v1/tracking/gps
    * Returns GPS logs with filters for user, date range

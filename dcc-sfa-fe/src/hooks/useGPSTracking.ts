@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+  createGPSLog,
   fetchGPSTrackingData,
   fetchRealTimeGPSTracking,
   fetchUserGPSPath,
-  type GPSTrackingFilters,
+  type CreateGPSLogPayload,
   type GPSTrackingData,
+  type GPSTrackingFilters,
   type RealTimeGPSData,
   type UserGPSPathData,
 } from '../services/tracking/gpsTracking';
+import { useApiMutation } from './useApiMutation';
 
 export const gpsTrackingKeys = {
   all: ['gps-tracking'] as const,
@@ -55,5 +58,17 @@ export const useUserGPSPath = (
     queryKey: gpsTrackingKeys.path(userId, filters),
     queryFn: () => fetchUserGPSPath(userId, filters),
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Hook to create GPS Log with automatic toast notifications
+ * @returns Mutation object for creating GPS log
+ */
+export const useCreateGPSLog = () => {
+  return useApiMutation({
+    mutationFn: (data: CreateGPSLogPayload) => createGPSLog(data),
+    invalidateQueries: [...Array.from(gpsTrackingKeys.realtime())],
+    loadingMessage: 'Creating GPS log...',
   });
 };

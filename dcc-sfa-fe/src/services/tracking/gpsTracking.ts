@@ -129,3 +129,18 @@ export const fetchUserGPSPath = async (
 
   return response.data.data;
 };
+
+export interface CreateGPSLogPayload {
+  latitude: number;
+  longitude: number;
+  accuracy_meters?: number;
+  speed_kph?: number;
+  battery_level?: number;
+  network_type?: string;
+  log_time?: string;
+}
+
+export const createGPSLog = async (data: CreateGPSLogPayload): Promise<any> => {
+  const response = await axiosInstance.post('/tracking/gps', data);
+  return response.data.data;
+};

@@ -1,8 +1,24 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import { validate } from '../../middlewares/validation.middleware';
 import { gpsTrackingController } from '../controllers/gpsTracking.controller';
+import { createGPSLogValidation } from '../validations/gpsTracking.validation';
 
 const router = Router();
+
+/**
+ * @route POST /api/v1/tracking/gps
+ * @description Create GPS Log (from mobile app)
+ * @access Private (requires authentication)
+ * @body { latitude, longitude, accuracy_meters?, speed_kph?, battery_level?, network_type?, log_time? }
+ */
+router.post(
+  '/gps',
+  authenticateToken,
+  createGPSLogValidation,
+  validate,
+  gpsTrackingController.createGPSLog
+);
 
 /**
  * @route GET /api/v1/tracking/gps
