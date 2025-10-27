@@ -34,6 +34,11 @@ import { CoolerInspectionsImportExportService } from './implementations/coolerIn
 import { StockTransferRequestsImportExportService } from './implementations/stockTransferRequests-import-export.service';
 import { StockMovementsImportExportService } from './implementations/stockMovements-import-export.service';
 import { VanInventoryImportExportService } from './implementations/vanInventory-import-export.service';
+import { SalesTargetOverridesImportExportService } from './implementations/sales-target-overrides.import-export.service';
+import { CustomerAssetsImportExportService } from './implementations/customer-assets.import-export.service';
+import { VisitTasksImportExportService } from './implementations/visit-tasks.import-export.service';
+import { PromotionsImportExportService } from './implementations/promotions.import-export.service';
+import { PromotionProductsImportExportService } from './implementations/promotion-products.import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -79,6 +84,11 @@ export class ImportExportFactory {
     ['stock_movements', StockMovementsImportExportService],
     ['van_inventory', VanInventoryImportExportService],
     ['products', ProductsImportExportService],
+    ['sales_target_overrides', SalesTargetOverridesImportExportService],
+    ['customer_assets', CustomerAssetsImportExportService],
+    ['visit_tasks', VisitTasksImportExportService],
+    ['promotions', PromotionsImportExportService],
+    ['promotion_products', PromotionProductsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

@@ -56,6 +56,12 @@ import vanInventory from '../v1/routes/vanInventory.routes';
 import stockTransferRequests from '../v1/routes/stockTransferRequests.routes';
 import stockTransferLines from '../v1/routes/stockTransferLines.routes';
 import stockMovements from '../v1/routes/stockMovements.routes';
+import salesTargetOverrides from '../v1/routes/salesTargetOverrides.routes';
+import customerAssets from '../v1/routes/customerAssets.routes';
+import visitTasks from '../v1/routes/visitTasks.routes';
+import promotions from '../v1/routes/promotions.routes';
+import promotionParameters from '../v1/routes/promotionParameters.routes';
+import promotionProducts from '../v1/routes/promotionProducts.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -114,6 +120,12 @@ routes.use('/v1', vanInventory);
 routes.use('/v1', stockTransferRequests);
 routes.use('/v1', stockTransferLines);
 routes.use('/v1', stockMovements);
+routes.use('/v1', salesTargetOverrides);
+routes.use('/v1', customerAssets);
+routes.use('/v1', visitTasks);
+routes.use('/v1', promotions);
+routes.use('/v1', promotionProducts);
+routes.use('/v1', promotionParameters);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

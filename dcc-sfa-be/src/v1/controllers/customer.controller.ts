@@ -242,13 +242,14 @@ export const customerController = {
           },
           customer_assets_customers: {
             include: {
-              asset_types: {
+              customer_asset_types: {
                 select: { id: true, name: true, category: true, brand: true },
               },
-              users: {
+              customer_assets_users: {
                 select: { id: true, name: true, email: true },
               },
-              customer_assets_history: {
+
+              customers_assets_history: {
                 orderBy: { change_date: 'desc' },
                 include: {
                   users_customer_assets_history_changed_byTousers: {

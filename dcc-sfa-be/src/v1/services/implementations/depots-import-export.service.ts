@@ -432,7 +432,7 @@ export class DepotsImportExportService extends ImportExportService<any> {
         _count: {
           select: {
             // inventory_stock: true,
-            promotions: true,
+            promotion_depots: true,
             serial_numbers: true,
             user_depot: true,
           },

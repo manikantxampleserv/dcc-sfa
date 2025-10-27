@@ -58,9 +58,10 @@ const serializeZone = (zone: any): ZoneSerialized => ({
   updatedate: zone.updatedate,
   updatedby: zone.updatedby,
   log_inst: zone.log_inst,
-  promotions: zone.promotions
-    ? zone.promotions.map((p: any) => ({ id: p.id, name: p.name }))
+  promotions: zone.promotion_zones
+    ? zone.promotion_zones.map((p: any) => ({ id: p.id, name: p.name }))
     : [],
+
   routes_zones: zone.routes_zones
     ? zone.routes_zones.map((r: any) => ({ id: r.id, name: r.name }))
     : [],
@@ -98,7 +99,7 @@ export const zonesController = {
           createdate: new Date(),
         },
         include: {
-          promotions: true,
+          promotion_zones: true,
           routes_zones: true,
           user_zones: true,
           zone_depots: true,
@@ -138,7 +139,7 @@ export const zonesController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          promotions: true,
+          promotion_zones: true,
           routes_zones: true,
           user_zones: true,
           zone_depots: true,
@@ -188,7 +189,7 @@ export const zonesController = {
       const zone = await prisma.zones.findUnique({
         where: { id: Number(id) },
         include: {
-          promotions: true,
+          promotion_zones: true,
           routes_zones: true,
           user_zones: true,
           zone_depots: true,
@@ -229,7 +230,7 @@ export const zonesController = {
         where: { id: Number(id) },
         data,
         include: {
-          promotions: true,
+          promotion_zones: true,
           routes_zones: true,
           user_zones: true,
           zone_depots: true,

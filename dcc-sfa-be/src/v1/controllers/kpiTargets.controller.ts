@@ -118,8 +118,8 @@ export const kpiTargetsController = {
           log_inst: 1,
         },
         include: {
-          users_employee_kpi_targets_employee_idTousers: true,
-          employee_kpi_actuals: true,
+          employee_kpi_targets_users: true,
+          employee_kpi_actuals_targets: true,
         },
       });
 
@@ -153,11 +153,11 @@ export const kpiTargetsController = {
         }),
         ...(search && {
           OR: [
-            { kpi_name: { contains: searchLower, mode: 'insensitive' } },
-            { measure_unit: { contains: searchLower, mode: 'insensitive' } },
+            { kpi_name: { contains: searchLower } },
+            { measure_unit: { contains: searchLower } },
             {
-              users_employee_kpi_targets_employee_idTousers: {
-                name: { contains: searchLower, mode: 'insensitive' },
+              employee_kpi_targets_users: {
+                name: { contains: searchLower },
               },
             },
           ],
@@ -194,8 +194,8 @@ export const kpiTargetsController = {
         limit: limit_num,
         orderBy: { createdate: 'desc' },
         include: {
-          users_employee_kpi_targets_employee_idTousers: true,
-          employee_kpi_actuals: {
+          employee_kpi_targets_users: true,
+          employee_kpi_actuals_targets: {
             where: { is_active: 'Y' },
             orderBy: { measured_date: 'desc' },
             take: 5,
@@ -235,8 +235,8 @@ export const kpiTargetsController = {
       const kpiTarget = await prisma.employee_kpi_targets.findUnique({
         where: { id: parseInt(id) },
         include: {
-          users_employee_kpi_targets_employee_idTousers: true,
-          employee_kpi_actuals: {
+          employee_kpi_targets_users: true,
+          employee_kpi_actuals_targets: {
             where: { is_active: 'Y' },
             orderBy: { measured_date: 'desc' },
           },
@@ -343,8 +343,8 @@ export const kpiTargetsController = {
           updatedate: new Date(),
         },
         include: {
-          users_employee_kpi_targets_employee_idTousers: true,
-          employee_kpi_actuals: {
+          employee_kpi_targets_users: true,
+          employee_kpi_actuals_targets: {
             where: { is_active: 'Y' },
             orderBy: { measured_date: 'desc' },
           },
