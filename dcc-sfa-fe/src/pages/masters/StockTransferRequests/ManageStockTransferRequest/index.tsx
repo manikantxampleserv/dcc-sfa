@@ -125,7 +125,7 @@ const ManageStockTransferRequest: React.FC<ManageStockTransferRequestProps> = ({
     const newLine: TransferLineFormData = {
       product_id: '',
       batch_id: '',
-      quantity: '',
+      quantity: 0,
       id: null,
     };
     const updatedLines = [...transferLines, newLine];
@@ -145,7 +145,14 @@ const ManageStockTransferRequest: React.FC<ManageStockTransferRequestProps> = ({
     value: string | number
   ) => {
     const updatedLines = [...transferLines];
-    updatedLines[index] = { ...updatedLines[index], [field]: value };
+    if (field === 'quantity') {
+      updatedLines[index] = {
+        ...updatedLines[index],
+        [field]: value === '' ? 0 : Number(value),
+      };
+    } else {
+      updatedLines[index] = { ...updatedLines[index], [field]: value };
+    }
     setTransferLines(updatedLines);
     formik.setFieldValue('stock_transfer_lines', updatedLines);
   };
@@ -204,7 +211,7 @@ const ManageStockTransferRequest: React.FC<ManageStockTransferRequestProps> = ({
       width: 120,
       render: (_value, row) => (
         <Input
-          value={row.quantity}
+          value={row.quantity || 0}
           onChange={e =>
             updateTransferLine(row._index, 'quantity', e.target.value)
           }

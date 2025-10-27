@@ -20,8 +20,10 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({
   useEffect(() => {
     const progressInterval = setInterval(() => {
       setLoadingProgress(prev => {
-        if (prev >= 95) return 95;
-        return prev + Math.random() * 8 + 2;
+        if (prev >= 100) return 100;
+        const increment = Math.random() * 8 + 2;
+        const newProgress = prev + increment;
+        return Math.min(newProgress, 100);
       });
     }, 600);
 

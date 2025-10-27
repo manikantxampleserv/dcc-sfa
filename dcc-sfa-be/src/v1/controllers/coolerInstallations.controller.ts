@@ -108,6 +108,22 @@ export const coolerInstallationsController = {
           createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
+          // Convert date strings to Date objects
+          install_date: data.install_date
+            ? new Date(data.install_date)
+            : undefined,
+          last_service_date: data.last_service_date
+            ? new Date(data.last_service_date)
+            : undefined,
+          next_service_due: data.next_service_due
+            ? new Date(data.next_service_due)
+            : undefined,
+          warranty_expiry: data.warranty_expiry
+            ? new Date(data.warranty_expiry)
+            : undefined,
+          last_scanned_date: data.last_scanned_date
+            ? new Date(data.last_scanned_date)
+            : undefined,
         },
         include: {
           coolers_customers: {
@@ -308,7 +324,26 @@ export const coolerInstallationsController = {
           .json({ message: 'Cooler installation not found' });
       }
 
-      const data = { ...req.body, updatedate: new Date() };
+      const data = {
+        ...req.body,
+        updatedate: new Date(),
+        // Convert date strings to Date objects
+        install_date: req.body.install_date
+          ? new Date(req.body.install_date)
+          : undefined,
+        last_service_date: req.body.last_service_date
+          ? new Date(req.body.last_service_date)
+          : undefined,
+        next_service_due: req.body.next_service_due
+          ? new Date(req.body.next_service_due)
+          : undefined,
+        warranty_expiry: req.body.warranty_expiry
+          ? new Date(req.body.warranty_expiry)
+          : undefined,
+        last_scanned_date: req.body.last_scanned_date
+          ? new Date(req.body.last_scanned_date)
+          : undefined,
+      };
 
       // Check if cooler code already exists (excluding current record)
       if (data.code && data.code !== existingCooler.code) {

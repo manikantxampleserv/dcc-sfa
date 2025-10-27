@@ -136,6 +136,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
                 label="Customer"
                 formik={formik}
                 required
+                fullWidth
               >
                 <MenuItem value="">
                   <em>Select Customer</em>

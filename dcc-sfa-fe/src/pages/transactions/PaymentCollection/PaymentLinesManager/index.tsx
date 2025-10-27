@@ -269,8 +269,8 @@ const PaymentLinesManager: React.FC<PaymentLinesManagerProps> = ({
                   key={line.id}
                   className="!p-3 !bg-gray-50 !rounded-lg !border !border-gray-200 !relative"
                 >
-                  <div className="!flex !items-center !justify-between !mb-1">
-                    <div>
+                  <div className="!flex !items-center !justify-between">
+                    <div className="!flex !flex-col !gap-1">
                       <Typography
                         variant="caption"
                         className="!font-semibold !text-gray-900 !text-xs"

@@ -107,7 +107,9 @@ export const competitorActivityController = {
       const searchLower = (search as string).toLowerCase();
 
       const filters: any = {
-        is_active: status as string,
+        ...(status && {
+          is_active: String(status).toLowerCase() === 'active' ? 'Y' : 'N',
+        }),
         ...(search && {
           OR: [
             { brand_name: { contains: searchLower } },
