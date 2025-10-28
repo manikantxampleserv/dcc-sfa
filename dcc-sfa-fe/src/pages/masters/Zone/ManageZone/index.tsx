@@ -133,7 +133,7 @@ const ManageZone: React.FC<ManageZoneProps> = ({
             </Box>
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center gap-2">
             <Button
               type="button"
               variant="outlined"
@@ -156,8 +156,8 @@ const ManageZone: React.FC<ManageZoneProps> = ({
                 : updateZoneMutation.isPending
                   ? 'Updating...'
                   : isEdit
-                    ? 'Update Zone'
-                    : 'Create Zone'}
+                    ? 'Update'
+                    : 'Create'}
             </Button>
           </Box>
         </form>

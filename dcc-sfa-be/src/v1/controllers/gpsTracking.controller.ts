@@ -14,7 +14,6 @@ export const gpsTrackingController = {
    */
   async createGPSLog(req: Request, res: Response) {
     try {
-      // Get user ID from authentication token
       const userId = (req as any).user?.id;
 
       if (!userId) {
@@ -34,7 +33,6 @@ export const gpsTrackingController = {
         log_time,
       } = req.body;
 
-      // Create GPS log entry
       const gpsLog = await prisma.gps_logs.create({
         data: {
           user_id: userId,
@@ -91,7 +89,6 @@ export const gpsTrackingController = {
   /**
    * Get GPS Tracking Data
    * GET /api/v1/tracking/gps
-   * Returns GPS logs with filters for user, date range
    */
   async getGPSTrackingData(req: Request, res: Response) {
     try {
@@ -132,7 +129,6 @@ export const gpsTrackingController = {
         },
       });
 
-      // Serialize GPS data
       const serializedGPSData = gpsLogs.map(log => ({
         id: log.id,
         user_id: log.user_id,
@@ -147,7 +143,6 @@ export const gpsTrackingController = {
         network_type: log.network_type,
       }));
 
-      // Group by user for summary
       const userSummary = Array.from(
         new Set(gpsLogs.map(log => log.user_id))
       ).map(userId => {
@@ -203,7 +198,6 @@ export const gpsTrackingController = {
    */
   async getRealTimeGPSTracking(req: Request, res: Response) {
     try {
-      // Get the latest GPS log for each user
       const users = await prisma.users.findMany({
         where: {
           is_active: 'Y',
@@ -348,6 +342,277 @@ export const gpsTrackingController = {
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to retrieve user GPS path',
+      });
+    }
+  },
+
+  /**
+   * Get Route Effectiveness
+   * GET /api/v1/tracking/route-effectiveness
+   * Returns route performance metrics comparing planned vs actual routes
+   */
+  async getRouteEffectiveness(req: Request, res: Response) {
+    try {
+      const { start_date, end_date, salesperson_id, route_id, depot_id } =
+        req.query;
+
+      // Build date filter
+      const dateFilter: any = {};
+      if (start_date) {
+        dateFilter.gte = new Date(start_date as string);
+      }
+      if (end_date) {
+        dateFilter.lte = new Date(end_date as string);
+      }
+
+      // Fetch Routes
+      const whereRoutes: any = {
+        is_active: 'Y',
+        ...(depot_id && { depot_id: parseInt(depot_id as string) }),
+        ...(salesperson_id && {
+          salesperson_id: parseInt(salesperson_id as string),
+        }),
+        ...(route_id && { id: parseInt(route_id as string) }),
+      };
+
+      const routes = await prisma.routes.findMany({
+        where: whereRoutes,
+        include: {
+          customer_routes: {
+            where: { is_active: 'Y' },
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              latitude: true,
+              longitude: true,
+            },
+          },
+          routes_salesperson: {
+            select: { id: true, name: true, email: true },
+          },
+          routes_depots: {
+            select: { id: true, name: true, code: true },
+          },
+        },
+      });
+
+      // Fetch Visits for these routes
+      const whereVisits: any = {
+        is_active: 'Y',
+        route_id: { in: routes.map(r => r.id) },
+        ...(Object.keys(dateFilter).length > 0 && { visit_date: dateFilter }),
+        ...(salesperson_id && {
+          sales_person_id: parseInt(salesperson_id as string),
+        }),
+      };
+
+      const visits = await prisma.visits.findMany({
+        where: whereVisits,
+        include: {
+          visit_customers: {
+            select: { id: true, name: true, code: true },
+          },
+          visit_routes: {
+            select: { id: true, name: true, code: true },
+          },
+        },
+        orderBy: { visit_date: 'desc' },
+      });
+
+      // Fetch GPS Logs for comparison
+      const whereGpsLogs: any = {
+        is_active: 'Y',
+        ...(Object.keys(dateFilter).length > 0 && { log_time: dateFilter }),
+      };
+
+      if (salesperson_id) {
+        whereGpsLogs.user_id = parseInt(salesperson_id as string);
+      }
+
+      const gpsLogs = await prisma.gps_logs.findMany({
+        where: whereGpsLogs,
+        include: {
+          users_gps_logs_user_idTousers: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: { log_time: 'asc' },
+        take: 50000, // Limit for performance
+      });
+
+      // Analyze each route
+      const routeAnalysis = routes.map(route => {
+        const routeVisits = visits.filter(v => v.route_id === route.id);
+        const routeCustomers = route.customer_routes;
+
+        // Calculate visit completion rate
+        const completedVisits = routeVisits.filter(
+          v => v.status === 'completed'
+        ).length;
+        const completionRate =
+          routeCustomers.length > 0
+            ? (completedVisits / routeCustomers.length) * 100
+            : 0;
+
+        // Calculate average visit duration
+        const visitsWithDuration = routeVisits.filter(
+          v => v.start_time && v.end_time
+        );
+        const avgDuration =
+          visitsWithDuration.length > 0
+            ? visitsWithDuration.reduce((sum, v) => {
+                const duration =
+                  (new Date(v.end_time!).getTime() -
+                    new Date(v.start_time!).getTime()) /
+                  1000 /
+                  60;
+                return sum + duration;
+              }, 0) / visitsWithDuration.length
+            : 0;
+
+        // Calculate time adherence (planned vs actual)
+        const plannedVisits = visitsWithDuration.length;
+        const totalPlannedTime = route.estimated_time || 0;
+
+        // Calculate efficiency metrics
+        const totalOrders = routeVisits.reduce((sum, v) => {
+          // You might want to fetch actual orders here
+          return sum;
+        }, 0);
+
+        const routeGPSLogs = gpsLogs.filter(log => {
+          if (route.routes_salesperson) {
+            return log.user_id === route.routes_salesperson.id;
+          }
+          return false;
+        });
+
+        // Calculate actual distance traveled (approx from GPS logs)
+        let actualDistance = 0;
+        for (let i = 1; i < routeGPSLogs.length; i++) {
+          const lat1 = Number(routeGPSLogs[i - 1].latitude);
+          const lon1 = Number(routeGPSLogs[i - 1].longitude);
+          const lat2 = Number(routeGPSLogs[i].latitude);
+          const lon2 = Number(routeGPSLogs[i].longitude);
+
+          // Haversine formula (simplified)
+          const R = 6371; // Earth's radius in km
+          const dLat = ((lat2 - lat1) * Math.PI) / 180;
+          const dLon = ((lon2 - lon1) * Math.PI) / 180;
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos((lat1 * Math.PI) / 180) *
+              Math.cos((lat2 * Math.PI) / 180) *
+              Math.sin(dLon / 2) *
+              Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          actualDistance += R * c;
+        }
+
+        const plannedDistance = Number(route.estimated_distance || 0);
+        const distanceEfficiency =
+          plannedDistance > 0
+            ? ((plannedDistance / (actualDistance || 1)) * 100).toFixed(2)
+            : '0';
+
+        return {
+          route_id: route.id,
+          route_name: route.name,
+          route_code: route.code,
+          depot_name: route.routes_depots?.name || 'N/A',
+          salesperson_name: route.routes_salesperson?.name || 'N/A',
+          total_customers: routeCustomers.length,
+          planned_visits: routeCustomers.length,
+          actual_visits: routeVisits.length,
+          completed_visits: completedVisits,
+          in_progress_visits: routeVisits.filter(
+            v => v.status === 'in_progress'
+          ).length,
+          missed_visits: routeCustomers.length - completedVisits,
+          completion_rate: completionRate.toFixed(2),
+          avg_visit_duration: avgDuration.toFixed(0),
+          planned_distance_km: plannedDistance,
+          actual_distance_km: actualDistance.toFixed(2),
+          distance_efficiency: distanceEfficiency,
+          planned_time_minutes: totalPlannedTime,
+          actual_time_minutes: avgDuration * completedVisits,
+          efficiency_score: (
+            (completionRate + Number(distanceEfficiency)) /
+            2
+          ).toFixed(2),
+          visit_details: routeVisits.map(v => ({
+            id: v.id,
+            customer_name: v.visit_customers?.name || 'N/A',
+            visit_date: v.visit_date,
+            status: v.status,
+            check_in_time: v.check_in_time,
+            check_out_time: v.check_out_time,
+          })),
+        };
+      });
+
+      // Calculate summary
+      const totalRoutes = routeAnalysis.length;
+      const totalCustomers = routeAnalysis.reduce(
+        (sum, r) => sum + r.total_customers,
+        0
+      );
+      const totalPlannedVisits = routeAnalysis.reduce(
+        (sum, r) => sum + r.planned_visits,
+        0
+      );
+      const totalActualVisits = routeAnalysis.reduce(
+        (sum, r) => sum + r.actual_visits,
+        0
+      );
+      const totalCompletedVisits = routeAnalysis.reduce(
+        (sum, r) => sum + r.completed_visits,
+        0
+      );
+      const avgCompletionRate =
+        routeAnalysis.length > 0
+          ? routeAnalysis.reduce(
+              (sum, r) => sum + Number(r.completion_rate),
+              0
+            ) / routeAnalysis.length
+          : 0;
+      const avgEfficiencyScore =
+        routeAnalysis.length > 0
+          ? routeAnalysis.reduce(
+              (sum, r) => sum + Number(r.efficiency_score),
+              0
+            ) / routeAnalysis.length
+          : 0;
+
+      const summary = {
+        total_routes: totalRoutes,
+        total_customers: totalCustomers,
+        total_planned_visits: totalPlannedVisits,
+        total_actual_visits: totalActualVisits,
+        total_completed_visits: totalCompletedVisits,
+        missed_visits: totalPlannedVisits - totalCompletedVisits,
+        avg_completion_rate: avgCompletionRate.toFixed(2),
+        avg_efficiency_score: avgEfficiencyScore.toFixed(2),
+        date_range: {
+          start: start_date || 'N/A',
+          end: end_date || 'N/A',
+        },
+      };
+
+      res.json({
+        success: true,
+        message: 'Route effectiveness data retrieved successfully',
+        data: {
+          summary,
+          routes: routeAnalysis,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Route Effectiveness Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to retrieve route effectiveness data',
       });
     }
   },

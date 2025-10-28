@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { creditNotesController } from '../controllers/creditNotes.controller';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 import { createCreditNotesValidator } from '../validations/creditNotes.validator';
 import { validate } from '../../middlewares/validation.middleware';
 const router = Router();
@@ -8,6 +13,7 @@ const router = Router();
 router.post(
   '/transaction/credit-notes',
   authenticateToken,
+  auditCreate('credit_notes'),
   createCreditNotesValidator,
   validate,
   creditNotesController.upsertCreditNote
@@ -25,6 +31,7 @@ router.get(
 router.delete(
   '/transaction/credit-notes/:id',
   authenticateToken,
+  auditDelete('credit_notes'),
   creditNotesController.deleteCreditNotes
 );
 

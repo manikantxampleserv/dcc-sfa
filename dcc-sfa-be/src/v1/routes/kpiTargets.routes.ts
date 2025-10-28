@@ -1,5 +1,10 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 import { kpiTargetsController } from '../controllers/kpiTargets.controller';
 import {
   createKpiTargetValidation,
@@ -13,6 +18,7 @@ const router = Router();
 router.post(
   '/kpi-targets',
   authenticateToken,
+  auditCreate('kpi_targets'),
   createKpiTargetValidation,
   validate,
   kpiTargetsController.createKpiTarget
@@ -36,6 +42,7 @@ router.get(
 router.put(
   '/kpi-targets/:id',
   authenticateToken,
+  auditUpdate('kpi_targets'),
   updateKpiTargetValidation,
   validate,
   kpiTargetsController.updateKpiTarget
@@ -45,6 +52,7 @@ router.put(
 router.delete(
   '/kpi-targets/:id',
   authenticateToken,
+  auditDelete('kpi_targets'),
   kpiTargetsController.deleteKpiTarget
 );
 

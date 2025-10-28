@@ -8,6 +8,11 @@ import {
 import { upload } from '../../utils/multer';
 import { validate } from '../../middlewares/validation.middleware';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 
 const router = express.Router();
 
@@ -15,6 +20,7 @@ router.post(
   '/brands',
   upload.single('logo'),
   authenticateToken,
+  auditCreate('brands'),
   createBrandValidation,
   validate,
   brandsController.createBrand
@@ -25,10 +31,16 @@ router.put(
   '/brands/:id',
   upload.single('logo'),
   authenticateToken,
+  auditUpdate('brands'),
   updateBrandValidation,
   validate,
   brandsController.updateBrand
 );
-router.delete('/brands/:id', authenticateToken, brandsController.deleteBrand);
+router.delete(
+  '/brands/:id',
+  authenticateToken,
+  auditDelete('brands'),
+  brandsController.deleteBrand
+);
 
 export default router;

@@ -1,5 +1,10 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 import { inventoryStockController } from '../controllers/inventoryStock.controller';
 
 const router = Router();
@@ -7,6 +12,7 @@ const router = Router();
 router.post(
   '/inventory-stock',
   authenticateToken,
+  auditCreate('inventory_stock'),
   inventoryStockController.createInventoryStock
 );
 router.get(
@@ -22,11 +28,13 @@ router.get(
 router.put(
   '/inventory-stock/:id',
   authenticateToken,
+  auditUpdate('inventory_stock'),
   inventoryStockController.updateInventoryStock
 );
 router.delete(
   '/inventory-stock/:id',
   authenticateToken,
+  auditDelete('inventory_stock'),
   inventoryStockController.deleteInventoryStock
 );
 

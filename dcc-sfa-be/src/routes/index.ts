@@ -64,6 +64,8 @@ import promotionParameters from '../v1/routes/promotionParameters.routes';
 import promotionProducts from '../v1/routes/promotionProducts.routes';
 import reports from '../v1/routes/reports.routes';
 import gpsTracking from '../v1/routes/gpsTracking.routes';
+import auditLogs from '../v1/routes/auditLogs.routes';
+import executiveDashboard from '../v1/routes/executiveDashboard.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -130,6 +132,8 @@ routes.use('/v1', promotionProducts);
 routes.use('/v1', promotionParameters);
 routes.use('/v1/reports', reports);
 routes.use('/v1/tracking', gpsTracking);
+routes.use('/v1', auditLogs);
+routes.use('/v1', executiveDashboard);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

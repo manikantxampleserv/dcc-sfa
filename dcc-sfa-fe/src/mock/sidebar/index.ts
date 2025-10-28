@@ -7,7 +7,6 @@ import {
   MdNotifications,
   MdSettings,
   MdShoppingCart,
-  MdSync,
 } from 'react-icons/md';
 
 export interface MenuItem {
@@ -215,14 +214,6 @@ const menuItems: MenuItem[] = [
         label: 'Route Effectiveness',
         href: '/tracking/routes',
       },
-    ],
-  },
-  {
-    id: 'integration',
-    label: 'Integration',
-    icon: MdSync,
-    children: [
-      { id: 'erp-sync', label: 'ERP Sync Log', href: '/integration/erp-sync' },
     ],
   },
   {

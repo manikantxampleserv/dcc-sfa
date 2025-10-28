@@ -28,5 +28,8 @@
   "packageManager": "npm@10.0.0",
   "engines": {
     "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "recharts": "^3.3.0"
   }
 }

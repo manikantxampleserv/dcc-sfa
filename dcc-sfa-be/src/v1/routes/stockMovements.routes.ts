@@ -1,6 +1,11 @@
 import express from 'express';
 import { stockMovementsController } from '../controllers/stockMovements.controller';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 import { validate } from '../../middlewares/validation.middleware';
 import {
   createStockMovementValidation,
@@ -12,6 +17,7 @@ const router = express.Router();
 router.post(
   '/stock-movements',
   authenticateToken,
+  auditCreate('stock_movements'),
   createStockMovementValidation,
   validate,
   stockMovementsController.createStockMovement
@@ -20,6 +26,7 @@ router.post(
 router.put(
   '/stock-movements/:id',
   authenticateToken,
+  auditUpdate('stock_movements'),
   updateStockMovementValidation,
   validate,
   stockMovementsController.updateStockMovement
@@ -40,6 +47,7 @@ router.get(
 router.delete(
   '/stock-movements/:id',
   authenticateToken,
+  auditDelete('stock_movements'),
   stockMovementsController.deleteStockMovement
 );
 

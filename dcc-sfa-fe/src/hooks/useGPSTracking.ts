@@ -10,6 +10,11 @@ import {
   type RealTimeGPSData,
   type UserGPSPathData,
 } from '../services/tracking/gpsTracking';
+import {
+  fetchRouteEffectiveness,
+  type RouteEffectivenessFilters,
+  type RouteEffectivenessData,
+} from '../services/tracking/routeEffectiveness';
 import { useApiMutation } from './useApiMutation';
 
 export const gpsTrackingKeys = {
@@ -22,6 +27,8 @@ export const gpsTrackingKeys = {
     userId: number,
     filters?: { start_date?: string; end_date?: string }
   ) => [...gpsTrackingKeys.all, 'path', userId, filters] as const,
+  routeEffectiveness: (filters?: RouteEffectivenessFilters) =>
+    [...gpsTrackingKeys.all, 'route-effectiveness', filters] as const,
 };
 
 /**
@@ -70,5 +77,16 @@ export const useCreateGPSLog = () => {
     mutationFn: (data: CreateGPSLogPayload) => createGPSLog(data),
     invalidateQueries: [...Array.from(gpsTrackingKeys.realtime())],
     loadingMessage: 'Creating GPS log...',
+  });
+};
+
+/**
+ * Hook to fetch Route Effectiveness Data
+ */
+export const useRouteEffectiveness = (filters?: RouteEffectivenessFilters) => {
+  return useQuery<RouteEffectivenessData>({
+    queryKey: gpsTrackingKeys.routeEffectiveness(filters),
+    queryFn: () => fetchRouteEffectiveness(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

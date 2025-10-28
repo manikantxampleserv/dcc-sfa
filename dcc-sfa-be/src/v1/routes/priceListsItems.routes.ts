@@ -6,12 +6,18 @@ import {
   updatePriceListItemsValidation,
 } from '../validations/priceListItems.validation';
 import { validate } from '../../middlewares/validation.middleware';
+import {
+  auditCreate,
+  auditDelete,
+  auditUpdate,
+} from '../../middlewares/audit.middleware';
 
 const router = Router();
 
 router.post(
   '/price-list-items',
   authenticateToken,
+  auditCreate('price_list_items'),
   createPriceListItemsValidation,
   validate,
   priceListItemsController.createPriceListItems
@@ -31,6 +37,7 @@ router.get(
 router.put(
   '/price-list-items/:id',
   authenticateToken,
+  auditUpdate('price_list_items'),
   updatePriceListItemsValidation,
   validate,
   priceListItemsController.updatePriceListItems
@@ -39,6 +46,7 @@ router.put(
 router.delete(
   '/price-list-items/:id',
   authenticateToken,
+  auditDelete('price_list_items'),
   priceListItemsController.deletePriceListItems
 );
 

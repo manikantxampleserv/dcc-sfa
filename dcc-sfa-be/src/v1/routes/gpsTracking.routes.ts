@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { auditCreate } from '../../middlewares/audit.middleware';
 import { authenticateToken } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validation.middleware';
 import { gpsTrackingController } from '../controllers/gpsTracking.controller';
@@ -15,6 +16,7 @@ const router = Router();
 router.post(
   '/gps',
   authenticateToken,
+  auditCreate('gps_logs'),
   createGPSLogValidation,
   validate,
   gpsTrackingController.createGPSLog
@@ -50,6 +52,18 @@ router.get(
   '/gps/path/:user_id',
   authenticateToken,
   gpsTrackingController.getUserGPSPath
+);
+
+/**
+ * @route GET /api/v1/tracking/route-effectiveness
+ * @description Get Route Effectiveness Report
+ * @access Private (requires authentication)
+ * @params Query: start_date, end_date, salesperson_id, route_id, depot_id
+ */
+router.get(
+  '/route-effectiveness',
+  authenticateToken,
+  gpsTrackingController.getRouteEffectiveness
 );
 
 export default router;

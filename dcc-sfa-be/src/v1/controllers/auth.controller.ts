@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../../configs/jwt.config';
+import { getClientIP } from '../../utils/ipUtils';
 
 const prisma = new PrismaClient();
 
@@ -87,7 +88,7 @@ export const login = async (req: any, res: any) => {
 
     if (!user) {
       console.log(
-        `Failed login attempt for unknown user: ${email} from IP: ${req.ip || req.connection.remoteAddress}`
+        `Failed login attempt for unknown user: ${email} from IP: ${getClientIP(req)}`
       );
       return res.error('User not found', 404);
     }
@@ -99,10 +100,7 @@ export const login = async (req: any, res: any) => {
           data: {
             user_id: user.id,
             login_time: new Date(),
-            ip_address: truncateString(
-              req.ip || req.connection.remoteAddress,
-              50
-            ),
+            ip_address: truncateString(getClientIP(req), 50),
             device_info: truncateString(userAgent, 255),
             os_info: truncateString(userAgent, 100),
             app_version:
@@ -132,10 +130,7 @@ export const login = async (req: any, res: any) => {
           data: {
             user_id: user.id,
             login_time: new Date(),
-            ip_address: truncateString(
-              req.ip || req.connection.remoteAddress,
-              50
-            ),
+            ip_address: truncateString(getClientIP(req), 50),
             device_info: truncateString(userAgent, 255),
             os_info: truncateString(userAgent, 100),
             app_version:
@@ -174,10 +169,7 @@ export const login = async (req: any, res: any) => {
         data: {
           user_id: user.id,
           login_time: new Date(),
-          ip_address: truncateString(
-            req.ip || req.connection.remoteAddress,
-            50
-          ),
+          ip_address: truncateString(getClientIP(req), 50),
           device_info: truncateString(userAgent, 255),
           os_info: truncateString(userAgent, 100),
           app_version: truncateString(req.get('X-App-Version'), 50) || '1.0.0',
@@ -204,7 +196,12 @@ export const login = async (req: any, res: any) => {
       expiresIn: jwtConfig.expiresIn,
     });
   } catch (error) {
-    console.error(error);
+    if ((error as Error).message.includes('connection pool')) {
+      return res.error(
+        'Request Time Out. Please check your VPN connection.',
+        503
+      );
+    }
     return res.error('Login failed', 500);
   }
 };

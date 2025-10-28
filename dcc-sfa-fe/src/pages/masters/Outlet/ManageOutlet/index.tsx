@@ -90,8 +90,9 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
           salesperson_id: values.salesperson_id
             ? Number(values.salesperson_id)
             : undefined,
-          last_visit_date:
-            new Date(values.last_visit_date).toISOString() || undefined,
+          last_visit_date: values.last_visit_date
+            ? new Date(values.last_visit_date).toISOString()
+            : undefined,
           is_active: values.is_active,
         };
 
@@ -106,13 +107,15 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
 
         handleCancel();
       } catch (error) {
-        console.error('Error saving customer:', error);
+        console.log('Error saving customer:', error);
       }
     },
   });
 
   // Show all users as potential salespeople
   const salespeople = users;
+
+  console.log(formik.errors);
 
   return (
     <CustomDrawer
@@ -270,7 +273,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
             </Box>
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center !gap-4">
             <Button
               type="button"
               variant="outlined"

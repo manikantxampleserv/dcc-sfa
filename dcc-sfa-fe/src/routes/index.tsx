@@ -48,6 +48,7 @@ import RepProductivityReport from 'pages/reports/RepProductivityReport';
 import SalesVsTargetReport from 'pages/reports/SalesVsTargetReport';
 import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
 import RepLocationTracking from 'pages/tracking/RepLocationTracking';
+import RouteEffectiveness from 'pages/tracking/RouteEffectiveness';
 import CoolerInspectionsManagement from 'pages/transactions/CoolerInspections';
 import CoolerInspectionDetail from 'pages/transactions/CoolerInspections/CoolerInspectionDetail';
 import CoolerInstallationsManagement from 'pages/transactions/CoolerInstallations';
@@ -61,12 +62,9 @@ import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
 import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
+import ActivityLogs from 'pages/reports/ActivityLogs';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-
-const RouteEffectiveness = () => <h1>Route Effectiveness</h1>;
-const ERPSyncLog = () => <h1>ERP Sync Log</h1>;
-const ActivityLogs = () => <h1>Activity Logs</h1>;
 const ApprovalWorkflows = () => <h1>Approval Workflows</h1>;
 const RouteExceptions = () => <h1>Route Exceptions</h1>;
 const AlertsReminders = () => <h1>Alerts & Reminders</h1>;
@@ -289,10 +287,6 @@ const router = createBrowserRouter([
       {
         path: '/tracking/routes',
         element: <RouteEffectiveness />,
-      },
-      {
-        path: '/integration/erp-sync',
-        element: <ERPSyncLog />,
       },
       {
         path: '/reports/orders',

@@ -8,6 +8,12 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { useExportToExcel } from 'hooks/useImportExport';
+import {
+  useDeleteLoginHistory,
+  useLoginHistory,
+  type LoginHistory,
+} from 'hooks/useLoginHistory';
 import { History, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton } from 'shared/ActionButton';
@@ -16,13 +22,7 @@ import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import { useExportToExcel } from '../../../hooks/useImportExport';
-import {
-  useDeleteLoginHistory,
-  useLoginHistory,
-  type LoginHistory,
-} from '../../../hooks/useLoginHistory';
-import { formatDate } from '../../../utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 
 const LoginHistoryPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -138,7 +138,7 @@ const LoginHistoryPage: React.FC = () => {
       sortable: true,
       render: value => (
         <Typography variant="body2">
-          {value ? formatDate(value) : 'N/A'}
+          {value ? formatDateTime(value) : 'N/A'}
         </Typography>
       ),
     },
@@ -148,7 +148,7 @@ const LoginHistoryPage: React.FC = () => {
       sortable: true,
       render: value => (
         <Typography variant="body2">
-          {value ? formatDate(value) : 'N/A'}
+          {value ? formatDateTime(value) : 'N/A'}
         </Typography>
       ),
     },
@@ -167,7 +167,7 @@ const LoginHistoryPage: React.FC = () => {
       label: 'Device',
       sortable: false,
       render: value => (
-        <Tooltip title={value || 'N/A'} placement="top">
+        <Tooltip title={value || 'N/A'} placement="top" arrow>
           <Typography
             variant="body2"
             className="max-w-[200px] truncate text-gray-600"

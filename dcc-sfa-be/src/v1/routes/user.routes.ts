@@ -3,6 +3,11 @@ import {
   authenticateToken,
   requireAnyModulePermission,
 } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 import { MODULES, ACTIONS } from '../../configs/permissions.config';
 import { userController } from '../controllers/user.controller';
 import {
@@ -17,6 +22,7 @@ router.post(
   '/users',
   upload.single('profile_image'),
   authenticateToken,
+  auditCreate('users'),
   requireAnyModulePermission([
     { module: MODULES.USER, action: ACTIONS.CREATE },
   ]),
@@ -42,7 +48,7 @@ router.put(
   '/users/:id',
   authenticateToken,
   upload.single('profile_image'),
-
+  auditUpdate('users'),
   updateUserValidation,
   userController.updateUser
 );
@@ -50,7 +56,7 @@ router.put(
 router.delete(
   '/users/:id',
   authenticateToken,
-
+  auditDelete('users'),
   userController.deleteUser
 );
 

@@ -1,5 +1,10 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 import { priceListsController } from '../controllers/priceLists.controller';
 import {
   createPriceListsValidation,
@@ -13,6 +18,7 @@ const router = Router();
 router.post(
   '/price-lists',
   authenticateToken,
+  auditCreate('price_lists'),
   createPriceListsValidation,
   validate,
   priceListsController.upsertPriceList
@@ -32,6 +38,7 @@ router.get(
 router.delete(
   '/price-lists/:id',
   authenticateToken,
+  auditDelete('price_lists'),
   priceListsController.deletePriceLists
 );
 

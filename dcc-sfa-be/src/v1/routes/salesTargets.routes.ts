@@ -1,5 +1,10 @@
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 import { salesTargetsController } from '../controllers/salesTargets.controller';
 import {
   createSalesTargetValidation,
@@ -13,6 +18,7 @@ const router = Router();
 router.post(
   '/sales-targets',
   authenticateToken,
+  auditCreate('sales_targets'),
   createSalesTargetValidation,
   validate,
   salesTargetsController.createSalesTarget
@@ -36,6 +42,7 @@ router.get(
 router.put(
   '/sales-targets/:id',
   authenticateToken,
+  auditUpdate('sales_targets'),
   updateSalesTargetValidation,
   validate,
   salesTargetsController.updateSalesTarget
@@ -45,6 +52,7 @@ router.put(
 router.delete(
   '/sales-targets/:id',
   authenticateToken,
+  auditDelete('sales_targets'),
   salesTargetsController.deleteSalesTarget
 );
 

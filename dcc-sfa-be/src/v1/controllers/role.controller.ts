@@ -1,7 +1,6 @@
-import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { paginate } from '../../utils/paginate';
 import { validationResult } from 'express-validator';
+import { paginate } from '../../utils/paginate';
 
 const prisma = new PrismaClient();
 
@@ -181,20 +180,15 @@ export const rolesController = {
         return;
       }
 
-      const { createdate, updatedate, ...roleData } = req.body;
+      const { createdate, updatedate, permissions, ...roleData } = req.body;
 
       if ('id' in roleData) {
         delete roleData.id;
       }
 
-      if ('permissions' in roleData) {
-        delete roleData.permissions;
-      }
-
       const existingRole = await prisma.roles.findFirst({
         where: {
           id: id,
-          is_active: 'Y',
         },
       });
 
@@ -207,7 +201,6 @@ export const rolesController = {
         const nameExists = await prisma.roles.findFirst({
           where: {
             name: roleData.name,
-            is_active: 'Y',
             id: { not: id },
           },
         });
@@ -241,7 +234,7 @@ export const rolesController = {
           },
         });
 
-        if (roleData.permissions) {
+        if (permissions) {
           await tx.role_permissions.updateMany({
             where: { role_id: id },
             data: {
@@ -251,9 +244,9 @@ export const rolesController = {
             },
           });
 
-          if (roleData.permissions.length > 0) {
+          if (permissions.length > 0) {
             await tx.role_permissions.createMany({
-              data: roleData.permissions.map((permissionId: number) => ({
+              data: permissions.map((permissionId: number) => ({
                 role_id: id,
                 permission_id: permissionId,
                 createdby: req.user?.id || 1,
@@ -263,7 +256,7 @@ export const rolesController = {
             });
           }
 
-          const roleWithPermissions = await tx.roles.findUnique({
+          const roleWithPermissions = await tx.roles.findFirst({
             where: { id: id },
             include: {
               roles_permission: {

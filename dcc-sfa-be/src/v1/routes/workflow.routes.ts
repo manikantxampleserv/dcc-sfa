@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { workflowController } from '../controllers/workflow.controller';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 
 const router = Router();
 
@@ -17,13 +22,21 @@ router.get('/steps/:requestId', workflowController.getWorkflowSteps);
  * Execute workflow action (approve, reject, process, complete)
  * @route POST /action/:requestId
  */
-router.post('/action/:requestId', workflowController.executeWorkflowAction);
+router.post(
+  '/action/:requestId',
+  auditUpdate('workflow_steps'),
+  workflowController.executeWorkflowAction
+);
 
 /**
  * Reject return request with reason
  * @route POST /reject/:requestId
  */
-router.post('/reject/:requestId', workflowController.rejectReturnRequest);
+router.post(
+  '/reject/:requestId',
+  auditUpdate('workflow_steps'),
+  workflowController.rejectReturnRequest
+);
 
 /**
  * Get workflow templates
@@ -35,7 +48,11 @@ router.get('/templates', workflowController.getWorkflowTemplates);
  * Apply workflow template to a return request
  * @route POST /template/:requestId
  */
-router.post('/template/:requestId', workflowController.applyWorkflowTemplate);
+router.post(
+  '/template/:requestId',
+  auditUpdate('workflow_steps'),
+  workflowController.applyWorkflowTemplate
+);
 
 /**
  * Execute full workflow flow - automatically progress through all steps
@@ -43,6 +60,7 @@ router.post('/template/:requestId', workflowController.applyWorkflowTemplate);
  */
 router.post(
   '/full-flow/:requestId',
+  auditUpdate('workflow_steps'),
   workflowController.executeFullWorkflowFlow
 );
 
@@ -52,6 +70,7 @@ router.post(
  */
 router.post(
   '/next-step/:requestId',
+  auditUpdate('workflow_steps'),
   workflowController.executeNextWorkflowStep
 );
 

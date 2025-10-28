@@ -195,7 +195,8 @@ function TableHead<T>(props: TableHeadProps<T>) {
             className={classNames(
               column.className,
               '!border-b !px-1.5 !border-gray-200 !bg-blue-50 !font-semibold',
-              '!whitespace-nowrap !text-gray-700 !p-4 !text-sm'
+              '!whitespace-nowrap !text-gray-700 !p-4 !text-sm',
+              column.numeric && '!justify-end'
             )}
             style={{ width: column.width }}
           >

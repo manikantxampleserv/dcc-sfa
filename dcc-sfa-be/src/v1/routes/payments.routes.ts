@@ -1,10 +1,20 @@
 import express from 'express';
 import { paymentsController } from '../controllers/payments.controller';
 import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  auditCreate,
+  auditUpdate,
+  auditDelete,
+} from '../../middlewares/audit.middleware';
 
 const router = express.Router();
 
-router.post('/payments', authenticateToken, paymentsController.createPayment);
+router.post(
+  '/payments',
+  authenticateToken,
+  auditCreate('payments'),
+  paymentsController.createPayment
+);
 router.get('/payments', authenticateToken, paymentsController.getPayments);
 router.get(
   '/payments/:id',
@@ -14,11 +24,13 @@ router.get(
 router.put(
   '/payments/:id',
   authenticateToken,
+  auditUpdate('payments'),
   paymentsController.updatePayment
 );
 router.delete(
   '/payments/:id',
   authenticateToken,
+  auditDelete('payments'),
   paymentsController.deletePayment
 );
 
@@ -26,6 +38,7 @@ router.delete(
 router.post(
   '/payments/:paymentId/lines',
   authenticateToken,
+  auditCreate('payment_lines'),
   paymentsController.createPaymentLine
 );
 router.get(
@@ -36,6 +49,7 @@ router.get(
 router.delete(
   '/payments/:paymentId/lines/:lineId',
   authenticateToken,
+  auditDelete('payment_lines'),
   paymentsController.deletePaymentLine
 );
 
@@ -43,6 +57,7 @@ router.delete(
 router.post(
   '/payments/:paymentId/refunds',
   authenticateToken,
+  auditCreate('payment_refunds'),
   paymentsController.createPaymentRefund
 );
 router.get(
@@ -53,11 +68,13 @@ router.get(
 router.put(
   '/payments/:paymentId/refunds/:refundId',
   authenticateToken,
+  auditUpdate('payment_refunds'),
   paymentsController.updatePaymentRefund
 );
 router.delete(
   '/payments/:paymentId/refunds/:refundId',
   authenticateToken,
+  auditDelete('payment_refunds'),
   paymentsController.deletePaymentRefund
 );
 
