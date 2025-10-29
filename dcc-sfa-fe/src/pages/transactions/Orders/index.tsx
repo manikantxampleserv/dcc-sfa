@@ -221,7 +221,7 @@ const OrdersManagement: React.FC = () => {
     },
     {
       id: 'salesperson',
-      label: 'Sales erson',
+      label: 'Sales Person',
       render: (_value, row) => (
         <Box className="flex items-center !gap-2">
           <Avatar
