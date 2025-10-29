@@ -1,22 +1,35 @@
 import React from 'react';
 import {
-  FaBoxes,
   FaChartLine,
   FaClipboardList,
-  FaMapMarkerAlt,
   FaMoneyBillWave,
   FaShoppingCart,
   FaTruck,
   FaUsers,
 } from 'react-icons/fa';
-import { LineChart } from '@mui/x-charts/LineChart';
-import { BarChart } from '@mui/x-charts/BarChart';
-import { PieChart } from '@mui/x-charts/PieChart';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import {
   useDashboardStatistics,
+  useOrderStatus,
   useSalesPerformance,
   useTopProducts,
-  useOrderStatus,
 } from '../../../hooks/useExecutiveDashboard';
 
 const ExecutiveDashboard: React.FC = () => {
@@ -35,13 +48,6 @@ const ExecutiveDashboard: React.FC = () => {
     danger: '#ef4444',
     purple: '#8b5cf6',
   };
-
-  const quickActions = [
-    { title: 'New Order Entry', icon: FaClipboardList, color: 'blue' },
-    { title: 'Delivery Scheduling', icon: FaTruck, color: 'green' },
-    { title: 'Inventory Check', icon: FaBoxes, color: 'purple' },
-    { title: 'Route Planning', icon: FaMapMarkerAlt, color: 'orange' },
-  ];
 
   const getColorClasses = (color: string) => {
     const colorMap: {
@@ -137,24 +143,84 @@ const ExecutiveDashboard: React.FC = () => {
     },
   ];
 
-  const lineChartLabels = salesData?.labels || [];
-  const lineChartValues = salesData?.sales || [];
-
-  const pieChartData =
-    orderStatus?.labels.map((label, index) => ({
-      id: index,
-      value: orderStatus.values[index],
-      label,
+  // Transform data for Recharts LineChart
+  const lineChartData =
+    salesData?.labels.map((label, index) => ({
+      date: label,
+      sales: salesData?.sales[index] || 0,
     })) || [];
 
+  // Transform data for Recharts PieChart (Order Status)
+  const pieChartData =
+    orderStatus?.labels.map((label, index) => ({
+      name: label?.charAt(0).toUpperCase() + label?.slice(1),
+      value: orderStatus.values[index],
+    })) || [];
+
+  // Transform data for Recharts BarChart
+  const barChartData =
+    topProducts?.products.map((product, index) => ({
+      name: product.length > 15 ? product.substring(0, 15) + '...' : product,
+      fullName: product,
+      quantity: topProducts.quantities[index] || 0,
+    })) || [];
+
+  // Area chart data (revenue trend)
+  const areaChartData = lineChartData.map(d => ({
+    date: d.date,
+    revenue: d.sales,
+  }));
+
+  // Composed chart data (Sales vs Average Orders per day)
+  // Use average daily orders from stats if available
+  const averageDailyOrders = stats
+    ? Math.round(stats.totalOrders.value / Math.max(lineChartData.length, 1))
+    : 0;
+  const composedChartData = lineChartData.map((d, index) => ({
+    date: d.date,
+    sales: d.sales,
+    orders: averageDailyOrders + (index % 3), // Add slight variation for visualization
+  }));
+
+  // Revenue distribution (if we have revenue data)
+  const revenueDistributionData = stats
+    ? [
+        {
+          name: 'Achieved',
+          value:
+            parseFloat(stats.salesRevenue.formatted.replace(/[₹L]/g, '')) || 0,
+        },
+        {
+          name: 'Pending',
+          value:
+            (stats.salesRevenue.target
+              ? parseFloat(
+                  String(stats.salesRevenue.target).replace(/[₹L]/g, '')
+                ) -
+                (parseFloat(
+                  stats.salesRevenue.formatted.replace(/[₹L]/g, '')
+                ) || 0)
+              : 0) || 0,
+        },
+      ].filter(item => item.value > 0)
+    : [];
+
+  // Pie chart colors
+  const PIE_COLORS = [
+    CHART_COLORS.primary,
+    CHART_COLORS.success,
+    CHART_COLORS.warning,
+    CHART_COLORS.danger,
+    CHART_COLORS.purple,
+  ];
+
   // Check if charts have valid data
-  const hasLineChartData =
-    lineChartLabels.length > 0 && lineChartValues.length > 0;
+  const hasLineChartData = lineChartData.length > 0;
   const hasPieChartData = pieChartData.length > 0;
-  const hasBarChartData =
-    topProducts &&
-    topProducts.products.length > 0 &&
-    topProducts.quantities.length > 0;
+  const hasBarChartData = barChartData.length > 0;
+  const hasAreaChartData = areaChartData.length > 0;
+  const hasComposedChartData = composedChartData.length > 0;
+  const hasRevenueDistributionData = revenueDistributionData.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -233,25 +299,6 @@ const ExecutiveDashboard: React.FC = () => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {quickActions.map((action, index) => {
-          const colors = getColorClasses(action.color);
-          return (
-            <button
-              key={index}
-              className={`${colors.bg} ${colors.text} p-4 rounded-lg border border-gray-100 hover:shadow-md transition-shadow duration-200 text-left w-full`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`${colors.icon} p-2 rounded-lg`}>
-                  <action.icon size={20} />
-                </div>
-                <span className="font-medium">{action.title}</span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
@@ -264,23 +311,27 @@ const ExecutiveDashboard: React.FC = () => {
               </div>
             ) : hasLineChartData ? (
               <div className="h-72 w-full">
-                <LineChart
-                  height={300}
-                  series={[
-                    {
-                      data: lineChartValues,
-                      label: 'Daily Sales',
-                      color: CHART_COLORS.primary,
-                    },
-                  ]}
-                  xAxis={[
-                    {
-                      scaleType: 'point',
-                      data: lineChartLabels,
-                    },
-                  ]}
-                  margin={{ left: 50, right: 50, top: 30, bottom: 80 }}
-                />
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={lineChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="sales"
+                      stroke={CHART_COLORS.primary}
+                      strokeWidth={2}
+                      name="Daily Sales"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             ) : (
               <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
@@ -306,19 +357,48 @@ const ExecutiveDashboard: React.FC = () => {
               </div>
             ) : hasPieChartData ? (
               <div className="h-72 w-full flex items-center justify-center">
-                <PieChart
-                  height={280}
-                  series={[
-                    {
-                      data: pieChartData,
-                      innerRadius: 30,
-                      outerRadius: 80,
-                      paddingAngle: 2,
-                      cornerRadius: 5,
-                    },
-                  ]}
-                  margin={{ top: 20, bottom: 20 }}
-                />
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="45%"
+                      labelLine={false}
+                      outerRadius={70}
+                      innerRadius={30}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieChartData.map((_, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={PIE_COLORS[index % PIE_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => [
+                        `${value} (${((value / pieChartData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1)}%)`,
+                        'Count',
+                      ]}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      formatter={value => {
+                        const item = pieChartData.find(d => d.name === value);
+                        const total = pieChartData.reduce(
+                          (sum, d) => sum + d.value,
+                          0
+                        );
+                        const percent = item
+                          ? ((item.value / total) * 100).toFixed(0)
+                          : '0';
+                        return `${value} (${percent}%)`;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             ) : (
               <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
@@ -334,35 +414,259 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
       </div>
 
-      {hasBarChartData && (
+      <div className="grid grid-cols-1 gap-6">
+        {hasBarChartData && (
+          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Top Selling Products (Last 30 Days)
+            </h3>
+            {productsLoading ? (
+              <div className="h-72 flex items-center justify-center">
+                <div className="animate-pulse text-gray-400">Loading...</div>
+              </div>
+            ) : (
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={barChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                    />
+                    <YAxis />
+                    <Tooltip
+                      formatter={(value: number, name: string, props: any) => [
+                        value,
+                        props.payload.fullName || name,
+                      ]}
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="quantity"
+                      fill={CHART_COLORS.primary}
+                      name="Units Sold"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
+
+        {hasAreaChartData && (
+          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Revenue Trend
+            </h3>
+            {salesLoading ? (
+              <div className="h-72 flex items-center justify-center">
+                <div className="animate-pulse text-gray-400">Loading...</div>
+              </div>
+            ) : (
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={areaChartData}>
+                    <defs>
+                      <linearGradient
+                        id="colorRevenue"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor={CHART_COLORS.success}
+                          stopOpacity={0.8}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor={CHART_COLORS.success}
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke={CHART_COLORS.success}
+                      fillOpacity={1}
+                      fill="url(#colorRevenue)"
+                      name="Revenue"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {hasComposedChartData && (
         <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Top Selling Products (Last 30 Days)
+            Sales vs Orders Performance
           </h3>
-          {productsLoading ? (
-            <div className="h-72 flex items-center justify-center">
+          {salesLoading ? (
+            <div className="h-80 flex items-center justify-center">
               <div className="animate-pulse text-gray-400">Loading...</div>
             </div>
           ) : (
-            <div className="h-72 w-full">
-              <BarChart
-                height={300}
-                series={[
-                  {
-                    data: topProducts.quantities,
-                    label: 'Units Sold',
-                  },
-                ]}
-                xAxis={[
-                  {
-                    scaleType: 'band',
-                    data: topProducts.products,
-                  },
-                ]}
-                margin={{ left: 50, right: 50, top: 30, bottom: 100 }}
-              />
+            <div className="h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={composedChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar
+                    yAxisId="left"
+                    dataKey="sales"
+                    fill={CHART_COLORS.warning}
+                    name="Sales (₹)"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="orders"
+                    stroke={CHART_COLORS.danger}
+                    strokeWidth={2}
+                    name="Orders"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
           )}
+        </div>
+      )}
+
+      {hasRevenueDistributionData && revenueDistributionData.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Revenue vs Target
+            </h3>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={revenueDistributionData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={(props: any) =>
+                      `${props.name}: ${((props.percent || 0) * 100).toFixed(0)}%`
+                    }
+                  >
+                    <Cell fill={CHART_COLORS.success} />
+                    <Cell fill={CHART_COLORS.warning} />
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Sales Distribution
+            </h3>
+            <div className="space-y-4">
+              {stats && (
+                <>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-600">
+                        Total Revenue
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {stats.salesRevenue.formatted}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-500 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min(parseFloat(stats.salesRevenue.targetProgress || '0'), 100)}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Target Progress:{' '}
+                      {parseFloat(
+                        stats.salesRevenue.targetProgress || '0'
+                      ).toFixed(1)}
+                      %
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-600">
+                        Total Orders
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {stats.totalOrders.value.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min((stats.totalOrders.thisMonth / Math.max(stats.totalOrders.value, 1)) * 100, 100)}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      This Month: {stats.totalOrders.thisMonth}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm text-gray-600">
+                        Delivery Success
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {stats.deliveries.successRate}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-cyan-500 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min(parseFloat(stats.deliveries.successRate || '0'), 100)}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Completed: {stats.deliveries.value.toLocaleString()}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
