@@ -165,7 +165,7 @@ const RepLocationTracking: React.FC = () => {
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="!font-bold text-xl !text-gray-900">
             Representatives Location Tracking
@@ -195,7 +195,7 @@ const RepLocationTracking: React.FC = () => {
 
       {/* Filter */}
       <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center flex-wrap gap-4">
           <Select
             label="Representative"
             value={selectedUserId?.toString() || 'all'}
@@ -230,7 +230,7 @@ const RepLocationTracking: React.FC = () => {
       {isLoading ? (
         <SummaryStatsSkeleton />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
             <div className="flex items-center justify-between">
               <div>

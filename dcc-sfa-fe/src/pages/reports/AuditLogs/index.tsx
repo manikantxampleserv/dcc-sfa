@@ -185,7 +185,7 @@ const ActivityLogs: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="!font-bold text-xl !text-gray-900">Activity Logs</h2>
+          <h2 className="!font-bold text-xl !text-gray-900">Audit Logs</h2>
           <p className="!text-gray-500 text-sm">
             Track and monitor all system activities and changes
           </p>
@@ -318,9 +318,9 @@ const ActivityLogs: React.FC = () => {
       {logs.length === 0 && !isLoading && (
         <div className="text-center py-12">
           <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">No activity logs found</p>
+          <p className="text-gray-500 text-lg">No audit logs found</p>
           <p className="text-gray-400 text-sm mt-2">
-            Please adjust your filters to view activity logs
+            Please adjust your filters to view audit logs
           </p>
         </div>
       )}

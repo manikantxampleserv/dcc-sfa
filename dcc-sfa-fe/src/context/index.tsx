@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import ThemeContext from './ThemeContext';
 import { AuthProvider } from './AuthContext';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 const ContextProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -18,11 +20,13 @@ const ContextProvider: React.FC<{ children: React.ReactNode }> = ({
     },
   });
   return (
-    <ThemeContext>
-      <QueryClientProvider client={client}>
-        <AuthProvider>{children}</AuthProvider>
-      </QueryClientProvider>
-    </ThemeContext>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <ThemeContext>
+        <QueryClientProvider client={client}>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryClientProvider>
+      </ThemeContext>
+    </LocalizationProvider>
   );
 };
 

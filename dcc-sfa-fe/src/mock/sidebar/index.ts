@@ -268,8 +268,8 @@ const menuItems: MenuItem[] = [
       },
       {
         id: 'activity-logs',
-        label: 'Activity Logs',
-        href: '/reports/activity',
+        label: 'Audit Logs',
+        href: '/reports/audit-logs',
       },
     ],
   },

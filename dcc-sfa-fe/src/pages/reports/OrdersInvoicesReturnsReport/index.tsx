@@ -59,6 +59,8 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
     return_rate: 0,
   };
 
+  console.log(startDate, endDate, customerId, status);
+
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportOrdersInvoicesReturnsReport({
@@ -357,7 +359,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
-      <Box className="!mb-3 !flex !justify-between !items-center">
+      <Box className="!mb-3 !flex !justify-between !items-center flex-wrap gap-4">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
             Orders, Invoices & Returns Report
@@ -385,18 +387,18 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Input
             type="date"
             label="Start Date"
             value={startDate}
-            onChange={e => setStartDate(e.target.value)}
+            setValue={setStartDate}
           />
           <Input
             type="date"
             label="End Date"
             value={endDate}
-            onChange={e => setEndDate(e.target.value)}
+            setValue={setEndDate}
           />
           <Select
             label="Customer"
@@ -435,7 +437,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -503,7 +505,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         <h2 className="!font-bold text-lg !text-gray-900 !mb-4">
           Key Statistics
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Avg Order Value</p>
             <p className="text-xl font-bold text-gray-900">
@@ -536,7 +538,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         <h2 className="!font-bold text-lg !text-gray-900 !mb-4">
           Status Breakdown
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
           <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
             <p className="text-sm text-gray-600">Pending Orders</p>
             <p className="text-lg font-bold text-orange-600">

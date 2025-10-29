@@ -62,7 +62,7 @@ import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
 import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
-import ActivityLogs from 'pages/reports/ActivityLogs';
+import AuditLogs from 'pages/reports/AuditLogs';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 const ApprovalWorkflows = () => <h1>Approval Workflows</h1>;
@@ -325,8 +325,8 @@ const router = createBrowserRouter([
         element: <OutstandingCollectionReport />,
       },
       {
-        path: '/reports/activity',
-        element: <ActivityLogs />,
+        path: '/reports/audit-logs',
+        element: <AuditLogs />,
       },
       {
         path: '/workflows/approvals',

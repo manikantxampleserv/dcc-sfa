@@ -38,9 +38,11 @@
  * ```
  */
 import { IconButton, TextField, type TextFieldProps } from '@mui/material';
+import { DatePicker, TimePicker, DateTimePicker } from '@mui/x-date-pickers';
 import React from 'react';
 import type { FormikProps } from 'formik';
 import { Search, Visibility, VisibilityOff } from '@mui/icons-material';
+import dayjs, { type Dayjs } from 'dayjs';
 
 interface InputProps extends Omit<TextFieldProps, 'onChange'> {
   formik?: FormikProps<any>;
@@ -61,6 +63,7 @@ const Input: React.FC<InputProps> = ({
   onBlur,
   fullWidth = true,
   slotProps,
+  label,
   ...rest
 }) => {
   const [isVisible, setIsVisible] = React.useState<{ [key: string]: boolean }>({
@@ -79,10 +82,120 @@ const Input: React.FC<InputProps> = ({
       onChange(event);
     }
   };
+
+  const handleDateChange = (newValue: Dayjs | null) => {
+    const dateValue = newValue ? newValue.format('YYYY-MM-DD') : '';
+    if (formik) {
+      formik.setFieldValue(name as string, dateValue);
+    } else if (setValue) {
+      setValue(dateValue);
+    }
+  };
+
+  const handleTimeChange = (newValue: Dayjs | null) => {
+    const timeValue = newValue ? newValue.format('HH:mm') : '';
+    if (formik) {
+      formik.setFieldValue(name as string, timeValue);
+    } else if (setValue) {
+      setValue(timeValue);
+    }
+  };
+
+  const handleDateTimeChange = (newValue: Dayjs | null) => {
+    const dateTimeValue = newValue ? newValue.format('YYYY-MM-DDTHH:mm') : '';
+    if (formik) {
+      formik.setFieldValue(name as string, dateTimeValue);
+    } else if (setValue) {
+      setValue(dateTimeValue);
+    }
+  };
+
   const error =
     formik?.touched?.[name as string] && formik?.errors?.[name as string];
 
   const errorMessage = typeof error === 'string' ? error : undefined;
+
+  const currentValue = value || formik?.values[name as string];
+
+  // Normalize date value - always return null (never undefined or empty string)
+  const dateValue =
+    currentValue && dayjs(currentValue).isValid() ? dayjs(currentValue) : null;
+
+  if (type === 'date') {
+    return (
+      <DatePicker
+        label={label}
+        value={dateValue}
+        onChange={handleDateChange}
+        slotProps={{
+          desktopPaper: {
+            elevation: 0,
+            className: '!shadow-lg',
+          },
+          textField: {
+            fullWidth,
+            size,
+            error: !!error,
+            helperText: errorMessage,
+            name,
+            onBlur: formik?.handleBlur || onBlur,
+            InputLabelProps: {
+              shrink: true,
+            },
+            ...rest,
+          },
+        }}
+      />
+    );
+  }
+
+  if (type === 'time') {
+    return (
+      <TimePicker
+        label={label}
+        value={dateValue}
+        onChange={handleTimeChange}
+        slotProps={{
+          textField: {
+            fullWidth,
+            size,
+            error: !!error,
+            helperText: errorMessage,
+            name,
+            onBlur: formik?.handleBlur || onBlur,
+            InputLabelProps: {
+              shrink: true,
+            },
+            ...rest,
+          },
+        }}
+      />
+    );
+  }
+
+  if (type === 'datetime-local') {
+    return (
+      <DateTimePicker
+        label={label}
+        value={dateValue}
+        onChange={handleDateTimeChange}
+        slotProps={{
+          textField: {
+            fullWidth,
+            size,
+            error: !!error,
+            helperText: errorMessage,
+            name,
+            onBlur: formik?.handleBlur || onBlur,
+            InputLabelProps: {
+              shrink: true,
+            },
+            ...rest,
+          },
+        }}
+      />
+    );
+  }
 
   return (
     <TextField
@@ -107,15 +220,7 @@ const Input: React.FC<InputProps> = ({
                 }
               : undefined,
           required: false,
-          className:
-            type === 'date' || type === 'time' || type === 'datetime-local'
-              ? '!uppercase'
-              : undefined,
         },
-        inputLabel:
-          type === 'date' || type === 'time' || type === 'datetime-local'
-            ? { shrink: true }
-            : undefined,
         input: {
           ...(type === 'search' && {
             endAdornment: <Search />,
@@ -138,7 +243,7 @@ const Input: React.FC<InputProps> = ({
       helperText={errorMessage}
       error={!!error}
       onBlur={formik?.handleBlur || onBlur}
-      value={value || formik?.values[name as string]}
+      value={currentValue}
       onChange={handleChange}
       {...rest}
     />
