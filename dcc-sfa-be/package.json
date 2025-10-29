@@ -10,7 +10,7 @@
     "start": "node dist/index.js",
     "build": "tsc",
     "dev": "nodemon --exec ts-node src/index.ts",
-    "prisma:generate": "prisma generate",
+    "prisma:generate": "npx prisma generate",
     "seed:clean": "ts-node src/utils/seeders/index.ts clear",
     "seed:generate": "ts-node src/utils/seeders/index.ts seed",
     "seed": "npm run seed:clean && npm run seed:generate",
