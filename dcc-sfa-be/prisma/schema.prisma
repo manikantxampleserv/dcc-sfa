@@ -1697,7 +1697,7 @@ model surveys {
 model van_inventory {
   id                     Int               @id @default(autoincrement())
   user_id                Int
-  product_id             Int
+  product_id             Int?
   batch_id               Int?
   serial_no_id           Int?
   quantity               Int?              @default(0)
@@ -1714,7 +1714,7 @@ model van_inventory {
   location_type          String?           @default("van") @db.NVarChar(20)
   location_id            Int?
   batch_lots             batch_lots?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  van_inventory_products products          @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  van_inventory_products products?         @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   serial_numbers         serial_numbers?   @relation(fields: [serial_no_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   van_inventory_users    users             @relation("VanInventoryUsers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   vehicle                vehicles?         @relation("VehiclesVanInventory", fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

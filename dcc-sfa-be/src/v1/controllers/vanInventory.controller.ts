@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 interface VanInventorySerialized {
   id: number;
   user_id: number;
-  product_id: number;
+  product_id?: number | null;
   batch_id?: number | null;
   serial_no_id?: number | null;
   quantity?: number | null;
