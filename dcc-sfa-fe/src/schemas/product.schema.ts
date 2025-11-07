@@ -40,6 +40,13 @@ export const productValidationSchema = yup.object().shape({
     .number()
     .min(1, 'Please select a valid outlet group')
     .nullable(),
+  tracking_type: yup
+    .string()
+    .oneOf(
+      ['None', 'Batch', 'Serial'],
+      'Tracking type must be None, Batch, or Serial'
+    )
+    .nullable(),
   is_active: yup
     .string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')

@@ -11,15 +11,6 @@ import {
 
 const router = Router();
 
-router.post(
-  '/routes',
-  authenticateToken,
-  createRouteValidation,
-  auditCreate('routes'),
-  validate,
-  routesController.bulkUpsertRoutes
-);
-
 router.get('/routes/:id', routesController.getRoutesById);
 router.get('/routes', authenticateToken, routesController.getRoutes);
 

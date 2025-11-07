@@ -24,6 +24,7 @@ import ProductsManagement from 'pages/masters/Products';
 import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
+import RouteTypesManagement from 'pages/masters/RouteTypes';
 import SalesBonusRulesManagement from 'pages/masters/SalesBonusRules';
 import SalesTargetGroupsManagement from 'pages/masters/SalesTargetGroups';
 import SalesTargetsManagement from 'pages/masters/SalesTargets';
@@ -133,6 +134,10 @@ const router = createBrowserRouter([
       {
         path: '/masters/routes',
         element: <RoutesManagement />,
+      },
+      {
+        path: '/masters/route-types',
+        element: <RouteTypesManagement />,
       },
       {
         path: '/masters/outlets',

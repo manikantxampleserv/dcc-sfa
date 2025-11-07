@@ -20,6 +20,7 @@ interface Product {
   log_inst?: number | null;
   route_type_id?: number | null;
   outlet_group_id?: number | null;
+  tracking_type?: string | null;
   batch_lots?: { id: number; batch_number: string; quantity: number }[];
   inventory_stock?: {
     id: number;
@@ -52,6 +53,7 @@ interface ManageProductPayload {
   tax_rate?: number;
   route_type_id?: number;
   outlet_group_id?: number;
+  tracking_type?: 'None' | 'Batch' | 'Serial';
   is_active?: string;
 }
 
@@ -66,6 +68,7 @@ interface UpdateProductPayload {
   tax_rate?: number;
   route_type_id?: number;
   outlet_group_id?: number;
+  tracking_type?: string;
   is_active?: string;
 }
 

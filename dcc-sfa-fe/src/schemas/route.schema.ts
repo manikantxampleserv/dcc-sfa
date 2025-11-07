@@ -22,6 +22,13 @@ export const routeValidationSchema = yup.object({
       return value ? !isNaN(Number(value)) : false;
     }),
 
+  route_type_id: yup
+    .string()
+    .required('Route type is required')
+    .test('is-number', 'Route type must be a valid selection', value => {
+      return value ? !isNaN(Number(value)) : false;
+    }),
+
   name: yup
     .string()
     .required('Route name is required')
@@ -36,9 +43,13 @@ export const routeValidationSchema = yup.object({
 
   salesperson_id: yup
     .string()
-    .test('is-number-or-empty', 'Salesperson must be a valid selection', value => {
-      return !value || !isNaN(Number(value));
-    }),
+    .test(
+      'is-number-or-empty',
+      'Salesperson must be a valid selection',
+      value => {
+        return !value || !isNaN(Number(value));
+      }
+    ),
 
   start_location: yup
     .string()
@@ -52,19 +63,27 @@ export const routeValidationSchema = yup.object({
 
   estimated_distance: yup
     .string()
-    .test('is-positive-number-or-empty', 'Distance must be a positive number', value => {
-      if (!value) return true;
-      const num = Number(value);
-      return !isNaN(num) && num > 0;
-    }),
+    .test(
+      'is-positive-number-or-empty',
+      'Distance must be a positive number',
+      value => {
+        if (!value) return true;
+        const num = Number(value);
+        return !isNaN(num) && num > 0;
+      }
+    ),
 
   estimated_time: yup
     .string()
-    .test('is-positive-integer-or-empty', 'Time must be a positive integer', value => {
-      if (!value) return true;
-      const num = Number(value);
-      return !isNaN(num) && num > 0 && Number.isInteger(num);
-    }),
+    .test(
+      'is-positive-integer-or-empty',
+      'Time must be a positive integer',
+      value => {
+        if (!value) return true;
+        const num = Number(value);
+        return !isNaN(num) && num > 0 && Number.isInteger(num);
+      }
+    ),
 
   is_active: yup
     .string()

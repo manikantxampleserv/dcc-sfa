@@ -79,6 +79,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       tax_rate: selectedProduct?.tax_rate || '',
       route_type_id: selectedProduct?.route_type_id || '',
       outlet_group_id: selectedProduct?.outlet_group_id || '',
+      tracking_type: selectedProduct?.tracking_type || '',
       is_active: selectedProduct?.is_active || 'Y',
     },
     validationSchema: productValidationSchema,
@@ -100,6 +101,10 @@ const ManageProduct: React.FC<ManageProductProps> = ({
           outlet_group_id: values.outlet_group_id
             ? Number(values.outlet_group_id)
             : undefined,
+          tracking_type:
+            values.tracking_type && values.tracking_type !== ''
+              ? (values.tracking_type as 'None' | 'Batch' | 'Serial')
+              : undefined,
           is_active: values.is_active,
         };
 
@@ -216,6 +221,13 @@ const ManageProduct: React.FC<ManageProductProps> = ({
                   {outletGroup.name}
                 </MenuItem>
               ))}
+            </Select>
+
+            <Select name="tracking_type" label="Batch/Serial" formik={formik}>
+              <MenuItem value="">None</MenuItem>
+              <MenuItem value="None">None</MenuItem>
+              <MenuItem value="Batch">Batch</MenuItem>
+              <MenuItem value="Serial">Serial</MenuItem>
             </Select>
 
             <Select name="is_active" label="Status" formik={formik} required>
