@@ -33,7 +33,17 @@ interface OrderSerialized {
   updatedby?: number | null;
   log_inst?: number | null;
   currency?: { id: number; code: string; name: string } | null;
-  customer?: { id: number; name: string; code: string; type: string };
+  customer?: {
+    id: number;
+    name: string;
+    code: string;
+    type: string;
+    route?: { id: number; name: string; code: string } | null;
+    outstanding_amount?: number | null;
+    credit_limit?: number | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null;
   salesperson?: {
     id: number;
     name: string;
@@ -96,6 +106,17 @@ const serializeOrder = (order: any): OrderSerialized => ({
         name: order.orders_customers.name,
         code: order.orders_customers.code,
         type: order.orders_customers.type,
+        outstanding_amount: order.orders_customers.outstanding_amount,
+        credit_limit: order.orders_customers.credit_limit,
+        latitude: order.orders_customers.latitude,
+        longitude: order.orders_customers.longitude,
+        route: order.orders_customers.customer_routes
+          ? {
+              id: order.orders_customers.customer_routes.id,
+              name: order.orders_customers.customer_routes.name,
+              code: order.orders_customers.customer_routes.code,
+            }
+          : null,
       }
     : undefined,
   salesperson: order.orders_salesperson_users
@@ -483,18 +504,94 @@ export const ordersController = {
 
   async getAllOrders(req: any, res: any) {
     try {
-      const { page, limit, search } = req.query;
+      const {
+        page,
+        limit,
+        search,
+        sales_person_id,
+        customer_id,
+        status,
+        isActive,
+        route_id,
+        route_ids,
+      } = req.query;
+
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
-      const filters: any = {
-        ...(search && {
-          OR: [
-            { order_number: { contains: searchLower } },
-            { status: { contains: searchLower } },
-          ],
-        }),
-      };
+
+      const filters: any = {};
+
+      if (search) {
+        filters.OR = [
+          { order_number: { contains: searchLower } },
+          { status: { contains: searchLower } },
+          { notes: { contains: searchLower } },
+          {
+            orders_customers: {
+              name: { contains: searchLower },
+            },
+          },
+        ];
+      }
+
+      if (sales_person_id) {
+        filters.salesperson_id = parseInt(sales_person_id as string, 10);
+      }
+
+      if (customer_id) {
+        filters.parent_id = parseInt(customer_id as string, 10);
+      }
+
+      if (status) {
+        filters.status = status as string;
+      }
+
+      if (route_ids) {
+        const routeIdArray = route_ids
+          .split(',')
+          .map((id: string) => parseInt(id.trim(), 10))
+          .filter((id: number) => !isNaN(id));
+
+        if (routeIdArray.length > 0) {
+          filters.orders_customers = {
+            ...filters.orders_customers,
+            route_id: {
+              in: routeIdArray,
+            },
+          };
+        }
+      } else if (route_id) {
+        const parsedRouteId = parseInt(route_id as string, 10);
+        if (!isNaN(parsedRouteId)) {
+          filters.orders_customers = {
+            ...filters.orders_customers,
+            route_id: parsedRouteId,
+          };
+        }
+      }
+
+      if (isActive !== undefined && isActive !== '') {
+        let activeValue = isActive.toString().toUpperCase();
+
+        if (
+          activeValue === 'TRUE' ||
+          activeValue === '1' ||
+          activeValue === 'ACTIVE'
+        ) {
+          activeValue = 'Y';
+        } else if (
+          activeValue === 'FALSE' ||
+          activeValue === '0' ||
+          activeValue === 'INACTIVE'
+        ) {
+          activeValue = 'N';
+        }
+
+        if (activeValue === 'Y' || activeValue === 'N') {
+          filters.is_active = activeValue;
+        }
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.orders,
@@ -504,32 +601,117 @@ export const ordersController = {
         orderBy: { createdate: 'desc' },
         include: {
           orders_currencies: true,
-          orders_customers: true,
+          orders_customers: {
+            include: {
+              customer_routes: true,
+            },
+          },
           orders_salesperson_users: true,
           order_items: true,
           invoices: true,
         },
       });
 
-      const totalOrders = await prisma.orders.count();
-      const activeOrders = await prisma.orders.count({
-        where: { is_active: 'Y' },
+      const statsFilter: any = {};
+
+      if (route_ids) {
+        const routeIdArray = route_ids
+          .split(',')
+          .map((id: string) => parseInt(id.trim(), 10))
+          .filter((id: number) => !isNaN(id));
+
+        if (routeIdArray.length > 0) {
+          statsFilter.orders_customers = {
+            route_id: { in: routeIdArray },
+          };
+        }
+      } else if (route_id) {
+        const parsedRouteId = parseInt(route_id as string, 10);
+        if (!isNaN(parsedRouteId)) {
+          statsFilter.orders_customers = {
+            route_id: parsedRouteId,
+          };
+        }
+      }
+
+      if (customer_id) {
+        statsFilter.parent_id = parseInt(customer_id as string, 10);
+      }
+
+      if (sales_person_id) {
+        statsFilter.salesperson_id = parseInt(sales_person_id as string, 10);
+      }
+
+      if (status) {
+        statsFilter.status = status as string;
+      }
+      const totalOrders = await prisma.orders.count({
+        where: statsFilter,
       });
+
+      const activeOrders = await prisma.orders.count({
+        where: {
+          ...statsFilter,
+          is_active: 'Y',
+        },
+      });
+
       const inactiveOrders = await prisma.orders.count({
-        where: { is_active: 'N' },
+        where: {
+          ...statsFilter,
+          is_active: 'N',
+        },
       });
 
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
       const ordersThisMonth = await prisma.orders.count({
         where: {
+          ...statsFilter,
           createdate: {
             gte: startOfMonth,
             lte: endOfMonth,
           },
         },
       });
+
+      let routeStats = null;
+      if (route_id || route_ids) {
+        const routeFilter = route_ids
+          ? {
+              route_id: {
+                in: route_ids
+                  .split(',')
+                  .map((id: string) => parseInt(id.trim(), 10))
+                  .filter((id: number) => !isNaN(id)),
+              },
+            }
+          : { route_id: parseInt(route_id as string, 10) };
+
+        const customersInRoutes = await prisma.customers.count({
+          where: routeFilter,
+        });
+
+        const orderTotals = await prisma.orders.aggregate({
+          where: {
+            orders_customers: routeFilter,
+          },
+          _sum: {
+            total_amount: true,
+          },
+          _avg: {
+            total_amount: true,
+          },
+        });
+
+        routeStats = {
+          customers_in_routes: customersInRoutes,
+          total_order_value: orderTotals._sum.total_amount || 0,
+          average_order_value: orderTotals._avg.total_amount || 0,
+        };
+      }
 
       res.success(
         'Orders retrieved successfully',
@@ -541,11 +723,23 @@ export const ordersController = {
           active_orders: activeOrders,
           inactive_orders: inactiveOrders,
           orders_this_month: ordersThisMonth,
+          ...(routeStats && { route_statistics: routeStats }),
+          filters_applied: {
+            route_id: route_id || null,
+            route_ids: route_ids || null,
+            sales_person_id: sales_person_id || null,
+            customer_id: customer_id || null,
+            status: status || null,
+            is_active: isActive || null,
+          },
         }
       );
     } catch (error: any) {
       console.error('Get Orders Error:', error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({
+        message: 'Failed to retrieve orders',
+        error: error.message,
+      });
     }
   },
 
@@ -629,6 +823,39 @@ export const ordersController = {
     } catch (error: any) {
       console.error('Delete Order Error:', error);
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getOrdersOrderItemsByOrderId(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+
+      const orderItems = await prisma.order_items.findMany({
+        where: { parent_id: Number(id) },
+        include: {
+          products: true,
+        },
+        orderBy: {
+          id: 'asc',
+        },
+      });
+
+      if (!orderItems || orderItems.length === 0) {
+        return res
+          .status(404)
+          .json({ message: 'No order items found for this order' });
+      }
+
+      res.json({
+        message: 'Order items fetched successfully',
+        data: orderItems,
+      });
+    } catch (error: any) {
+      console.error('Get Order Items Error:', error);
+      res.status(500).json({
+        message: 'Failed to retrieve order items',
+        error: error.message,
+      });
     }
   },
 };

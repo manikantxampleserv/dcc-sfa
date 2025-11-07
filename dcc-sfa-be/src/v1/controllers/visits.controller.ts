@@ -34,7 +34,12 @@ interface VisitSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  customer?: { id: number; name: string } | null;
+  customer?: {
+    id: number;
+    name: string;
+    outstanding_amount: number;
+    credit_limit: number;
+  } | null;
   salesperson?: { id: number; name: string; email: string } | null;
   route?: { id: number; name: string } | null;
   zone?: { id: number; name: string } | null;
@@ -71,7 +76,12 @@ const serializeVisit = (visit: any): VisitSerialized => ({
   updatedby: visit.updatedby,
   log_inst: visit.log_inst,
   customer: visit.visit_customers
-    ? { id: visit.visit_customers.id, name: visit.visit_customers.name }
+    ? {
+        id: visit.visit_customers.id,
+        name: visit.visit_customers.name,
+        outstanding_amount: visit.visit_customers.outstanding_amount,
+        credit_limit: visit.visit_customers.credit_limit,
+      }
     : null,
   salesperson: visit.visits_salesperson
     ? {
@@ -140,21 +150,96 @@ export const visitsController = {
     }
   },
 
+  // async getAllVisits(req: any, res: any) {
+  //   try {
+  //     const { page, limit, search } = req.query;
+  //     const pageNum = parseInt(page as string, 10) || 1;
+  //     const limitNum = parseInt(limit as string, 10) || 10;
+  //     const searchLower = search ? (search as string).toLowerCase() : '';
+
+  //     const filters: any = {
+  //       ...(search && {
+  //         OR: [
+  //           { purpose: { contains: searchLower } },
+  //           { status: { contains: searchLower } },
+  //         ],
+  //       }),
+  //     };
+
+  //     const { data, pagination } = await paginate({
+  //       model: prisma.visits,
+  //       filters,
+  //       page: pageNum,
+  //       limit: limitNum,
+  //       orderBy: { createdate: 'desc' },
+  //       include: {
+  //         visit_customers: true,
+  //         visits_salesperson: true,
+  //         visit_routes: true,
+  //         visit_zones: true,
+  //       },
+  //     });
+
+  //     const totalVisits = await prisma.visits.count();
+  //     const activeVisits = await prisma.visits.count({
+  //       where: { is_active: 'Y' },
+  //     });
+  //     const inactiveVisits = await prisma.visits.count({
+  //       where: { is_active: 'N' },
+  //     });
+
+  //     const now = new Date();
+  //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  //     const newVisitsThisMonth = await prisma.visits.count({
+  //       where: { createdate: { gte: startOfMonth, lte: endOfMonth } },
+  //     });
+  //     res.success(
+  //       'Visits retrieved successfully',
+  //       data.map((visit: any) => serializeVisit(visit)),
+  //       200,
+  //       pagination,
+  //       {
+  //         total_visits: totalVisits,
+  //         active_visits: activeVisits,
+  //         inactive_visits: inactiveVisits,
+  //         new_visits: newVisitsThisMonth,
+  //       }
+  //     );
+  //   } catch (error: any) {
+  //     console.log('Get Visits Error:', error);
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async getAllVisits(req: any, res: any) {
     try {
-      const { page, limit, search } = req.query;
+      const { page, limit, search, sales_person_id, status, isActive } =
+        req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
 
-      const filters: any = {
-        ...(search && {
-          OR: [
-            { purpose: { contains: searchLower } },
-            { status: { contains: searchLower } },
-          ],
-        }),
-      };
+      const filters: any = {};
+
+      if (search) {
+        filters.OR = [
+          { purpose: { contains: searchLower } },
+          { status: { contains: searchLower } },
+        ];
+      }
+
+      if (sales_person_id) {
+        filters.sales_person_id = parseInt(sales_person_id as string, 10);
+      }
+
+      if (status) {
+        filters.status = status as string;
+      }
+
+      if (isActive) {
+        filters.is_active = isActive as string;
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.visits,
@@ -184,6 +269,7 @@ export const visitsController = {
       const newVisitsThisMonth = await prisma.visits.count({
         where: { createdate: { gte: startOfMonth, lte: endOfMonth } },
       });
+
       res.success(
         'Visits retrieved successfully',
         data.map((visit: any) => serializeVisit(visit)),
@@ -201,7 +287,6 @@ export const visitsController = {
       res.status(500).json({ message: error.message });
     }
   },
-
   async getVisitsById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -237,7 +322,6 @@ export const visitsController = {
       if (!existingVisit) {
         return res.status(404).json({ message: 'Visit not found' });
       }
-      // Convert date strings to Date objects if provided
       const processedData = {
         ...req.body,
         visit_date: req.body.visit_date
