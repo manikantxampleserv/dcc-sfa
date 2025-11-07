@@ -4,6 +4,7 @@ import ToastContainer from './components/ToastContainer';
 import AuthGuard from './components/AuthGuard';
 
 const App: React.FC = () => {
+  console.log('App component rendered');
   return (
     <ContextProvider>
       <AuthGuard>
