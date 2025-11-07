@@ -363,7 +363,6 @@ model batch_lots {
   serial_numbers       serial_numbers[]
   stock_movements      stock_movements[]
   stock_transfer_lines stock_transfer_lines[]
-  van_inventory        van_inventory[]
 }
 
 model companies {
@@ -1199,7 +1198,7 @@ model products {
   serial_numbers_products          serial_numbers[]
   stock_movements_products         stock_movements[]
   stock_transfer_lines_products    stock_transfer_lines[]
-  van_inventory_products           van_inventory[]
+  van_inventory_items_products     van_inventory_items[]
   warranty_claims_products         warranty_claims[]
 }
 
@@ -1424,6 +1423,18 @@ model route_pricelists {
   route_pricelist pricelists @relation(fields: [pricelist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
+model route_type {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.NVarChar(100)
+  is_active   String   @default("Y") @db.Char(1)
+  createdate  DateTime? @default(now()) @db.DateTime
+  createdby   Int
+  updatedate  DateTime? @db.DateTime
+  updatedby   Int?
+  log_inst    Int?
+  routes      routes[]
+}
+
 model routes {
   id                 Int         @id(map: "PK__routes__3213E83FCC2A5F77") @default(autoincrement())
   parent_id          Int
@@ -1432,6 +1443,9 @@ model routes {
   code               String      @db.NVarChar(50)
   description        String?     @db.NVarChar(500)
   salesperson_id     Int?
+  route_type_id      Int
+  route_type         String?     @db.NVarChar(Max)
+  outlet_group       String?     @db.NVarChar(Max)
   start_location     String?     @db.NVarChar(255)
   end_location       String?     @db.NVarChar(255)
   estimated_distance Decimal?    @db.Decimal(10, 2)
@@ -1446,6 +1460,7 @@ model routes {
   routes_depots      depots      @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   routes_zones       zones       @relation(fields: [parent_id], references: [id], onUpdate: NoAction)
   routes_salesperson users?      @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  route_type_ref     route_type  @relation(fields: [route_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   visits             visits[]
 }
 
@@ -1552,7 +1567,6 @@ model serial_numbers {
   serial_numbers_customers       customers?        @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   serial_numbers_products        products          @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   stock_movements                stock_movements[]
-  van_inventory                  van_inventory[]
   warranty_claims                warranty_claims[]
 }
 
@@ -1700,31 +1714,42 @@ model surveys {
 }
 
 model van_inventory {
-  id                     Int               @id @default(autoincrement())
+  id                     Int                    @id @default(autoincrement())
   user_id                Int
-  product_id             Int?
-  batch_id               Int?
-  serial_no_id           Int?
-  quantity               Int?              @default(0)
-  reserved_quantity      Int?              @default(0)
-  available_quantity     Int?
-  last_updated           DateTime?         @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
-  is_active              String            @default("Y") @db.Char(1)
-  createdate             DateTime?         @default(now(), map: "DF__van_inven__creat__6774552F") @db.DateTime
+  status                 String                 @default("A") @db.Char(1) // D = Draft, A = Confirmed, C = Cancelled
+  loading_type           String                 @default("L") @db.Char(1) // L = Load, U = Unload
+  document_date          DateTime?              @db.Date
+  last_updated           DateTime?              @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
+  is_active              String                 @default("Y") @db.Char(1)
+  createdate             DateTime?              @default(now(), map: "DF__van_inven__creat__6774552F") @db.DateTime
   createdby              Int
-  updatedate             DateTime?         @db.DateTime
+  updatedate             DateTime?               @db.DateTime
   updatedby              Int?
   log_inst               Int?
   vehicle_id             Int?
-  location_type          String?           @default("van") @db.NVarChar(20)
+  location_type          String?                @default("van") @db.NVarChar(20)
   location_id            Int?
-  batch_lots             batch_lots?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  van_inventory_products products?         @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  serial_numbers         serial_numbers?   @relation(fields: [serial_no_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  van_inventory_users    users             @relation("VanInventoryUsers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  vehicle                vehicles?         @relation("VehiclesVanInventory", fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  location               depots?           @relation("DepotsVanInventoryLocations", fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  stock_movements        stock_movements[] @relation("VanInventoryStockMovements")
+  van_inventory_users    users                  @relation("VanInventoryUsers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vehicle                vehicles?              @relation("VehiclesVanInventory", fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  location               depots?               @relation("DepotsVanInventoryLocations", fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stock_movements        stock_movements[]      @relation("VanInventoryStockMovements")
+  van_inventory_items    van_inventory_items[]
+}
+
+model van_inventory_items {
+  id             Int            @id @default(autoincrement())
+  parent_id      Int
+  product_id     Int
+  product_name   String?        @db.NVarChar(255)
+  unit           String?        @db.NVarChar(50)
+  quantity       Int             @default(1)
+  unit_price     Decimal         @default(0) @db.Decimal(18, 2)
+  discount_amount Decimal?       @default(0) @db.Decimal(18, 2)
+  tax_amount     Decimal?        @default(0) @db.Decimal(18, 2)
+  total_amount   Decimal?        @default(0) @db.Decimal(18, 2)
+  notes          String?         @db.NVarChar(500)
+  van_inventory  van_inventory   @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products       products        @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model vehicles {
@@ -1842,7 +1867,7 @@ model visits {
 model warehouses {
   id                                  Int                       @id(map: "PK__warehous__3213E83FD829B8DE") @default(autoincrement())
   name                                String                    @db.NVarChar(100)
-  type                                String?                   @db.NVarChar(50)
+  type                                String?                   @default("V") @db.NVarChar(50) // V=Van, W=Warehouse, D=Depot, S=Store
   location                            String?                   @db.NVarChar(255)
   is_active                           String?                   @default("Y", map: "DF__warehouse__is_ac__0C70CFB4") @db.Char(1)
   createdate                          DateTime?                 @default(now(), map: "DF__warehouse__creat__0D64F3ED") @db.DateTime
