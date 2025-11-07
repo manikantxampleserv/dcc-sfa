@@ -7,12 +7,9 @@ const prisma = new PrismaClient();
 interface VanInventorySerialized {
   id: number;
   user_id: number;
-  product_id?: number | null;
-  batch_id?: number | null;
-  serial_no_id?: number | null;
-  quantity?: number | null;
-  reserved_quantity?: number | null;
-  available_quantity?: number | null;
+  status: string;
+  loading_type: string;
+  document_date?: Date | null;
   last_updated?: Date | null;
   is_active: string;
   createdate?: Date | null;
@@ -23,10 +20,7 @@ interface VanInventorySerialized {
   vehicle_id?: number | null;
   location_type?: string | null;
   location_id?: number | null;
-  product?: { id: number; name: string; code: string } | null;
   user?: { id: number; name: string; email: string } | null;
-  batch?: { id: number; batch_number: string; quantity: number } | null;
-  serial_number?: { id: number; serial_number: string; status: string } | null;
   vehicle?: { id: number; vehicle_number: string; type: string } | null;
   location?: { id: number; name: string; code: string } | null;
 }
@@ -34,12 +28,9 @@ interface VanInventorySerialized {
 const serializeVanInventory = (item: any): VanInventorySerialized => ({
   id: item.id,
   user_id: item.user_id,
-  product_id: item.product_id,
-  batch_id: item.batch_id,
-  serial_no_id: item.serial_no_id,
-  quantity: item.quantity,
-  reserved_quantity: item.reserved_quantity,
-  available_quantity: item.available_quantity,
+  status: item.status,
+  loading_type: item.loading_type,
+  document_date: item.document_date,
   last_updated: item.last_updated,
   is_active: item.is_active,
   createdate: item.createdate,
@@ -50,32 +41,11 @@ const serializeVanInventory = (item: any): VanInventorySerialized => ({
   vehicle_id: item.vehicle_id,
   location_type: item.location_type,
   location_id: item.location_id,
-  product: item.van_inventory_products
-    ? {
-        id: item.van_inventory_products.id,
-        name: item.van_inventory_products.name,
-        code: item.van_inventory_products.code,
-      }
-    : null,
   user: item.van_inventory_users
     ? {
         id: item.van_inventory_users.id,
         name: item.van_inventory_users.name,
         email: item.van_inventory_users.email,
-      }
-    : null,
-  batch: item.batch_lots
-    ? {
-        id: item.batch_lots.id,
-        batch_number: item.batch_lots.batch_number,
-        quantity: item.batch_lots.quantity,
-      }
-    : null,
-  serial_number: item.serial_numbers
-    ? {
-        id: item.serial_numbers.id,
-        serial_number: item.serial_numbers.serial_number,
-        status: item.serial_numbers.status,
       }
     : null,
   vehicle: item.vehicle
@@ -98,21 +68,20 @@ export const vanInventoryController = {
   async createVanInventory(req: Request, res: Response) {
     try {
       const data = req.body;
-      if (!data.user_id || !data.product_id) {
+      if (!data.user_id) {
         return res.status(400).json({
-          message: 'user_id and product_id are required',
+          message: 'user_id is required',
         });
       }
 
       const inventory = await prisma.van_inventory.create({
         data: {
           user_id: data.user_id,
-          product_id: data.product_id,
-          batch_id: data.batch_id || null,
-          serial_no_id: data.serial_no_id || null,
-          quantity: data.quantity || 0,
-          reserved_quantity: data.reserved_quantity || 0,
-          available_quantity: data.available_quantity || data.quantity || 0,
+          status: data.status || 'A',
+          loading_type: data.loading_type || 'L',
+          document_date: data.document_date
+            ? new Date(data.document_date)
+            : new Date(),
           vehicle_id: data.vehicle_id || null,
           location_type: data.location_type || 'van',
           location_id: data.location_id || null,
@@ -122,10 +91,7 @@ export const vanInventoryController = {
           log_inst: data.log_inst || 1,
         },
         include: {
-          van_inventory_products: true,
           van_inventory_users: true,
-          batch_lots: true,
-          serial_numbers: true,
           vehicle: true,
           location: true,
         },
@@ -152,8 +118,8 @@ export const vanInventoryController = {
       const filters: any = {
         ...(search && {
           OR: [
-            { van_inventory_products: { name: { contains: searchLower } } },
             { van_inventory_users: { name: { contains: searchLower } } },
+            { vehicle: { vehicle_number: { contains: searchLower } } },
           ],
         }),
         ...(statusLower === 'active' && { is_active: 'Y' }),
@@ -167,10 +133,7 @@ export const vanInventoryController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          van_inventory_products: true,
           van_inventory_users: true,
-          batch_lots: true,
-          serial_numbers: true,
           vehicle: true,
           location: true,
         },
@@ -185,7 +148,7 @@ export const vanInventoryController = {
       });
 
       const now = new Date();
-      const vanInventory = await prisma.van_inventory.count({
+      const vanInventoryThisMonth = await prisma.van_inventory.count({
         where: {
           createdate: {
             gte: new Date(now.getFullYear(), now.getMonth(), 1),
@@ -203,7 +166,7 @@ export const vanInventoryController = {
           total_records: totalVanInventory,
           active_records: activeVanInventory,
           inactive_records: inactiveVanInventory,
-          van_inventory: vanInventory,
+          van_inventory_this_month: vanInventoryThisMonth,
         }
       );
     } catch (error: any) {
@@ -218,12 +181,11 @@ export const vanInventoryController = {
       const record = await prisma.van_inventory.findUnique({
         where: { id: Number(id) },
         include: {
-          van_inventory_products: true,
           van_inventory_users: true,
-          batch_lots: true,
-          serial_numbers: true,
           vehicle: true,
           location: true,
+          van_inventory_stock_movements: true,
+          van_inventory_items_inventory: true,
         },
       });
 
@@ -258,10 +220,7 @@ export const vanInventoryController = {
           updatedate: new Date(),
         },
         include: {
-          van_inventory_products: true,
           van_inventory_users: true,
-          batch_lots: true,
-          serial_numbers: true,
           vehicle: true,
           location: true,
         },
