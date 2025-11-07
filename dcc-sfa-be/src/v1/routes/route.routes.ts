@@ -17,7 +17,7 @@ router.post(
   createRouteValidation,
   auditCreate('routes'),
   validate,
-  routesController.createRoutes
+  routesController.bulkUpsertRoutes
 );
 
 router.get('/routes/:id', routesController.getRoutesById);
