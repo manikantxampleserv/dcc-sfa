@@ -30,8 +30,10 @@ interface StockMovementSerialized {
   van_inventory?: {
     id: number;
     user_id: number;
-    product_id: number;
-    quantity: number;
+    status: string;
+    loading_type: string;
+    document_date?: Date | null;
+    items_count?: number;
   } | null;
 }
 
@@ -74,12 +76,16 @@ const serializeStockMovement = (sm: any): StockMovementSerialized => ({
         name: sm.stock_movements_to_location.name,
       }
     : null,
-  van_inventory: sm.van_inventory
+  van_inventory: sm.van_inventory_stock_movements
     ? {
-        id: sm.van_inventory.id,
-        user_id: sm.van_inventory.user_id,
-        product_id: sm.van_inventory.product_id,
-        quantity: sm.van_inventory.quantity,
+        id: sm.van_inventory_stock_movements.id,
+        user_id: sm.van_inventory_stock_movements.user_id,
+        status: sm.van_inventory_stock_movements.status || 'A',
+        loading_type: sm.van_inventory_stock_movements.loading_type || 'L',
+        document_date: sm.van_inventory_stock_movements.document_date || null,
+        items_count:
+          sm.van_inventory_stock_movements.van_inventory_items_inventory
+            ?.length || 0,
       }
     : null,
 });
@@ -121,7 +127,16 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
-          van_inventory: true,
+          van_inventory_stock_movements: {
+            include: {
+              van_inventory_items_inventory: {
+                include: {
+                  van_inventory_items_products: true,
+                },
+              },
+              van_inventory_users: true,
+            },
+          },
         },
       });
 
@@ -168,7 +183,16 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
-          van_inventory: true,
+          van_inventory_stock_movements: {
+            include: {
+              van_inventory_items_inventory: {
+                include: {
+                  van_inventory_items_products: true,
+                },
+              },
+              van_inventory_users: true,
+            },
+          },
         },
       });
 
@@ -229,7 +253,16 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
-          van_inventory: true,
+          van_inventory_stock_movements: {
+            include: {
+              van_inventory_items_inventory: {
+                include: {
+                  van_inventory_items_products: true,
+                },
+              },
+              van_inventory_users: true,
+            },
+          },
         },
       });
 
@@ -272,7 +305,16 @@ export const stockMovementsController = {
           stock_movements_products: true,
           stock_movements_from_location: true,
           stock_movements_to_location: true,
-          van_inventory: true,
+          van_inventory_stock_movements: {
+            include: {
+              van_inventory_items_inventory: {
+                include: {
+                  van_inventory_items_products: true,
+                },
+              },
+              van_inventory_users: true,
+            },
+          },
         },
       });
 

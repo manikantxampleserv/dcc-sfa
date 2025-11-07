@@ -360,7 +360,7 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
     if (data.van_inventory_id) {
       const vanInventory = await prisma.van_inventory.findFirst({
         where: { id: data.van_inventory_id },
-        select: { id: true, user_id: true, product_id: true },
+        select: { id: true, user_id: true, status: true, loading_type: true },
       });
 
       if (!vanInventory) {
@@ -463,7 +463,16 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
         stock_movements_products: true,
         stock_movements_from_location: true,
         stock_movements_to_location: true,
-        van_inventory: true,
+        van_inventory: {
+          include: {
+            van_inventory_items: {
+              include: {
+                products: true,
+              },
+            },
+            van_inventory_users: true,
+          },
+        },
       },
     };
 
@@ -482,8 +491,13 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
       { header: 'To Location Name', key: 'to_location_name', width: 25 },
       { header: 'Van Inventory User', key: 'van_inventory_user', width: 20 },
       {
-        header: 'Van Inventory Product',
-        key: 'van_inventory_product',
+        header: 'Van Inventory Status',
+        key: 'van_inventory_status',
+        width: 20,
+      },
+      {
+        header: 'Van Inventory Items Count',
+        key: 'van_inventory_items_count',
         width: 25,
       },
       { header: 'Created Date', key: 'created_date', width: 15 },
@@ -517,8 +531,11 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
         from_location_name:
           data[index]?.stock_movements_from_location?.name || '',
         to_location_name: data[index]?.stock_movements_to_location?.name || '',
-        van_inventory_user: data[index]?.van_inventory?.user_id || '',
-        van_inventory_product: data[index]?.van_inventory?.product_id || '',
+        van_inventory_user:
+          data[index]?.van_inventory?.van_inventory_users?.name || '',
+        van_inventory_status: data[index]?.van_inventory?.status || '',
+        van_inventory_items_count:
+          data[index]?.van_inventory?.van_inventory_items?.length || 0,
       });
 
       if (index % 2 === 0) {

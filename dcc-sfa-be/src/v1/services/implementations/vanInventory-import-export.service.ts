@@ -7,18 +7,8 @@ const prisma = new PrismaClient();
 export class VanInventoryImportExportService extends ImportExportService<any> {
   protected modelName = 'van_inventory' as const;
   protected displayName = 'Van Inventory';
-  protected uniqueFields = [
-    'user_id',
-    'product_id',
-    'batch_id',
-    'serial_no_id',
-  ];
-  protected searchFields = [
-    'user_id',
-    'product_id',
-    'batch_id',
-    'serial_no_id',
-  ];
+  protected uniqueFields = ['id'];
+  protected searchFields = ['user_id', 'status', 'loading_type'];
 
   protected columns: ColumnDefinition[] = [
     {
@@ -36,88 +26,49 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       description: 'ID of the user/salesperson (required, positive integer)',
     },
     {
-      key: 'product_id',
-      header: 'Product ID',
-      width: 15,
-      required: true,
-      type: 'number',
+      key: 'status',
+      header: 'Status',
+      width: 12,
+      type: 'string',
+      defaultValue: 'A',
       validation: value => {
-        const numValue = Number(value);
-        if (isNaN(numValue) || numValue <= 0)
-          return 'Product ID must be a positive number';
-        return true;
+        const upperValue = value ? value.toString().toUpperCase() : 'A';
+        return (
+          ['D', 'A', 'C'].includes(upperValue) ||
+          'Must be D (Draft), A (Confirmed), or C (Cancelled)'
+        );
       },
-      description: 'ID of the product (required, positive integer)',
+      transform: value => (value ? value.toString().toUpperCase() : 'A'),
+      description:
+        'Status - D = Draft, A = Confirmed, C = Cancelled (defaults to A)',
     },
     {
-      key: 'batch_id',
-      header: 'Batch ID',
+      key: 'loading_type',
+      header: 'Loading Type',
       width: 15,
-      type: 'number',
+      type: 'string',
+      defaultValue: 'L',
+      validation: value => {
+        const upperValue = value ? value.toString().toUpperCase() : 'L';
+        return (
+          ['L', 'U'].includes(upperValue) || 'Must be L (Load) or U (Unload)'
+        );
+      },
+      transform: value => (value ? value.toString().toUpperCase() : 'L'),
+      description: 'Loading type - L = Load, U = Unload (defaults to L)',
+    },
+    {
+      key: 'document_date',
+      header: 'Document Date',
+      width: 15,
+      type: 'date',
       validation: value => {
         if (!value) return true; // Optional field
-        const numValue = Number(value);
-        if (isNaN(numValue) || numValue <= 0)
-          return 'Batch ID must be a positive number';
+        const date = new Date(value);
+        if (isNaN(date.getTime())) return 'Invalid date format';
         return true;
       },
-      description: 'ID of the batch/lot (optional, positive integer)',
-    },
-    {
-      key: 'serial_no_id',
-      header: 'Serial No ID',
-      width: 15,
-      type: 'number',
-      validation: value => {
-        if (!value) return true; // Optional field
-        const numValue = Number(value);
-        if (isNaN(numValue) || numValue <= 0)
-          return 'Serial No ID must be a positive number';
-        return true;
-      },
-      description: 'ID of the serial number (optional, positive integer)',
-    },
-    {
-      key: 'quantity',
-      header: 'Quantity',
-      width: 15,
-      required: true,
-      type: 'number',
-      validation: value => {
-        const numValue = Number(value);
-        if (isNaN(numValue) || numValue < 0)
-          return 'Quantity must be 0 or greater';
-        return true;
-      },
-      description: 'Total quantity in van (required, 0 or greater)',
-    },
-    {
-      key: 'reserved_quantity',
-      header: 'Reserved Quantity',
-      width: 18,
-      type: 'number',
-      defaultValue: 0,
-      validation: value => {
-        const numValue = Number(value);
-        if (isNaN(numValue) || numValue < 0)
-          return 'Reserved quantity must be 0 or greater';
-        return true;
-      },
-      description: 'Reserved quantity (optional, defaults to 0)',
-    },
-    {
-      key: 'available_quantity',
-      header: 'Available Quantity',
-      width: 18,
-      type: 'number',
-      validation: value => {
-        if (!value) return true; // Optional field
-        const numValue = Number(value);
-        if (isNaN(numValue) || numValue < 0)
-          return 'Available quantity must be 0 or greater';
-        return true;
-      },
-      description: 'Available quantity (optional, calculated automatically)',
+      description: 'Document date (optional, YYYY-MM-DD format)',
     },
     {
       key: 'vehicle_id',
@@ -176,6 +127,25 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       transform: value => (value ? value.toString().toUpperCase() : 'Y'),
       description: 'Active status - Y for Yes, N for No (defaults to Y)',
     },
+    // Van Inventory Items columns (for nested import/export)
+    {
+      key: 'items',
+      header: 'Items (JSON)',
+      width: 50,
+      type: 'string',
+      validation: value => {
+        if (!value) return true; // Optional field
+        try {
+          const items = JSON.parse(value);
+          if (!Array.isArray(items)) return 'Items must be a JSON array';
+          return true;
+        } catch {
+          return 'Invalid JSON format for items';
+        }
+      },
+      description:
+        'JSON array of items: [{"product_id": 1, "quantity": 10, "batch_id": null, "serial_no_id": null, ...}]',
+    },
   ];
 
   protected async getSampleData(): Promise<any[]> {
@@ -231,48 +201,74 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
     const depotId2 = depotIds[1] || 1;
     const depotId3 = depotIds[2] || 1;
     const batchId1 = batchIds[0] || null;
-    const batchId2 = batchIds[1] || null;
     const serialId1 = serialIds[0] || null;
 
     return [
       {
         user_id: userId1,
-        product_id: productId1,
-        batch_id: batchId1,
-        serial_no_id: null,
-        quantity: 50,
-        reserved_quantity: 5,
-        available_quantity: 45,
+        status: 'A',
+        loading_type: 'L',
+        document_date: '2024-01-20',
         vehicle_id: vehicleId1,
         location_type: 'van',
         location_id: depotId1,
         is_active: 'Y',
+        items: JSON.stringify([
+          {
+            product_id: productId1,
+            quantity: 50,
+            batch_id: batchId1,
+            serial_no_id: null,
+            unit_price: 100.0,
+            discount_amount: 0,
+            tax_amount: 0,
+            total_amount: 5000.0,
+          },
+        ]),
       },
       {
         user_id: userId2,
-        product_id: productId2,
-        batch_id: null,
-        serial_no_id: serialId1,
-        quantity: 25,
-        reserved_quantity: 0,
-        available_quantity: 25,
+        status: 'A',
+        loading_type: 'U',
+        document_date: '2024-01-21',
         vehicle_id: vehicleId2,
         location_type: 'van',
         location_id: depotId2,
         is_active: 'Y',
+        items: JSON.stringify([
+          {
+            product_id: productId2,
+            quantity: 25,
+            batch_id: null,
+            serial_no_id: serialId1,
+            unit_price: 200.0,
+            discount_amount: 0,
+            tax_amount: 0,
+            total_amount: 5000.0,
+          },
+        ]),
       },
       {
         user_id: userId3,
-        product_id: productId3,
-        batch_id: batchId2,
-        serial_no_id: null,
-        quantity: 100,
-        reserved_quantity: 10,
-        available_quantity: 90,
+        status: 'D',
+        loading_type: 'L',
+        document_date: '2024-01-22',
         vehicle_id: vehicleId3,
         location_type: 'van',
         location_id: depotId3,
         is_active: 'Y',
+        items: JSON.stringify([
+          {
+            product_id: productId3,
+            quantity: 100,
+            batch_id: null,
+            serial_no_id: null,
+            unit_price: 50.0,
+            discount_amount: 0,
+            tax_amount: 0,
+            total_amount: 5000.0,
+          },
+        ]),
       },
     ];
   }
@@ -283,43 +279,44 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
   }
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
-    return data.map(vanInventory => ({
-      user_id: vanInventory.user_id,
-      product_id: vanInventory.product_id,
-      batch_id: vanInventory.batch_id || '',
-      serial_no_id: vanInventory.serial_no_id || '',
-      quantity: vanInventory.quantity || 0,
-      reserved_quantity: vanInventory.reserved_quantity || 0,
-      available_quantity: vanInventory.available_quantity || '',
-      vehicle_id: vanInventory.vehicle_id || '',
-      location_type: vanInventory.location_type || 'van',
-      location_id: vanInventory.location_id || '',
-      is_active: vanInventory.is_active || 'Y',
-      created_date: vanInventory.createdate?.toISOString().split('T')[0] || '',
-      created_by: vanInventory.createdby || '',
-      updated_date: vanInventory.updatedate?.toISOString().split('T')[0] || '',
-      updated_by: vanInventory.updatedby || '',
-    }));
+    return data.map(vanInventory => {
+      const items = vanInventory.van_inventory_items_inventory || [];
+      return {
+        user_id: vanInventory.user_id,
+        status: vanInventory.status || 'A',
+        loading_type: vanInventory.loading_type || 'L',
+        document_date:
+          vanInventory.document_date?.toISOString().split('T')[0] || '',
+        vehicle_id: vanInventory.vehicle_id || '',
+        location_type: vanInventory.location_type || 'van',
+        location_id: vanInventory.location_id || '',
+        is_active: vanInventory.is_active || 'Y',
+        items: JSON.stringify(
+          items.map((item: any) => ({
+            product_id: item.product_id,
+            product_name: item.product_name || '',
+            unit: item.unit || '',
+            quantity: item.quantity || 0,
+            unit_price: item.unit_price || 0,
+            discount_amount: item.discount_amount || 0,
+            tax_amount: item.tax_amount || 0,
+            total_amount: item.total_amount || 0,
+            notes: item.notes || '',
+          }))
+        ),
+        created_date:
+          vanInventory.createdate?.toISOString().split('T')[0] || '',
+        created_by: vanInventory.createdby || '',
+        updated_date:
+          vanInventory.updatedate?.toISOString().split('T')[0] || '',
+        updated_by: vanInventory.updatedby || '',
+      };
+    });
   }
 
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
-    const model = tx ? tx.van_inventory : prisma.van_inventory;
-
-    const existingRecord = await model.findFirst({
-      where: {
-        user_id: data.user_id,
-        product_id: data.product_id,
-        batch_id: data.batch_id || null,
-        serial_no_id: data.serial_no_id || null,
-      },
-    });
-
-    if (existingRecord) {
-      return `Van inventory record already exists for user ${data.user_id}, product ${data.product_id}${
-        data.batch_id ? `, batch ${data.batch_id}` : ''
-      }${data.serial_no_id ? `, serial ${data.serial_no_id}` : ''}`;
-    }
-
+    // Van inventory records are unique by ID only
+    // Duplicate checking is not needed for this structure
     return null;
   }
 
@@ -328,11 +325,11 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
     tx?: any
   ): Promise<string | null> {
     const userModel = tx ? tx.users : prisma.users;
+    const vehicleModel = tx ? tx.vehicles : prisma.vehicles;
+    const locationModel = tx ? tx.depots : prisma.depots;
     const productModel = tx ? tx.products : prisma.products;
     const batchModel = tx ? tx.batch_lots : prisma.batch_lots;
     const serialModel = tx ? tx.serial_numbers : prisma.serial_numbers;
-    const vehicleModel = tx ? tx.vehicles : prisma.vehicles;
-    const locationModel = tx ? tx.depots : prisma.depots;
 
     // Validate user exists
     const user = await userModel.findUnique({
@@ -340,34 +337,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
     });
     if (!user) {
       return `User with ID ${data.user_id} does not exist`;
-    }
-
-    // Validate product exists
-    const product = await productModel.findUnique({
-      where: { id: data.product_id },
-    });
-    if (!product) {
-      return `Product with ID ${data.product_id} does not exist`;
-    }
-
-    // Validate batch exists (if provided)
-    if (data.batch_id) {
-      const batch = await batchModel.findUnique({
-        where: { id: data.batch_id },
-      });
-      if (!batch) {
-        return `Batch with ID ${data.batch_id} does not exist`;
-      }
-    }
-
-    // Validate serial number exists (if provided)
-    if (data.serial_no_id) {
-      const serial = await serialModel.findUnique({
-        where: { id: data.serial_no_id },
-      });
-      if (!serial) {
-        return `Serial number with ID ${data.serial_no_id} does not exist`;
-      }
     }
 
     // Validate vehicle exists (if provided)
@@ -390,6 +359,53 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       }
     }
 
+    // Validate items if provided
+    if (data.items) {
+      let items: any[];
+      try {
+        items =
+          typeof data.items === 'string' ? JSON.parse(data.items) : data.items;
+      } catch {
+        return 'Invalid JSON format for items';
+      }
+
+      if (!Array.isArray(items)) {
+        return 'Items must be a JSON array';
+      }
+
+      for (const item of items) {
+        // Validate product exists
+        if (item.product_id) {
+          const product = await productModel.findUnique({
+            where: { id: item.product_id },
+          });
+          if (!product) {
+            return `Product with ID ${item.product_id} does not exist in items`;
+          }
+        }
+
+        // Validate batch exists (if provided)
+        if (item.batch_id) {
+          const batch = await batchModel.findUnique({
+            where: { id: item.batch_id },
+          });
+          if (!batch) {
+            return `Batch with ID ${item.batch_id} does not exist in items`;
+          }
+        }
+
+        // Validate serial number exists (if provided)
+        if (item.serial_no_id) {
+          const serial = await serialModel.findUnique({
+            where: { id: item.serial_no_id },
+          });
+          if (!serial) {
+            return `Serial number with ID ${item.serial_no_id} does not exist in items`;
+          }
+        }
+      }
+    }
+
     return null;
   }
 
@@ -397,17 +413,30 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
     data: any,
     userId: number
   ): Promise<any> {
+    // Parse items if provided as JSON string
+    let items: any[] = [];
+    if (data.items) {
+      try {
+        items =
+          typeof data.items === 'string' ? JSON.parse(data.items) : data.items;
+      } catch {
+        items = [];
+      }
+    }
+
     return {
-      ...data,
-      available_quantity:
-        data.available_quantity ||
-        data.quantity - (data.reserved_quantity || 0),
+      user_id: parseInt(data.user_id),
+      status: (data.status || 'A').toUpperCase(),
+      loading_type: (data.loading_type || 'L').toUpperCase(),
+      document_date: data.document_date ? new Date(data.document_date) : null,
       vehicle_id: data.vehicle_id ? parseInt(data.vehicle_id) : null,
       location_id: data.location_id ? parseInt(data.location_id) : null,
       location_type: data.location_type || 'van',
+      is_active: (data.is_active || 'Y').toUpperCase(),
       createdby: userId,
       createdate: new Date(),
       log_inst: 1,
+      items: items, // Store items separately for processing
     };
   }
 
@@ -416,33 +445,147 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
     userId: number,
     tx?: any
   ): Promise<any> {
-    const model = tx ? tx.van_inventory : prisma.van_inventory;
+    // Van inventory updates should be done by ID
+    // This method is kept for consistency but returns null
+    // Updates should be handled separately
+    return null;
+  }
 
-    const existing = await model.findFirst({
-      where: {
-        user_id: data.user_id,
-        product_id: data.product_id,
-        batch_id: data.batch_id || null,
-        serial_no_id: data.serial_no_id || null,
+  async importData(
+    data: any[],
+    userId: number,
+    options: any = {}
+  ): Promise<any> {
+    let success = 0;
+    let failed = 0;
+    const errors: string[] = [];
+    const importedData: any[] = [];
+    const detailedErrors: any[] = [];
+
+    const results = await prisma.$transaction(
+      async tx => {
+        for (const [index, row] of data.entries()) {
+          const rowNum = index + 2;
+          const rowErrors: any = { row: rowNum, errors: [] };
+
+          try {
+            const duplicateCheck = await this.checkDuplicate(row, tx);
+            if (
+              duplicateCheck &&
+              !options.skipDuplicates &&
+              !options.updateExisting
+            ) {
+              failed++;
+              rowErrors.errors.push({
+                type: 'duplicate',
+                message: duplicateCheck,
+                action: 'rejected',
+              });
+              detailedErrors.push(rowErrors);
+              errors.push(`Row ${rowNum}: ${duplicateCheck}`);
+              continue;
+            }
+
+            const fkValidation = await this.validateForeignKeys(row, tx);
+            if (fkValidation) {
+              failed++;
+              rowErrors.errors.push({
+                type: 'foreign_key',
+                message: fkValidation,
+                action: 'rejected',
+              });
+              detailedErrors.push(rowErrors);
+              errors.push(`Row ${rowNum}: ${fkValidation}`);
+              continue;
+            }
+
+            const preparedData = await this.prepareDataForImport(row, userId);
+            const items = preparedData.items || [];
+            delete preparedData.items; // Remove items from main data
+
+            // Create van_inventory record
+            const created = await tx.van_inventory.create({
+              data: preparedData,
+              include: {
+                van_inventory_users: true,
+                vehicle: true,
+                location: true,
+              },
+            });
+
+            // Create van_inventory_items if provided
+            if (items && items.length > 0) {
+              for (const item of items) {
+                // Validate product_id is required for items
+                if (!item.product_id) {
+                  throw new Error('product_id is required for each item');
+                }
+
+                await tx.van_inventory_items.create({
+                  data: {
+                    parent_id: created.id,
+                    product_id: parseInt(item.product_id),
+                    product_name: item.product_name || null,
+                    unit: item.unit || null,
+                    quantity: parseInt(item.quantity) || 1,
+                    unit_price: parseFloat(item.unit_price) || 0,
+                    discount_amount: item.discount_amount
+                      ? parseFloat(item.discount_amount)
+                      : 0,
+                    tax_amount: item.tax_amount
+                      ? parseFloat(item.tax_amount)
+                      : 0,
+                    total_amount: item.total_amount
+                      ? parseFloat(item.total_amount)
+                      : 0,
+                    notes: item.notes || null,
+                  },
+                });
+              }
+            }
+
+            // Fetch the complete record with items
+            const completeRecord = await tx.van_inventory.findUnique({
+              where: { id: created.id },
+              include: {
+                van_inventory_users: true,
+                vehicle: true,
+                location: true,
+                van_inventory_items_inventory: {
+                  include: {
+                    van_inventory_items_products: true,
+                  },
+                },
+              },
+            });
+
+            importedData.push(completeRecord);
+            success++;
+          } catch (error: any) {
+            failed++;
+            rowErrors.errors.push({
+              type: 'system',
+              message: error.message,
+              action: 'failed',
+            });
+            detailedErrors.push(rowErrors);
+            errors.push(`Row ${rowNum}: ${error.message}`);
+          }
+        }
+
+        return {
+          success,
+          failed,
+          errors,
+          data: importedData,
+          detailedErrors:
+            detailedErrors.length > 0 ? detailedErrors : undefined,
+        };
       },
-    });
+      { timeout: 300000 }
+    );
 
-    if (!existing) return null;
-
-    return await model.update({
-      where: { id: existing.id },
-      data: {
-        ...data,
-        available_quantity:
-          data.available_quantity ||
-          data.quantity - (data.reserved_quantity || 0),
-        vehicle_id: data.vehicle_id ? parseInt(data.vehicle_id) : null,
-        location_id: data.location_id ? parseInt(data.location_id) : null,
-        location_type: data.location_type || 'van',
-        updatedby: userId,
-        updatedate: new Date(),
-      },
-    });
+    return results;
   }
 
   async exportToExcel(options: any = {}): Promise<Buffer> {
@@ -453,20 +596,18 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
         van_inventory_users: {
           select: { id: true, name: true, email: true },
         },
-        van_inventory_products: {
-          select: { id: true, name: true, code: true },
-        },
-        batch_lots: {
-          select: { id: true, batch_number: true, quantity: true },
-        },
-        serial_numbers: {
-          select: { id: true, serial_number: true, status: true },
-        },
         vehicle: {
           select: { id: true, vehicle_number: true, type: true },
         },
         location: {
           select: { id: true, name: true, code: true },
+        },
+        van_inventory_items_inventory: {
+          include: {
+            van_inventory_items_products: {
+              select: { id: true, name: true, code: true },
+            },
+          },
         },
       },
     };
@@ -481,11 +622,9 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
     const exportColumns = [
       ...this.columns,
       { header: 'User Name', key: 'user_name', width: 20 },
-      { header: 'Product Name', key: 'product_name', width: 25 },
-      { header: 'Batch Number', key: 'batch_number', width: 20 },
-      { header: 'Serial Number', key: 'serial_number', width: 20 },
       { header: 'Vehicle Number', key: 'vehicle_number', width: 20 },
       { header: 'Location Name', key: 'location_name', width: 20 },
+      { header: 'Items Count', key: 'items_count', width: 15 },
       { header: 'Created Date', key: 'created_date', width: 15 },
       { header: 'Created By', key: 'created_by', width: 15 },
       { header: 'Updated Date', key: 'updated_date', width: 15 },
@@ -513,11 +652,9 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       const excelRow = worksheet.addRow({
         ...row,
         user_name: data[index]?.van_inventory_users?.name || '',
-        product_name: data[index]?.van_inventory_products?.name || '',
-        batch_number: data[index]?.batch_lots?.batch_number || '',
-        serial_number: data[index]?.serial_numbers?.serial_number || '',
         vehicle_number: data[index]?.vehicle?.vehicle_number || '',
         location_name: data[index]?.location?.name || '',
+        items_count: data[index]?.van_inventory_items_inventory?.length || 0,
       });
 
       if (index % 2 === 0) {

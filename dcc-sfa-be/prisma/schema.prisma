@@ -642,6 +642,7 @@ model customer_groups {
   updatedby                             Int?
   log_inst                              Int?
   customer_group_members_customer_group customer_group_members[]
+  products_outlet_group                 products[]
 }
 
 model customers {
@@ -1178,6 +1179,8 @@ model products {
   createdby                        Int
   updatedate                       DateTime?                 @db.DateTime
   updatedby                        Int?
+  route_type_id                    Int?
+  outlet_group_id                  Int?
   log_inst                         Int?
   batch_lots_products              batch_lots[]
   credit_notes_items_products      credit_note_items[]
@@ -1200,6 +1203,8 @@ model products {
   stock_transfer_lines_products    stock_transfer_lines[]
   van_inventory_items_products     van_inventory_items[]
   warranty_claims_products         warranty_claims[]
+  products_route_type              route_type?               @relation(fields: [route_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products_outlet_group            customer_groups?          @relation(fields: [outlet_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model brands {
@@ -1431,8 +1436,9 @@ model route_type {
   createdby         Int
   updatedate        DateTime? @db.DateTime
   updatedby         Int?
-  log_inst          Int?
-  routes_route_type routes[]
+  log_inst             Int?
+  routes_route_type    routes[]
+  products_route_type  products[]
 }
 
 model routes {

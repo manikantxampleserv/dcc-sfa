@@ -11,7 +11,12 @@ import {
   Box,
   Badge,
 } from '@mui/material';
-import { AccountCircle, Settings, Logout } from '@mui/icons-material';
+import {
+  AccountCircle,
+  Settings,
+  Logout,
+  Assignment,
+} from '@mui/icons-material';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +24,6 @@ import { useAuth } from '../../context/AuthContext';
 import Notifications from '../Notifications';
 import ApprovalsSidebar from '../ApprovalsSidebar';
 import { useApprovalWorkflows } from '../../hooks/useApprovalWorkflows';
-import { FileCheck } from 'lucide-react';
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -130,10 +134,15 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
           <Badge badgeContent={pendingCount} color="error" max={99}>
             <IconButton
               onClick={() => setApprovalsDrawerOpen(true)}
-              className="!p-2 !rounded-md !text-gray-700 hover:!bg-gray-100"
+              className="!p-1.5 !rounded-md !bg-gray-100 !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100"
               aria-label="approvals"
+              aria-controls={
+                approvalsDrawerOpen ? 'approvals-drawer' : undefined
+              }
+              aria-haspopup="true"
+              aria-expanded={approvalsDrawerOpen ? 'true' : undefined}
             >
-              <FileCheck className="!w-5 !h-5" />
+              <Assignment className="!text-gray-600" />
             </IconButton>
           </Badge>
 
@@ -146,7 +155,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
           <div className="relative" ref={menuRef}>
             <IconButton
               onClick={handleClick}
-              className="!p-2 !rounded-md !text-gray-700 hover:!bg-gray-100"
+              className="!p-2 !rounded-md !bg-gray-50 !text-gray-700 hover:!bg-gray-100"
               aria-label="user menu"
               aria-controls={open ? 'user-menu' : undefined}
               aria-haspopup="true"
@@ -189,16 +198,18 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 vertical: 'top',
                 horizontal: 'right',
               }}
-              PaperProps={{
-                className: '!mt-4 !min-w-[240px] relative',
-                sx: {
-                  boxShadow:
-                    '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                  overflow: 'visible',
+              slotProps={{
+                paper: {
+                  className: '!mt-2 !min-w-[240px] relative',
+                  sx: {
+                    boxShadow:
+                      '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    overflow: 'visible',
+                  },
                 },
-              }}
-              MenuListProps={{
-                className: '!p-0 !relative',
+                list: {
+                  className: '!p-0 !relative',
+                },
               }}
             >
               {/* Arrow indicator */}

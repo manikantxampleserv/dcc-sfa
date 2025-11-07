@@ -32,6 +32,14 @@ export const productValidationSchema = yup.object().shape({
     .min(0, 'Tax rate must be at least 0')
     .max(100, 'Tax rate cannot exceed 100%')
     .nullable(),
+  route_type_id: yup
+    .number()
+    .min(1, 'Please select a valid route type')
+    .nullable(),
+  outlet_group_id: yup
+    .number()
+    .min(1, 'Please select a valid outlet group')
+    .nullable(),
   is_active: yup
     .string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')

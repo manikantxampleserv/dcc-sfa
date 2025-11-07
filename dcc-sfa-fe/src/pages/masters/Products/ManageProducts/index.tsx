@@ -18,6 +18,8 @@ import {
   useUnitOfMeasurement,
   type UnitOfMeasurement,
 } from 'hooks/useUnitOfMeasurement';
+import { useRouteTypes, type RouteType } from 'hooks/useRouteTypes';
+import { useOutletGroups, type OutletGroup } from 'hooks/useOutletGroups';
 import React from 'react';
 import { productValidationSchema } from 'schemas/product.schema';
 import Button from 'shared/Button';
@@ -55,11 +57,15 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   });
   const { data: brandsResponse } = useBrands({ limit: 1000 });
   const { data: unitsResponse } = useUnitOfMeasurement({ limit: 1000 });
+  const { data: routeTypesResponse } = useRouteTypes();
+  const { data: outletGroupsResponse } = useOutletGroups({ limit: 1000 });
 
   const categories = categoriesResponse?.data || [];
   const subCategories = subCategoriesResponse?.data || [];
   const brands = brandsResponse?.data || [];
   const units = unitsResponse?.data || [];
+  const routeTypes = routeTypesResponse?.data || [];
+  const outletGroups = outletGroupsResponse?.data || [];
 
   const formik = useFormik({
     initialValues: {
@@ -71,6 +77,8 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       unit_of_measurement: selectedProduct?.unit_of_measurement || '',
       base_price: selectedProduct?.base_price || '',
       tax_rate: selectedProduct?.tax_rate || '',
+      route_type_id: selectedProduct?.route_type_id || '',
+      outlet_group_id: selectedProduct?.outlet_group_id || '',
       is_active: selectedProduct?.is_active || 'Y',
     },
     validationSchema: productValidationSchema,
@@ -86,6 +94,12 @@ const ManageProduct: React.FC<ManageProductProps> = ({
           unit_of_measurement: Number(values.unit_of_measurement),
           base_price: values.base_price ? Number(values.base_price) : undefined,
           tax_rate: values.tax_rate ? Number(values.tax_rate) : undefined,
+          route_type_id: values.route_type_id
+            ? Number(values.route_type_id)
+            : undefined,
+          outlet_group_id: values.outlet_group_id
+            ? Number(values.outlet_group_id)
+            : undefined,
           is_active: values.is_active,
         };
 
@@ -185,6 +199,24 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               placeholder="Enter tax rate percentage"
               formik={formik}
             />
+
+            <Select name="route_type_id" label="Route Type" formik={formik}>
+              <MenuItem value="">None</MenuItem>
+              {routeTypes.map((routeType: RouteType) => (
+                <MenuItem key={routeType.id} value={routeType.id}>
+                  {routeType.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select name="outlet_group_id" label="Outlet Group" formik={formik}>
+              <MenuItem value="">None</MenuItem>
+              {outletGroups.map((outletGroup: OutletGroup) => (
+                <MenuItem key={outletGroup.id} value={outletGroup.id}>
+                  {outletGroup.name}
+                </MenuItem>
+              ))}
+            </Select>
 
             <Select name="is_active" label="Status" formik={formik} required>
               <MenuItem value="Y">Active</MenuItem>

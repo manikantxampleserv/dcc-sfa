@@ -93,6 +93,25 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
           },
         },
       },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            '& .MuiTouchRipple-root': {
+              borderRadius: '6px',
+              overflow: 'hidden',
+            },
+            '& .MuiTouchRipple-ripple': {
+              borderRadius: '6px !important',
+            },
+            '& .MuiTouchRipple-rippleVisible': {
+              borderRadius: '6px !important',
+            },
+            '& .MuiTouchRipple-child': {
+              borderRadius: '6px !important',
+            },
+          },
+        },
+      },
     },
     primaryColors: primaryColors,
   });

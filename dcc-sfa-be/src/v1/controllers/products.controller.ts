@@ -20,6 +20,8 @@ interface ProductSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  route_type_id?: number | null;
+  outlet_group_id?: number | null;
   batch_lots?: { id: number; batch_number: string; quantity: number }[];
   inventory_stock?: {
     id: number;
@@ -37,6 +39,8 @@ interface ProductSerialized {
   product_unit: { id: number; name: string };
   product_category: { id: number; category_name: string };
   product_sub_category: { id: number; sub_category_name: string };
+  route_type?: { id: number; name: string } | null;
+  outlet_group?: { id: number; name: string; code: string } | null;
 }
 
 const generateProductsCode = async (name: string) => {
@@ -80,6 +84,8 @@ const serializeProduct = (product: any): ProductSerialized => ({
   updatedate: product.updatedate,
   updatedby: product.updatedby,
   log_inst: product.log_inst,
+  route_type_id: product.route_type_id,
+  outlet_group_id: product.outlet_group_id,
 
   batch_lots: normalizeToArray(product.batch_lots_products).map((b: any) => ({
     id: b.id,
@@ -131,6 +137,19 @@ const serializeProduct = (product: any): ProductSerialized => ({
     sub_category_name:
       product.product_sub_categories_products?.sub_category_name,
   },
+  route_type: product.products_route_type
+    ? {
+        id: product.products_route_type.id,
+        name: product.products_route_type.name,
+      }
+    : null,
+  outlet_group: product.products_outlet_group
+    ? {
+        id: product.products_outlet_group.id,
+        name: product.products_outlet_group.name,
+        code: product.products_outlet_group.code,
+      }
+    : null,
 });
 
 export const productsController = {
@@ -151,6 +170,8 @@ export const productsController = {
           base_price: data.base_price,
           tax_rate: data.tax_rate,
           is_active: data.is_active || 'Y',
+          route_type_id: data.route_type_id || null,
+          outlet_group_id: data.outlet_group_id || null,
           createdate: new Date(),
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
@@ -164,6 +185,8 @@ export const productsController = {
           product_unit_of_measurement: true,
           product_categories_products: true,
           product_sub_categories_products: true,
+          products_route_type: true,
+          products_outlet_group: true,
         },
       });
 
@@ -212,6 +235,8 @@ export const productsController = {
           product_unit_of_measurement: true,
           product_categories_products: true,
           product_sub_categories_products: true,
+          products_route_type: true,
+          products_outlet_group: true,
         },
       });
 
@@ -265,6 +290,8 @@ export const productsController = {
           product_unit_of_measurement: true,
           product_categories_products: true,
           product_sub_categories_products: true,
+          products_route_type: true,
+          products_outlet_group: true,
         },
       });
 
@@ -309,6 +336,8 @@ export const productsController = {
           product_unit_of_measurement: true,
           product_categories_products: true,
           product_sub_categories_products: true,
+          products_route_type: true,
+          products_outlet_group: true,
         },
       });
 

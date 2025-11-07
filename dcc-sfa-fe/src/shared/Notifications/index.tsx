@@ -155,18 +155,18 @@ const Notifications: React.FC<NotificationsProps> = ({
 
   return (
     <div className="relative" ref={menuRef}>
-      <IconButton
-        onClick={handleClick}
-        className="!p-2 !rounded-md !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100"
-        aria-label="notifications"
-        aria-controls={open ? 'notifications-menu' : undefined}
-        aria-haspopup="true"
-        aria-expanded={open ? 'true' : undefined}
-      >
-        <Badge badgeContent={unreadCount} color="error" max={99}>
+      <Badge badgeContent={unreadCount} color="error" max={99}>
+        <IconButton
+          onClick={handleClick}
+          className="!p-1.5 !rounded-md !bg-gray-100 !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100"
+          aria-label="notifications"
+          aria-controls={open ? 'notifications-menu' : undefined}
+          aria-haspopup="true"
+          aria-expanded={open ? 'true' : undefined}
+        >
           <NotificationsIcon className="!text-gray-600" />
-        </Badge>
-      </IconButton>
+        </IconButton>
+      </Badge>
 
       <Menu
         id="notifications-menu"
@@ -181,48 +181,47 @@ const Notifications: React.FC<NotificationsProps> = ({
           vertical: 'top',
           horizontal: 'right',
         }}
-        PaperProps={{
-          className:
-            '!mt-4 !min-w-[400px] !max-w-[400px] !max-h-[600px] relative',
-          sx: {
-            boxShadow:
-              '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            overflow: 'visible',
+        slotProps={{
+          paper: {
+            className:
+              '!mt-2 !ml-1 !min-w-[400px] !max-w-[400px] !max-h-[600px] relative',
+            sx: {
+              boxShadow:
+                '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              overflow: 'visible',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: -8,
+                right: 16,
+                width: 0,
+                height: 0,
+                borderLeft: '8px solid transparent',
+                borderRight: '8px solid transparent',
+                borderBottom: '8px solid white',
+                zIndex: 1,
+                pointerEvents: 'none',
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                top: -9,
+                right: 16,
+                width: 0,
+                height: 0,
+                borderLeft: '8px solid transparent',
+                borderRight: '8px solid transparent',
+                borderBottom: '8px solid #e5e7eb',
+                zIndex: 0,
+                pointerEvents: 'none',
+              },
+            },
+          },
+          list: {
+            className: '!p-0 !relative',
           },
         }}
-        MenuListProps={{
-          className: '!p-0 !relative',
-        }}
       >
-        {/* Arrow indicator */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: -8,
-            right: 20,
-            width: 0,
-            height: 0,
-            borderLeft: '8px solid transparent',
-            borderRight: '8px solid transparent',
-            borderBottom: '8px solid white',
-            zIndex: 1,
-            pointerEvents: 'none',
-          }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            top: -9,
-            right: 20,
-            width: 0,
-            height: 0,
-            borderLeft: '8px solid transparent',
-            borderRight: '8px solid transparent',
-            borderBottom: '8px solid #e5e7eb',
-            zIndex: 0,
-            pointerEvents: 'none',
-          }}
-        />
         <Box className="!px-4 !py-3 !border-b !border-gray-200 !flex !items-center !justify-between !bg-gray-50">
           <Typography
             variant="h6"

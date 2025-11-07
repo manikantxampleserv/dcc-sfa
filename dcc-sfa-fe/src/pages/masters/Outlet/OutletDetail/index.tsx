@@ -2,8 +2,11 @@ import {
   Cancel,
   CheckCircle,
   Description,
+  Error as ErrorIcon,
+  Feedback,
   History,
   Inventory,
+  Receipt,
   Verified,
   Warning,
 } from '@mui/icons-material';
@@ -12,7 +15,7 @@ import {
   Avatar,
   Box,
   Chip,
-  CircularProgress,
+  Skeleton,
   Tab,
   Tabs,
   Typography,
@@ -65,6 +68,9 @@ const OutletDetail: React.FC = () => {
   const customer = responseData?.customer || responseData || {};
   const documents = responseData?.documents || [];
   const assets = responseData?.assets || [];
+  const transactions = responseData?.transactions || [];
+  const feedbacks = responseData?.feedbacks || [];
+  const complaints = responseData?.complaints || [];
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -72,9 +78,145 @@ const OutletDetail: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box className="flex justify-center items-center h-96">
-        <CircularProgress />
-      </Box>
+      <>
+        {/* Header Skeleton */}
+        <Box className="!mb-3 !flex !items-center !gap-3">
+          <Box className="!flex-1">
+            <Box className="!flex !items-center !gap-3">
+              <Skeleton variant="text" width={200} height={32} />
+              <Skeleton
+                variant="rectangular"
+                width={80}
+                height={24}
+                className="!rounded-full"
+              />
+              <Skeleton
+                variant="rectangular"
+                width={100}
+                height={24}
+                className="!rounded-full"
+              />
+            </Box>
+            <Skeleton
+              variant="text"
+              width={300}
+              height={20}
+              className="!mt-1"
+            />
+          </Box>
+        </Box>
+
+        {/* Info Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          {[1, 2, 3, 4].map(index => (
+            <div
+              key={index}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Skeleton variant="text" width={100} height={16} />
+                  <Skeleton
+                    variant="text"
+                    width={120}
+                    height={28}
+                    className="!mt-1"
+                  />
+                  <Skeleton
+                    variant="text"
+                    width={80}
+                    height={16}
+                    className="!mt-2"
+                  />
+                </div>
+                <Skeleton variant="circular" width={48} height={48} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <Box>
+            <Tabs value={0}>
+              <Tab
+                icon={<Inventory />}
+                label="Assets (0)"
+                iconPosition="start"
+                className="!py-0"
+                disabled
+              />
+              <Tab
+                icon={<History />}
+                label="Asset History (0)"
+                iconPosition="start"
+                className="!py-0"
+                disabled
+              />
+              <Tab
+                icon={<Receipt />}
+                label="Transactions (0)"
+                iconPosition="start"
+                className="!py-0"
+                disabled
+              />
+              <Tab
+                icon={<Feedback />}
+                label="Feedbacks (0)"
+                iconPosition="start"
+                className="!py-0"
+                disabled
+              />
+              <Tab
+                icon={<ErrorIcon />}
+                label="Complaints (0)"
+                iconPosition="start"
+                className="!py-0"
+                disabled
+              />
+              <Tab
+                icon={<Description />}
+                label="Attachments (0)"
+                iconPosition="start"
+                className="!py-0"
+                disabled
+              />
+            </Tabs>
+          </Box>
+
+          {/* Table Skeleton */}
+          <Box className="p-4">
+            <Box className="mb-4">
+              <Skeleton
+                variant="rectangular"
+                width="100%"
+                height={48}
+                className="!rounded"
+              />
+            </Box>
+            {[1, 2, 3, 4, 5].map(index => (
+              <Box key={index} className="flex items-center gap-4 mb-3">
+                <Skeleton
+                  variant="rectangular"
+                  width={40}
+                  height={40}
+                  className="!rounded"
+                />
+                <Skeleton variant="text" width={150} height={20} />
+                <Skeleton variant="text" width={120} height={20} />
+                <Skeleton variant="text" width={100} height={20} />
+                <Skeleton variant="text" width={100} height={20} />
+                <Skeleton
+                  variant="rectangular"
+                  width={80}
+                  height={24}
+                  className="!rounded-full"
+                />
+              </Box>
+            ))}
+          </Box>
+        </div>
+      </>
     );
   }
 
@@ -88,7 +230,7 @@ const OutletDetail: React.FC = () => {
     );
   }
 
-  // Documents Table Columns
+  // Attachments Table Columns
   const documentColumns: TableColumn<any>[] = [
     {
       id: 'document_type',
@@ -303,6 +445,205 @@ const OutletDetail: React.FC = () => {
     }))
   );
 
+  // Transactions Table Columns
+  const transactionColumns: TableColumn<any>[] = [
+    {
+      id: 'transaction_date',
+      label: 'Date',
+      render: transaction_date => (
+        <Typography variant="body2">
+          {transaction_date ? formatDate(transaction_date) : '-'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'transaction_type',
+      label: 'Type',
+      render: transaction_type => (
+        <Chip
+          label={transaction_type || 'N/A'}
+          size="small"
+          className="!capitalize"
+        />
+      ),
+    },
+    {
+      id: 'amount',
+      label: 'Amount',
+      render: amount => (
+        <Typography variant="body2" className="!font-medium">
+          {amount ? formatCurrency(amount) : '-'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      render: status => (
+        <Chip
+          label={status || 'Pending'}
+          size="small"
+          className="!capitalize"
+          color={
+            status === 'completed' || status === 'paid'
+              ? 'success'
+              : status === 'pending'
+                ? 'warning'
+                : 'default'
+          }
+        />
+      ),
+    },
+    {
+      id: 'description',
+      label: 'Description',
+      render: description => (
+        <Typography variant="body2" className="!max-w-xs !truncate">
+          {description || <span className="text-gray-400">No description</span>}
+        </Typography>
+      ),
+    },
+  ];
+
+  // Feedbacks Table Columns
+  const feedbackColumns: TableColumn<any>[] = [
+    {
+      id: 'feedback_date',
+      label: 'Date',
+      render: feedback_date => (
+        <Typography variant="body2">
+          {feedback_date ? formatDate(feedback_date) : '-'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'rating',
+      label: 'Rating',
+      render: rating => (
+        <Box className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map(star => (
+            <Typography
+              key={star}
+              variant="body2"
+              className={
+                star <= (rating || 0) ? '!text-yellow-500' : '!text-gray-300'
+              }
+            >
+              ★
+            </Typography>
+          ))}
+          {rating && (
+            <Typography variant="caption" className="!text-gray-500 !ml-1">
+              ({rating})
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      id: 'feedback_type',
+      label: 'Type',
+      render: feedback_type => (
+        <Chip
+          label={feedback_type || 'General'}
+          size="small"
+          className="!capitalize"
+        />
+      ),
+    },
+    {
+      id: 'comment',
+      label: 'Comment',
+      render: comment => (
+        <Typography variant="body2" className="!max-w-xs !truncate">
+          {comment || <span className="text-gray-400">No comment</span>}
+        </Typography>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      render: status => (
+        <Chip
+          label={status || 'Active'}
+          size="small"
+          className="!capitalize"
+          color={status === 'resolved' ? 'success' : 'default'}
+        />
+      ),
+    },
+  ];
+
+  // Complaints Table Columns
+  const complaintColumns: TableColumn<any>[] = [
+    {
+      id: 'complaint_date',
+      label: 'Date',
+      render: complaint_date => (
+        <Typography variant="body2">
+          {complaint_date ? formatDate(complaint_date) : '-'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'complaint_type',
+      label: 'Type',
+      render: complaint_type => (
+        <Chip
+          label={complaint_type || 'General'}
+          size="small"
+          className="!capitalize"
+          color="error"
+        />
+      ),
+    },
+    {
+      id: 'priority',
+      label: 'Priority',
+      render: priority => (
+        <Chip
+          label={priority || 'Medium'}
+          size="small"
+          className="!capitalize"
+          color={
+            priority === 'high' || priority === 'urgent'
+              ? 'error'
+              : priority === 'medium'
+                ? 'warning'
+                : 'default'
+          }
+        />
+      ),
+    },
+    {
+      id: 'description',
+      label: 'Description',
+      render: description => (
+        <Typography variant="body2" className="!max-w-xs !truncate">
+          {description || <span className="text-gray-400">No description</span>}
+        </Typography>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      render: status => (
+        <Chip
+          label={status || 'Open'}
+          size="small"
+          className="!capitalize"
+          color={
+            status === 'resolved' || status === 'closed'
+              ? 'success'
+              : status === 'in_progress'
+                ? 'warning'
+                : 'error'
+          }
+        />
+      ),
+    },
+  ];
+
   const getBusinessTypeChipColor = (
     type: string
   ):
@@ -454,17 +795,6 @@ const OutletDetail: React.FC = () => {
         <Box>
           <Tabs value={tabValue} onChange={handleTabChange}>
             <Tab
-              icon={<Description />}
-              label={`Documents (${documents.length})`}
-              iconPosition="start"
-              className="!py-0"
-              sx={{
-                '& .MuiButtonBase-root': {
-                  padding: 1,
-                },
-              }}
-            />
-            <Tab
               icon={<Inventory />}
               label={`Assets (${assets.length})`}
               iconPosition="start"
@@ -486,21 +816,54 @@ const OutletDetail: React.FC = () => {
                 },
               }}
             />
+            <Tab
+              icon={<Receipt />}
+              label={`Transactions (${transactions.length})`}
+              iconPosition="start"
+              className="!py-0"
+              sx={{
+                '& .MuiButtonBase-root': {
+                  padding: 1,
+                },
+              }}
+            />
+            <Tab
+              icon={<Feedback />}
+              label={`Feedbacks (${feedbacks.length})`}
+              iconPosition="start"
+              className="!py-0"
+              sx={{
+                '& .MuiButtonBase-root': {
+                  padding: 1,
+                },
+              }}
+            />
+            <Tab
+              icon={<ErrorIcon />}
+              label={`Complaints (${complaints.length})`}
+              iconPosition="start"
+              className="!py-0"
+              sx={{
+                '& .MuiButtonBase-root': {
+                  padding: 1,
+                },
+              }}
+            />
+            <Tab
+              icon={<Description />}
+              label={`Attachments (${documents.length})`}
+              iconPosition="start"
+              className="!py-0"
+              sx={{
+                '& .MuiButtonBase-root': {
+                  padding: 1,
+                },
+              }}
+            />
           </Tabs>
         </Box>
 
         <TabPanel value={tabValue} index={0}>
-          <Table
-            data={documents}
-            columns={documentColumns}
-            getRowId={doc => doc.id}
-            initialOrderBy="createdate"
-            emptyMessage="No documents found for this outlet"
-            pagination={false}
-          />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
           <Table
             data={assets}
             columns={assetColumns}
@@ -511,13 +874,57 @@ const OutletDetail: React.FC = () => {
           />
         </TabPanel>
 
-        <TabPanel value={tabValue} index={2}>
+        <TabPanel value={tabValue} index={1}>
           <Table
             data={allAssetHistory}
             columns={historyColumns}
             getRowId={history => history.id}
             initialOrderBy="change_date"
             emptyMessage="No asset history found"
+            pagination={false}
+          />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={2}>
+          <Table
+            data={transactions}
+            columns={transactionColumns}
+            getRowId={transaction => transaction.id}
+            initialOrderBy="transaction_date"
+            emptyMessage="No transactions found for this outlet"
+            pagination={false}
+          />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={3}>
+          <Table
+            data={feedbacks}
+            columns={feedbackColumns}
+            getRowId={feedback => feedback.id}
+            initialOrderBy="feedback_date"
+            emptyMessage="No feedbacks found for this outlet"
+            pagination={false}
+          />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={4}>
+          <Table
+            data={complaints}
+            columns={complaintColumns}
+            getRowId={complaint => complaint.id}
+            initialOrderBy="complaint_date"
+            emptyMessage="No complaints found for this outlet"
+            pagination={false}
+          />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={5}>
+          <Table
+            data={documents}
+            columns={documentColumns}
+            getRowId={doc => doc.id}
+            initialOrderBy="createdate"
+            emptyMessage="No attachments found for this outlet"
             pagination={false}
           />
         </TabPanel>

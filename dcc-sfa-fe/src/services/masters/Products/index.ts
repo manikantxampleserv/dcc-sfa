@@ -18,6 +18,8 @@ interface Product {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  route_type_id?: number | null;
+  outlet_group_id?: number | null;
   batch_lots?: { id: number; batch_number: string; quantity: number }[];
   inventory_stock?: {
     id: number;
@@ -35,6 +37,8 @@ interface Product {
   product_unit: { id: number; name: string };
   product_category: { id: number; category_name: string };
   product_sub_category: { id: number; sub_category_name: string };
+  route_type?: { id: number; name: string } | null;
+  outlet_group?: { id: number; name: string; code: string } | null;
 }
 
 interface ManageProductPayload {
@@ -46,6 +50,8 @@ interface ManageProductPayload {
   unit_of_measurement: number;
   base_price?: number;
   tax_rate?: number;
+  route_type_id?: number;
+  outlet_group_id?: number;
   is_active?: string;
 }
 
@@ -58,6 +64,8 @@ interface UpdateProductPayload {
   unit_of_measurement?: number;
   base_price?: number;
   tax_rate?: number;
+  route_type_id?: number;
+  outlet_group_id?: number;
   is_active?: string;
 }
 
