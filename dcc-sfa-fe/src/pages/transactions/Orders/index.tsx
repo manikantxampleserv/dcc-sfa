@@ -14,6 +14,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
@@ -25,6 +26,7 @@ import ImportOrder from './ImportOrder';
 import ManageOrder from './ManageOrder';
 
 const OrdersManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -145,10 +147,25 @@ const OrdersManagement: React.FC = () => {
       pending: '!bg-yellow-100 !text-yellow-800',
       approved: '!bg-green-100 !text-green-800',
       rejected: '!bg-red-100 !text-red-800',
+      submitted: '!bg-blue-100 !text-blue-800',
     };
     return (
       colors[status as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
     );
+  };
+
+  const getApprovalIcon = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircleIcon className="w-4 h-4" />;
+      case 'rejected':
+        return <XCircle className="w-4 h-4" />;
+      case 'pending':
+      case 'submitted':
+        return <Clock className="w-4 h-4" />;
+      default:
+        return <Clock className="w-4 h-4" />;
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -187,7 +204,8 @@ const OrdersManagement: React.FC = () => {
           <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight"
+              className="!text-gray-900 !leading-tight !cursor-pointer !hover:!text-primary-600 !transition-colors"
+              onClick={() => navigate(`/transactions/orders/${row.id}`)}
             >
               {row.order_number}
             </Typography>
@@ -317,16 +335,17 @@ const OrdersManagement: React.FC = () => {
       render: (_value, row) => (
         <Box>
           <Chip
-            label={row.approval_status || 'pending'}
+            icon={getApprovalIcon(row.approval_status || 'pending')}
+            label={(row.approval_status || 'pending').toUpperCase()}
             size="small"
-            className={`!text-xs !capitalize ${getApprovalColor(row.approval_status || 'pending')} !min-w-20`}
+            className={`!text-xs !pl-1 !capitalize ${getApprovalColor(row.approval_status || 'pending')} !min-w-20`}
           />
           {row.approved_at && (
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-1"
             >
-              by {row.salesperson?.name || 'N/A'}
+              {new Date(row.approved_at).toLocaleDateString()}
             </Typography>
           )}
         </Box>

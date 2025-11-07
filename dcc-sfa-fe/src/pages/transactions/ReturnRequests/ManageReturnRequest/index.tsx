@@ -11,6 +11,7 @@ import type { User } from 'services/masters/Users';
 import type { Customer } from 'services/masters/Customers';
 import type { Product } from 'services/masters/Products';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -106,19 +107,12 @@ const ManageReturnRequest: React.FC<ManageReturnRequestProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select
+            <CustomerSelect
               name="customer_id"
               label="Customer"
               formik={formik}
               required
-            >
-              <MenuItem value="">Select Customer</MenuItem>
-              {customers.map(customer => (
-                <MenuItem key={customer.id} value={customer.id.toString()}>
-                  {customer.name} ({customer.code})
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <Select name="product_id" label="Product" formik={formik} required>
               <MenuItem value="">Select Product</MenuItem>

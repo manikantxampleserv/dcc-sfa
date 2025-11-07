@@ -57,6 +57,7 @@ import CreditNotesManagement from 'pages/transactions/CreditNotes';
 import DeliveryScheduling from 'pages/transactions/DeliveryScheduling';
 import InvoicesManagement from 'pages/transactions/Invoices';
 import OrdersManagement from 'pages/transactions/Orders';
+import OrderDetail from 'pages/transactions/Orders/OrderDetail';
 import PaymentCollection from 'pages/transactions/PaymentCollection';
 import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
@@ -65,9 +66,10 @@ import SurveyAnswers from 'pages/transactions/VisitLogging';
 import AuditLogs from 'pages/reports/AuditLogs';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-const ApprovalWorkflows = () => <h1>Approval Workflows</h1>;
-const RouteExceptions = () => <h1>Route Exceptions</h1>;
-const AlertsReminders = () => <h1>Alerts & Reminders</h1>;
+import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
+import RouteExceptions from 'pages/workflows/RouteExceptions';
+import AlertsReminders from 'pages/workflows/AlertsReminders';
+import NotFound from 'pages/NotFound';
 const SystemSettings = () => <h1>System Settings</h1>;
 
 const router = createBrowserRouter([
@@ -207,6 +209,10 @@ const router = createBrowserRouter([
       {
         path: '/transactions/orders',
         element: <OrdersManagement />,
+      },
+      {
+        path: '/transactions/orders/:id',
+        element: <OrderDetail />,
       },
       {
         path: '/transactions/delivery',
@@ -351,6 +357,10 @@ const router = createBrowserRouter([
       {
         path: '/profile',
         element: <Profile />,
+      },
+      {
+        path: '*',
+        element: <NotFound />,
       },
     ],
   },

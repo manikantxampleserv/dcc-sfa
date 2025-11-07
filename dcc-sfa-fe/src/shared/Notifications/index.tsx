@@ -20,75 +20,45 @@ import {
   Typography,
 } from '@mui/material';
 import React, { useEffect, useRef, useState } from 'react';
-
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'success' | 'warning' | 'info' | 'error';
-  timestamp: Date;
-  read: boolean;
-  actionUrl?: string;
-}
+import { useNavigate } from 'react-router-dom';
+import {
+  useNotifications,
+  useMarkNotificationAsRead,
+  useMarkAllNotificationsAsRead,
+  useClearAllNotifications,
+} from '../../hooks/useNotifications';
+import type { Notification } from '../../services/notifications';
 
 interface NotificationsProps {
-  notifications?: Notification[];
-  isLoading?: boolean;
   onNotificationClick?: (notification: Notification) => void;
-  onMarkAllAsRead?: () => void;
-  onClearAll?: () => void;
 }
 
 const Notifications: React.FC<NotificationsProps> = ({
-  notifications = [],
-  isLoading = false,
   onNotificationClick,
-  onMarkAllAsRead,
-  onClearAll,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const open = Boolean(anchorEl);
 
-  // Mock notifications data - replace with actual API call
-  const mockNotifications: Notification[] = notifications.length
-    ? notifications
-    : [
-        {
-          id: '1',
-          title: 'New Order Received',
-          message: 'You have received a new order #12345',
-          type: 'success',
-          timestamp: new Date(Date.now() - 5 * 60 * 1000),
-          read: false,
-        },
-        {
-          id: '2',
-          title: 'Payment Pending',
-          message: 'Payment for order #12340 is pending',
-          type: 'warning',
-          timestamp: new Date(Date.now() - 30 * 60 * 1000),
-          read: false,
-        },
-        {
-          id: '3',
-          title: 'Inventory Alert',
-          message: 'Low stock alert for Product XYZ',
-          type: 'info',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          read: true,
-        },
-        {
-          id: '4',
-          title: 'System Update',
-          message: 'Scheduled maintenance tonight at 2 AM',
-          type: 'info',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          read: true,
-        },
-      ];
+  // Fetch notifications from API
+  const {
+    data: notificationsData,
+    isLoading,
+    refetch,
+  } = useNotifications({ limit: 20 });
+  const markAsReadMutation = useMarkNotificationAsRead();
+  const markAllAsReadMutation = useMarkAllNotificationsAsRead();
+  const clearAllMutation = useClearAllNotifications();
 
-  const unreadCount = mockNotifications.filter(n => !n.read).length;
+  const notifications =
+    (notificationsData as any)?.data?.notifications ||
+    notificationsData?.data ||
+    [];
+  const unreadCount =
+    (notificationsData as any)?.data?.unread_count ||
+    notificationsData?.unread_count ||
+    0;
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -98,18 +68,38 @@ const Notifications: React.FC<NotificationsProps> = ({
     setAnchorEl(null);
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if not already read
+    if (!notification.is_read) {
+      await markAsReadMutation.mutateAsync(notification.id);
+    }
+
+    // Navigate to action URL if available
+    if (notification.action_url) {
+      navigate(notification.action_url);
+    }
+
     onNotificationClick?.(notification);
     handleClose();
   };
 
-  const handleMarkAllAsRead = () => {
-    onMarkAllAsRead?.();
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsReadMutation.mutateAsync();
+      refetch();
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
   };
 
-  const handleClearAll = () => {
-    onClearAll?.();
-    handleClose();
+  const handleClearAll = async () => {
+    try {
+      await clearAllMutation.mutateAsync();
+      handleClose();
+      refetch();
+    } catch (error) {
+      console.error('Failed to clear all notifications:', error);
+    }
   };
 
   const getNotificationIcon = (type: Notification['type']) => {
@@ -126,9 +116,11 @@ const Notifications: React.FC<NotificationsProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: Date) => {
+  const formatTimestamp = (timestamp?: string) => {
+    if (!timestamp) return 'Just now';
     const now = new Date();
-    const diff = now.getTime() - timestamp.getTime();
+    const notificationDate = new Date(timestamp);
+    const diff = now.getTime() - notificationDate.getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
@@ -137,7 +129,7 @@ const Notifications: React.FC<NotificationsProps> = ({
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    return timestamp.toLocaleDateString();
+    return notificationDate.toLocaleDateString();
   };
 
   useEffect(() => {
@@ -263,7 +255,7 @@ const Notifications: React.FC<NotificationsProps> = ({
                 </Box>
               ))}
             </Box>
-          ) : mockNotifications.length === 0 ? (
+          ) : notifications.length === 0 ? (
             <Box className="!p-8 !text-center">
               <NotificationsIcon className="!text-gray-400 !mb-2" />
               <Typography variant="body2" className="!text-gray-500">
@@ -272,12 +264,12 @@ const Notifications: React.FC<NotificationsProps> = ({
             </Box>
           ) : (
             <>
-              {mockNotifications.map(notification => (
+              {notifications.map((notification: Notification) => (
                 <MenuItem
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`!px-4 !py-3 !border-b !border-gray-100 hover:!bg-gray-50 ${
-                    !notification.read ? '!bg-blue-50' : ''
+                    !notification.is_read ? '!bg-blue-50' : ''
                   }`}
                 >
                   <ListItemIcon className="!min-w-0 !mr-3">
@@ -289,14 +281,14 @@ const Notifications: React.FC<NotificationsProps> = ({
                         <Typography
                           variant="body2"
                           className={`!font-medium !text-sm ${
-                            !notification.read
+                            !notification.is_read
                               ? '!text-gray-900'
                               : '!text-gray-700'
                           }`}
                         >
                           {notification.title}
                         </Typography>
-                        {!notification.read && (
+                        {!notification.is_read && (
                           <Circle className="!text-blue-500 !text-xs" />
                         )}
                       </Box>
@@ -313,7 +305,7 @@ const Notifications: React.FC<NotificationsProps> = ({
                           variant="caption"
                           className="!text-xs !text-gray-400 !mt-1 !block"
                         >
-                          {formatTimestamp(notification.timestamp)}
+                          {formatTimestamp(notification.createdate)}
                         </Typography>
                       </>
                     }
@@ -324,7 +316,7 @@ const Notifications: React.FC<NotificationsProps> = ({
           )}
         </Box>
 
-        {mockNotifications.length > 0 && !isLoading && (
+        {notifications.length > 0 && !isLoading && (
           <>
             <Divider />
             <Box className="!px-4 !py-2 !flex !justify-center">

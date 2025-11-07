@@ -1,7 +1,6 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
-import { useCustomers } from 'hooks/useCustomers';
 import {
   useCreatePayment,
   useUpdatePayment,
@@ -11,6 +10,7 @@ import { useUsers } from 'hooks/useUsers';
 import React from 'react';
 import { paymentValidationSchema } from 'schemas/payment.schema';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -39,11 +39,9 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
   const updatePaymentMutation = useUpdatePayment();
 
   // Fetch data for dropdowns
-  const { data: customersResponse } = useCustomers({ limit: 1000 });
   const { data: usersResponse } = useUsers({ limit: 1000 });
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
 
-  const customers = customersResponse?.data || [];
   const users = usersResponse?.data || [];
   const currencies = currenciesResponse?.data || [];
 
@@ -104,20 +102,12 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             <Box className="md:!col-span-2">
-              <Select
+              <CustomerSelect
                 name="customer_id"
                 label="Customer"
                 formik={formik}
                 required
-                fullWidth
-              >
-                <MenuItem value="">Select Customer</MenuItem>
-                {customers.map(customer => (
-                  <MenuItem key={customer.id} value={customer.id.toString()}>
-                    {customer.name} ({customer.code})
-                  </MenuItem>
-                ))}
-              </Select>
+              />
             </Box>
 
             <Input

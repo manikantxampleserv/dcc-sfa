@@ -7,20 +7,19 @@ import {
 } from 'hooks/useCustomers';
 import React from 'react';
 import { customerValidationSchema } from 'schemas/customer.schema';
-import type { User } from 'services/masters/Users';
 import type { Route } from 'services/masters/Routes';
 import type { Zone } from 'services/masters/Zones';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import UserSelect from 'shared/UserSelect';
 
 interface ManageOutletProps {
   selectedOutlet?: Customer | null;
   setSelectedOutlet: (outlet: Customer | null) => void;
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
-  users: User[];
   routes: Route[];
   zones: Zone[];
 }
@@ -30,7 +29,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
   setSelectedOutlet,
   drawerOpen,
   setDrawerOpen,
-  users,
   routes,
   zones,
 }) => {
@@ -112,9 +110,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
     },
   });
 
-  // Show all users as potential salespeople
-  const salespeople = users;
-
   console.log(formik.errors);
 
   return (
@@ -188,17 +183,11 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               ))}
             </Select>
 
-            <Select name="salesperson_id" label="Salesperson" formik={formik}>
-              <MenuItem value="">Select Salesperson</MenuItem>
-              {salespeople.map(salesperson => (
-                <MenuItem
-                  key={salesperson.id}
-                  value={salesperson.id.toString()}
-                >
-                  {salesperson.name}
-                </MenuItem>
-              ))}
-            </Select>
+            <UserSelect
+              name="salesperson_id"
+              label="Salesperson"
+              formik={formik}
+            />
 
             <Input
               name="city"

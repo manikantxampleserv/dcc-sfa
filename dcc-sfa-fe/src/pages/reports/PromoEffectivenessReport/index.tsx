@@ -251,13 +251,13 @@ const PromoEffectivenessReport: React.FC = () => {
             type="date"
             label="Start Date"
             value={startDate}
-            onChange={e => setStartDate(e.target.value)}
+            setValue={setStartDate}
           />
           <Input
             type="date"
             label="End Date"
             value={endDate}
-            onChange={e => setEndDate(e.target.value)}
+            setValue={setEndDate}
           />
           <Select
             label="Depot"

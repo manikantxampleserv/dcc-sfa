@@ -9,6 +9,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import UserSelect from 'shared/UserSelect';
 
 interface Zone {
   id: number;
@@ -136,14 +137,11 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
             />
 
             {/* Salesperson Selection */}
-            <Select name="salesperson_id" label="Salesperson" formik={formik}>
-              <MenuItem value="">No Salesperson</MenuItem>
-              {users.map(user => (
-                <MenuItem key={user.id} value={user.id.toString()}>
-                  {user.name}
-                </MenuItem>
-              ))}
-            </Select>
+            <UserSelect
+              name="salesperson_id"
+              label="Salesperson"
+              formik={formik}
+            />
 
             {/* Start Location */}
             <Input

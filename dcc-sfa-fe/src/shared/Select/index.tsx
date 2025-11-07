@@ -67,6 +67,7 @@ interface CustomSelectProps extends Omit<MuiSelectProps, 'onChange'> {
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
   onChange?: (event: SelectChangeEvent<any>) => void;
+  placeholder?: string;
 }
 
 const Select: React.FC<CustomSelectProps> = ({
@@ -79,6 +80,7 @@ const Select: React.FC<CustomSelectProps> = ({
   required,
   children,
   fullWidth = false,
+  placeholder,
   onBlur,
   onChange,
   ...rest
@@ -119,6 +121,7 @@ const Select: React.FC<CustomSelectProps> = ({
         value={value || formik?.values[name] || ''}
         label={label}
         onChange={handleChange}
+        displayEmpty={!!placeholder}
         {...rest}
       >
         {children}

@@ -43,8 +43,8 @@ export const orderValidationSchema = yup.object().shape({
     .positive('Customer ID must be positive'),
   salesperson_id: yup
     .number()
-    .required('Salesperson is required')
-    .positive('Salesperson ID must be positive'),
+    .required('Sales Person is required')
+    .positive('Sales Person ID must be positive'),
   currency_id: yup.number().positive('Currency ID must be positive').nullable(),
   order_date: yup.string().nullable(),
   delivery_date: yup.string().nullable(),

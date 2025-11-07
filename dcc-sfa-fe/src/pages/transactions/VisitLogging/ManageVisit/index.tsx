@@ -1,16 +1,16 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCreateVisit, useUpdateVisit, type Visit } from 'hooks/useVisits';
-import { useCustomers } from 'hooks/useCustomers';
-import { useUsers } from 'hooks/useUsers';
 import { useRoutes } from 'hooks/useRoutes';
 import { useZones } from 'hooks/useZones';
 import React from 'react';
 import { visitValidationSchema } from 'schemas/visit.schema';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
 
 interface ManageVisitProps {
@@ -29,13 +29,9 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
   const isEdit = !!selectedVisit;
 
   // Fetch data using hooks
-  const customersResponse = useCustomers({ limit: 1000 }); // Get all customers
-  const usersResponse = useUsers({ limit: 1000 }); // Get all users
   const routesResponse = useRoutes({ limit: 1000 }); // Get all routes
   const zonesResponse = useZones({ limit: 1000 }); // Get all zones
 
-  const customers = customersResponse?.data?.data || [];
-  const users = usersResponse?.data?.data || [];
   const routes = routesResponse?.data?.data || [];
   const zones = zonesResponse?.data?.data || [];
 
@@ -121,33 +117,19 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select
+            <CustomerSelect
               name="customer_id"
               label="Customer"
               formik={formik}
               required
-            >
-              <MenuItem value="">Select Customer</MenuItem>
-              {customers.map(customer => (
-                <MenuItem key={customer.id} value={customer.id.toString()}>
-                  {customer.name} ({customer.code})
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
-            <Select
+            <UserSelect
               name="sales_person_id"
               label="Sales Person"
               formik={formik}
               required
-            >
-              <MenuItem value="">Select Sales Person</MenuItem>
-              {users.map(user => (
-                <MenuItem key={user.id} value={user.id.toString()}>
-                  {user.name} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <Select name="route_id" label="Route" formik={formik}>
               <MenuItem value="">Select Route</MenuItem>
@@ -201,6 +183,7 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
             <Input
               name="orders_created"
               label="Orders Created"
+              placeholder="Enter orders created"
               type="number"
               formik={formik}
             />
@@ -209,6 +192,7 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
               type="number"
               name="amount_collected"
               label="Amount Collected"
+              placeholder="Enter amount collected"
               formik={formik}
             />
 

@@ -238,32 +238,26 @@ const SalesVsTargetReport: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
-            </label>
             <Input
               type="date"
               value={startDate}
-              onChange={e => setStartDate(e.target.value)}
+              setValue={setStartDate}
               placeholder="Start Date"
+              label="Start Date"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date
-            </label>
             <Input
               type="date"
               value={endDate}
-              onChange={e => setEndDate(e.target.value)}
+              setValue={setEndDate}
               placeholder="End Date"
+              label="End Date"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sales Person
-            </label>
             <Select
+              label="Sales Person"
               fullWidth
               value={salespersonId ? salespersonId.toString() : 'all'}
               onChange={e =>
@@ -283,12 +277,10 @@ const SalesVsTargetReport: React.FC = () => {
             </Select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Product Category
-            </label>
             <Select
               value={categoryId ? categoryId.toString() : 'all'}
               fullWidth
+              label="Product Category"
               onChange={e =>
                 setCategoryId(
                   e.target.value === 'all'

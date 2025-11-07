@@ -16,6 +16,7 @@ import {
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import ManageProduct from './ManageProducts';
 import ImportProduct from './ImportProduct';
+import { formatDate } from 'utils/dateUtils';
 
 const ProductsManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -225,9 +226,7 @@ const ProductsManagement: React.FC = () => {
       label: 'Created',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-500">
-          {row.createdate
-            ? new Date(row.createdate).toLocaleDateString()
-            : 'N/A'}
+          {formatDate(row.createdate?.toString())}
         </Typography>
       ),
     },

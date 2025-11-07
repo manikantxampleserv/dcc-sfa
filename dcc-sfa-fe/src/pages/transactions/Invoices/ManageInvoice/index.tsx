@@ -1,7 +1,6 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
-import { useCustomers } from 'hooks/useCustomers';
 import {
   useCreateInvoice,
   useInvoice,
@@ -15,6 +14,7 @@ import { invoiceValidationSchema } from 'schemas/invoice.schema';
 import type { Invoice } from 'services/masters/Invoices';
 import { DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -43,13 +43,11 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const isEdit = !!invoice;
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItemFormData[]>([]);
 
-  const { data: customersResponse } = useCustomers({ limit: 1000 });
   const { data: productsResponse } = useProducts({ limit: 1000 });
   const { data: ordersResponse } = useOrders({ limit: 1000 });
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: invoiceResponse } = useInvoice(invoice?.id || 0);
 
-  const customers = customersResponse?.data || [];
   const products = productsResponse?.data || [];
   const orders = ordersResponse?.data || [];
   const currencies = currenciesResponse?.data || [];
@@ -383,18 +381,12 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               ))}
             </Select>
 
-            <Select
+            <CustomerSelect
               name="customer_id"
               label="Customer"
               formik={formik}
               required
-            >
-              {customers.map(customer => (
-                <MenuItem key={customer.id} value={customer.id}>
-                  {customer.name} ({customer.code})
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <Input
               name="invoice_date"

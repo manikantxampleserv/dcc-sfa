@@ -66,6 +66,8 @@ import reports from '../v1/routes/reports.routes';
 import gpsTracking from '../v1/routes/gpsTracking.routes';
 import auditLogs from '../v1/routes/auditLogs.routes';
 import executiveDashboard from '../v1/routes/executiveDashboard.routes';
+import approvalWorkflows from '../v1/routes/approvalWorkflows.routes';
+import notifications from '../v1/routes/notifications.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -134,6 +136,8 @@ routes.use('/v1/reports', reports);
 routes.use('/v1/tracking', gpsTracking);
 routes.use('/v1', auditLogs);
 routes.use('/v1', executiveDashboard);
+routes.use('/v1/approval-workflows', approvalWorkflows);
+routes.use('/v1/notifications', notifications);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

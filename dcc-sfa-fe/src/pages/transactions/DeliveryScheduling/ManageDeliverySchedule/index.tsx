@@ -12,6 +12,7 @@ import type { Vehicle } from 'services/masters/Vehicles';
 import type { Customer } from 'services/masters/Customers';
 import type { Order } from 'services/masters/Orders';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -163,19 +164,12 @@ const ManageDeliverySchedule: React.FC<ManageDeliveryScheduleProps> = ({
               ))}
             </Select>
 
-            <Select
+            <CustomerSelect
               name="customer_id"
               label="Customer"
               formik={formik}
               required
-            >
-              <MenuItem value="">Select Customer</MenuItem>
-              {customers.map(customer => (
-                <MenuItem key={customer.id} value={customer.id.toString()}>
-                  {customer.name}
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <Input
               name="scheduled_date"

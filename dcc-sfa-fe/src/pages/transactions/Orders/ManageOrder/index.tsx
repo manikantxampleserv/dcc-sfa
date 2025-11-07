@@ -1,20 +1,20 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
-import { useCustomers } from 'hooks/useCustomers';
 import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
 import { useProducts } from 'hooks/useProducts';
-import { useUsers } from 'hooks/useUsers';
 import { Package, Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import { orderValidationSchema } from 'schemas/order.schema';
 import type { Order } from 'services/masters/Orders';
 import { DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
+import UserSelect from 'shared/UserSelect';
 
 interface ManageOrderProps {
   open: boolean;
@@ -35,17 +35,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const isEdit = !!order;
   const [orderItems, setOrderItems] = useState<OrderItemFormData[]>([]);
 
-  const { data: customersResponse } = useCustomers({ limit: 1000 });
   const { data: productsResponse } = useProducts({ limit: 1000 });
-  const { data: usersResponse } = useUsers({ limit: 1000 });
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: orderResponse } = useOrder(order?.id || 0);
 
-  const customers = customersResponse?.data || [];
   const products = productsResponse?.data || [];
-  const users = usersResponse?.data || [];
   const currencies = currenciesResponse?.data || [];
-  const salespeople = users;
 
   const createOrderMutation = useCreateOrder();
   const updateOrderMutation = useUpdateOrder();
@@ -80,7 +75,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       order_number: order?.order_number || '',
       parent_id: order?.parent_id || '',
       salesperson_id: order?.salesperson_id || '',
-      currency_id: order?.currency_id || '8',
+      currency_id: order?.currency_id || '',
       order_date: order?.order_date ? order.order_date : '',
       delivery_date: order?.delivery_date ? order.delivery_date : '',
       status: order?.status || 'draft',
@@ -332,8 +327,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
 
   const totals = calculateOrderTotals();
 
-  console.log(formik.values);
-
   return (
     <CustomDrawer
       open={open}
@@ -352,28 +345,13 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 Order Information
               </Typography>
             </Box>
-
-            <Select name="parent_id" label="Customer" formik={formik} required>
-              {customers.map(customer => (
-                <MenuItem key={customer.id} value={customer.id}>
-                  {customer.name} ({customer.code})
-                </MenuItem>
-              ))}
-            </Select>
-
-            <Select
-              name="salesperson_id"
-              label="Salesperson"
+            <CustomerSelect
+              name="parent_id"
+              label="Customer"
               formik={formik}
               required
-            >
-              {salespeople.map(salesperson => (
-                <MenuItem key={salesperson.id} value={salesperson.id}>
-                  {salesperson.name}
-                </MenuItem>
-              ))}
-            </Select>
-
+            />
+            <UserSelect formik={formik} required />
             <Input
               name="order_date"
               label="Order Date"
@@ -382,7 +360,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               required
               slotProps={{ inputLabel: { shrink: true } }}
             />
-
             <Input
               name="delivery_date"
               label="Delivery Date"
@@ -390,7 +367,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               formik={formik}
               slotProps={{ inputLabel: { shrink: true } }}
             />
-
             <Select
               name="currency_id"
               label="Currency"
@@ -403,7 +379,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 </MenuItem>
               ))}
             </Select>
-
             <Select name="status" label="Status" formik={formik} required>
               <MenuItem value="draft">Draft</MenuItem>
               <MenuItem value="pending">Pending</MenuItem>
@@ -413,14 +388,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               <MenuItem value="delivered">Delivered</MenuItem>
               <MenuItem value="cancelled">Cancelled</MenuItem>
             </Select>
-
             <Select name="priority" label="Priority" formik={formik} required>
               <MenuItem value="low">Low</MenuItem>
               <MenuItem value="medium">Medium</MenuItem>
               <MenuItem value="high">High</MenuItem>
               <MenuItem value="urgent">Urgent</MenuItem>
             </Select>
-
             <Select
               name="order_type"
               label="Order Type"
@@ -432,7 +405,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               <MenuItem value="promotional">Promotional</MenuItem>
               <MenuItem value="sample">Sample</MenuItem>
             </Select>
-
             <Select
               name="payment_method"
               label="Payment Method"
@@ -444,14 +416,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               <MenuItem value="cheque">Cheque</MenuItem>
               <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
             </Select>
-
             <Input
               name="payment_terms"
               label="Payment Terms"
               placeholder="e.g., Net 30, COD"
               formik={formik}
             />
-
             <Box className="md:!col-span-2">
               <Input
                 name="shipping_address"
@@ -462,7 +432,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 rows={3}
               />
             </Box>
-
             <Box className="md:!col-span-2">
               <Input
                 name="notes"
