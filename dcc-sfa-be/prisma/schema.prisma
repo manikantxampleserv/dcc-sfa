@@ -78,7 +78,8 @@ model users {
   workflow_steps_workflow_steps_assigned_user_idTousers             workflow_steps[]             @relation("workflow_steps_assigned_user_idTousers")
   workflow_steps_workflow_steps_processed_byTousers                 workflow_steps[]             @relation("workflow_steps_processed_byTousers")
   approval_work_flow_approver                                       approval_work_flow[]         @relation("ApprovalWorkFlowApprover")
-sfa_d_requests_requester                                            sfa_d_requests[]             @relation("SfaDRequestsRequester")
+  sfa_d_requests_requester                                          sfa_d_requests[]             @relation("SfaDRequestsRequester")
+  sfa_d_requests_approvals_approver                                 sfa_d_request_approvals[]    @relation("SfaDRequetsApprovalsApprover")
 }
 
 model roles {
@@ -1947,37 +1948,50 @@ model approval_work_flow {
 }
 
 model sfa_d_requests {
-  id   Int @id @default(autoincrement())
-  requester_id   Int
-  request_type   String   @db.NVarChar(100)
-  request_data  String?    @db.NVarChar(Max)
-  status        String     @default("P") @db.Char(1)
-  reference_id   Int?
-  overall_status String?   @db.NVarChar(50)
-  createdate    DateTime?  @default(now())
-  createdby     Int
-  updatedate    DateTime?
-  updatedby     Int?
-  log_inst      Int?
-  sfa_d_requests_requester   users   @relation("SfaDRequestsRequester", fields: [requester_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  sfa_d_requests_approvals_request    sfa_d_requests_approval[]
-  }
+  id                               Int                       @id @default(autoincrement())
+  requester_id                     Int
+  request_type                     String                    @db.NVarChar(100)
+  request_data                     String?                   @db.NVarChar(Max)
+  status                           String                    @default("P") @db.Char(1)
+  reference_id                     Int?
+  overall_status                   String?                   @db.NVarChar(50)
+  createdate                       DateTime?                 @default(now())
+  createdby                        Int
+  updatedate                       DateTime?
+  updatedby                        Int?
+  log_inst                         Int?
+  sfa_d_requests_requester         users                     @relation("SfaDRequestsRequester", fields: [requester_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sfa_d_requests_approvals_request sfa_d_request_approvals[] @relation("SfaDRequetsApprovalsRequest")
+}
 
+model sfa_d_request_approvals {
+  id                                Int            @id @default(autoincrement())
+  request_id                        Int
+  approver_id                       Int
+  sequence                          Int
+  status                            String         @default("P") @db.Char(1)
+  remarks                           String?
+  action_at                         DateTime?
+  reference_id                      Int?
+  createdate                        DateTime?      @default(now())
+  createdby                         Int
+  updatedate                        DateTime?
+  updatedby                         Int?
+  log_inst                          Int?
+  sfa_d_requests_approvals_request  sfa_d_requests @relation("SfaDRequetsApprovalsRequest", fields: [request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sfa_d_requests_approvals_approver users          @relation("SfaDRequetsApprovalsApprover", fields: [approver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
 
-  model sfa_d_request_approvals{
-     id                        Int       @id @default(autoincrement())
-  request_id                Int
-  approver_id               Int
-  sequence                  Int
-  status                    String    @default("P") @db.Char(1)
-  remarks                   String?
-  action_at                 DateTime?
-  reference_id              Int?
-  createdate                DateTime? @default(now())
-  createdby                 Int
-  updatedate                DateTime?
-  updatedby                 Int?
-  log_inst                  Int?
-  sfa_d_requests_approvals_request  sfa_d_requests  @relation("SfaDRequetsApprovalsRequest", fields: [request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  sfa_d_requests_approvals_approver users @relation("SfaDRequetsApprovalsApprover", fields: [approver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  }
+model sfa_d_templates {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique @db.VarChar(50)
+  key        String    @unique @db.VarChar(100)
+  channel    String?   @db.VarChar(100)
+  type       String?   @db.VarChar(100)
+  subject    String    @db.VarChar(100)
+  body       String    @db.Text
+  createdate DateTime  @default(now()) @db.DateTime
+  createdby  Int
+  updatedate DateTime? @db.DateTime
+  updatedby  Int?
+}
