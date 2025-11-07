@@ -5,11 +5,11 @@ import {
   useUpdateCoolerInstallation,
   type CoolerInstallation,
 } from 'hooks/useCoolerInstallations';
-import { useCustomers } from 'hooks/useCustomers';
 import { useUsers } from 'hooks/useUsers';
 import React from 'react';
 import { coolerInstallationValidationSchema } from 'schemas/coolerInstallation.schema';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -38,11 +38,9 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
   const createCoolerInstallationMutation = useCreateCoolerInstallation();
   const updateCoolerInstallationMutation = useUpdateCoolerInstallation();
 
-  // Fetch customers and users for dropdowns
-  const { data: customersResponse } = useCustomers({ limit: 1000 });
+  // Fetch users for dropdowns
   const { data: usersResponse } = useUsers({ limit: 1000 });
 
-  const customers = customersResponse?.data || [];
   const users = usersResponse?.data || [];
 
   const formik = useFormik({
@@ -131,22 +129,12 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             {/* Customer Selection */}
             <Box className="md:!col-span-2">
-              <Select
+              <CustomerSelect
                 name="customer_id"
                 label="Customer"
                 formik={formik}
                 required
-                fullWidth
-              >
-                <MenuItem value="">
-                  <em>Select Customer</em>
-                </MenuItem>
-                {customers.map(customer => (
-                  <MenuItem key={customer.id} value={customer.id}>
-                    {customer.name} {customer.code && `(${customer.code})`}
-                  </MenuItem>
-                ))}
-              </Select>
+              />
             </Box>
 
             {/* Cooler Code */}

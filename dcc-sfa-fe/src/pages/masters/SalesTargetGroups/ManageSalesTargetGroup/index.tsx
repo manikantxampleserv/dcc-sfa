@@ -8,7 +8,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import { useUsers } from '../../../../hooks/useUsers';
+import UserSelect from 'shared/UserSelect';
 import {
   useCreateSalesTargetGroup,
   useSalesTargetGroup,
@@ -37,11 +37,7 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
   const isEdit = !!group;
   const [members, setMembers] = useState<MemberFormData[]>([]);
 
-  const { data: usersResponse } = useUsers({ limit: 1000 });
   const { data: groupResponse } = useSalesTargetGroup(group?.id || 0);
-
-  const users = usersResponse?.data || [];
-  const salespeople = users;
 
   const createGroupMutation = useCreateSalesTargetGroup();
   const updateGroupMutation = useUpdateSalesTargetGroup();
@@ -145,21 +141,16 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
       label: 'Sales Person',
       width: 300,
       render: (_value, row) => (
-        <Select
+        <UserSelect
+          name="sales_person_id"
+          label="Sales Person"
           value={row.sales_person_id}
-          onChange={e =>
-            updateMember(row._index, 'sales_person_id', e.target.value)
+          setValue={value =>
+            updateMember(row._index, 'sales_person_id', value.toString())
           }
           size="small"
           fullWidth
-          label="Sales Person"
-        >
-          {salespeople.map(salesperson => (
-            <MenuItem key={salesperson.id} value={salesperson.id}>
-              {salesperson.name}
-            </MenuItem>
-          ))}
-        </Select>
+        />
       ),
     },
     {

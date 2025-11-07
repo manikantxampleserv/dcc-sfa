@@ -1,5 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
+import {
+  createOrderApprovalWorkflow,
+  createOrderNotification,
+  createWorkflowNotification,
+} from '../../helpers';
 import { paginate } from '../../utils/paginate';
 
 const prisma = new PrismaClient();
@@ -227,7 +232,6 @@ async function generateOrderNumber(tx: any): Promise<string> {
 
   const timestamp = Date.now();
   const fallbackOrderNumber = `ORD-${timestamp}`;
-  console.log(' Using fallback order number:', fallbackOrderNumber);
   return fallbackOrderNumber;
 }
 
@@ -486,6 +490,159 @@ export const ordersController = {
           timeout: 20000,
         }
       );
+
+      // Create notifications after successful order creation/update
+      if (result) {
+        try {
+          const orderEvent = orderId ? 'updated' : 'created';
+          const orderCreatorId = result.createdby || userId;
+
+          // Notify the order creator
+          await createOrderNotification(
+            orderCreatorId,
+            result.id,
+            result.order_number || '',
+            orderEvent,
+            userId
+          );
+
+          // If order requires approval, create approval workflow and notify approvers
+          // Check if workflow already exists to prevent duplicates
+          const existingWorkflow = await prisma.approval_workflows.findFirst({
+            where: {
+              reference_type: 'order',
+              reference_number: result.order_number || '',
+              status: 'P',
+            },
+          });
+
+          if (
+            !existingWorkflow &&
+            (result.approval_status === 'pending' ||
+              result.approval_status === 'submitted')
+          ) {
+            try {
+              // Determine priority based on order amount or other criteria
+              let priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium';
+              if (result.total_amount) {
+                const totalAmount = Number(result.total_amount);
+                if (totalAmount >= 100000) {
+                  priority = 'urgent';
+                } else if (totalAmount >= 50000) {
+                  priority = 'high';
+                } else if (totalAmount >= 10000) {
+                  priority = 'medium';
+                } else {
+                  priority = 'low';
+                }
+              }
+
+              // Create approval workflow
+              const workflow = await createOrderApprovalWorkflow(
+                result.id,
+                result.order_number || '',
+                orderCreatorId,
+                priority,
+                {
+                  order_id: result.id,
+                  order_number: result.order_number,
+                  total_amount: result.total_amount,
+                  customer_id: result.parent_id,
+                  salesperson_id: result.salesperson_id,
+                },
+                userId
+              );
+
+              if (!workflow) {
+                throw new Error('Failed to create approval workflow');
+              }
+
+              // Get salesperson's manager or find approvers based on business logic
+              if (result.salesperson_id) {
+                const salesperson = await prisma.users.findUnique({
+                  where: { id: result.salesperson_id },
+                  include: {
+                    user_role: {
+                      include: {
+                        roles_permission: {
+                          include: {
+                            permission: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                });
+
+                // Find users who can approve (based on role or manager hierarchy)
+                const approvers: number[] = [];
+
+                // If salesperson has a parent (manager), add them as approver
+                if (salesperson?.parent_id) {
+                  approvers.push(salesperson.parent_id);
+                }
+
+                // Find users with Manager role for step 2
+                if (
+                  workflow.workflow_steps &&
+                  workflow.workflow_steps.length > 1
+                ) {
+                  const managerStep = workflow.workflow_steps.find(
+                    s => s.step_name === 'Manager Approval'
+                  );
+                  if (managerStep && managerStep.assigned_role) {
+                    const managers = await prisma.users.findMany({
+                      where: {
+                        user_role: {
+                          name: {
+                            contains: 'Manager',
+                          },
+                        },
+                        is_active: 'Y',
+                      },
+                      select: { id: true },
+                    });
+                    managers.forEach(m => {
+                      if (!approvers.includes(m.id)) {
+                        approvers.push(m.id);
+                      }
+                    });
+                  }
+                }
+
+                // Send notifications to all approvers
+                for (const approverId of approvers) {
+                  await createWorkflowNotification(
+                    approverId,
+                    workflow.id,
+                    result.order_number || '',
+                    'pending',
+                    userId
+                  );
+                }
+
+                // Also notify the order creator
+                await createWorkflowNotification(
+                  orderCreatorId,
+                  workflow.id,
+                  result.order_number || '',
+                  'created',
+                  userId
+                );
+              }
+            } catch (workflowError) {
+              // Log error but don't fail the order creation
+              console.error('Error creating approval workflow:', workflowError);
+            }
+          }
+        } catch (notificationError) {
+          // Log error but don't fail the order creation/update
+          console.error(
+            'Error creating order notification:',
+            notificationError
+          );
+        }
+      }
 
       res.status(orderId ? 200 : 201).json({
         message: orderId
@@ -772,6 +929,10 @@ export const ordersController = {
   async updateOrders(req: any, res: any) {
     try {
       const { id } = req.params;
+      const userId = req.user?.id || 1;
+      const { orderItems, order_items, ...orderData } = req.body;
+      const items = orderItems || order_items || [];
+
       const existingOrder = await prisma.orders.findUnique({
         where: { id: Number(id) },
       });
@@ -779,27 +940,275 @@ export const ordersController = {
       if (!existingOrder)
         return res.status(404).json({ message: 'Order not found' });
 
-      const data = {
-        ...req.body,
-        updatedate: new Date(),
-        updatedby: req.user?.id,
-      };
+      const result = await prisma.$transaction(
+        async tx => {
+          // Prepare order update data (excluding order_items)
+          const orderPayload = {
+            order_number: orderData.order_number,
+            parent_id: orderData.parent_id,
+            salesperson_id: orderData.salesperson_id,
+            currency_id: orderData.currency_id || null,
+            order_date: orderData.order_date
+              ? new Date(orderData.order_date)
+              : undefined,
+            delivery_date: orderData.delivery_date
+              ? new Date(orderData.delivery_date)
+              : undefined,
+            status: orderData.status,
+            priority: orderData.priority,
+            order_type: orderData.order_type,
+            payment_method: orderData.payment_method,
+            payment_terms: orderData.payment_terms,
+            subtotal: parseFloat(orderData.subtotal) || 0,
+            discount_amount: parseFloat(orderData.discount_amount) || 0,
+            tax_amount: parseFloat(orderData.tax_amount) || 0,
+            shipping_amount: parseFloat(orderData.shipping_amount) || 0,
+            total_amount: parseFloat(orderData.total_amount) || 0,
+            notes: orderData.notes || null,
+            shipping_address: orderData.shipping_address || null,
+            approval_status: orderData.approval_status,
+            is_active: orderData.is_active,
+            updatedate: new Date(),
+            updatedby: userId,
+            log_inst: { increment: 1 },
+          };
 
-      const order = await prisma.orders.update({
-        where: { id: Number(id) },
-        data,
-        include: {
-          orders_currencies: true,
-          orders_customers: true,
-          orders_salesperson_users: true,
-          order_items: true,
-          invoices: true,
+          // Update the order
+          const order = await tx.orders.update({
+            where: { id: Number(id) },
+            data: orderPayload,
+          });
+
+          // Handle order items if provided
+          if (Array.isArray(items) && items.length > 0) {
+            // Delete existing order items
+            await tx.order_items.deleteMany({
+              where: { parent_id: order.id },
+            });
+
+            // Create new order items
+            const itemsToCreate = items.map((item: any) => {
+              const unitPrice = parseFloat(
+                item.unit_price || item.price || '0'
+              );
+              const quantity = parseInt(item.quantity) || 1;
+              const discountAmount = parseFloat(item.discount_amount || '0');
+              const taxAmount = parseFloat(item.tax_amount || '0');
+              const totalAmount = item.total_amount
+                ? parseFloat(item.total_amount)
+                : unitPrice * quantity - discountAmount + taxAmount;
+
+              return {
+                parent_id: order.id,
+                product_id: item.product_id,
+                product_name: item.product_name || null,
+                unit: item.unit || null,
+                quantity: quantity,
+                unit_price: unitPrice,
+                discount_amount: discountAmount,
+                tax_amount: taxAmount,
+                total_amount: totalAmount,
+                notes: item.notes || null,
+              };
+            });
+
+            await tx.order_items.createMany({
+              data: itemsToCreate,
+            });
+          }
+
+          // Fetch the complete order with relations
+          const finalOrder = await tx.orders.findUnique({
+            where: { id: order.id },
+            include: {
+              orders_currencies: true,
+              orders_customers: true,
+              orders_salesperson_users: true,
+              order_items: true,
+              invoices: true,
+            },
+          });
+
+          return finalOrder;
         },
-      });
+        {
+          maxWait: 10000,
+          timeout: 20000,
+        }
+      );
+
+      // Create notification after successful order update
+      if (result) {
+        try {
+          const orderCreatorId = result.createdby || userId;
+          const previousApprovalStatus = existingOrder.approval_status;
+
+          // Notify the order creator about the update
+          await createOrderNotification(
+            orderCreatorId,
+            result.id,
+            result.order_number || '',
+            'updated',
+            userId
+          );
+
+          // If order status changed to cancelled or rejected, notify
+          if (
+            result.status === 'cancelled' ||
+            result.approval_status === 'rejected'
+          ) {
+            await createOrderNotification(
+              orderCreatorId,
+              result.id,
+              result.order_number || '',
+              result.status === 'cancelled' ? 'cancelled' : 'rejected',
+              userId
+            );
+          }
+
+          // If approval_status changed from non-pending to pending/submitted, create workflow
+          if (
+            previousApprovalStatus !== 'pending' &&
+            previousApprovalStatus !== 'submitted' &&
+            (result.approval_status === 'pending' ||
+              result.approval_status === 'submitted')
+          ) {
+            // Check if workflow already exists
+            const existingWorkflow = await prisma.approval_workflows.findFirst({
+              where: {
+                reference_type: 'order',
+                reference_number: result.order_number || '',
+                status: {
+                  in: ['pending', 'in_progress'],
+                },
+              },
+            });
+
+            if (!existingWorkflow) {
+              try {
+                // Determine priority based on order amount
+                let priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium';
+                if (result.total_amount) {
+                  const totalAmount = Number(result.total_amount);
+                  if (totalAmount >= 100000) {
+                    priority = 'urgent';
+                  } else if (totalAmount >= 50000) {
+                    priority = 'high';
+                  } else if (totalAmount >= 10000) {
+                    priority = 'medium';
+                  } else {
+                    priority = 'low';
+                  }
+                }
+
+                // Create approval workflow
+                const workflow = await createOrderApprovalWorkflow(
+                  result.id,
+                  result.order_number || '',
+                  orderCreatorId,
+                  priority,
+                  {
+                    order_id: result.id,
+                    order_number: result.order_number,
+                    total_amount: result.total_amount,
+                    customer_id: result.parent_id,
+                    salesperson_id: result.salesperson_id,
+                  },
+                  userId
+                );
+
+                if (workflow) {
+                  // Get salesperson's manager or find approvers
+                  if (result.salesperson_id) {
+                    const salesperson = await prisma.users.findUnique({
+                      where: { id: result.salesperson_id },
+                      include: {
+                        user_role: {
+                          include: {
+                            roles_permission: {
+                              include: {
+                                permission: true,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    });
+
+                    const approvers: number[] = [];
+
+                    if (salesperson?.parent_id) {
+                      approvers.push(salesperson.parent_id);
+                    }
+
+                    if (
+                      workflow.workflow_steps &&
+                      workflow.workflow_steps.length > 1
+                    ) {
+                      const managerStep = workflow.workflow_steps.find(
+                        s => s.step_name === 'Manager Approval'
+                      );
+                      if (managerStep && managerStep.assigned_role) {
+                        const managers = await prisma.users.findMany({
+                          where: {
+                            user_role: {
+                              name: {
+                                contains: 'Manager',
+                              },
+                            },
+                            is_active: 'Y',
+                          },
+                          select: { id: true },
+                        });
+                        managers.forEach(m => {
+                          if (!approvers.includes(m.id)) {
+                            approvers.push(m.id);
+                          }
+                        });
+                      }
+                    }
+
+                    // Send notifications to approvers
+                    for (const approverId of approvers) {
+                      await createWorkflowNotification(
+                        approverId,
+                        workflow.id,
+                        result.order_number || '',
+                        'pending',
+                        userId
+                      );
+                    }
+
+                    // Notify the order creator
+                    await createWorkflowNotification(
+                      orderCreatorId,
+                      workflow.id,
+                      result.order_number || '',
+                      'created',
+                      userId
+                    );
+                  }
+                }
+              } catch (workflowError) {
+                console.error(
+                  'Error creating approval workflow:',
+                  workflowError
+                );
+              }
+            }
+          }
+        } catch (notificationError) {
+          // Log error but don't fail the order update
+          console.error(
+            'Error creating order notification:',
+            notificationError
+          );
+        }
+      }
 
       res.json({
         message: 'Order updated successfully',
-        data: serializeOrder(order),
+        data: serializeOrder(result),
       });
     } catch (error: any) {
       console.error('Update Order Error:', error);

@@ -37,12 +37,12 @@
  * export default MyComponent;
  * ```
  */
-import { IconButton, TextField, type TextFieldProps } from '@mui/material';
-import { DatePicker, TimePicker, DateTimePicker } from '@mui/x-date-pickers';
-import React from 'react';
-import type { FormikProps } from 'formik';
 import { Search, Visibility, VisibilityOff } from '@mui/icons-material';
+import { IconButton, TextField, type TextFieldProps } from '@mui/material';
+import { DatePicker, DateTimePicker, TimePicker } from '@mui/x-date-pickers';
 import dayjs, { type Dayjs } from 'dayjs';
+import type { FormikProps } from 'formik';
+import React from 'react';
 
 interface InputProps extends Omit<TextFieldProps, 'onChange'> {
   formik?: FormikProps<any>;
@@ -207,6 +207,7 @@ const Input: React.FC<InputProps> = ({
             ? 'text'
             : 'password'
       }
+      label={label}
       size={size}
       name={name}
       slotProps={{

@@ -30,6 +30,9 @@ const PopConfirm: React.FC<PopConfirmProps> = ({
   disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [actualPlacement, setActualPlacement] = useState<'top' | 'bottom'>(
+    placement
+  );
   const [position, setPosition] = useState<Position>({
     top: 0,
     left: 0,
@@ -75,12 +78,13 @@ const PopConfirm: React.FC<PopConfirmProps> = ({
       const viewportPadding = 16; // Padding from viewport edges
 
       let top: number, left: number;
+      let actualPlacementValue: 'top' | 'bottom' = placement;
 
-      // Calculate button center position
+      // Calculate button center position (more accurate)
       const buttonCenterX = rect.left + rect.width / 2;
 
-      // Dynamic spacing based on placement
-      const spacing = placement === 'top' ? 12 : 12;
+      // Dynamic spacing based on placement - reduced for better alignment
+      const spacing = 8;
 
       // For fixed positioning, use viewport coordinates (no scroll offset needed)
       if (placement === 'top') {
@@ -88,10 +92,16 @@ const PopConfirm: React.FC<PopConfirmProps> = ({
         // If popover would go above viewport, place it below instead
         if (top < viewportPadding) {
           top = rect.bottom + spacing;
+          actualPlacementValue = 'bottom';
         }
         left = buttonCenterX - popoverWidth / 2;
       } else {
         top = rect.bottom + spacing;
+        // If popover would go below viewport, place it above instead
+        if (top + popoverHeight > window.innerHeight - viewportPadding) {
+          top = rect.top - popoverHeight - spacing;
+          actualPlacementValue = 'top';
+        }
         left = buttonCenterX - popoverWidth / 2;
       }
 
@@ -104,15 +114,25 @@ const PopConfirm: React.FC<PopConfirmProps> = ({
       const adjustedLeft = Math.max(minLeft, Math.min(left, maxLeft));
 
       // Calculate arrow position relative to the button center
+      // Use the actual button center, not the adjusted popover position
       const arrowLeft = buttonCenterX - adjustedLeft;
 
       // Ensure arrow stays within popover bounds (with padding from edges)
-      const arrowPadding = 24;
-      const clampedArrowLeft = Math.max(
+      // Reduced padding to allow arrow to get closer to button center
+      const arrowPadding = 16;
+      let clampedArrowLeft = Math.max(
         arrowPadding,
         Math.min(arrowLeft, popoverWidth - arrowPadding)
       );
 
+      // If popover was adjusted horizontally, try to keep arrow aligned with button
+      // Only clamp if absolutely necessary to stay within bounds
+      if (Math.abs(arrowLeft - clampedArrowLeft) > 5) {
+        // Arrow was significantly clamped, try to keep it closer to center
+        clampedArrowLeft = Math.max(12, Math.min(arrowLeft, popoverWidth - 12));
+      }
+
+      setActualPlacement(actualPlacementValue);
       setPosition({
         top,
         left: adjustedLeft,
@@ -180,28 +200,28 @@ const PopConfirm: React.FC<PopConfirmProps> = ({
           {/* Arrow */}
           <div
             className={`absolute w-0 h-0 border-l-[8px] border-r-[8px] border-transparent ${
-              placement === 'top'
-                ? 'border-t-[8px] border-t-white -bottom-[7px]'
-                : 'border-b-[8px] border-b-white -top-[7px]'
+              actualPlacement === 'top'
+                ? 'border-t-[8px] border-t-white -bottom-[8px]'
+                : 'border-b-[8px] border-b-white -top-[8px]'
             }`}
             style={{
               left: `${position.arrowLeft}px`,
               transform: 'translateX(-50%)',
-              // filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))',
+              zIndex: 10,
             }}
           />
 
           {/* Arrow border/shadow */}
           <div
             className={`absolute w-0 h-0 border-l-[9px] border-r-[9px] border-transparent ${
-              placement === 'top'
-                ? 'border-t-[9px] border-t-gray-200 -bottom-[8px]'
-                : 'border-b-[9px] border-b-gray-200 -top-[8px]'
+              actualPlacement === 'top'
+                ? 'border-t-[9px] border-t-gray-200 -bottom-[9px]'
+                : 'border-b-[9px] border-b-gray-200 -top-[9px]'
             }`}
             style={{
               left: `${position.arrowLeft}px`,
               transform: 'translateX(-50%)',
-              zIndex: -1,
+              zIndex: 9,
             }}
           />
 

@@ -212,7 +212,7 @@ const VisitLogging: React.FC = () => {
             <Box className="flex items-center gap-1 mb-1">
               <Calendar className="w-3 h-3 text-gray-400" />
               <Typography variant="caption" className="!text-gray-600">
-                {new Date(row.visit_date).toLocaleDateString()}
+                {formatDate(row.visit_date)}
               </Typography>
             </Box>
           )}

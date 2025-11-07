@@ -5,11 +5,11 @@ import {
   useUpdateCompetitorActivity,
   type CompetitorActivity,
 } from 'hooks/useCompetitorActivity';
-import { useCustomers } from 'hooks/useCustomers';
 import { useVisits } from 'hooks/useVisits';
 import React from 'react';
 import { competitorActivityValidationSchema } from 'schemas/competitorActivity.schema';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -28,13 +28,6 @@ const ManageCompetitorActivity: React.FC<ManageCompetitorActivityProps> = ({
   setDrawerOpen,
 }) => {
   const isEdit = !!selectedActivity;
-
-  const { data: customersResponse } = useCustomers({
-    page: 1,
-    limit: 1000,
-    isActive: 'Y',
-  });
-  const customers = customersResponse?.data || [];
 
   const { data: visitsResponse } = useVisits({
     page: 1,
@@ -111,23 +104,12 @@ const ManageCompetitorActivity: React.FC<ManageCompetitorActivityProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select
+            <CustomerSelect
               name="customer_id"
               label="Customer"
               formik={formik}
               required
-            >
-              <MenuItem value="">Select Customer</MenuItem>
-              {customers.map(customer => (
-                <MenuItem
-                  key={customer.id}
-                  value={customer.id?.toString() || ''}
-                >
-                  {customer.name} ({customer.code || `Customer #${customer.id}`}
-                  )
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <Select name="visit_id" label="Visit (Optional)" formik={formik}>
               <MenuItem value="">No Visit</MenuItem>

@@ -199,7 +199,7 @@ const ActivityLogs: React.FC = () => {
             <Input
               type="date"
               value={startDate}
-              onChange={e => setStartDate(e.target.value)}
+              setValue={setStartDate}
               placeholder="Start Date"
               label="Start Date"
             />
@@ -208,7 +208,7 @@ const ActivityLogs: React.FC = () => {
             <Input
               type="date"
               value={endDate}
-              onChange={e => setEndDate(e.target.value)}
+              setValue={setEndDate}
               placeholder="End Date"
               label="End Date"
             />

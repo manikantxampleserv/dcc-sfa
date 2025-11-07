@@ -211,13 +211,13 @@ const CompetitorAnalysisReport: React.FC = () => {
             type="date"
             label="Start Date"
             value={startDate}
-            onChange={e => setStartDate(e.target.value)}
+            setValue={setStartDate}
           />
           <Input
             type="date"
             label="End Date"
             value={endDate}
-            onChange={e => setEndDate(e.target.value)}
+            setValue={setEndDate}
           />
           <Select
             label="Customer"
@@ -240,7 +240,7 @@ const CompetitorAnalysisReport: React.FC = () => {
           <Input
             label="Brand Name"
             value={brandName}
-            onChange={e => setBrandName(e.target.value)}
+            setValue={setBrandName}
             placeholder="Search by brand"
           />
         </div>

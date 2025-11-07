@@ -29,6 +29,7 @@ const Sidebar = () => {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [lastSearchQuery, setLastSearchQuery] = useState('');
 
   const toggleSection = useCallback(
     (sectionId: string) => {
@@ -66,32 +67,51 @@ const Sidebar = () => {
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearchQuery(value);
-      if (value.trim()) {
-        const findFirstMatchingSection = (items: MenuItem[]): string | null => {
-          for (const item of items) {
-            if (item.children && item.children.length > 0) {
-              const hasMatchingChild = item.children.some(child =>
-                child.label.toLowerCase().includes(value.toLowerCase())
-              );
-              if (hasMatchingChild) {
-                return item.id;
+
+      const normalizedValue = value.trim().toLowerCase();
+      const normalizedLastQuery = lastSearchQuery.trim().toLowerCase();
+
+      if (normalizedValue && normalizedValue !== normalizedLastQuery) {
+        const findMatchingSections = (items: MenuItem[]): string[] => {
+          const matchingSections: string[] = [];
+
+          const traverse = (menuItems: MenuItem[]) => {
+            menuItems.forEach(item => {
+              if (item.children && item.children.length > 0) {
+                const hasMatchingChild = item.children.some(child =>
+                  child.label.toLowerCase().includes(normalizedValue)
+                );
+                const parentMatches = item.label
+                  .toLowerCase()
+                  .includes(normalizedValue);
+
+                if (hasMatchingChild || parentMatches) {
+                  matchingSections.push(item.id);
+                }
+                traverse(item.children);
               }
-              const nestedMatch = findFirstMatchingSection(item.children);
-              if (nestedMatch) {
-                return nestedMatch;
-              }
-            }
-          }
-          return null;
+            });
+          };
+
+          traverse(items);
+          return matchingSections;
         };
 
-        const firstMatchingSection = findFirstMatchingSection(menuItems);
-        if (firstMatchingSection && firstMatchingSection !== activeSection) {
-          setActiveSection(firstMatchingSection);
+        const matchingSections = findMatchingSections(menuItems);
+
+        if (matchingSections.length > 0) {
+          const firstMatchingSection = matchingSections[0];
+          if (!activeSection || !matchingSections.includes(activeSection)) {
+            setActiveSection(firstMatchingSection);
+          }
         }
+
+        setLastSearchQuery(value);
+      } else if (!normalizedValue) {
+        setLastSearchQuery('');
       }
     },
-    [setActiveSection, activeSection]
+    [setActiveSection, activeSection, lastSearchQuery]
   );
 
   const handleSearchEnter = useCallback(
