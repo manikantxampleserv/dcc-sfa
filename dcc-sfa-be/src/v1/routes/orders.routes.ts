@@ -38,4 +38,10 @@ router.delete(
   ordersController.deleteOrders
 );
 
+router.get(
+  '/orders/order-items/:id',
+  authenticateToken,
+  ordersController.getOrdersOrderItemsByOrderId
+);
+
 export default router;

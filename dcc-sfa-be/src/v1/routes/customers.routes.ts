@@ -34,4 +34,10 @@ router.delete(
   customerController.deleteCustomers
 );
 
+router.post(
+  '/customers/bulk-upsert',
+  authenticateToken,
+  auditCreate('customers'),
+  customerController.bulkUpsertCustomers
+);
 export default router;
