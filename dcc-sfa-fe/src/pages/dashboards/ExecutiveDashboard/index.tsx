@@ -8,29 +8,39 @@ import {
   FaUsers,
 } from 'react-icons/fa';
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ComposedChart,
-  Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
   Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+  Legend,
+  Filler,
+} from 'chart.js';
+import { Line, Bar, Doughnut, Pie, Chart } from 'react-chartjs-2';
 import {
   useDashboardStatistics,
   useOrderStatus,
   useSalesPerformance,
   useTopProducts,
 } from '../../../hooks/useExecutiveDashboard';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const ExecutiveDashboard: React.FC = () => {
   const { data: stats, isLoading: statsLoading } = useDashboardStatistics();
@@ -143,46 +153,111 @@ const ExecutiveDashboard: React.FC = () => {
     },
   ];
 
-  // Transform data for Recharts LineChart
-  const lineChartData =
-    salesData?.labels.map((label, index) => ({
-      date: label,
-      sales: salesData?.sales[index] || 0,
-    })) || [];
+  // Transform data for Chart.js Line Chart
+  const lineChartLabels = salesData?.labels || [];
+  const lineChartDataValue = {
+    labels: lineChartLabels,
+    datasets: [
+      {
+        label: 'Daily Sales',
+        data: salesData?.sales || [],
+        borderColor: CHART_COLORS.primary,
+        backgroundColor: CHART_COLORS.primary + '20',
+        tension: 0.4,
+        fill: false,
+      },
+    ],
+  };
 
-  // Transform data for Recharts PieChart (Order Status)
-  const pieChartData =
-    orderStatus?.labels.map((label, index) => ({
-      name: label?.charAt(0).toUpperCase() + label?.slice(1),
-      value: orderStatus.values[index],
-    })) || [];
+  // Transform data for Chart.js Doughnut Chart (Order Status)
+  const pieChartLabels =
+    orderStatus?.labels.map(
+      label => label?.charAt(0).toUpperCase() + label?.slice(1)
+    ) || [];
+  const pieChartDataValue = {
+    labels: pieChartLabels,
+    datasets: [
+      {
+        data: orderStatus?.values || [],
+        backgroundColor: [
+          CHART_COLORS.primary,
+          CHART_COLORS.success,
+          CHART_COLORS.warning,
+          CHART_COLORS.danger,
+          CHART_COLORS.purple,
+        ],
+        borderWidth: 0,
+      },
+    ],
+  };
 
-  // Transform data for Recharts BarChart
-  const barChartData =
-    topProducts?.products.map((product, index) => ({
-      name: product.length > 15 ? product.substring(0, 15) + '...' : product,
-      fullName: product,
-      quantity: topProducts.quantities[index] || 0,
-    })) || [];
+  // Transform data for Chart.js Bar Chart
+  const barChartLabels =
+    topProducts?.products.map(product =>
+      product.length > 15 ? product.substring(0, 15) + '...' : product
+    ) || [];
+  const barChartFullNames = topProducts?.products || [];
+  const barChartDataValue = {
+    labels: barChartLabels,
+    datasets: [
+      {
+        label: 'Units Sold',
+        data: topProducts?.quantities || [],
+        backgroundColor: CHART_COLORS.primary,
+        borderColor: CHART_COLORS.primary,
+        borderWidth: 1,
+      },
+    ],
+  };
 
-  // Area chart data (revenue trend)
-  const areaChartData = lineChartData.map(d => ({
-    date: d.date,
-    revenue: d.sales,
-  }));
+  // Area chart data (revenue trend) - Line chart with fill
+  const areaChartDataValue = {
+    labels: lineChartLabels,
+    datasets: [
+      {
+        label: 'Revenue',
+        data: salesData?.sales || [],
+        borderColor: CHART_COLORS.success,
+        backgroundColor: CHART_COLORS.success + '40',
+        tension: 0.4,
+        fill: true,
+      },
+    ],
+  };
 
   // Composed chart data (Sales vs Average Orders per day)
-  // Use average daily orders from stats if available
   const averageDailyOrders = stats
-    ? Math.round(stats.totalOrders.value / Math.max(lineChartData.length, 1))
+    ? Math.round(stats.totalOrders.value / Math.max(lineChartLabels.length, 1))
     : 0;
-  const composedChartData = lineChartData.map((d, index) => ({
-    date: d.date,
-    sales: d.sales,
-    orders: averageDailyOrders + (index % 3), // Add slight variation for visualization
-  }));
+  const ordersData = lineChartLabels.map(
+    (_, index) => averageDailyOrders + (index % 3)
+  );
+  const composedChartDataValue = {
+    labels: lineChartLabels,
+    datasets: [
+      {
+        label: 'Sales (₹)',
+        data: salesData?.sales || [],
+        type: 'bar' as const,
+        backgroundColor: CHART_COLORS.warning,
+        borderColor: CHART_COLORS.warning,
+        borderWidth: 1,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Orders',
+        data: ordersData,
+        type: 'line' as const,
+        borderColor: CHART_COLORS.danger,
+        backgroundColor: CHART_COLORS.danger + '20',
+        tension: 0.4,
+        fill: false,
+        yAxisID: 'y1',
+      },
+    ],
+  };
 
-  // Revenue distribution (if we have revenue data)
+  // Revenue distribution (Pie chart)
   const revenueDistributionData = stats
     ? [
         {
@@ -204,23 +279,145 @@ const ExecutiveDashboard: React.FC = () => {
         },
       ].filter(item => item.value > 0)
     : [];
-
-  // Pie chart colors
-  const PIE_COLORS = [
-    CHART_COLORS.primary,
-    CHART_COLORS.success,
-    CHART_COLORS.warning,
-    CHART_COLORS.danger,
-    CHART_COLORS.purple,
-  ];
+  const revenueDistributionChartData = {
+    labels: revenueDistributionData.map(d => d.name),
+    datasets: [
+      {
+        data: revenueDistributionData.map(d => d.value),
+        backgroundColor: [CHART_COLORS.success, CHART_COLORS.warning],
+        borderWidth: 0,
+      },
+    ],
+  };
 
   // Check if charts have valid data
-  const hasLineChartData = lineChartData.length > 0;
-  const hasPieChartData = pieChartData.length > 0;
-  const hasBarChartData = barChartData.length > 0;
-  const hasAreaChartData = areaChartData.length > 0;
-  const hasComposedChartData = composedChartData.length > 0;
+  const hasLineChartData = lineChartLabels.length > 0;
+  const hasPieChartData = pieChartLabels.length > 0;
+  const hasBarChartData = barChartLabels.length > 0;
+  const hasAreaChartData = lineChartLabels.length > 0;
+  const hasComposedChartData = lineChartLabels.length > 0;
   const hasRevenueDistributionData = revenueDistributionData.length > 0;
+
+  // Common chart options
+  const commonChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+    },
+  };
+
+  const lineChartOptions = {
+    ...commonChartOptions,
+    plugins: {
+      ...commonChartOptions.plugins,
+      tooltip: {
+        callbacks: {
+          label: (context: any) => `Daily Sales: ${context.parsed.y}`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          maxRotation: 45,
+          minRotation: 45,
+        },
+      },
+    },
+  };
+
+  const barChartOptions = {
+    ...commonChartOptions,
+    plugins: {
+      ...commonChartOptions.plugins,
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            const index = context.dataIndex;
+            const fullName = barChartFullNames[index];
+            return `${fullName || context.dataset.label}: ${context.parsed.y}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          maxRotation: 45,
+          minRotation: 45,
+        },
+      },
+    },
+  };
+
+  const doughnutChartOptions = {
+    ...commonChartOptions,
+    plugins: {
+      ...commonChartOptions.plugins,
+      legend: {
+        position: 'bottom' as const,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            const total = context.dataset.data.reduce(
+              (a: number, b: number) => a + b,
+              0
+            );
+            const percentage = ((context.parsed / total) * 100).toFixed(1);
+            return `${context.label}: ${context.parsed} (${percentage}%)`;
+          },
+        },
+      },
+    },
+  };
+
+  const pieChartOptions = {
+    ...commonChartOptions,
+    plugins: {
+      ...commonChartOptions.plugins,
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            const total = context.dataset.data.reduce(
+              (a: number, b: number) => a + b,
+              0
+            );
+            const percentage = ((context.parsed / total) * 100).toFixed(0);
+            return `${context.label}: ${percentage}%`;
+          },
+        },
+      },
+    },
+  };
+
+  const composedChartOptions = {
+    ...commonChartOptions,
+    scales: {
+      x: {
+        ticks: {
+          maxRotation: 45,
+          minRotation: 45,
+        },
+      },
+      y: {
+        type: 'linear' as const,
+        display: true,
+        position: 'left' as const,
+      },
+      y1: {
+        type: 'linear' as const,
+        display: true,
+        position: 'right' as const,
+        grid: {
+          drawOnChartArea: false,
+        },
+      },
+    },
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -311,27 +508,7 @@ const ExecutiveDashboard: React.FC = () => {
               </div>
             ) : hasLineChartData ? (
               <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={lineChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="sales"
-                      stroke={CHART_COLORS.primary}
-                      strokeWidth={2}
-                      name="Daily Sales"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <Line data={lineChartDataValue} options={lineChartOptions} />
               </div>
             ) : (
               <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
@@ -357,48 +534,10 @@ const ExecutiveDashboard: React.FC = () => {
               </div>
             ) : hasPieChartData ? (
               <div className="h-72 w-full flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieChartData}
-                      cx="50%"
-                      cy="45%"
-                      labelLine={false}
-                      outerRadius={70}
-                      innerRadius={30}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {pieChartData.map((_, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={PIE_COLORS[index % PIE_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number) => [
-                        `${value} (${((value / pieChartData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1)}%)`,
-                        'Count',
-                      ]}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      formatter={value => {
-                        const item = pieChartData.find(d => d.name === value);
-                        const total = pieChartData.reduce(
-                          (sum, d) => sum + d.value,
-                          0
-                        );
-                        const percent = item
-                          ? ((item.value / total) * 100).toFixed(0)
-                          : '0';
-                        return `${value} (${percent}%)`;
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Doughnut
+                  data={pieChartDataValue}
+                  options={doughnutChartOptions}
+                />
               </div>
             ) : (
               <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
@@ -426,30 +565,7 @@ const ExecutiveDashboard: React.FC = () => {
               </div>
             ) : (
               <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="name"
-                      angle={-45}
-                      textAnchor="end"
-                      height={100}
-                    />
-                    <YAxis />
-                    <Tooltip
-                      formatter={(value: number, name: string, props: any) => [
-                        value,
-                        props.payload.fullName || name,
-                      ]}
-                    />
-                    <Legend />
-                    <Bar
-                      dataKey="quantity"
-                      fill={CHART_COLORS.primary}
-                      name="Units Sold"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <Bar data={barChartDataValue} options={barChartOptions} />
               </div>
             )}
           </div>
@@ -466,48 +582,7 @@ const ExecutiveDashboard: React.FC = () => {
               </div>
             ) : (
               <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={areaChartData}>
-                    <defs>
-                      <linearGradient
-                        id="colorRevenue"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor={CHART_COLORS.success}
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor={CHART_COLORS.success}
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke={CHART_COLORS.success}
-                      fillOpacity={1}
-                      fill="url(#colorRevenue)"
-                      name="Revenue"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <Line data={areaChartDataValue} options={lineChartOptions} />
               </div>
             )}
           </div>
@@ -525,35 +600,11 @@ const ExecutiveDashboard: React.FC = () => {
             </div>
           ) : (
             <div className="h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={composedChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Legend />
-                  <Bar
-                    yAxisId="left"
-                    dataKey="sales"
-                    fill={CHART_COLORS.warning}
-                    name="Sales (₹)"
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="orders"
-                    stroke={CHART_COLORS.danger}
-                    strokeWidth={2}
-                    name="Orders"
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
+              <Chart
+                type="bar"
+                data={composedChartDataValue as any}
+                options={composedChartOptions}
+              />
             </div>
           )}
         </div>
@@ -566,26 +617,10 @@ const ExecutiveDashboard: React.FC = () => {
               Revenue vs Target
             </h3>
             <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={revenueDistributionData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={(props: any) =>
-                      `${props.name}: ${((props.percent || 0) * 100).toFixed(0)}%`
-                    }
-                  >
-                    <Cell fill={CHART_COLORS.success} />
-                    <Cell fill={CHART_COLORS.warning} />
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <Pie
+                data={revenueDistributionChartData}
+                options={pieChartOptions}
+              />
             </div>
           </div>
 

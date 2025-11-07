@@ -8,13 +8,12 @@ import {
   ListItemIcon,
   ListItemText,
   Tooltip,
-  Typography,
 } from '@mui/material';
+import { useLocalStorage } from 'hooks/useLocalStorage';
 import menuItems, { type MenuItem } from 'mock/sidebar';
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import SearchInput from 'shared/SearchInput';
-import { useLocalStorage } from 'hooks/useLocalStorage';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -270,17 +269,26 @@ const Sidebar = () => {
       }`}
     >
       <div
-        className={`!p-4 !border-b !border-gray-200 !flex !items-center ${
+        className={`!p-3 !border-b !border-gray-200 !flex !items-center ${
           isCollapsed ? '!justify-center' : '!justify-between'
         }`}
       >
         {!isCollapsed && (
-          <Typography
-            variant="h6"
-            className="!font-bold !text-blue-600 !text-xl"
-          >
-            DCC-SFA
-          </Typography>
+          <div className="flex items-center gap-3">
+            <img
+              src="/sfa.png"
+              alt="DCC-SFA Logo"
+              className="h-[42px] w-auto object-contain"
+            />
+            <div className="flex flex-col">
+              <span className="!font-bold text-[#004080] !text-xl leading-tight">
+                DCC-SFA
+              </span>
+              <span className="!font-medium text-[#666666] !text-xs leading-tight">
+                Your Reliable IT Partner
+              </span>
+            </div>
+          </div>
         )}
 
         <Tooltip title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
