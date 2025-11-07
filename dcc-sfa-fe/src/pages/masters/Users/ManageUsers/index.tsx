@@ -2,18 +2,14 @@ import { Close as CloseIcon } from '@mui/icons-material';
 import { Box, IconButton, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useRoles } from 'hooks/useRoles';
-import {
-  useCreateUser,
-  useUpdateUser,
-  useUsers,
-  type User,
-} from 'hooks/useUsers';
+import { useCreateUser, useUpdateUser, type User } from 'hooks/useUsers';
 import React, { useState } from 'react';
 import validationSchema from 'schemas/masters/Users';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
 
 interface ManageUsersProps {
@@ -34,9 +30,6 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
 
   const { data: rolesResponse, isLoading: rolesLoading } = useRoles();
   const roles = rolesResponse?.data || [];
-
-  const { data: usersResponse, isLoading: usersLoading } = useUsers();
-  const users = usersResponse?.data || [];
 
   const createUserMutation = useCreateUser({
     onSuccess: () => {
@@ -232,23 +225,12 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               label="Joining Date"
               type="date"
             />
-            <Select
+            <UserSelect
               name="reporting_to"
+              label="Reporting Manager"
               formik={formik}
               required
-              fullWidth
-              label="Reporting Manager"
-            >
-              {usersLoading ? (
-                <MenuItem disabled>Loading users...</MenuItem>
-              ) : (
-                users.map(u => (
-                  <MenuItem key={u.id} value={u.id}>
-                    {u.name} ({u.email})
-                  </MenuItem>
-                ))
-              )}
-            </Select>
+            />
           </div>
 
           <Input

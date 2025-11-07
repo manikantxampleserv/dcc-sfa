@@ -1,6 +1,6 @@
 import { Autocomplete, CircularProgress, TextField } from '@mui/material';
 import type { FormikProps } from 'formik';
-import { useCustomers } from 'hooks/useCustomers';
+import { useCustomer, useCustomers } from 'hooks/useCustomers';
 import React, { useCallback, useEffect, useState } from 'react';
 
 /**
@@ -32,6 +32,8 @@ interface CustomerSelectProps {
   value?: string | number;
   /** Callback fired when selection changes */
   onChange?: (event: any, value: Customer | null) => void;
+  /** Customer Name to search */
+  nameToSearch?: string;
 }
 
 /**
@@ -80,6 +82,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
   formik,
   setValue,
   value,
+  nameToSearch = '',
   onChange,
 }) => {
   const [inputValue, setInputValue] = useState('');
@@ -87,34 +90,132 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedCustomerData, setSelectedCustomerData] =
     useState<Customer | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const currentValue = formik ? formik.values[name] : value;
+
+  // Normalize currentValue to handle both number and string
+  const normalizedValue = currentValue
+    ? typeof currentValue === 'number'
+      ? currentValue.toString()
+      : String(currentValue).trim()
+    : '';
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isSelecting) {
         setDebouncedSearch(inputValue);
+        // Once user starts typing, mark as initialized
+        if (inputValue) {
+          setHasInitialized(true);
+        }
       }
     }, 300);
 
     return () => clearTimeout(timer);
   }, [inputValue, isSelecting]);
 
+  // Use nameToSearch only on initial mount when we have a value but haven't initialized yet
+  // Once user types or component is initialized, use debouncedSearch
+  const effectiveSearch = React.useMemo(() => {
+    if (hasInitialized || inputValue) {
+      return debouncedSearch;
+    }
+    // On initial mount with value, use nameToSearch if provided
+    if (normalizedValue && nameToSearch && !hasInitialized) {
+      return nameToSearch;
+    }
+    return debouncedSearch;
+  }, [
+    debouncedSearch,
+    nameToSearch,
+    hasInitialized,
+    normalizedValue,
+    inputValue,
+  ]);
+
   const { data: customersResponse, isLoading: customersLoading } = useCustomers(
     {
       limit: 20,
-      search: debouncedSearch,
+      search: effectiveSearch,
     }
   );
   const searchResults: Customer[] = customersResponse?.data || [];
 
+  // Only fetch individual customer if not found in list and we have a value
+  const customerId = normalizedValue ? Number(normalizedValue) : 0;
+  const customerFoundInList = searchResults.some(
+    customer => customer.id.toString() === normalizedValue
+  );
+  const shouldFetchIndividual =
+    normalizedValue &&
+    !customerFoundInList &&
+    !customersLoading &&
+    !selectedCustomerData;
+
+  const { data: initialCustomerResponse } = useCustomer(
+    shouldFetchIndividual ? customerId : 0
+  );
+
+  useEffect(() => {
+    // First, try to find customer in the list results
+    if (
+      normalizedValue &&
+      !selectedCustomerData &&
+      !customersLoading &&
+      searchResults.length > 0
+    ) {
+      const found = searchResults.find(
+        customer => customer.id.toString() === normalizedValue
+      );
+      if (found) {
+        setSelectedCustomerData(found);
+        if (!inputValue) {
+          setInputValue(found.name);
+        }
+        setHasInitialized(true);
+        return; // Found in list, no need to check individual fetch
+      }
+    }
+
+    // Fallback: if not found in list, use individual fetch result
+    if (initialCustomerResponse?.data && normalizedValue) {
+      const customer = initialCustomerResponse.data as any;
+      const customerData = customer.customer || customer;
+      if (
+        customerData &&
+        customerData.id &&
+        customerData.id.toString() === normalizedValue &&
+        (!selectedCustomerData || selectedCustomerData.id !== customerData.id)
+      ) {
+        setSelectedCustomerData({
+          id: customerData.id,
+          name: customerData.name,
+          code: customerData.code || '',
+        });
+        // Set input value to show the customer name
+        if (!inputValue) {
+          setInputValue(customerData.name);
+        }
+        setHasInitialized(true);
+      }
+    }
+  }, [
+    initialCustomerResponse,
+    normalizedValue,
+    selectedCustomerData,
+    inputValue,
+    searchResults,
+    customersLoading,
+  ]);
+
   const selectedCustomer = React.useMemo(() => {
-    if (!currentValue) {
+    if (!normalizedValue) {
       return null;
     }
 
     const foundInResults = searchResults.find(
-      customer => customer.id.toString() === currentValue.toString()
+      customer => customer.id.toString() === normalizedValue
     );
 
     if (foundInResults) {
@@ -123,24 +224,50 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
 
     if (
       selectedCustomerData &&
-      selectedCustomerData.id.toString() === currentValue.toString()
+      selectedCustomerData.id.toString() === normalizedValue
     ) {
       return selectedCustomerData;
     }
 
     return null;
-  }, [currentValue, searchResults, selectedCustomerData]);
+  }, [normalizedValue, searchResults, selectedCustomerData]);
 
   useEffect(() => {
     if (selectedCustomer && selectedCustomer !== selectedCustomerData) {
       setSelectedCustomerData(selectedCustomer);
-    } else if (!currentValue && selectedCustomerData) {
+      if (!inputValue && selectedCustomer.name) {
+        setInputValue(selectedCustomer.name);
+      }
+    } else if (!normalizedValue && selectedCustomerData) {
       setSelectedCustomerData(null);
+      setInputValue('');
+    } else if (selectedCustomerData && !inputValue && normalizedValue) {
+      // Set input value when component mounts with existing value
+      setInputValue(selectedCustomerData.name);
     }
-  }, [selectedCustomer, currentValue, selectedCustomerData]);
+  }, [selectedCustomer, normalizedValue, selectedCustomerData, inputValue]);
+
+  // Reset inputValue when normalizedValue changes externally (e.g., formik reinitializes)
+  useEffect(() => {
+    if (!normalizedValue) {
+      if (selectedCustomerData || inputValue) {
+        setInputValue('');
+        setSelectedCustomerData(null);
+        setHasInitialized(false);
+      }
+    } else if (
+      selectedCustomerData &&
+      selectedCustomerData.id.toString() !== normalizedValue
+    ) {
+      // Value changed externally, reset to allow new fetch
+      setSelectedCustomerData(null);
+      setInputValue('');
+      setHasInitialized(false);
+    }
+  }, [normalizedValue]);
 
   const customers: Customer[] = React.useMemo(() => {
-    if (!selectedCustomer && !currentValue) return searchResults;
+    if (!selectedCustomer && !normalizedValue) return searchResults;
 
     if (selectedCustomer) {
       const isSelectedInResults = searchResults.some(
@@ -155,7 +282,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
     }
 
     return searchResults;
-  }, [searchResults, selectedCustomer, currentValue]);
+  }, [searchResults, selectedCustomer, normalizedValue]);
 
   const error = formik?.touched?.[name] && formik?.errors?.[name];
   const helperText = typeof error === 'string' ? error : undefined;

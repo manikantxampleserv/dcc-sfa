@@ -1,6 +1,6 @@
 import { Autocomplete, CircularProgress, TextField } from '@mui/material';
 import type { FormikProps } from 'formik';
-import { useUsers } from 'hooks/useUsers';
+import { useUser, useUsers } from 'hooks/useUsers';
 import React, { useCallback, useEffect, useState } from 'react';
 
 /**
@@ -34,6 +34,8 @@ interface UserSelectProps {
   value?: string | number;
   /** Callback fired when selection changes */
   onChange?: (event: any, value: User | null) => void;
+  /** User Name to search */
+  nameToSearch?: string;
 }
 
 /**
@@ -87,38 +89,134 @@ const UserSelect: React.FC<UserSelectProps> = ({
   formik,
   setValue,
   value,
+  nameToSearch = '',
   onChange,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedUserData, setSelectedUserData] = useState<User | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const currentValue = formik ? formik.values[name] : value;
+
+  // Normalize currentValue to handle both number and string
+  const normalizedValue = currentValue
+    ? typeof currentValue === 'number'
+      ? currentValue.toString()
+      : String(currentValue).trim()
+    : '';
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isSelecting) {
         setDebouncedSearch(inputValue);
+        // Once user starts typing, mark as initialized
+        if (inputValue) {
+          setHasInitialized(true);
+        }
       }
     }, 300);
 
     return () => clearTimeout(timer);
   }, [inputValue, isSelecting]);
 
+  // Use nameToSearch only on initial mount when we have a value but haven't initialized yet
+  // Once user types or component is initialized, use debouncedSearch
+  const effectiveSearch = React.useMemo(() => {
+    if (hasInitialized || inputValue) {
+      return debouncedSearch;
+    }
+    // On initial mount with value, use nameToSearch if provided
+    if (normalizedValue && nameToSearch && !hasInitialized) {
+      return nameToSearch;
+    }
+    return debouncedSearch;
+  }, [
+    debouncedSearch,
+    nameToSearch,
+    hasInitialized,
+    normalizedValue,
+    inputValue,
+  ]);
+
   const { data: usersResponse, isLoading: usersLoading } = useUsers({
     limit: 20,
-    search: debouncedSearch,
+    search: effectiveSearch,
   });
   const searchResults: User[] = usersResponse?.data || [];
 
+  // Only fetch individual user if not found in list and we have a value
+  const userId = normalizedValue ? Number(normalizedValue) : 0;
+  const userFoundInList = searchResults.some(
+    user => user.id.toString() === normalizedValue
+  );
+  const shouldFetchIndividual =
+    normalizedValue && !userFoundInList && !usersLoading && !selectedUserData;
+
+  const { data: initialUserResponse } = useUser(
+    shouldFetchIndividual ? userId : 0
+  );
+
+  useEffect(() => {
+    // First, try to find user in the list results
+    if (
+      normalizedValue &&
+      !selectedUserData &&
+      !usersLoading &&
+      searchResults.length > 0
+    ) {
+      const found = searchResults.find(
+        user => user.id.toString() === normalizedValue
+      );
+      if (found) {
+        setSelectedUserData(found);
+        if (!inputValue) {
+          setInputValue(found.name);
+        }
+        setHasInitialized(true);
+        return; // Found in list, no need to check individual fetch
+      }
+    }
+
+    // Fallback: if not found in list, use individual fetch result
+    if (initialUserResponse?.data && normalizedValue) {
+      const user = initialUserResponse.data as any;
+      const userData = user.user || user;
+      if (
+        userData &&
+        userData.id &&
+        userData.id.toString() === normalizedValue &&
+        (!selectedUserData || selectedUserData.id !== userData.id)
+      ) {
+        setSelectedUserData({
+          id: userData.id,
+          name: userData.name,
+          email: userData.email || '',
+        });
+        // Set input value to show the user name
+        if (!inputValue) {
+          setInputValue(userData.name);
+        }
+        setHasInitialized(true);
+      }
+    }
+  }, [
+    initialUserResponse,
+    normalizedValue,
+    selectedUserData,
+    inputValue,
+    searchResults,
+    usersLoading,
+  ]);
+
   const selectedUser = React.useMemo(() => {
-    if (!currentValue) {
+    if (!normalizedValue) {
       return null;
     }
 
     const foundInResults = searchResults.find(
-      user => user.id.toString() === currentValue.toString()
+      user => user.id.toString() === normalizedValue
     );
 
     if (foundInResults) {
@@ -127,24 +225,50 @@ const UserSelect: React.FC<UserSelectProps> = ({
 
     if (
       selectedUserData &&
-      selectedUserData.id.toString() === currentValue.toString()
+      selectedUserData.id.toString() === normalizedValue
     ) {
       return selectedUserData;
     }
 
     return null;
-  }, [currentValue, searchResults, selectedUserData]);
+  }, [normalizedValue, searchResults, selectedUserData]);
 
   useEffect(() => {
     if (selectedUser && selectedUser !== selectedUserData) {
       setSelectedUserData(selectedUser);
-    } else if (!currentValue && selectedUserData) {
+      if (!inputValue && selectedUser.name) {
+        setInputValue(selectedUser.name);
+      }
+    } else if (!normalizedValue && selectedUserData) {
       setSelectedUserData(null);
+      setInputValue('');
+    } else if (selectedUserData && !inputValue && normalizedValue) {
+      // Set input value when component mounts with existing value
+      setInputValue(selectedUserData.name);
     }
-  }, [selectedUser, currentValue, selectedUserData]);
+  }, [selectedUser, normalizedValue, selectedUserData, inputValue]);
+
+  // Reset inputValue when normalizedValue changes externally (e.g., formik reinitializes)
+  useEffect(() => {
+    if (!normalizedValue) {
+      if (selectedUserData || inputValue) {
+        setInputValue('');
+        setSelectedUserData(null);
+        setHasInitialized(false);
+      }
+    } else if (
+      selectedUserData &&
+      selectedUserData.id.toString() !== normalizedValue
+    ) {
+      // Value changed externally, reset to allow new fetch
+      setSelectedUserData(null);
+      setInputValue('');
+      setHasInitialized(false);
+    }
+  }, [normalizedValue]);
 
   const users: User[] = React.useMemo(() => {
-    if (!selectedUser && !currentValue) return searchResults;
+    if (!selectedUser && !normalizedValue) return searchResults;
 
     if (selectedUser) {
       const isSelectedInResults = searchResults.some(
@@ -159,7 +283,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
     }
 
     return searchResults;
-  }, [searchResults, selectedUser, currentValue]);
+  }, [searchResults, selectedUser, normalizedValue]);
 
   const error = formik?.touched?.[name] && formik?.errors?.[name];
   const helperText = typeof error === 'string' ? error : undefined;

@@ -51,25 +51,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     formik.resetForm();
   };
 
-  React.useEffect(() => {
-    if (order && orderResponse?.data) {
-      const items =
-        orderResponse.data.order_items?.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity.toString(),
-          unit_price: item.unit_price.toString(),
-          discount_amount: (item.discount_amount || 0).toString(),
-          tax_amount: (item.tax_amount || 0).toString(),
-          notes: item.notes || '',
-        })) || [];
-      setOrderItems(items);
-      formik.setFieldValue('order_items', items);
-    } else {
-      setOrderItems([]);
-      formik.setFieldValue('order_items', []);
-    }
-  }, [order, orderResponse]);
-
   const formik = useFormik({
     initialValues: {
       order_number: order?.order_number || '',
@@ -140,6 +121,25 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       }
     },
   });
+
+  React.useEffect(() => {
+    if (order && orderResponse?.data) {
+      const items =
+        orderResponse.data.order_items?.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity.toString(),
+          unit_price: item.unit_price.toString(),
+          discount_amount: (item.discount_amount || 0).toString(),
+          tax_amount: (item.tax_amount || 0).toString(),
+          notes: item.notes || '',
+        })) || [];
+      setOrderItems(items);
+      formik.setFieldValue('order_items', items);
+    } else {
+      setOrderItems([]);
+      formik.setFieldValue('order_items', []);
+    }
+  }, [order, orderResponse]);
 
   const addOrderItem = () => {
     const newItem: OrderItemFormData = {
