@@ -39,6 +39,7 @@ import { CustomerAssetsImportExportService } from './implementations/customer-as
 import { VisitTasksImportExportService } from './implementations/visit-tasks.import-export.service';
 import { PromotionsImportExportService } from './implementations/promotions.import-export.service';
 import { PromotionProductsImportExportService } from './implementations/promotion-products.import-export.service';
+import { RouteTypesImportExportService } from './implementations/routeTypes-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -89,6 +90,7 @@ export class ImportExportFactory {
     ['visit_tasks', VisitTasksImportExportService],
     ['promotions', PromotionsImportExportService],
     ['promotion_products', PromotionProductsImportExportService],
+    ['route_type', RouteTypesImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

@@ -1,10 +1,10 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCreateRoute, useUpdateRoute, type Route } from 'hooks/useRoutes';
+import { useRouteTypes, type RouteType } from 'hooks/useRouteTypes';
 import React from 'react';
 import { routeValidationSchema } from 'schemas/route.schema';
 import type { Depot } from 'services/masters/Depots';
-import type { User } from 'services/masters/Users';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -23,7 +23,6 @@ interface ManageRouteProps {
   setDrawerOpen: (drawerOpen: boolean) => void;
   depots: Depot[];
   zones: Zone[];
-  users: User[];
 }
 
 const ManageRoute: React.FC<ManageRouteProps> = ({
@@ -33,7 +32,6 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
   setDrawerOpen,
   depots,
   zones,
-  users,
 }) => {
   const isEdit = !!selectedRoute;
 
@@ -45,10 +43,14 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
   const createRouteMutation = useCreateRoute();
   const updateRouteMutation = useUpdateRoute();
 
+  const { data: routeTypesResponse } = useRouteTypes({ status: 'active' });
+  const routeTypes = routeTypesResponse?.data || [];
+
   const formik = useFormik({
     initialValues: {
       parent_id: selectedRoute?.parent_id?.toString() || '',
       depot_id: selectedRoute?.depot_id?.toString() || '',
+      route_type_id: (selectedRoute as any)?.route_type_id?.toString() || '',
       name: selectedRoute?.name || '',
       description: selectedRoute?.description || '',
       salesperson_id: selectedRoute?.salesperson_id?.toString() || '',
@@ -65,6 +67,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
         const routeData = {
           parent_id: Number(values.parent_id),
           depot_id: Number(values.depot_id),
+          route_type_id: Number(values.route_type_id),
           name: values.name,
           description: values.description || undefined,
           salesperson_id: values.salesperson_id
@@ -127,6 +130,21 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
               ))}
             </Select>
 
+            {/* Route Type Selection */}
+            <Select
+              name="route_type_id"
+              label="Route Type"
+              formik={formik}
+              required
+            >
+              <MenuItem value="">Select Route Type</MenuItem>
+              {routeTypes.map((routeType: RouteType) => (
+                <MenuItem key={routeType.id} value={routeType.id.toString()}>
+                  {routeType.name}
+                </MenuItem>
+              ))}
+            </Select>
+
             {/* Route Name */}
             <Input
               name="name"
@@ -166,7 +184,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
               type="number"
               placeholder="Enter distance in kilometers"
               formik={formik}
-              inputProps={{ step: '0.1', min: '0' }}
+              slotProps={{ htmlInput: { step: '0.1', min: '0' } }}
             />
 
             {/* Estimated Time */}
@@ -176,7 +194,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
               type="number"
               placeholder="Enter time in minutes"
               formik={formik}
-              inputProps={{ min: '0' }}
+              slotProps={{ htmlInput: { min: '0' } }}
             />
 
             {/* Status */}

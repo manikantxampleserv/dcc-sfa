@@ -22,6 +22,7 @@ interface ProductSerialized {
   log_inst?: number | null;
   route_type_id?: number | null;
   outlet_group_id?: number | null;
+  tracking_type?: string | null;
   batch_lots?: { id: number; batch_number: string; quantity: number }[];
   inventory_stock?: {
     id: number;
@@ -86,6 +87,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
   log_inst: product.log_inst,
   route_type_id: product.route_type_id,
   outlet_group_id: product.outlet_group_id,
+  tracking_type: product.tracking_type,
 
   batch_lots: normalizeToArray(product.batch_lots_products).map((b: any) => ({
     id: b.id,
@@ -172,6 +174,7 @@ export const productsController = {
           is_active: data.is_active || 'Y',
           route_type_id: data.route_type_id || null,
           outlet_group_id: data.outlet_group_id || null,
+          tracking_type: data.tracking_type || null,
           createdate: new Date(),
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,

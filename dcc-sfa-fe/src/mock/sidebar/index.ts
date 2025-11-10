@@ -50,6 +50,11 @@ const menuItems: MenuItem[] = [
       { id: 'zones', label: 'Zones', href: '/masters/zones' },
       { id: 'currency', label: 'Currency', href: '/masters/currency' },
       { id: 'routes', label: 'Routes', href: '/masters/routes' },
+      {
+        id: 'route-types',
+        label: 'Route Types',
+        href: '/masters/route-types',
+      },
       { id: 'outlet-master', label: 'Outlet Master', href: '/masters/outlets' },
       {
         id: 'outlet-groups',

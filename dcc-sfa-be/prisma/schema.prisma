@@ -1180,6 +1180,7 @@ model products {
   updatedby                        Int?
   route_type_id                    Int?
   outlet_group_id                  Int?
+  tracking_type                    String?                  @db.NVarChar(20)
   log_inst                         Int?
   batch_lots_products              batch_lots[]
   credit_notes_items_products      credit_note_items[]
