@@ -17,7 +17,7 @@ router.post(
   auditCreate('van_inventory'),
   createVanInventoryValidation,
   validate,
-  vanInventoryController.createVanInventory
+  vanInventoryController.createOrUpdateVanInventory
 );
 router.get(
   '/van-inventory',

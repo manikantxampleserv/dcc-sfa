@@ -158,7 +158,6 @@ model depots {
   serial_numbers           serial_numbers[]
   user_depot               users[]
   zone_depots              zones[]
-  van_inventory_locations  van_inventory[]      @relation("DepotsVanInventoryLocations")
   approval_work_flow_depot approval_work_flow[] @relation("ApprovalWorkFlowDepot")
 }
 
@@ -1429,16 +1428,16 @@ model route_pricelists {
 }
 
 model route_type {
-  id                Int       @id @default(autoincrement())
-  name              String    @db.NVarChar(100)
-  is_active         String    @default("Y") @db.Char(1)
-  createdate        DateTime? @default(now()) @db.DateTime
-  createdby         Int
-  updatedate        DateTime? @db.DateTime
-  updatedby         Int?
-  log_inst             Int?
-  routes_route_type    routes[]
-  products_route_type  products[]
+  id                  Int        @id @default(autoincrement())
+  name                String     @db.NVarChar(100)
+  is_active           String     @default("Y") @db.Char(1)
+  createdate          DateTime?  @default(now()) @db.DateTime
+  createdby           Int
+  updatedate          DateTime?  @db.DateTime
+  updatedby           Int?
+  log_inst            Int?
+  routes_route_type   routes[]
+  products_route_type products[]
 }
 
 model routes {
@@ -1737,7 +1736,6 @@ model van_inventory {
   location_id                   Int?
   van_inventory_users           users                 @relation("VanInventoryUsers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   vehicle                       vehicles?             @relation("VehiclesVanInventory", fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  location                      depots?               @relation("DepotsVanInventoryLocations", fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   van_inventory_stock_movements stock_movements[]     @relation("VanInventoryStockMovements")
   van_inventory_items_inventory van_inventory_items[]
 }

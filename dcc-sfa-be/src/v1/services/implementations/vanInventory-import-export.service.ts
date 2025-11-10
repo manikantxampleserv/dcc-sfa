@@ -233,7 +233,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
         document_date: '2024-01-21',
         vehicle_id: vehicleId2,
         location_type: 'van',
-        location_id: depotId2,
         is_active: 'Y',
         items: JSON.stringify([
           {
@@ -255,7 +254,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
         document_date: '2024-01-22',
         vehicle_id: vehicleId3,
         location_type: 'van',
-        location_id: depotId3,
         is_active: 'Y',
         items: JSON.stringify([
           {
@@ -289,7 +287,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
           vanInventory.document_date?.toISOString().split('T')[0] || '',
         vehicle_id: vanInventory.vehicle_id || '',
         location_type: vanInventory.location_type || 'van',
-        location_id: vanInventory.location_id || '',
         is_active: vanInventory.is_active || 'Y',
         items: JSON.stringify(
           items.map((item: any) => ({
@@ -346,16 +343,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       });
       if (!vehicle) {
         return `Vehicle with ID ${data.vehicle_id} does not exist`;
-      }
-    }
-
-    // Validate location exists (if provided)
-    if (data.location_id) {
-      const location = await locationModel.findUnique({
-        where: { id: data.location_id },
-      });
-      if (!location) {
-        return `Location with ID ${data.location_id} does not exist`;
       }
     }
 
@@ -430,7 +417,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
       loading_type: (data.loading_type || 'L').toUpperCase(),
       document_date: data.document_date ? new Date(data.document_date) : null,
       vehicle_id: data.vehicle_id ? parseInt(data.vehicle_id) : null,
-      location_id: data.location_id ? parseInt(data.location_id) : null,
       location_type: data.location_type || 'van',
       is_active: (data.is_active || 'Y').toUpperCase(),
       createdby: userId,
@@ -509,7 +495,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
               include: {
                 van_inventory_users: true,
                 vehicle: true,
-                location: true,
               },
             });
 
@@ -550,7 +535,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
               include: {
                 van_inventory_users: true,
                 vehicle: true,
-                location: true,
                 van_inventory_items_inventory: {
                   include: {
                     van_inventory_items_products: true,
@@ -598,9 +582,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
         },
         vehicle: {
           select: { id: true, vehicle_number: true, type: true },
-        },
-        location: {
-          select: { id: true, name: true, code: true },
         },
         van_inventory_items_inventory: {
           include: {
@@ -653,7 +634,6 @@ export class VanInventoryImportExportService extends ImportExportService<any> {
         ...row,
         user_name: data[index]?.van_inventory_users?.name || '',
         vehicle_number: data[index]?.vehicle?.vehicle_number || '',
-        location_name: data[index]?.location?.name || '',
         items_count: data[index]?.van_inventory_items_inventory?.length || 0,
       });
 
