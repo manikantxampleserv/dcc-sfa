@@ -8,15 +8,26 @@
 import api from 'configs/axio.config';
 import type { ApiResponse } from 'types/api.types';
 
+interface VanInventoryItem {
+  id: number;
+  parent_id: number;
+  product_id: number;
+  product_name?: string | null;
+  unit?: string | null;
+  quantity: number;
+  unit_price: string;
+  discount_amount?: string | null;
+  tax_amount?: string | null;
+  total_amount?: string | null;
+  notes?: string | null;
+}
+
 interface VanInventory {
   id: number;
   user_id: number;
-  product_id: number;
-  batch_id?: number | null;
-  serial_no_id?: number | null;
-  quantity?: number | null;
-  reserved_quantity?: number | null;
-  available_quantity?: number | null;
+  status: string;
+  loading_type: string;
+  document_date?: string | null;
   last_updated?: string | null;
   is_active: string;
   createdate?: string | null;
@@ -27,66 +38,57 @@ interface VanInventory {
   vehicle_id?: number | null;
   location_type?: string | null;
   location_id?: number | null;
-  product?: {
-    id: number;
-    name: string;
-    code: string;
-  } | null;
   user?: {
     id: number;
     name: string;
     email: string;
-  } | null;
-  batch?: {
-    id: number;
-    batch_number: string;
-    quantity: number;
-  } | null;
-  serial_number?: {
-    id: number;
-    serial_number: string;
-    status: string;
   } | null;
   vehicle?: {
     id: number;
     vehicle_number: string;
     type: string;
   } | null;
-  location?: {
-    id: number;
-    name: string;
-    code: string;
-  } | null;
+  items?: VanInventoryItem[] | null;
+}
+
+interface VanInventoryItemPayload {
+  product_id: number;
+  product_name?: string | null;
+  unit?: string | null;
+  quantity: number;
+  unit_price?: number;
+  discount_amount?: number;
+  tax_amount?: number;
+  total_amount?: number;
+  notes?: string | null;
+  id?: number;
 }
 
 interface ManageVanInventoryPayload {
+  id?: number;
   user_id: number;
-  product_id: number;
-  batch_id?: number | null;
-  serial_no_id?: number | null;
-  quantity?: number;
-  reserved_quantity?: number;
-  available_quantity?: number;
+  loading_type: string;
+  status: string;
+  document_date?: string;
   vehicle_id?: number | null;
   location_type?: string;
   location_id?: number | null;
   is_active?: string;
-  createdby?: number;
+  van_inventory_items?: VanInventoryItemPayload[];
+  inventoryItems?: VanInventoryItemPayload[];
 }
 
 interface UpdateVanInventoryPayload {
   user_id?: number;
-  product_id?: number;
-  batch_id?: number | null;
-  serial_no_id?: number | null;
-  quantity?: number;
-  reserved_quantity?: number;
-  available_quantity?: number;
+  loading_type?: string;
+  status?: string;
+  document_date?: string;
   vehicle_id?: number | null;
   location_type?: string;
   location_id?: number | null;
   is_active?: string;
-  updatedby?: number;
+  van_inventory_items?: VanInventoryItemPayload[];
+  inventoryItems?: VanInventoryItemPayload[];
 }
 
 interface GetVanInventoryParams {
@@ -213,4 +215,6 @@ export type {
   UpdateVanInventoryPayload,
   PaginationMeta,
   VanInventory,
+  VanInventoryItem,
+  VanInventoryItemPayload,
 };

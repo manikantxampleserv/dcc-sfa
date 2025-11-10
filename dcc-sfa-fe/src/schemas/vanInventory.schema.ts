@@ -13,38 +13,18 @@ export const vanInventoryValidationSchema = Yup.object({
     .positive('User ID must be a positive number')
     .integer('User ID must be an integer'),
 
-  product_id: Yup.number()
-    .required('Product is required')
-    .positive('Product ID must be a positive number')
-    .integer('Product ID must be an integer'),
+  loading_type: Yup.string()
+    .oneOf(['L', 'U'], 'Type must be Load (L) or Unload (U)')
+    .required('Type is required'),
 
-  batch_id: Yup.number()
-    .positive('Batch ID must be a positive number')
-    .integer('Batch ID must be an integer')
-    .nullable()
-    .optional(),
+  status: Yup.string()
+    .oneOf(
+      ['D', 'A', 'C'],
+      'Status must be Draft (D), Confirmed (A), or Canceled (C)'
+    )
+    .required('Status is required'),
 
-  serial_no_id: Yup.number()
-    .positive('Serial No ID must be a positive number')
-    .integer('Serial No ID must be an integer')
-    .nullable()
-    .optional(),
-
-  quantity: Yup.number()
-    .min(0, 'Quantity must be 0 or greater')
-    .integer('Quantity must be an integer')
-    .required('Quantity is required'),
-
-  reserved_quantity: Yup.number()
-    .min(0, 'Reserved quantity must be 0 or greater')
-    .integer('Reserved quantity must be an integer')
-    .default(0)
-    .optional(),
-
-  available_quantity: Yup.number()
-    .min(0, 'Available quantity must be 0 or greater')
-    .integer('Available quantity must be an integer')
-    .optional(),
+  document_date: Yup.string().required('Document date is required'),
 
   vehicle_id: Yup.number()
     .positive('Vehicle ID must be a positive number')
@@ -66,5 +46,29 @@ export const vanInventoryValidationSchema = Yup.object({
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Must be Y or N')
     .default('Y')
-    .required('Status is required'),
+    .required('Active status is required'),
+
+  van_inventory_items: Yup.array()
+    .of(
+      Yup.object({
+        product_id: Yup.number()
+          .required('Product is required')
+          .positive('Product ID must be a positive number')
+          .integer('Product ID must be an integer'),
+        quantity: Yup.number()
+          .min(0, 'Quantity must be 0 or greater')
+          .integer('Quantity must be an integer')
+          .required('Quantity is required'),
+        unit_price: Yup.number()
+          .min(0, 'Unit price must be 0 or greater')
+          .optional(),
+        discount_amount: Yup.number()
+          .min(0, 'Discount amount must be 0 or greater')
+          .optional(),
+        tax_amount: Yup.number()
+          .min(0, 'Tax amount must be 0 or greater')
+          .optional(),
+      })
+    )
+    .min(1, 'At least one inventory item is required'),
 });

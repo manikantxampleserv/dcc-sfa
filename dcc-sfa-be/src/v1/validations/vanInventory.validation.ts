@@ -35,9 +35,5 @@ export const createVanInventoryValidation = [
     .optional()
     .isString()
     .withMessage('Location Type must be a string'),
-  body('location_id')
-    .optional()
-    .isInt()
-    .withMessage('Location ID must be an integer'),
   body('is_active').isString().withMessage('Is Active must be a string'),
 ];

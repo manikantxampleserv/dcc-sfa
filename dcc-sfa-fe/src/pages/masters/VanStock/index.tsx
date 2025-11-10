@@ -109,10 +109,47 @@ const VanStockPage: React.FC = () => {
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
+  const getLoadingTypeLabel = (type: string) => {
+    switch (type) {
+      case 'L':
+        return 'Load';
+      case 'U':
+        return 'Unload';
+      default:
+        return type;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'D':
+        return 'Draft';
+      case 'A':
+        return 'Confirmed';
+      case 'C':
+        return 'Canceled';
+      default:
+        return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'D':
+        return 'warning';
+      case 'A':
+        return 'success';
+      case 'C':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
   const vanInventoryColumns: TableColumn<VanInventory>[] = [
     {
       id: 'user_id',
-      label: 'Van Inventory User',
+      label: 'User',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
@@ -139,101 +176,64 @@ const VanStockPage: React.FC = () => {
       ),
     },
     {
-      id: 'product_id',
-      label: 'Product',
+      id: 'loading_type',
+      label: 'Type',
       render: (_value, row) => (
-        <Box className="!max-w-xs">
-          <Typography variant="body1" className="!text-gray-900 !leading-tight">
-            {row.product?.name || 'Unknown Product'}
-          </Typography>
-          <Typography
-            variant="caption"
-            className="!text-gray-500 !text-xs !block !mt-0.5"
-          >
-            Code: {row.product?.code || 'N/A'}
-          </Typography>
-        </Box>
+        <Chip
+          label={getLoadingTypeLabel(row.loading_type || 'L')}
+          size="small"
+          className="w-20"
+          color={row.loading_type === 'L' ? 'primary' : 'secondary'}
+        />
       ),
     },
     {
-      id: 'quantity',
-      label: 'Stock Levels',
+      id: 'status',
+      label: 'Status',
       render: (_value, row) => (
-        <Box className="!space-y-1">
-          <Box className="!flex !items-center !gap-2">
-            <Typography variant="body2" className="!text-gray-600">
-              Total:
-            </Typography>
-            <Typography variant="body2" className="!font-medium !text-gray-900">
-              {row.quantity || 0}
-            </Typography>
-          </Box>
-          <Box className="!flex !items-center !gap-2">
-            <Typography variant="body2" className="!text-gray-600">
-              Reserved:
-            </Typography>
-            <Typography
-              variant="body2"
-              className="!font-medium !text-orange-600"
-            >
-              {row.reserved_quantity || 0}
-            </Typography>
-          </Box>
-        </Box>
+        <Chip
+          label={getStatusLabel(row.status || 'D')}
+          size="small"
+          className="w-24"
+          color={getStatusColor(row.status || 'D') as any}
+        />
       ),
     },
     {
-      id: 'available_quantity',
-      label: 'Available',
+      id: 'items',
+      label: 'Items',
       render: (_value, row) => (
-        <Typography variant="body2" className="!font-medium">
-          {row.available_quantity || 0}
+        <Typography variant="body2" className="!text-gray-900">
+          {row.items?.length || 0} items
         </Typography>
       ),
     },
-
     {
-      id: 'batch_id',
-      label: 'Batch/Serial',
+      id: 'vehicle',
+      label: 'Vehicle',
       render: (_value, row) => (
-        <Box className="!space-y-1">
-          {row.batch && (
-            <Box>
-              <Typography variant="caption" className="!text-gray-500">
-                Batch:
-              </Typography>
-              <Typography variant="body2" className="!font-medium">
-                {row.batch.batch_number}
-              </Typography>
-            </Box>
-          )}
-          {row.serial_number && (
-            <Box>
-              <Typography variant="caption" className="!text-gray-500">
-                Serial:
-              </Typography>
-              <Typography variant="body2" className="!font-medium">
-                {row.serial_number.serial_number}
-              </Typography>
-            </Box>
-          )}
-          {!row.batch && !row.serial_number && (
-            <Typography variant="body2" className="!italic !text-gray-400">
-              No batch/serial
-            </Typography>
-          )}
-        </Box>
+        <Typography variant="body2" className="!text-gray-900">
+          {row.vehicle?.vehicle_number || 'No Vehicle'}
+        </Typography>
       ),
     },
     {
+      id: 'document_date',
+      label: 'Document Date',
+      render: (_value, row) =>
+        formatDate(row.document_date) || (
+          <span className="italic text-gray-400">No Date</span>
+        ),
+    },
+    {
       id: 'is_active',
-      label: 'Status',
+      label: 'Active',
       render: is_active => (
         <Chip
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
-          className="w-26"
+          className="w-20"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),
@@ -258,12 +258,12 @@ const VanStockPage: React.FC = () => {
         <div className="!flex !gap-2 !items-center">
           <EditButton
             onClick={() => handleEditVanInventory(row)}
-            tooltip={`Edit ${row.product?.name || 'Van Inventory'}`}
+            tooltip={`Edit Van Inventory #${row.id}`}
           />
           <DeleteButton
             onClick={() => handleDeleteVanInventory(row.id)}
-            tooltip={`Delete ${row.product?.name || 'Van Inventory'}`}
-            itemName={row.product?.name || 'Van Inventory'}
+            tooltip={`Delete Van Inventory #${row.id}`}
+            itemName={`Van Inventory #${row.id}`}
             confirmDelete={true}
           />
         </div>

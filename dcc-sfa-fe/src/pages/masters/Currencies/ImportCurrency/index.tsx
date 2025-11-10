@@ -304,7 +304,7 @@ const ImportCurrency: React.FC<ImportCurrencyProps> = ({
             )}
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center !space-x-2">
             <Button
               type="button"
               variant="outlined"
