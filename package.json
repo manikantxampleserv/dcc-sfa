@@ -21,6 +21,7 @@
     "clean": "npx kill-port 4000 5173 && npx rimraf node_modules dcc-sfa-be/node_modules dcc-sfa-fe/node_modules"
   },
   "devDependencies": {
+    "@types/node-cron": "^3.0.11",
     "concurrently": "^9.1.0",
     "prettier": "^3.0.0",
     "rimraf": "^5.0.0"
@@ -30,6 +31,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "node-cron": "^4.2.1",
     "recharts": "^3.3.0"
   }
 }
