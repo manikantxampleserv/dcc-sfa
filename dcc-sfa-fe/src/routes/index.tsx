@@ -73,303 +73,311 @@ import AlertsReminders from 'pages/workflows/AlertsReminders';
 import NotFound from 'pages/NotFound';
 const SystemSettings = () => <h1>System Settings</h1>;
 
-const router = createBrowserRouter([
-  {
-    path: '/login',
-    element: <Login />,
-  },
-  {
-    path: '/privacy-policy',
-    element: <PrivacyPolicy />,
-  },
-  {
-    path: '/',
-    element: (
-      <ProtectedRoute>
-        <Layout />
-      </ProtectedRoute>
-    ),
-    children: [
-      {
-        path: '/',
-        element: <ExecutiveDashboard />,
-      },
-      {
-        path: '/dashboard/executive',
-        element: <ExecutiveDashboard />,
-      },
+const router = createBrowserRouter(
+  [
+    {
+      path: '/login',
+      element: <Login />,
+    },
+    {
+      path: '/privacy-policy',
+      element: <PrivacyPolicy />,
+    },
+    {
+      path: '/',
+      element: (
+        <ProtectedRoute>
+          <Layout />
+        </ProtectedRoute>
+      ),
+      children: [
+        {
+          path: '/',
+          element: <ExecutiveDashboard />,
+        },
+        {
+          path: '/dashboard/executive',
+          element: <ExecutiveDashboard />,
+        },
 
-      {
-        path: '/masters/brands',
-        element: <BrandsManagement />,
-      },
-      {
-        path: '/masters/company',
-        element: <CompaniesManagement />,
-      },
-      {
-        path: '/masters/users',
-        element: <Users />,
-      },
-      {
-        path: '/masters/users/:id',
-        element: <UserDetail />,
-      },
-      {
-        path: '/masters/roles',
-        element: <RolePermissions />,
-      },
-      {
-        path: '/masters/depots',
-        element: <DepotsManagement />,
-      },
-      {
-        path: '/masters/zones',
-        element: <ZonesManagement />,
-      },
-      {
-        path: '/masters/currency',
-        element: <CurrenciesManagement />,
-      },
-      {
-        path: '/masters/routes',
-        element: <RoutesManagement />,
-      },
-      {
-        path: '/masters/route-types',
-        element: <RouteTypesManagement />,
-      },
-      {
-        path: '/masters/outlets',
-        element: <OutletsManagement />,
-      },
-      {
-        path: '/masters/outlets/:id',
-        element: <OutletDetail />,
-      },
-      {
-        path: '/masters/outlet-groups',
-        element: <OutletGroupsManagement />,
-      },
-      {
-        path: '/masters/asset-types',
-        element: <AssetTypesManagement />,
-      },
-      {
-        path: '/masters/asset-master',
-        element: <AssetMasterManagement />,
-      },
-      {
-        path: '/masters/warehouses',
-        element: <WarehousesManagement />,
-      },
-      {
-        path: '/masters/vehicles',
-        element: <VehiclesManagement />,
-      },
-      {
-        path: '/masters/products',
-        element: <ProductsManagement />,
-      },
-      {
-        path: '/masters/product-categories',
-        element: <ProductCategoriesManagement />,
-      },
-      {
-        path: '/masters/product-sub-categories',
-        element: <ProductSubCategoriesManagement />,
-      },
-      {
-        path: '/masters/unit-of-measurement',
-        element: <UnitOfMeasurementManagement />,
-      },
-      {
-        path: '/masters/pricelists',
-        element: <PriceListsManagement />,
-      },
-      {
-        path: '/settings/login-history',
-        element: <LoginHistoryPage />,
-      },
-      {
-        path: '/masters/sales-target-groups',
-        element: <SalesTargetGroupsManagement />,
-      },
-      {
-        path: '/masters/sales-targets',
-        element: <SalesTargetsManagement />,
-      },
-      {
-        path: '/masters/sales-bonus-rules',
-        element: <SalesBonusRulesManagement />,
-      },
-      {
-        path: '/masters/kpi-targets',
-        element: <KpiTargetsManagement />,
-      },
-      {
-        path: '/masters/surveys',
-        element: <SurveyBuilder />,
-      },
-      {
-        path: '/transactions/orders',
-        element: <OrdersManagement />,
-      },
-      {
-        path: '/transactions/orders/:id',
-        element: <OrderDetail />,
-      },
-      {
-        path: '/transactions/delivery',
-        element: <DeliveryScheduling />,
-      },
-      {
-        path: '/transactions/returns',
-        element: <ReturnRequests />,
-      },
-      {
-        path: '/transactions/returns/:id',
-        element: <ReturnRequestDetail />,
-      },
-      {
-        path: '/transactions/payments',
-        element: <PaymentCollection />,
-      },
-      {
-        path: '/transactions/payments/:id',
-        element: <PaymentDetail />,
-      },
-      {
-        path: '/transactions/invoices',
-        element: <InvoicesManagement />,
-      },
-      {
-        path: '/transactions/credit-notes',
-        element: <CreditNotesManagement />,
-      },
-      {
-        path: '/transactions/visits',
-        element: <SurveyAnswers />,
-      },
-      {
-        path: '/transactions/asset-movement',
-        element: <AssetMovementManagement />,
-      },
-      {
-        path: '/transactions/competitor',
-        element: <CompetitorActivityManagement />,
-      },
-      {
-        path: '/transactions/maintenance',
-        element: <AssetMaintenanceManagement />,
-      },
-      {
-        path: '/transactions/installations',
-        element: <CoolerInstallationsManagement />,
-      },
-      {
-        path: '/transactions/installations/:id',
-        element: <CoolerInstallationDetail />,
-      },
-      {
-        path: '/transactions/inspections',
-        element: <CoolerInspectionsManagement />,
-      },
-      {
-        path: '/transactions/inspections/:id',
-        element: <CoolerInspectionDetail />,
-      },
-      {
-        path: '/transactions/stock-transfer',
-        element: <StockTransferRequestsManagement />,
-      },
-      {
-        path: '/transactions/stock-movements',
-        element: <StockMovementsManagement />,
-      },
-      {
-        path: '/transactions/van-stock',
-        element: <VanStockManagement />,
-      },
-      {
-        path: '/tracking/location',
-        element: <RepLocationTracking />,
-      },
-      {
-        path: '/tracking/routes',
-        element: <RouteEffectiveness />,
-      },
-      {
-        path: '/reports/orders',
-        element: <OrdersInvoicesReturnsReport />,
-      },
-      {
-        path: '/reports/sales-target',
-        element: <SalesVsTargetReport />,
-      },
-      {
-        path: '/reports/asset-status',
-        element: <AssetMovementStatusReport />,
-      },
-      {
-        path: '/reports/visits',
-        element: <VisitFrequencyCompletionReport />,
-      },
-      {
-        path: '/reports/promos',
-        element: <PromoEffectivenessReport />,
-      },
-      {
-        path: '/reports/territory',
-        element: <RegionTerritorySalesReport />,
-      },
-      {
-        path: '/reports/productivity',
-        element: <RepProductivityReport />,
-      },
-      {
-        path: '/reports/competitor',
-        element: <CompetitorAnalysisReport />,
-      },
-      {
-        path: '/reports/collection',
-        element: <OutstandingCollectionReport />,
-      },
-      {
-        path: '/reports/audit-logs',
-        element: <AuditLogs />,
-      },
-      {
-        path: '/workflows/approvals',
-        element: <ApprovalWorkflows />,
-      },
-      {
-        path: '/workflows/exceptions',
-        element: <RouteExceptions />,
-      },
-      {
-        path: '/workflows/alerts',
-        element: <AlertsReminders />,
-      },
-      {
-        path: '/settings/tokens',
-        element: <ApiTokensPage />,
-      },
-      {
-        path: '/settings/system',
-        element: <SystemSettings />,
-      },
-      {
-        path: '/profile',
-        element: <Profile />,
-      },
-      {
-        path: '*',
-        element: <NotFound />,
-      },
-    ],
-  },
-]);
+        {
+          path: '/masters/brands',
+          element: <BrandsManagement />,
+        },
+        {
+          path: '/masters/company',
+          element: <CompaniesManagement />,
+        },
+        {
+          path: '/masters/users',
+          element: <Users />,
+        },
+        {
+          path: '/masters/users/:id',
+          element: <UserDetail />,
+        },
+        {
+          path: '/masters/roles',
+          element: <RolePermissions />,
+        },
+        {
+          path: '/masters/depots',
+          element: <DepotsManagement />,
+        },
+        {
+          path: '/masters/zones',
+          element: <ZonesManagement />,
+        },
+        {
+          path: '/masters/currency',
+          element: <CurrenciesManagement />,
+        },
+        {
+          path: '/masters/routes',
+          element: <RoutesManagement />,
+        },
+        {
+          path: '/masters/route-types',
+          element: <RouteTypesManagement />,
+        },
+        {
+          path: '/masters/outlets',
+          element: <OutletsManagement />,
+        },
+        {
+          path: '/masters/outlets/:id',
+          element: <OutletDetail />,
+        },
+        {
+          path: '/masters/outlet-groups',
+          element: <OutletGroupsManagement />,
+        },
+        {
+          path: '/masters/asset-types',
+          element: <AssetTypesManagement />,
+        },
+        {
+          path: '/masters/asset-master',
+          element: <AssetMasterManagement />,
+        },
+        {
+          path: '/masters/warehouses',
+          element: <WarehousesManagement />,
+        },
+        {
+          path: '/masters/vehicles',
+          element: <VehiclesManagement />,
+        },
+        {
+          path: '/masters/products',
+          element: <ProductsManagement />,
+        },
+        {
+          path: '/masters/product-categories',
+          element: <ProductCategoriesManagement />,
+        },
+        {
+          path: '/masters/product-sub-categories',
+          element: <ProductSubCategoriesManagement />,
+        },
+        {
+          path: '/masters/unit-of-measurement',
+          element: <UnitOfMeasurementManagement />,
+        },
+        {
+          path: '/masters/pricelists',
+          element: <PriceListsManagement />,
+        },
+        {
+          path: '/settings/login-history',
+          element: <LoginHistoryPage />,
+        },
+        {
+          path: '/masters/sales-target-groups',
+          element: <SalesTargetGroupsManagement />,
+        },
+        {
+          path: '/masters/sales-targets',
+          element: <SalesTargetsManagement />,
+        },
+        {
+          path: '/masters/sales-bonus-rules',
+          element: <SalesBonusRulesManagement />,
+        },
+        {
+          path: '/masters/kpi-targets',
+          element: <KpiTargetsManagement />,
+        },
+        {
+          path: '/masters/surveys',
+          element: <SurveyBuilder />,
+        },
+        {
+          path: '/transactions/orders',
+          element: <OrdersManagement />,
+        },
+        {
+          path: '/transactions/orders/:id',
+          element: <OrderDetail />,
+        },
+        {
+          path: '/transactions/delivery',
+          element: <DeliveryScheduling />,
+        },
+        {
+          path: '/transactions/returns',
+          element: <ReturnRequests />,
+        },
+        {
+          path: '/transactions/returns/:id',
+          element: <ReturnRequestDetail />,
+        },
+        {
+          path: '/transactions/payments',
+          element: <PaymentCollection />,
+        },
+        {
+          path: '/transactions/payments/:id',
+          element: <PaymentDetail />,
+        },
+        {
+          path: '/transactions/invoices',
+          element: <InvoicesManagement />,
+        },
+        {
+          path: '/transactions/credit-notes',
+          element: <CreditNotesManagement />,
+        },
+        {
+          path: '/transactions/visits',
+          element: <SurveyAnswers />,
+        },
+        {
+          path: '/transactions/asset-movement',
+          element: <AssetMovementManagement />,
+        },
+        {
+          path: '/transactions/competitor',
+          element: <CompetitorActivityManagement />,
+        },
+        {
+          path: '/transactions/maintenance',
+          element: <AssetMaintenanceManagement />,
+        },
+        {
+          path: '/transactions/installations',
+          element: <CoolerInstallationsManagement />,
+        },
+        {
+          path: '/transactions/installations/:id',
+          element: <CoolerInstallationDetail />,
+        },
+        {
+          path: '/transactions/inspections',
+          element: <CoolerInspectionsManagement />,
+        },
+        {
+          path: '/transactions/inspections/:id',
+          element: <CoolerInspectionDetail />,
+        },
+        {
+          path: '/transactions/stock-transfer',
+          element: <StockTransferRequestsManagement />,
+        },
+        {
+          path: '/transactions/stock-movements',
+          element: <StockMovementsManagement />,
+        },
+        {
+          path: '/transactions/van-stock',
+          element: <VanStockManagement />,
+        },
+        {
+          path: '/tracking/location',
+          element: <RepLocationTracking />,
+        },
+        {
+          path: '/tracking/routes',
+          element: <RouteEffectiveness />,
+        },
+        {
+          path: '/reports/orders',
+          element: <OrdersInvoicesReturnsReport />,
+        },
+        {
+          path: '/reports/sales-target',
+          element: <SalesVsTargetReport />,
+        },
+        {
+          path: '/reports/asset-status',
+          element: <AssetMovementStatusReport />,
+        },
+        {
+          path: '/reports/visits',
+          element: <VisitFrequencyCompletionReport />,
+        },
+        {
+          path: '/reports/promos',
+          element: <PromoEffectivenessReport />,
+        },
+        {
+          path: '/reports/territory',
+          element: <RegionTerritorySalesReport />,
+        },
+        {
+          path: '/reports/productivity',
+          element: <RepProductivityReport />,
+        },
+        {
+          path: '/reports/competitor',
+          element: <CompetitorAnalysisReport />,
+        },
+        {
+          path: '/reports/collection',
+          element: <OutstandingCollectionReport />,
+        },
+        {
+          path: '/reports/audit-logs',
+          element: <AuditLogs />,
+        },
+        {
+          path: '/workflows/approvals',
+          element: <ApprovalWorkflows />,
+        },
+        {
+          path: '/workflows/exceptions',
+          element: <RouteExceptions />,
+        },
+        {
+          path: '/workflows/alerts',
+          element: <AlertsReminders />,
+        },
+        {
+          path: '/settings/tokens',
+          element: <ApiTokensPage />,
+        },
+        {
+          path: '/settings/system',
+          element: <SystemSettings />,
+        },
+        {
+          path: '/profile',
+          element: <Profile />,
+        },
+        {
+          path: '*',
+          element: <NotFound />,
+        },
+      ],
+    },
+  ],
+  {
+    future: {
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+    },
+  }
+);
 
 const AppRouter: React.FC = () => {
   return <RouterProvider router={router} />;
