@@ -510,9 +510,80 @@ export const vanInventoryController = {
     }
   },
 
+  // async getAllVanInventory(req: any, res: any) {
+  //   try {
+  //     const { page, limit, search, status } = req.query;
+  //     const pageNum = parseInt(page as string, 10) || 1;
+  //     const limitNum = parseInt(limit as string, 10) || 10;
+  //     const searchLower = search ? (search as string).toLowerCase() : '';
+  //     const statusLower = status ? (status as string).toLowerCase() : '';
+
+  //     const filters: any = {
+  //       ...(search && {
+  //         OR: [
+  //           { van_inventory_users: { name: { contains: searchLower } } },
+  //           { vehicle: { vehicle_number: { contains: searchLower } } },
+  //         ],
+  //       }),
+  //       ...(statusLower === 'active' && { is_active: 'Y' }),
+  //       ...(statusLower === 'inactive' && { is_active: 'N' }),
+  //     };
+
+  //     const { data, pagination } = await paginate({
+  //       model: prisma.van_inventory,
+  //       filters,
+  //       page: pageNum,
+  //       limit: limitNum,
+  //       orderBy: { createdate: 'desc' },
+  //       include: {
+  //         van_inventory_users: true,
+  //         vehicle: true,
+  //         van_inventory_items_inventory: true,
+  //         van_inventory_stock_movements: true,
+  //       },
+  //     });
+
+  //     const totalVanInventory = await prisma.van_inventory.count();
+  //     const activeVanInventory = await prisma.van_inventory.count({
+  //       where: { is_active: 'Y' },
+  //     });
+  //     const inactiveVanInventory = await prisma.van_inventory.count({
+  //       where: { is_active: 'N' },
+  //     });
+
+  //     const now = new Date();
+  //     const vanInventoryThisMonth = await prisma.van_inventory.count({
+  //       where: {
+  //         createdate: {
+  //           gte: new Date(now.getFullYear(), now.getMonth(), 1),
+  //           lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+  //         },
+  //       },
+  //     });
+
+  //     const serializedData = data.map((v: any) => serializeVanInventory(v));
+
+  //     res.success(
+  //       'Van inventory fetched successfully',
+  //       serializedData,
+  //       200,
+  //       pagination,
+  //       {
+  //         total_records: totalVanInventory,
+  //         active_records: activeVanInventory,
+  //         inactive_records: inactiveVanInventory,
+  //         van_inventory_this_month: vanInventoryThisMonth,
+  //       }
+  //     );
+  //   } catch (error: any) {
+  //     console.error('Get Van Inventory Error:', error);
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async getAllVanInventory(req: any, res: any) {
     try {
-      const { page, limit, search, status } = req.query;
+      const { page, limit, search, status, user_id } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -527,6 +598,7 @@ export const vanInventoryController = {
         }),
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
+        ...(user_id && { user_id: parseInt(user_id as string, 10) }),
       };
 
       const { data, pagination } = await paginate({
@@ -543,23 +615,28 @@ export const vanInventoryController = {
         },
       });
 
-      const totalVanInventory = await prisma.van_inventory.count();
-      const activeVanInventory = await prisma.van_inventory.count({
-        where: { is_active: 'Y' },
-      });
-      const inactiveVanInventory = await prisma.van_inventory.count({
-        where: { is_active: 'N' },
-      });
-
-      const now = new Date();
-      const vanInventoryThisMonth = await prisma.van_inventory.count({
-        where: {
-          createdate: {
-            gte: new Date(now.getFullYear(), now.getMonth(), 1),
-            lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      const [
+        totalVanInventory,
+        activeVanInventory,
+        inactiveVanInventory,
+        vanInventoryThisMonth,
+      ] = await Promise.all([
+        prisma.van_inventory.count(),
+        prisma.van_inventory.count({ where: { is_active: 'Y' } }),
+        prisma.van_inventory.count({ where: { is_active: 'N' } }),
+        prisma.van_inventory.count({
+          where: {
+            createdate: {
+              gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+              lt: new Date(
+                new Date().getFullYear(),
+                new Date().getMonth() + 1,
+                1
+              ),
+            },
           },
-        },
-      });
+        }),
+      ]);
 
       const serializedData = data.map((v: any) => serializeVanInventory(v));
 

@@ -80,6 +80,69 @@ model users {
   approval_work_flow_approver                                       approval_work_flow[]         @relation("ApprovalWorkFlowApprover")
   sfa_d_requests_requester                                          sfa_d_requests[]             @relation("SfaDRequestsRequester")
   sfa_d_requests_approvals_approver                                 sfa_d_request_approvals[]    @relation("SfaDRequetsApprovalsApprover")
+  attendance_user                                                   attendance[]                 @relation("UserAttendance")
+}
+
+model attendance {
+  id                   Int      @id @default(autoincrement())
+  user_id              Int
+  attendance_date      DateTime @db.Date
+  punch_in_time        DateTime
+  punch_in_latitude    Decimal? @db.Decimal(10, 8)
+  punch_in_longitude   Decimal? @db.Decimal(11, 8)
+  punch_in_address     String?  @db.NVarChar(500)
+  punch_in_device_info String?  @db.NVarChar(Max)
+
+  punch_out_time        DateTime?
+  punch_out_latitude    Decimal?  @db.Decimal(10, 8)
+  punch_out_longitude   Decimal?  @db.Decimal(11, 8)
+  punch_out_address     String?   @db.NVarChar(500)
+  punch_out_device_info String?   @db.NVarChar(Max)
+
+  total_hours Decimal? @db.Decimal(5, 2)
+  work_type   String?  @default("field") @db.NVarChar(20)
+  status      String?  @default("active") @db.NVarChar(20)
+
+  remarks             String?              @db.NVarChar(500)
+  is_active           String               @default("Y") @db.Char(1)
+  createdate          DateTime?            @default(now()) @db.DateTime
+  createdby           Int
+  updatedate          DateTime?            @db.DateTime
+  updatedby           Int?
+  log_inst            Int?
+  attendance_user     users                @relation("UserAttendance", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  attendance_historys attendance_history[]
+}
+
+model attendance_history {
+  id            Int      @id @default(autoincrement())
+  attendance_id Int
+  action_type   String   @db.NVarChar(50)
+  action_time   DateTime @default(now())
+  latitude      Decimal? @db.Decimal(10, 8)
+  longitude     Decimal? @db.Decimal(11, 8)
+  address       String?  @db.NVarChar(500)
+  device_info   String?  @db.NVarChar(Max)
+  photo_url     String?  @db.NVarChar(500)
+
+  old_data String? @db.NVarChar(Max)
+  new_data String? @db.NVarChar(Max)
+
+  ip_address    String?  @db.NVarChar(50)
+  user_agent    String?  @db.NVarChar(500)
+  app_version   String?  @db.NVarChar(50)
+  battery_level Decimal? @db.Decimal(5, 2)
+  network_type  String?  @db.NVarChar(20)
+
+  remarks    String?   @db.NVarChar(500)
+  is_active  String    @default("Y") @db.Char(1)
+  createdate DateTime? @default(now()) @db.DateTime
+  createdby  Int
+  updatedate DateTime? @db.DateTime
+  updatedby  Int?
+  log_inst   Int?
+
+  attendance_historys attendance @relation(fields: [attendance_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model roles {
@@ -1180,7 +1243,7 @@ model products {
   updatedby                        Int?
   route_type_id                    Int?
   outlet_group_id                  Int?
-  tracking_type                    String?                  @db.NVarChar(20)
+  tracking_type                    String?                   @db.NVarChar(20)
   log_inst                         Int?
   batch_lots_products              batch_lots[]
   credit_notes_items_products      credit_note_items[]

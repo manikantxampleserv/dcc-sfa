@@ -1,0 +1,882 @@
+// import { PrismaClient } from '@prisma/client';
+// import { Request, Response } from 'express';
+// import { generateEmailContent } from '../../utils/emailTemplates';
+// import { templateKeyMap } from '../../utils/templateKeyMap';
+// import { sendEmail } from '../../utils/mailer';
+// import getRequestDetailsByType from '../../utils/getDetails';
+// import { paginate } from '../../utils/paginate';
+
+// const prisma = new PrismaClient();
+
+// interface RequestSerialized {
+//   id: number;
+//   requester_id: number;
+//   request_type: string;
+//   request_data: string | null;
+//   status: string;
+//   reference_id: number | null;
+//   overall_status: string | null;
+//   createdate: Date | null;
+//   createdby: number;
+//   updatedate: Date | null;
+//   updatedby: number | null;
+//   log_inst: number | null;
+//   requester?: {
+//     id: number;
+//     name: string;
+//     email: string;
+//   } | null;
+//   approvals?: {
+//     id: number;
+//     approver_id: number;
+//     sequence: number;
+//     status: string;
+//     remarks: string | null;
+//     action_at: Date | null;
+//     approver: {
+//       id: number;
+//       name: string;
+//       email: string;
+//     } | null;
+//   }[];
+// }
+
+// const serializeRequest = (request: any): RequestSerialized => ({
+//   id: request.id,
+//   requester_id: request.requester_id,
+//   request_type: request.request_type,
+//   request_data: request.request_data,
+//   status: request.status,
+//   reference_id: request.reference_id,
+//   overall_status: request.overall_status,
+//   createdate: request.createdate,
+//   createdby: request.createdby,
+//   updatedate: request.updatedate,
+//   updatedby: request.updatedby,
+//   log_inst: request.log_inst,
+//   requester: request.sfa_d_requests_requester
+//     ? {
+//         id: request.sfa_d_requests_requester.id,
+//         name: request.sfa_d_requests_requester.name,
+//         email: request.sfa_d_requests_requester.email,
+//       }
+//     : null,
+//   approvals:
+//     request.sfa_d_requests_approvals_request?.map((approval: any) => ({
+//       id: approval.id,
+//       approver_id: approval.approver_id,
+//       sequence: approval.sequence,
+//       status: approval.status,
+//       remarks: approval.remarks,
+//       action_at: approval.action_at,
+//       approver: approval.sfa_d_requests_approvals_approver
+//         ? {
+//             id: approval.sfa_d_requests_approvals_approver.id,
+//             name: approval.sfa_d_requests_approvals_approver.name,
+//             email: approval.sfa_d_requests_approvals_approver.email,
+//           }
+//         : null,
+//     })) || [],
+// });
+
+// const formatRequestType = (type: string): string => {
+//   return type
+//     .replace(/_/g, ' ')
+//     .replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1));
+// };
+
+// // Get workflow for request (zone/depot specific or global)
+// async function getWorkflowForRequest(
+//   request_type: string,
+//   requester_zone_id: number | null,
+//   requester_depot_id: number | null
+// ) {
+//   try {
+//     let workflowSteps;
+//     let workflowType = 'NONE';
+
+//     // Priority 1: Zone + Depot specific
+//     if (requester_zone_id && requester_depot_id) {
+//       workflowSteps = await prisma.approval_work_flow.findMany({
+//         where: {
+//           request_type,
+//           zone_id: requester_zone_id,
+//           depot_id: requester_depot_id,
+//           is_active: 'Y',
+//         },
+//         orderBy: { sequence: 'asc' },
+//         include: {
+//           approval_work_flow_approver: {
+//             select: { id: true, name: true, email: true },
+//           },
+//         },
+//       });
+
+//       if (workflowSteps && workflowSteps.length > 0) {
+//         workflowType = 'ZONE_DEPOT_SPECIFIC';
+//         return {
+//           workflow: workflowSteps,
+//           isGlobalWorkflow: false,
+//           workflowType,
+//         };
+//       }
+//     }
+
+//     // Priority 2: Zone specific only
+//     if (requester_zone_id) {
+//       workflowSteps = await prisma.approval_work_flow.findMany({
+//         where: {
+//           request_type,
+//           zone_id: requester_zone_id,
+//           depot_id: null,
+//           is_active: 'Y',
+//         },
+//         orderBy: { sequence: 'asc' },
+//         include: {
+//           approval_work_flow_approver: {
+//             select: { id: true, name: true, email: true },
+//           },
+//         },
+//       });
+
+//       if (workflowSteps && workflowSteps.length > 0) {
+//         workflowType = 'ZONE_SPECIFIC';
+//         return {
+//           workflow: workflowSteps,
+//           isGlobalWorkflow: false,
+//           workflowType,
+//         };
+//       }
+//     }
+
+//     // Priority 3: Depot specific only
+//     if (requester_depot_id) {
+//       workflowSteps = await prisma.approval_work_flow.findMany({
+//         where: {
+//           request_type,
+//           depot_id: requester_depot_id,
+//           zone_id: null,
+//           is_active: 'Y',
+//         },
+//         orderBy: { sequence: 'asc' },
+//         include: {
+//           approval_work_flow_approver: {
+//             select: { id: true, name: true, email: true },
+//           },
+//         },
+//       });
+
+//       if (workflowSteps && workflowSteps.length > 0) {
+//         workflowType = 'DEPOT_SPECIFIC';
+//         return {
+//           workflow: workflowSteps,
+//           isGlobalWorkflow: false,
+//           workflowType,
+//         };
+//       }
+//     }
+
+//     // Fallback: Global workflow
+//     workflowSteps = await prisma.approval_work_flow.findMany({
+//       where: {
+//         request_type,
+//         zone_id: null,
+//         depot_id: null,
+//         is_active: 'Y',
+//       },
+//       orderBy: { sequence: 'asc' },
+//       include: {
+//         approval_work_flow_approver: {
+//           select: { id: true, name: true, email: true },
+//         },
+//       },
+//     });
+
+//     workflowType = 'GLOBAL';
+//     return {
+//       workflow: workflowSteps,
+//       isGlobalWorkflow: workflowType === 'GLOBAL',
+//       workflowType,
+//     };
+//   } catch (error: any) {
+//     throw new Error(`Error resolving workflow: ${error.message}`);
+//   }
+// }
+
+// export const requestsController = {
+//   async createRequest(req: Request, res: Response) {
+//     const data = req.body;
+//     const userId = req.user?.id || 1;
+//     const { request_type, ...requestData } = data;
+
+//     try {
+//       if (!request_type) {
+//         return res.status(400).json({ message: 'request_type is required' });
+//       }
+
+//       console.log(' Processing request:', {
+//         request_type,
+//         requester_id: requestData.requester_id,
+//       });
+
+//       const result = await prisma.$transaction(
+//         async tx => {
+//           // Get requester details
+//           const requester = await tx.users.findUnique({
+//             where: { id: requestData.requester_id },
+//             select: {
+//               id: true,
+//               name: true,
+//               email: true,
+//               zone_id: true,
+//               depot_id: true,
+//             },
+//           });
+
+//           if (!requester) {
+//             throw new Error('Requester not found');
+//           }
+
+//           // Create request record
+//           const request = await tx.sfa_d_requests.create({
+//             data: {
+//               requester_id: Number(requestData.requester_id),
+//               request_type,
+//               request_data: requestData.request_data || null,
+//               status: requestData.status || 'P',
+//               reference_id: requestData.reference_id
+//                 ? Number(requestData.reference_id)
+//                 : null,
+//               createdby: userId,
+//               createdate: new Date(),
+//               log_inst: 1,
+//             },
+//           });
+
+//           console.log(' Request created, ID:', request.id);
+
+//           // Get applicable workflow
+//           const { workflow: workflowSteps, workflowType } =
+//             await getWorkflowForRequest(
+//               request_type,
+//               requester.zone_id,
+//               requester.depot_id
+//             );
+
+//           if (!workflowSteps || workflowSteps.length === 0) {
+//             throw new Error(
+//               `No approval workflow defined for '${request_type}'`
+//             );
+//           }
+
+//           console.log(`✓ Using ${workflowType} workflow for ${request_type}`);
+
+//           // Create approval steps
+//           const approvalsToInsert = workflowSteps.map((step, index) => ({
+//             request_id: Number(request.id),
+//             approver_id: Number(step.approver_id),
+//             sequence: Number(step.sequence) || index + 1,
+//             status: 'P',
+//             createdby: userId,
+//             createdate: new Date(),
+//             log_inst: 1,
+//           }));
+
+//           await tx.sfa_d_request_approvals.createMany({
+//             data: approvalsToInsert,
+//           });
+
+//           console.log(`✓ Created ${approvalsToInsert.length} approval steps`);
+
+//           // Get full data with approvals
+//           const finalRequest = await tx.sfa_d_requests.findUnique({
+//             where: { id: request.id },
+//             include: {
+//               sfa_d_requests_requester: {
+//                 select: { id: true, name: true, email: true },
+//               },
+//               sfa_d_requests_approvals_request: {
+//                 select: {
+//                   id: true,
+//                   request_id: true,
+//                   approver_id: true,
+//                   sequence: true,
+//                   status: true,
+//                   sfa_d_requests_approvals_approver: {
+//                     select: { id: true, name: true, email: true },
+//                   },
+//                 },
+//                 orderBy: { sequence: 'asc' },
+//               },
+//             },
+//           });
+
+//           return finalRequest;
+//         },
+//         {
+//           maxWait: 10000,
+//           timeout: 20000,
+//         }
+//       );
+
+//       // Send email to first approver
+//       if (result) {
+//         try {
+//           const firstApproval = result.sfa_d_requests_approvals_request[0];
+//           if (firstApproval) {
+//             const firstApprover = await prisma.users.findUnique({
+//               where: { id: firstApproval.approver_id },
+//               select: { email: true, name: true },
+//             });
+
+//             if (firstApprover?.email) {
+//               const request_detail = await getRequestDetailsByType(
+//                 request_type,
+//                 result.reference_id
+//               );
+
+//               const template = await generateEmailContent(
+//                 templateKeyMap.notifyApprover,
+//                 {
+//                   approver_name: firstApprover.name,
+//                   requester_name: result.sfa_d_requests_requester.name,
+//                   request_type: formatRequestType(request_type),
+//                   action: 'created',
+//                   company_name: 'SFA System',
+//                   request_detail: JSON.stringify(request_detail),
+//                 }
+//               );
+
+//               await sendEmail({
+//                 to: firstApprover.email,
+//                 subject: template.subject,
+//                 html: template.body,
+//                 createdby: userId,
+//                 log_inst: 1,
+//               });
+
+//               console.log(`✓ [Email Sent] → ${firstApprover.email}`);
+//             }
+//           }
+//         } catch (emailError) {
+//           console.error('Error sending email:', emailError);
+//         }
+//       }
+
+//       res.status(201).json({
+//         message: 'Request created successfully',
+//         data: serializeRequest(result),
+//       });
+//     } catch (error: any) {
+//       console.error(' Error creating request:', error);
+//       res.status(500).json({
+//         message: 'Failed to create request',
+//         error: error.message,
+//       });
+//     }
+//   },
+
+//   async getAllRequests(req: any, res: any) {
+//     try {
+//       const {
+//         page,
+//         limit,
+//         search,
+//         request_type,
+//         status,
+//         requester_id,
+//         startDate,
+//         endDate,
+//       } = req.query;
+
+//       const pageNum = parseInt(page as string, 10) || 1;
+//       const limitNum = parseInt(limit as string, 10) || 10;
+//       const searchLower = search ? (search as string).toLowerCase() : '';
+
+//       const filters: any = {};
+
+//       if (search) {
+//         filters.OR = [
+//           { request_type: { contains: searchLower } },
+//           { status: { contains: searchLower } },
+//           { overall_status: { contains: searchLower } },
+//         ];
+//       }
+
+//       if (request_type) {
+//         filters.request_type = request_type as string;
+//       }
+
+//       if (status) {
+//         filters.status = status as string;
+//       }
+
+//       if (requester_id) {
+//         filters.requester_id = parseInt(requester_id as string, 10);
+//       }
+
+//       if (startDate && endDate) {
+//         filters.createdate = {
+//           gte: new Date(startDate as string),
+//           lte: new Date(endDate as string),
+//         };
+//       }
+
+//       const { data, pagination } = await paginate({
+//         model: prisma.sfa_d_requests,
+//         filters,
+//         page: pageNum,
+//         limit: limitNum,
+//         orderBy: { createdate: 'desc' },
+//         include: {
+//           sfa_d_requests_requester: {
+//             select: { id: true, name: true, email: true },
+//           },
+//           sfa_d_requests_approvals_request: {
+//             select: { id: true, sequence: true, status: true },
+//           },
+//         },
+//       });
+
+//       const totalRequests = await prisma.sfa_d_requests.count({
+//         where: filters,
+//       });
+
+//       const pendingRequests = await prisma.sfa_d_requests.count({
+//         where: { ...filters, status: 'P' },
+//       });
+
+//       const approvedRequests = await prisma.sfa_d_requests.count({
+//         where: { ...filters, status: 'A' },
+//       });
+
+//       const rejectedRequests = await prisma.sfa_d_requests.count({
+//         where: { ...filters, status: 'R' },
+//       });
+
+//       res.json({
+//         message: 'Requests retrieved successfully',
+//         data: data.map((request: any) => serializeRequest(request)),
+//         pagination,
+//         stats: {
+//           total_requests: totalRequests,
+//           pending_requests: pendingRequests,
+//           approved_requests: approvedRequests,
+//           rejected_requests: rejectedRequests,
+//         },
+//       });
+//     } catch (error: any) {
+//       console.error('Get Requests Error:', error);
+//       res.status(500).json({
+//         message: 'Failed to retrieve requests',
+//         error: error.message,
+//       });
+//     }
+//   },
+
+//   async getRequestsById(req: Request, res: Response) {
+//     try {
+//       const { id } = req.params;
+//       const request = await prisma.sfa_d_requests.findUnique({
+//         where: { id: Number(id) },
+//         include: {
+//           sfa_d_requests_requester: {
+//             select: { id: true, name: true, email: true },
+//           },
+//           sfa_d_requests_approvals_request: {
+//             select: {
+//               id: true,
+//               approver_id: true,
+//               sequence: true,
+//               status: true,
+//               remarks: true,
+//               action_at: true,
+//               sfa_d_requests_approvals_approver: {
+//                 select: { id: true, name: true, email: true },
+//               },
+//             },
+//             orderBy: { sequence: 'asc' },
+//           },
+//         },
+//       });
+
+//       if (!request)
+//         return res.status(404).json({ message: 'Request not found' });
+
+//       res.json({
+//         message: 'Request fetched successfully',
+//         data: serializeRequest(request),
+//       });
+//     } catch (error: any) {
+//       console.error('Get Request Error:', error);
+//       res.status(500).json({ message: error.message });
+//     }
+//   },
+
+//   async updateRequests(req: any, res: any) {
+//     try {
+//       const { id } = req.params;
+//       const userId = req.user?.id || 1;
+//       const data = req.body;
+
+//       const existingRequest = await prisma.sfa_d_requests.findUnique({
+//         where: { id: Number(id) },
+//       });
+
+//       if (!existingRequest)
+//         return res.status(404).json({ message: 'Request not found' });
+
+//       const updated = await prisma.sfa_d_requests.update({
+//         where: { id: Number(id) },
+//         data: {
+//           request_type: data.request_type,
+//           request_data: data.request_data,
+//           status: data.status,
+//           reference_id: data.reference_id ? Number(data.reference_id) : null,
+//           overall_status: data.overall_status,
+//           updatedate: new Date(),
+//           updatedby: userId,
+//           log_inst: { increment: 1 },
+//         },
+//         include: {
+//           sfa_d_requests_requester: {
+//             select: { id: true, name: true, email: true },
+//           },
+//           sfa_d_requests_approvals_request: true,
+//         },
+//       });
+
+//       res.json({
+//         message: 'Request updated successfully',
+//         data: serializeRequest(updated),
+//       });
+//     } catch (error: any) {
+//       console.error('Update Request Error:', error);
+//       res.status(500).json({ message: error.message });
+//     }
+//   },
+
+//   async deleteRequests(req: Request, res: Response) {
+//     try {
+//       const { id } = req.params;
+//       const existingRequest = await prisma.sfa_d_requests.findUnique({
+//         where: { id: Number(id) },
+//       });
+
+//       if (!existingRequest)
+//         return res.status(404).json({ message: 'Request not found' });
+
+//       await prisma.sfa_d_requests.delete({ where: { id: Number(id) } });
+
+//       res.json({ message: 'Request deleted successfully' });
+//     } catch (error: any) {
+//       console.error('Delete Request Error:', error);
+//       res.status(500).json({ message: error.message });
+//     }
+//   },
+
+//   async takeActionOnRequest(req: Request, res: Response) {
+//     const { request_id, approval_id, action, remarks } = req.body;
+//     const userId = req.user?.id || 1;
+
+//     try {
+//       if (!['A', 'R'].includes(action)) {
+//         return res.status(400).json({
+//           message: 'Invalid action. Must be A (Approve) or R (Reject)',
+//         });
+//       }
+
+//       const result = await prisma.$transaction(
+//         async tx => {
+//           // Get request details
+//           const request = await tx.sfa_d_requests.findUnique({
+//             where: { id: Number(request_id) },
+//             include: {
+//               sfa_d_requests_requester: {
+//                 select: { id: true, name: true, email: true },
+//               },
+//             },
+//           });
+
+//           if (!request) {
+//             throw new Error('Request not found');
+//           }
+
+//           // Get current approval
+//           const currentApproval = await tx.sfa_d_request_approvals.findUnique({
+//             where: { id: Number(approval_id) },
+//             include: {
+//               sfa_d_requests_approvals_approver: {
+//                 select: { id: true, name: true, email: true },
+//               },
+//             },
+//           });
+
+//           if (!currentApproval) {
+//             throw new Error('Approval not found');
+//           }
+
+//           if (currentApproval.status !== 'P') {
+//             throw new Error('This approval has already been processed');
+//           }
+
+//           // Update current approval
+//           await tx.sfa_d_request_approvals.update({
+//             where: { id: Number(approval_id) },
+//             data: {
+//               status: action,
+//               remarks,
+//               action_at: new Date(),
+//               updatedby: userId,
+//               updatedate: new Date(),
+//             },
+//           });
+
+//           if (action === 'R') {
+//             // REJECTED
+//             await tx.sfa_d_requests.update({
+//               where: { id: Number(request_id) },
+//               data: {
+//                 status: 'R',
+//                 overall_status: 'REJECTED',
+//                 updatedby: userId,
+//                 updatedate: new Date(),
+//               },
+//             });
+
+//             return { status: 'rejected', request };
+//           }
+
+//           // APPROVED - Check for next approver
+//           const nextApprover = await tx.sfa_d_request_approvals.findFirst({
+//             where: {
+//               request_id: Number(request_id),
+//               status: 'P',
+//             },
+//             orderBy: { sequence: 'asc' },
+//             include: {
+//               sfa_d_requests_approvals_approver: {
+//                 select: { id: true, name: true, email: true },
+//               },
+//             },
+//           });
+
+//           if (!nextApprover) {
+//             // Final approval
+//             await tx.sfa_d_requests.update({
+//               where: { id: Number(request_id) },
+//               data: {
+//                 status: 'A',
+//                 overall_status: 'APPROVED',
+//                 updatedby: userId,
+//                 updatedate: new Date(),
+//               },
+//             });
+
+//             return { status: 'fully_approved', request };
+//           }
+
+//           return { status: 'next_level', request, nextApprover };
+//         },
+//         {
+//           maxWait: 10000,
+//           timeout: 20000,
+//         }
+//       );
+
+//       // Send appropriate emails
+//       if (result.status === 'rejected') {
+//         const template = await generateEmailContent(
+//           templateKeyMap.requestRejected,
+//           {
+//             employee_name: result.request.sfa_d_requests_requester.name,
+//             request_type: formatRequestType(result.request.request_type),
+//             remarks: remarks || 'No reason provided',
+//             company_name: 'SFA System',
+//           }
+//         );
+
+//         await sendEmail({
+//           to: result.request.sfa_d_requests_requester.email,
+//           subject: template.subject,
+//           html: template.body,
+//           createdby: userId,
+//           log_inst: 1,
+//         });
+
+//         return res.status(200).json({
+//           message: 'Request rejected successfully',
+//         });
+//       }
+
+//       if (result.status === 'fully_approved') {
+//         const template = await generateEmailContent(
+//           templateKeyMap.requestAccepted,
+//           {
+//             employee_name: result.request.sfa_d_requests_requester.name,
+//             request_type: formatRequestType(result.request.request_type),
+//             company_name: 'SFA System',
+//           }
+//         );
+
+//         await sendEmail({
+//           to: result.request.sfa_d_requests_requester.email,
+//           subject: template.subject,
+//           html: template.body,
+//           createdby: userId,
+//           log_inst: 1,
+//         });
+
+//         return res.status(200).json({
+//           message: 'Request approved successfully (All approvals complete)',
+//         });
+//       }
+
+//       if (result.status === 'next_level' && result.nextApprover) {
+//         const template = await generateEmailContent(
+//           templateKeyMap.notifyNextApprover,
+//           {
+//             approver_name:
+//               result.nextApprover.sfa_d_requests_approvals_approver.name,
+//             previous_approver: 'Previous Approver',
+//             request_type: formatRequestType(result.request.request_type),
+//             action: 'approved',
+//             company_name: 'SFA System',
+//           }
+//         );
+
+//         await sendEmail({
+//           to: result.nextApprover.sfa_d_requests_approvals_approver.email,
+//           subject: template.subject,
+//           html: template.body,
+//           createdby: userId,
+//           log_inst: 1,
+//         });
+
+//         return res.status(200).json({
+//           message: 'Request approved and escalated to next approver',
+//         });
+//       }
+
+//       res.status(200).json({
+//         message: 'Action processed successfully',
+//       });
+//     } catch (error: any) {
+//       console.error('Take Action Error:', error);
+//       res.status(500).json({
+//         message: 'Failed to process action',
+//         error: error.message,
+//       });
+//     }
+//   },
+
+//   async getRequestsByUsers(req: any, res: any) {
+//     try {
+//       const { page, limit, search, request_type, status, requester_id } =
+//         req.query;
+
+//       const userId = req.user?.id;
+
+//       const pageNum = parseInt(page as string, 10) || 1;
+//       const limitNum = parseInt(limit as string, 10) || 10;
+
+//       const filters: any = {
+//         sfa_d_requests_approvals_request: {
+//           some: {
+//             approver_id: userId,
+//             status: status || 'P',
+//           },
+//         },
+//       };
+
+//       if (search) {
+//         filters.OR = [
+//           { request_type: { contains: search, mode: 'insensitive' } },
+//         ];
+//       }
+
+//       if (request_type) {
+//         filters.request_type = request_type;
+//       }
+
+//       if (requester_id) {
+//         filters.requester_id = Number(requester_id);
+//       }
+
+//       const { data, pagination } = await paginate({
+//         model: prisma.sfa_d_requests,
+//         filters,
+//         page: pageNum,
+//         limit: limitNum,
+//         orderBy: { createdate: 'desc' },
+//         include: {
+//           sfa_d_requests_requester: {
+//             select: { id: true, name: true, email: true },
+//           },
+//           sfa_d_requests_approvals_request: {
+//             where: { approver_id: userId },
+//             select: {
+//               id: true,
+//               sequence: true,
+//               status: true,
+//               remarks: true,
+//             },
+//           },
+//         },
+//       });
+
+//       res.json({
+//         message: 'Requests found successfully',
+//         data: data.map((request: any) => serializeRequest(request)),
+//         pagination,
+//       });
+//     } catch (error: any) {
+//       console.error('Get Requests By Users Error:', error);
+//       res.status(500).json({
+//         message: 'Failed to retrieve requests',
+//         error: error.message,
+//       });
+//     }
+//   },
+
+//   async getRequestByTypeAndReference(req: Request, res: Response) {
+//     try {
+//       const { request_type, reference_id } = req.query;
+
+//       const request = await prisma.sfa_d_requests.findFirst({
+//         where: {
+//           request_type: request_type as string,
+//           reference_id: Number(reference_id),
+//         },
+//         include: {
+//           sfa_d_requests_requester: {
+//             select: { id: true, name: true, email: true },
+//           },
+//           sfa_d_requests_approvals_request: {
+//             select: {
+//               id: true,
+//               sequence: true,
+//               status: true,
+//               remarks: true,
+//               sfa_d_requests_approvals_approver: {
+//                 select: { id: true, name: true },
+//               },
+//             },
+//             orderBy: { sequence: 'asc' },
+//           },
+//         },
+//       });
+
+//       res.json({
+//         message: 'Request found successfully',
+//         data: request ? serializeRequest(request) : null,
+//       });
+//     } catch (error: any) {
+//       console.error('Get Request By Type Error:', error);
+//       res.status(500).json({
+//         message: 'Failed to retrieve request',
+//         error: error.message,
+//       });
+//     }
+//   },
+// };
