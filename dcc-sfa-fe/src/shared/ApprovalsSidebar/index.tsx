@@ -1,14 +1,19 @@
 import { Chip, Skeleton, Typography } from '@mui/material';
-import {
-  useApprovalWorkflow,
-  useApprovalWorkflows,
-} from 'hooks/useApprovalWorkflows';
+import { useRequestsByUsers, useTakeActionOnRequest } from 'hooks/useRequests';
 import { Check, FileText, X } from 'lucide-react';
 import React, { useState } from 'react';
-import type { ApprovalWorkflow } from 'services/approvalWorkflows';
+import type { Request } from 'services/requests';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
-import WorkflowConfirmationDialog from 'shared/WorkflowConfirmationDialog';
+import Input from 'shared/Input';
+import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+} from '@mui/material';
+import { useFormik } from 'formik';
+import * as yup from 'yup';
 import { formatDate } from 'utils/dateUtils';
 
 interface ApprovalsSidebarProps {
@@ -22,47 +27,70 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'approve' | 'reject'>('approve');
-  const [selectedWorkflow, setSelectedWorkflow] =
-    useState<ApprovalWorkflow | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
 
-  const { data: workflowsResponse, isLoading } = useApprovalWorkflows({
+  const { data: requestsResponse, isLoading } = useRequestsByUsers({
     page: 1,
     limit: 10,
+    status: 'P', // Only pending requests
   });
 
-  const workflows: ApprovalWorkflow[] = workflowsResponse?.data || [];
-  const pendingWorkflows = workflows.filter(
-    w =>
-      w.status?.toUpperCase() === 'P' || w.status?.toUpperCase() === 'PENDING'
-  );
+  const requests: Request[] = requestsResponse?.data || [];
 
-  const { data: workflowDetailData, isLoading: isLoadingDetail } =
-    useApprovalWorkflow(selectedWorkflow?.id || 0, {
-      enabled: !!selectedWorkflow?.id,
-    });
+  const takeActionMutation = useTakeActionOnRequest();
 
-  const workflowDetail = workflowDetailData || selectedWorkflow;
+  const formik = useFormik({
+    initialValues: {
+      remarks: '',
+    },
+    validationSchema: yup.object({
+      remarks: yup
+        .string()
+        .required(
+          `${dialogType === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
+        )
+        .trim()
+        .min(
+          1,
+          `${dialogType === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
+        ),
+    }),
+    enableReinitialize: true,
+    onSubmit: async values => {
+      if (!selectedRequest || !selectedRequest.approvals?.[0]) return;
 
-  const handleApproveClick = (workflow: ApprovalWorkflow) => {
-    setSelectedWorkflow(workflow);
+      try {
+        await takeActionMutation.mutateAsync({
+          request_id: selectedRequest.id,
+          approval_id: selectedRequest.approvals[0].id,
+          action: dialogType === 'approve' ? 'A' : 'R',
+          remarks: values.remarks.trim(),
+        });
+        formik.resetForm();
+        setDialogOpen(false);
+        setSelectedRequest(null);
+      } catch (error) {
+        console.error('Error taking action on request:', error);
+      }
+    },
+  });
+
+  const handleApproveClick = (request: Request) => {
+    setSelectedRequest(request);
     setDialogType('approve');
     setDialogOpen(true);
   };
 
-  const handleRejectClick = (workflow: ApprovalWorkflow) => {
-    setSelectedWorkflow(workflow);
+  const handleRejectClick = (request: Request) => {
+    setSelectedRequest(request);
     setDialogType('reject');
     setDialogOpen(true);
   };
 
-  const handleDialogSuccess = () => {
-    setDialogOpen(false);
-    setSelectedWorkflow(null);
-  };
-
   const handleDialogCancel = () => {
+    formik.resetForm();
     setDialogOpen(false);
-    setSelectedWorkflow(null);
+    setSelectedRequest(null);
   };
 
   const getStatusColor = (status: string | null) => {
@@ -101,189 +129,296 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
     }
   };
 
-  const getPriorityColor = (priority: string | null) => {
-    if (!priority) return 'default';
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return 'error';
-      case 'medium':
-        return 'warning';
-      case 'low':
-        return 'info';
-      default:
-        return 'default';
+  const formatRequestType = (type: string): string => {
+    return type
+      .replace(/_/g, ' ')
+      .replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1));
+  };
+
+  const getReferenceNumber = (request: Request): string => {
+    if (request.reference_id) {
+      return `#${request.reference_id}`;
     }
+    if (request.request_data) {
+      try {
+        const data = JSON.parse(request.request_data);
+        return (
+          data.order_number || data.reference_number || `REQ-${request.id}`
+        );
+      } catch {
+        return `REQ-${request.id}`;
+      }
+    }
+    return `REQ-${request.id}`;
   };
 
   return (
-    <CustomDrawer
-      open={open}
-      setOpen={setOpen}
-      title="Recent Approvals"
-      size="medium"
-      anchor="right"
-    >
-      <div className="!p-2">
-        {isLoading ? (
-          <div className="!space-y-2">
-            {[1, 2, 3].map(item => (
-              <div
-                key={item}
-                className="!bg-white !rounded-lg !border !border-gray-200 !p-4"
-              >
-                <Skeleton
-                  variant="text"
-                  width="60%"
-                  height={20}
-                  className="!mb-2"
-                />
-                <Skeleton
-                  variant="text"
-                  width="40%"
-                  height={16}
-                  className="!mb-3"
-                />
-                <div className="!flex !gap-2 !mb-3">
-                  <Skeleton variant="rectangular" width={80} height={24} />
-                  <Skeleton variant="rectangular" width={80} height={24} />
-                </div>
-                <div className="!flex !gap-2">
-                  <Skeleton variant="rectangular" width={100} height={32} />
-                  <Skeleton variant="rectangular" width={100} height={32} />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : pendingWorkflows.length === 0 ? (
-          <div className="!text-center !py-12">
-            <FileText className="!w-16 !h-16 !text-gray-400 !mx-auto !mb-4" />
-            <Typography variant="body1" className="!text-gray-600 !mb-2">
-              No Pending Approvals
-            </Typography>
-            <Typography variant="body2" className="!text-gray-500">
-              All workflows have been processed
-            </Typography>
-          </div>
-        ) : (
-          <div className="!space-y-2">
-            {pendingWorkflows.map(workflow => {
-              const requesterName =
-                workflow.requested_by_user?.name ||
-                `User #${workflow.requested_by}`;
-              const workflowTypeLabel =
-                workflow.workflow_type?.charAt(0).toUpperCase() +
-                  workflow.workflow_type?.slice(1).toLowerCase() || 'Workflow';
-
-              return (
+    <>
+      <CustomDrawer
+        open={open}
+        setOpen={setOpen}
+        title="Recent Requests"
+        size="medium"
+        anchor="right"
+      >
+        <div className="!p-2">
+          {isLoading ? (
+            <div className="!space-y-2">
+              {[1, 2, 3].map(item => (
                 <div
-                  key={workflow.id}
-                  className="!bg-white !rounded-lg !border !border-gray-200 !p-3 !hover:!shadow-md !transition-shadow"
+                  key={item}
+                  className="!bg-white !rounded-lg !border !border-gray-200 !p-4"
                 >
-                  <div className="!flex !items-start !justify-between !mb-2">
-                    <div className="!flex-1 !pr-2 !min-w-0">
-                      <div className="!flex !items-center !gap-2 !mb-1">
-                        <Typography
-                          variant="body2"
-                          className="!font-semibold !text-gray-900"
-                        >
-                          {workflow.reference_number}
-                        </Typography>
-                        <Chip
-                          label={workflow.workflow_type}
-                          size="small"
-                          className="!capitalize !text-xs !h-5"
-                        />
-                      </div>
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-600 !text-xs !leading-tight"
-                      >
-                        <span className="!font-medium">{requesterName}</span>{' '}
-                        has requested{' '}
-                        <span className="!font-medium">
-                          {workflowTypeLabel} Approval
-                        </span>{' '}
-                        for{' '}
-                        <span className="!font-medium">
-                          {workflow.reference_number}
-                        </span>
-                        .
-                      </Typography>
-                    </div>
+                  <Skeleton
+                    variant="text"
+                    width="60%"
+                    height={20}
+                    className="!mb-2"
+                  />
+                  <Skeleton
+                    variant="text"
+                    width="40%"
+                    height={16}
+                    className="!mb-3"
+                  />
+                  <div className="!flex !gap-2 !mb-3">
+                    <Skeleton variant="rectangular" width={80} height={24} />
+                    <Skeleton variant="rectangular" width={80} height={24} />
                   </div>
-
-                  <div className="!flex !items-center !gap-2 !mb-2 !flex-wrap">
-                    <Chip
-                      label={getStatusLabel(workflow.status)}
-                      color={getStatusColor(workflow.status) as any}
-                      size="small"
-                      className="!capitalize !text-xs !h-5"
-                    />
-                    <Chip
-                      label={workflow.priority || 'N/A'}
-                      color={getPriorityColor(workflow.priority) as any}
-                      size="small"
-                      className="!capitalize !text-xs !h-5"
-                    />
-                    <div className="!flex !items-center !gap-1 !text-xs !text-gray-500">
-                      {workflow.request_date && (
-                        <>
-                          <span className="!mx-1">•</span>
-                          <span>{formatDate(workflow.request_date)}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="!flex !items-center justify-end !gap-2 !border-t !border-gray-100 !pt-2">
-                    <div className="!flex !gap-2">
-                      <Button
-                        variant="contained"
-                        color="success"
-                        size="small"
-                        startIcon={<Check className="!w-5 !h-5" />}
-                        onClick={() => handleApproveClick(workflow)}
-                        disabled={
-                          workflow.status?.toUpperCase() !== 'P' &&
-                          workflow.status?.toUpperCase() !== 'PENDING'
-                        }
-                        className="!flex-1 !text-xs !h-8 !w-26"
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        variant="contained"
-                        color="error"
-                        size="small"
-                        startIcon={<X className="!w-5 !h-5" />}
-                        onClick={() => handleRejectClick(workflow)}
-                        disabled={
-                          workflow.status?.toUpperCase() !== 'P' &&
-                          workflow.status?.toUpperCase() !== 'PENDING'
-                        }
-                        className="!flex-1 !text-xs !h-8 !w-26"
-                      >
-                        Reject
-                      </Button>
-                    </div>
+                  <div className="!flex !gap-2">
+                    <Skeleton variant="rectangular" width={100} height={32} />
+                    <Skeleton variant="rectangular" width={100} height={32} />
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="!text-center !py-12">
+              <FileText className="!w-16 !h-16 !text-gray-400 !mx-auto !mb-4" />
+              <Typography variant="body1" className="!text-gray-600 !mb-2">
+                No Pending Approvals
+              </Typography>
+              <Typography variant="body2" className="!text-gray-500">
+                All requests have been processed
+              </Typography>
+            </div>
+          ) : (
+            <div className="!space-y-2">
+              {requests.map(request => {
+                const requesterName =
+                  request.requester?.name || `User #${request.requester_id}`;
+                const requestTypeLabel = formatRequestType(
+                  request.request_type
+                );
+                const referenceNumber = getReferenceNumber(request);
+                const approvalStatus =
+                  request.approvals?.[0]?.status || request.status;
+
+                return (
+                  <div
+                    key={request.id}
+                    className="!bg-white !rounded-lg !border !border-gray-200 !p-3 !hover:!shadow-md !transition-shadow"
+                  >
+                    <div className="!flex !items-start !justify-between !mb-2">
+                      <div className="!flex-1 !pr-2 !min-w-0">
+                        <div className="!flex !items-center !gap-2 !mb-1">
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {referenceNumber}
+                          </Typography>
+                          <Chip
+                            label={requestTypeLabel}
+                            size="small"
+                            className="!capitalize !text-xs !h-5"
+                          />
+                        </div>
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-600 !text-xs !leading-tight"
+                        >
+                          <span className="!font-medium">{requesterName}</span>{' '}
+                          has requested{' '}
+                          <span className="!font-medium">
+                            {requestTypeLabel} Approval
+                          </span>{' '}
+                          for{' '}
+                          <span className="!font-medium">
+                            {referenceNumber}
+                          </span>
+                          .
+                        </Typography>
+                      </div>
+                    </div>
+
+                    <div className="!flex !items-center !gap-2 !mb-2 !flex-wrap">
+                      <Chip
+                        label={getStatusLabel(approvalStatus)}
+                        color={getStatusColor(approvalStatus) as any}
+                        size="small"
+                        className="!capitalize !text-xs !h-5"
+                      />
+                      <div className="!flex !items-center !gap-1 !text-xs !text-gray-500">
+                        {request.createdate && (
+                          <>
+                            <span className="!mx-1">•</span>
+                            <span>
+                              {formatDate(
+                                request.createdate instanceof Date
+                                  ? request.createdate.toISOString()
+                                  : String(request.createdate)
+                              )}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="!flex !items-center justify-end !gap-2 !border-t !border-gray-100 !pt-2">
+                      <div className="!flex !gap-2">
+                        <Button
+                          variant="contained"
+                          color="success"
+                          size="small"
+                          startIcon={<Check className="!w-5 !h-5" />}
+                          onClick={() => handleApproveClick(request)}
+                          disabled={
+                            approvalStatus?.toUpperCase() !== 'P' &&
+                            approvalStatus?.toUpperCase() !== 'PENDING'
+                          }
+                          className="!flex-1 !text-xs !h-8 !w-26"
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          startIcon={<X className="!w-5 !h-5" />}
+                          onClick={() => handleRejectClick(request)}
+                          disabled={
+                            approvalStatus?.toUpperCase() !== 'P' &&
+                            approvalStatus?.toUpperCase() !== 'PENDING'
+                          }
+                          className="!flex-1 !text-xs !h-8 !w-26"
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </CustomDrawer>
 
       {/* Confirmation Dialog */}
-      <WorkflowConfirmationDialog
+      <Dialog
         open={dialogOpen}
-        type={dialogType}
-        workflowDetail={workflowDetail}
-        isLoadingDetail={isLoadingDetail}
-        onSuccess={handleDialogSuccess}
-        onCancel={handleDialogCancel}
-      />
-    </CustomDrawer>
+        onClose={handleDialogCancel}
+        maxWidth="sm"
+        fullWidth
+        className="!rounded-lg"
+      >
+        <DialogTitle className="!flex !items-center !gap-3 !pb-4 !border-b !border-gray-200">
+          <div
+            className={`!w-12 !h-12 !rounded-full !flex !items-center !justify-center !shrink-0 ${
+              dialogType === 'approve' ? '!bg-green-100' : '!bg-red-100'
+            }`}
+          >
+            {dialogType === 'approve' ? (
+              <Check className="!w-6 !h-6 !text-green-600" />
+            ) : (
+              <X className="!w-6 !h-6 !text-red-600" />
+            )}
+          </div>
+          <div className="!flex-1">
+            <Typography variant="h6" className="!font-semibold !text-gray-900">
+              {dialogType === 'approve'
+                ? 'Approve Request?'
+                : 'Reject Request?'}
+            </Typography>
+            <Typography variant="body2" className="!text-gray-600 !mt-1">
+              {dialogType === 'approve' ? (
+                <>
+                  Are you sure you want to approve this{' '}
+                  {selectedRequest?.request_type?.toLowerCase() || 'request'}{' '}
+                  from{' '}
+                  <span className="!font-semibold !text-gray-900">
+                    {selectedRequest?.requester?.name || 'User'}
+                  </span>
+                  ?
+                </>
+              ) : (
+                <>
+                  Are you sure you want to reject this{' '}
+                  {selectedRequest?.request_type?.toLowerCase() || 'request'}{' '}
+                  from{' '}
+                  <span className="!font-semibold !text-gray-900">
+                    {selectedRequest?.requester?.name || 'User'}
+                  </span>
+                  ?
+                </>
+              )}
+            </Typography>
+          </div>
+        </DialogTitle>
+
+        <DialogContent className="!p-4">
+          <Input
+            name="remarks"
+            multiline
+            rows={3}
+            label={
+              dialogType === 'approve'
+                ? 'Approval Remarks'
+                : 'Rejection Remarks'
+            }
+            placeholder={
+              dialogType === 'approve'
+                ? 'Enter approval remarks...'
+                : 'Enter rejection remarks...'
+            }
+            formik={formik}
+            required
+          />
+        </DialogContent>
+
+        <DialogActions className="!px-6 !py-4 !gap-2">
+          <Button variant="outlined" onClick={handleDialogCancel}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color={dialogType === 'approve' ? 'success' : 'error'}
+            startIcon={
+              dialogType === 'approve' ? (
+                <Check className="!w-4 !h-4" />
+              ) : (
+                <X className="!w-4 !h-4" />
+              )
+            }
+            onClick={() => formik.handleSubmit()}
+            disabled={
+              takeActionMutation.isPending ||
+              !formik.isValid ||
+              !formik.values.remarks.trim()
+            }
+          >
+            {takeActionMutation.isPending
+              ? dialogType === 'approve'
+                ? 'Approving...'
+                : 'Rejecting...'
+              : dialogType === 'approve'
+                ? 'Yes, Approve'
+                : 'Yes, Reject'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

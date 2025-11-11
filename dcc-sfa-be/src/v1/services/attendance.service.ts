@@ -253,15 +253,6 @@ export class AttendanceService {
       };
     }
 
-    if (attendance.punch_out_time) {
-      return {
-        canPunchIn: false,
-        canPunchOut: false,
-        status: 'punched_out',
-        attendance: attendance as AttendanceWithHistory,
-      };
-    }
-
     return {
       canPunchIn: false,
       canPunchOut: true,
