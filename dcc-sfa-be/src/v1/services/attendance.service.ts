@@ -21,18 +21,6 @@ export class AttendanceService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const existingAttendance = await prisma.attendance.findFirst({
-      where: {
-        user_id: userId,
-        attendance_date: { gte: today },
-        is_active: 'Y',
-      },
-    });
-
-    if (existingAttendance) {
-      throw new Error('Already punched in today');
-    }
-
     const attendance = await prisma.attendance.create({
       data: {
         user_id: userId,
