@@ -89,7 +89,7 @@ export const sendBulkEmails = async (
   }
 
   console.log(
-    `✓ Bulk email sending complete: ${success} sent, ${failed} failed`
+    ` Bulk email sending complete: ${success} sent, ${failed} failed`
   );
 
   return { success, failed };

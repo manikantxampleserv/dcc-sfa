@@ -737,7 +737,6 @@ export const ordersController = {
                 log_inst: { increment: 1 },
               },
             });
-            console.log('✓ Order updated, ID:', order.id);
           } else {
             order = await tx.orders.create({
               data: {
@@ -747,7 +746,7 @@ export const ordersController = {
                 log_inst: 1,
               },
             });
-            console.log('✓ Order created, ID:', order.id);
+            console.log(' Order created, ID:', order.id);
           }
 
           if (items && items.length > 0) {
@@ -755,7 +754,7 @@ export const ordersController = {
               await tx.order_items.deleteMany({
                 where: { id: orderId },
               });
-              console.log('✓ Deleted existing order items');
+              console.log(' Deleted existing order items');
             }
 
             const safeParse = (val: any, fallback = 0) => {
@@ -790,7 +789,7 @@ export const ordersController = {
             await tx.order_items.createMany({
               data: orderItemsData,
             });
-            console.log(`✓ Created ${orderItemsData.length} order items`);
+            console.log(`Created ${orderItemsData.length} order items`);
           }
 
           const finalOrder = await tx.orders.findUnique({

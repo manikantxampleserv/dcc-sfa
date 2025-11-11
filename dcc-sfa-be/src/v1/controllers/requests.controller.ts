@@ -465,7 +465,7 @@ export const requestsController = {
             data: approvalsToInsert,
           });
 
-          console.log(`✓ Created ${approvalsToInsert.length} approval steps`);
+          console.log(`Created ${approvalsToInsert.length} approval steps`);
 
           const finalRequest = await tx.sfa_d_requests.findUnique({
             where: { id: request.id },
@@ -532,7 +532,7 @@ export const requestsController = {
                 log_inst: 1,
               });
 
-              console.log(`✓ [Email Sent] → ${firstApprover.email}`);
+              console.log(`Email Sent ${firstApprover.email}`);
             }
           }
         } catch (emailError) {
@@ -1089,7 +1089,7 @@ export const requestsController = {
                 },
               });
               console.log(
-                `✓ Order ${request.reference_id} status updated to REJECTED`
+                `Order ${request.reference_id} status updated to REJECTED`
               );
             }
 
@@ -1135,9 +1135,6 @@ export const requestsController = {
                   updatedate: new Date(),
                 },
               });
-              console.log(
-                `✓ Order ${request.reference_id} status updated to APPROVED`
-              );
             }
 
             return { status: 'fully_approved', request };

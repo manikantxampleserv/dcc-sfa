@@ -86,8 +86,6 @@
 //         data: serializedData,
 //       });
 
-//       console.log(`✓ Created ${result.count} approval workflows`);
-
 //       // Fetch created workflows with relations
 //       const createdWorkflows = await prisma.approval_work_flow.findMany({
 //         where: {
