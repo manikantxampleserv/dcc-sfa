@@ -262,63 +262,63 @@ const Notifications: React.FC<NotificationsProps> = ({
               </Typography>
             </Box>
           ) : (
-            <>
-              {notifications.map((notification: Notification) => (
-                <MenuItem
-                  key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`!px-4 !py-3 !border-b !border-gray-100 hover:!bg-gray-50 ${
-                    !notification.is_read ? '!bg-blue-50' : ''
-                  }`}
-                >
-                  <ListItemIcon className="!min-w-0 !mr-3">
-                    {getNotificationIcon(notification.type)}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={
-                      <Box className="!flex !items-start !justify-between !gap-2">
-                        <Typography
-                          variant="body2"
-                          className={`!font-medium !text-sm ${
-                            !notification.is_read
-                              ? '!text-gray-900'
-                              : '!text-gray-700'
-                          }`}
-                        >
-                          {notification.title}
-                        </Typography>
-                        {!notification.is_read && (
-                          <Circle className="!text-blue-500 !text-xs" />
-                        )}
-                      </Box>
-                    }
-                    secondary={
-                      <>
-                        <Typography
-                          variant="body2"
-                          className="!text-xs !text-gray-500 !mt-1"
-                        >
-                          {notification.message}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          className="!text-xs !text-gray-400 !mt-1 !block"
-                        >
-                          {formatTimestamp(notification.createdate)}
-                        </Typography>
-                      </>
-                    }
-                  />
-                </MenuItem>
-              ))}
-            </>
+            notifications.map((notification: Notification) => (
+              <MenuItem
+                key={notification.id}
+                onClick={() => handleNotificationClick(notification)}
+                className={`!px-4 !py-3 !border-b !border-gray-100 hover:!bg-gray-50 ${
+                  !notification.is_read ? '!bg-blue-50' : ''
+                }`}
+              >
+                <ListItemIcon className="!min-w-0 !mr-3">
+                  {getNotificationIcon(notification.type)}
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Box className="!flex !items-start !justify-between !gap-2">
+                      <Typography
+                        variant="body2"
+                        className={`!font-medium !text-sm ${
+                          !notification.is_read
+                            ? '!text-gray-900'
+                            : '!text-gray-700'
+                        }`}
+                      >
+                        {notification.title}
+                      </Typography>
+                      {!notification.is_read && (
+                        <Circle className="!text-blue-500 !text-xs" />
+                      )}
+                    </Box>
+                  }
+                  secondary={
+                    <>
+                      <Typography
+                        component="span"
+                        variant="body2"
+                        className="!text-xs !text-gray-500 !mt-1 !block"
+                      >
+                        {notification.message}
+                      </Typography>
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        className="!text-xs !text-gray-400 !mt-1 !block"
+                      >
+                        {formatTimestamp(notification.createdate)}
+                      </Typography>
+                    </>
+                  }
+                />
+              </MenuItem>
+            ))
           )}
         </Box>
 
-        {notifications.length > 0 && !isLoading && (
-          <>
-            <Divider />
-            <Box className="!px-4 !py-2 !flex !justify-center">
+        {notifications.length > 0 &&
+          !isLoading && [
+            <Divider key="divider" />,
+            <Box key="clear-all" className="!px-4 !py-2 !flex !justify-center">
               <Button
                 size="small"
                 onClick={handleClearAll}
@@ -326,9 +326,8 @@ const Notifications: React.FC<NotificationsProps> = ({
               >
                 Clear all notifications
               </Button>
-            </Box>
-          </>
-        )}
+            </Box>,
+          ]}
       </Menu>
     </div>
   );

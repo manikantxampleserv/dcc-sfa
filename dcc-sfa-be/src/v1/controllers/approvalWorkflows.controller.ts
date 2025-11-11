@@ -133,7 +133,8 @@ export const approvalWorkflowsController = {
       }
 
       if (status && status !== 'all') {
-        where.status = status as string;
+        const normalizedStatus = (status as string).toUpperCase();
+        where.status = normalizedStatus;
       }
 
       if (priority && priority !== 'all') {

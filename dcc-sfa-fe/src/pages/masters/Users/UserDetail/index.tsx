@@ -198,7 +198,7 @@ const UserDetail: React.FC = () => {
 
   return (
     <div className="flex items-start gap-4">
-      <div className="!flex-2">
+      <div className="!flex-2 flex flex-col gap-4">
         <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
           <div className="absolute top-3 right-3">
             <div
@@ -285,9 +285,6 @@ const UserDetail: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="!flex-4 !space-y-4">
         <InfoCard title="Personal Information" icon={Person}>
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
             <div className="!space-y-0.5">
@@ -366,7 +363,9 @@ const UserDetail: React.FC = () => {
             </div>
           </div>
         </InfoCard>
+      </div>
 
+      <div className="!flex-4 !space-y-4">
         <InfoCard title="Role & Organization" icon={Security}>
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
             <div className="!space-y-0.5">

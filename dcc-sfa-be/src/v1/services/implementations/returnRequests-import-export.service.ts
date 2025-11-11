@@ -419,8 +419,49 @@ export class ReturnRequestsImportExportService extends ImportExportService<any> 
   }
 
   async exportToExcel(options: any = {}): Promise<Buffer> {
+    // Normalize filters: convert camelCase to snake_case
+    const normalizeKey = (key: string): string => {
+      return key.replace(/([A-Z])/g, '_$1').toLowerCase();
+    };
+
+    const normalizeFilters = (filters: any): any => {
+      if (!filters || typeof filters !== 'object') {
+        return filters;
+      }
+
+      const normalized: any = {};
+      Object.keys(filters).forEach(key => {
+        const snakeKey = normalizeKey(key);
+        const value = filters[key];
+
+        // Handle nested objects (like OR, AND, NOT clauses)
+        if (
+          value &&
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          !(value instanceof Date)
+        ) {
+          normalized[snakeKey] = normalizeFilters(value);
+        } else if (Array.isArray(value)) {
+          // Handle arrays (like in OR clauses)
+          normalized[snakeKey] = value.map(item =>
+            typeof item === 'object' && item !== null
+              ? normalizeFilters(item)
+              : item
+          );
+        } else {
+          normalized[snakeKey] = value;
+        }
+      });
+      return normalized;
+    };
+
+    const normalizedFilters = options.filters
+      ? normalizeFilters(options.filters)
+      : undefined;
+
     const query: any = {
-      where: options.filters,
+      where: normalizedFilters || {},
       orderBy: options.orderBy || { id: 'desc' },
       include: {
         return_requests_customers: true,

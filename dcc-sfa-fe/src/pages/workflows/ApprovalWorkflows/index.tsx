@@ -49,20 +49,18 @@ const ApprovalWorkflows: React.FC = () => {
   };
 
   const canApproveOrReject = (workflow: ApprovalWorkflow) => {
-    return workflow.status === 'pending' || workflow.status === 'in_progress';
+    return workflow.status === 'P';
   };
 
   const getStatusColor = (status: string | null) => {
     if (!status) return 'default';
-    switch (status.toLowerCase()) {
-      case 'approved':
+    switch (status) {
+      case 'A':
         return 'success';
-      case 'rejected':
+      case 'R':
         return 'error';
-      case 'pending':
+      case 'P':
         return 'warning';
-      case 'in_progress':
-        return 'info';
       default:
         return 'default';
     }
@@ -110,7 +108,15 @@ const ApprovalWorkflows: React.FC = () => {
       label: 'Status',
       render: (_value, row) => (
         <Chip
-          label={row.status || 'N/A'}
+          label={
+            row.status === 'P'
+              ? 'Pending'
+              : row.status === 'A'
+                ? 'Approved'
+                : row.status === 'R'
+                  ? 'Rejected'
+                  : 'N/A'
+          }
           color={getStatusColor(row.status) as any}
           size="small"
           className="!capitalize"
@@ -232,10 +238,9 @@ const ApprovalWorkflows: React.FC = () => {
               onChange={e => setStatusFilter(e.target.value)}
             >
               <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="in_progress">In Progress</MenuItem>
-              <MenuItem value="approved">Approved</MenuItem>
-              <MenuItem value="rejected">Rejected</MenuItem>
+              <MenuItem value="P">Pending</MenuItem>
+              <MenuItem value="A">Approved</MenuItem>
+              <MenuItem value="R">Rejected</MenuItem>
             </Select>
           </div>
           <div className="!w-[180px]">

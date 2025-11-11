@@ -35,6 +35,39 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
 
   const upsertMovementMutation = useUpsertStockMovement();
 
+  const getLoadingTypeLabel = (type: string) => {
+    switch (type) {
+      case 'L':
+        return 'Load';
+      case 'U':
+        return 'Unload';
+      default:
+        return type;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'D':
+        return 'Draft';
+      case 'A':
+        return 'Confirmed';
+      case 'C':
+        return 'Canceled';
+      default:
+        return status;
+    }
+  };
+
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) return '';
+    try {
+      return new Date(date).toLocaleDateString();
+    } catch {
+      return '';
+    }
+  };
+
   const handleCancel = () => {
     onClose();
     formik.resetForm();
@@ -199,12 +232,27 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
               <MenuItem value="">
                 <em>No Van Inventory</em>
               </MenuItem>
-              {vanInventory.map((item: any) => (
-                <MenuItem key={item.id} value={item.id}>
-                  {item.product?.name} - {item.user?.name} (Qty: {item.quantity}
-                  )
-                </MenuItem>
-              ))}
+              {vanInventory.map((item: any) => {
+                const displayText = [
+                  item.user?.name || 'Unknown User',
+                  getLoadingTypeLabel(item.loading_type || 'L'),
+                  getStatusLabel(item.status || 'D'),
+                  item.vehicle?.vehicle_number
+                    ? `- ${item.vehicle.vehicle_number}`
+                    : '',
+                  item.document_date
+                    ? `(${formatDate(item.document_date)})`
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ');
+
+                return (
+                  <MenuItem key={item.id} value={item.id}>
+                    {displayText}
+                  </MenuItem>
+                );
+              })}
             </Select>
 
             <Select name="is_active" label="Status" formik={formik} required>

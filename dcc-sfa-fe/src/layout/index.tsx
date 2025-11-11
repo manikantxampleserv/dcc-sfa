@@ -12,34 +12,19 @@ const Layout: React.FC = () => {
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
-  // Force remount when route changes
   useEffect(() => {
     const currentPath = location.pathname + location.search;
 
-    // Only update if pathname actually changed
     if (prevPathnameRef.current !== currentPath) {
-      console.log('Route changed:', {
-        from: prevPathnameRef.current,
-        to: currentPath,
-        locationKey: location.key,
-      });
-
       prevPathnameRef.current = currentPath;
-      // Force remount by updating key
-      setRemountKey(prev => {
-        const newKey = prev + 1;
-        console.log('Remount key updated:', newKey);
-        return newKey;
-      });
+      setRemountKey(prev => prev + 1);
 
-      // Scroll to top
       if (mainRef.current) {
         mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
   }, [location.pathname, location.search, location.key]);
 
-  // Create a unique key that changes on every navigation
   const outletKey = `${location.pathname}${location.search}${remountKey}`;
 
   return (
