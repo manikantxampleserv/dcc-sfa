@@ -1,3 +1,4 @@
+import { attendance } from './../../../../node_modules/.prisma/client/index.d';
 import { PrismaClient } from '@prisma/client';
 import { Request } from 'express';
 import {
@@ -203,18 +204,22 @@ export class AttendanceService {
 
   async getPunchStatus(userId: number): Promise<{
     status: 'punch_in' | 'punch_out' | 'not_punch';
+    message: string;
     attendance: AttendanceWithHistory | null;
   }> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const attendance = await prisma.attendance.findFirst({
+    const attendances = await prisma.attendance.findMany({
       where: {
         user_id: userId,
         attendance_date: {
           gte: today,
         },
         is_active: 'Y',
+      },
+      orderBy: {
+        id: 'desc',
       },
       include: {
         attendance_user: {
@@ -228,10 +233,12 @@ export class AttendanceService {
         },
       },
     });
+    const attendance = attendances[0];
 
     if (!attendance) {
       return {
         status: 'not_punch',
+        message: 'You have not punched in today',
         attendance: null,
       };
     }
@@ -241,6 +248,7 @@ export class AttendanceService {
         | 'punch_in'
         | 'punch_out'
         | 'not_punch',
+      message: 'You have punched in today',
       attendance: attendance as AttendanceWithHistory,
     };
   }
