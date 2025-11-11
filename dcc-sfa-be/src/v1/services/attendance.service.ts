@@ -105,7 +105,6 @@ export class AttendanceService {
       where: {
         user_id: userId,
         attendance_date: { gte: today },
-        punch_out_time: null,
         is_active: 'Y',
       },
     });
