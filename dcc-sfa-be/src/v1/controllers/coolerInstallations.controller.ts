@@ -186,9 +186,14 @@ export const coolerInstallationsController = {
         }),
         ...(status && { status: status as string }),
         ...(customer_id && { customer_id: parseInt(customer_id as string) }),
-        ...(technician_id && {
-          technician_id: parseInt(technician_id as string),
-        }),
+        ...(technician_id !== undefined &&
+          technician_id !== null &&
+          technician_id !== '' && {
+            technician_id:
+              technician_id === 'null'
+                ? null
+                : parseInt(technician_id as string, 10),
+          }),
       };
 
       const totalCoolers = await prisma.coolers.count();

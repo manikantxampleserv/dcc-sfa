@@ -193,11 +193,14 @@ export const coolerInspectionsController = {
         actionRequired,
         cooler_id,
         inspected_by,
+        inspector_id,
         visit_id,
       } = req.query;
       const page_num = parseInt(page as string, 10);
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
+
+      const inspectorFilter = inspector_id || inspected_by;
 
       const filters: any = {
         is_active: isActive as string,
@@ -214,9 +217,25 @@ export const coolerInspectionsController = {
         }),
         ...(isWorking && { is_working: isWorking as string }),
         ...(actionRequired && { action_required: actionRequired as string }),
-        ...(cooler_id && { cooler_id: parseInt(cooler_id as string) }),
-        ...(inspected_by && { inspected_by: parseInt(inspected_by as string) }),
-        ...(visit_id && { visit_id: parseInt(visit_id as string) }),
+        ...(cooler_id !== undefined &&
+          cooler_id !== null &&
+          cooler_id !== '' && {
+            cooler_id: parseInt(cooler_id as string, 10),
+          }),
+        ...(inspectorFilter !== undefined &&
+          inspectorFilter !== null &&
+          inspectorFilter !== '' && {
+            inspected_by:
+              inspectorFilter === 'null'
+                ? null
+                : parseInt(inspectorFilter as string, 10),
+          }),
+        ...(visit_id !== undefined &&
+          visit_id !== null &&
+          visit_id !== '' && {
+            visit_id:
+              visit_id === 'null' ? null : parseInt(visit_id as string, 10),
+          }),
       };
 
       const totalInspections = await prisma.cooler_inspections.count();

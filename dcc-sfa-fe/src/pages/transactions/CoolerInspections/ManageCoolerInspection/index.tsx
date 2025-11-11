@@ -115,42 +115,38 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
       title={isEdit ? 'Edit Cooler Inspection' : 'Create Cooler Inspection'}
       size="large"
     >
-      <Box className="!p-6">
+      <Box className="!p-4">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             {/* Cooler Selection */}
-            <Box className="md:!col-span-2">
-              <Select name="cooler_id" label="Cooler" formik={formik} required>
-                <MenuItem value="">
-                  <em>Select Cooler</em>
+            <Select name="cooler_id" label="Cooler" formik={formik} fullWidth>
+              <MenuItem value="">
+                <em>Select Cooler</em>
+              </MenuItem>
+              {coolers.map(cooler => (
+                <MenuItem key={cooler.id} value={cooler.id}>
+                  {cooler.code} - {cooler.brand} {cooler.model} (
+                  {cooler.customer?.name})
                 </MenuItem>
-                {coolers.map(cooler => (
-                  <MenuItem key={cooler.id} value={cooler.id}>
-                    {cooler.code} - {cooler.brand} {cooler.model} (
-                    {cooler.customer?.name})
-                  </MenuItem>
-                ))}
-              </Select>
-            </Box>
+              ))}
+            </Select>
 
             {/* Inspector Selection */}
-            <Box className="md:!col-span-2">
-              <Select
-                name="inspected_by"
-                label="Inspector"
-                formik={formik}
-                required
-              >
-                <MenuItem value="">
-                  <em>Select Inspector</em>
+            <Select
+              name="inspected_by"
+              label="Inspector"
+              formik={formik}
+              fullWidth
+            >
+              <MenuItem value="">
+                <em>Select Inspector</em>
+              </MenuItem>
+              {users.map(user => (
+                <MenuItem key={user.id} value={user.id}>
+                  {user.name} ({user.email})
                 </MenuItem>
-                {users.map(user => (
-                  <MenuItem key={user.id} value={user.id}>
-                    {user.name} ({user.email})
-                  </MenuItem>
-                ))}
-              </Select>
-            </Box>
+              ))}
+            </Select>
 
             {/* Inspection Date */}
             <Input
