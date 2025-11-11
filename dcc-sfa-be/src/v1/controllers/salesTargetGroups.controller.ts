@@ -321,27 +321,32 @@ export const salesTargetGroupsController = {
         },
       });
 
-      const totalGroups = await prisma.sales_target_groups.count();
-      const activeGroups = await prisma.sales_target_groups.count({
-        where: { is_active: 'Y' },
-      });
-      const inactiveGroups = await prisma.sales_target_groups.count({
-        where: { is_active: 'N' },
-      });
-
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const salesTargetGroupsThisMonth = await prisma.sales_target_groups.count(
-        {
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const [
+        totalGroups,
+        activeGroups,
+        inactiveGroups,
+        salesTargetGroupsThisMonth,
+      ] = await Promise.all([
+        prisma.sales_target_groups.count(),
+        prisma.sales_target_groups.count({
+          where: { is_active: 'Y' },
+        }),
+        prisma.sales_target_groups.count({
+          where: { is_active: 'N' },
+        }),
+        prisma.sales_target_groups.count({
           where: {
             createdate: {
               gte: startOfMonth,
-              lte: endOfMonth,
+              lt: endOfMonth,
             },
           },
-        }
-      );
+        }),
+      ]);
       res.success(
         'Sales target groups retrieved successfully',
         data.map((g: any) => serializeSalesTargetGroup(g)),
