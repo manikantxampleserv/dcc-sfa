@@ -36,6 +36,8 @@ interface UserSelectProps {
   onChange?: (event: any, value: User | null) => void;
   /** User Name to search */
   nameToSearch?: string;
+  /** Class name for the input */
+  className?: string;
 }
 
 /**
@@ -91,6 +93,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
   value,
   nameToSearch = '',
   onChange,
+  className,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -344,6 +347,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
       }
       size={size}
       fullWidth={fullWidth}
+      className={className}
       filterOptions={options => options}
       renderInput={(params: any) => (
         <TextField
@@ -355,6 +359,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
           onBlur={formik?.handleBlur}
           name={name}
           size={size}
+          className={className}
         />
       )}
       noOptionsText={

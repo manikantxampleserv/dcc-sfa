@@ -13,7 +13,7 @@ import {
   type CoolerInspection,
 } from 'hooks/useCoolerInspections';
 import { useExportToExcel } from 'hooks/useImportExport';
-import { useUsers } from 'hooks/useUsers';
+import UserSelect from 'shared/UserSelect';
 import { Calendar, Droplets, MapPin, Thermometer, Wrench } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -41,10 +41,6 @@ const CoolerInspectionsManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  // Fetch users for inspector filter
-  const { data: usersResponse } = useUsers({ limit: 1000 });
-  const users = usersResponse?.data || [];
-
   const {
     data: coolerInspectionsResponse,
     isLoading,
@@ -57,11 +53,9 @@ const CoolerInspectionsManagement: React.FC = () => {
     isWorking: workingFilter === 'all' ? undefined : workingFilter,
     actionRequired: actionFilter === 'all' ? undefined : actionFilter,
     inspector_id:
-      inspectorFilter === 'all' || inspectorFilter === ''
+      inspectorFilter === 'all' || inspectorFilter === '' || !inspectorFilter
         ? undefined
-        : inspectorFilter === 'null'
-          ? null
-          : Number(inspectorFilter),
+        : Number(inspectorFilter),
   });
 
   const coolerInspections = coolerInspectionsResponse?.data || [];
@@ -109,8 +103,12 @@ const CoolerInspectionsManagement: React.FC = () => {
     setPage(1);
   }, []);
 
-  const handleInspectorFilterChange = useCallback((value: string) => {
-    setInspectorFilter(value);
+  const handleInspectorFilterChange = useCallback((_event: any, user: any) => {
+    if (!user) {
+      setInspectorFilter('all');
+    } else {
+      setInspectorFilter(String(user.id));
+    }
     setPage(1);
   }, []);
 
@@ -126,11 +124,11 @@ const CoolerInspectionsManagement: React.FC = () => {
         isWorking: workingFilter === 'all' ? undefined : workingFilter,
         actionRequired: actionFilter === 'all' ? undefined : actionFilter,
         inspector_id:
-          inspectorFilter === 'all' || inspectorFilter === ''
+          inspectorFilter === 'all' ||
+          inspectorFilter === '' ||
+          !inspectorFilter
             ? undefined
-            : inspectorFilter === 'null'
-              ? (null as any)
-              : Number(inspectorFilter),
+            : Number(inspectorFilter),
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -505,20 +503,18 @@ const CoolerInspectionsManagement: React.FC = () => {
                 <MenuItem value="Y">Action Required</MenuItem>
                 <MenuItem value="N">No Action</MenuItem>
               </Select>
-              <Select
-                value={inspectorFilter}
-                onChange={e => handleInspectorFilterChange(e.target.value)}
-                className="!w-48"
+              <UserSelect
+                label="Inspector"
+                value={
+                  inspectorFilter === 'all' || inspectorFilter === 'null'
+                    ? undefined
+                    : inspectorFilter
+                }
+                onChange={handleInspectorFilterChange}
+                fullWidth={true}
                 size="small"
-              >
-                <MenuItem value="all">All Inspectors</MenuItem>
-                <MenuItem value="null">No Inspector</MenuItem>
-                {users.map(user => (
-                  <MenuItem key={user.id} value={String(user.id)}>
-                    {user.name}
-                  </MenuItem>
-                ))}
-              </Select>
+                className="!w-60"
+              />
             </div>
             <div className="flex items-center gap-2">
               <PopConfirm
