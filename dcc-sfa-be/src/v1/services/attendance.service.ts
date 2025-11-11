@@ -45,7 +45,7 @@ export class AttendanceService {
           ? JSON.stringify(data.deviceInfo)
           : null,
         work_type: data.workType || 'office',
-        status: 'active',
+        status: 'punch_in',
         is_active: 'Y',
         createdby: userId,
       },
@@ -129,7 +129,7 @@ export class AttendanceService {
           ? JSON.stringify(data.deviceInfo)
           : null,
         total_hours: totalHours,
-        status: 'completed',
+        status: 'punch_out',
         remarks: data.remarks,
         updatedby: userId,
         updatedate: new Date(),
@@ -160,12 +160,12 @@ export class AttendanceService {
         old_data: JSON.stringify({
           punch_out_time: null,
           total_hours: null,
-          status: 'active',
+          status: 'punch_in',
         }),
         new_data: JSON.stringify({
           punch_out_time: punchOutTime,
           total_hours: totalHours,
-          status: 'completed',
+          status: 'punch_out',
           remarks: data.remarks,
         }),
         ip_address: req.ip || null,
@@ -216,7 +216,7 @@ export class AttendanceService {
   async getPunchStatus(userId: number): Promise<{
     canPunchIn: boolean;
     canPunchOut: boolean;
-    status: 'not_punched' | 'punched_in' | 'punched_out';
+    status: 'punch_in' | 'punch_out';
     attendance: AttendanceWithHistory | null;
   }> {
     const today = new Date();
@@ -247,7 +247,7 @@ export class AttendanceService {
       return {
         canPunchIn: true,
         canPunchOut: false,
-        status: 'not_punched',
+        status: 'punch_in',
         attendance: null,
       };
     }
@@ -255,7 +255,7 @@ export class AttendanceService {
     return {
       canPunchIn: false,
       canPunchOut: true,
-      status: 'punched_in',
+      status: 'punch_out',
       attendance: attendance as AttendanceWithHistory,
     };
   }
