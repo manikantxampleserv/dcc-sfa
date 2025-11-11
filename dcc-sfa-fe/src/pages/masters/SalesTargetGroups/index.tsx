@@ -52,10 +52,9 @@ const SalesTargetGroupsManagement: React.FC = () => {
   const deleteGroupMutation = useDeleteSalesTargetGroup();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalGroups = groupsResponse?.stats?.total_sales_target_groups ?? 0;
-  const activeGroups = groupsResponse?.stats?.active_sales_target_groups ?? 0;
-  const inactiveGroups =
-    groupsResponse?.stats?.inactive_sales_target_groups ?? 0;
+  const totalGroups = groupsResponse?.stats?.total_groups ?? 0;
+  const activeGroups = groupsResponse?.stats?.active_groups ?? 0;
+  const inactiveGroups = groupsResponse?.stats?.inactive_groups ?? 0;
   const groupsThisMonth =
     groupsResponse?.stats?.sales_target_groups_this_month ?? 0;
 

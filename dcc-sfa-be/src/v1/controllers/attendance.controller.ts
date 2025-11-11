@@ -120,8 +120,6 @@ export const attendanceController = {
         });
       }
 
-      console.log(`Processing ${action_type} for user:`, userId);
-
       let attendance;
       let message;
       let statusCode;
@@ -136,8 +134,6 @@ export const attendanceController = {
         statusCode = 200;
       }
 
-      console.log(`${action_type} successful, ID:`, attendance.id);
-
       res.status(statusCode).json({
         message,
         data: serializeAttendance(attendance),
@@ -146,6 +142,38 @@ export const attendanceController = {
       console.error('Punch Error:', error);
       res.status(400).json({
         message: error.message || 'Failed to process punch',
+        error: error.message,
+      });
+    }
+  },
+
+  async getPunchStatus(req: Request, res: Response) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          message: 'User not authenticated',
+        });
+      }
+
+      const userId = req.user.id;
+
+      const punchStatus = await attendanceService.getPunchStatus(userId);
+
+      res.status(200).json({
+        message: 'Punch status retrieved successfully',
+        data: {
+          canPunchIn: punchStatus.canPunchIn,
+          canPunchOut: punchStatus.canPunchOut,
+          status: punchStatus.status,
+          attendance: punchStatus.attendance
+            ? serializeAttendance(punchStatus.attendance)
+            : null,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Punch Status Error:', error);
+      res.status(500).json({
+        message: 'Failed to fetch punch status',
         error: error.message,
       });
     }
@@ -213,25 +241,13 @@ export const attendanceController = {
 
   async getAttendanceWithHistory(req: Request, res: Response) {
     try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
-        });
-      }
-
       const { id } = req.params;
-      const userId = req.user.id;
+      const userId = req?.user?.id || 0;
 
       const attendance = await attendanceService.getAttendanceWithHistory(
         parseInt(id),
         userId
       );
-
-      if (!attendance) {
-        return res.status(404).json({
-          message: 'Attendance record not found',
-        });
-      }
 
       res.status(200).json({
         message: 'Attendance history fetched successfully',

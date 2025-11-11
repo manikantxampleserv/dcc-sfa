@@ -214,6 +214,62 @@ export class AttendanceService {
     return attendance as AttendanceWithHistory | null;
   }
 
+  async getPunchStatus(userId: number): Promise<{
+    canPunchIn: boolean;
+    canPunchOut: boolean;
+    status: 'not_punched' | 'punched_in' | 'punched_out';
+    attendance: AttendanceWithHistory | null;
+  }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const attendance = await prisma.attendance.findFirst({
+      where: {
+        user_id: userId,
+        attendance_date: {
+          gte: today,
+        },
+        is_active: 'Y',
+      },
+      include: {
+        attendance_user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            employee_id: true,
+            profile_image: true,
+          },
+        },
+      },
+    });
+
+    if (!attendance) {
+      return {
+        canPunchIn: true,
+        canPunchOut: false,
+        status: 'not_punched',
+        attendance: null,
+      };
+    }
+
+    if (attendance.punch_out_time) {
+      return {
+        canPunchIn: false,
+        canPunchOut: false,
+        status: 'punched_out',
+        attendance: attendance as AttendanceWithHistory,
+      };
+    }
+
+    return {
+      canPunchIn: false,
+      canPunchOut: true,
+      status: 'punched_in',
+      attendance: attendance as AttendanceWithHistory,
+    };
+  }
+
   async getAttendanceById(
     id: number,
     userId: number

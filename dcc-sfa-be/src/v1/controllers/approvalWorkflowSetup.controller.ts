@@ -440,8 +440,11 @@ export const approvalWorkflowSetupController = {
         );
       }
 
+      // Calculate total count after all filters are applied
       const totalCount = groupedArray.length;
-      const totalPages = Math.ceil(totalCount / sizeNum);
+      const totalPages = totalCount > 0 ? Math.ceil(totalCount / sizeNum) : 0;
+
+      // Apply pagination
       const paginatedData = groupedArray.slice(
         (pageNum - 1) * sizeNum,
         pageNum * sizeNum

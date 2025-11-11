@@ -24,6 +24,12 @@ router.post(
 );
 
 router.get(
+  '/attendance/punch/status',
+  authenticateToken,
+  attendanceController.getPunchStatus
+);
+
+router.get(
   '/attendance/today',
   authenticateToken,
   attendanceController.getTodayAttendance
