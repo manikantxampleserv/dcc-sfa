@@ -101,7 +101,7 @@ model attendance {
 
   total_hours Decimal? @db.Decimal(5, 2)
   work_type   String?  @default("field") @db.NVarChar(20)
-  status      String?  @default("active") @db.NVarChar(20)
+  status      String?  @default("punch_in") @db.NVarChar(20)
 
   remarks             String?              @db.NVarChar(500)
   is_active           String               @default("Y") @db.Char(1)

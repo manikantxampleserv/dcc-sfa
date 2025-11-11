@@ -162,8 +162,6 @@ export const attendanceController = {
       res.status(200).json({
         message: 'Punch status retrieved successfully',
         data: {
-          canPunchIn: punchStatus.canPunchIn,
-          canPunchOut: punchStatus.canPunchOut,
           status: punchStatus.status,
           attendance: punchStatus.attendance
             ? serializeAttendance(punchStatus.attendance)
