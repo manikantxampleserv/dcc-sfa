@@ -89,6 +89,7 @@ export interface CoolerInspectionQueryParams {
   actionRequired?: string;
   cooler_id?: number;
   inspected_by?: number;
+  inspector_id?: number | null;
   visit_id?: number;
 }
 
@@ -103,8 +104,19 @@ export const fetchCoolerInspections = async (
   params?: CoolerInspectionQueryParams
 ): Promise<ApiResponse<CoolerInspection[]>> => {
   try {
+    // Convert null inspector_id to string "null" for backend
+    // Support both inspector_id and inspected_by (inspector_id takes precedence)
+    const queryParams: any = { ...params };
+    if (queryParams.inspector_id !== undefined) {
+      if (queryParams.inspector_id === null) {
+        queryParams.inspector_id = 'null';
+      }
+      // If inspector_id is provided, don't send inspected_by
+      delete queryParams.inspected_by;
+    }
+
     const response = await axiosInstance.get('/cooler-inspections', {
-      params,
+      params: queryParams,
     });
     return response.data;
   } catch (error: any) {

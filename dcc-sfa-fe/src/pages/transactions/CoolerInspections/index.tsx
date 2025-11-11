@@ -13,6 +13,7 @@ import {
   type CoolerInspection,
 } from 'hooks/useCoolerInspections';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { useUsers } from 'hooks/useUsers';
 import { Calendar, Droplets, MapPin, Thermometer, Wrench } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -32,12 +33,17 @@ const CoolerInspectionsManagement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [workingFilter, setWorkingFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');
+  const [inspectorFilter, setInspectorFilter] = useState<string>('all');
   const [selectedInspection, setSelectedInspection] =
     useState<CoolerInspection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+
+  // Fetch users for inspector filter
+  const { data: usersResponse } = useUsers({ limit: 1000 });
+  const users = usersResponse?.data || [];
 
   const {
     data: coolerInspectionsResponse,
@@ -50,6 +56,12 @@ const CoolerInspectionsManagement: React.FC = () => {
     isActive: statusFilter === 'all' ? undefined : statusFilter,
     isWorking: workingFilter === 'all' ? undefined : workingFilter,
     actionRequired: actionFilter === 'all' ? undefined : actionFilter,
+    inspector_id:
+      inspectorFilter === 'all' || inspectorFilter === ''
+        ? undefined
+        : inspectorFilter === 'null'
+          ? null
+          : Number(inspectorFilter),
   });
 
   const coolerInspections = coolerInspectionsResponse?.data || [];
@@ -97,6 +109,11 @@ const CoolerInspectionsManagement: React.FC = () => {
     setPage(1);
   }, []);
 
+  const handleInspectorFilterChange = useCallback((value: string) => {
+    setInspectorFilter(value);
+    setPage(1);
+  }, []);
+
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
   };
@@ -108,6 +125,12 @@ const CoolerInspectionsManagement: React.FC = () => {
         isActive: statusFilter === 'all' ? undefined : statusFilter,
         isWorking: workingFilter === 'all' ? undefined : workingFilter,
         actionRequired: actionFilter === 'all' ? undefined : actionFilter,
+        inspector_id:
+          inspectorFilter === 'all' || inspectorFilter === ''
+            ? undefined
+            : inspectorFilter === 'null'
+              ? (null as any)
+              : Number(inspectorFilter),
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -123,6 +146,7 @@ const CoolerInspectionsManagement: React.FC = () => {
     statusFilter,
     workingFilter,
     actionFilter,
+    inspectorFilter,
   ]);
 
   const getWorkingStatusColor = (isWorking: string) => {
@@ -480,6 +504,20 @@ const CoolerInspectionsManagement: React.FC = () => {
                 <MenuItem value="all">All Action</MenuItem>
                 <MenuItem value="Y">Action Required</MenuItem>
                 <MenuItem value="N">No Action</MenuItem>
+              </Select>
+              <Select
+                value={inspectorFilter}
+                onChange={e => handleInspectorFilterChange(e.target.value)}
+                className="!w-48"
+                size="small"
+              >
+                <MenuItem value="all">All Inspectors</MenuItem>
+                <MenuItem value="null">No Inspector</MenuItem>
+                {users.map(user => (
+                  <MenuItem key={user.id} value={String(user.id)}>
+                    {user.name}
+                  </MenuItem>
+                ))}
               </Select>
             </div>
             <div className="flex items-center gap-2">

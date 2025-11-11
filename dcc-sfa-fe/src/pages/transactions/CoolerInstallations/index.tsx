@@ -13,6 +13,7 @@ import {
   type CoolerInstallation,
 } from 'hooks/useCoolerInstallations';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { useUsers } from 'hooks/useUsers';
 import { Calendar, Droplets, Package, Thermometer } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -31,12 +32,17 @@ const CoolerInstallationsManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [operationalStatusFilter, setOperationalStatusFilter] = useState('all');
+  const [technicianFilter, setTechnicianFilter] = useState<string>('all');
   const [selectedInstallation, setSelectedInstallation] =
     useState<CoolerInstallation | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+
+  // Fetch users for technician filter
+  const { data: usersResponse } = useUsers({ limit: 1000 });
+  const users = usersResponse?.data || [];
 
   const {
     data: coolerInstallationsResponse,
@@ -49,6 +55,12 @@ const CoolerInstallationsManagement: React.FC = () => {
     isActive: statusFilter === 'all' ? undefined : statusFilter,
     status:
       operationalStatusFilter === 'all' ? undefined : operationalStatusFilter,
+    technician_id:
+      technicianFilter === 'all' || technicianFilter === ''
+        ? undefined
+        : technicianFilter === 'null'
+          ? null
+          : Number(technicianFilter),
   });
 
   const coolerInstallations = coolerInstallationsResponse?.data || [];
@@ -100,6 +112,11 @@ const CoolerInstallationsManagement: React.FC = () => {
     setPage(1);
   }, []);
 
+  const handleTechnicianFilterChange = useCallback((value: string) => {
+    setTechnicianFilter(value);
+    setPage(1);
+  }, []);
+
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
   };
@@ -113,6 +130,12 @@ const CoolerInstallationsManagement: React.FC = () => {
           operationalStatusFilter === 'all'
             ? undefined
             : operationalStatusFilter,
+        technician_id:
+          technicianFilter === 'all' || technicianFilter === ''
+            ? undefined
+            : technicianFilter === 'null'
+              ? (null as any)
+              : Number(technicianFilter),
       };
 
       await exportToExcelMutation.mutateAsync({
@@ -452,6 +475,20 @@ const CoolerInstallationsManagement: React.FC = () => {
                 <MenuItem value="maintenance">Maintenance</MenuItem>
                 <MenuItem value="broken">Broken</MenuItem>
                 <MenuItem value="offline">Offline</MenuItem>
+              </Select>
+              <Select
+                value={technicianFilter}
+                onChange={e => handleTechnicianFilterChange(e.target.value)}
+                className="!w-48"
+                size="small"
+              >
+                <MenuItem value="all">All Technicians</MenuItem>
+                <MenuItem value="null">No Technician</MenuItem>
+                {users.map(user => (
+                  <MenuItem key={user.id} value={String(user.id)}>
+                    {user.name}
+                  </MenuItem>
+                ))}
               </Select>
             </div>
             <div className="flex items-center gap-2">

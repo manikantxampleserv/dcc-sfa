@@ -84,7 +84,7 @@ export interface CoolerInstallationQueryParams {
   isActive?: string;
   status?: string;
   customer_id?: number;
-  technician_id?: number;
+  technician_id?: number | null;
 }
 
 export interface CoolerInstallationStats {
@@ -98,8 +98,13 @@ export const fetchCoolerInstallations = async (
   params?: CoolerInstallationQueryParams
 ): Promise<ApiResponse<CoolerInstallation[]>> => {
   try {
+    const queryParams: any = { ...params };
+    if (queryParams.technician_id === null) {
+      queryParams.technician_id = 'null';
+    }
+
     const response = await axiosInstance.get('/cooler-installations', {
-      params,
+      params: queryParams,
     });
     return response.data;
   } catch (error: any) {
