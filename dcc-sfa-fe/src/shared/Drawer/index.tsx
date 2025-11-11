@@ -57,7 +57,7 @@ interface DrawerProps {
   /** Custom width in pixels (overrides size prop) */
   width?: number;
   /** Predefined size options (default: 'medium') */
-  size?: 'small' | 'medium' | 'large' | 'larger';
+  size?: 'small' | 'medium' | 'large' | 'larger' | 'extra-large';
   /** Position where the drawer slides from (default: 'right') */
   anchor?: 'left' | 'right' | 'top' | 'bottom';
 }
@@ -69,7 +69,7 @@ interface DrawerProps {
  * @returns Width in pixels
  */
 const getDrawerWidth = (
-  size?: 'small' | 'medium' | 'large' | 'larger',
+  size?: 'small' | 'medium' | 'large' | 'larger' | 'extra-large',
   customWidth?: number
 ): number => {
   if (customWidth) return customWidth;
@@ -83,6 +83,8 @@ const getDrawerWidth = (
       return 740;
     case 'larger':
       return 840;
+    case 'extra-large':
+      return 1040;
     default:
       return 400;
   }

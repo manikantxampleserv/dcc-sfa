@@ -47,6 +47,7 @@ export const approvalWorkflowSetupController = {
         log_inst: data.log_inst ? Number(data.log_inst) : 1,
       }));
 
+      // Validate all approvers first
       for (const data of dataArray) {
         const approver = await prisma.users.findUnique({
           where: { id: Number(data.approver_id) },
@@ -64,6 +65,7 @@ export const approvalWorkflowSetupController = {
           });
         }
 
+        // Only validate zone if zone_id is provided (not null/global)
         if (data.zone_id && approver.zone_id !== Number(data.zone_id)) {
           const zone = await prisma.zones.findUnique({
             where: { id: Number(data.zone_id) },
@@ -74,6 +76,31 @@ export const approvalWorkflowSetupController = {
             message: `Approver ${approver.name} does not belong to ${zone?.name} zone`,
           });
         }
+
+        // Validate depot if depot_id is provided (not null/global)
+        if (data.depot_id && approver.depot_id !== Number(data.depot_id)) {
+          const depot = await prisma.depots.findUnique({
+            where: { id: Number(data.depot_id) },
+            select: { name: true },
+          });
+
+          return res.status(400).json({
+            message: `Approver ${approver.name} does not belong to ${depot?.name} depot`,
+          });
+        }
+      }
+
+      // Delete existing workflows for the same request_type, zone_id, and depot_id
+      // This ensures we replace instead of duplicate
+      if (dataArray.length > 0) {
+        const firstItem = dataArray[0];
+        await prisma.approval_work_flow.deleteMany({
+          where: {
+            request_type: firstItem.request_type,
+            zone_id: firstItem.zone_id ? Number(firstItem.zone_id) : null,
+            depot_id: firstItem.depot_id ? Number(firstItem.depot_id) : null,
+          },
+        });
       }
 
       const result = await prisma.approval_work_flow.createMany({
@@ -286,12 +313,23 @@ export const approvalWorkflowSetupController = {
 
   async getAllApprovalWorkFlow(req: any, res: any) {
     try {
-      const { page = 1, size = 10, search, startDate, endDate } = req.query;
+      const {
+        page = 1,
+        size = 10,
+        search,
+        startDate,
+        endDate,
+        request_type,
+      } = req.query;
 
       const pageNum = Number(page) || 1;
       const sizeNum = Number(size) || 10;
 
       const filters: any = {};
+
+      if (request_type && request_type !== 'all') {
+        filters.request_type = request_type;
+      }
 
       if (startDate && endDate) {
         const start = new Date(startDate);
@@ -392,7 +430,16 @@ export const approvalWorkflowSetupController = {
         grouped[type].no_of_approvers += 1;
       }
 
-      const groupedArray = Object.values(grouped);
+      let groupedArray = Object.values(grouped);
+
+      // Apply search filter if provided
+      if (search && search.trim()) {
+        const searchLower = search.toLowerCase().trim();
+        groupedArray = groupedArray.filter((item: any) =>
+          item.request_type.toLowerCase().includes(searchLower)
+        );
+      }
+
       const totalCount = groupedArray.length;
       const totalPages = Math.ceil(totalCount / sizeNum);
       const paginatedData = groupedArray.slice(

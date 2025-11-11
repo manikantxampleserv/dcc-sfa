@@ -97,7 +97,7 @@ const serializeAttendance = (attendance: any): AttendanceSerialized => ({
 });
 
 export const attendanceController = {
-  async punchIn(req: Request, res: Response) {
+  async punch(req: Request, res: Response) {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -106,49 +106,46 @@ export const attendanceController = {
       }
 
       const userId = req.user.id;
-      const data = req.body;
+      const { action_type, ...data } = req.body;
 
-      console.log('Processing punch in for user:', userId);
-
-      const attendance = await attendanceService.punchIn(userId, data, req);
-
-      console.log('Punch in successful, ID:', attendance.id);
-
-      res.status(201).json({
-        message: 'Punched in successfully',
-        data: serializeAttendance(attendance),
-      });
-    } catch (error: any) {
-      console.error('Punch In Error:', error);
-      res.status(400).json({
-        message: error.message || 'Failed to punch in',
-        error: error.message,
-      });
-    }
-  },
-
-  async punchOut(req: Request, res: Response) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
+      if (!action_type) {
+        return res.status(400).json({
+          message: 'action_type is required. Valid values: punch_in, punch_out',
         });
       }
-      const userId = req.user.id;
-      const data = req.body;
 
-      console.log('Processing punch out for user:', userId);
-      const attendance = await attendanceService.punchOut(userId, data, req);
-      console.log('Punch out successful, ID:', attendance.id);
+      if (action_type !== 'punch_in' && action_type !== 'punch_out') {
+        return res.status(400).json({
+          message: 'Invalid action_type. Valid values: punch_in, punch_out',
+        });
+      }
 
-      res.status(200).json({
-        message: 'Punched out successfully',
+      console.log(`Processing ${action_type} for user:`, userId);
+
+      let attendance;
+      let message;
+      let statusCode;
+
+      if (action_type === 'punch_in') {
+        attendance = await attendanceService.punchIn(userId, data, req);
+        message = 'Punched in successfully';
+        statusCode = 201;
+      } else {
+        attendance = await attendanceService.punchOut(userId, data, req);
+        message = 'Punched out successfully';
+        statusCode = 200;
+      }
+
+      console.log(`${action_type} successful, ID:`, attendance.id);
+
+      res.status(statusCode).json({
+        message,
         data: serializeAttendance(attendance),
       });
     } catch (error: any) {
-      console.error('Punch Out Error:', error);
+      console.error('Punch Error:', error);
       res.status(400).json({
-        message: error.message || 'Failed to punch out',
+        message: error.message || 'Failed to process punch',
         error: error.message,
       });
     }

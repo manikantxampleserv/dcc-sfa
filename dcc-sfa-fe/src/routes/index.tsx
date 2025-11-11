@@ -68,6 +68,7 @@ import AuditLogs from 'pages/reports/AuditLogs';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
+import ApprovalSetup from 'pages/workflows/ApprovalSetup';
 import RouteExceptions from 'pages/workflows/RouteExceptions';
 import AlertsReminders from 'pages/workflows/AlertsReminders';
 import NotFound from 'pages/NotFound';
@@ -343,6 +344,10 @@ const router = createBrowserRouter(
         {
           path: '/workflows/approvals',
           element: <ApprovalWorkflows />,
+        },
+        {
+          path: '/workflows/approval-setup',
+          element: <ApprovalSetup />,
         },
         {
           path: '/workflows/exceptions',
