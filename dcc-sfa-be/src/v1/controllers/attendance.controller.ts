@@ -422,9 +422,6 @@ export const attendanceController = {
     }
   },
 
-  /**
-   * Update Attendance (Admin)
-   */
   async updateAttendance(req: Request, res: Response) {
     try {
       if (!req.user) {
