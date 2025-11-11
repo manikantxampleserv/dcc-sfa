@@ -361,9 +361,11 @@ export const vanInventoryController = {
             user_id: Number(inventoryData.user_id),
             status: inventoryData.status || 'A',
             loading_type: inventoryData.loading_type || 'L',
-            document_date: inventoryData.document_date
-              ? new Date(inventoryData.document_date)
-              : new Date(),
+            document_date:
+              inventoryData.document_date &&
+              inventoryData.document_date.trim() !== ''
+                ? new Date(inventoryData.document_date)
+                : new Date(),
             vehicle_id: inventoryData.vehicle_id || null,
             location_type: inventoryData.location_type || 'van',
             is_active: inventoryData.is_active || 'Y',

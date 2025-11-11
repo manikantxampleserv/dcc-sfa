@@ -6,6 +6,7 @@ import {
   createWorkflowNotification,
 } from '../../helpers';
 import { paginate } from '../../utils/paginate';
+import { createRequest } from './requests.controller';
 
 const prisma = new PrismaClient();
 
@@ -236,6 +237,425 @@ async function generateOrderNumber(tx: any): Promise<string> {
 }
 
 export const ordersController = {
+  // async createOrUpdateOrder(req: Request, res: Response) {
+  //   const data = req.body;
+  //   const userId = req.user?.id || 1;
+
+  //   try {
+  //     const { orderItems, order_items, ...orderData } = data;
+  //     const items = orderItems || order_items || [];
+  //     let orderId = orderData.id;
+
+  //     console.log(' Processing order with items:', {
+  //       orderId,
+  //       orderNumber: orderData.order_number,
+  //       itemsCount: items.length,
+  //     });
+
+  //     const result = await prisma.$transaction(
+  //       async tx => {
+  //         let order;
+  //         let isUpdate = false;
+
+  //         if (!orderId && orderData.order_number) {
+  //           const existingOrder = await tx.orders.findFirst({
+  //             where: { order_number: orderData.order_number },
+  //           });
+  //           if (existingOrder) {
+  //             orderId = existingOrder.id;
+  //             isUpdate = true;
+  //             console.log(' Found existing order by order_number:', orderId);
+  //           }
+  //         } else if (orderId) {
+  //           isUpdate = true;
+  //         }
+
+  //         let orderNumber = orderData.order_number;
+  //         if (!isUpdate && !orderNumber) {
+  //           orderNumber = await generateOrderNumber(tx);
+  //           console.log(' Generated new order number:', orderNumber);
+  //         }
+
+  //         const orderPayload = {
+  //           order_number: orderNumber,
+  //           parent_id: orderData.parent_id,
+  //           salesperson_id: orderData.salesperson_id,
+  //           currency_id: orderData.currency_id || null,
+  //           order_date: orderData.order_date
+  //             ? new Date(orderData.order_date)
+  //             : undefined,
+  //           delivery_date: orderData.delivery_date
+  //             ? new Date(orderData.delivery_date)
+  //             : undefined,
+  //           status: orderData.status || 'draft',
+  //           priority: orderData.priority || 'medium',
+  //           order_type: orderData.order_type || 'regular',
+  //           payment_method: orderData.payment_method || 'credit',
+  //           payment_terms: orderData.payment_terms || 'Net 30',
+  //           subtotal: parseFloat(orderData.subtotal) || 0,
+  //           discount_amount: parseFloat(orderData.discount_amount) || 0,
+  //           tax_amount: parseFloat(orderData.tax_amount) || 0,
+  //           shipping_amount: parseFloat(orderData.shipping_amount) || 0,
+  //           total_amount: parseFloat(orderData.total_amount) || 0,
+  //           notes: orderData.notes || null,
+  //           shipping_address: orderData.shipping_address || null,
+  //           approval_status: orderData.approval_status || 'pending',
+  //           is_active: orderData.is_active || 'Y',
+  //         };
+
+  //         if (isUpdate && orderId) {
+  //           const updatePayload = { ...orderPayload };
+  //           if (!orderData.order_number) {
+  //             delete updatePayload.order_number;
+  //           }
+
+  //           order = await tx.orders.update({
+  //             where: { id: orderId },
+  //             data: {
+  //               ...updatePayload,
+  //               updatedate: new Date(),
+  //               updatedby: userId,
+  //               log_inst: { increment: 1 },
+  //             },
+  //           });
+  //           console.log(' Order updated, ID:', order.id);
+  //         } else {
+  //           order = await tx.orders.create({
+  //             data: {
+  //               ...orderPayload,
+  //               createdate: new Date(),
+  //               createdby: userId,
+  //               log_inst: 1,
+  //             },
+  //           });
+  //           console.log(' Order created, ID:', order.id);
+  //         }
+
+  //         console.log(
+  //           ' Order processed - ID:',
+  //           order.id,
+  //           'Number:',
+  //           order.order_number
+  //         );
+
+  //         const processedChildIds: number[] = [];
+
+  //         if (Array.isArray(items) && items.length > 0) {
+  //           const itemsToCreate = [];
+  //           const itemsToUpdate = [];
+
+  //           for (const item of items) {
+  //             console.log('Processing item:', item);
+
+  //             const unitPrice = parseFloat(
+  //               item.unit_price || item.price || '0'
+  //             );
+  //             const quantity = parseInt(item.quantity) || 1;
+  //             const discountAmount = parseFloat(item.discount_amount || '0');
+  //             const taxAmount = parseFloat(item.tax_amount || '0');
+  //             const totalAmount = item.total_amount
+  //               ? parseFloat(item.total_amount)
+  //               : unitPrice * quantity - discountAmount + taxAmount;
+
+  //             const itemData = {
+  //               product_id: item.product_id,
+  //               product_name: item.product_name || null,
+  //               unit: item.unit || null,
+  //               quantity: quantity,
+  //               unit_price: unitPrice,
+  //               discount_amount: discountAmount,
+  //               tax_amount: taxAmount,
+  //               total_amount: totalAmount,
+  //               notes: item.notes || null,
+  //             };
+
+  //             if (item.id) {
+  //               const existingItem = await tx.order_items.findFirst({
+  //                 where: {
+  //                   id: item.id,
+  //                   parent_id: order.id,
+  //                 },
+  //               });
+
+  //               if (existingItem) {
+  //                 itemsToUpdate.push({ id: item.id, data: itemData });
+  //                 processedChildIds.push(item.id);
+  //                 console.log(`Item ${item.id} will be updated`);
+  //               } else {
+  //                 itemsToCreate.push({
+  //                   ...itemData,
+  //                   parent_id: order.id,
+  //                 });
+  //                 console.log(
+  //                   ` Item ${item.id} doesn't belong to this order, creating new`
+  //                 );
+  //               }
+  //             } else {
+  //               itemsToCreate.push({
+  //                 ...itemData,
+  //                 parent_id: order.id,
+  //               });
+  //             }
+  //           }
+
+  //           if (itemsToCreate.length > 0) {
+  //             const createdItems = await tx.order_items.createMany({
+  //               data: itemsToCreate,
+  //             });
+  //             console.log(`Created ${createdItems.count} new items`);
+
+  //             const newItems = await tx.order_items.findMany({
+  //               where: {
+  //                 parent_id: order.id,
+  //                 id:
+  //                   processedChildIds.length > 0
+  //                     ? { notIn: processedChildIds }
+  //                     : undefined,
+  //               },
+  //               select: { id: true },
+  //               orderBy: { id: 'desc' },
+  //               take: createdItems.count,
+  //             });
+  //             processedChildIds.push(...newItems.map(item => item.id));
+  //             console.log(
+  //               ' New item IDs:',
+  //               newItems.map(item => item.id)
+  //             );
+  //           }
+
+  //           for (const { id, data } of itemsToUpdate) {
+  //             await tx.order_items.update({
+  //               where: { id },
+  //               data,
+  //             });
+  //             console.log(' Updated item ID:', id);
+  //           }
+
+  //           if (isUpdate && orderId) {
+  //             const itemsToDelete = await tx.order_items.findMany({
+  //               where: {
+  //                 parent_id: order.id,
+  //                 id:
+  //                   processedChildIds.length > 0
+  //                     ? { notIn: processedChildIds }
+  //                     : undefined,
+  //               },
+  //               select: { id: true },
+  //             });
+
+  //             if (itemsToDelete.length > 0) {
+  //               const deletedCount = await tx.order_items.deleteMany({
+  //                 where: {
+  //                   parent_id: order.id,
+  //                   id: { notIn: processedChildIds },
+  //                 },
+  //               });
+  //               console.log(
+  //                 'Deleted items count:',
+  //                 deletedCount.count,
+  //                 'IDs:',
+  //                 itemsToDelete.map(i => i.id)
+  //               );
+  //             }
+  //           }
+  //         } else if (isUpdate && orderId) {
+  //           const deletedCount = await tx.order_items.deleteMany({
+  //             where: { parent_id: order.id },
+  //           });
+  //           console.log(' Deleted all items, count:', deletedCount.count);
+  //         }
+
+  //         const finalOrder = await tx.orders.findUnique({
+  //           where: { id: order.id },
+  //           include: {
+  //             orders_currencies: true,
+  //             orders_customers: true,
+  //             orders_salesperson_users: true,
+  //             order_items: true,
+  //             invoices: true,
+  //           },
+  //         });
+
+  //         console.log(
+  //           ' Final order items count:',
+  //           finalOrder?.order_items?.length || 0
+  //         );
+  //         if (finalOrder?.order_items && finalOrder.order_items.length > 0) {
+  //           console.log(' Sample item:', finalOrder.order_items[0]);
+  //         }
+
+  //         return finalOrder;
+  //       },
+  //       {
+  //         maxWait: 10000,
+  //         timeout: 20000,
+  //       }
+  //     );
+
+  //     if (result) {
+  //       try {
+  //         const orderEvent = orderId ? 'updated' : 'created';
+  //         const orderCreatorId = result.createdby || userId;
+
+  //         await createOrderNotification(
+  //           orderCreatorId,
+  //           result.id,
+  //           result.order_number || '',
+  //           orderEvent,
+  //           userId
+  //         );
+
+  //         const existingWorkflow = await prisma.approval_workflows.findFirst({
+  //           where: {
+  //             reference_type: 'order',
+  //             reference_number: result.order_number || '',
+  //             status: 'P',
+  //           },
+  //         });
+
+  //         if (
+  //           !existingWorkflow &&
+  //           (result.approval_status === 'pending' ||
+  //             result.approval_status === 'submitted')
+  //         ) {
+  //           try {
+  //             // Determine priority based on order amount or other criteria
+  //             let priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium';
+  //             if (result.total_amount) {
+  //               const totalAmount = Number(result.total_amount);
+  //               if (totalAmount >= 100000) {
+  //                 priority = 'urgent';
+  //               } else if (totalAmount >= 50000) {
+  //                 priority = 'high';
+  //               } else if (totalAmount >= 10000) {
+  //                 priority = 'medium';
+  //               } else {
+  //                 priority = 'low';
+  //               }
+  //             }
+
+  //             // Create approval workflow
+  //             const workflow = await createOrderApprovalWorkflow(
+  //               result.id,
+  //               result.order_number || '',
+  //               orderCreatorId,
+  //               priority,
+  //               {
+  //                 order_id: result.id,
+  //                 order_number: result.order_number,
+  //                 total_amount: result.total_amount,
+  //                 customer_id: result.parent_id,
+  //                 salesperson_id: result.salesperson_id,
+  //               },
+  //               userId
+  //             );
+
+  //             if (!workflow) {
+  //               throw new Error('Failed to create approval workflow');
+  //             }
+
+  //             // Get salesperson's manager or find approvers based on business logic
+  //             if (result.salesperson_id) {
+  //               const salesperson = await prisma.users.findUnique({
+  //                 where: { id: result.salesperson_id },
+  //                 include: {
+  //                   user_role: {
+  //                     include: {
+  //                       roles_permission: {
+  //                         include: {
+  //                           permission: true,
+  //                         },
+  //                       },
+  //                     },
+  //                   },
+  //                 },
+  //               });
+
+  //               // Find users who can approve (based on role or manager hierarchy)
+  //               const approvers: number[] = [];
+
+  //               // If salesperson has a parent (manager), add them as approver
+  //               if (salesperson?.parent_id) {
+  //                 approvers.push(salesperson.parent_id);
+  //               }
+
+  //               // Find users with Manager role for step 2
+  //               if (
+  //                 workflow.workflow_steps &&
+  //                 workflow.workflow_steps.length > 1
+  //               ) {
+  //                 const managerStep = workflow.workflow_steps.find(
+  //                   s => s.step_name === 'Manager Approval'
+  //                 );
+  //                 if (managerStep && managerStep.assigned_role) {
+  //                   const managers = await prisma.users.findMany({
+  //                     where: {
+  //                       user_role: {
+  //                         name: {
+  //                           contains: 'Manager',
+  //                         },
+  //                       },
+  //                       is_active: 'Y',
+  //                     },
+  //                     select: { id: true },
+  //                   });
+  //                   managers.forEach(m => {
+  //                     if (!approvers.includes(m.id)) {
+  //                       approvers.push(m.id);
+  //                     }
+  //                   });
+  //                 }
+  //               }
+
+  //               // Send notifications to all approvers
+  //               for (const approverId of approvers) {
+  //                 await createWorkflowNotification(
+  //                   approverId,
+  //                   workflow.id,
+  //                   result.order_number || '',
+  //                   'pending',
+  //                   userId
+  //                 );
+  //               }
+
+  //               // Also notify the order creator
+  //               await createWorkflowNotification(
+  //                 orderCreatorId,
+  //                 workflow.id,
+  //                 result.order_number || '',
+  //                 'created',
+  //                 userId
+  //               );
+  //             }
+  //           } catch (workflowError) {
+  //             // Log error but don't fail the order creation
+  //             console.error('Error creating approval workflow:', workflowError);
+  //           }
+  //         }
+  //       } catch (notificationError) {
+  //         // Log error but don't fail the order creation/update
+  //         console.error(
+  //           'Error creating order notification:',
+  //           notificationError
+  //         );
+  //       }
+  //     }
+
+  //     res.status(orderId ? 200 : 201).json({
+  //       message: orderId
+  //         ? 'Order updated successfully'
+  //         : 'Order created successfully',
+  //       data: serializeOrder(result),
+  //     });
+  //   } catch (error: any) {
+  //     console.error(' Error processing order:', error);
+  //     res.status(500).json({
+  //       message: 'Failed to process order',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
   async createOrUpdateOrder(req: Request, res: Response) {
     const data = req.body;
     const userId = req.user?.id || 1;
@@ -245,7 +665,7 @@ export const ordersController = {
       const items = orderItems || order_items || [];
       let orderId = orderData.id;
 
-      console.log(' Processing order with items:', {
+      console.log('📦 Processing order with items:', {
         orderId,
         orderNumber: orderData.order_number,
         itemsCount: items.length,
@@ -263,7 +683,7 @@ export const ordersController = {
             if (existingOrder) {
               orderId = existingOrder.id;
               isUpdate = true;
-              console.log(' Found existing order by order_number:', orderId);
+              console.log('✓ Found existing order by order_number:', orderId);
             }
           } else if (orderId) {
             isUpdate = true;
@@ -272,7 +692,7 @@ export const ordersController = {
           let orderNumber = orderData.order_number;
           if (!isUpdate && !orderNumber) {
             orderNumber = await generateOrderNumber(tx);
-            console.log(' Generated new order number:', orderNumber);
+            console.log('✓ Generated new order number:', orderNumber);
           }
 
           const orderPayload = {
@@ -317,7 +737,7 @@ export const ordersController = {
                 log_inst: { increment: 1 },
               },
             });
-            console.log(' Order updated, ID:', order.id);
+            console.log('✓ Order updated, ID:', order.id);
           } else {
             order = await tx.orders.create({
               data: {
@@ -327,141 +747,34 @@ export const ordersController = {
                 log_inst: 1,
               },
             });
-            console.log(' Order created, ID:', order.id);
+            console.log('✓ Order created, ID:', order.id);
           }
 
-          console.log(
-            ' Order processed - ID:',
-            order.id,
-            'Number:',
-            order.order_number
-          );
-
-          const processedChildIds: number[] = [];
-
-          if (Array.isArray(items) && items.length > 0) {
-            const itemsToCreate = [];
-            const itemsToUpdate = [];
-
-            for (const item of items) {
-              console.log('Processing item:', item);
-
-              const unitPrice = parseFloat(
-                item.unit_price || item.price || '0'
-              );
-              const quantity = parseInt(item.quantity) || 1;
-              const discountAmount = parseFloat(item.discount_amount || '0');
-              const taxAmount = parseFloat(item.tax_amount || '0');
-              const totalAmount = item.total_amount
-                ? parseFloat(item.total_amount)
-                : unitPrice * quantity - discountAmount + taxAmount;
-
-              const itemData = {
-                product_id: item.product_id,
-                product_name: item.product_name || null,
-                unit: item.unit || null,
-                quantity: quantity,
-                unit_price: unitPrice,
-                discount_amount: discountAmount,
-                tax_amount: taxAmount,
-                total_amount: totalAmount,
-                notes: item.notes || null,
-              };
-
-              if (item.id) {
-                const existingItem = await tx.order_items.findFirst({
-                  where: {
-                    id: item.id,
-                    parent_id: order.id,
-                  },
-                });
-
-                if (existingItem) {
-                  itemsToUpdate.push({ id: item.id, data: itemData });
-                  processedChildIds.push(item.id);
-                  console.log(`Item ${item.id} will be updated`);
-                } else {
-                  itemsToCreate.push({
-                    ...itemData,
-                    parent_id: order.id,
-                  });
-                  console.log(
-                    ` Item ${item.id} doesn't belong to this order, creating new`
-                  );
-                }
-              } else {
-                itemsToCreate.push({
-                  ...itemData,
-                  parent_id: order.id,
-                });
-              }
-            }
-
-            if (itemsToCreate.length > 0) {
-              const createdItems = await tx.order_items.createMany({
-                data: itemsToCreate,
-              });
-              console.log(`Created ${createdItems.count} new items`);
-
-              const newItems = await tx.order_items.findMany({
-                where: {
-                  parent_id: order.id,
-                  id:
-                    processedChildIds.length > 0
-                      ? { notIn: processedChildIds }
-                      : undefined,
-                },
-                select: { id: true },
-                orderBy: { id: 'desc' },
-                take: createdItems.count,
-              });
-              processedChildIds.push(...newItems.map(item => item.id));
-              console.log(
-                ' New item IDs:',
-                newItems.map(item => item.id)
-              );
-            }
-
-            for (const { id, data } of itemsToUpdate) {
-              await tx.order_items.update({
-                where: { id },
-                data,
-              });
-              console.log(' Updated item ID:', id);
-            }
-
+          if (items && items.length > 0) {
             if (isUpdate && orderId) {
-              const itemsToDelete = await tx.order_items.findMany({
-                where: {
-                  parent_id: order.id,
-                  id:
-                    processedChildIds.length > 0
-                      ? { notIn: processedChildIds }
-                      : undefined,
-                },
-                select: { id: true },
+              await tx.order_items.deleteMany({
+                where: { id: orderId },
               });
-
-              if (itemsToDelete.length > 0) {
-                const deletedCount = await tx.order_items.deleteMany({
-                  where: {
-                    parent_id: order.id,
-                    id: { notIn: processedChildIds },
-                  },
-                });
-                console.log(
-                  'Deleted items count:',
-                  deletedCount.count,
-                  'IDs:',
-                  itemsToDelete.map(i => i.id)
-                );
-              }
+              console.log('✓ Deleted existing order items');
             }
-          } else if (isUpdate && orderId) {
-            const deletedCount = await tx.order_items.deleteMany({
-              where: { parent_id: order.id },
+
+            const orderItemsData = items.map((item: any) => ({
+              order_id: order.id,
+              product_id: item.product_id,
+              quantity: parseFloat(item.quantity),
+              unit_price: parseFloat(item.unit_price),
+              discount: parseFloat(item.discount) || 0,
+              tax: parseFloat(item.tax) || 0,
+              subtotal: parseFloat(item.subtotal),
+              createdate: new Date(),
+              createdby: userId,
+              log_inst: 1,
+            }));
+
+            await tx.order_items.createMany({
+              data: orderItemsData,
             });
-            console.log(' Deleted all items, count:', deletedCount.count);
+            console.log(`✓ Created ${orderItemsData.length} order items`);
           }
 
           const finalOrder = await tx.orders.findUnique({
@@ -475,14 +788,6 @@ export const ordersController = {
             },
           });
 
-          console.log(
-            ' Final order items count:',
-            finalOrder?.order_items?.length || 0
-          );
-          if (finalOrder?.order_items && finalOrder.order_items.length > 0) {
-            console.log(' Sample item:', finalOrder.order_items[0]);
-          }
-
           return finalOrder;
         },
         {
@@ -491,13 +796,15 @@ export const ordersController = {
         }
       );
 
-      // Create notifications after successful order creation/update
-      if (result) {
+      // ============================================
+      // APPROVAL WORKFLOW INTEGRATION (AFTER ORDER CREATION)
+      // ============================================
+      if (result && !orderId) {
         try {
-          const orderEvent = orderId ? 'updated' : 'created';
+          const orderEvent = 'created';
           const orderCreatorId = result.createdby || userId;
 
-          // Notify the order creator
+          // Notification
           await createOrderNotification(
             orderCreatorId,
             result.id,
@@ -506,159 +813,37 @@ export const ordersController = {
             userId
           );
 
-          // If order requires approval, create approval workflow and notify approvers
-          // Check if workflow already exists to prevent duplicates
-          const existingWorkflow = await prisma.approval_workflows.findFirst({
-            where: {
-              reference_type: 'order',
-              reference_number: result.order_number || '',
-              status: 'P',
-            },
+          await createRequest({
+            requester_id: result.salesperson_id,
+            request_type: 'ORDER_APPROVAL',
+            reference_id: result.id,
+            createdby: userId,
+            log_inst: 1,
           });
 
-          if (
-            !existingWorkflow &&
-            (result.approval_status === 'pending' ||
-              result.approval_status === 'submitted')
-          ) {
-            try {
-              // Determine priority based on order amount or other criteria
-              let priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium';
-              if (result.total_amount) {
-                const totalAmount = Number(result.total_amount);
-                if (totalAmount >= 100000) {
-                  priority = 'urgent';
-                } else if (totalAmount >= 50000) {
-                  priority = 'high';
-                } else if (totalAmount >= 10000) {
-                  priority = 'medium';
-                } else {
-                  priority = 'low';
-                }
-              }
-
-              // Create approval workflow
-              const workflow = await createOrderApprovalWorkflow(
-                result.id,
-                result.order_number || '',
-                orderCreatorId,
-                priority,
-                {
-                  order_id: result.id,
-                  order_number: result.order_number,
-                  total_amount: result.total_amount,
-                  customer_id: result.parent_id,
-                  salesperson_id: result.salesperson_id,
-                },
-                userId
-              );
-
-              if (!workflow) {
-                throw new Error('Failed to create approval workflow');
-              }
-
-              // Get salesperson's manager or find approvers based on business logic
-              if (result.salesperson_id) {
-                const salesperson = await prisma.users.findUnique({
-                  where: { id: result.salesperson_id },
-                  include: {
-                    user_role: {
-                      include: {
-                        roles_permission: {
-                          include: {
-                            permission: true,
-                          },
-                        },
-                      },
-                    },
-                  },
-                });
-
-                // Find users who can approve (based on role or manager hierarchy)
-                const approvers: number[] = [];
-
-                // If salesperson has a parent (manager), add them as approver
-                if (salesperson?.parent_id) {
-                  approvers.push(salesperson.parent_id);
-                }
-
-                // Find users with Manager role for step 2
-                if (
-                  workflow.workflow_steps &&
-                  workflow.workflow_steps.length > 1
-                ) {
-                  const managerStep = workflow.workflow_steps.find(
-                    s => s.step_name === 'Manager Approval'
-                  );
-                  if (managerStep && managerStep.assigned_role) {
-                    const managers = await prisma.users.findMany({
-                      where: {
-                        user_role: {
-                          name: {
-                            contains: 'Manager',
-                          },
-                        },
-                        is_active: 'Y',
-                      },
-                      select: { id: true },
-                    });
-                    managers.forEach(m => {
-                      if (!approvers.includes(m.id)) {
-                        approvers.push(m.id);
-                      }
-                    });
-                  }
-                }
-
-                // Send notifications to all approvers
-                for (const approverId of approvers) {
-                  await createWorkflowNotification(
-                    approverId,
-                    workflow.id,
-                    result.order_number || '',
-                    'pending',
-                    userId
-                  );
-                }
-
-                // Also notify the order creator
-                await createWorkflowNotification(
-                  orderCreatorId,
-                  workflow.id,
-                  result.order_number || '',
-                  'created',
-                  userId
-                );
-              }
-            } catch (workflowError) {
-              // Log error but don't fail the order creation
-              console.error('Error creating approval workflow:', workflowError);
-            }
-          }
-        } catch (notificationError) {
-          // Log error but don't fail the order creation/update
-          console.error(
-            'Error creating order notification:',
-            notificationError
+          console.log(
+            'Approval workflow initiated for order:',
+            result.order_number
           );
+        } catch (error: any) {
+          console.error(' Error creating approval request:', error);
         }
       }
 
       res.status(orderId ? 200 : 201).json({
         message: orderId
           ? 'Order updated successfully'
-          : 'Order created successfully',
+          : 'Order created successfully and sent for approval',
         data: serializeOrder(result),
       });
     } catch (error: any) {
-      console.error(' Error processing order:', error);
+      console.error('❌ Error processing order:', error);
       res.status(500).json({
         message: 'Failed to process order',
         error: error.message,
       });
     }
   },
-
   async getAllOrders(req: any, res: any) {
     try {
       const {

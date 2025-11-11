@@ -1787,7 +1787,7 @@ model van_inventory {
   user_id                       Int
   status                        String                @default("A") @db.Char(1) // D = Draft, A = Confirmed, C = Cancelled
   loading_type                  String                @default("L") @db.Char(1) // L = Load, U = Unload
-  document_date                 DateTime?             @db.Date
+  document_date                 DateTime?             @db.DateTime
   last_updated                  DateTime?             @default(now(), map: "DF__van_inven__last___658C0CBD") @db.DateTime
   is_active                     String                @default("Y") @db.Char(1)
   createdate                    DateTime?             @default(now(), map: "DF__van_inven__creat__6774552F") @db.DateTime

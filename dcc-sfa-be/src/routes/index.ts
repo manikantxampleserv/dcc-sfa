@@ -70,8 +70,8 @@ import approvalWorkflows from '../v1/routes/approvalWorkflows.routes';
 import notifications from '../v1/routes/notifications.routes';
 import routeTypes from '../v1/routes/routeTypes.routes';
 import attendance from '../v1/routes/attendance.routes';
-// import requests from '../v1/routes/requests.routes';
-
+import requests from '../v1/routes/requests.routes';
+import approvalWorkflowSetup from '../v1/routes/approvalWorkflowSetup.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -144,8 +144,8 @@ routes.use('/v1/approval-workflows', approvalWorkflows);
 routes.use('/v1/notifications', notifications);
 routes.use('/v1', routeTypes);
 routes.use('/v1', attendance);
-
-// routes.use('/v1', requests);
+routes.use('/v1', requests);
+routes.use('/v1', approvalWorkflowSetup);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
