@@ -130,21 +130,17 @@ export const generateEmailContent = async (
       request_detail: renderDetailsHtml(normalizedVars.request_detail),
     };
 
-    console.log('  Computed variables:', computedVars);
-
     const render = (str?: string): string => {
       if (!str) return '';
 
       let rendered = str;
       rendered = rendered.replace(/\$\{\s*(\w+)\s*\}/g, (_, key) => {
         const value = computedVars[key];
-        console.log(`  Replacing \${${key}} with:`, value);
         return value?.toString() || '';
       });
 
       rendered = rendered.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
         const value = computedVars[key];
-        console.log(`  Replacing {{${key}}} with:`, value);
         return value?.toString() || '';
       });
 

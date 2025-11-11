@@ -45,9 +45,8 @@ export const sendEmail = async (emailData: EmailData): Promise<boolean> => {
     console.log('  SMTP Host:', process.env.SMTP_HOST);
     console.log('  SMTP Port:', process.env.SMTP_PORT);
     console.log('  SMTP User:', process.env.SMTP_USERNAME);
-
     await transporter.verify();
-    console.log('✓ SMTP connection verified');
+    console.log(' SMTP connection verified');
 
     const info = await transporter.sendMail({
       from: `"SFA System" <${process.env.SMTP_USERNAME}>`,

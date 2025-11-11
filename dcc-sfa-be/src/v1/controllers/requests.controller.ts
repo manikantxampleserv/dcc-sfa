@@ -817,6 +817,24 @@ export const requestsController = {
   //             },
   //           });
 
+  //           if (
+  //             request.request_type === 'ORDER_APPROVAL' &&
+  //             request.reference_id
+  //           ) {
+  //             await tx.orders.update({
+  //               where: { id: request.reference_id },
+  //               data: {
+  //                 approval_status: 'rejected',
+  //                 status: 'rejected',
+  //                 updatedby: userId,
+  //                 updatedate: new Date(),
+  //               },
+  //             });
+  //             console.log(
+  //               ` Order ${request.reference_id} status updated to REJECTED`
+  //             );
+  //           }
+
   //           return { status: 'rejected', request };
   //         }
 
@@ -844,6 +862,26 @@ export const requestsController = {
   //             },
   //           });
 
+  //           if (
+  //             request.request_type === 'ORDER_APPROVAL' &&
+  //             request.reference_id
+  //           ) {
+  //             await tx.orders.update({
+  //               where: { id: request.reference_id },
+  //               data: {
+  //                 approval_status: 'approved',
+  //                 status: 'approved',
+  //                 approved_by: userId,
+  //                 approved_at: new Date(),
+  //                 updatedby: userId,
+  //                 updatedate: new Date(),
+  //               },
+  //             });
+  //             console.log(
+  //               `Order ${request.reference_id} status updated to APPROVED`
+  //             );
+  //           }
+
   //           return { status: 'fully_approved', request };
   //         }
 
@@ -854,6 +892,10 @@ export const requestsController = {
   //         timeout: 20000,
   //       }
   //     );
+
+  //     // ========================================
+  //     // SEND EMAILS
+  //     // ========================================
 
   //     if (result.status === 'rejected') {
   //       const template = await generateEmailContent(
@@ -983,6 +1025,34 @@ export const requestsController = {
             throw new Error('This approval has already been processed');
           }
 
+          // ========================================
+          // ✅ SEQUENTIAL VALIDATION (Only for APPROVE)
+          // ========================================
+          if (action === 'A' && currentApproval.sequence > 1) {
+            const previousApprovals = await tx.sfa_d_request_approvals.findMany(
+              {
+                where: {
+                  request_id: Number(request_id),
+                  sequence: {
+                    lt: currentApproval.sequence,
+                  },
+                },
+                orderBy: { sequence: 'asc' },
+              }
+            );
+
+            const notApproved = previousApprovals.find(
+              approval => approval.status !== 'A'
+            );
+
+            if (notApproved) {
+              // ✅ FIX: Throw error instead of returning response
+              throw new Error(
+                `Cannot approve. Sequence ${notApproved.sequence} must be approved first`
+              );
+            }
+          }
+
           await tx.sfa_d_request_approvals.update({
             where: { id: Number(approval_id) },
             data: {
@@ -994,9 +1064,6 @@ export const requestsController = {
             },
           });
 
-          // ========================================
-          // REJECTED - Update order status
-          // ========================================
           if (action === 'R') {
             await tx.sfa_d_requests.update({
               where: { id: Number(request_id) },
@@ -1008,7 +1075,6 @@ export const requestsController = {
               },
             });
 
-            // ✅ Update order status to REJECTED
             if (
               request.request_type === 'ORDER_APPROVAL' &&
               request.reference_id
@@ -1030,9 +1096,6 @@ export const requestsController = {
             return { status: 'rejected', request };
           }
 
-          // ========================================
-          // APPROVED - Check for next approver
-          // ========================================
           const nextApprover = await tx.sfa_d_request_approvals.findFirst({
             where: {
               request_id: Number(request_id),
@@ -1046,9 +1109,6 @@ export const requestsController = {
             },
           });
 
-          // ========================================
-          // FINAL APPROVAL - Update order status
-          // ========================================
           if (!nextApprover) {
             await tx.sfa_d_requests.update({
               where: { id: Number(request_id) },
@@ -1060,7 +1120,6 @@ export const requestsController = {
               },
             });
 
-            // ✅ Update order status to APPROVED
             if (
               request.request_type === 'ORDER_APPROVAL' &&
               request.reference_id
@@ -1139,7 +1198,7 @@ export const requestsController = {
         });
 
         return res.status(200).json({
-          message: 'Request approved successfully (All approvals complete)',
+          message: 'Request approved successfully.All',
         });
       }
 
@@ -1174,6 +1233,14 @@ export const requestsController = {
       });
     } catch (error: any) {
       console.error('Take Action Error:', error);
+
+      // ✅ Handle validation errors with proper status code
+      if (error.message.includes('Cannot approve')) {
+        return res.status(400).json({
+          message: error.message,
+        });
+      }
+
       res.status(500).json({
         message: 'Failed to process action',
         error: error.message,
