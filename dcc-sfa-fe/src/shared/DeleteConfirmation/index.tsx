@@ -286,7 +286,6 @@ export const DeleteConfirmation: React.FC<DeleteConfirmationProps> = ({
       onCancel={onCancel}
       confirmText="Delete"
       cancelText="Cancel"
-      placement="top"
     >
       {children}
     </PopConfirm>

@@ -289,6 +289,11 @@ const menuItems: MenuItem[] = [
         href: '/workflows/approvals',
       },
       {
+        id: 'approval-setup',
+        label: 'Approval Setup',
+        href: '/workflows/approval-setup',
+      },
+      {
         id: 'route-exceptions',
         label: 'Route Exceptions',
         href: '/workflows/exceptions',

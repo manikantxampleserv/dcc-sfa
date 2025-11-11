@@ -2,7 +2,7 @@
 
 import { Router } from 'express';
 import { authenticateToken } from '../../middlewares/auth.middleware';
-import { auditCreate, auditUpdate } from '../../middlewares/audit.middleware';
+import { auditUpdate } from '../../middlewares/audit.middleware';
 import { attendanceController } from '../controllers/attendance.controller';
 import { validate } from '../../middlewares/validation.middleware';
 // import {
@@ -17,24 +17,10 @@ import { validate } from '../../middlewares/validation.middleware';
 const router = Router();
 
 router.post(
-  '/attendance/punch-in',
-  authenticateToken,
-  auditCreate('attendance'),
-  attendanceController.punchIn
-);
-
-router.post(
-  '/attendance/punch-out',
+  '/attendance/punch',
   authenticateToken,
   auditUpdate('attendance'),
-  attendanceController.punchOut
-);
-
-router.get(
-  '/attendance/punch-out',
-  authenticateToken,
-  auditUpdate('attendance'),
-  attendanceController.punchOut
+  attendanceController.punch
 );
 
 router.get(
