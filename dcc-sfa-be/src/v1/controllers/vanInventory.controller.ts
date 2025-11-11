@@ -665,4 +665,259 @@ export const vanInventoryController = {
       res.status(500).json({ message: error.message });
     }
   },
+
+  // Van Inventory Items Management
+  async createVanInventoryItem(req: Request, res: Response) {
+    try {
+      const { vanInventoryId } = req.params;
+      const data = req.body;
+
+      if (!data.product_id) {
+        return res.status(400).json({ message: 'Product ID is required' });
+      }
+      if (!data.quantity) {
+        return res.status(400).json({ message: 'Quantity is required' });
+      }
+      if (!data.unit_price) {
+        return res.status(400).json({ message: 'Unit price is required' });
+      }
+
+      const vanInventory = await prisma.van_inventory.findUnique({
+        where: { id: Number(vanInventoryId) },
+      });
+
+      if (!vanInventory) {
+        return res.status(404).json({ message: 'Van inventory not found' });
+      }
+
+      const product = await prisma.products.findUnique({
+        where: { id: Number(data.product_id) },
+        include: {
+          product_unit_of_measurement: true,
+        },
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+
+      const vanInventoryItem = await prisma.van_inventory_items.create({
+        data: {
+          parent_id: Number(vanInventoryId),
+          product_id: Number(data.product_id),
+          product_name: product.name,
+          unit:
+            product.product_unit_of_measurement?.name ||
+            product.product_unit_of_measurement?.symbol ||
+            'pcs',
+          quantity: Number(data.quantity),
+          unit_price: Number(data.unit_price),
+          discount_amount: Number(data.discount_amount) || 0,
+          tax_amount: Number(data.tax_amount) || 0,
+          total_amount:
+            Number(data.quantity) * Number(data.unit_price) -
+            (Number(data.discount_amount) || 0) +
+            (Number(data.tax_amount) || 0),
+          notes: data.notes || null,
+        },
+        include: {
+          van_inventory_items_products: true,
+        },
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Van inventory item created successfully',
+        data: vanInventoryItem,
+      });
+    } catch (error: any) {
+      console.error('Create Van Inventory Item Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getVanInventoryItems(req: Request, res: Response) {
+    try {
+      const { vanInventoryId } = req.params;
+
+      const vanInventoryItems = await prisma.van_inventory_items.findMany({
+        where: { parent_id: Number(vanInventoryId) },
+        include: {
+          van_inventory_items_products: {
+            include: {
+              product_unit_of_measurement: true,
+            },
+          },
+        },
+        orderBy: { id: 'asc' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Van inventory items retrieved successfully',
+        data: vanInventoryItems,
+      });
+    } catch (error: any) {
+      console.error('Get Van Inventory Items Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async updateVanInventoryItem(req: Request, res: Response) {
+    try {
+      const { vanInventoryId, itemId } = req.params;
+      const data = req.body;
+
+      const existingItem = await prisma.van_inventory_items.findFirst({
+        where: {
+          id: Number(itemId),
+          parent_id: Number(vanInventoryId),
+        },
+      });
+
+      if (!existingItem) {
+        return res
+          .status(404)
+          .json({ message: 'Van inventory item not found' });
+      }
+
+      const vanInventoryItem = await prisma.van_inventory_items.update({
+        where: { id: Number(itemId) },
+        data: {
+          quantity: data.quantity ? Number(data.quantity) : undefined,
+          unit_price: data.unit_price ? Number(data.unit_price) : undefined,
+          discount_amount:
+            data.discount_amount !== undefined
+              ? Number(data.discount_amount)
+              : undefined,
+          tax_amount:
+            data.tax_amount !== undefined ? Number(data.tax_amount) : undefined,
+          total_amount:
+            data.quantity && data.unit_price
+              ? Number(data.quantity) * Number(data.unit_price) -
+                (Number(data.discount_amount) || 0) +
+                (Number(data.tax_amount) || 0)
+              : undefined,
+          notes: data.notes !== undefined ? data.notes : undefined,
+        },
+        include: {
+          van_inventory_items_products: true,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: 'Van inventory item updated successfully',
+        data: vanInventoryItem,
+      });
+    } catch (error: any) {
+      console.error('Update Van Inventory Item Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async deleteVanInventoryItem(req: Request, res: Response) {
+    try {
+      const { vanInventoryId, itemId } = req.params;
+
+      const existingItem = await prisma.van_inventory_items.findFirst({
+        where: {
+          id: Number(itemId),
+          parent_id: Number(vanInventoryId),
+        },
+      });
+
+      if (!existingItem) {
+        return res
+          .status(404)
+          .json({ message: 'Van inventory item not found' });
+      }
+
+      await prisma.van_inventory_items.delete({
+        where: { id: Number(itemId) },
+      });
+
+      res.json({
+        success: true,
+        message: 'Van inventory item deleted successfully',
+      });
+    } catch (error: any) {
+      console.error('Delete Van Inventory Item Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async bulkUpdateVanInventoryItems(req: Request, res: Response) {
+    try {
+      const { vanInventoryId } = req.params;
+      const { vanInventoryItems } = req.body;
+
+      if (!Array.isArray(vanInventoryItems)) {
+        return res
+          .status(400)
+          .json({ message: 'Van inventory items must be an array' });
+      }
+
+      const vanInventory = await prisma.van_inventory.findUnique({
+        where: { id: Number(vanInventoryId) },
+      });
+
+      if (!vanInventory) {
+        return res.status(404).json({ message: 'Van inventory not found' });
+      }
+
+      const result = await prisma.$transaction(async tx => {
+        await tx.van_inventory_items.deleteMany({
+          where: { parent_id: Number(vanInventoryId) },
+        });
+
+        const newVanInventoryItems = [];
+        for (const item of vanInventoryItems) {
+          if (item.product_id && item.quantity && item.unit_price) {
+            const product = await tx.products.findUnique({
+              where: { id: Number(item.product_id) },
+              include: {
+                product_unit_of_measurement: true,
+              },
+            });
+
+            if (product) {
+              const vanInventoryItem = await tx.van_inventory_items.create({
+                data: {
+                  parent_id: Number(vanInventoryId),
+                  product_id: Number(item.product_id),
+                  product_name: product.name,
+                  unit:
+                    product.product_unit_of_measurement?.name ||
+                    product.product_unit_of_measurement?.symbol ||
+                    'pcs',
+                  quantity: Number(item.quantity),
+                  unit_price: Number(item.unit_price),
+                  discount_amount: Number(item.discount_amount) || 0,
+                  tax_amount: Number(item.tax_amount) || 0,
+                  total_amount:
+                    Number(item.quantity) * Number(item.unit_price) -
+                    (Number(item.discount_amount) || 0) +
+                    (Number(item.tax_amount) || 0),
+                  notes: item.notes || null,
+                },
+              });
+              newVanInventoryItems.push(vanInventoryItem);
+            }
+          }
+        }
+
+        return newVanInventoryItems;
+      });
+
+      res.json({
+        success: true,
+        message: 'Van inventory items updated successfully',
+        data: result,
+      });
+    } catch (error: any) {
+      console.error('Bulk Update Van Inventory Items Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
 };

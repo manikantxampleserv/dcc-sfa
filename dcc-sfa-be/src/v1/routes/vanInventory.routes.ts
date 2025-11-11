@@ -42,4 +42,35 @@ router.delete(
   vanInventoryController.deleteVanInventory
 );
 
+// Van Inventory Items Routes
+router.post(
+  '/van-inventory/:vanInventoryId/items',
+  authenticateToken,
+  auditCreate('van_inventory_items'),
+  vanInventoryController.createVanInventoryItem
+);
+router.get(
+  '/van-inventory/:vanInventoryId/items',
+  authenticateToken,
+  vanInventoryController.getVanInventoryItems
+);
+router.put(
+  '/van-inventory/:vanInventoryId/items/:itemId',
+  authenticateToken,
+  auditUpdate('van_inventory_items'),
+  vanInventoryController.updateVanInventoryItem
+);
+router.delete(
+  '/van-inventory/:vanInventoryId/items/:itemId',
+  authenticateToken,
+  auditDelete('van_inventory_items'),
+  vanInventoryController.deleteVanInventoryItem
+);
+router.put(
+  '/van-inventory/:vanInventoryId/items',
+  authenticateToken,
+  auditUpdate('van_inventory_items'),
+  vanInventoryController.bulkUpdateVanInventoryItems
+);
+
 export default router;

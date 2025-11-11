@@ -1,8 +1,8 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { Truck, TrendingUp } from 'lucide-react';
+import { FileText, Package, Truck, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
@@ -15,15 +15,21 @@ import {
 } from '../../../hooks/useVanInventory';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import { formatDate } from '../../../utils/dateUtils';
+import UserSelect from '../../../shared/UserSelect';
 import ImportVanInventory from './ImportVanInventory';
 import ManageVanInventory from './ManageVanInventory';
+import VanInventoryDetail from './VanInventoryDetail';
+import VanInventoryItemsManagement from './VanInventoryItemsManagement';
 
 const VanStockPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [userFilter, setUserFilter] = useState<number | undefined>(undefined);
   const [selectedVanInventory, setSelectedVanInventory] =
     useState<VanInventory | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [itemsDrawerOpen, setItemsDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -40,8 +46,9 @@ const VanStockPage: React.FC = () => {
       statusFilter === 'all'
         ? undefined
         : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
+          ? 'active'
+          : 'inactive',
+    user_id: userFilter,
   });
 
   const vanInventory = vanInventoryResponse?.data || [];
@@ -68,6 +75,16 @@ const VanStockPage: React.FC = () => {
     setDrawerOpen(true);
   }, []);
 
+  const handleViewVanInventory = useCallback((vanInventory: VanInventory) => {
+    setSelectedVanInventory(vanInventory);
+    setDetailDrawerOpen(true);
+  }, []);
+
+  const handleManageItems = useCallback((vanInventory: VanInventory) => {
+    setSelectedVanInventory(vanInventory);
+    setItemsDrawerOpen(true);
+  }, []);
+
   const handleDeleteVanInventory = useCallback(
     async (id: number) => {
       try {
@@ -84,6 +101,16 @@ const VanStockPage: React.FC = () => {
     setPage(1);
   }, []);
 
+  const handleUserFilterChange = useCallback((_event: any, user: any) => {
+    setUserFilter(user ? user.id : undefined);
+    setPage(1);
+  }, []);
+
+  const handleStatusFilterChange = useCallback((value: string) => {
+    setStatusFilter(value);
+    setPage(1);
+  }, []);
+
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
   };
@@ -96,13 +123,17 @@ const VanStockPage: React.FC = () => {
           statusFilter === 'all'
             ? undefined
             : statusFilter === 'active'
-              ? 'Y'
-              : 'N',
+              ? 'active'
+              : 'inactive',
+        user_id: userFilter,
       };
 
       await exportToExcelMutation.mutateAsync({
         tableName: 'van_inventory',
-        filters,
+        filters: {
+          ...filters,
+          user_id: userFilter,
+        },
       });
     } catch (error) {
       console.error('Error exporting van inventory:', error);
@@ -256,6 +287,18 @@ const VanStockPage: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
+          <ActionButton
+            onClick={() => handleViewVanInventory(row)}
+            tooltip="View van inventory details"
+            icon={<FileText />}
+            color="success"
+          />
+          <ActionButton
+            onClick={() => handleManageItems(row)}
+            tooltip="Manage van inventory items"
+            icon={<Package />}
+            color="info"
+          />
           <EditButton
             onClick={() => handleEditVanInventory(row)}
             tooltip={`Edit Van Inventory #${row.id}`}
@@ -387,13 +430,22 @@ const VanStockPage: React.FC = () => {
               />
               <Select
                 value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
+                onChange={e => handleStatusFilterChange(e.target.value)}
                 className="!w-32"
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="inactive">Inactive</MenuItem>
               </Select>
+              <Box className="!w-64">
+                <UserSelect
+                  label="Filter by User"
+                  value={userFilter}
+                  onChange={handleUserFilterChange}
+                  fullWidth
+                  size="small"
+                />
+              </Box>
             </div>
             <div className="flex items-center gap-2">
               <PopConfirm
@@ -449,6 +501,25 @@ const VanStockPage: React.FC = () => {
         setSelectedVanInventory={setSelectedVanInventory}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
+      />
+
+      <VanInventoryDetail
+        open={detailDrawerOpen}
+        onClose={() => {
+          setDetailDrawerOpen(false);
+          setSelectedVanInventory(null);
+        }}
+        vanInventory={selectedVanInventory}
+      />
+
+      <VanInventoryItemsManagement
+        key={`items-management-${selectedVanInventory?.id || 0}`}
+        open={itemsDrawerOpen}
+        onClose={() => {
+          setItemsDrawerOpen(false);
+          setSelectedVanInventory(null);
+        }}
+        vanInventoryId={selectedVanInventory?.id || 0}
       />
 
       <ImportVanInventory

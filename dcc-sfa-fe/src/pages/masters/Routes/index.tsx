@@ -1,6 +1,9 @@
 import { Add, Block, CheckCircle } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { Route as RouteIcon, Building2, Navigation, Clock } from 'lucide-react';
+import { useDepots } from 'hooks/useDepots';
+import { useDeleteRoute, useRoutes, type Route } from 'hooks/useRoutes';
+import { useZones } from 'hooks/useZones';
+import { Building2, Clock, Navigation, Route as RouteIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -8,14 +11,6 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import { useDepots } from '../../../hooks/useDepots';
-import { useUsers } from '../../../hooks/useUsers';
-import {
-  useDeleteRoute,
-  useRoutes,
-  type Route,
-} from '../../../hooks/useRoutes';
-import { useZones } from '../../../hooks/useZones';
 import ManageRoute from './ManageRoute';
 
 const RoutesManagement: React.FC = () => {
@@ -49,11 +44,6 @@ const RoutesManagement: React.FC = () => {
     limit: 100, // Get all depots for filter
   });
 
-  const { data: usersResponse } = useUsers({
-    page: 1,
-    limit: 100, // Get all users for salesperson filtering
-  });
-
   const { data: zonesResponse } = useZones({
     page: 1,
     limit: 100, // Get all zones for filter
@@ -61,14 +51,12 @@ const RoutesManagement: React.FC = () => {
 
   const routes = routesResponse?.data || [];
   const depots = depotsResponse?.data || [];
-  const users = usersResponse?.data || [];
   const zones = zonesResponse?.data || [];
   const totalCount = routesResponse?.meta?.total || 0;
   const currentPage = (routesResponse?.meta?.page || 1) - 1;
 
   const deleteRouteMutation = useDeleteRoute();
 
-  // Statistics - Use API stats when available, fallback to local calculation
   const totalRoutes = routesResponse?.stats?.total_routes ?? routes.length;
   const activeRoutes =
     routesResponse?.stats?.active_routes ??
@@ -178,7 +166,7 @@ const RoutesManagement: React.FC = () => {
     },
     {
       id: 'salesperson',
-      label: 'Salesperson',
+      label: 'Sales Person',
       render: (_value, row) => (
         <Box className="!flex !items-center !gap-2">
           {row.routes_salesperson ? (
@@ -206,15 +194,16 @@ const RoutesManagement: React.FC = () => {
     },
     {
       id: 'distance_time',
-      label: 'Distance & Time',
+      label: 'Distance & Duration',
       render: (_value, row) => (
-        <Box className="!space-y-1">
+        <Box className="!flex items-center !gap-1">
           <Box className="!flex !items-center !gap-1">
             <Navigation className="w-3 h-3 text-gray-400" />
             <Typography variant="caption" className="!text-gray-600">
               {row?.estimated_distance ? `${row.estimated_distance} km` : 'N/A'}
             </Typography>
           </Box>
+
           <Box className="!flex !items-center !gap-1">
             <Clock className="w-3 h-3 text-gray-400" />
             <Typography variant="caption" className="!text-gray-600">
@@ -434,7 +423,6 @@ const RoutesManagement: React.FC = () => {
         setDrawerOpen={setDrawerOpen}
         depots={depots}
         zones={zones}
-        users={users}
       />
     </>
   );
