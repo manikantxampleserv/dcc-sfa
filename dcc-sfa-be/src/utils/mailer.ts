@@ -19,12 +19,14 @@ interface EmailData {
 }
 
 const createTransporter = () => {
+  const port = parseInt(process.env.SMTP_PORT || '587');
+
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
+    port: port,
+    secure: port === 465,
     auth: {
-      user: process.env.SMTP_USER,
+      user: process.env.SMTP_USERNAME,
       pass: process.env.SMTP_PASSWORD,
     },
     tls: {
@@ -39,11 +41,16 @@ export const sendEmail = async (emailData: EmailData): Promise<boolean> => {
 
   try {
     const transporter = createTransporter();
+
+    console.log('  SMTP Host:', process.env.SMTP_HOST);
+    console.log('  SMTP Port:', process.env.SMTP_PORT);
+    console.log('  SMTP User:', process.env.SMTP_USERNAME);
+
     await transporter.verify();
-    console.log('SMTP connection verified');
+    console.log('✓ SMTP connection verified');
 
     const info = await transporter.sendMail({
-      from: `"${process.env.SMTP_FROM_NAME || 'SFA System'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+      from: `"SFA System" <${process.env.SMTP_USERNAME}>`,
       to: Array.isArray(to) ? to.join(', ') : to,
       cc: cc ? (Array.isArray(cc) ? cc.join(', ') : cc) : undefined,
       bcc: bcc ? (Array.isArray(bcc) ? bcc.join(', ') : bcc) : undefined,
@@ -52,14 +59,15 @@ export const sendEmail = async (emailData: EmailData): Promise<boolean> => {
       attachments,
     });
 
-    console.log('Email sent successfully');
-    console.log('Message ID:', info.messageId);
-    console.log('To:', to);
-    console.log('Subject:', subject);
+    console.log(' Email sent successfully');
+    console.log('  Message ID:', info.messageId);
+    console.log('  To:', to);
+    console.log('  Subject:', subject);
 
     return true;
   } catch (error: any) {
-    console.error('Email sending failed:', error);
+    console.error(' Email sending failed:', error.message);
+    console.error('  Full error:', error);
     return false;
   }
 };
@@ -78,11 +86,12 @@ export const sendBulkEmails = async (
       failed++;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
-  console.log(`Bulk email sending complete: ${success} sent, ${failed} failed`);
+  console.log(
+    `✓ Bulk email sending complete: ${success} sent, ${failed} failed`
+  );
 
   return { success, failed };
 };

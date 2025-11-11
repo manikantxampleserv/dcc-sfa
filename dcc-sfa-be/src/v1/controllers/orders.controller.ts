@@ -665,7 +665,7 @@ export const ordersController = {
       const items = orderItems || order_items || [];
       let orderId = orderData.id;
 
-      console.log('📦 Processing order with items:', {
+      console.log(' Processing order with items:', {
         orderId,
         orderNumber: orderData.order_number,
         itemsCount: items.length,
@@ -683,7 +683,7 @@ export const ordersController = {
             if (existingOrder) {
               orderId = existingOrder.id;
               isUpdate = true;
-              console.log('✓ Found existing order by order_number:', orderId);
+              console.log(' Found existing order by order_number:', orderId);
             }
           } else if (orderId) {
             isUpdate = true;
@@ -692,7 +692,7 @@ export const ordersController = {
           let orderNumber = orderData.order_number;
           if (!isUpdate && !orderNumber) {
             orderNumber = await generateOrderNumber(tx);
-            console.log('✓ Generated new order number:', orderNumber);
+            console.log(' Generated new order number:', orderNumber);
           }
 
           const orderPayload = {
@@ -758,18 +758,34 @@ export const ordersController = {
               console.log('✓ Deleted existing order items');
             }
 
-            const orderItemsData = items.map((item: any) => ({
-              order_id: order.id,
-              product_id: item.product_id,
-              quantity: parseFloat(item.quantity),
-              unit_price: parseFloat(item.unit_price),
-              discount: parseFloat(item.discount) || 0,
-              tax: parseFloat(item.tax) || 0,
-              subtotal: parseFloat(item.subtotal),
-              createdate: new Date(),
-              createdby: userId,
-              log_inst: 1,
-            }));
+            const safeParse = (val: any, fallback = 0) => {
+              const num = parseFloat(val);
+              return isNaN(num) ? fallback : num;
+            };
+
+            const orderItemsData = items.map((item: any) => {
+              const quantity = safeParse(item.quantity, 0);
+              const unitPrice = safeParse(item.unit_price, 0);
+              const discountAmount = safeParse(
+                item.discount_amount || item.discount,
+                0
+              );
+              const taxAmount = safeParse(item.tax_amount || item.tax, 0);
+
+              // Calculate subtotal (not stored in DB, just for calculation)
+              const subtotal = quantity * unitPrice;
+
+              return {
+                parent_id: order.id,
+                product_id: item.product_id,
+                quantity: quantity,
+                unit_price: unitPrice,
+                discount_amount: discountAmount,
+                tax_amount: taxAmount,
+                // Remove subtotal field - it doesn't exist in the schema
+                total_amount: subtotal - discountAmount + taxAmount,
+              };
+            });
 
             await tx.order_items.createMany({
               data: orderItemsData,
@@ -844,6 +860,7 @@ export const ordersController = {
       });
     }
   },
+
   async getAllOrders(req: any, res: any) {
     try {
       const {

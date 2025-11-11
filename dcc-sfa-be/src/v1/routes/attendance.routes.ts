@@ -37,11 +37,6 @@ router.get(
   attendanceController.punchOut
 );
 
-/**
- * @route   GET /api/attendance/today
- * @desc    Get today's attendance
- * @access  Private
- */
 router.get(
   '/attendance/today',
   authenticateToken,

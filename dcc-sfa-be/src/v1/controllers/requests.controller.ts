@@ -207,9 +207,8 @@ export const createRequest = async (data: {
   log_inst: number;
 }) => {
   try {
-    console.log('📋 Creating approval request:', data);
+    console.log('Creating approval request:', data);
 
-    // Get requester details
     const requester = await prisma.users.findUnique({
       where: { id: data.requester_id },
       select: {
@@ -225,7 +224,6 @@ export const createRequest = async (data: {
       throw new Error('Requester not found');
     }
 
-    // Create request record
     const request = await prisma.sfa_d_requests.create({
       data: {
         requester_id: data.requester_id,
@@ -239,13 +237,11 @@ export const createRequest = async (data: {
       },
     });
 
-    console.log('✓ Request created, ID:', request.id);
+    console.log(' Request created, ID:', request.id);
 
-    // Get applicable workflow
     let workflowSteps;
     let workflowType = 'NONE';
 
-    // Priority 1: Zone + Depot specific
     if (requester.zone_id && requester.depot_id) {
       workflowSteps = await prisma.approval_work_flow.findMany({
         where: {
@@ -267,7 +263,6 @@ export const createRequest = async (data: {
       }
     }
 
-    // Priority 2: Zone specific only
     if ((!workflowSteps || workflowSteps.length === 0) && requester.zone_id) {
       workflowSteps = await prisma.approval_work_flow.findMany({
         where: {
@@ -289,7 +284,6 @@ export const createRequest = async (data: {
       }
     }
 
-    // Priority 3: Depot specific only
     if ((!workflowSteps || workflowSteps.length === 0) && requester.depot_id) {
       workflowSteps = await prisma.approval_work_flow.findMany({
         where: {
@@ -311,7 +305,6 @@ export const createRequest = async (data: {
       }
     }
 
-    // Fallback: Global workflow
     if (!workflowSteps || workflowSteps.length === 0) {
       workflowSteps = await prisma.approval_work_flow.findMany({
         where: {
@@ -334,13 +327,12 @@ export const createRequest = async (data: {
     }
 
     if (!workflowSteps || workflowSteps.length === 0) {
-      console.log(`⚠ No approval workflow defined for '${data.request_type}'`);
+      console.log(` No approval workflow defined for '${data.request_type}'`);
       return request;
     }
 
-    console.log(`✓ Using ${workflowType} workflow for ${data.request_type}`);
+    console.log(` Using ${workflowType} workflow for ${data.request_type}`);
 
-    // Create approval steps
     const approvalsToInsert = workflowSteps.map((step, index) => ({
       request_id: Number(request.id),
       approver_id: Number(step.approver_id),
@@ -355,15 +347,13 @@ export const createRequest = async (data: {
       data: approvalsToInsert,
     });
 
-    console.log(`✓ Created ${approvalsToInsert.length} approval steps`);
+    console.log(`Created ${approvalsToInsert.length} approval steps`);
 
-    // Get request details for email
     const request_detail = await getRequestDetailsByType(
       data.request_type,
       data.reference_id || null
     );
 
-    // Send email to first approver
     const firstApprover = workflowSteps[0];
     if (firstApprover?.approval_work_flow_approver?.email) {
       const template = await generateEmailContent(
@@ -386,7 +376,7 @@ export const createRequest = async (data: {
       });
 
       console.log(
-        `✓ [Email Sent] → ${firstApprover.approval_work_flow_approver.email}`
+        `Email Sent ${firstApprover.approval_work_flow_approver.email}`
       );
     }
 
@@ -762,6 +752,194 @@ export const requestsController = {
     }
   },
 
+  // async takeActionOnRequest(req: Request, res: Response) {
+  //   const { request_id, approval_id, action, remarks } = req.body;
+  //   const userId = req.user?.id || 1;
+
+  //   try {
+  //     if (!['A', 'R'].includes(action)) {
+  //       return res.status(400).json({
+  //         message: 'Invalid action. Must be A (Approve) or R (Reject)',
+  //       });
+  //     }
+
+  //     const result = await prisma.$transaction(
+  //       async tx => {
+  //         const request = await tx.sfa_d_requests.findUnique({
+  //           where: { id: Number(request_id) },
+  //           include: {
+  //             sfa_d_requests_requester: {
+  //               select: { id: true, name: true, email: true },
+  //             },
+  //           },
+  //         });
+
+  //         if (!request) {
+  //           throw new Error('Request not found');
+  //         }
+
+  //         const currentApproval = await tx.sfa_d_request_approvals.findUnique({
+  //           where: { id: Number(approval_id) },
+  //           include: {
+  //             sfa_d_requests_approvals_approver: {
+  //               select: { id: true, name: true, email: true },
+  //             },
+  //           },
+  //         });
+
+  //         if (!currentApproval) {
+  //           throw new Error('Approval not found');
+  //         }
+
+  //         if (currentApproval.status !== 'P') {
+  //           throw new Error('This approval has already been processed');
+  //         }
+
+  //         await tx.sfa_d_request_approvals.update({
+  //           where: { id: Number(approval_id) },
+  //           data: {
+  //             status: action,
+  //             remarks,
+  //             action_at: new Date(),
+  //             updatedby: userId,
+  //             updatedate: new Date(),
+  //           },
+  //         });
+
+  //         if (action === 'R') {
+  //           await tx.sfa_d_requests.update({
+  //             where: { id: Number(request_id) },
+  //             data: {
+  //               status: 'R',
+  //               overall_status: 'REJECTED',
+  //               updatedby: userId,
+  //               updatedate: new Date(),
+  //             },
+  //           });
+
+  //           return { status: 'rejected', request };
+  //         }
+
+  //         const nextApprover = await tx.sfa_d_request_approvals.findFirst({
+  //           where: {
+  //             request_id: Number(request_id),
+  //             status: 'P',
+  //           },
+  //           orderBy: { sequence: 'asc' },
+  //           include: {
+  //             sfa_d_requests_approvals_approver: {
+  //               select: { id: true, name: true, email: true },
+  //             },
+  //           },
+  //         });
+
+  //         if (!nextApprover) {
+  //           await tx.sfa_d_requests.update({
+  //             where: { id: Number(request_id) },
+  //             data: {
+  //               status: 'A',
+  //               overall_status: 'APPROVED',
+  //               updatedby: userId,
+  //               updatedate: new Date(),
+  //             },
+  //           });
+
+  //           return { status: 'fully_approved', request };
+  //         }
+
+  //         return { status: 'next_level', request, nextApprover };
+  //       },
+  //       {
+  //         maxWait: 10000,
+  //         timeout: 20000,
+  //       }
+  //     );
+
+  //     if (result.status === 'rejected') {
+  //       const template = await generateEmailContent(
+  //         templateKeyMap.requestRejected,
+  //         {
+  //           employee_name: result.request.sfa_d_requests_requester.name,
+  //           request_type: formatRequestType(result.request.request_type),
+  //           remarks: remarks || 'No reason provided',
+  //           company_name: 'SFA System',
+  //         }
+  //       );
+
+  //       await sendEmail({
+  //         to: result.request.sfa_d_requests_requester.email,
+  //         subject: template.subject,
+  //         html: template.body,
+  //         createdby: userId,
+  //         log_inst: 1,
+  //       });
+
+  //       return res.status(200).json({
+  //         message: 'Request rejected successfully',
+  //       });
+  //     }
+
+  //     if (result.status === 'fully_approved') {
+  //       const template = await generateEmailContent(
+  //         templateKeyMap.requestAccepted,
+  //         {
+  //           employee_name: result.request.sfa_d_requests_requester.name,
+  //           request_type: formatRequestType(result.request.request_type),
+  //           company_name: 'SFA System',
+  //         }
+  //       );
+
+  //       await sendEmail({
+  //         to: result.request.sfa_d_requests_requester.email,
+  //         subject: template.subject,
+  //         html: template.body,
+  //         createdby: userId,
+  //         log_inst: 1,
+  //       });
+
+  //       return res.status(200).json({
+  //         message: 'Request approved successfully (All approvals complete)',
+  //       });
+  //     }
+
+  //     if (result.status === 'next_level' && result.nextApprover) {
+  //       const template = await generateEmailContent(
+  //         templateKeyMap.notifyNextApprover,
+  //         {
+  //           approver_name:
+  //             result.nextApprover.sfa_d_requests_approvals_approver.name,
+  //           previous_approver: 'Previous Approver',
+  //           request_type: formatRequestType(result.request.request_type),
+  //           action: 'approved',
+  //           company_name: 'SFA System',
+  //         }
+  //       );
+
+  //       await sendEmail({
+  //         to: result.nextApprover.sfa_d_requests_approvals_approver.email,
+  //         subject: template.subject,
+  //         html: template.body,
+  //         createdby: userId,
+  //         log_inst: 1,
+  //       });
+
+  //       return res.status(200).json({
+  //         message: 'Request approved and escalated to next approver',
+  //       });
+  //     }
+
+  //     res.status(200).json({
+  //       message: 'Action processed successfully',
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Take Action Error:', error);
+  //     res.status(500).json({
+  //       message: 'Failed to process action',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
   async takeActionOnRequest(req: Request, res: Response) {
     const { request_id, approval_id, action, remarks } = req.body;
     const userId = req.user?.id || 1;
@@ -816,6 +994,9 @@ export const requestsController = {
             },
           });
 
+          // ========================================
+          // REJECTED - Update order status
+          // ========================================
           if (action === 'R') {
             await tx.sfa_d_requests.update({
               where: { id: Number(request_id) },
@@ -827,9 +1008,31 @@ export const requestsController = {
               },
             });
 
+            // ✅ Update order status to REJECTED
+            if (
+              request.request_type === 'ORDER_APPROVAL' &&
+              request.reference_id
+            ) {
+              await tx.orders.update({
+                where: { id: request.reference_id },
+                data: {
+                  approval_status: 'rejected',
+                  status: 'rejected',
+                  updatedby: userId,
+                  updatedate: new Date(),
+                },
+              });
+              console.log(
+                `✓ Order ${request.reference_id} status updated to REJECTED`
+              );
+            }
+
             return { status: 'rejected', request };
           }
 
+          // ========================================
+          // APPROVED - Check for next approver
+          // ========================================
           const nextApprover = await tx.sfa_d_request_approvals.findFirst({
             where: {
               request_id: Number(request_id),
@@ -843,6 +1046,9 @@ export const requestsController = {
             },
           });
 
+          // ========================================
+          // FINAL APPROVAL - Update order status
+          // ========================================
           if (!nextApprover) {
             await tx.sfa_d_requests.update({
               where: { id: Number(request_id) },
@@ -854,6 +1060,27 @@ export const requestsController = {
               },
             });
 
+            // ✅ Update order status to APPROVED
+            if (
+              request.request_type === 'ORDER_APPROVAL' &&
+              request.reference_id
+            ) {
+              await tx.orders.update({
+                where: { id: request.reference_id },
+                data: {
+                  approval_status: 'approved',
+                  status: 'approved',
+                  approved_by: userId,
+                  approved_at: new Date(),
+                  updatedby: userId,
+                  updatedate: new Date(),
+                },
+              });
+              console.log(
+                `✓ Order ${request.reference_id} status updated to APPROVED`
+              );
+            }
+
             return { status: 'fully_approved', request };
           }
 
@@ -864,6 +1091,10 @@ export const requestsController = {
           timeout: 20000,
         }
       );
+
+      // ========================================
+      // SEND EMAILS
+      // ========================================
 
       if (result.status === 'rejected') {
         const template = await generateEmailContent(
@@ -970,9 +1201,7 @@ export const requestsController = {
       };
 
       if (search) {
-        filters.OR = [
-          { request_type: { contains: search, mode: 'insensitive' } },
-        ];
+        filters.OR = [{ request_type: { contains: search.toLowerCase() } }];
       }
 
       if (request_type) {
