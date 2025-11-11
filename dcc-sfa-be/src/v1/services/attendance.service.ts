@@ -214,7 +214,7 @@ export class AttendanceService {
   }
 
   async getPunchStatus(userId: number): Promise<{
-    status: 'punch_in' | 'punch_out' | 'not_punched';
+    status: 'punch_in' | 'punch_out' | 'not_punch';
     attendance: AttendanceWithHistory | null;
   }> {
     const today = new Date();
@@ -243,7 +243,7 @@ export class AttendanceService {
 
     if (!attendance) {
       return {
-        status: 'not_punched',
+        status: 'not_punch',
         attendance: null,
       };
     }
@@ -252,7 +252,7 @@ export class AttendanceService {
       status: (attendance.status || 'punch_in') as
         | 'punch_in'
         | 'punch_out'
-        | 'not_punched',
+        | 'not_punch',
       attendance: attendance as AttendanceWithHistory,
     };
   }
