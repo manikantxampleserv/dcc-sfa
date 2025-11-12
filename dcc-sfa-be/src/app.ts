@@ -7,6 +7,7 @@ import cors from 'cors';
 import express, { Application, RequestHandler } from 'express';
 import { responseHandler } from './middlewares/response.middleware';
 import routes from './routes';
+import helmet from 'helmet';
 
 /**
  * Creates and configures the Express application
@@ -18,6 +19,7 @@ export const createApp = (): Application => {
   app.set('trust proxy', true);
 
   app.use(express.json());
+
   app.use(express.urlencoded({ extended: true }));
 
   app.use(cookieParser());
