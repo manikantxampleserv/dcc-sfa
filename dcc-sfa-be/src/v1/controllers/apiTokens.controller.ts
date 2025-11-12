@@ -36,12 +36,16 @@ export const getApiTokens = async (req: Request, res: Response) => {
       ];
     }
 
-    if (isActive) {
-      where.is_active = isActive;
+    if (isActive !== '') {
+      if (isActive === 'true' || isActive === 'Y' || isActive === '1') {
+        where.is_active = 'Y';
+      } else if (isActive === 'false' || isActive === 'N' || isActive === '0') {
+        where.is_active = 'N';
+      }
     }
 
-    if (isRevoked) {
-      where.is_revoked = isRevoked === 'true';
+    if (isRevoked !== '') {
+      where.is_revoked = isRevoked === 'true' || isRevoked === '1';
     }
 
     if (userId) {
@@ -180,6 +184,12 @@ export const revokeApiToken = async (req: Request, res: Response) => {
       });
     }
 
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+    }
     const token = await prisma.api_tokens.findUnique({
       where: { id: tokenId },
     });
@@ -215,7 +225,6 @@ export const revokeApiToken = async (req: Request, res: Response) => {
         },
       },
     });
-
     res.status(200).json({
       success: true,
       message: 'API token revoked successfully',
@@ -226,7 +235,8 @@ export const revokeApiToken = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: 'Failed to revoke API token',
+      error:
+        error instanceof Error ? error.message : 'Failed to revoke API token',
     });
   }
 };
@@ -307,7 +317,12 @@ export const deactivateApiToken = async (req: Request, res: Response) => {
         message: 'Invalid token ID',
       });
     }
-
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+    }
     const token = await prisma.api_tokens.findUnique({
       where: { id: tokenId },
     });
@@ -413,6 +428,12 @@ export const revokeAllUserTokens = async (req: Request, res: Response) => {
       });
     }
 
+    if (!currentUserId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated',
+      });
+    }
     const result = await prisma.api_tokens.updateMany({
       where: {
         user_id: targetUserId,
