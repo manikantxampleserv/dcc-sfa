@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
-
-const prisma = new PrismaClient();
+import prisma from '../configs/prisma.client';
 
 export interface CreateApprovalWorkflowParams {
   workflow_type: string;

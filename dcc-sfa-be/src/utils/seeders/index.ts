@@ -5,8 +5,8 @@
  * @version 1.0.0
  */
 
-import { PrismaClient } from '@prisma/client';
 import logger from '../../configs/logger';
+import prisma from '../../configs/prisma.client';
 
 // Import all seeders
 import { clearAssetMaster, seedAssetMaster } from './assetMaster.seeder';
@@ -54,8 +54,6 @@ import {
 import { clearKPITargets, seedKPITargets } from './kpi-targets.seeder';
 import { clearOutletGroups, seedOutletGroups } from './outlet-groups.seeder';
 import { clearPricelists, seedPricelists } from './pricelists.seeder';
-
-const prisma = new PrismaClient();
 
 // Seeder configuration
 const seeders = {

@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { validationResult } from 'express-validator';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 export const getApiTokens = async (req: Request, res: Response) => {
   try {

@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { ColumnDefinition } from '../../../types/import-export.types';
 import { ImportExportService } from '../base/import-export.service';
-
-const prisma = new PrismaClient();
+import prisma from '../../../configs/prisma.client';
 
 export class VanInventoryImportExportService extends ImportExportService<any> {
   protected modelName = 'van_inventory' as const;

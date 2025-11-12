@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 async function getReportData(filters: any) {
   const { start_date, end_date, customer_id, status } = filters;

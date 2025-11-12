@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import { uploadFile } from '../../utils/blackbaze';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface AssetMasterSerialized {
   id: number;

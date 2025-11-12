@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../configs/prisma.client';
 
 export interface CreateNotificationParams {
   user_id: number;

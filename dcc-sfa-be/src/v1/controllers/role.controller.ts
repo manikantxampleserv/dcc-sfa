@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { validationResult } from 'express-validator';
 import { paginate } from '../../utils/paginate';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 const serializeRole = (
   role: any,

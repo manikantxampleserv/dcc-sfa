@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { uploadFile, deleteFile } from '../../utils/blackbaze';
 import { paginate } from '../../utils/paginate';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface CustomerDocumentsSerialized {
   id: number;

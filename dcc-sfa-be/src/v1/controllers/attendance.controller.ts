@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { TeamAttendanceStatus } from '../../types/attendance.types';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface AttendanceSerialized {
   id: number;

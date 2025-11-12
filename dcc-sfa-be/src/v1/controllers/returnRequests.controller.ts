@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import { ReturnWorkflowService } from '../services/returnWorkflow.service';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface ReturnRequestSerialized {
   id: number;

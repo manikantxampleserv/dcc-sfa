@@ -57,6 +57,11 @@ export interface TakeActionOnRequestPayload {
   remarks?: string;
 }
 
+export interface RequestType {
+  value: string;
+  label: string;
+}
+
 /**
  * Fetch requests by users (for approvers)
  * @param params - Query parameters for filtering and pagination
@@ -91,6 +96,24 @@ export const takeActionOnRequest = async (
     console.error('Error taking action on request:', error);
     throw new Error(
       error.response?.data?.message || 'Failed to take action on request'
+    );
+  }
+};
+
+/**
+ * Fetch available request types
+ * @returns Promise<ApiResponse<RequestType[]>>
+ */
+export const fetchRequestTypes = async (): Promise<
+  ApiResponse<RequestType[]>
+> => {
+  try {
+    const response = await api.get('/approval-setup/request-types');
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching request types:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to fetch request types'
     );
   }
 };

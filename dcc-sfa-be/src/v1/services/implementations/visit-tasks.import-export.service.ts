@@ -1,10 +1,7 @@
 import { ImportExportService } from '../base/import-export.service';
 import { ColumnDefinition } from '../../../types/import-export.types';
-import { PrismaClient, Prisma } from '@prisma/client';
-
-const prisma = new PrismaClient({
-  log: ['error', 'warn'],
-});
+import { Prisma } from '@prisma/client';
+import prisma from '../../../configs/prisma.client';
 
 export class VisitTasksImportExportService extends ImportExportService<any> {
   protected modelName = 'visit_tasks' as const;

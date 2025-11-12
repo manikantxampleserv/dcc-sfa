@@ -345,7 +345,9 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
               {dialogType === 'approve' ? (
                 <>
                   Are you sure you want to approve this{' '}
-                  {selectedRequest?.request_type?.toLowerCase() || 'request'}{' '}
+                  {selectedRequest?.request_type
+                    ?.replaceAll('_', ' ')
+                    .toLowerCase() || 'request'}{' '}
                   from{' '}
                   <span className="!font-semibold !text-gray-900">
                     {selectedRequest?.requester?.name || 'User'}

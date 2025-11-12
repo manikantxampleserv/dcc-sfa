@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { createWorkflowNotification } from '../../helpers';
 import { paginate } from '../../utils/paginate';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface ApprovalWorkflowSerialized {
   id: number;

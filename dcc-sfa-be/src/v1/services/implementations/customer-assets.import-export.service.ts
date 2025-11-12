@@ -1,10 +1,6 @@
-import { ImportExportService } from '../base/import-export.service';
+import prisma from '../../../configs/prisma.client';
 import { ColumnDefinition } from '../../../types/import-export.types';
-import { PrismaClient, Prisma } from '@prisma/client';
-
-const prisma = new PrismaClient({
-  log: ['error', 'warn'],
-});
+import { ImportExportService } from '../base/import-export.service';
 
 export class CustomerAssetsImportExportService extends ImportExportService<any> {
   protected modelName = 'customer_assets' as const;

@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface MockOrder {
   order_number: string;

@@ -1,7 +1,6 @@
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
-import { PrismaClient } from '@prisma/client';
 import {
   ColumnDefinition,
   ImportResult,
@@ -10,8 +9,8 @@ import {
 } from '../../../types/import-export.types';
 import { ParseResultWithErrors } from '../../../types/import-export-errors.types';
 import { ImportExportErrorHandler } from './import-export-error.service';
-
-const prisma = new PrismaClient();
+import prisma from '../../../configs/prisma.client';
+import { PrismaClient } from '@prisma/client';
 
 export abstract class ImportExportService<T> {
   protected abstract modelName: keyof PrismaClient;

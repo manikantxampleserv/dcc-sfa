@@ -1,5 +1,4 @@
 import { Box, Chip, MenuItem } from '@mui/material';
-import { useCustomers } from 'hooks/useCustomers';
 import { useOrdersInvoicesReturnsReport } from 'hooks/useReports';
 import {
   Download,
@@ -10,6 +9,7 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -30,10 +30,6 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
     customer_id: customerId,
     status: status === 'all' ? undefined : status?.toUpperCase(),
   });
-
-  const { data: customersData } = useCustomers();
-
-  const customers = customersData?.data || [];
 
   const summary = reportData?.summary || {
     total_orders: 0,
@@ -400,24 +396,18 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
             value={endDate}
             setValue={setEndDate}
           />
-          <Select
+          <CustomerSelect
+            name="customer_id"
             label="Customer"
-            value={customerId?.toString() || 'all'}
-            onChange={e =>
-              setCustomerId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
+            value={customerId}
+            setValue={value =>
+              setCustomerId(value ? parseInt(value.toString()) : undefined)
             }
-          >
-            <MenuItem value="all">All Customers</MenuItem>
-            {customers.map((customer: any) => (
-              <MenuItem key={customer.id} value={customer.id.toString()}>
-                {customer.name} ({customer.code})
-              </MenuItem>
-            ))}
-          </Select>
+            onChange={(_event, customer) =>
+              setCustomerId(customer ? customer.id : undefined)
+            }
+            fullWidth={false}
+          />
           <div>
             <Select
               label="Status"

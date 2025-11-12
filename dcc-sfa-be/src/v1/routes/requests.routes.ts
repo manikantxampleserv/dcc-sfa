@@ -56,4 +56,10 @@ router.get(
   requestsController.getRequestByTypeAndReference
 );
 
+router.get(
+  '/approval-setup/request-types',
+  authenticateToken,
+  requestsController.getRequestTypes
+);
+
 export default router;

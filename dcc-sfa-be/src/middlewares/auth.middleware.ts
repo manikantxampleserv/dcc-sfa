@@ -299,11 +299,10 @@
 
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { jwtConfig } from '../configs/jwt.config';
 import { createPermission, PERMISSIONS } from '../configs/permissions.config';
-
-const prisma = new PrismaClient();
+import prisma from '../configs/prisma.client';
 
 type PermissionItem = { module: string; action: string };
 
