@@ -48,6 +48,11 @@ import {
   type OutstandingCollectionFilters,
   type OutstandingCollectionData,
 } from '../services/reports/outstandingCollection';
+import {
+  fetchAttendanceHistoryReport,
+  type AttendanceHistoryReportFilters,
+  type AttendanceHistoryReportData,
+} from '../services/reports/attendance';
 
 export const reportKeys = {
   all: ['reports'] as const,
@@ -70,6 +75,8 @@ export const reportKeys = {
     [...reportKeys.lists(), 'competitor-analysis', filters] as const,
   outstandingCollection: (filters?: OutstandingCollectionFilters) =>
     [...reportKeys.lists(), 'outstanding-collection', filters] as const,
+  attendanceHistory: (filters?: AttendanceHistoryReportFilters) =>
+    [...reportKeys.lists(), 'attendance-history', filters] as const,
 };
 
 /**
@@ -179,6 +186,19 @@ export const useOutstandingCollectionReport = (
   return useQuery<OutstandingCollectionData>({
     queryKey: reportKeys.outstandingCollection(filters),
     queryFn: () => fetchOutstandingCollectionReport(filters),
+    staleTime: 3 * 60 * 1000,
+  });
+};
+
+/**
+ * Hook to fetch Attendance History Report
+ */
+export const useAttendanceHistoryReport = (
+  filters?: AttendanceHistoryReportFilters
+) => {
+  return useQuery<AttendanceHistoryReportData>({
+    queryKey: reportKeys.attendanceHistory(filters),
+    queryFn: () => fetchAttendanceHistoryReport(filters),
     staleTime: 3 * 60 * 1000,
   });
 };

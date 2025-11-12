@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
+import { paginate } from '../../utils/paginate';
 
 const prisma = new PrismaClient();
 
@@ -3520,7 +3521,6 @@ export const reportsController = {
       if (brand_name) {
         whereFilter.brand_name = {
           contains: brand_name as string,
-          mode: 'insensitive',
         };
       }
 
@@ -4057,6 +4057,389 @@ export const reportsController = {
       res.send(Buffer.from(buffer));
     } catch (error: any) {
       console.error('Export Outstanding & Collection Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to export report',
+      });
+    }
+  },
+
+  /**
+   * Get Attendance History Report
+   * GET /api/v1/reports/attendance-history
+   */
+  async getAttendanceHistoryReport(req: Request, res: Response) {
+    try {
+      const {
+        page = '1',
+        limit = '10',
+        start_date,
+        end_date,
+        user_id,
+        action_type,
+        search,
+      } = req.query;
+
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 10;
+
+      const dateFilter: any = {};
+      if (start_date) {
+        dateFilter.gte = new Date(start_date as string);
+      }
+      if (end_date) {
+        dateFilter.lte = new Date(end_date as string);
+      }
+
+      const filters: any = {
+        is_active: 'Y',
+        ...(Object.keys(dateFilter).length > 0 && {
+          createdate: dateFilter,
+        }),
+        ...(action_type && { action_type: action_type as string }),
+      };
+
+      if (user_id) {
+        filters.attendance_historys = {
+          user_id: parseInt(user_id as string, 10),
+          is_active: 'Y',
+        };
+      }
+
+      if (search && search.toString().trim()) {
+        const searchTerm = search.toString().trim();
+        filters.OR = [
+          { action_type: { contains: searchTerm } },
+          { address: { contains: searchTerm } },
+        ];
+      }
+
+      const { data, pagination } = await paginate({
+        model: prisma.attendance_history,
+        filters,
+        page: pageNum,
+        limit: limitNum,
+        orderBy: { createdate: 'desc' },
+        include: {
+          attendance_historys: {
+            include: {
+              attendance_user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  employee_id: true,
+                  profile_image: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const [totalHistory, punchInCount, punchOutCount, historyThisMonth] =
+        await Promise.all([
+          prisma.attendance_history.count({
+            where: { is_active: 'Y' },
+          }),
+          prisma.attendance_history.count({
+            where: {
+              is_active: 'Y',
+              action_type: 'punch_in',
+            },
+          }),
+          prisma.attendance_history.count({
+            where: {
+              is_active: 'Y',
+              action_type: 'punch_out',
+            },
+          }),
+          prisma.attendance_history.count({
+            where: {
+              is_active: 'Y',
+              createdate: {
+                gte: new Date(
+                  new Date().getFullYear(),
+                  new Date().getMonth(),
+                  1
+                ),
+                lt: new Date(
+                  new Date().getFullYear(),
+                  new Date().getMonth() + 1,
+                  1
+                ),
+              },
+            },
+          }),
+        ]);
+
+      const stats = {
+        total_history_records: totalHistory,
+        punch_in_count: punchInCount,
+        punch_out_count: punchOutCount,
+        history_this_month: historyThisMonth,
+      };
+
+      const serializedData = data.map((history: any) => ({
+        id: history.id,
+        attendance_id: history.attendance_id,
+        action_type: history.action_type,
+        action_time: history.action_time?.toISOString() || null,
+        latitude: history.latitude ? Number(history.latitude) : null,
+        longitude: history.longitude ? Number(history.longitude) : null,
+        address: history.address || null,
+        device_info: history.device_info
+          ? JSON.parse(history.device_info)
+          : null,
+        photo_url: history.photo_url || null,
+        old_data: history.old_data ? JSON.parse(history.old_data) : null,
+        new_data: history.new_data ? JSON.parse(history.new_data) : null,
+        ip_address: history.ip_address || null,
+        user_agent: history.user_agent || null,
+        app_version: history.app_version || null,
+        battery_level: history.battery_level
+          ? Number(history.battery_level)
+          : null,
+        network_type: history.network_type || null,
+        remarks: history.remarks || null,
+        createdate: history.createdate?.toISOString() || null,
+        createdby: history.createdby,
+        attendance: history.attendance_historys
+          ? {
+              id: history.attendance_historys.id,
+              user_id: history.attendance_historys.user_id,
+              attendance_date:
+                history.attendance_historys.attendance_date?.toISOString() ||
+                null,
+              user: history.attendance_historys.attendance_user
+                ? {
+                    id: history.attendance_historys.attendance_user.id,
+                    name: history.attendance_historys.attendance_user.name,
+                    email: history.attendance_historys.attendance_user.email,
+                    employee_id:
+                      history.attendance_historys.attendance_user.employee_id,
+                    profile_image:
+                      history.attendance_historys.attendance_user.profile_image,
+                  }
+                : null,
+            }
+          : null,
+      }));
+
+      res.json({
+        success: true,
+        message: 'Attendance history report generated successfully',
+        data: serializedData,
+        meta: {
+          requestDuration: Date.now(),
+          timestamp: new Date().toISOString(),
+          ...pagination,
+        },
+        stats,
+      });
+    } catch (error: any) {
+      console.error('Get Attendance History Report Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to generate report',
+      });
+    }
+  },
+
+  /**
+   * Export Attendance History Report to Excel
+   * GET /api/v1/reports/attendance-history/export
+   */
+  async exportAttendanceHistoryReport(req: Request, res: Response) {
+    try {
+      const { start_date, end_date, user_id, action_type, search } = req.query;
+
+      const dateFilter: any = {};
+      if (start_date) {
+        dateFilter.gte = new Date(start_date as string);
+      }
+      if (end_date) {
+        dateFilter.lte = new Date(end_date as string);
+      }
+
+      const filters: any = {
+        is_active: 'Y',
+        ...(Object.keys(dateFilter).length > 0 && {
+          createdate: dateFilter,
+        }),
+        ...(action_type && { action_type: action_type as string }),
+      };
+
+      if (user_id) {
+        filters.attendance_historys = {
+          user_id: parseInt(user_id as string, 10),
+          is_active: 'Y',
+        };
+      }
+
+      if (search && search.toString().trim()) {
+        const searchTerm = search.toString().trim();
+        filters.OR = [
+          { action_type: { contains: searchTerm } },
+          { address: { contains: searchTerm } },
+          { remarks: { contains: searchTerm } },
+        ];
+      }
+
+      const historyRecords = await prisma.attendance_history.findMany({
+        where: filters,
+        include: {
+          attendance_historys: {
+            include: {
+              attendance_user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  employee_id: true,
+                  profile_image: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdate: 'desc' },
+      });
+
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+
+      const historySheet = workbook.addWorksheet('Attendance History', {
+        pageSetup: { paperSize: 9, orientation: 'landscape' },
+      });
+      historySheet.columns = [
+        { header: 'Employee Name', key: 'employee_name', width: 25 },
+        { header: 'Employee ID', key: 'employee_id', width: 15 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Action Type', key: 'action_type', width: 15 },
+        { header: 'Action Time', key: 'action_time', width: 20 },
+        { header: 'Attendance Date', key: 'attendance_date', width: 15 },
+        { header: 'Address', key: 'address', width: 40 },
+        { header: 'Remarks', key: 'remarks', width: 40 },
+        { header: 'IP Address', key: 'ip_address', width: 18 },
+        { header: 'User Agent', key: 'user_agent', width: 30 },
+        { header: 'App Version', key: 'app_version', width: 15 },
+        { header: 'Battery Level', key: 'battery_level', width: 15 },
+        { header: 'Network Type', key: 'network_type', width: 15 },
+        { header: 'Created At', key: 'createdate', width: 20 },
+      ];
+
+      historyRecords.forEach((history: any) => {
+        const user = history.attendance_historys?.attendance_user;
+        historySheet.addRow({
+          employee_name: user?.name || 'N/A',
+          employee_id: user?.employee_id || 'N/A',
+          email: user?.email || 'N/A',
+          action_type: history.action_type || 'N/A',
+          action_time: history.action_time
+            ? new Date(history.action_time).toLocaleString()
+            : 'N/A',
+          attendance_date: history.attendance_historys?.attendance_date
+            ? new Date(
+                history.attendance_historys.attendance_date
+              ).toLocaleDateString()
+            : 'N/A',
+          address: history.address || 'N/A',
+          remarks: history.remarks || 'N/A',
+          ip_address: history.ip_address || 'N/A',
+          user_agent: history.user_agent || 'N/A',
+          app_version: history.app_version || 'N/A',
+          battery_level: history.battery_level
+            ? Number(history.battery_level)
+            : 'N/A',
+          network_type: history.network_type || 'N/A',
+          createdate: history.createdate
+            ? new Date(history.createdate).toLocaleString()
+            : 'N/A',
+        });
+      });
+
+      const summarySheet = workbook.addWorksheet('Summary');
+      summarySheet.columns = [
+        { header: 'Metric', key: 'metric', width: 30 },
+        { header: 'Value', key: 'value', width: 20 },
+      ];
+
+      const [totalHistory, punchInCount, punchOutCount, historyThisMonth] =
+        await Promise.all([
+          prisma.attendance_history.count({
+            where: { is_active: 'Y' },
+          }),
+          prisma.attendance_history.count({
+            where: {
+              is_active: 'Y',
+              action_type: 'punch_in',
+            },
+          }),
+          prisma.attendance_history.count({
+            where: {
+              is_active: 'Y',
+              action_type: 'punch_out',
+            },
+          }),
+          prisma.attendance_history.count({
+            where: {
+              is_active: 'Y',
+              createdate: {
+                gte: new Date(
+                  new Date().getFullYear(),
+                  new Date().getMonth(),
+                  1
+                ),
+                lt: new Date(
+                  new Date().getFullYear(),
+                  new Date().getMonth() + 1,
+                  1
+                ),
+              },
+            },
+          }),
+        ]);
+
+      const summaryData = [
+        { metric: 'Total History Records', value: totalHistory },
+        { metric: 'Punch In Count', value: punchInCount },
+        { metric: 'Punch Out Count', value: punchOutCount },
+        { metric: 'History This Month', value: historyThisMonth },
+        { metric: 'Filtered Records', value: historyRecords.length },
+      ];
+
+      summaryData.forEach(row => {
+        summarySheet.addRow(row);
+      });
+
+      [historySheet, summarySheet].forEach(sheet => {
+        const headerRow = sheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF4472C4' },
+        };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=Attendance_History_Report_${Date.now()}.xlsx`
+      );
+      res.setHeader('Content-Length', buffer.byteLength.toString());
+
+      res.send(Buffer.from(buffer));
+    } catch (error: any) {
+      console.error('Export Attendance History Report Error:', error);
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to export report',
