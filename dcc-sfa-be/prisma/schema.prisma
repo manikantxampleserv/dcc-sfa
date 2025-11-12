@@ -2088,3 +2088,17 @@ model sfa_d_templates {
   updatedate DateTime? @db.DateTime
   updatedby  Int?
 }
+
+model system_settings {
+  id          Int       @id @default(autoincrement())
+  key_name    String    @unique @db.NVarChar(100)
+  key_value   String    @db.NVarChar(Max)
+  value_type  String?   @default("string") @db.NVarChar(20)
+  description String?   @db.NVarChar(255)
+  is_active   String    @default("Y") @db.Char(1)
+  createdate  DateTime? @default(now()) @db.DateTime
+  createdby   Int
+  updatedate  DateTime? @db.DateTime
+  updatedby   Int?
+  log_inst    Int?
+}

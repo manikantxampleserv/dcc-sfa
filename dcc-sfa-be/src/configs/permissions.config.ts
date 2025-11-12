@@ -10,6 +10,7 @@ export const MODULES = {
   ROUTE: 'route',
   PAYMENT: 'payment',
   REPORT: 'report',
+  API_TOKEN: 'tokens',
 } as const;
 
 export const ACTIONS = {
@@ -36,4 +37,10 @@ export const PERMISSIONS = {
   ORDER_UPDATE: createPermission(MODULES.ORDER, ACTIONS.UPDATE),
   ORDER_DELETE: createPermission(MODULES.ORDER, ACTIONS.DELETE),
   ORDER_LIST: createPermission(MODULES.ORDER, ACTIONS.LIST),
+
+  API_TOKEN_CREATE: createPermission(MODULES.API_TOKEN, ACTIONS.CREATE),
+  API_TOKEN_READ: createPermission(MODULES.API_TOKEN, ACTIONS.READ),
+  API_TOKEN_UPDATE: createPermission(MODULES.API_TOKEN, ACTIONS.UPDATE),
+  API_TOKEN_DELETE: createPermission(MODULES.API_TOKEN, ACTIONS.DELETE),
+  API_TOKEN_LIST: createPermission(MODULES.API_TOKEN, ACTIONS.LIST),
 } as const;

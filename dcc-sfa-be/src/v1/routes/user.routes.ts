@@ -23,9 +23,9 @@ router.post(
   upload.single('profile_image'),
   authenticateToken,
   auditCreate('users'),
-  // requireAnyModulePermission([
-  //   { module: MODULES.USER, action: ACTIONS.CREATE },
-  // ]),
+  requireAnyModulePermission([
+    { module: MODULES.USER, action: ACTIONS.CREATE },
+  ]),
   createUserValidation,
   userController.createUser
 );
