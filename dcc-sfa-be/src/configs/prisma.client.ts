@@ -2,7 +2,7 @@ import { PrismaClient as PrismaClientType } from '@prisma/client';
 
 let prisma: PrismaClientType | null = null;
 
-export const PrismaClient = (): PrismaClientType => {
+export const getPrisma = (): PrismaClientType => {
   if (!prisma) {
     prisma = new PrismaClientType({
       log:
@@ -12,4 +12,9 @@ export const PrismaClient = (): PrismaClientType => {
   return prisma;
 };
 
-export default PrismaClient();
+// Lazy default export - only creates instance when accessed
+export default new Proxy({} as PrismaClientType, {
+  get(_target, prop) {
+    return getPrisma()[prop as keyof PrismaClientType];
+  },
+});

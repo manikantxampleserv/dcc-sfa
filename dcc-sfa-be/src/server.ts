@@ -18,11 +18,11 @@ export const startServer = async () => {
       await killPort(port);
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    AttendanceCronService.startAutoPunchOut();
-    AttendanceCronService.startMidnightStatusReset();
-    logger.info('Attendance cron jobs started');
 
     const server = app.listen(port, async () => {
+      AttendanceCronService.startAutoPunchOut();
+      AttendanceCronService.startMidnightStatusReset();
+      logger.info('Attendance cron jobs started');
       logger.success(`Server running at http://localhost:${port}`);
     });
 
