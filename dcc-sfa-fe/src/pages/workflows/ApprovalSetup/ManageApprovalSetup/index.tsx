@@ -81,6 +81,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
     selectedDepotId || undefined
   );
 
+  console.log('existingApprovers', existingApprovers);
   const { data: zonesResponse } = useZones({ isActive: 'Y' });
   const { data: depotsResponse } = useDepots({ isActive: 'Y' });
   const { data: requestTypesResponse } = useRequestTypes();
@@ -136,6 +137,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
     validationSchema: Yup.object({
       request_type: Yup.string().required('Request type is required'),
     }),
+    enableReinitialize: true,
     onSubmit: async values => {
       if (!values.request_type) return;
 
@@ -163,6 +165,8 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
       }
     },
   });
+
+  console.log('requestType', approvers);
 
   const handleCancel = () => {
     setDrawerOpen(false);

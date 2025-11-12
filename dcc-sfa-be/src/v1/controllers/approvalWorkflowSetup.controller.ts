@@ -153,6 +153,10 @@ export const approvalWorkflowSetupController = {
     try {
       const { id } = req.params;
 
+      if (!id || isNaN(Number(id))) {
+        return res.status(400).json({ message: 'Invalid or missing ID' });
+      }
+
       const workflow = await prisma.approval_work_flow.findUnique({
         where: { id: Number(id) },
         include: {
@@ -197,12 +201,6 @@ export const approvalWorkflowSetupController = {
       const { id } = req.params;
       const data = req.body;
       const userId = req.user?.id || 1;
-
-      if (!id || isNaN(Number(id))) {
-        return res
-          .status(400)
-          .json({ message: 'Invalid or missing ID for update' });
-      }
 
       if (data.approver_id) {
         const approver = await prisma.users.findUnique({
