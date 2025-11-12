@@ -1245,63 +1245,158 @@ export const requestsController = {
     }
   },
 
-  async getRequestsByUsers(req: any, res: any) {
+  // async getRequestsByUsers(req: any, res: any) {
+  //   try {
+  //     const { page, limit, search, request_type, status, requester_id } =
+  //       req.query;
+
+  //     const userId = req.user?.id;
+
+  //     const pageNum = parseInt(page as string, 10) || 1;
+  //     const limitNum = parseInt(limit as string, 10) || 10;
+
+  //     const filters: any = {
+  //       sfa_d_requests_approvals_request: {
+  //         some: {
+  //           approver_id: userId,
+  //           status: status || 'P',
+  //         },
+  //       },
+  //     };
+
+  //     if (search) {
+  //       filters.OR = [{ request_type: { contains: search.toLowerCase() } }];
+  //     }
+
+  //     if (request_type) {
+  //       filters.request_type = request_type;
+  //     }
+
+  //     if (requester_id) {
+  //       filters.requester_id = Number(requester_id);
+  //     }
+
+  //     const { data, pagination } = await paginate({
+  //       model: prisma.sfa_d_requests,
+  //       filters,
+  //       page: pageNum,
+  //       limit: limitNum,
+  //       orderBy: { createdate: 'desc' },
+  //       include: {
+  //         sfa_d_requests_requester: {
+  //           select: { id: true, name: true, email: true },
+  //         },
+  //         sfa_d_requests_approvals_request: {
+  //           where: { approver_id: userId },
+  //           select: {
+  //             id: true,
+  //             sequence: true,
+  //             status: true,
+  //             remarks: true,
+  //           },
+  //         },
+  //       },
+  //     });
+
+  //     res.json({
+  //       message: 'Requests found successfully',
+  //       data: data.map((request: any) => serializeRequest(request)),
+  //       pagination,
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Get Requests By Users Error:', error);
+  //     res.status(500).json({
+  //       message: 'Failed to retrieve requests',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
+  async getRequestsByUsers(req: Request, res: Response) {
     try {
-      const { page, limit, search, request_type, status, requester_id } =
-        req.query;
-
       const userId = req.user?.id;
+      const { page = 1, limit = 10, status = 'P' } = req.query;
 
-      const pageNum = parseInt(page as string, 10) || 1;
-      const limitNum = parseInt(limit as string, 10) || 10;
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
 
-      const filters: any = {
-        sfa_d_requests_approvals_request: {
-          some: {
-            approver_id: userId,
-            status: status || 'P',
-          },
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const skip = (pageNum - 1) * limitNum;
+
+      const myApprovals = await prisma.sfa_d_request_approvals.findMany({
+        where: {
+          approver_id: userId,
+          status: status as string,
         },
-      };
-
-      if (search) {
-        filters.OR = [{ request_type: { contains: search.toLowerCase() } }];
-      }
-
-      if (request_type) {
-        filters.request_type = request_type;
-      }
-
-      if (requester_id) {
-        filters.requester_id = Number(requester_id);
-      }
-
-      const { data, pagination } = await paginate({
-        model: prisma.sfa_d_requests,
-        filters,
-        page: pageNum,
-        limit: limitNum,
-        orderBy: { createdate: 'desc' },
         include: {
-          sfa_d_requests_requester: {
-            select: { id: true, name: true, email: true },
-          },
           sfa_d_requests_approvals_request: {
-            where: { approver_id: userId },
-            select: {
-              id: true,
-              sequence: true,
-              status: true,
-              remarks: true,
+            include: {
+              sfa_d_requests_requester: {
+                select: { id: true, name: true, email: true },
+              },
             },
           },
         },
       });
 
+      const filteredApprovals = [];
+
+      for (const approval of myApprovals) {
+        const previousPending = await prisma.sfa_d_request_approvals.findFirst({
+          where: {
+            request_id: approval.request_id,
+            sequence: { lt: approval.sequence },
+            status: 'P',
+          },
+        });
+
+        if (!previousPending) {
+          filteredApprovals.push(approval);
+        }
+      }
+
+      const requests = filteredApprovals.map(approval => ({
+        id: approval.sfa_d_requests_approvals_request.id,
+        requester_id: approval.sfa_d_requests_approvals_request.requester_id,
+        request_type: approval.sfa_d_requests_approvals_request.request_type,
+        request_data: approval.sfa_d_requests_approvals_request.request_data,
+        status: approval.sfa_d_requests_approvals_request.status,
+        reference_id: approval.sfa_d_requests_approvals_request.reference_id,
+        overall_status:
+          approval.sfa_d_requests_approvals_request.overall_status,
+        createdate: approval.sfa_d_requests_approvals_request.createdate,
+        createdby: approval.sfa_d_requests_approvals_request.createdby,
+        updatedate: approval.sfa_d_requests_approvals_request.updatedate,
+        updatedby: approval.sfa_d_requests_approvals_request.updatedby,
+        log_inst: approval.sfa_d_requests_approvals_request.log_inst,
+        requester:
+          approval.sfa_d_requests_approvals_request.sfa_d_requests_requester,
+        approvals: [
+          {
+            id: approval.id,
+            sequence: approval.sequence,
+            status: approval.status,
+            remarks: approval.remarks,
+            approver: null,
+          },
+        ],
+      }));
+
+      const total = requests.length;
+      const paginatedData = requests.slice(skip, skip + limitNum);
+
       res.json({
         message: 'Requests found successfully',
-        data: data.map((request: any) => serializeRequest(request)),
-        pagination,
+        data: paginatedData,
+        pagination: {
+          current_page: pageNum,
+          total_pages: Math.ceil(total / limitNum),
+          total_count: total,
+          has_next: skip + limitNum < total,
+          has_previous: pageNum > 1,
+        },
       });
     } catch (error: any) {
       console.error('Get Requests By Users Error:', error);
@@ -1311,7 +1406,6 @@ export const requestsController = {
       });
     }
   },
-
   async getRequestByTypeAndReference(req: Request, res: Response) {
     try {
       const { request_type, reference_id } = req.query;
