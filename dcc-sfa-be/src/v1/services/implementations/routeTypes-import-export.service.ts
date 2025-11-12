@@ -1,8 +1,6 @@
 import { ImportExportService } from '../base/import-export.service';
 import { ColumnDefinition } from '../../../types/import-export.types';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../configs/prisma.client';
 
 export class RouteTypesImportExportService extends ImportExportService<any> {
   protected modelName = 'route_type' as const;
@@ -19,8 +17,7 @@ export class RouteTypesImportExportService extends ImportExportService<any> {
       type: 'string',
       validation: value => {
         if (!value || value.length < 1) return 'Name is required';
-        if (value.length > 100)
-          return 'Name must be less than 100 characters';
+        if (value.length > 100) return 'Name must be less than 100 characters';
         return true;
       },
       transform: value => value.trim(),
@@ -145,4 +142,3 @@ export class RouteTypesImportExportService extends ImportExportService<any> {
     });
   }
 }
-

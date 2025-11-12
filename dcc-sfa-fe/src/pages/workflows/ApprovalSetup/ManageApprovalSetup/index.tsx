@@ -7,6 +7,7 @@ import {
   useCreateApprovalWorkflowSetup,
 } from 'hooks/useApprovalWorkflowSetup';
 import { useDepots } from 'hooks/useDepots';
+import { useRequestTypes, type RequestType } from 'hooks/useRequests';
 import { useUsers, type User } from 'hooks/useUsers';
 import { useZones } from 'hooks/useZones';
 import { GripVertical, UserPlus, Users } from 'lucide-react';
@@ -17,7 +18,6 @@ import type {
 } from 'services/approvalWorkflowSetup';
 import Button from 'shared/Button';
 import Drawer from 'shared/Drawer';
-import Input from 'shared/Input';
 import Select from 'shared/Select';
 import * as Yup from 'yup';
 
@@ -83,6 +83,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
 
   const { data: zonesResponse } = useZones({ isActive: 'Y' });
   const { data: depotsResponse } = useDepots({ isActive: 'Y' });
+  const { data: requestTypesResponse } = useRequestTypes();
   const { data: usersResponse } = useUsers({
     page: 1,
     limit: 1000,
@@ -94,6 +95,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
 
   const zones = zonesResponse?.data || [];
   const depots = depotsResponse?.data || [];
+  const requestTypes = requestTypesResponse?.data || [];
   const allUsers = usersResponse?.data || [];
 
   // Filter available users (exclude already assigned)
@@ -206,7 +208,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
         if (foundUser) {
           const newApprover: ApproverItem = {
             id: 0,
-            request_type: formik.values.request_type || '',
+            request_type: formik.values.request_type,
             sequence: destination.index + 1,
             approver_id: foundUser.id,
             zone_id: formik.values.zone_id
@@ -314,14 +316,20 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
       <Box className="!p-4 select-none">
         <form onSubmit={formik.handleSubmit}>
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-6">
-            <Input
+            <Select
               name="request_type"
               label="Request Type"
-              placeholder="e.g., order, return_request, payment"
               formik={formik}
               required
               disabled={!!requestType}
-            />
+            >
+              <MenuItem value="">Select Request Type</MenuItem>
+              {requestTypes.map((type: RequestType) => (
+                <MenuItem key={type.value} value={type.value}>
+                  {type.label}
+                </MenuItem>
+              ))}
+            </Select>
 
             <Select
               name="zone_id"

@@ -5,10 +5,8 @@
  * @version 1.0.0
  */
 
-import { PrismaClient } from '@prisma/client';
 import logger from '../../configs/logger';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface MockVisit {
   customer_name: string;

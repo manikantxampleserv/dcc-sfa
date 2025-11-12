@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../../configs/jwt.config';
 import { getClientIP } from '../../utils/ipUtils';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 const truncateString = (str: string | undefined, maxLength: number): string => {
   if (!str) return 'Unknown';

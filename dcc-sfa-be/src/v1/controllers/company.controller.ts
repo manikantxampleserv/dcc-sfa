@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { paginate } from '../../utils/paginate';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 const serializeCompany = (
   company: any,

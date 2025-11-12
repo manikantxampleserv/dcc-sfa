@@ -1,11 +1,9 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { paginate } from '../../utils/paginate';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 const serializeUser = (
   user: any,
   includeCreatedAt = false,

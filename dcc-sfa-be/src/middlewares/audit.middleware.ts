@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { getClientIP } from '../utils/ipUtils';
-
-const prisma = new PrismaClient();
+import prisma from '../configs/prisma.client';
 
 /**
  * Create an audit log entry

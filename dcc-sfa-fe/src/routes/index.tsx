@@ -339,7 +339,7 @@ const router = createBrowserRouter(
           element: <OutstandingCollectionReport />,
         },
         {
-          path: '/reports/attendance',
+          path: '/reports/attendance-history',
           element: <AttendanceReports />,
         },
         {

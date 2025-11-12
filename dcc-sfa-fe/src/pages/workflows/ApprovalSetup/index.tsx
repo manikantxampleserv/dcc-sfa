@@ -5,6 +5,7 @@ import {
   useApprovalWorkflowSetups,
   useDeleteApprovalWorkflowSetupByRequestType,
 } from 'hooks/useApprovalWorkflowSetup';
+import { useRequestTypes } from 'hooks/useRequests';
 import type { ApprovalWorkflowSetupGrouped } from 'services/approvalWorkflowSetup';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -24,11 +25,7 @@ const ApprovalSetup: React.FC = () => {
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Fetch all workflows to get unique request types (without pagination)
-  const { data: allWorkflowsResponse } = useApprovalWorkflowSetups({
-    page: 1,
-    size: 1000, // Get all to extract unique request types
-  });
+  const { data: requestTypesResponse } = useRequestTypes();
 
   const {
     data: workflowsResponse,
@@ -45,14 +42,8 @@ const ApprovalSetup: React.FC = () => {
     workflowsResponse?.data || [];
   const pagination = workflowsResponse?.pagination;
 
-  // Get unique request types from all workflows
-  const allWorkflows: ApprovalWorkflowSetupGrouped[] =
-    allWorkflowsResponse?.data || [];
-  const uniqueRequestTypes = Array.from(
-    new Set(allWorkflows.map(w => w.request_type))
-  ).sort();
+  const requestTypes = requestTypesResponse?.data || [];
 
-  // Calculate statistics from all workflows (before filtering)
   const totalWorkflows = pagination?.totalCount || workflows.length;
   const activeWorkflows = workflows.filter(w => w.is_active === 'Y').length;
   const inactiveWorkflows = workflows.filter(w => w.is_active === 'N').length;
@@ -61,7 +52,6 @@ const ApprovalSetup: React.FC = () => {
     0
   );
 
-  // Filter workflows based on status (client-side filtering for current page)
   const filteredWorkflows = workflows.filter(workflow => {
     if (statusFilter === 'all') return true;
     if (statusFilter === 'active') return workflow.is_active === 'Y';
@@ -228,7 +218,6 @@ const ApprovalSetup: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
@@ -349,11 +338,9 @@ const ApprovalSetup: React.FC = () => {
                 size="small"
               >
                 <MenuItem value="all">All Request Types</MenuItem>
-                {uniqueRequestTypes.map(requestType => (
-                  <MenuItem key={requestType} value={requestType}>
-                    {requestType
-                      .replace(/_/g, ' ')
-                      .replace(/\b\w/g, l => l.toUpperCase())}
+                {requestTypes.map(type => (
+                  <MenuItem key={type.value} value={type.value}>
+                    {type.label}
                   </MenuItem>
                 ))}
               </Select>

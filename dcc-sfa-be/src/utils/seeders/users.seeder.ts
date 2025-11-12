@@ -5,11 +5,9 @@
  * @version 1.0.0
  */
 
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import logger from '../../configs/logger';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface MockUser {
   email: string;

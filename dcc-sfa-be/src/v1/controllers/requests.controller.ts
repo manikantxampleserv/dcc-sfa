@@ -1,12 +1,11 @@
-import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { generateEmailContent } from '../../utils/emailTemplates';
 import templateKeyMap from '../../utils/templateKeyMap';
 import { sendEmail } from '../../utils/mailer';
 import getRequestDetailsByType from '../../utils/getDetails';
 import { paginate } from '../../utils/paginate';
-
-const prisma = new PrismaClient();
+import { requestTypes } from '../../mock/requestTypes';
+import prisma from '../../configs/prisma.client';
 
 interface RequestSerialized {
   id: number;
@@ -387,6 +386,12 @@ export const createRequest = async (data: {
   }
 };
 export const requestsController = {
+  async getRequestTypes(_req: Request, res: Response) {
+    return res.json({
+      message: 'Request types retrieved successfully',
+      data: requestTypes,
+    });
+  },
   async createRequest(req: Request, res: Response) {
     const data = req.body;
     const userId = req.user?.id || 1;

@@ -1,7 +1,5 @@
 import cron from 'node-cron';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 export class AttendanceCronService {
   static startAutoPunchOut() {
@@ -104,11 +102,43 @@ export class AttendanceCronService {
               },
             });
           } catch (historyError) {
-            console.error('⚠️ History creation error:', historyError);
+            console.error('History creation error:', historyError);
           }
         }
       } catch (error) {
-        console.error('❌ Auto punch-out error:', error);
+        console.error('Auto punch-out error:', error);
+      }
+    });
+  }
+
+  static startMidnightStatusReset() {
+    cron.schedule('0 0 * * *', async () => {
+      console.log(
+        'Running midnight status reset to not_punch...',
+        new Date().toISOString()
+      );
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const result = await prisma.attendance.updateMany({
+          where: {
+            is_active: 'Y',
+            attendance_date: {
+              lt: today,
+            },
+          },
+          data: {
+            status: 'not_punch',
+            updatedate: new Date(),
+          },
+        });
+
+        console.log(
+          `Status reset completed. Updated ${result.count} attendance records.`
+        );
+      } catch (error) {
+        console.error('Midnight status reset error:', error);
       }
     });
   }

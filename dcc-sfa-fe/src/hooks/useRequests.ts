@@ -14,6 +14,7 @@ export type {
   Request,
   GetRequestsByUsersParams,
   TakeActionOnRequestPayload,
+  RequestType,
 } from '../services/requests';
 
 /**
@@ -59,5 +60,24 @@ export const useTakeActionOnRequest = () => {
     mutationFn: requestService.takeActionOnRequest,
     invalidateQueries: ['requests'],
     loadingMessage: 'Processing request...',
+  });
+};
+
+/**
+ * Hook to fetch request types
+ * @param options - React Query options
+ * @returns Query result with request types data
+ */
+export const useRequestTypes = (
+  options?: Omit<
+    UseQueryOptions<ApiResponse<requestService.RequestType[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: [...requestQueryKeys.all, 'types'] as const,
+    queryFn: () => requestService.fetchRequestTypes(),
+    staleTime: 10 * 60 * 1000,
+    ...options,
   });
 };

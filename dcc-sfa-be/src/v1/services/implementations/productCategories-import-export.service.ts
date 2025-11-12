@@ -1,9 +1,7 @@
 import { ImportExportService } from '../base/import-export.service';
 import { ColumnDefinition } from '../../../types/import-export.types';
-import { PrismaClient } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
-
-const prisma = new PrismaClient();
+import prisma from '../../../configs/prisma.client';
 
 export class ProductCategoriesImportExportService extends ImportExportService<any> {
   protected modelName = 'product_categories' as const;

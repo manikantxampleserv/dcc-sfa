@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { ReturnWorkflowService } from '../services/returnWorkflow.service';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 export const workflowController = {
   /**

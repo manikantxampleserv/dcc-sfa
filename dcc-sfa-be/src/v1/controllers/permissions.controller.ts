@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { paginate } from '../../utils/paginate';
 import { validationResult } from 'express-validator';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface Permission {
   id: number;

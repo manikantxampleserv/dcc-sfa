@@ -1,4 +1,3 @@
-import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import {
   createOrderApprovalWorkflow,
@@ -7,8 +6,7 @@ import {
 } from '../../helpers';
 import { paginate } from '../../utils/paginate';
 import { createRequest } from './requests.controller';
-
-const prisma = new PrismaClient();
+import prisma from '../../configs/prisma.client';
 
 interface OrderSerialized {
   id: number;

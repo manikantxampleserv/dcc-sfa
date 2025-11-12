@@ -5,10 +5,11 @@ import { killPort, isPortInUse } from './utils/killPort';
 import { AttendanceCronService } from './v1/services/attendance.cron.service';
 dotenv.config({ quiet: true });
 
+const port = process.env.PORT || 4000;
+
 export const startServer = async () => {
   try {
     const app = createApp();
-    const port = process.env.PORT || 4000;
 
     if (await isPortInUse(port)) {
       logger.warn(
@@ -17,9 +18,9 @@ export const startServer = async () => {
       await killPort(port);
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    logger.info('Starting auto punch-out cron job...');
     AttendanceCronService.startAutoPunchOut();
-    logger.info('Auto punch-out cron job started');
+    AttendanceCronService.startMidnightStatusReset();
+    logger.info('Attendance cron jobs started');
 
     const server = app.listen(port, async () => {
       logger.success(`Server running at http://localhost:${port}`);
