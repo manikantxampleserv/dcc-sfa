@@ -38,8 +38,11 @@ import VanStockManagement from 'pages/masters/VanStock';
 import VehiclesManagement from 'pages/masters/Vehicles';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import ZonesManagement from 'pages/masters/Zone';
+import NotFound from 'pages/NotFound';
 import Profile from 'pages/Profile';
 import AssetMovementStatusReport from 'pages/reports/AssetMovementStatusReport';
+import AttendanceReports from 'pages/reports/AttendanceReports';
+import AuditLogs from 'pages/reports/AuditLogs';
 import CompetitorAnalysisReport from 'pages/reports/CompetitorAnalysisReport';
 import OrdersInvoicesReturnsReport from 'pages/reports/OrdersInvoicesReturnsReport';
 import OutstandingCollectionReport from 'pages/reports/OutstandingCollectionReport';
@@ -64,14 +67,12 @@ import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
 import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
-import AuditLogs from 'pages/reports/AuditLogs';
+import AlertsReminders from 'pages/workflows/AlertsReminders';
+import ApprovalSetup from 'pages/workflows/ApprovalSetup';
+import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
+import RouteExceptions from 'pages/workflows/RouteExceptions';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
-import ApprovalSetup from 'pages/workflows/ApprovalSetup';
-import RouteExceptions from 'pages/workflows/RouteExceptions';
-import AlertsReminders from 'pages/workflows/AlertsReminders';
-import NotFound from 'pages/NotFound';
 const SystemSettings = () => <h1>System Settings</h1>;
 
 const router = createBrowserRouter(
@@ -336,6 +337,10 @@ const router = createBrowserRouter(
         {
           path: '/reports/collection',
           element: <OutstandingCollectionReport />,
+        },
+        {
+          path: '/reports/attendance',
+          element: <AttendanceReports />,
         },
         {
           path: '/reports/audit-logs',

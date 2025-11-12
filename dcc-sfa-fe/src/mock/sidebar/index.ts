@@ -272,6 +272,11 @@ const menuItems: MenuItem[] = [
         href: '/reports/collection',
       },
       {
+        id: 'attendance',
+        label: 'Attendance',
+        href: '/reports/attendance',
+      },
+      {
         id: 'activity-logs',
         label: 'Audit Logs',
         href: '/reports/audit-logs',

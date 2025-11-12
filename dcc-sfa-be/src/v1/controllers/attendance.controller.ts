@@ -1,10 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
-import { AttendanceService } from '../services/attendance.service';
 import { TeamAttendanceStatus } from '../../types/attendance.types';
 
 const prisma = new PrismaClient();
-const attendanceService = new AttendanceService();
 
 interface AttendanceSerialized {
   id: number;
@@ -99,14 +97,16 @@ const serializeAttendance = (attendance: any): AttendanceSerialized => ({
 export const attendanceController = {
   async punch(req: Request, res: Response) {
     try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
-        });
-      }
-
-      const userId = req.user.id;
-      const { action_type, ...data } = req.body;
+      const userId = req.user?.id || 0;
+      const {
+        action_type,
+        latitude,
+        longitude,
+        address,
+        workType,
+        deviceInfo,
+        remarks,
+      } = req.body;
 
       if (!action_type) {
         return res.status(400).json({
@@ -125,11 +125,170 @@ export const attendanceController = {
       let statusCode;
 
       if (action_type === 'punch_in') {
-        attendance = await attendanceService.punchIn(userId, data, req);
+        let existingAttendance = await prisma.attendance.findFirst({
+          where: {
+            user_id: userId,
+            is_active: 'Y',
+          },
+          orderBy: {
+            id: 'desc',
+          },
+        });
+
+        if (!existingAttendance || existingAttendance.status === 'punch_out') {
+          attendance = await prisma.attendance.create({
+            data: {
+              user_id: userId,
+              attendance_date: new Date(),
+              punch_in_time: new Date(),
+              punch_in_latitude: latitude,
+              punch_in_longitude: longitude,
+              punch_in_address: address,
+              punch_in_device_info: deviceInfo
+                ? JSON.stringify(deviceInfo)
+                : null,
+              work_type: workType || 'office',
+              status: 'punch_in',
+              is_active: 'Y',
+              createdby: userId,
+            },
+            include: {
+              attendance_user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  employee_id: true,
+                  profile_image: true,
+                },
+              },
+            },
+          });
+        } else {
+          attendance = existingAttendance;
+        }
+
+        await prisma.attendance_history.create({
+          data: {
+            attendance_id: attendance.id,
+            action_type: 'punch_in',
+            action_time: new Date(),
+            latitude: latitude,
+            longitude: longitude,
+            address: address,
+            device_info: deviceInfo ? JSON.stringify(deviceInfo) : null,
+            photo_url: null,
+            old_data: null,
+            new_data: JSON.stringify({
+              punch_in_time: new Date(),
+              work_type: workType || 'office',
+              status: 'punch_in',
+            }),
+            ip_address: req.ip || null,
+            user_agent: req.headers['user-agent'] || null,
+            app_version: deviceInfo?.appVersion || null,
+            battery_level: deviceInfo?.batteryLevel || null,
+            network_type: deviceInfo?.networkType || null,
+            remarks: `Punched in at ${address || 'unknown location'}`,
+            is_active: 'Y',
+            createdate: new Date(),
+            createdby: userId,
+          },
+        });
+
         message = 'Punched in successfully';
         statusCode = 201;
       } else {
-        attendance = await attendanceService.punchOut(userId, data, req);
+        const existingAttendance = await prisma.attendance.findFirst({
+          where: {
+            user_id: userId,
+            is_active: 'Y',
+          },
+          orderBy: {
+            id: 'desc',
+          },
+        });
+
+        if (!existingAttendance) {
+          return res.status(400).json({
+            message: 'No active attendance found. Please punch in first.',
+          });
+        }
+
+        const punchInTime = new Date(existingAttendance.punch_in_time);
+        const punchOutTime = new Date();
+        const totalHours =
+          Math.round(
+            ((punchOutTime.getTime() - punchInTime.getTime()) /
+              (1000 * 60 * 60)) *
+              100
+          ) / 100;
+
+        const oldData = {
+          punch_out_time: existingAttendance.punch_out_time,
+          total_hours: existingAttendance.total_hours,
+          status: existingAttendance.status,
+          remarks: existingAttendance.remarks,
+        };
+
+        attendance = await prisma.attendance.update({
+          where: { id: existingAttendance.id },
+          data: {
+            punch_out_time: punchOutTime,
+            punch_out_latitude: latitude,
+            punch_out_longitude: longitude,
+            punch_out_address: address,
+            punch_out_device_info: deviceInfo
+              ? JSON.stringify(deviceInfo)
+              : null,
+            total_hours: totalHours,
+            status: 'punch_out',
+            remarks: remarks || existingAttendance.remarks,
+            updatedby: userId,
+            updatedate: new Date(),
+          },
+          include: {
+            attendance_user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                employee_id: true,
+                profile_image: true,
+              },
+            },
+          },
+        });
+
+        await prisma.attendance_history.create({
+          data: {
+            attendance_id: attendance.id,
+            action_type: 'punch_out',
+            action_time: new Date(),
+            latitude: latitude,
+            longitude: longitude,
+            address: address,
+            device_info: deviceInfo ? JSON.stringify(deviceInfo) : null,
+            photo_url: null,
+            old_data: JSON.stringify(oldData),
+            new_data: JSON.stringify({
+              punch_out_time: punchOutTime,
+              total_hours: totalHours,
+              status: 'punch_out',
+              remarks: remarks || existingAttendance.remarks,
+            }),
+            ip_address: req.ip || null,
+            user_agent: req.headers['user-agent'] || null,
+            app_version: deviceInfo?.appVersion || null,
+            battery_level: deviceInfo?.batteryLevel || null,
+            network_type: deviceInfo?.networkType || null,
+            remarks: `Punched out. Total hours: ${totalHours.toFixed(2)}`,
+            is_active: 'Y',
+            createdate: new Date(),
+            createdby: userId,
+          },
+        });
+
         message = 'Punched out successfully';
         statusCode = 200;
       }
@@ -149,334 +308,55 @@ export const attendanceController = {
 
   async getPunchStatus(req: Request, res: Response) {
     try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
+      const userId = req.user?.id || 0;
+
+      const attendance = await prisma.attendance.findFirst({
+        where: {
+          user_id: userId,
+          is_active: 'Y',
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        include: {
+          attendance_user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              employee_id: true,
+              profile_image: true,
+            },
+          },
+        },
+      });
+
+      if (!attendance) {
+        return res.status(200).json({
+          message: 'Punch status retrieved successfully',
+          data: {
+            status: 'not_punch',
+            message: 'You have not punched in',
+            attendance: null,
+          },
         });
       }
-
-      const userId = req.user.id;
-
-      const punchStatus = await attendanceService.getPunchStatus(userId);
 
       res.status(200).json({
         message: 'Punch status retrieved successfully',
         data: {
-          status: punchStatus.status,
-          attendance: punchStatus.attendance
-            ? serializeAttendance(punchStatus.attendance)
-            : null,
+          status: (attendance.status || 'punch_in') as
+            | 'punch_in'
+            | 'punch_out'
+            | 'not_punch',
+          message: 'You have punched in',
+          attendance: serializeAttendance(attendance),
         },
       });
     } catch (error: any) {
       console.error('Get Punch Status Error:', error);
       res.status(500).json({
         message: 'Failed to fetch punch status',
-        error: error.message,
-      });
-    }
-  },
-
-  async getTodayAttendance(req: Request, res: Response) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
-        });
-      }
-
-      const userId = req.user.id;
-
-      const attendance = await attendanceService.getTodayAttendance(userId);
-
-      res.status(200).json({
-        message: 'Today attendance retrieved successfully',
-        data: attendance ? serializeAttendance(attendance) : null,
-      });
-    } catch (error: any) {
-      console.error('Get Today Attendance Error:', error);
-      res.status(500).json({
-        message: 'Failed to fetch attendance',
-        error: error.message,
-      });
-    }
-  },
-
-  async getAttendanceById(req: Request, res: Response) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
-        });
-      }
-
-      const { id } = req.params;
-      const userId = req.user.id;
-
-      const attendance = await attendanceService.getAttendanceById(
-        parseInt(id),
-        userId
-      );
-
-      if (!attendance) {
-        return res.status(404).json({
-          message: 'Attendance record not found',
-        });
-      }
-
-      res.status(200).json({
-        message: 'Attendance fetched successfully',
-        data: serializeAttendance(attendance),
-      });
-    } catch (error: any) {
-      console.error('Get Attendance By ID Error:', error);
-      res.status(500).json({
-        message: 'Failed to fetch attendance',
-        error: error.message,
-      });
-    }
-  },
-
-  async getAttendanceWithHistory(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const userId = req?.user?.id || 0;
-
-      const attendance = await attendanceService.getAttendanceWithHistory(
-        parseInt(id),
-        userId
-      );
-
-      res.status(200).json({
-        message: 'Attendance history fetched successfully',
-        data: serializeAttendance(attendance),
-      });
-    } catch (error: any) {
-      console.error('Get Attendance History Error:', error);
-      res.status(500).json({
-        message: 'Failed to fetch attendance history',
-        error: error.message,
-      });
-    }
-  },
-
-  async getAttendanceHistory(req: any, res: any) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
-        });
-      }
-
-      const {
-        page,
-        limit,
-        startDate,
-        endDate,
-        status,
-        workType,
-        user_id,
-        isActive,
-      } = req.query;
-
-      const pageNum = parseInt(page as string, 10) || 1;
-      const limitNum = parseInt(limit as string, 10) || 10;
-
-      const filter = {
-        userId: user_id ? parseInt(user_id as string, 10) : undefined,
-        startDate: startDate ? new Date(startDate as string) : undefined,
-        endDate: endDate ? new Date(endDate as string) : undefined,
-        status: status as string,
-        workType: workType as string,
-        page: pageNum,
-        limit: limitNum,
-        currentUserId: req.user.id,
-        isAdmin: req.user.role === 'Admin',
-      };
-
-      const result =
-        await attendanceService.getAttendanceHistoryPaginated(filter);
-
-      const pagination = {
-        current_page: pageNum,
-        total_pages: Math.ceil(result.total / limitNum),
-        total_count: result.total,
-        has_next: pageNum < Math.ceil(result.total / limitNum),
-        has_previous: pageNum > 1,
-      };
-
-      res.success(
-        'Attendance history retrieved successfully',
-        result.data.map((att: any) => serializeAttendance(att)),
-        200,
-        pagination,
-        {
-          total_attendance: result.stats.totalAttendance,
-          active_attendance: result.stats.activeAttendance,
-          attendance_this_month: result.stats.attendanceThisMonth,
-          total_hours: result.stats.totalHours,
-          average_hours: result.stats.averageHours,
-          filters_applied: {
-            user_id: user_id || req.user.id,
-            start_date: startDate || null,
-            end_date: endDate || null,
-            status: status || null,
-            work_type: workType || null,
-            is_active: isActive || null,
-          },
-        }
-      );
-    } catch (error: any) {
-      console.error('Get Attendance History Error:', error);
-      res.status(500).json({
-        message: 'Failed to fetch attendance history',
-        error: error.message,
-      });
-    }
-  },
-
-  async getTeamAttendance(req: any, res: any) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
-        });
-      }
-
-      const managerId = req.user.id;
-      const { date } = req.query;
-
-      const targetDate = date ? new Date(date as string) : new Date();
-
-      const result = await attendanceService.getTeamAttendance(
-        managerId,
-        targetDate
-      );
-
-      const serializedData = result.data.map(
-        (member: TeamAttendanceStatus) => ({
-          ...member,
-          attendance: member.attendance
-            ? {
-                ...member.attendance,
-                punch_in_latitude: member.attendance.punch_in_latitude
-                  ? Number(member.attendance.punch_in_latitude)
-                  : null,
-                punch_in_longitude: member.attendance.punch_in_longitude
-                  ? Number(member.attendance.punch_in_longitude)
-                  : null,
-                punch_out_latitude: member.attendance.punch_out_latitude
-                  ? Number(member.attendance.punch_out_latitude)
-                  : null,
-                punch_out_longitude: member.attendance.punch_out_longitude
-                  ? Number(member.attendance.punch_out_longitude)
-                  : null,
-                total_hours: member.attendance.total_hours
-                  ? Number(member.attendance.total_hours)
-                  : null,
-              }
-            : null,
-        })
-      );
-
-      res.success(
-        'Team attendance retrieved successfully',
-        serializedData,
-        200,
-        undefined,
-        {
-          summary: result.summary,
-          date: targetDate.toISOString().split('T')[0],
-        }
-      );
-    } catch (error: any) {
-      console.error(' Get Team Attendance Error:', error);
-      res.status(500).json({
-        message: 'Failed to fetch team attendance',
-        error: error.message,
-      });
-    }
-  },
-  /**
-   * Get Monthly Summary
-   */
-  async getMonthlySummary(req: Request, res: any) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
-        });
-      }
-
-      const userId = req.user.id;
-      const { month, year } = req.query;
-
-      if (!month || !year) {
-        return res.status(400).json({
-          message: 'Month and year are required',
-        });
-      }
-
-      const summary = await attendanceService.getMonthlyAttendanceSummary(
-        userId,
-        parseInt(month as string),
-        parseInt(year as string)
-      );
-
-      res.success('Monthly summary retrieved successfully', summary, 200);
-    } catch (error: any) {
-      console.error(' Get Monthly Summary Error:', error);
-      res.status(500).json({
-        message: 'Failed to fetch monthly summary',
-        error: error.message,
-      });
-    }
-  },
-
-  async updateAttendance(req: Request, res: Response) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          message: 'User not authenticated',
-        });
-      }
-
-      const { id } = req.params;
-      const userId = req.user.id;
-      const data = req.body;
-
-      const updated = await attendanceService.updateAttendance(
-        parseInt(id),
-        data,
-        userId
-      );
-
-      res.status(200).json({
-        message: 'Attendance updated successfully',
-        data: serializeAttendance(updated),
-      });
-    } catch (error: any) {
-      console.error(' Update Attendance Error:', error);
-      res.status(500).json({
-        message: error.message || 'Failed to update attendance',
-        error: error.message,
-      });
-    }
-  },
-
-  async deleteAttendance(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-
-      await attendanceService.deleteAttendance(parseInt(id));
-
-      res.status(200).json({
-        message: 'Attendance deleted successfully',
-      });
-    } catch (error: any) {
-      console.error(' Delete Attendance Error:', error);
-      res.status(500).json({
-        message: error.message || 'Failed to delete attendance',
         error: error.message,
       });
     }

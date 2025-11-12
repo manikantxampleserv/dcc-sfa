@@ -220,4 +220,28 @@ router.get(
   reportsController.exportOutstandingCollectionReport
 );
 
+/**
+ * @route GET /api/v1/reports/attendance-history
+ * @description Get Attendance History Report with pagination
+ * @access Private (requires authentication)
+ * @params Query: page, limit, start_date, end_date, user_id, action_type, search
+ */
+router.get(
+  '/attendance-history',
+  authenticateToken,
+  reportsController.getAttendanceHistoryReport
+);
+
+/**
+ * @route GET /api/v1/reports/attendance-history/export
+ * @description Export Attendance History Report to Excel
+ * @access Private (requires authentication)
+ * @params Query: start_date, end_date, user_id, action_type, search
+ */
+router.get(
+  '/attendance-history/export',
+  authenticateToken,
+  reportsController.exportAttendanceHistoryReport
+);
+
 export default router;
