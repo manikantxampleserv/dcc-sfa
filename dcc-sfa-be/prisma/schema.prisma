@@ -159,6 +159,7 @@ model roles {
   roles_permission        role_permissions[]
   user_role               users[]
   approval_work_flow_role approval_work_flow[] @relation("ApprovalWorkFlowRole")
+  surveys_roles           surveys[]            @relation("TargetRoles")
 }
 
 model permissions {
@@ -1745,21 +1746,21 @@ model survey_fields {
 }
 
 model survey_responses {
-  id                                  Int                       @id(map: "PK__survey_r__3213E83FEC719727") @default(autoincrement())
+  id                                  Int              @id(map: "PK__survey_r__3213E83FEC719727") @default(autoincrement())
   parent_id                           Int
   submitted_by                        Int
-  submitted_at                        DateTime?                 @default(now(), map: "DF__survey_re__submi__5CD6CB2B")
-  location                            String?                   @db.NVarChar(255)
-  photo_url                           String?                   @db.NVarChar(Max)
-  is_active                           String                    @default("Y", map: "DF__survey_re__is_ac__5DCAEF64") @db.Char(1)
-  createdate                          DateTime?                 @default(now(), map: "DF__survey_re__creat__5EBF139D") @db.DateTime
+  submitted_at                        DateTime?        @default(now(), map: "DF__survey_re__submi__5CD6CB2B")
+  location                            String?          @db.NVarChar(255)
+  photo_url                           String?          @db.NVarChar(Max)
+  is_active                           String           @default("Y", map: "DF__survey_re__is_ac__5DCAEF64") @db.Char(1)
+  createdate                          DateTime?        @default(now(), map: "DF__survey_re__creat__5EBF139D") @db.DateTime
   createdby                           Int
-  updatedate                          DateTime?                 @db.DateTime
+  updatedate                          DateTime?        @db.DateTime
   updatedby                           Int?
   log_inst                            Int?
   survey_answer_responses             survey_answers[]
-  surveys                             surveys                   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__survey_re__paren__5FB337D6")
-  survey_responses_submitted_by_users users                     @relation("survey_responses_submitted_users", fields: [submitted_by], references: [id], onUpdate: NoAction)
+  surveys                             surveys          @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__survey_re__paren__5FB337D6")
+  survey_responses_submitted_by_users users            @relation("survey_responses_submitted_users", fields: [submitted_by], references: [id], onUpdate: NoAction)
 }
 
 model surveys {
@@ -1767,7 +1768,7 @@ model surveys {
   title            String             @db.NVarChar(255)
   description      String?
   category         String             @db.NVarChar(30)
-  target_roles     String?            @db.NVarChar(Max)
+  target_roles     Int?
   is_published     Boolean?           @default(false, map: "DF__surveys__is_publ__5165187F")
   published_at     DateTime?
   expires_at       DateTime?
@@ -1778,6 +1779,7 @@ model surveys {
   updatedate       DateTime?          @db.DateTime
   updatedby        Int?
   log_inst         Int?
+  surveys_roles    roles?             @relation("TargetRoles", fields: [target_roles], references: [id], onDelete: Cascade, onUpdate: NoAction)
   survey_fields    survey_fields[]
   survey_responses survey_responses[]
 }
