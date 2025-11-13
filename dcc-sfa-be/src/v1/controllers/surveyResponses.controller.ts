@@ -138,7 +138,7 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
   survey: item.surveys
     ? {
         id: item.surveys.id,
-        name: item.surveys.title || item.surveys.name,
+        title: item.surveys.title,
         description: item.surveys.description,
       }
     : null,
