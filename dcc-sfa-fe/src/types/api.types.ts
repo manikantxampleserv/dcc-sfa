@@ -211,6 +211,8 @@ export interface ApiResponse<T = any> {
     total_in_movements: number;
     total_out_movements: number;
     total_transfer_movements: number;
+    // Survey response statistics
+    records_this_month: number;
   };
 }
 

@@ -7,15 +7,13 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  createSurvey,
+  createOrUpdateSurvey,
   deleteSurvey,
   fetchSurveyById,
   fetchSurveys,
   publishSurvey,
-  updateSurvey,
   type GetSurveysParams,
   type ManageSurveyPayload,
-  type UpdateSurveyPayload,
   type Survey,
 } from '../services/masters/Surveys';
 import { useApiMutation } from './useApiMutation';
@@ -53,49 +51,25 @@ export const useSurvey = (id: number) => {
 };
 
 /**
- * Hook to create a new survey
+ * Hook to create or update a survey (unified)
+ * If payload includes id, it will update; otherwise it will create
  */
-export const useCreateSurvey = (options?: {
+export const useCreateOrUpdateSurvey = (options?: {
   onSuccess?: (data: any, variables: ManageSurveyPayload) => void;
   onError?: (error: any, variables: ManageSurveyPayload) => void;
 }) => {
   const queryClient = useQueryClient();
 
   return useApiMutation({
-    mutationFn: createSurvey,
-    loadingMessage: 'Creating survey...',
+    mutationFn: createOrUpdateSurvey,
+    loadingMessage: 'Saving survey...',
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: surveyKeys.lists() });
-      options?.onSuccess?.(data, variables);
-    },
-    onError: options?.onError,
-  });
-};
-
-/**
- * Hook to update an existing survey
- */
-export const useUpdateSurvey = (options?: {
-  onSuccess?: (
-    data: any,
-    variables: { id: number } & UpdateSurveyPayload
-  ) => void;
-  onError?: (
-    error: any,
-    variables: { id: number } & UpdateSurveyPayload
-  ) => void;
-}) => {
-  const queryClient = useQueryClient();
-
-  return useApiMutation({
-    mutationFn: ({ id, ...surveyData }: { id: number } & UpdateSurveyPayload) =>
-      updateSurvey(id, surveyData),
-    loadingMessage: 'Updating survey...',
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: surveyKeys.lists() });
-      queryClient.invalidateQueries({
-        queryKey: surveyKeys.detail(variables.id),
-      });
+      if (variables.id) {
+        queryClient.invalidateQueries({
+          queryKey: surveyKeys.detail(variables.id),
+        });
+      }
       options?.onSuccess?.(data, variables);
     },
     onError: options?.onError,
@@ -145,9 +119,4 @@ export const usePublishSurvey = (options?: {
   });
 };
 
-export type {
-  GetSurveysParams,
-  ManageSurveyPayload,
-  UpdateSurveyPayload,
-  Survey,
-};
+export type { GetSurveysParams, ManageSurveyPayload, Survey };

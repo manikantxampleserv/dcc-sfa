@@ -297,11 +297,10 @@
 //   };
 // };
 
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { Prisma } from '@prisma/client';
+import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../configs/jwt.config';
-import { createPermission, PERMISSIONS } from '../configs/permissions.config';
+import { createPermission } from '../configs/permissions.config';
 import prisma from '../configs/prisma.client';
 
 type PermissionItem = { module: string; action: string };

@@ -179,6 +179,9 @@ export async function seedPermissions(): Promise<void> {
  */
 export async function clearPermissions(): Promise<void> {
   try {
+    // First, delete all role_permissions that reference permissions
+    await prisma.role_permissions.deleteMany({});
+    // Then delete all permissions
     await prisma.permissions.deleteMany({});
   } catch (error) {
     throw error;

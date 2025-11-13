@@ -1,4 +1,11 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  Upload,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { useDeleteSurvey, useSurveys, type Survey } from 'hooks/useSurveys';
@@ -11,7 +18,8 @@ import {
   Users,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
@@ -22,6 +30,7 @@ import ImportSurvey from './ImportSurvey';
 import ManageSurvey from './ManageSurvey';
 
 const SurveyBuilder: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -64,6 +73,13 @@ const SurveyBuilder: React.FC = () => {
     setSelectedSurvey(survey);
     setDrawerOpen(true);
   }, []);
+
+  const handleViewSurvey = useCallback(
+    (survey: Survey) => {
+      navigate(`/masters/surveys/${survey.id}`);
+    },
+    [navigate]
+  );
 
   const handleDeleteSurvey = useCallback(
     async (id: number) => {
@@ -249,6 +265,12 @@ const SurveyBuilder: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
+          <ActionButton
+            onClick={() => handleViewSurvey(row)}
+            tooltip={`View ${row.title}`}
+            icon={<Visibility fontSize="small" />}
+            color="info"
+          />
           <EditButton
             onClick={() => handleEditSurvey(row)}
             tooltip={`Edit ${row.title}`}
