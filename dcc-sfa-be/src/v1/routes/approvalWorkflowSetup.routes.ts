@@ -50,7 +50,7 @@ router.post(
 );
 
 router.get(
-  '/approval-workflow-setup/get-all-workflow',
+  '/approval-setup/get-all-workflow',
   authenticateToken,
   approvalWorkflowSetupController.getAllApprovalWorkFlowByRequest
 );

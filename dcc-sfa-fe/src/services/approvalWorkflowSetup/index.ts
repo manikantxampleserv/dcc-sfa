@@ -195,10 +195,9 @@ export const approvalWorkflowSetupService = {
     if (zoneId) params.zone_id = zoneId;
     if (depotId) params.depot_id = depotId;
 
-    const response = await axioConfig.get(
-      '/approval-workflow-setup/get-all-workflow',
-      { params }
-    );
+    const response = await axioConfig.get('/approval-setup/get-all-workflow', {
+      params,
+    });
     return response.data.data || [];
   },
 

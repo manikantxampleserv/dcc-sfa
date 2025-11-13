@@ -1,4 +1,14 @@
-import { Chip, Skeleton, Typography } from '@mui/material';
+import {
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Skeleton,
+  Typography,
+} from '@mui/material';
+import { useFormik } from 'formik';
 import { useRequestsByUsers, useTakeActionOnRequest } from 'hooks/useRequests';
 import { Check, FileText, X } from 'lucide-react';
 import React, { useState } from 'react';
@@ -6,15 +16,8 @@ import type { Request } from 'services/requests';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-} from '@mui/material';
-import { useFormik } from 'formik';
-import * as yup from 'yup';
 import { formatDate } from 'utils/dateUtils';
+import * as yup from 'yup';
 
 interface ApprovalsSidebarProps {
   open: boolean;
@@ -323,7 +326,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
         fullWidth
         className="!rounded-lg"
       >
-        <DialogTitle className="!flex !items-center !gap-3 !pb-4 !border-b !border-gray-200">
+        <DialogTitle className="!flex !items-center !gap-3 !pb-4 !border-b !border-gray-200 !relative">
           <div
             className={`!w-12 !h-12 !rounded-full !flex !items-center !justify-center !shrink-0 ${
               dialogType === 'approve' ? '!bg-green-100' : '!bg-red-100'
@@ -367,6 +370,13 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
               )}
             </Typography>
           </div>
+          <IconButton
+            onClick={handleDialogCancel}
+            className="!absolute !top-2 !right-2 !bg-white !rounded-full !shadow-md hover:!bg-gray-100 !border !border-gray-200"
+            size="small"
+          >
+            <X className="!w-4 !h-4 !text-gray-600" />
+          </IconButton>
         </DialogTitle>
 
         <DialogContent className="!p-4">
