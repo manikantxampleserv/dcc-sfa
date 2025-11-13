@@ -1,300 +1,3 @@
-// import { Request, Response } from 'express';
-// import { paginate } from '../../utils/paginate';
-// import prisma from '../../configs/prisma.client';
-
-// interface SurveySerialized {
-//   id: number;
-//   title: string;
-//   description?: string | null;
-//   category: string;
-//   target_roles?: string | null;
-//   is_published?: boolean | null;
-//   published_at?: Date | null;
-//   expires_at?: Date | null;
-//   response_count?: number | null;
-//   is_active: string;
-//   createdate?: Date | null;
-//   createdby: number;
-//   updatedate?: Date | null;
-//   updatedby?: number | null;
-//   log_inst?: number | null;
-//   fields?: any[];
-// }
-
-// const serializeSurvey = (survey: any): SurveySerialized => ({
-//   id: survey.id,
-//   title: survey.title,
-//   description: survey.description,
-//   category: survey.category,
-//   target_roles: survey.target_roles,
-//   is_published: survey.is_published,
-//   published_at: survey.published_at,
-//   expires_at: survey.expires_at,
-//   response_count: survey.response_count,
-//   is_active: survey.is_active,
-//   createdate: survey.createdate,
-//   createdby: survey.createdby,
-//   updatedate: survey.updatedate,
-//   updatedby: survey.updatedby,
-//   log_inst: survey.log_inst,
-//   fields: survey.survey_fields || [],
-// });
-
-// export const surveysController = {
-//   async createSurvey(req: Request, res: Response) {
-//     try {
-//       const { fields, ...surveyData } = req.body;
-
-//       const survey = await prisma.surveys.create({
-//         data: {
-//           ...surveyData,
-//           is_active: surveyData.is_active || 'Y',
-//           is_published: surveyData.is_published || false,
-//           response_count: 0,
-//           createdate: new Date(),
-//           createdby: req.user?.id || 1,
-//           log_inst: surveyData.log_inst || 1,
-//           survey_fields: fields
-//             ? {
-//                 create: fields.map((field: any, index: number) => ({
-//                   label: field.label,
-//                   field_type: field.field_type,
-//                   options: field.options || null,
-//                   is_required: field.is_required || false,
-//                   sort_order: field.sort_order || index + 1,
-//                 })),
-//               }
-//             : undefined,
-//         },
-//         include: {
-//           survey_fields: true,
-//         },
-//       });
-
-//       res.status(201).json({
-//         message: 'Survey created successfully',
-//         data: serializeSurvey(survey),
-//       });
-//     } catch (error: any) {
-//       console.error('Create Survey Error:', error);
-//       res.status(500).json({ message: error.message });
-//     }
-//   },
-
-//   async getAllSurveys(req: any, res: any) {
-//     try {
-//       const { page, limit, search, status, category, isPublished } = req.query;
-//       const pageNum = parseInt(page as string, 10) || 1;
-//       const limitNum = parseInt(limit as string, 10) || 10;
-//       const searchLower = search ? (search as string).toLowerCase() : '';
-
-//       const filters: any = {
-//         ...(search && {
-//           OR: [
-//             { title: { contains: searchLower } },
-//             { description: { contains: searchLower } },
-//             { category: { contains: searchLower } },
-//           ],
-//         }),
-//         ...(status === 'active' && { is_active: 'Y' }),
-//         ...(status === 'inactive' && { is_active: 'N' }),
-//         ...(category && { category }),
-//         ...(isPublished === 'true' && { is_published: true }),
-//         ...(isPublished === 'false' && { is_published: false }),
-//       };
-
-//       const { data, pagination } = await paginate({
-//         model: prisma.surveys,
-//         filters,
-//         page: pageNum,
-//         limit: limitNum,
-//         orderBy: { createdate: 'desc' },
-//         include: {
-//           survey_fields: {
-//             orderBy: { sort_order: 'asc' },
-//           },
-//         },
-//       });
-
-//       // Statistics
-//       const totalSurveys = await prisma.surveys.count();
-//       const publishedSurveys = await prisma.surveys.count({
-//         where: { is_published: true },
-//       });
-//       const draftSurveys = await prisma.surveys.count({
-//         where: { is_published: false },
-//       });
-//       const activeSurveys = await prisma.surveys.count({
-//         where: { is_active: 'Y' },
-//       });
-
-//       const totalResponses = await prisma.survey_responses.count();
-//       const categories = await prisma.surveys.groupBy({
-//         by: ['category'],
-//       });
-
-//       res.success(
-//         'Surveys retrieved successfully',
-//         data.map((s: any) => serializeSurvey(s)),
-//         200,
-//         pagination,
-//         {
-//           total_surveys: totalSurveys,
-//           published_surveys: publishedSurveys,
-//           draft_surveys: draftSurveys,
-//           active_surveys: activeSurveys,
-//           total_responses: totalResponses,
-//           total_categories: categories.length,
-//         }
-//       );
-//     } catch (error: any) {
-//       console.error('Get Surveys Error:', error);
-//       res.status(500).json({ message: error.message });
-//     }
-//   },
-
-//   async getSurveyById(req: Request, res: Response) {
-//     try {
-//       const { id } = req.params;
-//       const survey = await prisma.surveys.findUnique({
-//         where: { id: Number(id) },
-//         include: {
-//           survey_fields: {
-//             orderBy: { sort_order: 'asc' },
-//           },
-//         },
-//       });
-
-//       if (!survey) return res.status(404).json({ message: 'Survey not found' });
-
-//       res.json({
-//         message: 'Survey fetched successfully',
-//         data: serializeSurvey(survey),
-//       });
-//     } catch (error: any) {
-//       console.error('Get Survey Error:', error);
-//       res.status(500).json({ message: error.message });
-//     }
-//   },
-
-//   async updateSurvey(req: any, res: any) {
-//     try {
-//       const { id } = req.params;
-//       const { fields, ...surveyData } = req.body;
-
-//       const existingSurvey = await prisma.surveys.findUnique({
-//         where: { id: Number(id) },
-//       });
-
-//       if (!existingSurvey)
-//         return res.status(404).json({ message: 'Survey not found' });
-
-//       // If fields are provided, update them
-//       if (fields) {
-//         // Delete existing fields
-//         await prisma.survey_fields.deleteMany({
-//           where: { parent_id: Number(id) },
-//         });
-
-//         // Create new fields
-//         if (fields.length > 0) {
-//           await prisma.survey_fields.createMany({
-//             data: fields.map((field: any, index: number) => ({
-//               parent_id: Number(id),
-//               label: field.label,
-//               field_type: field.field_type,
-//               options: field.options || null,
-//               is_required: field.is_required || false,
-//               sort_order: field.sort_order || index + 1,
-//             })),
-//           });
-//         }
-//       }
-
-//       const data = {
-//         ...surveyData,
-//         updatedate: new Date(),
-//         updatedby: req.user?.id,
-//       };
-
-//       const survey = await prisma.surveys.update({
-//         where: { id: Number(id) },
-//         data,
-//         include: {
-//           survey_fields: {
-//             orderBy: { sort_order: 'asc' },
-//           },
-//         },
-//       });
-
-//       res.json({
-//         message: 'Survey updated successfully',
-//         data: serializeSurvey(survey),
-//       });
-//     } catch (error: any) {
-//       console.error('Update Survey Error:', error);
-//       res.status(500).json({ message: error.message });
-//     }
-//   },
-
-//   async deleteSurvey(req: Request, res: Response) {
-//     try {
-//       const { id } = req.params;
-//       const existingSurvey = await prisma.surveys.findUnique({
-//         where: { id: Number(id) },
-//       });
-
-//       if (!existingSurvey)
-//         return res.status(404).json({ message: 'Survey not found' });
-
-//       // Delete related fields first
-//       await prisma.survey_fields.deleteMany({
-//         where: { parent_id: Number(id) },
-//       });
-
-//       await prisma.surveys.delete({ where: { id: Number(id) } });
-
-//       res.json({ message: 'Survey deleted successfully' });
-//     } catch (error: any) {
-//       console.error('Delete Survey Error:', error);
-//       res.status(500).json({ message: error.message });
-//     }
-//   },
-
-//   async publishSurvey(req: any, res: any) {
-//     try {
-//       const { id } = req.params;
-//       const existingSurvey = await prisma.surveys.findUnique({
-//         where: { id: Number(id) },
-//       });
-
-//       if (!existingSurvey)
-//         return res.status(404).json({ message: 'Survey not found' });
-
-//       const survey = await prisma.surveys.update({
-//         where: { id: Number(id) },
-//         data: {
-//           is_published: !existingSurvey.is_published,
-//           published_at: !existingSurvey.is_published ? new Date() : null,
-//           updatedate: new Date(),
-//           updatedby: req.user?.id,
-//         },
-//         include: {
-//           survey_fields: true,
-//         },
-//       });
-
-//       res.json({
-//         message: `Survey ${survey.is_published ? 'published' : 'unpublished'} successfully`,
-//         data: serializeSurvey(survey),
-//       });
-//     } catch (error: any) {
-//       console.error('Publish Survey Error:', error);
-//       res.status(500).json({ message: error.message });
-//     }
-//   },
-// };
-
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
@@ -314,7 +17,7 @@ interface SurveySerialized {
   title: string;
   description?: string | null;
   category: string;
-  target_roles?: string | null;
+  target_roles?: number;
   is_published?: boolean | null;
   published_at?: Date | null;
   expires_at?: Date | null;
@@ -325,6 +28,7 @@ interface SurveySerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  roles?: { id: number; name: string; description: string } | null;
   fields?: SurveyFieldSerialized[];
 }
 
@@ -344,6 +48,13 @@ const serializeSurvey = (survey: any): SurveySerialized => ({
   updatedate: survey.updatedate,
   updatedby: survey.updatedby,
   log_inst: survey.log_inst,
+  roles: survey.surveys_roles
+    ? {
+        id: survey.surveys_roles.id,
+        name: survey.surveys_roles.name,
+        description: survey.surveys_roles.description,
+      }
+    : null,
   fields:
     survey.survey_fields?.map((field: any) => ({
       id: field.id,
@@ -370,7 +81,6 @@ export const surveysController = {
           let survey;
           let isUpdate = false;
 
-          // Check if this is an update
           if (surveyId) {
             const existing = await tx.surveys.findUnique({
               where: { id: Number(surveyId) },
@@ -378,7 +88,6 @@ export const surveysController = {
             if (existing) isUpdate = true;
           }
 
-          // Validate required fields
           if (!surveyData.title || surveyData.title.trim() === '') {
             throw new Error('Invalid title: missing or empty');
           }
@@ -387,7 +96,6 @@ export const surveysController = {
             throw new Error('Invalid category: missing or empty');
           }
 
-          // Validate field items if provided
           if (Array.isArray(fieldItems) && fieldItems.length > 0) {
             for (const field of fieldItems) {
               if (!field.label || field.label.trim() === '') {
@@ -396,7 +104,6 @@ export const surveysController = {
             }
           }
 
-          // Prepare survey payload
           const payload = {
             title: surveyData.title.trim(),
             description: surveyData.description || null,
@@ -414,7 +121,6 @@ export const surveysController = {
             is_active: surveyData.is_active || 'Y',
           };
 
-          // Create or update parent survey
           if (isUpdate && surveyId) {
             survey = await tx.surveys.update({
               where: { id: Number(surveyId) },
@@ -440,7 +146,6 @@ export const surveysController = {
 
           const processedFieldIds: number[] = [];
 
-          // Handle survey fields (child items)
           if (Array.isArray(fieldItems) && fieldItems.length > 0) {
             const fieldsToCreate: any[] = [];
             const fieldsToUpdate: { id: number; data: any }[] = [];
@@ -457,7 +162,6 @@ export const surveysController = {
               };
 
               if (field.id) {
-                // Check if field exists with this id and parent_id
                 const existingField = await tx.survey_fields.findFirst({
                   where: {
                     id: Number(field.id),
@@ -479,7 +183,6 @@ export const surveysController = {
               }
             }
 
-            // Bulk create new fields
             if (fieldsToCreate.length > 0) {
               const created = await tx.survey_fields.createMany({
                 data: fieldsToCreate,
@@ -495,7 +198,6 @@ export const surveysController = {
               }
             }
 
-            // Update existing fields
             for (const { id, data } of fieldsToUpdate) {
               await tx.survey_fields.update({
                 where: { id },
@@ -503,7 +205,6 @@ export const surveysController = {
               });
             }
 
-            // Delete fields that were not in the update payload
             if (isUpdate) {
               await tx.survey_fields.deleteMany({
                 where: {
@@ -515,16 +216,15 @@ export const surveysController = {
               });
             }
           } else if (isUpdate) {
-            // If no fields passed on update, delete all existing fields
             await tx.survey_fields.deleteMany({
               where: { parent_id: survey.id },
             });
           }
 
-          // Fetch final result with all relations
           const finalSurvey = await tx.surveys.findUnique({
             where: { id: survey.id },
             include: {
+              surveys_roles: true,
               survey_fields: {
                 orderBy: { sort_order: 'asc' },
               },
@@ -594,6 +294,7 @@ export const surveysController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
+          surveys_roles: true,
           survey_fields: {
             orderBy: { sort_order: 'asc' },
           },
@@ -644,6 +345,7 @@ export const surveysController = {
       const survey = await prisma.surveys.findUnique({
         where: { id: Number(id) },
         include: {
+          surveys_roles: true,
           survey_fields: {
             orderBy: { sort_order: 'asc' },
           },
@@ -672,7 +374,6 @@ export const surveysController = {
       if (!existingSurvey)
         return res.status(404).json({ message: 'Survey not found' });
 
-      // Check if survey has responses
       const responseCount = await prisma.survey_responses.count({
         where: { parent_id: Number(id) },
       });
@@ -683,7 +384,6 @@ export const surveysController = {
         });
       }
 
-      // Delete will cascade to survey_fields if configured
       await prisma.surveys.delete({ where: { id: Number(id) } });
 
       res.json({ message: 'Survey deleted successfully' });
@@ -706,7 +406,6 @@ export const surveysController = {
       if (!existingSurvey)
         return res.status(404).json({ message: 'Survey not found' });
 
-      // Validate survey has fields before publishing
       if (
         !existingSurvey.is_published &&
         existingSurvey.survey_fields.length === 0
@@ -742,7 +441,6 @@ export const surveysController = {
     }
   },
 
-  // Individual field management
   async getSurveyFields(req: Request, res: Response) {
     try {
       const { surveyId } = req.params;
