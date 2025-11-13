@@ -381,10 +381,8 @@ export const surveyResponseController = {
     const data = req.body;
     const userId = req.user?.id || 1;
 
-    // Declare photoPath outside try block so it's accessible in catch
     let photoPath: string | null = null;
 
-    // Parse answers if it's a string (when sent with multipart/form-data)
     let answerItems = [];
     if (typeof data.answers === 'string') {
       try {
@@ -399,10 +397,8 @@ export const surveyResponseController = {
     let responseId = data.id;
 
     try {
-      // Handle file upload for photo
       let existingPhotoPath: string | null = null;
 
-      // If updating, get existing photo path
       if (responseId) {
         const existingResponse = await prisma.survey_responses.findUnique({
           where: { id: Number(responseId) },
@@ -411,7 +407,6 @@ export const surveyResponseController = {
         existingPhotoPath = existingResponse?.photo_url || null;
       }
 
-      // Upload new photo if provided
       if (req.file) {
         const fileName = `survey-responses/${Date.now()}-${req.file.originalname}`;
         photoPath = await uploadFile(
@@ -420,12 +415,10 @@ export const surveyResponseController = {
           req.file.mimetype
         );
 
-        // Delete old photo if exists and new photo uploaded
         if (existingPhotoPath && responseId) {
           await deleteFile(existingPhotoPath);
         }
       } else if (responseId && existingPhotoPath) {
-        // Keep existing photo if no new file uploaded
         photoPath = existingPhotoPath;
       }
 
@@ -434,7 +427,6 @@ export const surveyResponseController = {
           let surveyResponse;
           let isUpdate = false;
 
-          // Check if this is an update
           if (responseId) {
             const existing = await tx.survey_responses.findUnique({
               where: { id: Number(responseId) },
@@ -442,7 +434,6 @@ export const surveyResponseController = {
             if (existing) isUpdate = true;
           }
 
-          // Validate parent_id (survey)
           if (!data.parent_id) {
             throw new Error('Invalid parent_id (survey): missing');
           }
@@ -452,7 +443,6 @@ export const surveyResponseController = {
           if (!surveyExists)
             throw new Error(`Invalid parent_id: ${data.parent_id}`);
 
-          // Validate submitted_by (user)
           if (!data.submitted_by) {
             throw new Error('Invalid submitted_by: missing');
           }
@@ -462,7 +452,6 @@ export const surveyResponseController = {
           if (!userExists)
             throw new Error(`Invalid submitted_by: ${data.submitted_by}`);
 
-          // Validate all field_ids in answers
           if (Array.isArray(answerItems) && answerItems.length > 0) {
             for (const ans of answerItems) {
               if (!ans.field_id) {
@@ -478,7 +467,6 @@ export const surveyResponseController = {
             }
           }
 
-          // Prepare survey response payload
           const payload = {
             parent_id: Number(data.parent_id),
             submitted_by: Number(data.submitted_by),
@@ -491,7 +479,6 @@ export const surveyResponseController = {
             is_active: data.is_active || 'Y',
           };
 
-          // Create or update parent survey response
           if (isUpdate && responseId) {
             surveyResponse = await tx.survey_responses.update({
               where: { id: Number(responseId) },
@@ -516,7 +503,6 @@ export const surveyResponseController = {
 
           const processedAnswerIds: number[] = [];
 
-          // Handle survey answers (child items)
           if (Array.isArray(answerItems) && answerItems.length > 0) {
             const answersToCreate: any[] = [];
             const answersToUpdate: { id: number; data: any }[] = [];
@@ -550,7 +536,6 @@ export const surveyResponseController = {
               }
             }
 
-            // Bulk create new answers
             if (answersToCreate.length > 0) {
               const created = await tx.survey_answers.createMany({
                 data: answersToCreate,
@@ -566,7 +551,6 @@ export const surveyResponseController = {
               }
             }
 
-            // Update existing answers
             for (const { id, data } of answersToUpdate) {
               await tx.survey_answers.update({
                 where: { id },
@@ -574,7 +558,6 @@ export const surveyResponseController = {
               });
             }
 
-            // Delete answers not in payload
             if (isUpdate) {
               await tx.survey_answers.deleteMany({
                 where: {
@@ -591,7 +574,6 @@ export const surveyResponseController = {
             });
           }
 
-          // Fetch final result
           const finalResponse = await tx.survey_responses.findUnique({
             where: { id: surveyResponse.id },
             include: {
