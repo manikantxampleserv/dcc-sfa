@@ -1,16 +1,8 @@
+import { CheckCircle, Pause, PlayArrow, Settings } from '@mui/icons-material';
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useSurvey } from 'hooks/useSurveys';
-import {
-  AlertTriangle,
-  ArrowLeft,
-  BarChart3,
-  CheckCircle,
-  FileText,
-  Pause,
-  Play,
-  Settings,
-} from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BarChart3, FileText } from 'lucide-react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from 'shared/Button';
@@ -217,6 +209,52 @@ const SurveyDetail: React.FC = () => {
               </div>
             </div>
           </div>
+          <div className="!flex-4 !space-y-4">
+            {/* Survey Fields Card Skeleton */}
+            <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+              <div className="!relative !z-10">
+                <div className="!flex !items-center !gap-2 !mb-4">
+                  <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+                    <Skeleton
+                      variant="circular"
+                      width={16}
+                      height={16}
+                      className="!bg-primary-200"
+                    />
+                  </div>
+                  <Skeleton variant="text" width={200} height={20} />
+                </div>
+
+                <div className="!space-y-3">
+                  {[1, 2, 3].map(item => (
+                    <div
+                      key={item}
+                      className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
+                    >
+                      <div className="!flex !items-center !justify-between">
+                        <div className="!flex-1">
+                          <Skeleton
+                            variant="text"
+                            width="60%"
+                            height={16}
+                            className="!mb-1"
+                          />
+                          <Skeleton variant="text" width="40%" height={12} />
+                        </div>
+                        <Skeleton
+                          variant="text"
+                          width={80}
+                          height={16}
+                          className="!text-right"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -320,9 +358,9 @@ const SurveyDetail: React.FC = () => {
               <Chip
                 icon={
                   Boolean(survey.is_published) ? (
-                    <Play className="w-3 h-3" />
+                    <PlayArrow fontSize="small" />
                   ) : (
-                    <Pause className="w-3 h-3" />
+                    <Pause fontSize="small" />
                   )
                 }
                 label={Boolean(survey.is_published) ? 'Published' : 'Draft'}
@@ -330,7 +368,13 @@ const SurveyDetail: React.FC = () => {
                 color={Boolean(survey.is_published) ? 'success' : 'warning'}
               />
               <Chip
-                icon={survey.is_active === 'Y' ? <CheckCircle /> : <Settings />}
+                icon={
+                  survey.is_active === 'Y' ? (
+                    <CheckCircle fontSize="small" />
+                  ) : (
+                    <Settings fontSize="small" />
+                  )
+                }
                 label={survey.is_active === 'Y' ? 'Active' : 'Inactive'}
                 size="small"
                 color={survey.is_active === 'Y' ? 'success' : 'error'}
@@ -615,9 +659,9 @@ const SurveyDetail: React.FC = () => {
                   <Chip
                     icon={
                       Boolean(survey.is_published) ? (
-                        <Play className="w-3 h-3" />
+                        <PlayArrow fontSize="small" />
                       ) : (
-                        <Pause className="w-3 h-3" />
+                        <Pause fontSize="small" />
                       )
                     }
                     label={Boolean(survey.is_published) ? 'Published' : 'Draft'}

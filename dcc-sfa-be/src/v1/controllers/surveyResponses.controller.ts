@@ -112,6 +112,7 @@ interface SurveyResponseSerialized {
   survey?: {
     id: number;
     title: string;
+    name: string;
     description?: string | null;
   } | null;
   submitted_user?: {
@@ -138,7 +139,8 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
   survey: item.surveys
     ? {
         id: item.surveys.id,
-        name: item.surveys.title || item.surveys.name,
+        title: item.surveys.title,
+        name: item.surveys.name,
         description: item.surveys.description,
       }
     : null,
