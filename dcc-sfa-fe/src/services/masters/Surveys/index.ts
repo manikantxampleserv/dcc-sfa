@@ -51,7 +51,7 @@ interface ManageSurveyPayload {
   title: string;
   description?: string;
   category: string;
-  target_roles?: string;
+  target_roles?: number | string;
   is_published?: boolean;
   expires_at?: Date | string;
   is_active?: string;

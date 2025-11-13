@@ -2,6 +2,7 @@ import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { FileText, Plus } from 'lucide-react';
 import React, { useState } from 'react';
+import { useRoles } from '../../../../hooks/useRoles';
 import { DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -49,6 +50,13 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
   const isEdit = !!selectedSurvey;
   const [surveyFields, setSurveyFields] = useState<SurveyFieldFormData[]>([]);
 
+  // Fetch active roles for target_roles select
+  const { data: rolesResponse, isLoading: isLoadingRoles } = useRoles({
+    limit: 1000,
+    isActive: 'Y',
+  });
+  const roles = rolesResponse?.data || [];
+
   const handleCancel = () => {
     setSelectedSurvey(null);
     setDrawerOpen(false);
@@ -78,7 +86,11 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
       title: selectedSurvey?.title || '',
       description: selectedSurvey?.description || '',
       category: selectedSurvey?.category || 'general',
-      target_roles: selectedSurvey?.target_roles || '',
+      target_roles:
+        selectedSurvey?.target_roles !== null &&
+        selectedSurvey?.target_roles !== undefined
+          ? String(selectedSurvey.target_roles)
+          : '',
       expires_at: selectedSurvey?.expires_at
         ? new Date(selectedSurvey.expires_at).toISOString().split('T')[0]
         : '',
@@ -93,7 +105,10 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
           title: values.title,
           description: values.description || undefined,
           category: values.category,
-          target_roles: values.target_roles || undefined,
+          target_roles:
+            values.target_roles && values.target_roles !== ''
+              ? Number(values.target_roles)
+              : undefined,
           expires_at: values.expires_at
             ? new Date(values.expires_at).toISOString()
             : undefined,
@@ -291,12 +306,19 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
               <MenuItem value="brand_visibility">Brand Visibility</MenuItem>
             </Select>
 
-            <Input
+            <Select
               name="target_roles"
-              label="Target Roles"
-              placeholder="e.g., Sales Representative, Field Supervisor"
+              label="Target Role"
               formik={formik}
-            />
+              disabled={isLoadingRoles}
+            >
+              <MenuItem value="">Select a role (Optional)</MenuItem>
+              {roles.map(role => (
+                <MenuItem key={role.id} value={String(role.id)}>
+                  {role.name}
+                </MenuItem>
+              ))}
+            </Select>
 
             <Input
               name="expires_at"
