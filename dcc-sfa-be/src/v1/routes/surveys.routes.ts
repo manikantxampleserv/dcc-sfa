@@ -15,20 +15,12 @@ router.post(
   authenticateToken,
   auditCreate('surveys'),
   createSurveyValidation,
-  surveysController.createSurvey
+  surveysController.createOrUpdateSurvey
 );
 
 router.get('/surveys', authenticateToken, surveysController.getAllSurveys);
 
 router.get('/surveys/:id', authenticateToken, surveysController.getSurveyById);
-
-router.put(
-  '/surveys/:id',
-  authenticateToken,
-  auditUpdate('surveys'),
-  createSurveyValidation,
-  surveysController.updateSurvey
-);
 
 router.delete(
   '/surveys/:id',

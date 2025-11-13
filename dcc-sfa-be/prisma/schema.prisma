@@ -1749,7 +1749,7 @@ model survey_responses {
   parent_id                           Int
   submitted_by                        Int
   submitted_at                        DateTime?                 @default(now(), map: "DF__survey_re__submi__5CD6CB2B")
-  location                            Unsupported("geography")?
+  location                            String?                   @db.NVarChar(255)
   photo_url                           String?                   @db.NVarChar(Max)
   is_active                           String                    @default("Y", map: "DF__survey_re__is_ac__5DCAEF64") @db.Char(1)
   createdate                          DateTime?                 @default(now(), map: "DF__survey_re__creat__5EBF139D") @db.DateTime

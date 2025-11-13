@@ -1358,6 +1358,7 @@ export const requestsController = {
       const limitNum = parseInt(limit as string);
       const skip = (pageNum - 1) * limitNum;
 
+      // Get all approvals for this user with the specified status
       const myApprovals = await prisma.sfa_d_request_approvals.findMany({
         where: {
           approver_id: userId,
@@ -1372,33 +1373,56 @@ export const requestsController = {
             },
           },
         },
+        orderBy: {
+          createdate: 'desc',
+        },
       });
 
-      const filteredApprovals = [];
+      // Get all request IDs to check for previous pending approvals in bulk
+      const requestIds = myApprovals.map(approval => approval.request_id);
 
-      for (const approval of myApprovals) {
-        const previousPending = await prisma.sfa_d_request_approvals.findFirst({
+      // Fetch all previous pending approvals in one query
+      const previousPendingApprovals =
+        await prisma.sfa_d_request_approvals.findMany({
           where: {
-            request_id: approval.request_id,
-            sequence: { lt: approval.sequence },
+            request_id: { in: requestIds },
             status: 'P',
+          },
+          select: {
+            request_id: true,
+            sequence: true,
           },
         });
 
-        if (!previousPending) {
-          filteredApprovals.push(approval);
+      // Create a map for quick lookup: request_id -> array of pending sequences
+      const pendingSequencesMap = new Map<number, number[]>();
+      previousPendingApprovals.forEach(approval => {
+        if (!pendingSequencesMap.has(approval.request_id)) {
+          pendingSequencesMap.set(approval.request_id, []);
         }
-      }
+        pendingSequencesMap.get(approval.request_id)!.push(approval.sequence);
+      });
+
+      // Filter approvals: only show if no previous pending approval exists
+      const filteredApprovals = myApprovals.filter(approval => {
+        const pendingSequences =
+          pendingSequencesMap.get(approval.request_id) || [];
+        const hasPreviousPending = pendingSequences.some(
+          seq => seq < approval.sequence
+        );
+        return !hasPreviousPending;
+      });
+
+      // Map to request format with reference details
       const requests = await Promise.all(
         filteredApprovals.map(async approval => {
           const request = approval.sfa_d_requests_approvals_request;
-          let request_detail = null;
-          if (request.reference_id) {
-            request_detail = await getRequestDetailsByType(
-              request.request_type,
-              request.reference_id
-            );
-          }
+
+          // Fetch reference details using the utility function
+          const referenceDetails = await getRequestDetailsByType(
+            request.request_type,
+            request.reference_id
+          );
 
           return {
             id: request.id,
@@ -1414,6 +1438,7 @@ export const requestsController = {
             updatedby: request.updatedby,
             log_inst: request.log_inst,
             requester: request.sfa_d_requests_requester,
+            reference_details: referenceDetails, // Will be null or the formatted data
             approvals: [
               {
                 id: approval.id,
@@ -1423,7 +1448,6 @@ export const requestsController = {
                 approver: null,
               },
             ],
-            request_detail,
           };
         })
       );
@@ -1450,7 +1474,6 @@ export const requestsController = {
       });
     }
   },
-
   async getRequestByTypeAndReference(req: Request, res: Response) {
     try {
       const { request_type, reference_id } = req.query;
