@@ -281,6 +281,11 @@ const menuItems: MenuItem[] = [
         label: 'Audit Logs',
         href: '/reports/audit-logs',
       },
+      {
+        id: 'survey-responses',
+        label: 'Survey Responses',
+        href: '/reports/survey-responses',
+      },
     ],
   },
   {

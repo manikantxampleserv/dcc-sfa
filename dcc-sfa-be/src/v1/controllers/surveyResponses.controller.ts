@@ -56,7 +56,7 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
   survey: item.surveys
     ? {
         id: item.surveys.id,
-        name: item.surveys.name,
+        name: item.surveys.title || item.surveys.name,
         description: item.surveys.description,
       }
     : null,
@@ -76,8 +76,8 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
       field: ans.survey_fields
         ? {
             id: ans.survey_fields.id,
-            name: ans.survey_fields.name,
-            type: ans.survey_fields.type,
+            name: ans.survey_fields.label || ans.survey_fields.name,
+            type: ans.survey_fields.field_type || ans.survey_fields.type,
           }
         : null,
     })) || [],
@@ -307,7 +307,7 @@ export const surveyResponseController = {
       const filters: any = {
         ...(search && {
           OR: [
-            { surveys: { name: { contains: searchLower } } },
+            { surveys: { title: { contains: searchLower } } },
             {
               survey_responses_submitted_by_users: {
                 name: { contains: searchLower },
@@ -374,7 +374,7 @@ export const surveyResponseController = {
           total_records: totalResponses,
           active_records: activeResponses,
           inactive_records: inactiveResponses,
-          responses_this_month: responsesThisMonth,
+          records_this_month: responsesThisMonth,
         }
       );
     } catch (error: any) {

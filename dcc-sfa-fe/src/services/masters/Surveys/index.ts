@@ -47,6 +47,7 @@ interface Survey {
 }
 
 interface ManageSurveyPayload {
+  id?: number;
   title: string;
   description?: string;
   category: string;
@@ -55,17 +56,7 @@ interface ManageSurveyPayload {
   expires_at?: Date | string;
   is_active?: string;
   fields?: SurveyField[];
-}
-
-interface UpdateSurveyPayload {
-  title?: string;
-  description?: string;
-  category?: string;
-  target_roles?: string;
-  is_published?: boolean;
-  expires_at?: Date | string;
-  is_active?: string;
-  fields?: SurveyField[];
+  survey_fields?: SurveyField[];
 }
 
 interface GetSurveysParams {
@@ -94,35 +85,23 @@ export const fetchSurveys = async (
 /**
  * Fetch survey by ID
  */
-export const fetchSurveyById = async (
-  id: number
-): Promise<ApiResponse<Survey>> => {
+export const fetchSurveyById = async (id: number): Promise<Survey> => {
   try {
     const response = await axiosInstance.get(`/surveys/${id}`);
-    return response.data;
+    return response.data.data;
   } catch (error) {
     throw error;
   }
 };
 
 /**
- * Create new survey
+ * Create or update survey (unified endpoint)
+ * If id is provided and exists, updates the survey; otherwise creates a new one
  */
-export const createSurvey = async (
+export const createOrUpdateSurvey = async (
   surveyData: ManageSurveyPayload
 ): Promise<ApiResponse<Survey>> => {
   const response = await axiosInstance.post('/surveys', surveyData);
-  return response.data;
-};
-
-/**
- * Update existing survey
- */
-export const updateSurvey = async (
-  id: number,
-  surveyData: UpdateSurveyPayload
-): Promise<ApiResponse<Survey>> => {
-  const response = await axiosInstance.put(`/surveys/${id}`, surveyData);
   return response.data;
 };
 
@@ -147,16 +126,9 @@ export const publishSurvey = async (
 export default {
   fetchSurveys,
   fetchSurveyById,
-  createSurvey,
-  updateSurvey,
+  createOrUpdateSurvey,
   deleteSurvey,
   publishSurvey,
 };
 
-export type {
-  GetSurveysParams,
-  ManageSurveyPayload,
-  UpdateSurveyPayload,
-  Survey,
-  SurveyField,
-};
+export type { GetSurveysParams, ManageSurveyPayload, Survey, SurveyField };

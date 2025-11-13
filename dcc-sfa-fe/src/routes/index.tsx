@@ -31,6 +31,7 @@ import SalesTargetsManagement from 'pages/masters/SalesTargets';
 import StockMovementsManagement from 'pages/masters/StockMovements';
 import StockTransferRequestsManagement from 'pages/masters/StockTransferRequests';
 import SurveyBuilder from 'pages/masters/SurveyBuilder';
+import SurveyDetail from 'pages/masters/SurveyBuilder/SurveyDetail';
 import UnitOfMeasurementManagement from 'pages/masters/UnitOfMeasurement';
 import Users from 'pages/masters/Users';
 import UserDetail from 'pages/masters/Users/UserDetail';
@@ -50,6 +51,8 @@ import PromoEffectivenessReport from 'pages/reports/PromoEffectivenessReport';
 import RegionTerritorySalesReport from 'pages/reports/RegionTerritorySalesReport';
 import RepProductivityReport from 'pages/reports/RepProductivityReport';
 import SalesVsTargetReport from 'pages/reports/SalesVsTargetReport';
+import SurveyResponses from 'pages/reports/SurveyResponses';
+import SurveyResponseDetail from 'pages/reports/SurveyResponses/SurveyResponseDetail';
 import VisitFrequencyCompletionReport from 'pages/reports/VisitFrequencyCompletionReport';
 import RepLocationTracking from 'pages/tracking/RepLocationTracking';
 import RouteEffectiveness from 'pages/tracking/RouteEffectiveness';
@@ -215,6 +218,10 @@ const router = createBrowserRouter(
           element: <SurveyBuilder />,
         },
         {
+          path: '/masters/surveys/:id',
+          element: <SurveyDetail />,
+        },
+        {
           path: '/transactions/orders',
           element: <OrdersManagement />,
         },
@@ -345,6 +352,14 @@ const router = createBrowserRouter(
         {
           path: '/reports/audit-logs',
           element: <AuditLogs />,
+        },
+        {
+          path: '/reports/survey-responses',
+          element: <SurveyResponses />,
+        },
+        {
+          path: '/reports/survey-responses/:id',
+          element: <SurveyResponseDetail />,
         },
         {
           path: '/workflows/approvals',

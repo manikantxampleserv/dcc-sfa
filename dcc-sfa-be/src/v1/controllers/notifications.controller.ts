@@ -298,9 +298,13 @@ export const notificationsController = {
         return res.error('Unauthorized', 401);
       }
 
+      if (!id || isNaN(Number(id))) {
+        return res.error('Invalid or missing notification ID', 400);
+      }
+
       const notification = await prisma.notifications.findFirst({
         where: {
-          id: parseInt(id),
+          id: Number(id),
           user_id: userId,
         },
       });
@@ -310,7 +314,7 @@ export const notificationsController = {
       }
 
       await prisma.notifications.delete({
-        where: { id: parseInt(id) },
+        where: { id: Number(id) },
       });
 
       res.success('Notification deleted successfully');

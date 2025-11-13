@@ -127,6 +127,7 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateChange}
+        format="DD/MM/YYYY"
         slotProps={{
           desktopPaper: {
             elevation: 0,
