@@ -5,8 +5,6 @@ import {
   auditUpdate,
   auditDelete,
 } from '../../middlewares/audit.middleware';
-import { validate } from '../../middlewares/validation.middleware';
-import { createCustomerComplaintsValidation } from '../validations/customerComplaints.validation';
 import { customerComplaintsController } from '../controllers/customerComplaints.controller';
 
 const router = Router();
@@ -15,8 +13,6 @@ router.post(
   '/customer-complaints',
   authenticateToken,
   auditCreate('customerComplaints'),
-  createCustomerComplaintsValidation,
-  validate,
   customerComplaintsController.createOrUpdateCustomerComplaints
 );
 
