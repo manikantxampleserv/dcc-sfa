@@ -26,6 +26,20 @@ export interface Request {
     name: string;
     email: string;
   } | null;
+  reference_details?: {
+    order_number?: string;
+    customer_name?: string;
+    customer_code?: string;
+    customer_phone?: string;
+    salesperson_name?: string;
+    salesperson_email?: string;
+    total_amount?: string;
+    order_date?: string;
+    delivery_date?: string;
+    payment_method?: string;
+    status?: string;
+    notes?: string;
+  } | null;
   approvals?: {
     id: number;
     approver_id: number;

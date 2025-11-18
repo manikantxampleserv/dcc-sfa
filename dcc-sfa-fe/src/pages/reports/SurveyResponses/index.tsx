@@ -147,6 +147,47 @@ const SurveyResponses: React.FC = () => {
       ),
     },
     {
+      id: 'customer',
+      label: 'Customer',
+      render: (_value, row) => {
+        const customer = row.customer || row.survey_response_customer;
+        if (!customer) {
+          return (
+            <span className="text-xs text-gray-400 italic">No customer</span>
+          );
+        }
+        return (
+          <Box className="flex items-center gap-2">
+            <User className="w-4 h-4 text-gray-400" />
+            <Box>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {customer.name}
+              </Typography>
+              {customer.code && (
+                <Typography
+                  variant="caption"
+                  className="!text-gray-500 !text-xs"
+                >
+                  {customer.code}
+                </Typography>
+              )}
+              {customer.email && (
+                <Typography
+                  variant="caption"
+                  className="!text-gray-500 !text-xs !block"
+                >
+                  {customer.email}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+        );
+      },
+    },
+    {
       id: 'submitted_user',
       label: 'Submitted By',
       render: (_value, row) => (

@@ -23,7 +23,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Notifications from '../Notifications';
 import ApprovalsSidebar from '../ApprovalsSidebar';
-import { useApprovalWorkflows } from '../../hooks/useApprovalWorkflows';
+import { useRequestsByUsers } from '../../hooks/useRequests';
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -45,16 +45,13 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   } = useAuth();
 
   // Fetch pending approvals for badge count
-  const { data: pendingApprovalsResponse } = useApprovalWorkflows({
+  const { data: pendingRequestsResponse } = useRequestsByUsers({
     page: 1,
     limit: 100,
+    status: 'P', // Only pending requests
   });
 
-  const pendingApprovals =
-    pendingApprovalsResponse?.data?.filter(
-      (w: any) => w.status === 'pending' || w.status === 'in_progress'
-    ) || [];
-  const pendingCount = pendingApprovals.length;
+  const pendingCount = pendingRequestsResponse?.pagination?.total_count || 0;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -131,7 +128,12 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Badge badgeContent={pendingCount} color="error" max={99}>
+          <Badge
+            badgeContent={pendingCount}
+            color="error"
+            max={99}
+            invisible={pendingCount === 0}
+          >
             <IconButton
               onClick={() => setApprovalsDrawerOpen(true)}
               className="!p-1.5 !rounded-md !bg-gray-100 !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100"

@@ -1,4 +1,4 @@
-import { Alert, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { Alert, Chip, MenuItem, Typography } from '@mui/material';
 import { CheckCircle, Settings, Users, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import {
@@ -209,14 +209,16 @@ const ApprovalSetup: React.FC = () => {
 
   return (
     <>
-      <Box className="!mb-3 !flex !justify-between !items-center">
-        <Box>
-          <p className="!font-bold text-xl !text-gray-900">Approval Setup</p>
-          <p className="!text-gray-500 text-sm">
+      <div className="!mb-3 !flex !justify-between !items-center">
+        <div>
+          <Typography variant="h6" className="!font-bold !text-gray-900">
+            Approval Setup
+          </Typography>
+          <Typography variant="body2" className="!text-gray-500">
             Configure approval workflows for different request types
-          </p>
-        </Box>
-      </Box>
+          </Typography>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -310,22 +312,20 @@ const ApprovalSetup: React.FC = () => {
         data={filteredWorkflows}
         columns={columns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
+          <div className="flex justify-between gap-3 items-center flex-wrap">
+            <div className="flex flex-wrap items-center gap-3">
               <SearchInput
                 placeholder="Search by request type..."
                 value={search}
                 onChange={handleSearchChange}
                 debounceMs={400}
                 showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
+                className="!w-80"
               />
               <Select
                 value={statusFilter}
                 onChange={e => handleStatusFilterChange(e.target.value)}
-                className="!min-w-32"
-                size="small"
+                className="!w-40"
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
@@ -334,8 +334,7 @@ const ApprovalSetup: React.FC = () => {
               <Select
                 value={requestTypeFilter}
                 onChange={e => handleRequestTypeFilterChange(e.target.value)}
-                className="!min-w-48"
-                size="small"
+                className="!w-48"
               >
                 <MenuItem value="all">All Request Types</MenuItem>
                 {requestTypes.map(type => (

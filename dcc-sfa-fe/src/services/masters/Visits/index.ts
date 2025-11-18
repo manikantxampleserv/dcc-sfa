@@ -34,6 +34,18 @@ interface Visit {
   customer?: {
     id: number;
     name: string;
+    code: string;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
+    outstanding_amount: number;
+    credit_limit: number;
+    is_active: string;
   } | null;
   salesperson?: {
     id: number;
@@ -43,10 +55,12 @@ interface Visit {
   route?: {
     id: number;
     name: string;
+    code: string;
   } | null;
   zone?: {
     id: number;
     name: string;
+    code: string;
   } | null;
 }
 

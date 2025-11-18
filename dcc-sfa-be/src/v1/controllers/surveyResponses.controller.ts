@@ -43,13 +43,35 @@ interface SurveyResponseSerialized {
   customer?: {
     id: number;
     name: string;
-    email: string;
+    code: string;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
+    outstanding_amount: number;
+    credit_limit: number;
+    is_active: string;
   } | null;
   answers?: SurveyAnswerSerialized[] | null;
   survey_response_customer?: {
     id: number;
     name: string;
-    email: string;
+    code: string;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
+    outstanding_amount: number;
+    credit_limit: number;
+    is_active: string;
   } | null;
 }
 const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
@@ -85,7 +107,18 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
     ? {
         id: item.survey_response_customer.id,
         name: item.survey_response_customer.name,
+        code: item.survey_response_customer.code,
+        type: item.survey_response_customer.type,
+        contact_person: item.survey_response_customer.contact_person,
+        phone_number: item.survey_response_customer.phone_number,
         email: item.survey_response_customer.email,
+        address: item.survey_response_customer.address,
+        city: item.survey_response_customer.city,
+        state: item.survey_response_customer.state,
+        zipcode: item.survey_response_customer.zipcode,
+        outstanding_amount: item.survey_response_customer.outstanding_amount,
+        credit_limit: item.survey_response_customer.credit_limit,
+        is_active: item.survey_response_customer.is_active,
       }
     : null,
   answers:
@@ -106,7 +139,18 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
     ? {
         id: item.survey_response_customer.id,
         name: item.survey_response_customer.name,
+        code: item.survey_response_customer.code,
+        type: item.survey_response_customer.type,
+        contact_person: item.survey_response_customer.contact_person,
+        phone_number: item.survey_response_customer.phone_number,
         email: item.survey_response_customer.email,
+        address: item.survey_response_customer.address,
+        city: item.survey_response_customer.city,
+        state: item.survey_response_customer.state,
+        zipcode: item.survey_response_customer.zipcode,
+        outstanding_amount: item.survey_response_customer.outstanding_amount,
+        credit_limit: item.survey_response_customer.credit_limit,
+        is_active: item.survey_response_customer.is_active,
       }
     : null,
 });
@@ -930,6 +974,7 @@ export const surveyResponseController = {
         include: {
           surveys: true,
           survey_responses_submitted_by_users: true,
+          survey_response_customer: true,
           survey_answer_responses: {
             include: {
               survey_fields: true,

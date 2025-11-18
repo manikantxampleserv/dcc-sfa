@@ -1,11 +1,12 @@
-import { Add, Block, CheckCircle } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Visibility } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useDepots } from 'hooks/useDepots';
 import { useDeleteRoute, useRoutes, type Route } from 'hooks/useRoutes';
 import { useZones } from 'hooks/useZones';
 import { Building2, Clock, Navigation, Route as RouteIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
@@ -14,6 +15,7 @@ import { formatDate } from 'utils/dateUtils';
 import ManageRoute from './ManageRoute';
 
 const RoutesManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [depotFilter, setDepotFilter] = useState('all');
@@ -75,6 +77,13 @@ const RoutesManagement: React.FC = () => {
     setSelectedRoute(route);
     setDrawerOpen(true);
   }, []);
+
+  const handleViewRoute = useCallback(
+    (route: Route) => {
+      navigate(`/masters/routes/${route.id}`);
+    },
+    [navigate]
+  );
 
   const handleDeleteRoute = useCallback(
     async (id: number) => {
@@ -240,6 +249,12 @@ const RoutesManagement: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
+          <ActionButton
+            onClick={() => handleViewRoute(row)}
+            tooltip={`View ${row.name}`}
+            icon={<Visibility fontSize="small" />}
+            color="info"
+          />
           <EditButton
             onClick={() => handleEditRoute(row)}
             tooltip={`Edit ${row.name}`}

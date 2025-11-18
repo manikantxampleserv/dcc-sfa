@@ -1348,7 +1348,7 @@ export const requestsController = {
   async getRequestsByUsers(req: Request, res: Response) {
     try {
       const userId = req.user?.id;
-      const { page = 1, limit = 10, status = 'P' } = req.query;
+      const { page = 1, limit = 10, status, search, request_type } = req.query;
 
       if (!userId) {
         return res.status(401).json({ message: 'User not authenticated' });
@@ -1358,12 +1358,19 @@ export const requestsController = {
       const limitNum = parseInt(limit as string);
       const skip = (pageNum - 1) * limitNum;
 
+      // Build where clause for approvals
+      const approvalWhere: any = {
+        approver_id: userId,
+      };
+
+      // Only filter by status if it's provided and not 'all'
+      if (status && status !== 'all') {
+        approvalWhere.status = status as string;
+      }
+
       // Get all approvals for this user with the specified status
       const myApprovals = await prisma.sfa_d_request_approvals.findMany({
-        where: {
-          approver_id: userId,
-          status: status as string,
-        },
+        where: approvalWhere,
         include: {
           sfa_d_requests_approvals_request: {
             include: {
@@ -1414,7 +1421,7 @@ export const requestsController = {
       });
 
       // Map to request format with reference details
-      const requests = await Promise.all(
+      let requests = await Promise.all(
         filteredApprovals.map(async approval => {
           const request = approval.sfa_d_requests_approvals_request;
 
@@ -1452,8 +1459,41 @@ export const requestsController = {
         })
       );
 
+      // Apply additional filters if provided
+      if (request_type && request_type !== 'all') {
+        requests = requests.filter(
+          req => req.request_type === (request_type as string)
+        );
+      }
+
+      if (search) {
+        const searchLower = (search as string).toLowerCase();
+        requests = requests.filter(
+          req =>
+            req.request_type?.toLowerCase().includes(searchLower) ||
+            req.requester?.name?.toLowerCase().includes(searchLower) ||
+            req.reference_details?.order_number
+              ?.toLowerCase()
+              .includes(searchLower) ||
+            req.reference_details?.customer_name
+              ?.toLowerCase()
+              .includes(searchLower)
+        );
+      }
+
       const total = requests.length;
       const paginatedData = requests.slice(skip, skip + limitNum);
+
+      // Calculate statistics
+      const pendingCount = requests.filter(
+        req => (req.approvals?.[0]?.status || req.status)?.toUpperCase() === 'P'
+      ).length;
+      const approvedCount = requests.filter(
+        req => (req.approvals?.[0]?.status || req.status)?.toUpperCase() === 'A'
+      ).length;
+      const rejectedCount = requests.filter(
+        req => (req.approvals?.[0]?.status || req.status)?.toUpperCase() === 'R'
+      ).length;
 
       res.json({
         message: 'Requests found successfully',
@@ -1464,6 +1504,12 @@ export const requestsController = {
           total_count: total,
           has_next: skip + limitNum < total,
           has_previous: pageNum > 1,
+        },
+        stats: {
+          total_requests: total,
+          pending_requests: pendingCount,
+          approved_requests: approvedCount,
+          rejected_requests: rejectedCount,
         },
       });
     } catch (error: any) {

@@ -40,6 +40,7 @@ import { VisitTasksImportExportService } from './implementations/visit-tasks.imp
 import { PromotionsImportExportService } from './implementations/promotions.import-export.service';
 import { PromotionProductsImportExportService } from './implementations/promotion-products.import-export.service';
 import { RouteTypesImportExportService } from './implementations/routeTypes-import-export.service';
+import { CustomerComplaintsImportExportService } from './implementations/customerComplaints-import-export.service';
 //In future I will add more, reminder me, dont remove this commet
 
 type ServiceConstructor = new () => ImportExportService<any>;
@@ -91,6 +92,7 @@ export class ImportExportFactory {
     ['promotions', PromotionsImportExportService],
     ['promotion_products', PromotionProductsImportExportService],
     ['route_type', RouteTypesImportExportService],
+    ['customer_complaints', CustomerComplaintsImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

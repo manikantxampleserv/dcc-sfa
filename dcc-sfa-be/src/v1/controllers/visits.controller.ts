@@ -35,12 +35,22 @@ interface VisitSerialized {
   customer?: {
     id: number;
     name: string;
+    code: string;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
     outstanding_amount: number;
     credit_limit: number;
+    is_active: string;
   } | null;
   salesperson?: { id: number; name: string; email: string } | null;
-  route?: { id: number; name: string } | null;
-  zone?: { id: number; name: string } | null;
+  route?: { id: number; name: string; code: string } | null;
+  zone?: { id: number; name: string; code: string } | null;
 }
 
 const serializeVisit = (visit: any): VisitSerialized => ({
@@ -77,8 +87,18 @@ const serializeVisit = (visit: any): VisitSerialized => ({
     ? {
         id: visit.visit_customers.id,
         name: visit.visit_customers.name,
+        code: visit.visit_customers.code,
+        type: visit.visit_customers.type,
+        contact_person: visit.visit_customers.contact_person,
+        phone_number: visit.visit_customers.phone_number,
+        email: visit.visit_customers.email,
+        address: visit.visit_customers.address,
+        city: visit.visit_customers.city,
+        state: visit.visit_customers.state,
+        zipcode: visit.visit_customers.zipcode,
         outstanding_amount: visit.visit_customers.outstanding_amount,
         credit_limit: visit.visit_customers.credit_limit,
+        is_active: visit.visit_customers.is_active,
       }
     : null,
   salesperson: visit.visits_salesperson
@@ -89,10 +109,18 @@ const serializeVisit = (visit: any): VisitSerialized => ({
       }
     : null,
   route: visit.visit_routes
-    ? { id: visit.visit_routes.id, name: visit.visit_routes.name }
+    ? {
+        id: visit.visit_routes.id,
+        name: visit.visit_routes.name,
+        code: visit.visit_routes.code,
+      }
     : null,
   zone: visit.visit_zones
-    ? { id: visit.visit_zones.id, name: visit.visit_zones.name }
+    ? {
+        id: visit.visit_zones.id,
+        name: visit.visit_zones.name,
+        code: visit.visit_zones.code,
+      }
     : null,
 });
 

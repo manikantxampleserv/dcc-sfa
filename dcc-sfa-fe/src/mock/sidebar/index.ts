@@ -124,6 +124,11 @@ const menuItems: MenuItem[] = [
         label: 'Survey Templates',
         href: '/masters/surveys',
       },
+      {
+        id: 'customer-complaints',
+        label: 'Customer Complaints',
+        href: '/masters/customer-complaints',
+      },
     ],
   },
   {
@@ -294,14 +299,14 @@ const menuItems: MenuItem[] = [
     icon: MdNotifications,
     children: [
       {
-        id: 'approval-workflows',
-        label: 'Approval Workflows',
-        href: '/workflows/approvals',
-      },
-      {
         id: 'approval-setup',
         label: 'Approval Setup',
         href: '/workflows/approval-setup',
+      },
+      {
+        id: 'approval-requests',
+        label: 'Approval Requests',
+        href: '/workflows/approvals',
       },
       {
         id: 'route-exceptions',

@@ -23,12 +23,47 @@ interface RouteSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  customer_routes?: { id: number; name: string; code: string }[];
+  customer_routes?: Array<{
+    id: number;
+    name: string;
+    code: string;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
+    is_active: string;
+  }>;
   routes_depots?: { id: number; name: string; code: string };
   routes_zones?: { id: number; name: string; code: string };
   routes_salesperson?: { id: number; name: string; email: string } | null;
   routes_route_type?: { id: number; name: string };
-  visit_routes?: { id: number }[];
+  visit_routes?: Array<{
+    id: number;
+    customer_id: number;
+    sales_person_id: number;
+    visit_date?: Date | null;
+    visit_time?: string | null;
+    purpose?: string | null;
+    status?: string | null;
+    start_time?: Date | null;
+    end_time?: Date | null;
+    duration?: number | null;
+    check_in_time?: Date | null;
+    check_out_time?: Date | null;
+    orders_created?: number | null;
+    amount_collected?: string | null;
+    visit_notes?: string | null;
+    customer_feedback?: string | null;
+    next_visit_date?: Date | null;
+    is_active: string;
+    createdate?: Date | null;
+    visit_customers?: { id: number; name: string; code: string } | null;
+    visits_salesperson?: { id: number; name: string; email: string } | null;
+  }>;
 }
 
 const generateRoutesCode = async (name: string) => {
@@ -76,6 +111,15 @@ const serializeRoute = (route: any): RouteSerialized => ({
       id: c.id,
       name: c.name,
       code: c.code,
+      type: c.type,
+      contact_person: c.contact_person,
+      phone_number: c.phone_number,
+      email: c.email,
+      address: c.address,
+      city: c.city,
+      state: c.state,
+      zipcode: c.zipcode,
+      is_active: c.is_active,
     })) || [],
   routes_depots: route.routes_depots
     ? {
@@ -104,7 +148,42 @@ const serializeRoute = (route: any): RouteSerialized => ({
         name: route.routes_route_type.name,
       }
     : undefined,
-  visit_routes: route.visit_routes?.map((v: any) => ({ id: v.id })) || [],
+  visit_routes:
+    route.visit_routes?.map((v: any) => ({
+      id: v.id,
+      customer_id: v.customer_id,
+      sales_person_id: v.sales_person_id,
+      visit_date: v.visit_date,
+      visit_time: v.visit_time,
+      purpose: v.purpose,
+      status: v.status,
+      start_time: v.start_time,
+      end_time: v.end_time,
+      duration: v.duration,
+      check_in_time: v.check_in_time,
+      check_out_time: v.check_out_time,
+      orders_created: v.orders_created,
+      amount_collected: v.amount_collected?.toString() || null,
+      visit_notes: v.visit_notes,
+      customer_feedback: v.customer_feedback,
+      next_visit_date: v.next_visit_date,
+      is_active: v.is_active,
+      createdate: v.createdate,
+      visit_customers: v.visit_customers
+        ? {
+            id: v.visit_customers.id,
+            name: v.visit_customers.name,
+            code: v.visit_customers.code,
+          }
+        : null,
+      visits_salesperson: v.visits_salesperson
+        ? {
+            id: v.visits_salesperson.id,
+            name: v.visits_salesperson.name,
+            email: v.visits_salesperson.email,
+          }
+        : null,
+    })) || [],
 });
 
 export const routesController = {
@@ -270,7 +349,15 @@ export const routesController = {
           routes_zones: true,
           routes_salesperson: true,
           routes_route_type: true,
-          visit_routes: true,
+          visit_routes: {
+            include: {
+              visit_customers: true,
+              visits_salesperson: true,
+            },
+            orderBy: {
+              visit_date: 'desc',
+            },
+          },
         },
       });
 

@@ -7,6 +7,7 @@ import {
   FaTruck,
   FaUsers,
 } from 'react-icons/fa';
+import { Skeleton } from '@mui/material';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -419,6 +420,252 @@ const ExecutiveDashboard: React.FC = () => {
     },
   };
 
+  const isLoading =
+    statsLoading || salesLoading || productsLoading || orderStatusLoading;
+
+  // Header Skeleton Component
+  const HeaderSkeleton = () => (
+    <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+      <div className="flex justify-between items-center">
+        <div className="flex-1">
+          <Skeleton variant="text" width={280} height={32} className="!mb-2" />
+          <Skeleton variant="text" width={400} height={20} />
+        </div>
+        <div className="flex gap-3">
+          <Skeleton
+            variant="rectangular"
+            width={140}
+            height={28}
+            className="!rounded-full"
+          />
+          <Skeleton
+            variant="rectangular"
+            width={100}
+            height={28}
+            className="!rounded-full"
+          />
+          <Skeleton
+            variant="rectangular"
+            width={150}
+            height={28}
+            className="!rounded-full"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // Stats Card Skeleton Component
+  const StatsCardSkeleton = () => (
+    <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+      <div className="flex justify-between items-start mb-4">
+        <Skeleton variant="text" width={120} height={16} />
+        <Skeleton
+          variant="circular"
+          width={32}
+          height={32}
+          className="!bg-gray-200"
+        />
+      </div>
+      <div className="flex items-end gap-2 mb-4">
+        <Skeleton variant="text" width={100} height={32} />
+        <Skeleton variant="text" width={140} height={16} />
+      </div>
+      <Skeleton
+        variant="rectangular"
+        width="100%"
+        height={8}
+        className="!rounded-full !bg-gray-200"
+      />
+    </div>
+  );
+
+  // Chart Skeleton Component
+  const ChartSkeleton = ({ height = 288 }: { height?: number }) => (
+    <div className="relative" style={{ height: `${height}px` }}>
+      <div className="absolute inset-0 flex flex-col">
+        {/* Chart Area */}
+        <div className="flex-1 relative">
+          {/* Y-axis labels */}
+          <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between w-12">
+            {[1, 2, 3, 4, 5].map(i => (
+              <Skeleton
+                key={i}
+                variant="text"
+                width={40}
+                height={12}
+                className="!bg-gray-200"
+              />
+            ))}
+          </div>
+
+          {/* Chart bars/lines */}
+          <div className="absolute left-12 right-0 top-0 bottom-12 flex items-end justify-between gap-2 px-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
+              <Skeleton
+                key={i}
+                variant="rectangular"
+                width="8%"
+                style={{
+                  height: `${60 + (i % 3) * 15}%`,
+                }}
+                className="!bg-gray-200 !rounded-t"
+              />
+            ))}
+          </div>
+
+          {/* X-axis labels */}
+          <div className="absolute left-12 right-0 bottom-0 h-12 flex items-center justify-between px-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
+              <Skeleton
+                key={i}
+                variant="text"
+                width={30}
+                height={12}
+                className="!bg-gray-200"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Doughnut Chart Skeleton Component
+  const DoughnutChartSkeleton = () => (
+    <div className="h-72 w-full flex flex-col items-center justify-center">
+      <div className="relative mb-6">
+        <Skeleton
+          variant="circular"
+          width={200}
+          height={200}
+          className="!bg-gray-200"
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Skeleton
+            variant="circular"
+            width={100}
+            height={100}
+            className="!bg-white"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+        {[1, 2].map(i => (
+          <div key={i} className="flex items-center gap-2">
+            <Skeleton
+              variant="rectangular"
+              width={12}
+              height={12}
+              className="!bg-gray-200 !rounded"
+            />
+            <Skeleton variant="text" width={80} height={14} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Sales Distribution Skeleton Component
+  const SalesDistributionSkeleton = () => (
+    <div className="space-y-4">
+      {[1, 2, 3].map(item => (
+        <div key={item}>
+          <div className="flex justify-between mb-2">
+            <Skeleton variant="text" width={120} height={16} />
+            <Skeleton variant="text" width={80} height={16} />
+          </div>
+          <Skeleton
+            variant="rectangular"
+            width="100%"
+            height={8}
+            className="!rounded-full !bg-gray-200 !mb-1"
+          />
+          <Skeleton variant="text" width={150} height={12} />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <HeaderSkeleton />
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => (
+            <StatsCardSkeleton key={i} />
+          ))}
+        </div>
+
+        {/* Charts Row Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+              <ChartSkeleton height={288} />
+            </div>
+          </div>
+          <div className="md:col-span-1">
+            <div className="bg-white shadow-sm p-1 rounded-lg border border-gray-100">
+              <Skeleton
+                variant="text"
+                width={150}
+                height={24}
+                className="!mb-4"
+              />
+              <DoughnutChartSkeleton />
+            </div>
+          </div>
+        </div>
+
+        {/* Top Products Chart Skeleton */}
+        <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+          <ChartSkeleton height={288} />
+        </div>
+
+        {/* Revenue Trend Chart Skeleton */}
+        <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+          <ChartSkeleton height={288} />
+        </div>
+
+        {/* Composed Chart Skeleton */}
+        <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+          <ChartSkeleton height={320} />
+        </div>
+
+        {/* Revenue Distribution Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+            <Skeleton
+              variant="text"
+              width={180}
+              height={24}
+              className="!mb-4"
+            />
+            <div className="h-64 w-full flex items-center justify-center">
+              <Skeleton
+                variant="circular"
+                width={200}
+                height={200}
+                className="!bg-gray-200"
+              />
+            </div>
+          </div>
+          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+            <Skeleton
+              variant="text"
+              width={150}
+              height={24}
+              className="!mb-4"
+            />
+            <SalesDistributionSkeleton />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
@@ -448,49 +695,38 @@ const ExecutiveDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats_cards.map(stat => {
           const colors = getColorClasses(stat.color);
-          const isLoading = statsLoading;
 
           return (
             <div
               key={stat.title}
               className="bg-white shadow-sm p-6 rounded-lg border border-gray-100"
             >
-              {isLoading ? (
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-2 bg-gray-200 rounded"></div>
+              <div className="flex justify-between items-start mb-4">
+                <span className="text-sm text-gray-500 font-medium">
+                  {stat.title}
+                </span>
+                <div
+                  className={`flex items-center justify-center w-8 h-8 rounded-lg ${colors.icon}`}
+                >
+                  <stat.icon size={16} />
                 </div>
-              ) : (
-                <>
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="text-sm text-gray-500 font-medium">
-                      {stat.title}
-                    </span>
-                    <div
-                      className={`flex items-center justify-center w-8 h-8 rounded-lg ${colors.icon}`}
-                    >
-                      <stat.icon size={16} />
-                    </div>
-                  </div>
+              </div>
 
-                  <div className="flex items-end gap-2 mb-4">
-                    <span className="text-2xl font-bold text-gray-900">
-                      {stat.value}
-                    </span>
-                    <span className={`text-sm font-medium ${colors.text}`}>
-                      {stat.description}
-                    </span>
-                  </div>
+              <div className="flex items-end gap-2 mb-4">
+                <span className="text-2xl font-bold text-gray-900">
+                  {stat.value}
+                </span>
+                <span className={`text-sm font-medium ${colors.text}`}>
+                  {stat.description}
+                </span>
+              </div>
 
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all ${colors.progress}`}
-                      style={{ width: `${Math.min(stat.progress, 100)}%` }}
-                    ></div>
-                  </div>
-                </>
-              )}
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all ${colors.progress}`}
+                  style={{ width: `${Math.min(stat.progress, 100)}%` }}
+                ></div>
+              </div>
             </div>
           );
         })}
@@ -503,9 +739,7 @@ const ExecutiveDashboard: React.FC = () => {
               Sales Performance & Trends
             </h3>
             {salesLoading ? (
-              <div className="h-72 flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
-              </div>
+              <ChartSkeleton height={288} />
             ) : hasLineChartData ? (
               <div className="h-72 w-full">
                 <Line data={lineChartDataValue} options={lineChartOptions} />
@@ -529,9 +763,7 @@ const ExecutiveDashboard: React.FC = () => {
               Order Status
             </h3>
             {orderStatusLoading ? (
-              <div className="h-72 flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
-              </div>
+              <DoughnutChartSkeleton />
             ) : hasPieChartData ? (
               <div className="h-72 w-full flex items-center justify-center">
                 <Doughnut
@@ -560,9 +792,7 @@ const ExecutiveDashboard: React.FC = () => {
               Top Selling Products (Last 30 Days)
             </h3>
             {productsLoading ? (
-              <div className="h-72 flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
-              </div>
+              <ChartSkeleton height={288} />
             ) : (
               <div className="h-72 w-full">
                 <Bar data={barChartDataValue} options={barChartOptions} />
@@ -577,9 +807,7 @@ const ExecutiveDashboard: React.FC = () => {
               Revenue Trend
             </h3>
             {salesLoading ? (
-              <div className="h-72 flex items-center justify-center">
-                <div className="animate-pulse text-gray-400">Loading...</div>
-              </div>
+              <ChartSkeleton height={288} />
             ) : (
               <div className="h-72 w-full">
                 <Line data={areaChartDataValue} options={lineChartOptions} />
@@ -595,9 +823,7 @@ const ExecutiveDashboard: React.FC = () => {
             Sales vs Orders Performance
           </h3>
           {salesLoading ? (
-            <div className="h-80 flex items-center justify-center">
-              <div className="animate-pulse text-gray-400">Loading...</div>
-            </div>
+            <ChartSkeleton height={320} />
           ) : (
             <div className="h-80 w-full">
               <Chart

@@ -12,6 +12,7 @@ import { useFormik } from 'formik';
 import { useRequestsByUsers, useTakeActionOnRequest } from 'hooks/useRequests';
 import { Check, FileText, X } from 'lucide-react';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Request } from 'services/requests';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -28,6 +29,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
   open,
   setOpen,
 }) => {
+  const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'approve' | 'reject'>('approve');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
@@ -222,75 +224,66 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                     key={request.id}
                     className="!bg-white !rounded-lg !border !border-gray-200 !p-3 !hover:!shadow-md !transition-shadow"
                   >
-                    <div className="!flex !items-start !justify-between !mb-2">
-                      <div className="!flex-1 !pr-2 !min-w-0">
-                        <div className="!flex !items-center !gap-2 !mb-1">
-                          <Typography
-                            variant="body2"
-                            className="!font-semibold !text-gray-900"
-                          >
-                            {referenceNumber}
-                          </Typography>
-                          <Chip
-                            label={requestTypeLabel}
-                            size="small"
-                            className="!capitalize !text-xs !h-5"
-                          />
-                        </div>
+                    <div className="!flex !items-center !justify-between !mb-2">
+                      <div className="!flex !items-center !gap-2 !flex-1 !min-w-0">
                         <Typography
-                          variant="caption"
-                          className="!text-gray-600 !text-xs !leading-tight"
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
                         >
-                          <span className="!font-medium">{requesterName}</span>{' '}
-                          has requested{' '}
-                          <span className="!font-medium">
-                            {requestTypeLabel} Approval
-                          </span>{' '}
-                          for{' '}
-                          <span className="!font-medium">
-                            {referenceNumber}
-                          </span>
-                          .
+                          {referenceNumber}
                         </Typography>
+                        <Chip
+                          label={requestTypeLabel}
+                          size="small"
+                          className="!capitalize !text-xs !h-5"
+                        />
                       </div>
                     </div>
 
-                    <div className="!flex !items-center !gap-2 !mb-2 !flex-wrap">
-                      <Chip
-                        label={getStatusLabel(approvalStatus)}
-                        color={getStatusColor(approvalStatus) as any}
-                        size="small"
-                        className="!capitalize !text-xs !h-5"
-                      />
-                      <div className="!flex !items-center !gap-1 !text-xs !text-gray-500">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-600 !text-xs !leading-tight !block !mb-3"
+                    >
+                      <span className="!font-medium">{requesterName}</span> has
+                      requested{' '}
+                      <span className="!font-medium">
+                        {requestTypeLabel} Approval
+                      </span>
+                    </Typography>
+
+                    <div className="!flex !items-center !justify-between !gap-2">
+                      <div className="!flex !items-center !gap-2 !flex-wrap">
+                        <Chip
+                          label={getStatusLabel(approvalStatus)}
+                          color={getStatusColor(approvalStatus) as any}
+                          size="small"
+                          className="!capitalize !text-xs !h-5"
+                        />
                         {request.createdate && (
-                          <>
-                            <span className="!mx-1">•</span>
-                            <span>
-                              {formatDate(
-                                request.createdate instanceof Date
-                                  ? request.createdate.toISOString()
-                                  : String(request.createdate)
-                              )}
-                            </span>
-                          </>
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs"
+                          >
+                            {formatDate(
+                              request.createdate instanceof Date
+                                ? request.createdate.toISOString()
+                                : String(request.createdate)
+                            )}
+                          </Typography>
                         )}
                       </div>
-                    </div>
-
-                    <div className="!flex !items-center justify-end !gap-2 !border-t !border-gray-100 !pt-2">
-                      <div className="!flex !gap-2">
+                      <div className="!flex !gap-2 !shrink-0">
                         <Button
                           variant="contained"
                           color="success"
                           size="small"
-                          startIcon={<Check className="!w-5 !h-5" />}
+                          startIcon={<Check className="!w-4 !h-4" />}
                           onClick={() => handleApproveClick(request)}
                           disabled={
                             approvalStatus?.toUpperCase() !== 'P' &&
                             approvalStatus?.toUpperCase() !== 'PENDING'
                           }
-                          className="!flex-1 !text-xs !h-8 !w-26"
+                          className="!text-xs !h-8 !px-3"
                         >
                           Approve
                         </Button>
@@ -298,13 +291,13 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                           variant="contained"
                           color="error"
                           size="small"
-                          startIcon={<X className="!w-5 !h-5" />}
+                          startIcon={<X className="!w-4 !h-4" />}
                           onClick={() => handleRejectClick(request)}
                           disabled={
                             approvalStatus?.toUpperCase() !== 'P' &&
                             approvalStatus?.toUpperCase() !== 'PENDING'
                           }
-                          className="!flex-1 !text-xs !h-8 !w-26"
+                          className="!text-xs !h-8 !px-3"
                         >
                           Reject
                         </Button>
@@ -315,6 +308,18 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
               })}
             </div>
           )}
+          <div className="!mt-4 !pt-4 !border-t !border-gray-200 !flex !justify-end">
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setOpen(false);
+                navigate('/workflows/approvals');
+              }}
+            >
+              View All
+            </Button>
+          </div>
         </div>
       </CustomDrawer>
 
@@ -380,6 +385,99 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
         </DialogTitle>
 
         <DialogContent className="!p-4">
+          {selectedRequest && (
+            <div className="!mb-4 !pb-4 !border-b !border-gray-200">
+              <Typography
+                variant="subtitle2"
+                className="!font-semibold !text-gray-700 !mb-3"
+              >
+                Request Details
+              </Typography>
+              {selectedRequest.reference_details ? (
+                <div className="!bg-gray-50 !rounded-md !p-4 !border !border-gray-200">
+                  <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                    {selectedRequest.reference_details.order_number && (
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Order Number
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {selectedRequest.reference_details.order_number}
+                        </Typography>
+                      </div>
+                    )}
+
+                    {selectedRequest.reference_details.customer_name && (
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Customer Name
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {selectedRequest.reference_details.customer_name}
+                        </Typography>
+                      </div>
+                    )}
+
+                    {selectedRequest.reference_details.total_amount && (
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Total Amount
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-primary-600"
+                        >
+                          {selectedRequest.reference_details.total_amount}
+                        </Typography>
+                      </div>
+                    )}
+
+                    {selectedRequest.reference_id && (
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Reference ID
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          #{selectedRequest.reference_id}
+                        </Typography>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="!bg-gray-50 !rounded-md !p-4 !border !border-gray-200">
+                  <Typography
+                    variant="body2"
+                    className="!text-gray-600 !text-center"
+                  >
+                    No request details available
+                  </Typography>
+                </div>
+              )}
+            </div>
+          )}
+
           <Input
             name="remarks"
             multiline

@@ -36,6 +36,38 @@ interface SurveyResponse {
     name: string;
     email: string;
   } | null;
+  customer?: {
+    id: number;
+    name: string;
+    code: string;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
+    outstanding_amount: number;
+    credit_limit: number;
+    is_active: string;
+  } | null;
+  survey_response_customer?: {
+    id: number;
+    name: string;
+    code: string;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
+    outstanding_amount: number;
+    credit_limit: number;
+    is_active: string;
+  } | null;
   answers?: SurveyAnswer[] | null;
 }
 

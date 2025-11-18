@@ -1,163 +1,230 @@
-import { Chip, MenuItem, Typography } from '@mui/material';
 import {
-  useApprovalWorkflows,
-  useApproveWorkflowStep,
-  useRejectWorkflowStep,
-} from 'hooks/useApprovalWorkflows';
-import { Check, X } from 'lucide-react';
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  MenuItem,
+  Typography,
+} from '@mui/material';
+import { useFormik } from 'formik';
+import {
+  useRequestsByUsers,
+  useTakeActionOnRequest,
+  useRequestTypes,
+} from 'hooks/useRequests';
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle,
+  FileText,
+  X,
+  XCircle,
+} from 'lucide-react';
 import React, { useState } from 'react';
-import type { ApprovalWorkflow } from 'services/approvalWorkflows';
+import type { Request } from 'services/requests';
 import { ActionButton } from 'shared/ActionButton';
-import { PopConfirm } from 'shared/DeleteConfirmation';
+import Button from 'shared/Button';
+import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
+import * as yup from 'yup';
 
 const ApprovalWorkflows: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [requestTypeFilter, setRequestTypeFilter] = useState('all');
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit] = useState(6);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<'approve' | 'reject'>('approve');
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
 
-  const { data: workflowsResponse, isLoading } = useApprovalWorkflows({
+  const { data: requestsResponse, isLoading } = useRequestsByUsers({
     page,
     limit,
     search: search || undefined,
     status: statusFilter !== 'all' ? statusFilter : undefined,
-    priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+    request_type: requestTypeFilter !== 'all' ? requestTypeFilter : undefined,
   });
 
-  const workflows: ApprovalWorkflow[] = workflowsResponse?.data || [];
-  const pagination = workflowsResponse?.meta;
+  const { data: requestTypesResponse } = useRequestTypes();
 
-  const approveMutation = useApproveWorkflowStep();
-  const rejectMutation = useRejectWorkflowStep();
+  const requests: Request[] = requestsResponse?.data || [];
+  const pagination = requestsResponse?.pagination;
+  const stats = requestsResponse?.stats;
+  const requestTypes = requestTypesResponse?.data || [];
 
-  const handleApprove = (workflow: ApprovalWorkflow) => {
-    approveMutation.mutate({
-      id: workflow.id,
-    });
+  const takeActionMutation = useTakeActionOnRequest();
+
+  const formik = useFormik({
+    initialValues: {
+      remarks: '',
+    },
+    validationSchema: yup.object({
+      remarks: yup
+        .string()
+        .required(
+          `${dialogType === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
+        )
+        .trim()
+        .min(
+          1,
+          `${dialogType === 'approve' ? 'Approval' : 'Rejection'} remarks are required`
+        ),
+    }),
+    enableReinitialize: true,
+    onSubmit: async values => {
+      if (!selectedRequest || !selectedRequest.approvals?.[0]) return;
+
+      try {
+        await takeActionMutation.mutateAsync({
+          request_id: selectedRequest.id,
+          approval_id: selectedRequest.approvals[0].id,
+          action: dialogType === 'approve' ? 'A' : 'R',
+          remarks: values.remarks.trim(),
+        });
+        formik.resetForm();
+        setDialogOpen(false);
+        setSelectedRequest(null);
+      } catch (error) {
+        console.error('Error taking action on request:', error);
+      }
+    },
+  });
+
+  const handleApproveClick = (request: Request) => {
+    setSelectedRequest(request);
+    setDialogType('approve');
+    setDialogOpen(true);
   };
 
-  const handleReject = (workflow: ApprovalWorkflow) => {
-    rejectMutation.mutate({
-      id: workflow.id,
-      rejectionReason: 'Rejected by user',
-    });
+  const handleRejectClick = (request: Request) => {
+    setSelectedRequest(request);
+    setDialogType('reject');
+    setDialogOpen(true);
   };
 
-  const canApproveOrReject = (workflow: ApprovalWorkflow) => {
-    return workflow.status === 'P';
+  const handleDialogCancel = () => {
+    formik.resetForm();
+    setDialogOpen(false);
+    setSelectedRequest(null);
+  };
+
+  const canApproveOrReject = (request: Request) => {
+    const approvalStatus = request.approvals?.[0]?.status || request.status;
+    return (
+      approvalStatus?.toUpperCase() === 'P' ||
+      approvalStatus?.toUpperCase() === 'PENDING'
+    );
+  };
+
+  const formatRequestType = (type: string): string => {
+    return type
+      .replace(/_/g, ' ')
+      .replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1));
+  };
+
+  const getReferenceNumber = (request: Request): string => {
+    if (request.reference_details?.order_number) {
+      return request.reference_details.order_number;
+    }
+    if (request.reference_id) {
+      return `#${request.reference_id}`;
+    }
+    return `REQ-${request.id}`;
   };
 
   const getStatusColor = (status: string | null) => {
     if (!status) return 'default';
-    switch (status) {
+    const normalizedStatus = status.toUpperCase();
+    switch (normalizedStatus) {
       case 'A':
+      case 'APPROVED':
         return 'success';
       case 'R':
+      case 'REJECTED':
         return 'error';
       case 'P':
+      case 'PENDING':
         return 'warning';
       default:
         return 'default';
     }
   };
 
-  const getPriorityColor = (priority: string | null) => {
-    if (!priority) return 'default';
-    switch (priority.toLowerCase()) {
-      case 'high':
-        return 'error';
-      case 'medium':
-        return 'warning';
-      case 'low':
-        return 'info';
+  const getStatusLabel = (status: string | null) => {
+    if (!status) return 'N/A';
+    const normalizedStatus = status.toUpperCase();
+    switch (normalizedStatus) {
+      case 'A':
+      case 'APPROVED':
+        return 'Approved';
+      case 'R':
+      case 'REJECTED':
+        return 'Rejected';
+      case 'P':
+      case 'PENDING':
+        return 'Pending';
       default:
-        return 'default';
+        return status;
     }
   };
 
-  const columns: TableColumn<ApprovalWorkflow>[] = [
+  const columns: TableColumn<Request>[] = [
     {
-      id: 'reference_number',
-      label: 'Reference Number',
+      id: 'reference',
+      label: 'Reference',
       render: (_value, row) => (
         <Typography variant="body2" className="!font-medium">
-          {row.reference_number}
+          {getReferenceNumber(row)}
         </Typography>
       ),
     },
     {
-      id: 'workflow_type',
-      label: 'Workflow Type',
+      id: 'request_type',
+      label: 'Request Type',
       render: (_value, row) => (
-        <Chip label={row.workflow_type} size="small" className="!capitalize" />
+        <Chip
+          label={formatRequestType(row.request_type)}
+          size="small"
+          className="!capitalize"
+        />
       ),
     },
     {
-      id: 'requested_by',
+      id: 'requester',
       label: 'Requested By',
       render: (_value, row) =>
-        row.requested_by_user?.name || `User #${row.requested_by}`,
+        row.requester?.name || `User #${row.requester_id}`,
     },
     {
       id: 'status',
       label: 'Status',
-      render: (_value, row) => (
-        <Chip
-          label={
-            row.status === 'P'
-              ? 'Pending'
-              : row.status === 'A'
-                ? 'Approved'
-                : row.status === 'R'
-                  ? 'Rejected'
-                  : 'N/A'
-          }
-          color={getStatusColor(row.status) as any}
-          size="small"
-          className="!capitalize"
-        />
-      ),
+      render: (_value, row) => {
+        const approvalStatus = row.approvals?.[0]?.status || row.status;
+        return (
+          <Chip
+            label={getStatusLabel(approvalStatus)}
+            color={getStatusColor(approvalStatus) as any}
+            size="small"
+            className="!capitalize"
+          />
+        );
+      },
     },
     {
-      id: 'priority',
-      label: 'Priority',
-      render: (_value, row) => (
-        <Chip
-          label={row.priority || 'N/A'}
-          color={getPriorityColor(row.priority) as any}
-          size="small"
-          className="!capitalize"
-        />
-      ),
-    },
-    {
-      id: 'progress',
-      label: 'Progress',
-      render: (_value, row) => (
-        <div className="!flex !items-center !gap-2">
-          <Typography variant="body2" className="!text-sm">
-            Step {row.current_step || 0} of {row.total_steps}
-          </Typography>
-          <div className="!flex-1 !max-w-[100px] !bg-gray-200 !rounded-full !h-2">
-            <div
-              className="!bg-blue-600 !h-2 !rounded-full"
-              style={{
-                width: `${((row.current_step || 0) / row.total_steps) * 100}%`,
-              }}
-            />
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 'request_date',
+      id: 'createdate',
       label: 'Request Date',
-      render: (_value, row) => formatDate(row.request_date) || 'N/A',
+      render: (_value, row) =>
+        formatDate(
+          row.createdate instanceof Date
+            ? row.createdate.toISOString()
+            : String(row.createdate || '')
+        ) || 'N/A',
     },
     {
       id: 'actions',
@@ -167,40 +234,20 @@ const ApprovalWorkflows: React.FC = () => {
         const canAction = canApproveOrReject(row);
         return (
           <div className="!flex !gap-2 !items-center">
-            <PopConfirm
-              title="Approve Workflow"
-              description={`Are you sure you want to approve workflow ${row.reference_number}?`}
-              onConfirm={() => handleApprove(row)}
-              confirmText="Approve"
-              cancelText="Cancel"
-              placement="top"
-              disabled={!canAction || approveMutation.isPending}
-            >
-              <ActionButton
-                onClick={() => {}}
-                tooltip="Approve workflow"
-                icon={<Check className="!w-4 !h-4" />}
-                color="success"
-                disabled={!canAction || approveMutation.isPending}
-              />
-            </PopConfirm>
-            <PopConfirm
-              title="Reject Workflow"
-              description={`Are you sure you want to reject workflow ${row.reference_number}?`}
-              onConfirm={() => handleReject(row)}
-              confirmText="Reject"
-              cancelText="Cancel"
-              placement="top"
-              disabled={!canAction || rejectMutation.isPending}
-            >
-              <ActionButton
-                onClick={() => {}}
-                tooltip="Reject workflow"
-                icon={<X className="!w-4 !h-4" />}
-                color="error"
-                disabled={!canAction || rejectMutation.isPending}
-              />
-            </PopConfirm>
+            <ActionButton
+              onClick={() => handleApproveClick(row)}
+              tooltip="Approve request"
+              icon={<Check className="!w-4 !h-4" />}
+              color="success"
+              disabled={!canAction || takeActionMutation.isPending}
+            />
+            <ActionButton
+              onClick={() => handleRejectClick(row)}
+              tooltip="Reject request"
+              icon={<X className="!w-4 !h-4" />}
+              color="error"
+              disabled={!canAction || takeActionMutation.isPending}
+            />
           </div>
         );
       },
@@ -212,62 +259,350 @@ const ApprovalWorkflows: React.FC = () => {
       <div className="!mb-3 !flex !justify-between !items-center">
         <div>
           <Typography variant="h6" className="!font-bold !text-gray-900">
-            Approval Workflows
+            Approval Requests
           </Typography>
           <Typography variant="body2" className="!text-gray-500">
-            Manage and track approval workflows for various business processes
+            Manage and track approval requests for various business processes
           </Typography>
         </div>
       </div>
 
-      <div className="!bg-white !rounded-lg !shadow-sm !p-4 !mb-6">
-        <div className="!flex !flex-wrap !gap-4 !items-end">
-          <div className="!flex-1 ">
-            <SearchInput
-              placeholder="Search Approval Workflows..."
-              value={search}
-              onChange={setSearch}
-              className="!min-w-[300px]"
-            />
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-primary-500">
+                Total Requests
+              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-primary-500">
+                  {stats?.total_requests || 0}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <FileText className="w-6 h-6 text-primary-500" />
+            </div>
           </div>
-          <div className="!w-[180px]">
-            <Select
-              label="Status"
-              value={statusFilter}
-              fullWidth
-              onChange={e => setStatusFilter(e.target.value)}
-            >
-              <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="P">Pending</MenuItem>
-              <MenuItem value="A">Approved</MenuItem>
-              <MenuItem value="R">Rejected</MenuItem>
-            </Select>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-orange-600">
+                Pending Requests
+              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-orange-600">
+                  {stats?.pending_requests || 0}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-orange-600" />
+            </div>
           </div>
-          <div className="!w-[180px]">
-            <Select
-              label="Priority"
-              value={priorityFilter}
-              fullWidth
-              onChange={e => setPriorityFilter(e.target.value)}
-            >
-              <MenuItem value="all">All Priorities</MenuItem>
-              <MenuItem value="high">High</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="low">Low</MenuItem>
-            </Select>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-green-500">
+                Approved Requests
+              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-green-500">
+                  {stats?.approved_requests || 0}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-red-600">
+                Rejected Requests
+              </p>
+              {isLoading ? (
+                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-red-600">
+                  {stats?.rejected_requests || 0}
+                </p>
+              )}
+            </div>
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <XCircle className="w-6 h-6 text-red-600" />
+            </div>
           </div>
         </div>
       </div>
 
       <Table
         columns={columns}
-        data={workflows}
+        data={requests}
         loading={isLoading}
         page={page - 1}
         onPageChange={newPage => setPage(newPage + 1)}
         rowsPerPage={limit}
         totalCount={pagination?.total_count || 0}
+        actions={
+          <div className="flex justify-between gap-3 items-center flex-wrap">
+            <div className="flex flex-wrap items-center gap-3">
+              <SearchInput
+                placeholder="Search requests..."
+                value={search}
+                onChange={setSearch}
+                debounceMs={400}
+                showClear={true}
+                className="!w-80"
+              />
+              <Select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                className="!w-40"
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="P">Pending</MenuItem>
+                <MenuItem value="A">Approved</MenuItem>
+                <MenuItem value="R">Rejected</MenuItem>
+              </Select>
+              <Select
+                value={requestTypeFilter}
+                onChange={e => setRequestTypeFilter(e.target.value)}
+                className="!w-48"
+              >
+                <MenuItem value="all">All Types</MenuItem>
+                {requestTypes.map(type => (
+                  <MenuItem key={type.value} value={type.value}>
+                    {type.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </div>
+          </div>
+        }
+        emptyMessage={
+          search
+            ? `No requests found matching "${search}"`
+            : 'No approval requests found'
+        }
       />
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={dialogOpen}
+        onClose={handleDialogCancel}
+        maxWidth="sm"
+        fullWidth
+        className="!rounded-lg"
+      >
+        <DialogTitle className="!flex !items-center !gap-3 !pb-4 !border-b !border-gray-200 !relative">
+          <div
+            className={`!w-12 !h-12 !rounded-full !flex !items-center !justify-center !shrink-0 ${
+              dialogType === 'approve' ? '!bg-green-100' : '!bg-red-100'
+            }`}
+          >
+            {dialogType === 'approve' ? (
+              <Check className="!w-6 !h-6 !text-green-600" />
+            ) : (
+              <X className="!w-6 !h-6 !text-red-600" />
+            )}
+          </div>
+          <div className="!flex-1">
+            <Typography variant="h6" className="!font-semibold !text-gray-900">
+              {dialogType === 'approve'
+                ? 'Approve Request?'
+                : 'Reject Request?'}
+            </Typography>
+            <Typography variant="body2" className="!text-gray-600 !mt-1">
+              {dialogType === 'approve' ? (
+                <>
+                  Are you sure you want to approve this{' '}
+                  {selectedRequest?.request_type
+                    ?.replaceAll('_', ' ')
+                    .toLowerCase() || 'request'}{' '}
+                  from{' '}
+                  <span className="!font-semibold !text-gray-900">
+                    {selectedRequest?.requester?.name || 'User'}
+                  </span>
+                  ?
+                </>
+              ) : (
+                <>
+                  Are you sure you want to reject this{' '}
+                  {selectedRequest?.request_type?.toLowerCase() || 'request'}{' '}
+                  from{' '}
+                  <span className="!font-semibold !text-gray-900">
+                    {selectedRequest?.requester?.name || 'User'}
+                  </span>
+                  ?
+                </>
+              )}
+            </Typography>
+          </div>
+          <IconButton
+            onClick={handleDialogCancel}
+            className="!absolute !top-2 !right-2 !bg-white !rounded-full !shadow-md hover:!bg-gray-100 !border !border-gray-200"
+            size="small"
+          >
+            <X className="!w-4 !h-4 !text-gray-600" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent className="!p-4">
+          {selectedRequest && (
+            <div className="!mb-4 !pb-4 !border-b !border-gray-200">
+              <Typography
+                variant="subtitle2"
+                className="!font-semibold !text-gray-700 !mb-3"
+              >
+                Request Details
+              </Typography>
+              {selectedRequest.reference_details ? (
+                <div className="!bg-gray-50 !rounded-md !p-4 !border !border-gray-200">
+                  <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                    {selectedRequest.reference_details.order_number && (
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Order Number
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {selectedRequest.reference_details.order_number}
+                        </Typography>
+                      </div>
+                    )}
+
+                    {selectedRequest.reference_details.customer_name && (
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Customer Name
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {selectedRequest.reference_details.customer_name}
+                        </Typography>
+                      </div>
+                    )}
+
+                    {selectedRequest.reference_details.total_amount && (
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Total Amount
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-primary-600"
+                        >
+                          {selectedRequest.reference_details.total_amount}
+                        </Typography>
+                      </div>
+                    )}
+
+                    {selectedRequest.reference_id && (
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                        >
+                          Reference ID
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          #{selectedRequest.reference_id}
+                        </Typography>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="!bg-gray-50 !rounded-md !p-4 !border !border-gray-200">
+                  <Typography
+                    variant="body2"
+                    className="!text-gray-600 !text-center"
+                  >
+                    No request details available
+                  </Typography>
+                </div>
+              )}
+            </div>
+          )}
+
+          <Input
+            name="remarks"
+            multiline
+            rows={3}
+            label={
+              dialogType === 'approve'
+                ? 'Approval Remarks'
+                : 'Rejection Remarks'
+            }
+            placeholder={
+              dialogType === 'approve'
+                ? 'Enter approval remarks...'
+                : 'Enter rejection remarks...'
+            }
+            formik={formik}
+            required
+          />
+        </DialogContent>
+
+        <DialogActions className="!px-6 !py-4 !gap-2">
+          <Button variant="outlined" onClick={handleDialogCancel}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color={dialogType === 'approve' ? 'success' : 'error'}
+            startIcon={
+              dialogType === 'approve' ? (
+                <Check className="!w-4 !h-4" />
+              ) : (
+                <X className="!w-4 !h-4" />
+              )
+            }
+            onClick={() => formik.handleSubmit()}
+            disabled={
+              takeActionMutation.isPending ||
+              !formik.isValid ||
+              !formik.values.remarks.trim()
+            }
+          >
+            {takeActionMutation.isPending
+              ? dialogType === 'approve'
+                ? 'Approving...'
+                : 'Rejecting...'
+              : dialogType === 'approve'
+                ? 'Yes, Approve'
+                : 'Yes, Reject'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

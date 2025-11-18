@@ -252,7 +252,13 @@ export const depotsController = {
       const { id } = req.params;
       const depot = await prisma.depots.findUnique({
         where: { id: Number(id) },
-        include: { depot_companies: true, user_depot: true },
+        include: {
+          depot_companies: true,
+          user_depot: true,
+          depots_manager: true,
+          depots_supervisior: true,
+          depots_coodrinator: true,
+        },
       });
 
       if (!depot) {

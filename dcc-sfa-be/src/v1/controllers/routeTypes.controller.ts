@@ -59,7 +59,7 @@ export const routeTypesController = {
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
-      const statusLower = status ? (search as string).toLowerCase() : '';
+      const statusLower = status ? (status as string).toLowerCase() : '';
 
       const filters: any = {
         ...(search && {

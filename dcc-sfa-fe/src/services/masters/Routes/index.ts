@@ -19,10 +19,20 @@ interface Route {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  customer_routes?: {
+  customer_routes?: Array<{
     id: number;
     name: string;
-  }[];
+    code: string;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
+    is_active: string;
+  }>;
   routes_depots?: {
     id: number;
     name: string;
@@ -37,10 +47,33 @@ interface Route {
     name: string;
     email: string;
   } | null;
-  visits?: {
+  routes_route_type?: {
     id: number;
     name: string;
-  }[];
+  } | null;
+  visit_routes?: Array<{
+    id: number;
+    customer_id: number;
+    sales_person_id: number;
+    visit_date?: string | null;
+    visit_time?: string | null;
+    purpose?: string | null;
+    status?: string | null;
+    start_time?: string | null;
+    end_time?: string | null;
+    duration?: number | null;
+    check_in_time?: string | null;
+    check_out_time?: string | null;
+    orders_created?: number | null;
+    amount_collected?: string | null;
+    visit_notes?: string | null;
+    customer_feedback?: string | null;
+    next_visit_date?: string | null;
+    is_active: string;
+    createdate?: string | null;
+    visit_customers?: { id: number; name: string; code: string } | null;
+    visits_salesperson?: { id: number; name: string; email: string } | null;
+  }>;
 }
 
 interface ManageRoutePayload {
@@ -121,7 +154,9 @@ export const fetchRoutes = async (
  * @param id - Route ID
  * @returns Promise<ApiResponse<Route>>
  */
-export const fetchRouteById = async (id: number): Promise<ApiResponse<Route>> => {
+export const fetchRouteById = async (
+  id: number
+): Promise<ApiResponse<Route>> => {
   try {
     const response = await axiosInstance.get(`/routes/${id}`);
     return response.data;

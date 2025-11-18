@@ -39,6 +39,21 @@ interface Depot {
     email: string;
     name: string;
   }>;
+  depots_manager?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+  depots_supervisior?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+  depots_coodrinator?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
   // Additional computed fields for display
   company_name?: string;
   manager_name?: string;

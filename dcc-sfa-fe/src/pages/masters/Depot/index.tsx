@@ -1,4 +1,11 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  Upload,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useCompanies } from 'hooks/useCompanies';
 import { useDeleteDepot, useDepots, type Depot } from 'hooks/useDepots';
@@ -14,7 +21,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
@@ -25,6 +33,7 @@ import ManageDepot from './ManageDepot';
 import ImportDepot from './ImportDepot';
 
 const DepotsManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
@@ -82,6 +91,13 @@ const DepotsManagement: React.FC = () => {
     setSelectedDepot(depot);
     setDrawerOpen(true);
   }, []);
+
+  const handleViewDepot = useCallback(
+    (depot: Depot) => {
+      navigate(`/masters/depots/${depot.id}`);
+    },
+    [navigate]
+  );
 
   const handleDeleteDepot = useCallback(
     async (id: number) => {
@@ -224,6 +240,12 @@ const DepotsManagement: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
+          <ActionButton
+            onClick={() => handleViewDepot(row)}
+            tooltip={`View ${row.name}`}
+            icon={<Visibility fontSize="small" />}
+            color="info"
+          />
           <EditButton
             onClick={() => handleEditDepot(row)}
             tooltip={`Edit ${row.name}`}

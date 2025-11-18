@@ -1,4 +1,11 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  Upload,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { useUsers } from 'hooks/useUsers';
@@ -13,16 +20,18 @@ import {
   XCircle,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import ManageVisit from './ManageVisit';
 import ImportVisit from './ImportVisit';
+import ManageVisit from './ManageVisit';
 
 const VisitLogging: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [salespersonFilter, setSalespersonFilter] = useState('all');
@@ -78,6 +87,13 @@ const VisitLogging: React.FC = () => {
     setSelectedVisit(visit);
     setDrawerOpen(true);
   }, []);
+
+  const handleViewVisit = useCallback(
+    (visit: Visit) => {
+      navigate(`/transactions/visits/${visit.id}`);
+    },
+    [navigate]
+  );
 
   const handleDeleteVisit = useCallback(
     async (id: number) => {
@@ -281,6 +297,12 @@ const VisitLogging: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <div className="!flex !gap-2 !items-center">
+          <ActionButton
+            onClick={() => handleViewVisit(row)}
+            tooltip={`View visit for ${row.customer?.name}`}
+            icon={<Visibility fontSize="small" />}
+            color="info"
+          />
           <EditButton
             onClick={() => handleEditVisit(row)}
             tooltip={`Edit visit for ${row.customer?.name}`}

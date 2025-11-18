@@ -1,7 +1,13 @@
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useSurveyResponse } from 'hooks/useSurveyResponses';
-import { AlertTriangle, ArrowLeft, BarChart3, FileText } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  BarChart3,
+  FileText,
+  User,
+} from 'lucide-react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from 'shared/Button';
@@ -595,6 +601,200 @@ const SurveyResponseDetail: React.FC = () => {
           </InfoCard>
         </div>
       </div>
+
+      {(response.customer || response.survey_response_customer) && (
+        <InfoCard title="Customer Information" icon={User}>
+          {(() => {
+            const customer =
+              response.customer || response.survey_response_customer;
+            if (!customer) return null;
+
+            return (
+              <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
+                <div className="!space-y-0.5">
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  >
+                    Customer Name
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    {customer.name}
+                  </Typography>
+                </div>
+
+                {customer.code && (
+                  <div className="!space-y-0.5">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                    >
+                      Customer Code
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900"
+                    >
+                      {customer.code}
+                    </Typography>
+                  </div>
+                )}
+
+                {customer.type && (
+                  <div className="!space-y-0.5">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                    >
+                      Customer Type
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900"
+                    >
+                      {customer.type}
+                    </Typography>
+                  </div>
+                )}
+
+                {customer.contact_person && (
+                  <div className="!space-y-0.5">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                    >
+                      Contact Person
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900"
+                    >
+                      {customer.contact_person}
+                    </Typography>
+                  </div>
+                )}
+
+                {customer.phone_number && (
+                  <div className="!space-y-0.5">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                    >
+                      Phone Number
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900"
+                    >
+                      {customer.phone_number}
+                    </Typography>
+                  </div>
+                )}
+
+                {customer.email && (
+                  <div className="!space-y-0.5">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                    >
+                      Email
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900 !break-all"
+                    >
+                      {customer.email}
+                    </Typography>
+                  </div>
+                )}
+
+                {(customer.city || customer.state || customer.zipcode) && (
+                  <div className="!space-y-0.5">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                    >
+                      Location
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900"
+                    >
+                      {[customer.city, customer.state, customer.zipcode]
+                        .filter(Boolean)
+                        .join(', ') || 'N/A'}
+                    </Typography>
+                  </div>
+                )}
+
+                {customer.address && (
+                  <div className="!space-y-0.5 md:!col-span-2 lg:!col-span-3">
+                    <Typography
+                      variant="caption"
+                      className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                    >
+                      Address
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      className="!font-semibold !text-gray-900"
+                    >
+                      {customer.address}
+                    </Typography>
+                  </div>
+                )}
+
+                <div className="!space-y-0.5">
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  >
+                    Credit Limit
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    ₹{Number(customer.credit_limit).toLocaleString()}
+                  </Typography>
+                </div>
+
+                <div className="!space-y-0.5">
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  >
+                    Outstanding Amount
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-red-600"
+                  >
+                    ₹{Number(customer.outstanding_amount).toLocaleString()}
+                  </Typography>
+                </div>
+
+                <div className="!space-y-0.5">
+                  <Typography
+                    variant="caption"
+                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  >
+                    Status
+                  </Typography>
+                  <Chip
+                    label={customer.is_active === 'Y' ? 'Active' : 'Inactive'}
+                    size="small"
+                    color={customer.is_active === 'Y' ? 'success' : 'error'}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+        </InfoCard>
+      )}
 
       <div className="!mt-4">
         <Button

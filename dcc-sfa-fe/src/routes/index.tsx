@@ -11,8 +11,10 @@ import AssetTypesManagement from 'pages/masters/AssetTypes';
 import BrandsManagement from 'pages/masters/Brands';
 import CompaniesManagement from 'pages/masters/Companies';
 import CompetitorActivityManagement from 'pages/masters/CompetitorActivity';
+import CustomerComplaintsPage from 'pages/masters/CustomerComplaints';
 import CurrenciesManagement from 'pages/masters/Currencies';
 import DepotsManagement from 'pages/masters/Depot';
+import DepotDetail from 'pages/masters/Depot/DepotDetail';
 import KpiTargetsManagement from 'pages/masters/KpiTargets';
 import LoginHistoryPage from 'pages/masters/LoginHistory';
 import OutletsManagement from 'pages/masters/Outlet';
@@ -24,6 +26,7 @@ import ProductsManagement from 'pages/masters/Products';
 import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
+import RouteDetail from 'pages/masters/Routes/RouteDetail';
 import RouteTypesManagement from 'pages/masters/RouteTypes';
 import SalesBonusRulesManagement from 'pages/masters/SalesBonusRules';
 import SalesTargetGroupsManagement from 'pages/masters/SalesTargetGroups';
@@ -70,6 +73,7 @@ import PaymentDetail from 'pages/transactions/PaymentCollection/PaymentDetail';
 import ReturnRequests from 'pages/transactions/ReturnRequests';
 import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequestDetail';
 import SurveyAnswers from 'pages/transactions/VisitLogging';
+import VisitDetail from 'pages/transactions/VisitLogging/VisitDetail';
 import AlertsReminders from 'pages/workflows/AlertsReminders';
 import ApprovalSetup from 'pages/workflows/ApprovalSetup';
 import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
@@ -130,6 +134,10 @@ const router = createBrowserRouter(
           element: <DepotsManagement />,
         },
         {
+          path: '/masters/depots/:id',
+          element: <DepotDetail />,
+        },
+        {
           path: '/masters/zones',
           element: <ZonesManagement />,
         },
@@ -140,6 +148,10 @@ const router = createBrowserRouter(
         {
           path: '/masters/routes',
           element: <RoutesManagement />,
+        },
+        {
+          path: '/masters/routes/:id',
+          element: <RouteDetail />,
         },
         {
           path: '/masters/route-types',
@@ -222,6 +234,10 @@ const router = createBrowserRouter(
           element: <SurveyDetail />,
         },
         {
+          path: '/masters/customer-complaints',
+          element: <CustomerComplaintsPage />,
+        },
+        {
           path: '/transactions/orders',
           element: <OrdersManagement />,
         },
@@ -260,6 +276,10 @@ const router = createBrowserRouter(
         {
           path: '/transactions/visits',
           element: <SurveyAnswers />,
+        },
+        {
+          path: '/transactions/visits/:id',
+          element: <VisitDetail />,
         },
         {
           path: '/transactions/asset-movement',
