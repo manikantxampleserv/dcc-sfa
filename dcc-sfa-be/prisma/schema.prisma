@@ -2113,8 +2113,9 @@ model system_settings {
 model customer_complaints {
   id                    Int       @id @default(autoincrement())
   customer_id           Int
+  complaint_title       String    @db.NVarChar(255)
   complaint_description String    @db.NVarChar(Max)
-  status                String    @default("P") @db.Char(1)
+  status                String?   @default("P") @db.Char(1)
   createdate            DateTime? @default(now()) @db.DateTime
   submitted_by          Int
   createdby             Int

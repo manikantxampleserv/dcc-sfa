@@ -4,6 +4,7 @@ import { paginate } from '../../utils/paginate';
 
 const serializeComplaint = (c: any) => ({
   id: c.id,
+  complaint_title: c.complaint_title,
   customer_id: c.customer_id,
   complaint_description: c.complaint_description,
   status: c.status,
@@ -47,6 +48,7 @@ export const customerComplaintsController = {
 
         const payload = {
           customer_id: complaint.customer_id,
+          complaint_title: complaint.complaint_title,
           complaint_description: complaint.complaint_description,
           status: complaint.status || 'P',
           submitted_by: complaint.submitted_by,
@@ -122,7 +124,7 @@ export const customerComplaintsController = {
 
       if (search) {
         filters.OR = [
-          { complaint_description: { contains: search as string } },
+          { complaint: { contains: search as string } },
           {
             customer_complaint: {
               name: { contains: search as string },
