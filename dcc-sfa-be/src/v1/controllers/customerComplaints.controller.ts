@@ -47,11 +47,11 @@ export const customerComplaintsController = {
         const isUpdate = Boolean(complaintId);
 
         const payload = {
-          customer_id: complaint.customer_id,
+          customer_id: Number(complaint.customer_id),
           complaint_title: complaint.complaint_title,
           complaint_description: complaint.complaint_description,
           status: complaint.status || 'P',
-          submitted_by: complaint.submitted_by,
+          submitted_by: Number(complaint.submitted_by),
         };
 
         let result;

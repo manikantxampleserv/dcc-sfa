@@ -6,7 +6,7 @@ export class CustomerComplaintsImportExportService extends ImportExportService<a
   protected modelName = 'customer_complaints' as const;
   protected displayName = 'Customer Complaints';
   protected uniqueFields: string[] = [];
-  protected searchFields = ['complaint_description'];
+  protected searchFields = ['complaint_title', 'complaint_description'];
 
   protected columns: ColumnDefinition[] = [
     {
@@ -23,6 +23,21 @@ export class CustomerComplaintsImportExportService extends ImportExportService<a
       },
       description:
         'ID of the customer (required, must exist in customers table)',
+    },
+    {
+      key: 'complaint_title',
+      header: 'Complaint Title',
+      width: 30,
+      required: true,
+      type: 'string',
+      validation: value => {
+        if (!value || value.trim().length === 0)
+          return 'Complaint title is required';
+        if (value.trim().length > 255)
+          return 'Complaint title must be less than 255 characters';
+        return true;
+      },
+      description: 'Title of the complaint (required, max 255 characters)',
     },
     {
       key: 'complaint_description',
@@ -72,6 +87,7 @@ export class CustomerComplaintsImportExportService extends ImportExportService<a
     return [
       {
         customer_id: 1,
+        complaint_title: 'Product Quality Issue',
         complaint_description:
           'Product quality issue - received damaged goods in last delivery',
         status: 'P',
@@ -79,6 +95,7 @@ export class CustomerComplaintsImportExportService extends ImportExportService<a
       },
       {
         customer_id: 2,
+        complaint_title: 'Delivery Delay',
         complaint_description:
           'Delivery delay - order was supposed to arrive on Monday but came on Wednesday',
         status: 'P',
@@ -86,6 +103,7 @@ export class CustomerComplaintsImportExportService extends ImportExportService<a
       },
       {
         customer_id: 3,
+        complaint_title: 'Billing Discrepancy',
         complaint_description:
           'Billing discrepancy - invoice amount does not match order total',
         status: 'R',
@@ -102,6 +120,7 @@ export class CustomerComplaintsImportExportService extends ImportExportService<a
   protected async transformDataForExport(data: any[]): Promise<any[]> {
     return data.map(complaint => ({
       customer_id: complaint.customer_id,
+      complaint_title: complaint.complaint_title || '',
       complaint_description: complaint.complaint_description || '',
       status: complaint.status || 'P',
       submitted_by: complaint.submitted_by || '',
@@ -148,6 +167,7 @@ export class CustomerComplaintsImportExportService extends ImportExportService<a
   ): Promise<any> {
     return {
       customer_id: Number(data.customer_id),
+      complaint_title: data.complaint_title,
       complaint_description: data.complaint_description,
       status: data.status || 'P',
       submitted_by: Number(data.submitted_by),

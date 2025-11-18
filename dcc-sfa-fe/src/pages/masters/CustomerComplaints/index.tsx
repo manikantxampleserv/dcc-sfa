@@ -124,6 +124,15 @@ const CustomerComplaintsPage: React.FC = () => {
 
   const columns: TableColumn<CustomerComplaint>[] = [
     {
+      id: 'complaint_title',
+      label: 'Title',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!font-medium !text-gray-900">
+          {row.complaint_title || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
       id: 'customer',
       label: 'Customer',
       render: (_value, row) => (

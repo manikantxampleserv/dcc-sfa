@@ -2,6 +2,11 @@ import { body, ValidationChain } from 'express-validator';
 
 const validateComplaintFields = () => [
   body('customer_id').isInt().withMessage('Customer ID is required'),
+  body('complaint_title')
+    .notEmpty()
+    .withMessage('Complaint title is required')
+    .isLength({ max: 255 })
+    .withMessage('Complaint title must be less than 255 characters'),
   body('complaint_description')
     .notEmpty()
     .withMessage('Complaint description is required'),
@@ -25,6 +30,12 @@ export const createCustomerComplaintsValidation: ValidationChain[] = [
     .if(body().isArray())
     .isInt()
     .withMessage('Customer ID is required'),
+  body('*.complaint_title')
+    .if(body().isArray())
+    .notEmpty()
+    .withMessage('Complaint title is required')
+    .isLength({ max: 255 })
+    .withMessage('Complaint title must be less than 255 characters'),
   body('*.complaint_description')
     .if(body().isArray())
     .notEmpty()
@@ -42,6 +53,12 @@ export const createCustomerComplaintsValidation: ValidationChain[] = [
     .if(body().isObject())
     .isInt()
     .withMessage('Customer ID is required'),
+  body('complaint_title')
+    .if(body().isObject())
+    .notEmpty()
+    .withMessage('Complaint title is required')
+    .isLength({ max: 255 })
+    .withMessage('Complaint title must be less than 255 characters'),
   body('complaint_description')
     .if(body().isObject())
     .notEmpty()

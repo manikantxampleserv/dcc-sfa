@@ -23,6 +23,10 @@ interface ManageCustomerComplaintProps {
 
 const validationSchema = yup.object({
   customer_id: yup.number().required('Customer is required'),
+  complaint_title: yup
+    .string()
+    .required('Complaint title is required')
+    .max(255, 'Complaint title must be less than 255 characters'),
   complaint_description: yup
     .string()
     .required('Complaint description is required')
@@ -50,6 +54,7 @@ const ManageCustomerComplaint: React.FC<ManageCustomerComplaintProps> = ({
   const formik = useFormik({
     initialValues: {
       customer_id: selectedComplaint?.customer_id || 0,
+      complaint_title: selectedComplaint?.complaint_title || '',
       complaint_description: selectedComplaint?.complaint_description || '',
       status: selectedComplaint?.status || 'P',
       submitted_by: selectedComplaint?.submitted_by_user?.id || 0,
@@ -60,6 +65,7 @@ const ManageCustomerComplaint: React.FC<ManageCustomerComplaintProps> = ({
       try {
         const complaintData = {
           customer_id: values.customer_id,
+          complaint_title: values.complaint_title,
           complaint_description: values.complaint_description,
           status: values.status,
           submitted_by: values.submitted_by,
@@ -98,6 +104,16 @@ const ManageCustomerComplaint: React.FC<ManageCustomerComplaintProps> = ({
                 formik={formik}
                 required
                 nameToSearch={selectedComplaint?.customer?.name || ''}
+              />
+            </Box>
+
+            <Box className="md:!col-span-2">
+              <Input
+                name="complaint_title"
+                label="Complaint Title"
+                placeholder="Enter complaint title"
+                formik={formik}
+                required
               />
             </Box>
 

@@ -11,6 +11,7 @@ import type { ApiResponse } from 'types/api.types';
 export interface CustomerComplaint {
   id: number;
   customer_id: number;
+  complaint_title: string;
   complaint_description: string;
   status: string;
   createdate: string | null;
@@ -40,6 +41,7 @@ export interface GetCustomerComplaintsParams {
 
 export interface ManageCustomerComplaintPayload {
   customer_id: number;
+  complaint_title: string;
   complaint_description: string;
   status?: string;
   submitted_by: number;
@@ -47,6 +49,7 @@ export interface ManageCustomerComplaintPayload {
 
 export interface UpdateCustomerComplaintPayload {
   customer_id?: number;
+  complaint_title?: string;
   complaint_description?: string;
   status?: string;
   submitted_by?: number;
