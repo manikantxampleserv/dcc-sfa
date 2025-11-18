@@ -84,32 +84,82 @@ export class CustomerComplaintsImportExportService extends ImportExportService<a
   ];
 
   protected async getSampleData(): Promise<any[]> {
-    return [
-      {
-        customer_id: 1,
-        complaint_title: 'Product Quality Issue',
-        complaint_description:
-          'Product quality issue - received damaged goods in last delivery',
-        status: 'P',
-        submitted_by: 1,
-      },
-      {
-        customer_id: 2,
-        complaint_title: 'Delivery Delay',
-        complaint_description:
-          'Delivery delay - order was supposed to arrive on Monday but came on Wednesday',
-        status: 'P',
-        submitted_by: 1,
-      },
-      {
-        customer_id: 3,
-        complaint_title: 'Billing Discrepancy',
-        complaint_description:
-          'Billing discrepancy - invoice amount does not match order total',
-        status: 'R',
-        submitted_by: 1,
-      },
-    ];
+    try {
+      // Fetch actual IDs from database to ensure validity
+      const customers = await prisma.customers.findMany({
+        take: 3,
+        select: { id: true, name: true },
+        orderBy: { id: 'asc' },
+      });
+      const users = await prisma.users.findMany({
+        take: 1,
+        select: { id: true, name: true },
+        orderBy: { id: 'asc' },
+      });
+
+      const customerIds = customers.map(c => c.id);
+      const userIds = users.map(u => u.id);
+
+      const customerId1 = customerIds[0] || 999;
+      const customerId2 = customerIds[1] || 999;
+      const customerId3 = customerIds[2] || 999;
+      const userId1 = userIds[0] || 999;
+
+      return [
+        {
+          customer_id: customerId1,
+          complaint_title: 'Product Quality Issue',
+          complaint_description:
+            'Product quality issue - received damaged goods in last delivery',
+          status: 'P',
+          submitted_by: userId1,
+        },
+        {
+          customer_id: customerId2 || customerId1,
+          complaint_title: 'Delivery Delay',
+          complaint_description:
+            'Delivery delay - order was supposed to arrive on Monday but came on Wednesday',
+          status: 'P',
+          submitted_by: userId1,
+        },
+        {
+          customer_id: customerId3 || customerId1,
+          complaint_title: 'Billing Discrepancy',
+          complaint_description:
+            'Billing discrepancy - invoice amount does not match order total',
+          status: 'R',
+          submitted_by: userId1,
+        },
+      ];
+    } catch (error) {
+      // Fallback to placeholder data if database query fails
+      return [
+        {
+          customer_id: 999,
+          complaint_title: 'Product Quality Issue',
+          complaint_description:
+            'Product quality issue - received damaged goods in last delivery. Please replace customer_id with a valid customer ID from your database.',
+          status: 'P',
+          submitted_by: 999,
+        },
+        {
+          customer_id: 999,
+          complaint_title: 'Delivery Delay',
+          complaint_description:
+            'Delivery delay - order was supposed to arrive on Monday but came on Wednesday. Please replace customer_id with a valid customer ID from your database.',
+          status: 'P',
+          submitted_by: 999,
+        },
+        {
+          customer_id: 999,
+          complaint_title: 'Billing Discrepancy',
+          complaint_description:
+            'Billing discrepancy - invoice amount does not match order total. Please replace customer_id and submitted_by with valid IDs from your database.',
+          status: 'R',
+          submitted_by: 999,
+        },
+      ];
+    }
   }
 
   protected getColumnDescription(key: string): string {
