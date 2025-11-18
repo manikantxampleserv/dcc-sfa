@@ -753,6 +753,7 @@ model customers {
   route_plan_details_customers     route_plan_details[]
   serial_numbers_customers         serial_numbers[]
   visit_customers                  visits[]
+  survey_response_customer         survey_responses[]       @relation("SurveyRresponsesCustomer")
   warranty_claims_customers        warranty_claims[]
 }
 
@@ -1748,6 +1749,7 @@ model survey_fields {
 model survey_responses {
   id                                  Int              @id(map: "PK__survey_r__3213E83FEC719727") @default(autoincrement())
   parent_id                           Int
+  customer_id                         Int?
   submitted_by                        Int
   submitted_at                        DateTime?        @default(now(), map: "DF__survey_re__submi__5CD6CB2B")
   location                            String?          @db.NVarChar(255)
@@ -1759,8 +1761,9 @@ model survey_responses {
   updatedby                           Int?
   log_inst                            Int?
   survey_answer_responses             survey_answers[]
-  surveys                             surveys          @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__survey_re__paren__5FB337D6")
-  survey_responses_submitted_by_users users            @relation("survey_responses_submitted_users", fields: [submitted_by], references: [id], onUpdate: NoAction)
+  survey_response_customer            customers?       @relation("SurveyRresponsesCustomer", fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  surveys                             surveys          @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  survey_responses_submitted_by_users users            @relation("survey_responses_submitted_users", fields: [submitted_by], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model surveys {

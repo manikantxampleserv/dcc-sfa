@@ -1,687 +1,428 @@
-// import { PrismaClient } from '@prisma/client';
-// import { Request, Response } from 'express';
+// async createOrUpdateSurveyResponse(req: any, res: any) {
+//   const data = req.body;
+//   const userId = req.user?.id || 1;
 
-// const prisma = new PrismaClient();
+//   try {
+//     // Check if this is a bulk request
+//     const isBulk = Array.isArray(data.responses);
 
-// interface WorkflowData {
-//   request_type: string;
-//   sequence: number;
-//   approver_id: number;
-//   zone_id?: number | null;
-//   depot_id?: number | null;
-//   header_approval_type?: string;
-//   header_role_id?: number | null;
-//   remarks?: string;
-//   is_active?: string;
-//   createdby?: number;
-//   updatedby?: number;
-//   log_inst?: number;
-// }
-
-// const serializeApprovalWorkFlowData = (data: any) => ({
-//   request_type: data.request_type || '',
-//   sequence: data.sequence ? Number(data.sequence) : 1,
-//   approver_id: Number(data.approver_id),
-//   zone_id: data.zone_id ? Number(data.zone_id) : null,
-//   depot_id: data.depot_id ? Number(data.depot_id) : null,
-//   header_approval_type: data.header_approval_type || '',
-//   header_role_id: data.header_role_id ? Number(data.header_role_id) : null,
-//   remarks: data.remarks || '',
-//   is_active: data.is_active || 'Y',
-// });
-
-// export const approvalWorkflowController = {
-//   // ============================================
-//   // 1. CREATE APPROVAL WORKFLOW
-//   // ============================================
-//   async createApprovalWorkFlow(req: Request, res: Response) {
-//     try {
-//       let dataArray: any[] = req.body;
-//       const userId = req.user?.id || 1;
-
-//       if (!Array.isArray(dataArray)) {
-//         dataArray = [dataArray];
-//       }
-
-//       const serializedData = dataArray.map(data => ({
-//         ...serializeApprovalWorkFlowData(data),
-//         createdby: userId,
-//         createdate: new Date(),
-//         log_inst: data.log_inst ? Number(data.log_inst) : 1,
-//       }));
-
-//       // Validate approvers BEFORE creating
-//       for (const data of dataArray) {
-//         const approver = await prisma.users.findUnique({
-//           where: { id: Number(data.approver_id) },
-//           select: {
-//             id: true,
-//             name: true,
-//             zone_id: true,
-//             depot_id: true,
-//           },
-//         });
-
-//         if (!approver) {
-//           return res.status(400).json({
-//             message: `Approver with ID ${data.approver_id} not found`,
-//           });
-//         }
-
-//         // Validate zone match
-//         if (data.zone_id && approver.zone_id !== Number(data.zone_id)) {
-//           const zone = await prisma.zones.findUnique({
-//             where: { id: Number(data.zone_id) },
-//             select: { name: true },
-//           });
-
-//           return res.status(400).json({
-//             message: `Approver ${approver.name} does not belong to ${zone?.name} zone`,
-//           });
-//         }
-//       }
-
-//       // Create workflows
-//       const result = await prisma.approval_work_flow.createMany({
-//         data: serializedData,
-//       });
-
-//       // Fetch created workflows with relations
-//       const createdWorkflows = await prisma.approval_work_flow.findMany({
-//         where: {
-//           request_type: dataArray[0].request_type,
-//         },
-//         include: {
-//           approval_work_flow_approver: {
-//             select: {
-//               id: true,
-//               name: true,
-//               email: true,
-//             },
-//           },
-//           approval_work_flow_zone: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//           approval_work_flow_depot: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//         },
-//         orderBy: { createdate: 'desc' },
-//         take: dataArray.length,
-//       });
-
-//       res.status(201).json({
-//         message: 'Approval workflow created successfully',
-//         data: createdWorkflows,
-//       });
-//     } catch (error: any) {
-//       console.error('Create Workflow Error:', error);
-//       res.status(500).json({
-//         message: 'Failed to create approval workflow',
-//         error: error.message,
-//       });
+//     if (isBulk) {
+//       // Handle bulk responses
+//       return await surveyResponseController.createBulkSurveyResponses(req, res);
 //     }
-//   },
 
-//   // ============================================
-//   // 2. GET APPROVAL WORKFLOW BY ID
-//   // ============================================
-//   async getApprovalWorkFlowById(req: Request, res: Response) {
-//     try {
-//       const { id } = req.params;
+//     // Single response logic (existing functionality)
+//     let photoPath: string | null = null;
 
-//       const workflow = await prisma.approval_work_flow.findUnique({
-//         where: { id: Number(id) },
-//         include: {
-//           approval_work_flow_approver: {
-//             select: {
-//               id: true,
-//               name: true,
-//               email: true,
-//             },
-//           },
-//           approval_work_flow_zone: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//           approval_work_flow_depot: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//         },
-//       });
-
-//       if (!workflow) {
-//         return res.status(404).json({ message: 'Approval workflow not found' });
+//     let answerItems = [];
+//     if (typeof data.answers === 'string') {
+//       try {
+//         answerItems = JSON.parse(data.answers);
+//       } catch (e) {
+//         answerItems = [];
 //       }
-
-//       res.json({
-//         message: 'Approval workflow fetched successfully',
-//         data: workflow,
-//       });
-//     } catch (error: any) {
-//       console.error('Get Workflow Error:', error);
-//       res.status(500).json({ message: error.message });
+//     } else {
+//       answerItems = data.survey_answers || data.answers || [];
 //     }
-//   },
 
-//   // ============================================
-//   // 3. UPDATE APPROVAL WORKFLOW
-//   // ============================================
-//   async updateApprovalWorkFlow(req: Request, res: Response) {
-//     try {
-//       const { id } = req.params;
-//       const data = req.body;
-//       const userId = req.user?.id || 1;
+//     let responseId = data.id;
 
-//       if (!id || isNaN(Number(id))) {
-//         return res
-//           .status(400)
-//           .json({ message: 'Invalid or missing ID for update' });
-//       }
+//     let existingPhotoPath: string | null = null;
 
-//       // Validate approver if provided
-//       if (data.approver_id) {
-//         const approver = await prisma.users.findUnique({
-//           where: { id: Number(data.approver_id) },
-//           select: {
-//             zone_id: true,
-//             depot_id: true,
-//             name: true,
-//           },
-//         });
-
-//         if (!approver) {
-//           return res.status(400).json({
-//             message: `Approver with ID ${data.approver_id} not found`,
-//           });
-//         }
-
-//         if (data.zone_id && approver.zone_id !== Number(data.zone_id)) {
-//           return res.status(400).json({
-//             message: `Approver ${approver.name} does not belong to the specified zone`,
-//           });
-//         }
-//       }
-
-//       const updatedEntry = await prisma.approval_work_flow.update({
-//         where: { id: Number(id) },
-//         data: {
-//           ...serializeApprovalWorkFlowData(data),
-//           updatedby: userId,
-//           updatedate: new Date(),
-//         },
-//         include: {
-//           approval_work_flow_approver: {
-//             select: {
-//               id: true,
-//               name: true,
-//               email: true,
-//             },
-//           },
-//           approval_work_flow_zone: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//           approval_work_flow_depot: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//         },
+//     if (responseId) {
+//       const existingResponse = await prisma.survey_responses.findUnique({
+//         where: { id: Number(responseId) },
+//         select: { photo_url: true },
 //       });
-
-//       res.json({
-//         message: 'Approval workflow updated successfully',
-//         data: updatedEntry,
-//       });
-//     } catch (error: any) {
-//       console.error('Update Workflow Error:', error);
-//       res.status(500).json({ message: error.message });
+//       existingPhotoPath = existingResponse?.photo_url || null;
 //     }
-//   },
 
-//   // ============================================
-//   // 4. DELETE APPROVAL WORKFLOW (BY REQUEST TYPE)
-//   // ============================================
-//   async deleteApprovalWorkFlow(req: Request, res: Response) {
-//     try {
-//       const { requestType } = req.params;
-
-//       const result = await prisma.approval_work_flow.deleteMany({
-//         where: { request_type: requestType },
-//       });
-
-//       console.log(`🗑 Deleted ${result.count} workflows for ${requestType}`);
-
-//       res.json({
-//         message: `Deleted ${result.count} approval workflows for ${requestType}`,
-//       });
-//     } catch (error: any) {
-//       console.error('Delete Workflow Error:', error);
-//       res.status(500).json({ message: error.message });
-//     }
-//   },
-
-//   // ============================================
-//   // 5. DELETE MULTIPLE WORKFLOWS (BY IDS)
-//   // ============================================
-//   async deleteApprovalWorkFlows(req: Request, res: Response) {
-//     try {
-//       const { ids } = req.body;
-
-//       if (!Array.isArray(ids) || ids.length === 0) {
-//         return res.status(400).json({ message: 'IDs array is required' });
-//       }
-
-//       const result = await prisma.approval_work_flow.deleteMany({
-//         where: { id: { in: ids.map(Number) } },
-//       });
-
-//       console.log(`🗑 Deleted ${result.count} workflows by IDs`);
-
-//       res.json({
-//         message: `Deleted ${result.count} approval workflows`,
-//       });
-//     } catch (error: any) {
-//       console.error('Delete Workflows Error:', error);
-//       res.status(500).json({ message: error.message });
-//     }
-//   },
-
-//   // ============================================
-//   // 6. GET ALL APPROVAL WORKFLOWS (GROUPED)
-//   // ============================================
-//   async getAllApprovalWorkFlow(req: any, res: any) {
-//     try {
-//       const { page = 1, size = 10, search, startDate, endDate } = req.query;
-
-//       const pageNum = Number(page) || 1;
-//       const sizeNum = Number(size) || 10;
-
-//       const filters: any = {};
-
-//       if (startDate && endDate) {
-//         const start = new Date(startDate);
-//         const end = new Date(endDate);
-//         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-//           filters.createdate = { gte: start, lte: end };
-//         }
-//       }
-
-//       const workflows = await prisma.approval_work_flow.findMany({
-//         where: filters,
-//         orderBy: [
-//           { request_type: 'asc' },
-//           { zone_id: 'asc' },
-//           { depot_id: 'asc' },
-//           { sequence: 'asc' },
-//         ],
-//         include: {
-//           approval_work_flow_approver: {
-//             select: {
-//               id: true,
-//               name: true,
-//               email: true,
-//             },
-//           },
-//           approval_work_flow_zone: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//           approval_work_flow_depot: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//         },
-//       });
-
-//       // Group by request_type
-//       const grouped: any = {};
-
-//       for (const wf of workflows) {
-//         const type = wf.request_type;
-
-//         if (!grouped[type]) {
-//           grouped[type] = {
-//             request_type: type,
-//             zones: [],
-//             depots: [],
-//             no_of_approvers: 0,
-//             is_active: wf.is_active,
-//             request_approval_request: [],
-//           };
-//         }
-
-//         const zoneName =
-//           wf.approval_work_flow_zone?.name || 'Global (All Zones)';
-//         const depotName =
-//           wf.approval_work_flow_depot?.name || 'Global (All Depots)';
-
-//         if (!grouped[type].zones.some((z: any) => z.id === wf.zone_id)) {
-//           grouped[type].zones.push({
-//             id: wf.zone_id,
-//             name: zoneName,
-//             is_global: wf.zone_id === null,
-//           });
-//         }
-
-//         if (!grouped[type].depots.some((d: any) => d.id === wf.depot_id)) {
-//           grouped[type].depots.push({
-//             id: wf.depot_id,
-//             name: depotName,
-//             is_global: wf.depot_id === null,
-//           });
-//         }
-
-//         grouped[type].request_approval_request.push({
-//           id: wf.id,
-//           sequence: wf.sequence,
-//           approver_id: wf.approver_id,
-//           zone_id: wf.zone_id,
-//           depot_id: wf.depot_id,
-//           is_active: wf.is_active,
-//           createdate: wf.createdate,
-//           createdby: wf.createdby,
-//           updatedate: wf.updatedate,
-//           updatedby: wf.updatedby,
-//           log_inst: wf.log_inst,
-//           approval_work_flow_approver: {
-//             id: wf.approval_work_flow_approver?.id || null,
-//             name: wf.approval_work_flow_approver?.name || null,
-//             email: wf.approval_work_flow_approver?.email || null,
-//           },
-//         });
-
-//         grouped[type].no_of_approvers += 1;
-//       }
-
-//       const groupedArray = Object.values(grouped);
-//       const totalCount = groupedArray.length;
-//       const totalPages = Math.ceil(totalCount / sizeNum);
-//       const paginatedData = groupedArray.slice(
-//         (pageNum - 1) * sizeNum,
-//         pageNum * sizeNum
+//     if (req.file) {
+//       const fileName = `survey-responses/${Date.now()}-${req.file.originalname}`;
+//       photoPath = await uploadFile(
+//         req.file.buffer,
+//         fileName,
+//         req.file.mimetype
 //       );
 
-//       res.json({
-//         message: 'Approval workflows retrieved successfully',
-//         data: paginatedData,
-//         pagination: {
-//           currentPage: pageNum,
-//           size: sizeNum,
-//           totalPages,
-//           totalCount,
-//         },
-//         summary: {
-//           total_workflows: totalCount,
-//         },
-//       });
-//     } catch (error: any) {
-//       console.error('Get All Workflows Error:', error);
-//       res.status(500).json({ message: error.message });
-//     }
-//   },
-
-//   // ============================================
-//   // 7. GET WORKFLOWS BY REQUEST TYPE (ADVANCED PRIORITY LOGIC)
-//   // ============================================
-//   async getAllApprovalWorkFlowByRequest(req: Request, res: Response) {
-//     try {
-//       const { request_type, zone_id, depot_id } = req.query;
-
-//       if (!request_type) {
-//         return res.status(400).json({ message: 'Request type is required' });
+//       if (existingPhotoPath && responseId) {
+//         await deleteFile(existingPhotoPath);
 //       }
-
-//       const includeConfig = {
-//         approval_work_flow_approver: {
-//           select: {
-//             id: true,
-//             name: true,
-//             email: true,
-//           },
-//         },
-//         approval_work_flow_zone: {
-//           select: {
-//             id: true,
-//             name: true,
-//           },
-//         },
-//         approval_work_flow_depot: {
-//           select: {
-//             id: true,
-//             name: true,
-//           },
-//         },
-//       };
-
-//       // Priority: zone + depot > zone > depot > global
-//       if (zone_id && depot_id) {
-//         const results: any[] = [];
-//         const seenApprovers = new Set<number>();
-
-//         // Zone + Depot workflows
-//         const zoneDepotWorkflows = await prisma.approval_work_flow.findMany({
-//           where: {
-//             request_type: request_type as string,
-//             zone_id: Number(zone_id),
-//             depot_id: Number(depot_id),
-//             is_active: 'Y',
-//           },
-//           orderBy: { sequence: 'asc' },
-//           include: includeConfig,
-//         });
-
-//         zoneDepotWorkflows.forEach(wf => {
-//           results.push(wf);
-//           seenApprovers.add(wf.approver_id);
-//         });
-
-//         // Zone-only workflows
-//         const zoneWorkflows = await prisma.approval_work_flow.findMany({
-//           where: {
-//             request_type: request_type as string,
-//             zone_id: Number(zone_id),
-//             depot_id: null,
-//             is_active: 'Y',
-//           },
-//           orderBy: { sequence: 'asc' },
-//           include: includeConfig,
-//         });
-
-//         zoneWorkflows.forEach(wf => {
-//           if (!seenApprovers.has(wf.approver_id)) {
-//             results.push(wf);
-//             seenApprovers.add(wf.approver_id);
-//           }
-//         });
-
-//         // Depot-only workflows
-//         const depotWorkflows = await prisma.approval_work_flow.findMany({
-//           where: {
-//             request_type: request_type as string,
-//             depot_id: Number(depot_id),
-//             zone_id: null,
-//             is_active: 'Y',
-//           },
-//           orderBy: { sequence: 'asc' },
-//           include: includeConfig,
-//         });
-
-//         depotWorkflows.forEach(wf => {
-//           if (!seenApprovers.has(wf.approver_id)) {
-//             results.push(wf);
-//             seenApprovers.add(wf.approver_id);
-//           }
-//         });
-
-//         // Global workflows
-//         const globalWorkflows = await prisma.approval_work_flow.findMany({
-//           where: {
-//             request_type: request_type as string,
-//             zone_id: null,
-//             depot_id: null,
-//             is_active: 'Y',
-//           },
-//           orderBy: { sequence: 'asc' },
-//           include: includeConfig,
-//         });
-
-//         globalWorkflows.forEach(wf => {
-//           if (!seenApprovers.has(wf.approver_id)) {
-//             results.push(wf);
-//             seenApprovers.add(wf.approver_id);
-//           }
-//         });
-
-//         // Sort by sequence
-//         results.sort((a, b) => {
-//           if (a.sequence !== b.sequence) {
-//             return a.sequence - b.sequence;
-//           }
-//           return (
-//             new Date(b.createdate).getTime() - new Date(a.createdate).getTime()
-//           );
-//         });
-
-//         return res.json({
-//           success: true,
-//           data: results,
-//           meta: {
-//             total_approvers: results.length,
-//             workflow_type: 'merged',
-//           },
-//         });
-//       }
-
-//       // Similar logic for zone_id only, depot_id only, and global
-//       // ... (truncated for brevity, but follows same pattern)
-
-//       // Global fallback
-//       const workflows = await prisma.approval_work_flow.findMany({
-//         where: {
-//           request_type: request_type as string,
-//           zone_id: null,
-//           depot_id: null,
-//           is_active: 'Y',
-//         },
-//         orderBy: { sequence: 'asc' },
-//         include: includeConfig,
-//       });
-
-//       res.json({
-//         success: true,
-//         data: workflows,
-//         meta: {
-//           total_approvers: workflows.length,
-//           workflow_type: 'global',
-//         },
-//       });
-//     } catch (error: any) {
-//       console.error('Get Workflows By Request Error:', error);
-//       res.status(500).json({ message: error.message });
+//     } else if (responseId && existingPhotoPath) {
+//       photoPath = existingPhotoPath;
 //     }
-//   },
 
-//   // ============================================
-//   // 8. GET ZONES WITH WORKFLOWS
-//   // ============================================
-//   async getZonesWithWorkflows(req: Request, res: Response) {
-//     try {
-//       const { requestType } = req.params;
+//     const result = await prisma.$transaction(
+//       async tx => {
+//         let surveyResponse;
+//         let isUpdate = false;
 
-//       const zones = await prisma.approval_work_flow.findMany({
-//         where: {
-//           request_type: requestType,
-//           is_active: 'Y',
-//         },
-//         select: {
-//           zone_id: true,
-//           approval_work_flow_zone: {
-//             select: {
-//               id: true,
-//               name: true,
+//         if (responseId) {
+//           const existing = await tx.survey_responses.findUnique({
+//             where: { id: Number(responseId) },
+//           });
+//           if (existing) isUpdate = true;
+//         }
+
+//         if (!data.parent_id) {
+//           throw new Error('Invalid parent_id (survey): missing');
+//         }
+//         const surveyExists = await tx.surveys.findUnique({
+//           where: { id: Number(data.parent_id) },
+//         });
+//         if (!surveyExists)
+//           throw new Error(`Invalid parent_id: ${data.parent_id}`);
+
+//         if (!data.submitted_by) {
+//           throw new Error('Invalid submitted_by: missing');
+//         }
+//         const userExists = await tx.users.findUnique({
+//           where: { id: Number(data.submitted_by) },
+//         });
+//         if (!userExists)
+//           throw new Error(`Invalid submitted_by: ${data.submitted_by}`);
+
+//         if (Array.isArray(answerItems) && answerItems.length > 0) {
+//           for (const ans of answerItems) {
+//             if (!ans.field_id) {
+//               throw new Error(
+//                 'Invalid field_id in answers: missing field_id'
+//               );
+//             }
+//             const fieldExists = await tx.survey_fields.findUnique({
+//               where: { id: Number(ans.field_id) },
+//             });
+//             if (!fieldExists)
+//               throw new Error(`Invalid field_id in answers: ${ans.field_id}`);
+//           }
+//         }
+
+//         const payload = {
+//           parent_id: Number(data.parent_id),
+//           submitted_by: Number(data.submitted_by),
+//           submitted_at:
+//             data.submitted_at && data.submitted_at.trim() !== ''
+//               ? new Date(data.submitted_at)
+//               : new Date(),
+//           location: data.location || null,
+//           photo_url: photoPath,
+//           is_active: data.is_active || 'Y',
+//         };
+
+//         if (isUpdate && responseId) {
+//           surveyResponse = await tx.survey_responses.update({
+//             where: { id: Number(responseId) },
+//             data: {
+//               ...payload,
+//               updatedby: userId,
+//               updatedate: new Date(),
+//               log_inst: { increment: 1 },
+//             },
+//           });
+//         } else {
+//           surveyResponse = await tx.survey_responses.create({
+//             data: {
+//               ...payload,
+//               createdby: userId,
+//               createdate: new Date(),
+//               log_inst: 1,
+//             },
+//           });
+//           responseId = surveyResponse.id;
+//         }
+
+//         const processedAnswerIds: number[] = [];
+
+//         if (Array.isArray(answerItems) && answerItems.length > 0) {
+//           const answersToCreate: any[] = [];
+//           const answersToUpdate: { id: number; data: any }[] = [];
+
+//           for (const ans of answerItems) {
+//             const answerData = {
+//               parent_id: surveyResponse.id,
+//               field_id: Number(ans.field_id),
+//               answer: ans.answer || null,
+//             };
+
+//             if (ans.id) {
+//               const existingAnswer = await tx.survey_answers.findFirst({
+//                 where: {
+//                   id: Number(ans.id),
+//                   parent_id: surveyResponse.id,
+//                 },
+//               });
+
+//               if (existingAnswer) {
+//                 answersToUpdate.push({
+//                   id: Number(ans.id),
+//                   data: answerData,
+//                 });
+//                 processedAnswerIds.push(Number(ans.id));
+//               } else {
+//                 answersToCreate.push(answerData);
+//               }
+//             } else {
+//               answersToCreate.push(answerData);
+//             }
+//           }
+
+//           if (answersToCreate.length > 0) {
+//             const created = await tx.survey_answers.createMany({
+//               data: answersToCreate,
+//             });
+
+//             if (created.count > 0) {
+//               const newAnswers = await tx.survey_answers.findMany({
+//                 where: { parent_id: surveyResponse.id },
+//                 orderBy: { id: 'desc' },
+//                 take: created.count,
+//               });
+//               processedAnswerIds.push(...newAnswers.map(a => a.id));
+//             }
+//           }
+
+//           for (const { id, data } of answersToUpdate) {
+//             await tx.survey_answers.update({
+//               where: { id },
+//               data,
+//             });
+//           }
+
+//           if (isUpdate) {
+//             await tx.survey_answers.deleteMany({
+//               where: {
+//                 parent_id: surveyResponse.id,
+//                 ...(processedAnswerIds.length > 0
+//                   ? { id: { notIn: processedAnswerIds } }
+//                   : {}),
+//               },
+//             });
+//           }
+//         } else if (isUpdate) {
+//           await tx.survey_answers.deleteMany({
+//             where: { parent_id: surveyResponse.id },
+//           });
+//         }
+
+//         const finalResponse = await tx.survey_responses.findUnique({
+//           where: { id: surveyResponse.id },
+//           include: {
+//             surveys: true,
+//             survey_responses_submitted_by_users: true,
+//             survey_answer_responses: {
+//               include: {
+//                 survey_fields: true,
+//               },
 //             },
 //           },
-//         },
-//         distinct: ['zone_id'],
-//       });
+//         });
 
-//       const result = zones.map(z => ({
-//         zone_id: z.zone_id,
-//         zone_name: z.zone_id
-//           ? z.approval_work_flow_zone?.name
-//           : 'Global (All Zones)',
-//         is_global: z.zone_id === null,
-//       }));
+//         return { finalResponse, wasUpdate: isUpdate };
+//       },
+//       {
+//         maxWait: 10000,
+//         timeout: 20000,
+//       }
+//     );
 
-//       res.json({
-//         success: true,
-//         data: result,
-//       });
-//     } catch (error: any) {
-//       console.error('Get Zones Error:', error);
-//       res.status(500).json({ message: error.message });
+//     const finalResponse = (result as any).finalResponse;
+//     const wasUpdate = (result as any).wasUpdate === true;
+
+//     res.status(wasUpdate ? 200 : 201).json({
+//       message: wasUpdate
+//         ? 'Survey response updated successfully'
+//         : 'Survey response created successfully',
+//       data: serializeSurveyResponse(finalResponse),
+//     });
+//   } catch (error: any) {
+//     console.error('Create/Update Survey Response Error:', error);
+
+//     if (req.file && photoPath) {
+//       try {
+//         await deleteFile(photoPath);
+//       } catch (deleteError) {
+//         console.error(
+//           'Error deleting file after failed transaction:',
+//           deleteError
+//         );
+//       }
 //     }
-//   },
 
-//   // ============================================
-//   // 9. GET DEPOTS WITH WORKFLOWS
-//   // ============================================
-//   async getDepotsWithWorkflows(req: Request, res: Response) {
-//     try {
-//       const { requestType } = req.params;
-
-//       const depots = await prisma.approval_work_flow.findMany({
-//         where: {
-//           request_type: requestType,
-//           is_active: 'Y',
-//         },
-//         select: {
-//           depot_id: true,
-//           approval_work_flow_depot: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//         },
-//         distinct: ['depot_id'],
-//       });
-
-//       const result = depots.map(d => ({
-//         depot_id: d.depot_id,
-//         depot_name: d.depot_id
-//           ? d.approval_work_flow_depot?.name
-//           : 'Global (All Depots)',
-//         is_global: d.depot_id === null,
-//       }));
-
-//       res.json({
-//         success: true,
-//         data: result,
-//       });
-//     } catch (error: any) {
-//       console.error('Get Depots Error:', error);
-//       res.status(500).json({ message: error.message });
+//     if (error.message && error.message.startsWith('Invalid')) {
+//       return res.status(400).json({ message: error.message });
 //     }
-//   },
-// };
+//     if (error.message && error.message.includes('missing')) {
+//       return res.status(400).json({ message: error.message });
+//     }
+
+//     return res.status(500).json({
+//       message: 'Failed to process survey response',
+//       error: error.message,
+//     });
+//   }
+// },
+
+// async createBulkSurveyResponses(req: any, res: any) {
+//   const { responses } = req.body;
+//   const userId = req.user?.id || 1;
+
+//   if (!Array.isArray(responses) || responses.length === 0) {
+//     return res.status(400).json({
+//       message: 'Invalid bulk request: responses array is required and must not be empty',
+//     });
+//   }
+
+//   try {
+//     const results = await prisma.$transaction(
+//       async tx => {
+//         const createdResponses = [];
+//         const errors = [];
+
+//         for (let i = 0; i < responses.length; i++) {
+//           const responseData = responses[i];
+
+//           try {
+//             // Validate parent_id (survey)
+//             if (!responseData.parent_id) {
+//               throw new Error(`Response ${i + 1}: Invalid parent_id (survey): missing`);
+//             }
+//             const surveyExists = await tx.surveys.findUnique({
+//               where: { id: Number(responseData.parent_id) },
+//             });
+//             if (!surveyExists) {
+//               throw new Error(`Response ${i + 1}: Invalid parent_id: ${responseData.parent_id}`);
+//             }
+
+//             // Validate submitted_by
+//             if (!responseData.submitted_by) {
+//               throw new Error(`Response ${i + 1}: Invalid submitted_by: missing`);
+//             }
+//             const userExists = await tx.users.findUnique({
+//               where: { id: Number(responseData.submitted_by) },
+//             });
+//             if (!userExists) {
+//               throw new Error(`Response ${i + 1}: Invalid submitted_by: ${responseData.submitted_by}`);
+//             }
+
+//             // Parse answers
+//             let answerItems = [];
+//             if (typeof responseData.answers === 'string') {
+//               try {
+//                 answerItems = JSON.parse(responseData.answers);
+//               } catch (e) {
+//                 answerItems = [];
+//               }
+//             } else {
+//               answerItems = responseData.answers || [];
+//             }
+
+//             // Validate field_ids in answers
+//             if (Array.isArray(answerItems) && answerItems.length > 0) {
+//               for (const ans of answerItems) {
+//                 if (!ans.field_id) {
+//                   throw new Error(`Response ${i + 1}: Invalid field_id in answers: missing field_id`);
+//                 }
+//                 const fieldExists = await tx.survey_fields.findUnique({
+//                   where: { id: Number(ans.field_id) },
+//                 });
+//                 if (!fieldExists) {
+//                   throw new Error(`Response ${i + 1}: Invalid field_id in answers: ${ans.field_id}`);
+//                 }
+//               }
+//             }
+
+//             // Create survey response
+//             const surveyResponse = await tx.survey_responses.create({
+//               data: {
+//                 parent_id: Number(responseData.parent_id),
+//                 submitted_by: Number(responseData.submitted_by),
+//                 submitted_at:
+//                   responseData.submitted_at && responseData.submitted_at.trim() !== ''
+//                     ? new Date(responseData.submitted_at)
+//                     : new Date(),
+//                 location: responseData.location || null,
+//                 photo_url: responseData.photo_url || null,
+//                 is_active: responseData.is_active || 'Y',
+//                 createdby: userId,
+//                 createdate: new Date(),
+//                 log_inst: 1,
+//               },
+//             });
+
+//             // Create answers if provided
+//             if (Array.isArray(answerItems) && answerItems.length > 0) {
+//               const answersToCreate = answerItems.map((ans: any) => ({
+//                 parent_id: surveyResponse.id,
+//                 field_id: Number(ans.field_id),
+//                 answer: ans.answer || null,
+//               }));
+
+//               await tx.survey_answers.createMany({
+//                 data: answersToCreate,
+//               });
+//             }
+
+//             // Fetch the complete response with relations
+//             const finalResponse = await tx.survey_responses.findUnique({
+//               where: { id: surveyResponse.id },
+//               include: {
+//                 surveys: true,
+//                 survey_responses_submitted_by_users: true,
+//                 survey_answer_responses: {
+//                   include: {
+//                     survey_fields: true,
+//                   },
+//                 },
+//               },
+//             });
+
+//             createdResponses.push(serializeSurveyResponse(finalResponse));
+//           } catch (error: any) {
+//             errors.push({
+//               index: i,
+//               data: responseData,
+//               error: error.message,
+//             });
+//           }
+//         }
+
+//         return { createdResponses, errors };
+//       },
+//       {
+//         maxWait: 30000,
+//         timeout: 60000,
+//       }
+//     );
+
+//     const { createdResponses, errors } = results;
+
+//     if (errors.length > 0 && createdResponses.length === 0) {
+//       return res.status(400).json({
+//         message: 'All bulk survey responses failed',
+//         errors,
+//       });
+//     }
+
+//     res.status(201).json({
+//       message: `Bulk survey responses processed: ${createdResponses.length} created, ${errors.length} failed`,
+//       data: createdResponses,
+//       ...(errors.length > 0 && { errors }),
+//       summary: {
+//         total: responses.length,
+//         created: createdResponses.length,
+//         failed: errors.length,
+//       },
+//     });
+//   } catch (error: any) {
+//     console.error('Create Bulk Survey Responses Error:', error);
+
+//     if (error.message && error.message.startsWith('Invalid')) {
+//       return res.status(400).json({ message: error.message });
+//     }
+
+//     return res.status(500).json({
+//       message: 'Failed to process bulk survey responses',
+//       error: error.message,
+//     });
+//   }
+// },

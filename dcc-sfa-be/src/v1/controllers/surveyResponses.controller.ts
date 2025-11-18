@@ -3,87 +3,6 @@ import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 
-// interface SurveyAnswerSerialized {
-//   id: number;
-//   parent_id: number;
-//   field_id: number;
-//   answer?: string | null;
-//   field?: {
-//     id: number;
-//     name: string;
-//     type: string;
-//   } | null;
-// }
-
-// interface SurveyResponseSerialized {
-//   id: number;
-//   parent_id: number;
-//   submitted_by: number;
-//   submitted_at?: Date | null;
-//   location?: string | null;
-//   photo_url?: string | null;
-//   is_active: string;
-//   createdate?: Date | null;
-//   createdby: number;
-//   updatedate?: Date | null;
-//   updatedby?: number | null;
-//   log_inst?: number | null;
-//   survey?: {
-//     id: number;
-//     name: string;
-//     description?: string | null;
-//   } | null;
-//   submitted_user?: {
-//     id: number;
-//     name: string;
-//     email: string;
-//   } | null;
-//   answers?: SurveyAnswerSerialized[] | null;
-// }
-
-// const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
-//   id: item.id,
-//   parent_id: item.parent_id,
-//   submitted_by: item.submitted_by,
-//   submitted_at: item.submitted_at,
-//   location: item.location,
-//   photo_url: item.photo_url,
-//   is_active: item.is_active,
-//   createdate: item.createdate,
-//   createdby: item.createdby,
-//   updatedate: item.updatedate,
-//   updatedby: item.updatedby,
-//   log_inst: item.log_inst,
-//   survey: item.surveys
-//     ? {
-//         id: item.surveys.id,
-//         name: item.surveys.name,
-//         description: item.surveys.description,
-//       }
-//     : null,
-//   submitted_user: item.survey_responses_submitted_by_users
-//     ? {
-//         id: item.survey_responses_submitted_by_users.id,
-//         name: item.survey_responses_submitted_by_users.name,
-//         email: item.survey_responses_submitted_by_users.email,
-//       }
-//     : null,
-//   answers:
-//     item.survey_answer_responses?.map((ans: any) => ({
-//       id: ans.id,
-//       parent_id: ans.parent_id,
-//       field_id: ans.field_id,
-//       answer: ans.answer,
-//       field: ans.survey_fields
-//         ? {
-//             id: ans.survey_fields.id,
-//             name: ans.survey_fields.name,
-//             type: ans.survey_fields.type,
-//           }
-//         : null,
-//     })) || [],
-// });
-
 interface SurveyAnswerSerialized {
   id: number;
   parent_id: number;
@@ -100,6 +19,7 @@ interface SurveyResponseSerialized {
   id: number;
   parent_id: number;
   submitted_by: number;
+  customer_id?: number | null;
   submitted_at?: Date | null;
   location?: string | null;
   photo_url?: string | null;
@@ -119,13 +39,23 @@ interface SurveyResponseSerialized {
     name: string;
     email: string;
   } | null;
+  customer?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
   answers?: SurveyAnswerSerialized[] | null;
+  survey_response_customer?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
 }
-
 const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
   id: item.id,
   parent_id: item.parent_id,
   submitted_by: item.submitted_by,
+  customer_id: item.customer_id,
   submitted_at: item.submitted_at,
   location: item.location,
   photo_url: item.photo_url,
@@ -149,6 +79,13 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
         email: item.survey_responses_submitted_by_users.email,
       }
     : null,
+  customer: item.survey_response_customer
+    ? {
+        id: item.survey_response_customer.id,
+        name: item.survey_response_customer.name,
+        email: item.survey_response_customer.email,
+      }
+    : null,
   answers:
     item.survey_answer_responses?.map((ans: any) => ({
       id: ans.id,
@@ -163,17 +100,60 @@ const serializeSurveyResponse = (item: any): SurveyResponseSerialized => ({
           }
         : null,
     })) || [],
+  survey_response_customer: item.survey_response_customer
+    ? {
+        id: item.survey_response_customer.id,
+        name: item.survey_response_customer.name,
+        email: item.survey_response_customer.email,
+      }
+    : null,
 });
-
 export const surveyResponseController = {
-  // async createOrUpdateSurveyResponse(req: Request, res: Response) {
+  // async createOrUpdateSurveyResponse(req: any, res: any) {
   //   const data = req.body;
-  //   const userId = (req as any).user?.id || 1;
-  //   const { survey_answers, answers, ...responseData } = data;
-  //   const answerItems = survey_answers || answers || [];
-  //   let responseId = responseData.id;
+  //   const userId = req.user?.id || 1;
+
+  //   let photoPath: string | null = null;
+
+  //   let answerItems = [];
+  //   if (typeof data.answers === 'string') {
+  //     try {
+  //       answerItems = JSON.parse(data.answers);
+  //     } catch (e) {
+  //       answerItems = [];
+  //     }
+  //   } else {
+  //     answerItems = data.survey_answers || data.answers || [];
+  //   }
+
+  //   let responseId = data.id;
 
   //   try {
+  //     let existingPhotoPath: string | null = null;
+
+  //     if (responseId) {
+  //       const existingResponse = await prisma.survey_responses.findUnique({
+  //         where: { id: Number(responseId) },
+  //         select: { photo_url: true },
+  //       });
+  //       existingPhotoPath = existingResponse?.photo_url || null;
+  //     }
+
+  //     if (req.file) {
+  //       const fileName = `survey-responses/${Date.now()}-${req.file.originalname}`;
+  //       photoPath = await uploadFile(
+  //         req.file.buffer,
+  //         fileName,
+  //         req.file.mimetype
+  //       );
+
+  //       if (existingPhotoPath && responseId) {
+  //         await deleteFile(existingPhotoPath);
+  //       }
+  //     } else if (responseId && existingPhotoPath) {
+  //       photoPath = existingPhotoPath;
+  //     }
+
   //     const result = await prisma.$transaction(
   //       async tx => {
   //         let surveyResponse;
@@ -186,25 +166,23 @@ export const surveyResponseController = {
   //           if (existing) isUpdate = true;
   //         }
 
-  //         if (!responseData.parent_id) {
+  //         if (!data.parent_id) {
   //           throw new Error('Invalid parent_id (survey): missing');
   //         }
   //         const surveyExists = await tx.surveys.findUnique({
-  //           where: { id: Number(responseData.parent_id) },
+  //           where: { id: Number(data.parent_id) },
   //         });
   //         if (!surveyExists)
-  //           throw new Error(`Invalid parent_id: ${responseData.parent_id}`);
+  //           throw new Error(`Invalid parent_id: ${data.parent_id}`);
 
-  //         if (!responseData.submitted_by) {
+  //         if (!data.submitted_by) {
   //           throw new Error('Invalid submitted_by: missing');
   //         }
   //         const userExists = await tx.users.findUnique({
-  //           where: { id: Number(responseData.submitted_by) },
+  //           where: { id: Number(data.submitted_by) },
   //         });
   //         if (!userExists)
-  //           throw new Error(
-  //             `Invalid submitted_by: ${responseData.submitted_by}`
-  //           );
+  //           throw new Error(`Invalid submitted_by: ${data.submitted_by}`);
 
   //         if (Array.isArray(answerItems) && answerItems.length > 0) {
   //           for (const ans of answerItems) {
@@ -222,16 +200,15 @@ export const surveyResponseController = {
   //         }
 
   //         const payload = {
-  //           parent_id: Number(responseData.parent_id),
-  //           submitted_by: Number(responseData.submitted_by),
+  //           parent_id: Number(data.parent_id),
+  //           submitted_by: Number(data.submitted_by),
   //           submitted_at:
-  //             responseData.submitted_at &&
-  //             responseData.submitted_at.trim() !== ''
-  //               ? new Date(responseData.submitted_at)
+  //             data.submitted_at && data.submitted_at.trim() !== ''
+  //               ? new Date(data.submitted_at)
   //               : new Date(),
-  //           location: responseData.location || null,
-  //           photo_url: responseData.photo_url || null,
-  //           is_active: responseData.is_active || 'Y',
+  //           location: data.location || null,
+  //           photo_url: photoPath,
+  //           is_active: data.is_active || 'Y',
   //         };
 
   //         if (isUpdate && responseId) {
@@ -270,7 +247,6 @@ export const surveyResponseController = {
   //             };
 
   //             if (ans.id) {
-  //               // Check if answer exists with this id and parent_id
   //               const existingAnswer = await tx.survey_answers.findFirst({
   //                 where: {
   //                   id: Number(ans.id),
@@ -363,6 +339,17 @@ export const surveyResponseController = {
   //   } catch (error: any) {
   //     console.error('Create/Update Survey Response Error:', error);
 
+  //     if (req.file && photoPath) {
+  //       try {
+  //         await deleteFile(photoPath);
+  //       } catch (deleteError) {
+  //         console.error(
+  //           'Error deleting file after failed transaction:',
+  //           deleteError
+  //         );
+  //       }
+  //     }
+
   //     if (error.message && error.message.startsWith('Invalid')) {
   //       return res.status(400).json({ message: error.message });
   //     }
@@ -383,20 +370,29 @@ export const surveyResponseController = {
 
     let photoPath: string | null = null;
 
-    let answerItems = [];
-    if (typeof data.answers === 'string') {
-      try {
-        answerItems = JSON.parse(data.answers);
-      } catch (e) {
-        answerItems = [];
-      }
-    } else {
-      answerItems = data.survey_answers || data.answers || [];
-    }
-
-    let responseId = data.id;
-
     try {
+      const isBulk = Array.isArray(data.responses);
+
+      if (isBulk) {
+        return await surveyResponseController.createBulkSurveyResponses(
+          req,
+          res
+        );
+      }
+
+      let answerItems = [];
+      if (typeof data.answers === 'string') {
+        try {
+          answerItems = JSON.parse(data.answers);
+        } catch (e) {
+          answerItems = [];
+        }
+      } else {
+        answerItems = data.survey_answers || data.answers || [];
+      }
+
+      let responseId = data.id;
+
       let existingPhotoPath: string | null = null;
 
       if (responseId) {
@@ -469,6 +465,7 @@ export const surveyResponseController = {
 
           const payload = {
             parent_id: Number(data.parent_id),
+            customer_id: data.customer_id ? Number(data.customer_id) : null,
             submitted_by: Number(data.submitted_by),
             submitted_at:
               data.submitted_at && data.submitted_at.trim() !== ''
@@ -578,6 +575,7 @@ export const surveyResponseController = {
             where: { id: surveyResponse.id },
             include: {
               surveys: true,
+              survey_response_customer: true,
               survey_responses_submitted_by_users: true,
               survey_answer_responses: {
                 include: {
@@ -632,10 +630,203 @@ export const surveyResponseController = {
     }
   },
 
+  async createBulkSurveyResponses(req: any, res: any) {
+    const { responses } = req.body;
+    const userId = req.user?.id || 1;
+
+    if (!Array.isArray(responses) || responses.length === 0) {
+      return res.status(400).json({
+        message:
+          'Invalid bulk request: responses array is required and must not be empty',
+      });
+    }
+
+    try {
+      const results = await prisma.$transaction(
+        async tx => {
+          const createdResponses = [];
+          const errors = [];
+
+          for (let i = 0; i < responses.length; i++) {
+            const responseData = responses[i];
+
+            try {
+              if (!responseData.parent_id) {
+                throw new Error(
+                  `Response ${i + 1}: Invalid parent_id (survey): missing`
+                );
+              }
+              const surveyExists = await tx.surveys.findUnique({
+                where: { id: Number(responseData.parent_id) },
+              });
+              if (!surveyExists) {
+                throw new Error(
+                  `Response ${i + 1}: Invalid parent_id: ${responseData.parent_id}`
+                );
+              }
+
+              if (!responseData.submitted_by) {
+                throw new Error(
+                  `Response ${i + 1}: Invalid submitted_by: missing`
+                );
+              }
+              const userExists = await tx.users.findUnique({
+                where: { id: Number(responseData.submitted_by) },
+              });
+              if (!userExists) {
+                throw new Error(
+                  `Response ${i + 1}: Invalid submitted_by: ${responseData.submitted_by}`
+                );
+              }
+
+              if (responseData.customer_id) {
+                const customerExists = await tx.customers.findUnique({
+                  where: { id: Number(responseData.customer_id) },
+                });
+                if (!customerExists) {
+                  throw new Error(
+                    `Response ${i + 1}: Invalid customer_id: ${responseData.customer_id}`
+                  );
+                }
+              }
+
+              let answerItems = [];
+              if (typeof responseData.answers === 'string') {
+                try {
+                  answerItems = JSON.parse(responseData.answers);
+                } catch (e) {
+                  answerItems = [];
+                }
+              } else {
+                answerItems = responseData.answers || [];
+              }
+
+              if (Array.isArray(answerItems) && answerItems.length > 0) {
+                for (const ans of answerItems) {
+                  if (!ans.field_id) {
+                    throw new Error(
+                      `Response ${i + 1}: Invalid field_id in answers: missing field_id`
+                    );
+                  }
+                  const fieldExists = await tx.survey_fields.findUnique({
+                    where: { id: Number(ans.field_id) },
+                  });
+                  if (!fieldExists) {
+                    throw new Error(
+                      `Response ${i + 1}: Invalid field_id in answers: ${ans.field_id}`
+                    );
+                  }
+                }
+              }
+
+              const surveyResponse = await tx.survey_responses.create({
+                data: {
+                  parent_id: Number(responseData.parent_id),
+                  submitted_by: Number(responseData.submitted_by),
+                  customer_id: responseData.customer_id
+                    ? Number(responseData.customer_id)
+                    : null, // ADD THIS
+                  submitted_at:
+                    responseData.submitted_at &&
+                    responseData.submitted_at.trim() !== ''
+                      ? new Date(responseData.submitted_at)
+                      : new Date(),
+                  location: responseData.location || null,
+                  photo_url: responseData.photo_url || null,
+                  is_active: responseData.is_active || 'Y',
+                  createdby: userId,
+                  createdate: new Date(),
+                  log_inst: 1,
+                },
+              });
+
+              if (Array.isArray(answerItems) && answerItems.length > 0) {
+                const answersToCreate = answerItems.map((ans: any) => ({
+                  parent_id: surveyResponse.id,
+                  field_id: Number(ans.field_id),
+                  answer: ans.answer || null,
+                }));
+
+                await tx.survey_answers.createMany({
+                  data: answersToCreate,
+                });
+              }
+
+              const finalResponse = await tx.survey_responses.findUnique({
+                where: { id: surveyResponse.id },
+                include: {
+                  surveys: true,
+                  survey_responses_submitted_by_users: true,
+                  survey_response_customer: true,
+                  survey_answer_responses: {
+                    include: {
+                      survey_fields: true,
+                    },
+                  },
+                },
+              });
+
+              createdResponses.push(serializeSurveyResponse(finalResponse));
+            } catch (error: any) {
+              errors.push({
+                index: i,
+                data: responseData,
+                error: error.message,
+              });
+            }
+          }
+
+          return { createdResponses, errors };
+        },
+        {
+          maxWait: 30000,
+          timeout: 60000,
+        }
+      );
+
+      const { createdResponses, errors } = results;
+
+      if (errors.length > 0 && createdResponses.length === 0) {
+        return res.status(400).json({
+          message: 'All bulk survey responses failed',
+          errors,
+        });
+      }
+
+      res.status(201).json({
+        message: `Bulk survey responses processed: ${createdResponses.length} created, ${errors.length} failed`,
+        data: createdResponses,
+        ...(errors.length > 0 && { errors }),
+        summary: {
+          total: responses.length,
+          created: createdResponses.length,
+          failed: errors.length,
+        },
+      });
+    } catch (error: any) {
+      console.error('Create Bulk Survey Responses Error:', error);
+
+      if (error.message && error.message.startsWith('Invalid')) {
+        return res.status(400).json({ message: error.message });
+      }
+
+      return res.status(500).json({
+        message: 'Failed to process bulk survey responses',
+        error: error.message,
+      });
+    }
+  },
   async getAllSurveyResponses(req: any, res: any) {
     try {
-      const { page, limit, search, status, survey_id, submitted_by } =
-        req.query;
+      const {
+        page,
+        limit,
+        search,
+        status,
+        survey_id,
+        submitted_by,
+        customer_id,
+      } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -650,6 +841,11 @@ export const surveyResponseController = {
                 name: { contains: searchLower },
               },
             },
+            {
+              survey_response_customer: {
+                name: { contains: searchLower },
+              },
+            },
           ],
         }),
         ...(statusLower === 'active' && { is_active: 'Y' }),
@@ -657,6 +853,9 @@ export const surveyResponseController = {
         ...(survey_id && { parent_id: parseInt(survey_id as string, 10) }),
         ...(submitted_by && {
           submitted_by: parseInt(submitted_by as string, 10),
+        }),
+        ...(customer_id && {
+          customer_id: parseInt(customer_id as string, 10),
         }),
       };
 
@@ -669,6 +868,7 @@ export const surveyResponseController = {
         include: {
           surveys: true,
           survey_responses_submitted_by_users: true,
+          survey_response_customer: true,
           survey_answer_responses: {
             include: {
               survey_fields: true,
