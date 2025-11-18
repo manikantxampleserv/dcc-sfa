@@ -15,7 +15,7 @@ router.post(
   '/customer-complaints',
   authenticateToken,
   auditCreate('customerComplaints'),
-  createCustomerComplaintsValidation,
+  // createCustomerComplaintsValidation,
   validate,
   customerComplaintsController.createOrUpdateCustomerComplaints
 );

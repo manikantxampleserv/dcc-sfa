@@ -5,7 +5,6 @@ const validateComplaintFields = () => [
   body('complaint_description')
     .notEmpty()
     .withMessage('Complaint description is required'),
-  body('status').isIn(['P', 'R', 'C']).withMessage('Status must be P, R, or C'),
   body('submitted_by').isInt().withMessage('Submitted by is required'),
 ];
 
