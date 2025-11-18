@@ -3,20 +3,16 @@ import {
   Block,
   CheckCircle,
   Download,
+  Pause,
+  PlayArrow,
+  Settings,
   Upload,
   Visibility,
 } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { useDeleteSurvey, useSurveys, type Survey } from 'hooks/useSurveys';
-import {
-  BarChart3,
-  FileText,
-  Pause,
-  Play,
-  Settings,
-  Users,
-} from 'lucide-react';
+import { BarChart3, FileText, Users } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
@@ -219,9 +215,9 @@ const SurveyBuilder: React.FC = () => {
           <Chip
             icon={
               Boolean(row.is_published) ? (
-                <Play className="w-3 h-3" />
+                <PlayArrow fontSize="small" />
               ) : (
-                <Pause className="w-3 h-3" />
+                <Pause fontSize="small" />
               )
             }
             label={Boolean(row.is_published) ? 'Published' : 'Draft'}
@@ -230,7 +226,13 @@ const SurveyBuilder: React.FC = () => {
             color={Boolean(row.is_published) ? 'success' : 'warning'}
           />
           <Chip
-            icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
+            icon={
+              row.is_active === 'Y' ? (
+                <CheckCircle fontSize="small" />
+              ) : (
+                <Block fontSize="small" />
+              )
+            }
             label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
             size="small"
             className="w-26"
@@ -331,7 +333,7 @@ const SurveyBuilder: React.FC = () => {
               )}
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Play className="w-6 h-6 text-green-500" />
+              <PlayArrow className="w-6 h-6 text-green-500" />
             </div>
           </div>
         </div>

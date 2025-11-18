@@ -1,14 +1,7 @@
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useSurveyResponse } from 'hooks/useSurveyResponses';
-import {
-  AlertTriangle,
-  ArrowLeft,
-  BarChart3,
-  FileText,
-  MapPin,
-  Calendar,
-} from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BarChart3, FileText } from 'lucide-react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from 'shared/Button';
@@ -47,25 +40,25 @@ const SurveyResponseDetail: React.FC = () => {
 
   if (isLoading || isFetching) {
     return (
-      <div className="flex items-start justify-center gap-4 w-full">
-        <div className="!flex-2 flex flex-col gap-4 w-full max-w-md">
+      <div className="!flex !items-start !gap-4">
+        <div className="!flex-2 !flex !flex-col !gap-4">
           {/* Main Response Card Skeleton */}
-          <div className="!bg-white !rounded-lg !shadow-sm !border !border-gray-200 !p-6 !text-center !relative">
-            <div className="absolute top-3 right-3">
+          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
+            <div className="!absolute !top-3 !right-3">
               <Skeleton
                 variant="circular"
                 width={10}
                 height={10}
-                className="!bg-gray-300"
+                className="!bg-green-200"
               />
             </div>
 
-            <div className="!relative !mb-4 !flex !justify-center">
+            <div className="!relative !mb-4">
               <Skeleton
                 variant="circular"
                 width={96}
                 height={96}
-                className="!mx-auto"
+                className="!mx-auto !border-3 !border-white"
               />
             </div>
 
@@ -86,148 +79,152 @@ const SurveyResponseDetail: React.FC = () => {
               variant="rectangular"
               width="60%"
               height={24}
-              className="!mx-auto !mb-4 !rounded-full"
+              className="!mx-auto !mb-4 !bg-green-50"
             />
 
-            <div className="!space-y-1 !text-left !mt-4">
-              <div className="!p-2 !bg-gray-50 !rounded-md !flex !items-center !gap-2">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                <div className="!flex-1">
-                  <Skeleton
-                    variant="text"
-                    width="30%"
-                    height={10}
-                    className="!mb-0.5"
-                  />
-                  <Skeleton variant="text" width="60%" height={14} />
-                </div>
+            <div className="!space-y-2 !text-left !mt-4">
+              <div className="!p-2 !bg-gray-50 !rounded-md">
+                <Skeleton
+                  variant="text"
+                  width="30%"
+                  height={10}
+                  className="!mb-1"
+                />
+                <Skeleton variant="text" width="60%" height={14} />
               </div>
-              <div className="!p-2 !bg-gray-50 !rounded-md !flex !items-center !gap-2">
-                <MapPin className="w-4 h-4 text-gray-400" />
-                <div className="!flex-1">
-                  <Skeleton
-                    variant="text"
-                    width="40%"
-                    height={10}
-                    className="!mb-0.5"
-                  />
-                  <Skeleton variant="text" width="70%" height={14} />
-                </div>
-              </div>
-              <div className="!p-2 !bg-gray-50 !rounded-md !flex !items-center !gap-2">
-                <BarChart3 className="w-4 h-4 text-gray-400" />
-                <div className="!flex-1">
-                  <Skeleton
-                    variant="text"
-                    width="35%"
-                    height={10}
-                    className="!mb-0.5"
-                  />
-                  <Skeleton variant="text" width="50%" height={14} />
-                </div>
+              <div className="!p-2 !bg-gray-50 !rounded-md">
+                <Skeleton
+                  variant="text"
+                  width="40%"
+                  height={10}
+                  className="!mb-1"
+                />
+                <Skeleton variant="text" width="70%" height={14} />
               </div>
             </div>
           </div>
 
-          {/* Response Statistics Card Skeleton */}
-          <div className="!bg-white !rounded-lg !shadow-sm !border !border-gray-200 !p-6">
-            <div className="!flex !items-center !gap-2 !mb-4">
-              <div className="!p-2 !w-10 !h-10 flex items-center justify-center !bg-gray-100 !rounded-md">
-                <BarChart3 className="w-5 h-5 text-gray-400" />
+          {/* Response Information Card Skeleton */}
+          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!relative !z-10">
+              <div className="!flex !items-center !gap-2 !mb-4">
+                <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+                  <Skeleton
+                    variant="circular"
+                    width={16}
+                    height={16}
+                    className="!bg-primary-200"
+                  />
+                </div>
+                <Skeleton variant="text" width={140} height={20} />
               </div>
-              <Skeleton variant="text" width={180} height={20} />
-            </div>
-            <div className="!space-y-3">
-              {[1, 2].map(item => (
-                <div
-                  key={item}
-                  className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
-                >
-                  <div className="!flex !items-center !justify-between">
-                    <div className="!flex-1">
-                      <Skeleton
-                        variant="text"
-                        width="50%"
-                        height={16}
-                        className="!mb-1"
-                      />
-                      <Skeleton variant="text" width="70%" height={12} />
-                    </div>
+              <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                {[1, 2, 3, 4].map(field => (
+                  <div key={field} className="!space-y-1">
                     <Skeleton
                       variant="text"
-                      width={60}
-                      height={24}
-                      className="!text-right"
+                      width={`${40 + field * 8}%`}
+                      height={12}
+                    />
+                    <Skeleton
+                      variant="text"
+                      width={`${60 + field * 6}%`}
+                      height={16}
                     />
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="!flex-4 !space-y-4 w-full max-w-2xl">
-          {/* Response Information Card Skeleton */}
-          <div className="!bg-white !rounded-lg !shadow-sm !border !border-gray-200 !p-6">
-            <div className="!flex !items-center !gap-2 !mb-4">
-              <div className="!p-2 !w-10 !h-10 flex items-center justify-center !bg-gray-100 !rounded-md">
-                <FileText className="w-5 h-5 text-gray-400" />
-              </div>
-              <Skeleton variant="text" width={180} height={20} />
-            </div>
-            <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-              {[1, 2, 3, 4, 5, 6].map(field => (
-                <div key={field} className="!space-y-0.5">
+        <div className="!flex-4 !space-y-4">
+          {/* Survey Answers Card Skeleton */}
+          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!relative !z-10">
+              <div className="!flex !items-center !gap-2 !mb-4">
+                <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
                   <Skeleton
-                    variant="text"
-                    width={`${30 + field * 5}%`}
-                    height={12}
-                  />
-                  <Skeleton
-                    variant="text"
-                    width={`${50 + field * 8}%`}
+                    variant="circular"
+                    width={16}
                     height={16}
+                    className="!bg-primary-200"
                   />
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Survey Answers Card Skeleton */}
-          <div className="!bg-white !rounded-lg !shadow-sm !border !border-gray-200 !p-6">
-            <div className="!flex !items-center !gap-2 !mb-4">
-              <div className="!p-2 !w-10 !h-10 flex items-center justify-center !bg-gray-100 !rounded-md">
-                <BarChart3 className="w-5 h-5 text-gray-400" />
+                <Skeleton variant="text" width={200} height={20} />
               </div>
-              <Skeleton variant="text" width={150} height={20} />
-            </div>
 
-            <div className="!space-y-3">
-              {[1, 2, 3].map(item => (
-                <div
-                  key={item}
-                  className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
-                >
-                  <div className="!flex !items-center !justify-between !mb-2">
-                    <div className="!flex !items-center !gap-2">
-                      <FileText className="w-4 h-4 text-gray-400" />
-                      <Skeleton variant="text" width="40%" height={16} />
+              <div className="!space-y-3">
+                {[1, 2, 3].map(item => (
+                  <div
+                    key={item}
+                    className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
+                  >
+                    <div className="!flex !items-center !justify-between">
+                      <div className="!flex-1">
+                        <Skeleton
+                          variant="text"
+                          width="60%"
+                          height={16}
+                          className="!mb-1"
+                        />
+                        <Skeleton variant="text" width="40%" height={12} />
+                      </div>
                       <Skeleton
-                        variant="rectangular"
-                        width={60}
-                        height={20}
-                        className="!rounded-full"
+                        variant="text"
+                        width={80}
+                        height={16}
+                        className="!text-right"
                       />
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+            <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+            <div className="!relative !z-10">
+              <div className="!flex !items-center !gap-2 !mb-4">
+                <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
                   <Skeleton
-                    variant="rectangular"
-                    width="100%"
-                    height={48}
-                    className="!rounded !mt-2"
+                    variant="circular"
+                    width={16}
+                    height={16}
+                    className="!bg-primary-200"
                   />
                 </div>
-              ))}
+                <Skeleton variant="text" width={200} height={20} />
+              </div>
+
+              <div className="!space-y-3">
+                {[1, 2, 3].map(item => (
+                  <div
+                    key={item}
+                    className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
+                  >
+                    <div className="!flex !items-center !justify-between">
+                      <div className="!flex-1">
+                        <Skeleton
+                          variant="text"
+                          width="60%"
+                          height={16}
+                          className="!mb-1"
+                        />
+                        <Skeleton variant="text" width="40%" height={12} />
+                      </div>
+                      <Skeleton
+                        variant="text"
+                        width={80}
+                        height={16}
+                        className="!text-right"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -237,17 +234,15 @@ const SurveyResponseDetail: React.FC = () => {
 
   if (error || !response) {
     return (
-      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center justify-center p-6 mb-6 w-full">
-          <div className="flex flex-col items-center justify-center gap-3 mb-3">
-            <div className="p-4 flex items-center justify-center bg-red-50 rounded-full">
-              <AlertTriangle className="w-10 h-10 text-red-600" />
-            </div>
-            <Typography variant="h6" className="!text-gray-900 !font-semibold">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-gradient-to-r from-red-600 via-pink-600 to-red-600 rounded-lg p-6 mb-6 text-white relative overflow-hidden shadow-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="w-5 h-5" />
+            <Typography variant="h6" className="!text-white !font-bold">
               Failed to load survey response details
             </Typography>
           </div>
-          <Typography variant="body2" className="!text-gray-600 !ml-12">
+          <Typography variant="body2" className="!text-gray-200">
             Please try again or contact your system administrator if this
             problem persists.
           </Typography>
@@ -256,6 +251,7 @@ const SurveyResponseDetail: React.FC = () => {
           variant="outlined"
           startIcon={<ArrowLeft />}
           onClick={handleBack}
+          className="mt-4"
         >
           Back to Survey Responses
         </Button>
@@ -272,26 +268,29 @@ const SurveyResponseDetail: React.FC = () => {
     children: React.ReactNode;
     icon?: React.ElementType;
   }) => (
-    <div className="!bg-white !rounded-lg !shadow-sm !border !border-gray-200 !p-6">
-      <div className="!flex !items-center !gap-2 !mb-4">
-        {Icon && (
-          <div className="!p-2 !w-10 !h-10 flex items-center justify-center !bg-gray-100 !rounded-md">
-            <Icon className="!text-gray-600" />
-          </div>
-        )}
-        <Typography variant="h6" className="!font-semibold !text-gray-900">
-          {title}
-        </Typography>
+    <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+      <div className="!relative !z-10">
+        <div className="!flex !items-center !gap-2 !mb-4">
+          {Icon && (
+            <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+              <Icon className="!text-primary-500" />
+            </div>
+          )}
+          <Typography variant="h6" className="!font-bold !text-gray-900">
+            {title}
+          </Typography>
+        </div>
+        {children}
       </div>
-      {children}
     </div>
   );
 
   return (
     <>
-      <div className="flex items-start justify-center gap-4 max-w-7xl mx-auto">
-        <div className="!flex-2 flex flex-col gap-4 w-full max-w-md">
-          <div className="!bg-white !rounded-lg !shadow-sm !border !border-gray-200 !p-6 !text-center !relative">
+      <div className="flex items-start gap-4">
+        <div className="!flex-2 flex flex-col gap-4">
+          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
                 className={`!w-2.5 !h-2.5 !rounded-full ${
@@ -441,7 +440,7 @@ const SurveyResponseDetail: React.FC = () => {
           </InfoCard>
         </div>
 
-        <div className="!flex-4 !space-y-4 w-full max-w-2xl">
+        <div className="!flex-4 !space-y-4">
           <InfoCard title="Response Information" icon={FileText}>
             <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
               <div className="!space-y-0.5">
@@ -543,20 +542,6 @@ const SurveyResponseDetail: React.FC = () => {
                     : 'Not available'}
                 </Typography>
               </div>
-
-              <div className="!space-y-0.5">
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                >
-                  Status
-                </Typography>
-                <Chip
-                  label={response.is_active === 'Y' ? 'Active' : 'Inactive'}
-                  color={response.is_active === 'Y' ? 'success' : 'error'}
-                  size="small"
-                />
-              </div>
             </div>
           </InfoCard>
           {/* Survey Answers */}
@@ -611,7 +596,7 @@ const SurveyResponseDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="!mt-4 !flex !justify-center max-w-7xl mx-auto">
+      <div className="!mt-4">
         <Button
           variant="outlined"
           startIcon={<ArrowLeft />}

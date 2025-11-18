@@ -1,4 +1,9 @@
-import { Download, Visibility } from '@mui/icons-material';
+import {
+  CheckCircle,
+  Description,
+  Download,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { useSurveys } from 'hooks/useSurveys';
@@ -7,14 +12,7 @@ import {
   useSurveyResponses,
   type SurveyResponse,
 } from 'hooks/useSurveyResponses';
-import {
-  BarChart3,
-  Calendar,
-  CheckCircle,
-  FileText,
-  MapPin,
-  User,
-} from 'lucide-react';
+import { BarChart3, Calendar, FileText, MapPin, User } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
@@ -218,7 +216,7 @@ const SurveyResponses: React.FC = () => {
       label: 'Status',
       render: (_value, row) => (
         <Chip
-          icon={row.is_active === 'Y' ? <CheckCircle /> : <FileText />}
+          icon={row.is_active === 'Y' ? <CheckCircle /> : <Description />}
           label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
           className="w-26"
