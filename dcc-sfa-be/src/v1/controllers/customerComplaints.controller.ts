@@ -124,7 +124,8 @@ export const customerComplaintsController = {
 
       if (search) {
         filters.OR = [
-          { complaint: { contains: search as string } },
+          { complaint_title: { contains: search as string } },
+          { complaint_description: { contains: search as string } },
           {
             customer_complaint: {
               name: { contains: search as string },
