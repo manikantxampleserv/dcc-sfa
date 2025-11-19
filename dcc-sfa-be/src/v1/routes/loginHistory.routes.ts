@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/login-history',
   authenticateToken,
   auditCreate('login_history'),
+  requirePermission([{ module: 'login-history', action: 'create' }]),
   createLoginHistoryValidation,
   validate,
   loginHistoryController.createLoginHistory
@@ -23,6 +27,7 @@ router.post(
 router.get(
   '/login-history/:id',
   authenticateToken,
+  requirePermission([{ module: 'login-history', action: 'read' }]),
   validate,
   loginHistoryController.getLoginHistoryById
 );
@@ -30,6 +35,7 @@ router.get(
 router.get(
   '/login-history',
   authenticateToken,
+  requirePermission([{ module: 'login-history', action: 'read' }]),
   loginHistoryController.getLoginHistory
 );
 
@@ -37,6 +43,7 @@ router.put(
   '/login-history/:id',
   authenticateToken,
   auditUpdate('login_history'),
+  requirePermission([{ module: 'login-history', action: 'update' }]),
   loginHistoryController.updateLoginHistory
 );
 
@@ -44,6 +51,7 @@ router.delete(
   '/login-history/:id',
   authenticateToken,
   auditDelete('login_history'),
+  requirePermission([{ module: 'login-history', action: 'delete' }]),
   loginHistoryController.deleteLoginHistory
 );
 

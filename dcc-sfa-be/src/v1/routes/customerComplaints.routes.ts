@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/customer-complaints',
   authenticateToken,
   auditCreate('customerComplaints'),
+  requirePermission([{ module: 'customer-complaint', action: 'create' }]),
   createCustomerComplaintsValidation,
   validate,
   customerComplaintsController.createOrUpdateCustomerComplaints
@@ -23,12 +27,14 @@ router.post(
 router.get(
   '/customer-complaints/:id',
   authenticateToken,
+  requirePermission([{ module: 'customer-complaint', action: 'read' }]),
   customerComplaintsController.getCustomerComplaintsById
 );
 
 router.get(
   '/customer-complaints',
   authenticateToken,
+  requirePermission([{ module: 'customer-complaint', action: 'read' }]),
   customerComplaintsController.getAllCustomerComplaints
 );
 
@@ -43,6 +49,7 @@ router.delete(
   '/customer-complaints/:id',
   authenticateToken,
   auditDelete('customerComplaints'),
+  requirePermission([{ module: 'customer-complaint', action: 'delete' }]),
   customerComplaintsController.deleteCustomerComplaints
 );
 

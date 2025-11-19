@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/vehicles',
   authenticateToken,
   auditCreate('vehicles'),
+  requirePermission([{ module: 'vehicle', action: 'create' }]),
   createVehicleValidation,
   validate,
   vehiclesController.createVehicle
@@ -23,15 +27,22 @@ router.post(
 router.get(
   '/vehicles/:id',
   authenticateToken,
+  requirePermission([{ module: 'vehicle', action: 'read' }]),
   validate,
   vehiclesController.getVehicleById
 );
-router.get('/vehicles', authenticateToken, vehiclesController.getVehicles);
+router.get(
+  '/vehicles',
+  authenticateToken,
+  requirePermission([{ module: 'vehicle', action: 'read' }]),
+  vehiclesController.getVehicles
+);
 
 router.put(
   '/vehicles/:id',
   authenticateToken,
   auditUpdate('vehicles'),
+  requirePermission([{ module: 'vehicle', action: 'update' }]),
   vehiclesController.updateVehicle
 );
 
@@ -39,6 +50,7 @@ router.delete(
   '/vehicles/:id',
   authenticateToken,
   auditDelete('vehicles'),
+  requirePermission([{ module: 'vehicle', action: 'delete' }]),
   vehiclesController.deleteVehicle
 );
 

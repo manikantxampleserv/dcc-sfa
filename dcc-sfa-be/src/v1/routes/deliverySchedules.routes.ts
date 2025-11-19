@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -17,6 +20,7 @@ router.post(
   upload.single('customer_signature'),
   authenticateToken,
   auditCreate('delivery_schedules'),
+  requirePermission([{ module: 'delivery', action: 'create' }]),
   deliverySchedulesValidation,
   validate,
   deliverySchedulesController.createDeliverySchedule
@@ -25,6 +29,7 @@ router.post(
 router.get(
   '/delivery-schedules',
   authenticateToken,
+  requirePermission([{ module: 'delivery', action: 'read' }]),
   deliverySchedulesController.getAllDeliverySchedules
 );
 
@@ -33,11 +38,13 @@ router.put(
   upload.single('customer_signature'),
   authenticateToken,
   auditUpdate('delivery_schedules'),
+  requirePermission([{ module: 'delivery', action: 'update' }]),
   deliverySchedulesController.updateDeliverySchedule
 );
 router.get(
   '/delivery-schedules/:id',
   authenticateToken,
+  requirePermission([{ module: 'delivery', action: 'read' }]),
   deliverySchedulesController.getDeliveryScheduleById
 );
 
@@ -45,6 +52,7 @@ router.delete(
   '/delivery-schedules/:id',
   authenticateToken,
   auditDelete('delivery_schedules'),
+  requirePermission([{ module: 'delivery', action: 'delete' }]),
   deliverySchedulesController.deleteDeliverySchedule
 );
 

@@ -6,7 +6,10 @@ import {
   validateImport,
   validateExport,
 } from '../validations/import-export.validation';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import { uploadExcel } from '../../utils/multer';
 
 const router = Router();
@@ -14,12 +17,14 @@ const router = Router();
 router.get(
   '/import-export/tables',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   importExportController.getSupportedTables
 );
 
 router.get(
   '/import-export/:table/template',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   validateTemplate,
   importExportController.downloadTemplate
 );
@@ -27,6 +32,7 @@ router.get(
 router.post(
   '/import-export/:table/import',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'create' }]),
   uploadExcel.single('file'),
   validateImport,
   importExportController.importData
@@ -35,6 +41,7 @@ router.post(
 router.get(
   '/import-export/:table/export/excel',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   validateExport,
   importExportController.exportToExcel
 );
@@ -42,6 +49,7 @@ router.get(
 router.get(
   '/import-export/:table/export/pdf',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   validateExport,
   importExportController.exportToPDF
 );

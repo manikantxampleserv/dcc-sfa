@@ -62,6 +62,11 @@ const serializeUser = (
         email: user.users.email,
       }
     : null,
+  permissions: user.user_role?.roles_permission
+    ? user.user_role.roles_permission
+        .filter((rp: any) => rp.permission?.is_active === 'Y')
+        .map((rp: any) => rp.permission!.name)
+    : [],
 });
 
 export const userController = {
@@ -455,7 +460,15 @@ export const userController = {
           is_active: 'Y',
         },
         include: {
-          user_role: true,
+          user_role: {
+            include: {
+              roles_permission: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
           companies: true,
           user_depot: true,
           user_zones: true,

@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import { priceListItemsController } from '../controllers/priceListsItems.controller';
 import {
   createPriceListItemsValidation,
@@ -18,6 +21,7 @@ router.post(
   '/price-list-items',
   authenticateToken,
   auditCreate('price_list_items'),
+  requirePermission([{ module: 'pricelist', action: 'create' }]),
   createPriceListItemsValidation,
   validate,
   priceListItemsController.createPriceListItems
@@ -26,11 +30,13 @@ router.post(
 router.get(
   '/price-list-items/:id',
   authenticateToken,
+  requirePermission([{ module: 'pricelist', action: 'read' }]),
   priceListItemsController.getPriceListItemsById
 );
 router.get(
   '/price-list-items',
   authenticateToken,
+  requirePermission([{ module: 'pricelist', action: 'read' }]),
   priceListItemsController.getAllPriceListItems
 );
 
@@ -38,6 +44,7 @@ router.put(
   '/price-list-items/:id',
   authenticateToken,
   auditUpdate('price_list_items'),
+  requirePermission([{ module: 'pricelist', action: 'update' }]),
   updatePriceListItemsValidation,
   validate,
   priceListItemsController.updatePriceListItems
@@ -47,6 +54,7 @@ router.delete(
   '/price-list-items/:id',
   authenticateToken,
   auditDelete('price_list_items'),
+  requirePermission([{ module: 'pricelist', action: 'delete' }]),
   priceListItemsController.deletePriceListItems
 );
 

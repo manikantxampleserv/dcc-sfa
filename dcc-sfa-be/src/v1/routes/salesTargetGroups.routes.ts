@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/sales-target-groups',
   authenticateToken,
   auditCreate('sales_target_groups'),
+  requirePermission([{ module: 'sales-target-group', action: 'create' }]),
   createSalesTargetGroupsValidation,
   validate,
   salesTargetGroupsController.createSalesTargetGroups
@@ -23,6 +27,7 @@ router.post(
 router.get(
   '/sales-target-groups',
   authenticateToken,
+  requirePermission([{ module: 'sales-target-group', action: 'read' }]),
   salesTargetGroupsController.getAllSalesTargetGroups
 );
 
@@ -30,11 +35,13 @@ router.put(
   '/sales-target-groups/:id',
   authenticateToken,
   auditUpdate('sales_target_groups'),
+  requirePermission([{ module: 'sales-target-group', action: 'update' }]),
   salesTargetGroupsController.updateSalesTargetGroups
 );
 router.get(
   '/sales-target-groups/:id',
   authenticateToken,
+  requirePermission([{ module: 'sales-target-group', action: 'read' }]),
   salesTargetGroupsController.getSalesTargetGroupsById
 );
 
@@ -42,6 +49,7 @@ router.delete(
   '/sales-target-groups/:id',
   authenticateToken,
   auditDelete('sales_target_groups'),
+  requirePermission([{ module: 'sales-target-group', action: 'delete' }]),
   salesTargetGroupsController.deleteSalesTargetGroups
 );
 

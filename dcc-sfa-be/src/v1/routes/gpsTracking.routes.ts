@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { auditCreate } from '../../middlewares/audit.middleware';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validation.middleware';
 import { gpsTrackingController } from '../controllers/gpsTracking.controller';
 import { createGPSLogValidation } from '../validations/gpsTracking.validation';
@@ -17,6 +20,7 @@ router.post(
   '/gps',
   authenticateToken,
   auditCreate('gps_logs'),
+  requirePermission([{ module: 'location', action: 'create' }]),
   createGPSLogValidation,
   validate,
   gpsTrackingController.createGPSLog
@@ -28,7 +32,12 @@ router.post(
  * @access Private (requires authentication)
  * @params Query: user_id, start_date, end_date
  */
-router.get('/gps', authenticateToken, gpsTrackingController.getGPSTrackingData);
+router.get(
+  '/gps',
+  authenticateToken,
+  requirePermission([{ module: 'location', action: 'read' }]),
+  gpsTrackingController.getGPSTrackingData
+);
 
 /**
  * @route GET /api/v1/tracking/gps/realtime
@@ -38,6 +47,7 @@ router.get('/gps', authenticateToken, gpsTrackingController.getGPSTrackingData);
 router.get(
   '/gps/realtime',
   authenticateToken,
+  requirePermission([{ module: 'location', action: 'read' }]),
   gpsTrackingController.getRealTimeGPSTracking
 );
 
@@ -51,6 +61,7 @@ router.get(
 router.get(
   '/gps/path/:user_id',
   authenticateToken,
+  requirePermission([{ module: 'location', action: 'read' }]),
   gpsTrackingController.getUserGPSPath
 );
 
@@ -63,6 +74,7 @@ router.get(
 router.get(
   '/route-effectiveness',
   authenticateToken,
+  requirePermission([{ module: 'route-effectiveness', action: 'read' }]),
   gpsTrackingController.getRouteEffectiveness
 );
 

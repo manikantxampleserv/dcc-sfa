@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -19,6 +22,7 @@ router.post(
   '/kpi-targets',
   authenticateToken,
   auditCreate('kpi_targets'),
+  requirePermission([{ module: 'kpi-target', action: 'create' }]),
   createKpiTargetValidation,
   validate,
   kpiTargetsController.createKpiTarget
@@ -28,6 +32,7 @@ router.post(
 router.get(
   '/kpi-targets',
   authenticateToken,
+  requirePermission([{ module: 'kpi-target', action: 'read' }]),
   kpiTargetsController.getAllKpiTargets
 );
 
@@ -35,6 +40,7 @@ router.get(
 router.get(
   '/kpi-targets/:id',
   authenticateToken,
+  requirePermission([{ module: 'kpi-target', action: 'read' }]),
   kpiTargetsController.getKpiTargetById
 );
 
@@ -43,6 +49,7 @@ router.put(
   '/kpi-targets/:id',
   authenticateToken,
   auditUpdate('kpi_targets'),
+  requirePermission([{ module: 'kpi-target', action: 'update' }]),
   updateKpiTargetValidation,
   validate,
   kpiTargetsController.updateKpiTarget
@@ -53,6 +60,7 @@ router.delete(
   '/kpi-targets/:id',
   authenticateToken,
   auditDelete('kpi_targets'),
+  requirePermission([{ module: 'kpi-target', action: 'delete' }]),
   kpiTargetsController.deleteKpiTarget
 );
 

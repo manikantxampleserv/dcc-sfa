@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/customer-assets',
   authenticateToken,
   auditCreate('customer_assets'),
+  requirePermission([{ module: 'asset-master', action: 'create' }]),
   createCustomerAssetValidation,
   validate,
   customerAssetsController.createCustomerAsset
@@ -22,23 +26,27 @@ router.post(
 router.get(
   '/customer-assets',
   authenticateToken,
+  requirePermission([{ module: 'asset-master', action: 'read' }]),
   customerAssetsController.getAllCustomerAssets
 );
 router.get(
   '/customer-assets/:id',
   authenticateToken,
+  requirePermission([{ module: 'asset-master', action: 'read' }]),
   customerAssetsController.getCustomerAssetById
 );
 router.put(
   '/customer-assets/:id',
   authenticateToken,
   auditUpdate('customer_assets'),
+  requirePermission([{ module: 'asset-master', action: 'update' }]),
   customerAssetsController.updateCustomerAsset
 );
 router.delete(
   '/customer-assets/:id',
   authenticateToken,
   auditDelete('customer_assets'),
+  requirePermission([{ module: 'asset-master', action: 'delete' }]),
   customerAssetsController.deleteCustomerAsset
 );
 

@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/return-requests',
   authenticateToken,
   auditCreate('return_requests'),
+  requirePermission([{ module: 'return', action: 'create' }]),
   returnRequestsValidation,
   validate,
   returnRequestsController.createReturnRequest
@@ -23,6 +27,7 @@ router.post(
 router.get(
   '/return-requests',
   authenticateToken,
+  requirePermission([{ module: 'return', action: 'read' }]),
   returnRequestsController.getAllReturnRequests
 );
 
@@ -30,11 +35,13 @@ router.put(
   '/return-requests/:id',
   authenticateToken,
   auditUpdate('return_requests'),
+  requirePermission([{ module: 'return', action: 'update' }]),
   returnRequestsController.updateReturnRequest
 );
 router.get(
   '/return-requests/:id',
   authenticateToken,
+  requirePermission([{ module: 'return', action: 'read' }]),
   returnRequestsController.getReturnRequestById
 );
 
@@ -42,6 +49,7 @@ router.delete(
   '/return-requests/:id',
   authenticateToken,
   auditDelete('return_requests'),
+  requirePermission([{ module: 'return', action: 'delete' }]),
   returnRequestsController.deleteReturnRequest
 );
 

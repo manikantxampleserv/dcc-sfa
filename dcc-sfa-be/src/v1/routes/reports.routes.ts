@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { reportsController } from '../controllers/reports.controller';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -13,6 +16,7 @@ const router = Router();
 router.get(
   '/orders-invoices-returns',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getOrdersInvoicesReturnsReport
 );
 
@@ -25,6 +29,7 @@ router.get(
 router.get(
   '/orders-invoices-returns/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportOrdersInvoicesReturnsReport
 );
 
@@ -37,6 +42,7 @@ router.get(
 router.get(
   '/sales-vs-target',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getSalesVsTargetReport
 );
 
@@ -49,6 +55,7 @@ router.get(
 router.get(
   '/sales-vs-target/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportSalesVsTargetReport
 );
 
@@ -61,6 +68,7 @@ router.get(
 router.get(
   '/asset-movement-status',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getAssetMovementStatusReport
 );
 
@@ -73,6 +81,7 @@ router.get(
 router.get(
   '/asset-movement-status/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportAssetMovementStatusReport
 );
 
@@ -85,6 +94,7 @@ router.get(
 router.get(
   '/visit-frequency-completion',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getVisitFrequencyCompletionReport
 );
 
@@ -97,6 +107,7 @@ router.get(
 router.get(
   '/visit-frequency-completion/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportVisitFrequencyCompletionReport
 );
 
@@ -109,6 +120,7 @@ router.get(
 router.get(
   '/promo-effectiveness',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getPromoEffectivenessReport
 );
 
@@ -121,6 +133,7 @@ router.get(
 router.get(
   '/promo-effectiveness/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportPromoEffectivenessReport
 );
 
@@ -133,6 +146,7 @@ router.get(
 router.get(
   '/region-territory-sales',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getRegionTerritorySalesReport
 );
 
@@ -145,6 +159,7 @@ router.get(
 router.get(
   '/region-territory-sales/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportRegionTerritorySalesReport
 );
 
@@ -157,6 +172,7 @@ router.get(
 router.get(
   '/rep-productivity',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getRepProductivityReport
 );
 
@@ -169,6 +185,7 @@ router.get(
 router.get(
   '/rep-productivity/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportRepProductivityReport
 );
 
@@ -181,6 +198,7 @@ router.get(
 router.get(
   '/competitor-analysis',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getCompetitorAnalysisReport
 );
 
@@ -193,6 +211,7 @@ router.get(
 router.get(
   '/competitor-analysis/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportCompetitorAnalysisReport
 );
 
@@ -205,6 +224,7 @@ router.get(
 router.get(
   '/outstanding-collection',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getOutstandingCollectionReport
 );
 
@@ -217,6 +237,7 @@ router.get(
 router.get(
   '/outstanding-collection/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportOutstandingCollectionReport
 );
 
@@ -229,6 +250,7 @@ router.get(
 router.get(
   '/attendance-history',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.getAttendanceHistoryReport
 );
 
@@ -241,6 +263,7 @@ router.get(
 router.get(
   '/attendance-history/export',
   authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
   reportsController.exportAttendanceHistoryReport
 );
 

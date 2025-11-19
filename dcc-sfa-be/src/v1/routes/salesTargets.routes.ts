@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -19,6 +22,7 @@ router.post(
   '/sales-targets',
   authenticateToken,
   auditCreate('sales_targets'),
+  requirePermission([{ module: 'sales-target', action: 'create' }]),
   createSalesTargetValidation,
   validate,
   salesTargetsController.createSalesTarget
@@ -28,6 +32,7 @@ router.post(
 router.get(
   '/sales-targets',
   authenticateToken,
+  requirePermission([{ module: 'sales-target', action: 'read' }]),
   salesTargetsController.getAllSalesTargets
 );
 
@@ -35,6 +40,7 @@ router.get(
 router.get(
   '/sales-targets/:id',
   authenticateToken,
+  requirePermission([{ module: 'sales-target', action: 'read' }]),
   salesTargetsController.getSalesTargetById
 );
 
@@ -43,6 +49,7 @@ router.put(
   '/sales-targets/:id',
   authenticateToken,
   auditUpdate('sales_targets'),
+  requirePermission([{ module: 'sales-target', action: 'update' }]),
   updateSalesTargetValidation,
   validate,
   salesTargetsController.updateSalesTarget
@@ -53,6 +60,7 @@ router.delete(
   '/sales-targets/:id',
   authenticateToken,
   auditDelete('sales_targets'),
+  requirePermission([{ module: 'sales-target', action: 'delete' }]),
   salesTargetsController.deleteSalesTarget
 );
 

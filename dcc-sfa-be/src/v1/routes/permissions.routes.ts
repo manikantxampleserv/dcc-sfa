@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -13,6 +16,7 @@ const router = Router();
 router.get(
   '/permissions',
   authenticateToken,
+  requirePermission([{ module: 'role', action: 'read' }]),
   permissionsController.getAllPermissions
 );
 
@@ -20,6 +24,7 @@ router.get(
 router.get(
   '/permissions/by-module',
   authenticateToken,
+  requirePermission([{ module: 'role', action: 'read' }]),
   permissionsController.getPermissionsByModule
 );
 
@@ -27,6 +32,7 @@ router.get(
 router.get(
   '/permissions/:id',
   authenticateToken,
+  requirePermission([{ module: 'role', action: 'read' }]),
   permissionsController.getPermissionById
 );
 
@@ -35,6 +41,7 @@ router.post(
   '/permissions',
   authenticateToken,
   auditCreate('permissions'),
+  requirePermission([{ module: 'role', action: 'create' }]),
   permissionsController.createPermission
 );
 
@@ -43,6 +50,7 @@ router.put(
   '/permissions/:id',
   authenticateToken,
   auditUpdate('permissions'),
+  requirePermission([{ module: 'role', action: 'update' }]),
   permissionsController.updatePermission
 );
 
@@ -51,6 +59,7 @@ router.delete(
   '/permissions/:id',
   authenticateToken,
   auditDelete('permissions'),
+  requirePermission([{ module: 'role', action: 'delete' }]),
   permissionsController.deletePermission
 );
 

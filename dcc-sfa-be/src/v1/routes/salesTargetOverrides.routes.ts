@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/sales-target-overrides',
   authenticateToken,
   auditCreate('sales_target_overrides'),
+  requirePermission([{ module: 'sales-target', action: 'create' }]),
   createSalesTargetOverrideValidation,
   validate,
   salesTargetOverridesController.createSalesTargetOverride
@@ -22,23 +26,27 @@ router.post(
 router.get(
   '/sales-target-overrides',
   authenticateToken,
+  requirePermission([{ module: 'sales-target', action: 'read' }]),
   salesTargetOverridesController.getAllSalesTargetOverrides
 );
 router.get(
   '/sales-target-overrides/:id',
   authenticateToken,
+  requirePermission([{ module: 'sales-target', action: 'read' }]),
   salesTargetOverridesController.getSalesTargetOverrideById
 );
 router.put(
   '/sales-target-overrides/:id',
   authenticateToken,
   auditUpdate('sales_target_overrides'),
+  requirePermission([{ module: 'sales-target', action: 'update' }]),
   salesTargetOverridesController.updateSalesTargetOverride
 );
 router.delete(
   '/sales-target-overrides/:id',
   authenticateToken,
   auditDelete('sales_target_overrides'),
+  requirePermission([{ module: 'sales-target', action: 'delete' }]),
   salesTargetOverridesController.deleteSalesTargetOverride
 );
 

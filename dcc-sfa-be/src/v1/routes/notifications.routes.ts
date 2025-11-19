@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import { notificationsController } from '../controllers/notifications.controller';
 import {
   auditCreate,
@@ -18,21 +21,33 @@ router.use(authenticateToken);
  * @access Private (requires authentication)
  * @params Query: page, limit, type, category, is_read, priority
  */
-router.get('/', notificationsController.getNotifications);
+router.get(
+  '/',
+  requirePermission([{ module: 'alert', action: 'read' }]),
+  notificationsController.getNotifications
+);
 
 /**
  * @route GET /api/v1/notifications/unread-count
  * @description Get unread notification count for the authenticated user
  * @access Private (requires authentication)
  */
-router.get('/unread-count', notificationsController.getUnreadCount);
+router.get(
+  '/unread-count',
+  requirePermission([{ module: 'alert', action: 'read' }]),
+  notificationsController.getUnreadCount
+);
 
 /**
  * @route GET /api/v1/notifications/:id
  * @description Get notification by ID
  * @access Private (requires authentication)
  */
-router.get('/:id', notificationsController.getNotificationById);
+router.get(
+  '/:id',
+  requirePermission([{ module: 'alert', action: 'read' }]),
+  notificationsController.getNotificationById
+);
 
 /**
  * @route POST /api/v1/notifications
@@ -43,6 +58,7 @@ router.get('/:id', notificationsController.getNotificationById);
 router.post(
   '/',
   auditCreate('notifications'),
+  requirePermission([{ module: 'alert', action: 'create' }]),
   notificationsController.createNotification
 );
 
@@ -54,6 +70,7 @@ router.post(
 router.put(
   '/:id/read',
   auditUpdate('notifications'),
+  requirePermission([{ module: 'alert', action: 'update' }]),
   notificationsController.markAsRead
 );
 
@@ -65,6 +82,7 @@ router.put(
 router.put(
   '/read-all',
   auditUpdate('notifications'),
+  requirePermission([{ module: 'alert', action: 'update' }]),
   notificationsController.markAllAsRead
 );
 
@@ -76,6 +94,7 @@ router.put(
 router.delete(
   '/:id',
   auditDelete('notifications'),
+  requirePermission([{ module: 'alert', action: 'delete' }]),
   notificationsController.deleteNotification
 );
 
@@ -87,6 +106,7 @@ router.delete(
 router.delete(
   '/clear-all',
   auditDelete('notifications'),
+  requirePermission([{ module: 'alert', action: 'delete' }]),
   notificationsController.clearAll
 );
 
