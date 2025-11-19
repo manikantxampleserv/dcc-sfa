@@ -1,14 +1,13 @@
 import { Router } from 'express';
 import {
   authenticateToken,
-  requireAnyModulePermission,
+  requirePermission,
 } from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
   auditDelete,
 } from '../../middlewares/audit.middleware';
-import { MODULES, ACTIONS } from '../../configs/permissions.config';
 import { userController } from '../controllers/user.controller';
 import {
   createUserValidation,
@@ -18,20 +17,28 @@ import { upload } from '../../utils/multer';
 
 const router = Router();
 
+// Create user - using dynamic module/action
 router.post(
   '/users',
   upload.single('profile_image'),
   authenticateToken,
   auditCreate('users'),
+<<<<<<< HEAD
   // requireAnyModulePermission([
   //   { module: MODULES.USER, action: ACTIONS.CREATE },
   // ]),
   // createUserValidation,
+=======
+  requirePermission([{ module: 'user', action: 'create' }]),
+  createUserValidation,
+>>>>>>> 53d5d69d12fb083c8349e5a336abbd33ebe803d9
   userController.createUser
 );
 
+// Get own profile - using dynamic module/action
 router.get('/users/me', authenticateToken, userController.getUserProfile);
 
+// Update own profile - using dynamic module/action
 router.put(
   '/users/me',
   authenticateToken,
@@ -40,23 +47,39 @@ router.put(
   userController.updateUserProfile
 );
 
-router.get('/users', authenticateToken, userController.getUsers);
+// Get all users - using dynamic module/action
+router.get(
+  '/users',
+  authenticateToken,
+  requirePermission([{ module: 'user', action: 'read' }]),
+  userController.getUsers
+);
 
-router.get('/users/:id', authenticateToken, userController.getUserById);
+// Get user by ID - using dynamic module/action
+router.get(
+  '/users/:id',
+  authenticateToken,
+  requirePermission([{ module: 'user', action: 'read' }]),
+  userController.getUserById
+);
 
+// Update user - using dynamic module/action
 router.put(
   '/users/:id',
   authenticateToken,
   upload.single('profile_image'),
   auditUpdate('users'),
+  requirePermission([{ module: 'user', action: 'update' }]),
   updateUserValidation,
   userController.updateUser
 );
 
+// Delete user - using dynamic module/action
 router.delete(
   '/users/:id',
   authenticateToken,
   auditDelete('users'),
+  requirePermission([{ module: 'user', action: 'delete' }]),
   userController.deleteUser
 );
 

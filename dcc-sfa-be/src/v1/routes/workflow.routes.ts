@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { workflowController } from '../controllers/workflow.controller';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -16,7 +19,11 @@ router.use(authenticateToken);
  * Get workflow steps for a return request
  * @route GET /steps/:requestId
  */
-router.get('/steps/:requestId', workflowController.getWorkflowSteps);
+router.get(
+  '/steps/:requestId',
+  requirePermission([{ module: 'approval', action: 'read' }]),
+  workflowController.getWorkflowSteps
+);
 
 /**
  * Execute workflow action (approve, reject, process, complete)
@@ -25,6 +32,7 @@ router.get('/steps/:requestId', workflowController.getWorkflowSteps);
 router.post(
   '/action/:requestId',
   auditUpdate('workflow_steps'),
+  requirePermission([{ module: 'approval', action: 'update' }]),
   workflowController.executeWorkflowAction
 );
 
@@ -35,6 +43,7 @@ router.post(
 router.post(
   '/reject/:requestId',
   auditUpdate('workflow_steps'),
+  requirePermission([{ module: 'approval', action: 'update' }]),
   workflowController.rejectReturnRequest
 );
 
@@ -42,7 +51,11 @@ router.post(
  * Get workflow templates
  * @route GET /templates
  */
-router.get('/templates', workflowController.getWorkflowTemplates);
+router.get(
+  '/templates',
+  requirePermission([{ module: 'approval', action: 'read' }]),
+  workflowController.getWorkflowTemplates
+);
 
 /**
  * Apply workflow template to a return request
@@ -51,6 +64,7 @@ router.get('/templates', workflowController.getWorkflowTemplates);
 router.post(
   '/template/:requestId',
   auditUpdate('workflow_steps'),
+  requirePermission([{ module: 'approval', action: 'update' }]),
   workflowController.applyWorkflowTemplate
 );
 
@@ -61,6 +75,7 @@ router.post(
 router.post(
   '/full-flow/:requestId',
   auditUpdate('workflow_steps'),
+  requirePermission([{ module: 'approval', action: 'update' }]),
   workflowController.executeFullWorkflowFlow
 );
 
@@ -71,6 +86,7 @@ router.post(
 router.post(
   '/next-step/:requestId',
   auditUpdate('workflow_steps'),
+  requirePermission([{ module: 'approval', action: 'update' }]),
   workflowController.executeNextWorkflowStep
 );
 

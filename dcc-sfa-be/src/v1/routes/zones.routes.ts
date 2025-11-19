@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,18 +18,30 @@ router.post(
   '/zones',
   authenticateToken,
   auditCreate('zones'),
+  requirePermission([{ module: 'zone', action: 'create' }]),
   createZoneValidation,
   validate,
   zonesController.createZone
 );
 
-router.get('/zones/:id', authenticateToken, zonesController.getZoneById);
-router.get('/zones', authenticateToken, zonesController.getZones);
+router.get(
+  '/zones/:id',
+  authenticateToken,
+  requirePermission([{ module: 'zone', action: 'read' }]),
+  zonesController.getZoneById
+);
+router.get(
+  '/zones',
+  authenticateToken,
+  requirePermission([{ module: 'zone', action: 'read' }]),
+  zonesController.getZones
+);
 
 router.put(
   '/zones/:id',
   authenticateToken,
   auditUpdate('zones'),
+  requirePermission([{ module: 'zone', action: 'update' }]),
   zonesController.updateZone
 );
 
@@ -34,6 +49,7 @@ router.delete(
   '/zones/:id',
   authenticateToken,
   auditDelete('zones'),
+  requirePermission([{ module: 'zone', action: 'delete' }]),
   zonesController.deleteZone
 );
 

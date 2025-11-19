@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/asset-maintenance',
   authenticateToken,
   auditCreate('asset_maintenance'),
+  requirePermission([{ module: 'maintenance', action: 'create' }]),
   createAssetMaintenanceValidation,
   validate,
   assetMaintenanceController.createAssetMaintenance
@@ -23,11 +27,13 @@ router.post(
 router.get(
   '/asset-maintenance/:id',
   authenticateToken,
+  requirePermission([{ module: 'maintenance', action: 'read' }]),
   assetMaintenanceController.getAssetMaintenanceById
 );
 router.get(
   '/asset-maintenance',
   authenticateToken,
+  requirePermission([{ module: 'maintenance', action: 'read' }]),
   assetMaintenanceController.getAllAssetMaintenance
 );
 
@@ -35,6 +41,7 @@ router.put(
   '/asset-maintenance/:id',
   authenticateToken,
   auditUpdate('asset_maintenance'),
+  requirePermission([{ module: 'maintenance', action: 'update' }]),
   assetMaintenanceController.updateAssetMaintenance
 );
 
@@ -42,6 +49,7 @@ router.delete(
   '/asset-maintenance/:id',
   authenticateToken,
   auditDelete('asset_maintenance'),
+  requirePermission([{ module: 'maintenance', action: 'delete' }]),
   assetMaintenanceController.deleteAssetMaintenance
 );
 

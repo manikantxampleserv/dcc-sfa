@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,17 +18,20 @@ router.post(
   upload.single('file'),
   authenticateToken,
   auditCreate('customer_documents'),
+  requirePermission([{ module: 'outlet', action: 'create' }]),
   customerDocumentsController.createCustomerDocuments
 );
 
 router.get(
   '/customer-documents/:id',
   authenticateToken,
+  requirePermission([{ module: 'outlet', action: 'read' }]),
   customerDocumentsController.getCustomerDocumentsById
 );
 router.get(
   '/customer-documents',
   authenticateToken,
+  requirePermission([{ module: 'outlet', action: 'read' }]),
   customerDocumentsController.getAllCustomerDocuments
 );
 
@@ -34,6 +40,7 @@ router.put(
   upload.single('file'),
   authenticateToken,
   auditUpdate('customer_documents'),
+  requirePermission([{ module: 'outlet', action: 'update' }]),
   customerDocumentsController.updateCustomerDocuments
 );
 
@@ -41,6 +48,7 @@ router.delete(
   '/customer-documents/:id',
   authenticateToken,
   auditDelete('customer_documents'),
+  requirePermission([{ module: 'outlet', action: 'delete' }]),
   customerDocumentsController.deleteCustomerDocuments
 );
 

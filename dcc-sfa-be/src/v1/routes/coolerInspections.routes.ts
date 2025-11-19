@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/cooler-inspections',
   authenticateToken,
   auditCreate('cooler_inspections'),
+  requirePermission([{ module: 'inspection', action: 'create' }]),
   createCoolerInspectionValidation,
   validate,
   coolerInspectionsController.createCoolerInspection
@@ -23,12 +27,14 @@ router.post(
 router.get(
   '/cooler-inspections/status-options',
   authenticateToken,
+  requirePermission([{ module: 'inspection', action: 'read' }]),
   coolerInspectionsController.getCoolerInspectionStatusOptions
 );
 
 router.get(
   '/cooler-inspections/:id',
   authenticateToken,
+  requirePermission([{ module: 'inspection', action: 'read' }]),
   validate,
   coolerInspectionsController.getCoolerInspectionById
 );
@@ -36,6 +42,7 @@ router.get(
 router.get(
   '/cooler-inspections',
   authenticateToken,
+  requirePermission([{ module: 'inspection', action: 'read' }]),
   coolerInspectionsController.getCoolerInspections
 );
 
@@ -43,12 +50,14 @@ router.put(
   '/cooler-inspections/:id',
   authenticateToken,
   auditUpdate('cooler_inspections'),
+  requirePermission([{ module: 'inspection', action: 'update' }]),
   coolerInspectionsController.updateCoolerInspection
 );
 
 router.patch(
   '/cooler-inspections/:id/status',
   authenticateToken,
+  requirePermission([{ module: 'inspection', action: 'update' }]),
   coolerInspectionsController.updateCoolerInspectionStatus
 );
 
@@ -56,6 +65,7 @@ router.delete(
   '/cooler-inspections/:id',
   authenticateToken,
   auditDelete('cooler_inspections'),
+  requirePermission([{ module: 'inspection', action: 'delete' }]),
   coolerInspectionsController.deleteCoolerInspection
 );
 

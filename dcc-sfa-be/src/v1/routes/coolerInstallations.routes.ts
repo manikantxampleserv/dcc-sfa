@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/cooler-installations',
   authenticateToken,
   auditCreate('cooler_installations'),
+  requirePermission([{ module: 'installation', action: 'create' }]),
   createCoolerInstallationValidation,
   validate,
   coolerInstallationsController.createCoolerInstallation
@@ -23,18 +27,21 @@ router.post(
 router.get(
   '/cooler-installations/status-options',
   authenticateToken,
+  requirePermission([{ module: 'installation', action: 'read' }]),
   coolerInstallationsController.getCoolerStatusOptions
 );
 
 router.get(
   '/cooler-installations',
   authenticateToken,
+  requirePermission([{ module: 'installation', action: 'read' }]),
   coolerInstallationsController.getCoolerInstallations
 );
 
 router.get(
   '/cooler-installations/:id',
   authenticateToken,
+  requirePermission([{ module: 'installation', action: 'read' }]),
   validate,
   coolerInstallationsController.getCoolerInstallationById
 );
@@ -43,6 +50,7 @@ router.put(
   '/cooler-installations/:id',
   authenticateToken,
   auditUpdate('cooler_installations'),
+  requirePermission([{ module: 'installation', action: 'update' }]),
   coolerInstallationsController.updateCoolerInstallation
 );
 
@@ -50,12 +58,14 @@ router.delete(
   '/cooler-installations/:id',
   authenticateToken,
   auditDelete('cooler_installations'),
+  requirePermission([{ module: 'installation', action: 'delete' }]),
   coolerInstallationsController.deleteCoolerInstallation
 );
 
 router.patch(
   '/cooler-installations/:id/status',
   authenticateToken,
+  requirePermission([{ module: 'installation', action: 'update' }]),
   coolerInstallationsController.updateCoolerStatus
 );
 

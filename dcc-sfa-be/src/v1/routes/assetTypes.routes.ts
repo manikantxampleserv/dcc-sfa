@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/asset-types',
   authenticateToken,
   auditCreate('asset_types'),
+  requirePermission([{ module: 'asset-type', action: 'create' }]),
   createAssetTypeValidation,
   validate,
   assetTypesController.createAssetType
@@ -23,12 +27,14 @@ router.post(
 router.get(
   '/asset-types/:id',
   authenticateToken,
+  requirePermission([{ module: 'asset-type', action: 'read' }]),
   validate,
   assetTypesController.getAssetTypeById
 );
 router.get(
   '/asset-types',
   authenticateToken,
+  requirePermission([{ module: 'asset-type', action: 'read' }]),
   assetTypesController.getAssetTypes
 );
 
@@ -36,6 +42,7 @@ router.put(
   '/asset-types/:id',
   authenticateToken,
   auditUpdate('asset_types'),
+  requirePermission([{ module: 'asset-type', action: 'update' }]),
   assetTypesController.updateAssetType
 );
 
@@ -43,6 +50,7 @@ router.delete(
   '/asset-types/:id',
   authenticateToken,
   auditDelete('asset_types'),
+  requirePermission([{ module: 'asset-type', action: 'delete' }]),
   assetTypesController.deleteAssetType
 );
 

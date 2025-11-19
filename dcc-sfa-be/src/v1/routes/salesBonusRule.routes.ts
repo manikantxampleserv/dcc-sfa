@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/sales-bonus-rule',
   authenticateToken,
   auditCreate('sales_bonus_rules'),
+  requirePermission([{ module: 'sales-bonus-rule', action: 'create' }]),
   createSalesTargetGroupsValidation,
   validate,
   salesBonusRulesController.createSalesBonusRule
@@ -23,6 +27,7 @@ router.post(
 router.get(
   '/sales-bonus-rule',
   authenticateToken,
+  requirePermission([{ module: 'sales-bonus-rule', action: 'read' }]),
   salesBonusRulesController.getAllSalesBonusRules
 );
 
@@ -30,11 +35,13 @@ router.put(
   '/sales-bonus-rule/:id',
   authenticateToken,
   auditUpdate('sales_bonus_rules'),
+  requirePermission([{ module: 'sales-bonus-rule', action: 'update' }]),
   salesBonusRulesController.updateSalesBonusRule
 );
 router.get(
   '/sales-bonus-rule/:id',
   authenticateToken,
+  requirePermission([{ module: 'sales-bonus-rule', action: 'read' }]),
   salesBonusRulesController.getSalesBonusRuleById
 );
 
@@ -42,6 +49,7 @@ router.delete(
   '/sales-bonus-rule/:id',
   authenticateToken,
   auditDelete('sales_bonus_rules'),
+  requirePermission([{ module: 'sales-bonus-rule', action: 'delete' }]),
   salesBonusRulesController.deleteSalesBonusRule
 );
 

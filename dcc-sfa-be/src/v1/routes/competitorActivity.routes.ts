@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -15,6 +18,7 @@ router.post(
   '/competitor-activity',
   authenticateToken,
   auditCreate('competitor_activities'),
+  requirePermission([{ module: 'competitor', action: 'create' }]),
   createCompetitorActivityValidation,
   validate,
   competitorActivityController.createCompetitorActivity
@@ -23,6 +27,7 @@ router.post(
 router.get(
   '/competitor-activity/:id',
   authenticateToken,
+  requirePermission([{ module: 'competitor', action: 'read' }]),
   validate,
   competitorActivityController.getCompetitorActivityById
 );
@@ -30,6 +35,7 @@ router.get(
 router.get(
   '/competitor-activity',
   authenticateToken,
+  requirePermission([{ module: 'competitor', action: 'read' }]),
   competitorActivityController.getCompetitorActivities
 );
 
@@ -37,6 +43,7 @@ router.put(
   '/competitor-activity/:id',
   authenticateToken,
   auditUpdate('competitor_activities'),
+  requirePermission([{ module: 'competitor', action: 'update' }]),
   competitorActivityController.updateCompetitorActivity
 );
 
@@ -44,6 +51,7 @@ router.delete(
   '/competitor-activity/:id',
   authenticateToken,
   auditDelete('competitor_activities'),
+  requirePermission([{ module: 'competitor', action: 'delete' }]),
   competitorActivityController.deleteCompetitorActivity
 );
 

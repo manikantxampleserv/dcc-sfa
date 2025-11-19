@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -14,6 +17,7 @@ router.post(
   '/currencies',
   authenticateToken,
   auditCreate('currencies'),
+  requirePermission([{ module: 'currency', action: 'create' }]),
   createCurrenciesValidation,
   validate,
   currenciesController.createCurrencies
@@ -22,12 +26,14 @@ router.post(
 router.get(
   '/currencies',
   authenticateToken,
+  requirePermission([{ module: 'currency', action: 'read' }]),
   currenciesController.getAllCurrencies
 );
 
 router.get(
   '/currencies/:id',
   authenticateToken,
+  requirePermission([{ module: 'currency', action: 'read' }]),
   currenciesController.getCurrenciesById
 );
 
@@ -35,6 +41,7 @@ router.put(
   '/currencies/:id',
   authenticateToken,
   auditUpdate('currencies'),
+  requirePermission([{ module: 'currency', action: 'update' }]),
   currenciesController.updateCurrencies
 );
 
@@ -42,6 +49,7 @@ router.delete(
   '/currencies/:id',
   authenticateToken,
   auditDelete('currencies'),
+  requirePermission([{ module: 'currency', action: 'delete' }]),
   currenciesController.deleteCurrencies
 );
 

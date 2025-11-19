@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import { auditLogsController } from '../controllers/auditLogs.controller';
 
 const router = Router();
@@ -10,6 +13,11 @@ const router = Router();
  * @access Private (requires authentication)
  * @params Query: page, limit, table_name, action, user_id, start_date, end_date
  */
-router.get('/audit-logs', authenticateToken, auditLogsController.getAuditLogs);
+router.get(
+  '/audit-logs',
+  authenticateToken,
+  requirePermission([{ module: 'report', action: 'read' }]),
+  auditLogsController.getAuditLogs
+);
 
 export default router;

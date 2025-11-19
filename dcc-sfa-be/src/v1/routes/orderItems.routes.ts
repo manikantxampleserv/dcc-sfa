@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
 import {
   auditCreate,
   auditUpdate,
@@ -13,18 +16,21 @@ router.post(
   '/order-items',
   authenticateToken,
   auditCreate('order_items'),
+  requirePermission([{ module: 'order', action: 'create' }]),
   orderItemsController.createOrderItems
 );
 
 router.get(
   '/order-items/:id',
   authenticateToken,
+  requirePermission([{ module: 'order', action: 'read' }]),
   orderItemsController.getOrderItemsById
 );
 
 router.get(
   '/order-items',
   authenticateToken,
+  requirePermission([{ module: 'order', action: 'read' }]),
   orderItemsController.getAllOrderItems
 );
 
@@ -32,6 +38,7 @@ router.put(
   '/order-items/:id',
   authenticateToken,
   auditUpdate('order_items'),
+  requirePermission([{ module: 'order', action: 'update' }]),
   orderItemsController.updateOrderItems
 );
 
@@ -39,6 +46,7 @@ router.delete(
   '/order-items/:id',
   authenticateToken,
   auditDelete('order_items'),
+  requirePermission([{ module: 'order', action: 'delete' }]),
   orderItemsController.deleteOrderItems
 );
 

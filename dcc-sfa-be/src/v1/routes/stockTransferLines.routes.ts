@@ -1,22 +1,23 @@
 import express from 'express';
-import { stockTransferLinesController } from '../controllers/stockTransferLines.controller';
-import { authenticateToken } from '../../middlewares/auth.middleware';
+import { auditDelete } from '../../middlewares/audit.middleware';
 import {
-  auditCreate,
-  auditUpdate,
-  auditDelete,
-} from '../../middlewares/audit.middleware';
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
+import { stockTransferLinesController } from '../controllers/stockTransferLines.controller';
 
 const router = express.Router();
 
 router.get(
   '/stock-transfer-lines/:id',
   authenticateToken,
+  requirePermission([{ module: 'stock-transfer', action: 'read' }]),
   stockTransferLinesController.getStockTransferLineById
 );
 router.get(
   '/stock-transfer-lines',
   authenticateToken,
+  requirePermission([{ module: 'stock-transfer', action: 'read' }]),
   stockTransferLinesController.getAllStockTransferLines
 );
 
@@ -24,6 +25,7 @@ router.delete(
   '/stock-transfer-lines/:id',
   authenticateToken,
   auditDelete('stock_transfer_lines'),
+  requirePermission([{ module: 'stock-transfer', action: 'delete' }]),
   stockTransferLinesController.deleteStockTransferLine
 );
 
