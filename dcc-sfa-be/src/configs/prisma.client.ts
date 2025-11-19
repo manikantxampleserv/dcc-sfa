@@ -1,10 +1,10 @@
-import { PrismaClient as PrismaClientType } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
-let prisma: PrismaClientType | null = null;
+let prisma: PrismaClient | null = null;
 
-export const getPrisma = (): PrismaClientType => {
+export const getPrisma = (): PrismaClient => {
   if (!prisma) {
-    prisma = new PrismaClientType({
+    prisma = new PrismaClient({
       log:
         process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     });
@@ -12,9 +12,8 @@ export const getPrisma = (): PrismaClientType => {
   return prisma;
 };
 
-// Lazy default export - only creates instance when accessed
-export default new Proxy({} as PrismaClientType, {
+export default new Proxy({} as PrismaClient, {
   get(_target, prop) {
-    return getPrisma()[prop as keyof PrismaClientType];
+    return getPrisma()[prop as keyof PrismaClient];
   },
 });

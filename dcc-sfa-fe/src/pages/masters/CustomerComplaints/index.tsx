@@ -1,5 +1,12 @@
 import { Add, Download, Upload } from '@mui/icons-material';
-import { Alert, Avatar, Chip, MenuItem, Typography } from '@mui/material';
+import {
+  Alert,
+  Avatar,
+  Chip,
+  MenuItem,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import {
   useCustomerComplaints,
   useDeleteCustomerComplaint,
@@ -157,19 +164,21 @@ const CustomerComplaintsPage: React.FC = () => {
       id: 'complaint_description',
       label: 'Complaint Description',
       render: (_value, row) => (
-        <Typography
-          variant="body2"
-          className="!text-gray-900 !max-w-md"
-          sx={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-          }}
-        >
-          {row.complaint_description}
-        </Typography>
+        <Tooltip title={row.complaint_description} placement="top" arrow>
+          <Typography
+            variant="body2"
+            className="!text-gray-900 !max-w-md"
+            sx={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+            }}
+          >
+            {row.complaint_description}
+          </Typography>
+        </Tooltip>
       ),
     },
     {

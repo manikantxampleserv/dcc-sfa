@@ -304,7 +304,7 @@ const ImportCustomerComplaint: React.FC<ImportCustomerComplaintProps> = ({
             )}
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center !gap-2">
             <Button
               type="button"
               variant="outlined"
