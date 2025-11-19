@@ -7,6 +7,10 @@
 
 import prisma from '../../configs/prisma.client';
 
+/**
+ * @interface MockPermission
+ * @description Permission data structure for seeding
+ */
 interface MockPermission {
   name: string;
   module: string;
@@ -15,86 +19,101 @@ interface MockPermission {
   is_active: string;
 }
 
-const MODULES = [
-  // Dashboards
-  'dashboard',
+/**
+ * @constant MODULE_MAPPING
+ * @description Maps module keys to their display names for permission generation
+ * @type {Record<string, string>}
+ */
+const MODULE_MAPPING: Record<string, string> = {
+  dashboard: 'Dashboard',
+  company: 'Company Master',
+  user: 'User Management',
+  role: 'Role & Permission',
+  depot: 'Depot',
+  zone: 'Zone',
+  currency: 'Currency',
+  route: 'Route',
+  'route-type': 'Route Type',
+  outlet: 'Outlet Master',
+  'outlet-group': 'Outlet Group',
+  'asset-type': 'Asset Type',
+  'asset-master': 'Asset Master',
+  warehouse: 'Warehouse',
+  vehicle: 'Vehicle',
+  brand: 'Brand',
+  'product-category': 'Product Category',
+  'product-sub-category': 'Product Sub Category',
+  'unit-of-measurement': 'Unit Of Measurement',
+  product: 'Product',
+  pricelist: 'Price List',
+  'sales-target-group': 'Sales Target Group',
+  'sales-target': 'Sales Target',
+  'sales-bonus-rule': 'Sales Bonus Rule',
+  'kpi-target': 'KPI Target',
+  survey: 'Survey',
+  order: 'Order',
+  delivery: 'Delivery Schedule',
+  return: 'Return Request',
+  payment: 'Payment',
+  invoice: 'Invoice',
+  'credit-note': 'Credit Note',
+  visit: 'Visit',
+  'asset-movement': 'Asset Movement',
+  maintenance: 'Asset Maintenance',
+  installation: 'Cooler Installation',
+  inspection: 'Cooler Inspection',
+  'van-stock': 'Van Inventory',
+  'stock-movement': 'Stock Movement',
+  'stock-transfer': 'Stock Transfer Request',
+  competitor: 'Competitor Activity',
+  'customer-complaint': 'Customer Complaint',
+  location: 'GPS Tracking',
+  'route-effectiveness': 'Route Effectiveness',
+  'erp-sync': 'ERP Sync',
+  report: 'Report',
+  approval: 'Approval Workflow',
+  exception: 'Exception',
+  alert: 'Alert',
+  profile: 'Profile',
+  'login-history': 'Login History',
+  token: 'Token',
+  setting: 'Setting',
+};
 
-  // Masters
-  'company',
-  'user',
-  'role',
-  'depot',
-  'zone',
-  'currency',
-  'route',
-  'outlet',
-  'outlet-group',
-  'asset-type',
-  'asset-master',
-  'warehouse',
-  'vehicle',
-  'brand',
-  'product-category',
-  'product-sub-category',
-  'unit-of-measurement',
-  'product',
-  'pricelist',
-  'sales-target-group',
-  'sales-target',
-  'sales-bonus-rule',
-  'kpi-target',
-  'survey',
+/**
+ * @constant MODULES
+ * @description Array of all module keys extracted from MODULE_MAPPING
+ * @type {string[]}
+ */
+const MODULES = Object.keys(MODULE_MAPPING);
 
-  // Transactions
-  'order',
-  'delivery',
-  'return',
-  'payment',
-  'invoice',
-  'credit-note',
-  'visit',
-  'asset-movement',
-  'maintenance',
-  'installation',
-  'van-stock',
-  'competitor',
-
-  // Tracking
-  'location',
-  'route-effectiveness',
-
-  // Integration
-  'erp-sync',
-
-  // Reports
-  'report',
-
-  // Workflows
-  'approval',
-  'exception',
-  'alert',
-
-  // Settings
-  'profile',
-  'login-history',
-  'token',
-  'setting',
-];
-
+/**
+ * @constant ACTIONS
+ * @description Available actions for permission generation
+ * @type {Array<{key: string, name: string, description: string}>}
+ */
 const ACTIONS = [
-  { key: 'read', name: 'Read', description: 'View and access data' },
-  { key: 'create', name: 'Create', description: 'Create new records' },
-  { key: 'update', name: 'Update', description: 'Modify existing records' },
-  { key: 'approve', name: 'Approve', description: 'Approve records' },
-  { key: 'delete', name: 'Delete', description: 'Remove records' },
+  { key: 'read', name: 'READ', description: 'View and access data' },
+  { key: 'create', name: 'CREATE', description: 'Create new records' },
+  { key: 'update', name: 'UPDATE', description: 'Modify existing records' },
+  { key: 'delete', name: 'DELETE', description: 'Remove records' },
 ];
 
+/**
+ * @constant mockPermissions
+ * @description Generated permissions array populated during module iteration
+ * @type {MockPermission[]}
+ */
 const mockPermissions: MockPermission[] = [];
 
-// Modules that should not have delete permissions (read-only or system modules)
+/**
+ * @constant READ_ONLY_MODULES
+ * @description Modules that should not have delete permissions (read-only or system modules)
+ * @type {string[]}
+ */
 const READ_ONLY_MODULES = [
   'dashboard',
-  'reports',
+  'report',
   'location',
   'route-effectiveness',
   'erp-sync',
@@ -102,41 +121,42 @@ const READ_ONLY_MODULES = [
   'login-history',
 ];
 
-// Generate CRUD permissions for each module
-MODULES.forEach(module => {
+/**
+ * @description Generates CRUD permissions for each module based on available actions
+ * @description Iterates through all modules and actions to create permission entries
+ */
+MODULES.forEach(moduleKey => {
   ACTIONS.forEach(action => {
-    // Skip delete action for read-only modules
-    if (READ_ONLY_MODULES.includes(module) && action.key === 'delete') {
+    if (READ_ONLY_MODULES.includes(moduleKey) && action.key === 'delete') {
       return;
     }
 
-    // Skip write/update/delete for settings (admin only)
-    if (module === 'settings' && action.key !== 'read') {
+    if (moduleKey === 'setting' && action.key !== 'read') {
       return;
     }
 
-    // Format module name for display
-    const moduleDisplayName = module
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    const moduleDisplayName = MODULE_MAPPING[moduleKey];
+    const moduleNameForPermission = moduleKey.replace(/-/g, '_').toLowerCase();
 
     mockPermissions.push({
-      name: `${module}.${action.key}`,
-      module,
-      action: action.key,
-      description: `${action.description} for ${moduleDisplayName} module`,
+      name: `${moduleNameForPermission}_${action.key}`,
+      module: moduleDisplayName,
+      action: action.name,
+      description: `${action.description} for ${moduleDisplayName}`,
       is_active: 'Y',
     });
   });
 });
 
 /**
- * Seed Permissions with mock data
+ * @function seedPermissions
+ * @description Seeds permissions table with generated mock permissions data
+ * @description Uses createMany for better performance, only creates non-existing permissions
+ * @returns {Promise<void>}
+ * @throws {Error} If seeding fails
  */
 export async function seedPermissions(): Promise<void> {
   try {
-    // Use createMany for better performance
     const permissionsToCreate = [];
 
     for (const permission of mockPermissions) {
@@ -151,7 +171,7 @@ export async function seedPermissions(): Promise<void> {
           name: permission.name,
           module: permission.module,
           action: permission.action,
-          description: permission.description,
+          description: permission.description || null,
           is_active: permission.is_active,
           createdate: new Date(),
           createdby: 1,
@@ -165,8 +185,6 @@ export async function seedPermissions(): Promise<void> {
       await prisma.permissions.createMany({
         data: permissionsToCreate,
       });
-    } else {
-      // do nothing
     }
   } catch (error) {
     console.error('Error seeding permissions:', error);
@@ -175,17 +193,23 @@ export async function seedPermissions(): Promise<void> {
 }
 
 /**
- * Clear Permissions data
+ * @function clearPermissions
+ * @description Clears all permissions and related role_permissions from the database
+ * @description Deletes role_permissions first to avoid foreign key constraint violations
+ * @returns {Promise<void>}
+ * @throws {Error} If clearing fails
  */
 export async function clearPermissions(): Promise<void> {
   try {
-    // First, delete all role_permissions that reference permissions
     await prisma.role_permissions.deleteMany({});
-    // Then delete all permissions
     await prisma.permissions.deleteMany({});
   } catch (error) {
     throw error;
   }
 }
 
+/**
+ * @exports mockPermissions
+ * @description Exported mock permissions array for use in other modules
+ */
 export { mockPermissions };

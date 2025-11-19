@@ -28,7 +28,10 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const isEdit = !!selectedUser;
 
-  const { data: rolesResponse, isLoading: rolesLoading } = useRoles();
+  const { data: rolesResponse, isLoading: rolesLoading } = useRoles({
+    limit: 1000,
+    isActive: 'Y',
+  });
   const roles = rolesResponse?.data || [];
 
   const createUserMutation = useCreateUser({
