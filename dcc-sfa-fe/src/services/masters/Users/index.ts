@@ -44,6 +44,7 @@ interface User {
     name: string;
     email: string;
   } | null;
+  permissions?: string[];
 }
 
 interface ManageUserPayload {

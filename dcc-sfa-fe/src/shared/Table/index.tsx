@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { visuallyHidden } from '@mui/utils';
 import classNames from 'classnames';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, Lock } from 'lucide-react';
 import React, { useMemo, useState, type ReactNode } from 'react';
 
 /**
@@ -81,7 +81,7 @@ export interface TableProps<T = any> {
   /** Message to show when no data */
   emptyMessage?: string;
   /** Function to get unique ID for each row */
-  getRowId?: (row: T) => string | number;
+  getRowId?: (row: T, index: number) => string | number;
   /** Initial column to sort by */
   initialOrderBy?: keyof T;
   /** Initial sort direction */
@@ -110,6 +110,10 @@ export interface TableProps<T = any> {
   onSearchChange?: (value: string) => void;
   /** Show search instead of title */
   showSearch?: boolean;
+  /** Permission check - if false, shows no access UI. Checks for 'read' permission by default */
+  isPermission?: boolean;
+  /** Custom message for no access state */
+  noAccessMessage?: string;
 }
 
 /** Sort order type with three states */
@@ -145,7 +149,7 @@ function getComparator<Key extends keyof any>(
   orderBy: Key
 ): (a: { [key in Key]: any }, b: { [key in Key]: any }) => number {
   if (order === 'none') {
-    return () => 0; // No sorting
+    return () => 0;
   }
   return order === 'desc'
     ? (a, b) => descendingComparator(a, b, orderBy)
@@ -305,7 +309,7 @@ export default function Table<T extends Record<string, any>>(
     onRowClick,
     loading = false,
     emptyMessage = 'No data available',
-    getRowId = (row: T, index: number) => row.id || index,
+    getRowId = (row: T, index: number) => (row as any).id ?? index,
     initialOrderBy,
     initialOrder = 'none',
     stickyHeader = false,
@@ -314,50 +318,43 @@ export default function Table<T extends Record<string, any>>(
     page = 0,
     rowsPerPage = 6,
     onPageChange,
+    isPermission = true,
+    noAccessMessage = 'You do not have permission to access this content',
   } = props;
 
   const [order, setOrder] = useState<Order>(initialOrder);
   const [orderBy, setOrderBy] = useState<keyof T | ''>(() => {
-    /**
-     * If initialOrderBy is provided and initialOrder is not 'none', check if it's sortable
-     */
     if (initialOrderBy && initialOrder !== 'none') {
       const column = columns.find(col => col.id === initialOrderBy);
       if (column && column.sortable !== false) {
         return initialOrderBy;
       }
     }
-
-    /**
-     * No default sorting - table starts unsorted
-     */
     return '';
   });
+
+  const columnMap = useMemo(() => {
+    return new Map(columns.map(col => [String(col.id), col]));
+  }, [columns]);
 
   const handleRequestSort = (
     _event: React.MouseEvent<unknown>,
     property: keyof T | string
   ) => {
-    /**
-     * Find the column to check if it's sortable
-     */
-    const column = columns.find(col => col.id === property);
-    if (column?.sortable === false)
-      return; /** Don't sort if explicitly disabled */
+    const column = columnMap.get(String(property));
+    if (column?.sortable === false) {
+      return;
+    }
 
-    // Three-state toggle: none -> asc -> desc -> none
     if (orderBy !== property) {
-      // Different column: start with ascending
       setOrder('asc');
       setOrderBy(property);
     } else {
-      // Same column: cycle through states
       if (order === 'none') {
         setOrder('asc');
       } else if (order === 'asc') {
         setOrder('desc');
       } else {
-        // desc -> none
         setOrder('none');
         setOrderBy('');
       }
@@ -377,58 +374,110 @@ export default function Table<T extends Record<string, any>>(
   };
 
   const visibleRows = useMemo(() => {
-    return sortable && orderBy && order !== 'none'
-      ? [...data].sort(getComparator(order, orderBy))
-      : data;
+    if (!sortable || !orderBy || order === 'none') {
+      return data;
+    }
+    return [...data].sort(getComparator(order, orderBy));
   }, [data, order, orderBy, sortable]);
 
-  const emptyRows = 0;
+  const isInitialLoading = loading && data.length === 0;
+  const hasNoPermission = !isPermission;
 
-  if (loading && data.length === 0) {
+  const renderTableContent = () => {
+    if (hasNoPermission) {
+      return (
+        <Box className="!flex !flex-col !items-center !justify-center !py-16 !px-4">
+          <Box className="!mb-4 !p-4 !rounded-full !bg-red-100">
+            <Lock className="!w-12 !h-12 !text-red-500" />
+          </Box>
+          <Box className="!text-center !max-w-md">
+            <Box className="!text-lg !font-semibold !text-gray-700 !mb-2">
+              Access Denied
+            </Box>
+            <Box className="!text-sm !text-gray-500">{noAccessMessage}</Box>
+          </Box>
+        </Box>
+      );
+    }
+
+    if (isInitialLoading) {
+      return (
+        <MuiTable
+          className="!min-w-[750px]"
+          size="small"
+          stickyHeader={stickyHeader}
+        >
+          <TableHead
+            order={order}
+            orderBy={orderBy ? String(orderBy) : ''}
+            onRequestSort={() => {}}
+            columns={columns}
+            sortable={sortable}
+          />
+          <MuiTableBody>
+            <SkeletonLoader columns={columns} rows={6} />
+          </MuiTableBody>
+        </MuiTable>
+      );
+    }
+
     return (
-      <Box className="!w-full">
-        <Paper className="!w-full !rounded-lg !border !border-gray-200 !shadow-sm">
-          {props.actions && !Array.isArray(props.actions) && (
-            <>
-              <Box className="!p-3">{props.actions}</Box>
-              <Divider className="!border-gray-200" />
-            </>
+      <MuiTable
+        className="!min-w-[750px]"
+        size="small"
+        stickyHeader={stickyHeader}
+      >
+        <TableHead
+          order={order}
+          orderBy={orderBy ? String(orderBy) : ''}
+          onRequestSort={handleRequestSort}
+          columns={columns}
+          sortable={sortable}
+        />
+        <MuiTableBody>
+          {loading ? (
+            <SkeletonLoader columns={columns} rows={rowsPerPage} />
+          ) : visibleRows.length === 0 ? (
+            <MuiTableRow>
+              <MuiTableCell
+                colSpan={columns.length}
+                align="center"
+                className="!py-4 !text-gray-500 !italic"
+              >
+                {emptyMessage}
+              </MuiTableCell>
+            </MuiTableRow>
+          ) : (
+            visibleRows.map((row, index) => {
+              const rowId = getRowId(row, index);
+              return (
+                <MuiTableRow
+                  hover
+                  onClick={event => handleClick(event, row, index)}
+                  tabIndex={-1}
+                  key={String(rowId)}
+                  className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
+                >
+                  {columns.map(column => (
+                    <MuiTableCell
+                      key={String(column.id)}
+                      align={column.numeric ? 'right' : 'left'}
+                      padding={column.disablePadding ? 'none' : 'normal'}
+                      className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
+                    >
+                      {column.render
+                        ? column.render(row[column.id], row)
+                        : String(row[column.id] || '')}
+                    </MuiTableCell>
+                  ))}
+                </MuiTableRow>
+              );
+            })
           )}
-          <MuiTableContainer style={{ maxHeight }}>
-            <MuiTable
-              className="!min-w-[750px]"
-              size="small"
-              stickyHeader={stickyHeader}
-            >
-              <TableHead
-                order={order}
-                orderBy={orderBy ? String(orderBy) : ''}
-                onRequestSort={() => {}}
-                columns={columns}
-                sortable={sortable}
-              />
-              <MuiTableBody>
-                <SkeletonLoader columns={columns} rows={6} />
-              </MuiTableBody>
-            </MuiTable>
-          </MuiTableContainer>
-          {pagination && (
-            <MuiTablePagination
-              rowsPerPageOptions={[]}
-              component="div"
-              count={totalCount}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              showFirstButton
-              showLastButton
-              onPageChange={handleChangePage}
-              className="!border-t !border-gray-200 [&_.MuiTablePagination-toolbar]:!text-gray-700 [&_.MuiTablePagination-selectIcon]:!text-gray-500"
-            />
-          )}
-        </Paper>
-      </Box>
+        </MuiTableBody>
+      </MuiTable>
     );
-  }
+  };
 
   return (
     <Box className="!w-full">
@@ -443,67 +492,9 @@ export default function Table<T extends Record<string, any>>(
           </>
         )}
         <MuiTableContainer style={{ maxHeight }}>
-          <MuiTable
-            className="!min-w-[750px]"
-            size="small"
-            stickyHeader={stickyHeader}
-          >
-            <TableHead
-              order={order}
-              orderBy={orderBy ? String(orderBy) : ''}
-              onRequestSort={handleRequestSort}
-              columns={columns}
-              sortable={sortable}
-            />
-            <MuiTableBody>
-              {loading ? (
-                <SkeletonLoader columns={columns} rows={rowsPerPage} />
-              ) : visibleRows.length === 0 ? (
-                <MuiTableRow>
-                  <MuiTableCell
-                    colSpan={columns.length}
-                    align="center"
-                    className="!py-4 !text-gray-500 !italic"
-                  >
-                    {emptyMessage}
-                  </MuiTableCell>
-                </MuiTableRow>
-              ) : (
-                visibleRows.map((row, index) => {
-                  const rowId = getRowId(row, index);
-                  return (
-                    <MuiTableRow
-                      hover
-                      onClick={event => handleClick(event, row, index)}
-                      tabIndex={-1}
-                      key={String(rowId)}
-                      className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
-                    >
-                      {columns.map(column => (
-                        <MuiTableCell
-                          key={String(column.id)}
-                          align={column.numeric ? 'right' : 'left'}
-                          padding={column.disablePadding ? 'none' : 'normal'}
-                          className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
-                        >
-                          {column.render
-                            ? column.render(row[column.id], row)
-                            : String(row[column.id] || '')}
-                        </MuiTableCell>
-                      ))}
-                    </MuiTableRow>
-                  );
-                })
-              )}
-              {!loading && emptyRows > 0 && (
-                <MuiTableRow style={{ height: 53 * emptyRows }}>
-                  <MuiTableCell colSpan={columns.length} />
-                </MuiTableRow>
-              )}
-            </MuiTableBody>
-          </MuiTable>
+          {renderTableContent()}
         </MuiTableContainer>
-        {pagination && (
+        {pagination && isPermission && (
           <MuiTablePagination
             rowsPerPageOptions={[]}
             component="div"

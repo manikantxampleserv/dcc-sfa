@@ -34,11 +34,19 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
   const [dialogType, setDialogType] = useState<'approve' | 'reject'>('approve');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
 
-  const { data: requestsResponse, isLoading } = useRequestsByUsers({
-    page: 1,
-    limit: 10,
-    status: 'P', // Only pending requests
-  });
+  const { data: requestsResponse, isLoading } = useRequestsByUsers(
+    {
+      page: 1,
+      limit: 10,
+      status: 'P',
+    },
+    {
+      enabled: open,
+      retry: false,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    }
+  );
 
   const requests: Request[] = requestsResponse?.data || [];
 

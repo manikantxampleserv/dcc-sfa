@@ -45,11 +45,18 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   } = useAuth();
 
   // Fetch pending approvals for badge count
-  const { data: pendingRequestsResponse } = useRequestsByUsers({
-    page: 1,
-    limit: 100,
-    status: 'P', // Only pending requests
-  });
+  const { data: pendingRequestsResponse } = useRequestsByUsers(
+    {
+      page: 1,
+      limit: 100,
+      status: 'P', // Only pending requests
+    },
+    {
+      retry: false, // Don't retry if it fails (especially 403)
+      refetchOnMount: false, // Don't refetch on mount
+      refetchOnWindowFocus: false, // Don't refetch on window focus
+    }
+  );
 
   const pendingCount = pendingRequestsResponse?.pagination?.total_count || 0;
 

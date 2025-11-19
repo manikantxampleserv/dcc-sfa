@@ -12,6 +12,7 @@ import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ManageUsers from './ManageUsers';
+import { usePermissions } from 'hooks/usePermission';
 
 const UsersManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -21,22 +22,29 @@ const UsersManagement: React.FC = () => {
   const [limit] = useState(8);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermissions('user');
+  console.log(isCreate, isUpdate, isDelete, isRead);
 
   const {
     data: usersResponse,
     isLoading,
     error,
-  } = useUsers({
-    search,
-    page,
-    limit,
-    isActive:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-  });
+  } = useUsers(
+    {
+      search,
+      page,
+      limit,
+      isActive:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const users = usersResponse?.data || [];
   const pagination = {
@@ -158,25 +166,33 @@ const UsersManagement: React.FC = () => {
           <span className="italic text-gray-400"> No Reports To </span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditUser(row)}
-            tooltip={`Edit ${row.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteUser(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: User) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditUser(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteUser(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   const deleteUserMutation = useDeleteUser();
@@ -223,7 +239,6 @@ const UsersManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
@@ -309,38 +324,46 @@ const UsersManagement: React.FC = () => {
         data={users}
         columns={userColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Users"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex items-center flex-wrap gap-2">
+                <SearchInput
+                  placeholder="Search Users"
+                  value={search}
+                  onChange={handleSearchChange}
+                  debounceMs={400}
+                  showClear={true}
+                  fullWidth={false}
+                  className="!min-w-80"
+                />
+                {isRead && (
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="!min-w-32"
+                    size="small"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                )}
+              </div>
+              {isCreate && (
+                <Button
+                  variant="contained"
+                  className="!capitalize"
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateUser}
+                >
+                  Create
+                </Button>
+              )}
             </div>
-            <Button
-              variant="contained"
-              className="!capitalize"
-              disableElevation
-              startIcon={<Add />}
-              onClick={handleCreateUser}
-            >
-              Create
-            </Button>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={user => user.id}
         initialOrderBy="name"
@@ -348,6 +371,7 @@ const UsersManagement: React.FC = () => {
         totalCount={pagination.total}
         page={page - 1}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         onRowClick={handleRowClick}
         emptyMessage={

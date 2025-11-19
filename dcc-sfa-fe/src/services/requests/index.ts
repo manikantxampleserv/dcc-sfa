@@ -89,9 +89,7 @@ export const fetchRequestsByUsers = async (
     return response.data;
   } catch (error: any) {
     console.error('Error fetching requests by users:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to fetch requests by users'
-    );
+    throw error;
   }
 };
 
