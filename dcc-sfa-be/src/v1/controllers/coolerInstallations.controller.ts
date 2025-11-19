@@ -91,7 +91,6 @@ export const coolerInstallationsController = {
         return res.status(400).json({ message: 'Cooler code is required' });
       }
 
-      // Check if cooler code already exists
       const existingCooler = await prisma.coolers.findUnique({
         where: { code: data.code },
       });
@@ -106,7 +105,6 @@ export const coolerInstallationsController = {
           createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
-          // Convert date strings to Date objects
           install_date: data.install_date
             ? new Date(data.install_date)
             : undefined,
@@ -155,20 +153,26 @@ export const coolerInstallationsController = {
   async getCoolerInstallations(req: Request, res: Response) {
     try {
       const {
-        page = '1',
-        limit = '10',
-        search = '',
+        page,
+        limit,
+        search,
         isActive,
         status,
         customer_id,
         technician_id,
+        user_id,
       } = req.query;
-      const page_num = parseInt(page as string, 10);
-      const limit_num = parseInt(limit as string, 10);
-      const searchLower = (search as string).toLowerCase();
+
+      // Provide default values and validate inputs
+      const page_num = page ? parseInt(page as string, 10) : 1;
+      const limit_num = limit ? parseInt(limit as string, 10) : 10;
+      const searchLower = search ? (search as string).toLowerCase() : '';
+      const inspectorFilter = technician_id || user_id;
 
       const filters: any = {
-        is_active: isActive as string,
+        // Only add is_active filter if isActive is provided
+        ...(isActive && { is_active: isActive as string }),
+
         ...(search && {
           OR: [
             { code: { contains: searchLower } },
@@ -184,42 +188,14 @@ export const coolerInstallationsController = {
         }),
         ...(status && { status: status as string }),
         ...(customer_id && { customer_id: parseInt(customer_id as string) }),
-        ...(technician_id !== undefined &&
-          technician_id !== null &&
-          technician_id !== '' && {
+        ...(inspectorFilter !== undefined &&
+          inspectorFilter !== null &&
+          inspectorFilter !== '' && {
             technician_id:
-              technician_id === 'null'
+              inspectorFilter === 'null'
                 ? null
-                : parseInt(technician_id as string, 10),
+                : parseInt(inspectorFilter as string, 10),
           }),
-      };
-
-      const totalCoolers = await prisma.coolers.count();
-      const activeCoolers = await prisma.coolers.count({
-        where: { is_active: 'Y' },
-      });
-      const inactiveCoolers = await prisma.coolers.count({
-        where: { is_active: 'N' },
-      });
-
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-      const newCoolersThisMonth = await prisma.coolers.count({
-        where: {
-          createdate: {
-            gte: startOfMonth,
-            lt: endOfMonth,
-          },
-        },
-      });
-
-      const stats = {
-        total_coolers: totalCoolers,
-        active_coolers: activeCoolers,
-        inactive_coolers: inactiveCoolers,
-        new_coolers_this_month: newCoolersThisMonth,
       };
 
       const { data, pagination } = await paginate({
@@ -247,16 +223,52 @@ export const coolerInstallationsController = {
         },
       });
 
+      const statsFilter: any = {};
+
+      const totalCoolers = await prisma.coolers.count({
+        where: statsFilter,
+      });
+      const activeCoolers = await prisma.coolers.count({
+        where: {
+          is_active: 'Y',
+        },
+      });
+      const inactiveCoolers = await prisma.coolers.count({
+        where: {
+          is_active: 'N',
+        },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const newCoolersThisMonth = await prisma.coolers.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
+      });
+
+      const stats = {
+        total_coolers: totalCoolers,
+        active_coolers: activeCoolers,
+        inactive_coolers: inactiveCoolers,
+        new_coolers_this_month: newCoolersThisMonth,
+      };
+
       res.json({
         success: true,
         message: 'Cooler installations retrieved successfully',
-        data: data.map((d: any) => serializeCoolerInstallation(d)),
         meta: {
           requestDuration: Date.now(),
           timestamp: new Date().toISOString(),
           ...pagination,
         },
         stats,
+        data: data.map((d: any) => serializeCoolerInstallation(d)),
       });
     } catch (error: any) {
       console.error('Get Cooler Installations Error:', error);

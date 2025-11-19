@@ -240,32 +240,158 @@ export const visitsController = {
 
   async getAllVisits(req: any, res: any) {
     try {
-      const { page, limit, search, sales_person_id, status, isActive } =
-        req.query;
-      const pageNum = parseInt(page as string, 10) || 1;
-      const limitNum = parseInt(limit as string, 10) || 10;
-      const searchLower = search ? (search as string).toLowerCase() : '';
+      console.log('Request Query:', req.query);
+      console.log('Request User:', req.user);
 
-      const filters: any = {};
+      const {
+        page,
+        limit,
+        search,
+        sales_person_id,
+        status,
+        isActive,
+        startDate,
+      } = req.query;
 
-      if (search) {
-        filters.OR = [
-          { purpose: { contains: searchLower } },
-          { status: { contains: searchLower } },
-        ];
+      const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+      const limitNum = Math.min(
+        100,
+        Math.max(1, parseInt(limit as string, 10) || 10)
+      );
+      const searchLower = search ? (search as string).toLowerCase().trim() : '';
+
+      console.log('Parsed Pagination:', { pageNum, limitNum });
+      console.log('Search Term:', searchLower);
+
+      const allowedStatuses = [
+        'pending',
+        'completed',
+        'cancelled',
+        'in_progress',
+      ];
+      if (status && !allowedStatuses.includes(status as string)) {
+        console.log('Invalid status:', status);
+        return res.status(400).json({ message: 'Invalid status value' });
       }
 
-      if (sales_person_id) {
-        filters.sales_person_id = parseInt(sales_person_id as string, 10);
+      if (isActive && !['Y', 'N'].includes(isActive as string)) {
+        console.log('Invalid isActive:', isActive);
+        return res.status(400).json({ message: 'Invalid isActive value' });
+      }
+
+      const filters: any = {};
+      const userRole = req.user?.role?.toLowerCase();
+      const userId = req.user?.id;
+
+      console.log('User Role:', userRole, 'User ID:', userId);
+
+      if (userRole === 'technician') {
+        console.log('Applying Technician filters - inspection visits only');
+        filters.sales_person_id = userId;
+        filters.cooler_inspections = {
+          some: {},
+        };
+        console.log('Technician filters:', filters);
+      } else if (userRole === 'salesman' || userRole === 'salesperson') {
+        console.log(
+          'Applying Salesman/Salesperson filters - sales visits only'
+        );
+        filters.sales_person_id = userId;
+        filters.OR = [
+          { purpose: { contains: 'sales' } },
+          { purpose: { contains: 'order' } },
+          { purpose: { contains: 'follow_up' } },
+          { purpose: { contains: 'new_customer' } },
+        ];
+        console.log('Salesman filters:', filters);
+      } else if (userRole === 'merchandiser') {
+        console.log(
+          'Applying Merchandiser filters - merchandising visits only'
+        );
+        filters.sales_person_id = userId;
+        filters.OR = [
+          { purpose: { contains: 'merchandising' } },
+          { purpose: { contains: 'shelf_arrangement' } },
+          { purpose: { contains: 'stock_check' } },
+          { purpose: { contains: 'display_setup' } },
+        ];
+        console.log('Merchandiser filters:', filters);
+      } else if (userRole === 'supervisor') {
+        console.log('Applying Supervisor filters - own visits only');
+        filters.sales_person_id = userId;
+        console.log('Supervisor filters:', filters);
+      } else if (userRole === 'admin' || userRole === 'manager') {
+        console.log(
+          'Admin/Manager role - can see all visits or filter by sales_person_id'
+        );
+        if (sales_person_id) {
+          const salesPersonIdNum = parseInt(sales_person_id as string, 10);
+          if (isNaN(salesPersonIdNum)) {
+            console.log('Invalid sales_person_id (NaN):', sales_person_id);
+            return res.status(400).json({ message: 'Invalid sales_person_id' });
+          }
+          filters.sales_person_id = salesPersonIdNum;
+          console.log('Filtered by sales_person_id:', salesPersonIdNum);
+        } else {
+          console.log('No sales_person_id filter - showing all visits');
+        }
+      } else {
+        console.log('Unknown role, restricting to own data');
+        filters.sales_person_id = parseInt(userId as string, 10);
+      }
+
+      if (startDate) {
+        console.log('Processing startDate:', startDate);
+        const start = new Date(startDate as string);
+        if (isNaN(start.getTime())) {
+          console.log('Invalid date format:', startDate);
+          return res.status(400).json({
+            message: 'Invalid date format. Please use YYYY-MM-DD',
+          });
+        }
+
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 7);
+        end.setHours(23, 59, 59, 999);
+
+        filters.visit_date = { gte: start, lte: end };
+        console.log('Date range filter:', { start, end });
+      }
+
+      if (searchLower) {
+        console.log('Applying search filter for term:', searchLower);
+        const searchOr = [
+          { purpose: { contains: searchLower } },
+          { status: { contains: searchLower } },
+          { visit_notes: { contains: searchLower } },
+        ];
+
+        console.log('Search OR conditions:', searchOr);
+
+        if (filters.OR) {
+          console.log('Combining search with existing OR filters');
+          console.log('Existing OR:', filters.OR);
+          filters.AND = [{ OR: filters.OR }, { OR: searchOr }];
+          delete filters.OR;
+          console.log('Combined AND filters:', filters.AND);
+        } else {
+          filters.OR = searchOr;
+          console.log('Applied search OR filters');
+        }
       }
 
       if (status) {
+        console.log('Applying status filter:', status);
         filters.status = status as string;
       }
 
       if (isActive) {
+        console.log('Applying isActive filter:', isActive);
         filters.is_active = isActive as string;
       }
+
+      console.log(JSON.stringify(filters, null, 2));
 
       const { data, pagination } = await paginate({
         model: prisma.visits,
@@ -278,27 +404,47 @@ export const visitsController = {
           visits_salesperson: true,
           visit_routes: true,
           visit_zones: true,
+          cooler_inspections: true,
         },
-      });
-
-      const totalVisits = await prisma.visits.count();
-      const activeVisits = await prisma.visits.count({
-        where: { is_active: 'Y' },
-      });
-      const inactiveVisits = await prisma.visits.count({
-        where: { is_active: 'N' },
       });
 
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const newVisitsThisMonth = await prisma.visits.count({
-        where: { createdate: { gte: startOfMonth, lte: endOfMonth } },
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+
+      const [totalVisits, activeVisits, inactiveVisits, newVisitsThisMonth] =
+        await Promise.all([
+          prisma.visits.count({ where: filters }),
+          prisma.visits.count({ where: { ...filters, is_active: 'Y' } }),
+          prisma.visits.count({ where: { ...filters, is_active: 'N' } }),
+          prisma.visits.count({
+            where: {
+              ...filters,
+              createdate: { gte: startOfMonth, lte: endOfMonth },
+            },
+          }),
+        ]);
+
+      console.log('Statistics:', {
+        totalVisits,
+        activeVisits,
+        inactiveVisits,
+        newVisitsThisMonth,
       });
+
+      const serializedData = data.map((visit: any) => serializeVisit(visit));
 
       res.success(
         'Visits retrieved successfully',
-        data.map((visit: any) => serializeVisit(visit)),
+        serializedData,
         200,
         pagination,
         {
@@ -309,7 +455,6 @@ export const visitsController = {
         }
       );
     } catch (error: any) {
-      console.log('Get Visits Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
@@ -390,6 +535,7 @@ export const visitsController = {
       res.status(500).json({ message: error.message });
     }
   },
+
   async deleteVisits(req: any, res: any) {
     try {
       const { id } = req.params;

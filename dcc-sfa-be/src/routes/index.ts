@@ -74,6 +74,7 @@ import requests from '../v1/routes/requests.routes';
 import approvalWorkflowSetup from '../v1/routes/approvalWorkflowSetup.routes';
 import surveyResponses from '../v1/routes/surveyResponses.routes';
 import customerComplaints from '../v1/routes/customerComplaints.routes';
+import settings from '../v1/routes/settings.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -150,6 +151,7 @@ routes.use('/v1', requests);
 routes.use('/v1', approvalWorkflowSetup);
 routes.use('/v1', surveyResponses);
 routes.use('/v1', customerComplaints);
+routes.use('/v1', settings);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
