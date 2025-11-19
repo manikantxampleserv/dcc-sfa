@@ -1,6 +1,6 @@
 /**
  * @fileoverview Axios Configuration with Bearer Token Authentication
- * @description Enhanced axios instance with automatic token management, error handling, and retry logic
+ * @description Enhanced axios instance with automatic token management and error handling
  * @author DCC-SFA Team
  * @version 2.0.0
  */
@@ -34,16 +34,6 @@ const BASE_URL = import.meta.env?.VITE_API_BASE_URL;
  * Request timeout in milliseconds
  */
 const REQUEST_TIMEOUT = 300000;
-
-/**
- * Maximum number of retry attempts for failed requests
- */
-const MAX_RETRY_ATTEMPTS = 3;
-
-/**
- * Delay between retry attempts in milliseconds
- */
-const RETRY_DELAY = 1000;
 
 let isSessionExpiredHandled = false;
 
@@ -141,7 +131,7 @@ axiosInstance.interceptors.request.use(
 
 /**
  * Response Interceptor
- * @description Handles responses, errors, token refresh, and retry logic
+ * @description Handles responses, errors, and token refresh
  */
 axiosInstance.interceptors.response.use(
   /**
@@ -181,11 +171,11 @@ axiosInstance.interceptors.response.use(
   },
 
   /**
-   * Error response interceptor with retry logic
+   * Error response interceptor
    * @param {AxiosError} error - Axios error object
-   * @returns {Promise<any>} Processed error or retry attempt
+   * @returns {Promise<never>} Rejected promise with processed error
    */
-  async (error: AxiosError): Promise<any> => {
+  async (error: AxiosError): Promise<never> => {
     const originalRequest = error.config as CustomAxiosRequestConfig;
 
     if (originalRequest?.skipErrorHandling) {
@@ -193,10 +183,6 @@ axiosInstance.interceptors.response.use(
     }
 
     try {
-      if (!originalRequest.retryCount) {
-        originalRequest.retryCount = 0;
-      }
-
       if (error.response) {
         const { status, data } = error.response;
 
@@ -219,18 +205,10 @@ axiosInstance.interceptors.response.use(
           return handleForbiddenError(error);
         }
 
-        if (status >= 500 && originalRequest.retryCount < MAX_RETRY_ATTEMPTS) {
-          return retryRequest(originalRequest);
-        }
-
         if (status >= 400 && status < 500) {
           return handleClientError(error);
         }
       } else if (error.request) {
-        if (originalRequest.retryCount < MAX_RETRY_ATTEMPTS) {
-          return retryRequest(originalRequest);
-        }
-
         return handleNetworkError(error);
       } else {
         return handleRequestError(error);
@@ -248,12 +226,12 @@ axiosInstance.interceptors.response.use(
  * Handles unauthorized (401) errors
  * @param {CustomAxiosRequestConfig} _ - Original request configuration
  * @param {AxiosError} error - Axios error object
- * @returns {Promise<any>} Retry attempt or rejected promise
+ * @returns {Promise<never>} Rejected promise
  */
 async function handleUnauthorizedError(
   _: CustomAxiosRequestConfig,
   error: AxiosError
-): Promise<any> {
+): Promise<never> {
   if (isSessionExpiredHandled) {
     return Promise.reject(
       new ApiErrorClass(
@@ -312,19 +290,21 @@ async function handleUnauthorizedError(
  * @returns {Promise<never>} Rejected promise
  */
 function handleForbiddenError(error: AxiosError): Promise<never> {
-  showNotification(
-    'Access denied. Insufficient permissions.',
-    NotificationType.ERROR
+  const data = error.response?.data as ApiError;
+  const message = data?.message || 'Access denied. Insufficient permissions.';
+
+  showNotification(message, NotificationType.ERROR);
+
+  const apiError = new ApiErrorClass(
+    message,
+    HttpStatusCode.FORBIDDEN,
+    NetworkErrorType.AUTHORIZATION_ERROR,
+    error
   );
 
-  return Promise.reject(
-    new ApiErrorClass(
-      'Access denied',
-      HttpStatusCode.FORBIDDEN,
-      NetworkErrorType.AUTHORIZATION_ERROR,
-      error
-    )
-  );
+  (apiError as any).response = error.response;
+
+  return Promise.reject(apiError);
 }
 
 /**
@@ -388,27 +368,6 @@ function handleRequestError(error: AxiosError): Promise<never> {
       error
     )
   );
-}
-
-/**
- * Retries a failed request with exponential backoff
- * @param {CustomAxiosRequestConfig} originalRequest - Original request configuration
- * @returns {Promise<any>} Retry attempt
- */
-async function retryRequest(
-  originalRequest: CustomAxiosRequestConfig
-): Promise<any> {
-  originalRequest.retryCount = (originalRequest.retryCount || 0) + 1;
-
-  const delay = RETRY_DELAY * Math.pow(2, originalRequest.retryCount - 1);
-
-  console.log(
-    `Retrying request (${originalRequest.retryCount}/${MAX_RETRY_ATTEMPTS}) after ${delay}ms`
-  );
-
-  await new Promise(resolve => setTimeout(resolve, delay));
-
-  return axiosInstance(originalRequest);
 }
 
 /**
