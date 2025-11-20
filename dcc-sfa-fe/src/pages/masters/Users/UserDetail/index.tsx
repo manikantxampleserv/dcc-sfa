@@ -285,87 +285,6 @@ const UserDetail: React.FC = () => {
             </div>
           </div>
         </div>
-        <InfoCard title="Personal Information" icon={Person}>
-          <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-            <div className="!space-y-0.5">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-              >
-                Full Name
-              </Typography>
-              <Typography
-                variant="body2"
-                className="!font-semibold !text-gray-900"
-              >
-                {user.name}
-              </Typography>
-            </div>
-
-            <div className="!space-y-0.5">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-              >
-                Email Address
-              </Typography>
-              <Typography
-                variant="body2"
-                className="!font-semibold !text-gray-900"
-              >
-                {user.email}
-              </Typography>
-            </div>
-
-            <div className="!space-y-0.5">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-              >
-                Phone Number
-              </Typography>
-              <Typography
-                variant="body2"
-                className="!font-semibold !text-gray-900"
-              >
-                {user.phone_number || 'Not provided'}
-              </Typography>
-            </div>
-
-            <div className="!space-y-0.5">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-              >
-                Employee ID
-              </Typography>
-              <Typography
-                variant="body2"
-                className="!font-semibold !text-gray-900"
-              >
-                {user.employee_id || 'Not provided'}
-              </Typography>
-            </div>
-
-            <div className="!space-y-0.5 md:!col-span-2">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-              >
-                Address
-              </Typography>
-              <Typography
-                variant="body2"
-                className="!font-semibold !text-gray-900"
-              >
-                {user.address || 'Not provided'}
-              </Typography>
-            </div>
-          </div>
-        </InfoCard>
-      </div>
-
-      <div className="!flex-4 !space-y-4">
         <InfoCard title="Role & Organization" icon={Security}>
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
             <div className="!space-y-0.5">
@@ -444,7 +363,87 @@ const UserDetail: React.FC = () => {
             </div>
           </div>
         </InfoCard>
+      </div>
 
+      <div className="!flex-4 !space-y-4">
+        <InfoCard title="Personal Information" icon={Person}>
+          <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Full Name
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.name}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Email Address
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.email}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Phone Number
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.phone_number || 'Not provided'}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Employee ID
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.employee_id || 'Not provided'}
+              </Typography>
+            </div>
+
+            <div className="!space-y-0.5 md:!col-span-2">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Address
+              </Typography>
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {user.address || 'Not provided'}
+              </Typography>
+            </div>
+          </div>
+        </InfoCard>
         <InfoCard title="Activity & Status" icon={AccessTime}>
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
             <div className="!space-y-0.5">
