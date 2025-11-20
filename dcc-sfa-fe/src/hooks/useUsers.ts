@@ -17,6 +17,7 @@ export type {
   UpdateUserPayload,
   UpdateProfilePayload,
   GetUsersParams,
+  UserDropdown,
 } from '../services/masters/Users';
 
 /**
@@ -91,6 +92,27 @@ export const useUserProfile = (
     staleTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch users for dropdowns (id, name, email only) with search support
+ * @param params - Query parameters for search and user_id
+ * @param options - React Query options
+ * @returns Query result with users data
+ */
+export const useUsersDropdown = (
+  params?: { search?: string; user_id?: number },
+  options?: Omit<
+    UseQueryOptions<ApiResponse<userService.UserDropdown[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: ['users', 'dropdown', params],
+    queryFn: () => userService.fetchUsersDropdown(params),
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 };

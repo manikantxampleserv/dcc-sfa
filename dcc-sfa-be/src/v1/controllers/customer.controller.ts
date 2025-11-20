@@ -1102,4 +1102,51 @@ export const customerController = {
       res.status(500).json({ message: error.message });
     }
   },
+
+  async getCustomersDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', customer_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const customerId = customer_id ? Number(customer_id) : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (customerId) {
+        where.id = customerId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            name: {
+              contains: searchLower,
+            },
+          },
+          {
+            code: {
+              contains: searchLower,
+            },
+          },
+        ];
+      }
+
+      const customers = await prisma.customers.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success('Customers dropdown fetched successfully', customers, 200);
+    } catch (error: any) {
+      console.error('Error fetching customers dropdown:', error);
+      res.error(error.message);
+    }
+  },
 };

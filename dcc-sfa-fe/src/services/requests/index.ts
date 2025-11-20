@@ -94,6 +94,28 @@ export const fetchRequestsByUsers = async (
 };
 
 /**
+ * Fetch requests by users (for approvers) without permission check
+ * @param params - Query parameters for filtering and pagination
+ * @returns Promise<ApiResponse<Request[]>>
+ */
+export const fetchRequestsByUsersWithoutPermission = async (
+  params?: GetRequestsByUsersParams
+): Promise<ApiResponse<Request[]>> => {
+  try {
+    const response = await api.get('/requests-by-users-without-permission', {
+      params,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      'Error fetching requests by users without permission:',
+      error
+    );
+    throw error;
+  }
+};
+
+/**
  * Take action on a request (approve or reject)
  * @param payload - Action payload
  * @returns Promise<ApiResponse<Request>>

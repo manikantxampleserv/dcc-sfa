@@ -1,4 +1,5 @@
 import ProtectedRoute from 'components/ProtectedRoute';
+import PermissionGuard from 'shared/PermissionGuard';
 import Layout from 'layout';
 import Login from 'pages/auth/Login';
 import PrivacyPolicy from 'pages/auth/PrivacyPolicy';
@@ -102,312 +103,620 @@ const router = createBrowserRouter(
       children: [
         {
           path: '/',
-          element: <ExecutiveDashboard />,
+          element: (
+            <PermissionGuard module="dashboard" action="read">
+              <ExecutiveDashboard />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/dashboard/executive',
-          element: <ExecutiveDashboard />,
+          element: (
+            <PermissionGuard module="dashboard" action="read">
+              <ExecutiveDashboard />
+            </PermissionGuard>
+          ),
         },
 
         {
           path: '/masters/brands',
-          element: <BrandsManagement />,
+          element: (
+            <PermissionGuard module="brand" action="read">
+              <BrandsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/company',
-          element: <CompaniesManagement />,
+          element: (
+            <PermissionGuard module="company" action="read">
+              <CompaniesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/users',
-          element: <Users />,
+          element: (
+            <PermissionGuard module="user" action="read">
+              <Users />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/users/:id',
-          element: <UserDetail />,
+          element: (
+            <PermissionGuard module="user" action="read">
+              <UserDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/roles',
-          element: <RolePermissions />,
+          element: (
+            <PermissionGuard module="role" action="read">
+              <RolePermissions />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/depots',
-          element: <DepotsManagement />,
+          element: (
+            <PermissionGuard module="depot" action="read">
+              <DepotsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/depots/:id',
-          element: <DepotDetail />,
+          element: (
+            <PermissionGuard module="depot" action="read">
+              <DepotDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/zones',
-          element: <ZonesManagement />,
+          element: (
+            <PermissionGuard module="zone" action="read">
+              <ZonesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/currency',
-          element: <CurrenciesManagement />,
+          element: (
+            <PermissionGuard module="currency" action="read">
+              <CurrenciesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/routes',
-          element: <RoutesManagement />,
+          element: (
+            <PermissionGuard module="route" action="read">
+              <RoutesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/routes/:id',
-          element: <RouteDetail />,
+          element: (
+            <PermissionGuard module="route" action="read">
+              <RouteDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/route-types',
-          element: <RouteTypesManagement />,
+          element: (
+            <PermissionGuard module="route-type" action="read">
+              <RouteTypesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/outlets',
-          element: <OutletsManagement />,
+          element: (
+            <PermissionGuard module="outlet" action="read">
+              <OutletsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/outlets/:id',
-          element: <OutletDetail />,
+          element: (
+            <PermissionGuard module="outlet" action="read">
+              <OutletDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/outlet-groups',
-          element: <OutletGroupsManagement />,
+          element: (
+            <PermissionGuard module="outlet-group" action="read">
+              <OutletGroupsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/asset-types',
-          element: <AssetTypesManagement />,
+          element: (
+            <PermissionGuard module="asset-type" action="read">
+              <AssetTypesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/asset-master',
-          element: <AssetMasterManagement />,
+          element: (
+            <PermissionGuard module="asset-master" action="read">
+              <AssetMasterManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/warehouses',
-          element: <WarehousesManagement />,
+          element: (
+            <PermissionGuard module="warehouse" action="read">
+              <WarehousesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/vehicles',
-          element: <VehiclesManagement />,
+          element: (
+            <PermissionGuard module="vehicle" action="read">
+              <VehiclesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/products',
-          element: <ProductsManagement />,
+          element: (
+            <PermissionGuard module="product" action="read">
+              <ProductsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/product-categories',
-          element: <ProductCategoriesManagement />,
+          element: (
+            <PermissionGuard module="product-category" action="read">
+              <ProductCategoriesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/product-sub-categories',
-          element: <ProductSubCategoriesManagement />,
+          element: (
+            <PermissionGuard module="product-sub-category" action="read">
+              <ProductSubCategoriesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/unit-of-measurement',
-          element: <UnitOfMeasurementManagement />,
+          element: (
+            <PermissionGuard module="unit-of-measurement" action="read">
+              <UnitOfMeasurementManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/pricelists',
-          element: <PriceListsManagement />,
+          element: (
+            <PermissionGuard module="pricelist" action="read">
+              <PriceListsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/settings/login-history',
-          element: <LoginHistoryPage />,
+          element: (
+            <PermissionGuard module="login-history" action="read">
+              <LoginHistoryPage />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/sales-target-groups',
-          element: <SalesTargetGroupsManagement />,
+          element: (
+            <PermissionGuard module="sales-target-group" action="read">
+              <SalesTargetGroupsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/sales-targets',
-          element: <SalesTargetsManagement />,
+          element: (
+            <PermissionGuard module="sales-target" action="read">
+              <SalesTargetsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/sales-bonus-rules',
-          element: <SalesBonusRulesManagement />,
+          element: (
+            <PermissionGuard module="sales-bonus-rule" action="read">
+              <SalesBonusRulesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/kpi-targets',
-          element: <KpiTargetsManagement />,
+          element: (
+            <PermissionGuard module="kpi-target" action="read">
+              <KpiTargetsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/surveys',
-          element: <SurveyBuilder />,
+          element: (
+            <PermissionGuard module="survey" action="read">
+              <SurveyBuilder />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/surveys/:id',
-          element: <SurveyDetail />,
+          element: (
+            <PermissionGuard module="survey" action="read">
+              <SurveyDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/customer-complaints',
-          element: <CustomerComplaintsPage />,
+          element: (
+            <PermissionGuard module="customer-complaint" action="read">
+              <CustomerComplaintsPage />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/orders',
-          element: <OrdersManagement />,
+          element: (
+            <PermissionGuard module="order" action="read">
+              <OrdersManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/orders/:id',
-          element: <OrderDetail />,
+          element: (
+            <PermissionGuard module="order" action="read">
+              <OrderDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/delivery',
-          element: <DeliveryScheduling />,
+          element: (
+            <PermissionGuard module="delivery" action="read">
+              <DeliveryScheduling />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/returns',
-          element: <ReturnRequests />,
+          element: (
+            <PermissionGuard module="return" action="read">
+              <ReturnRequests />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/returns/:id',
-          element: <ReturnRequestDetail />,
+          element: (
+            <PermissionGuard module="return" action="read">
+              <ReturnRequestDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/payments',
-          element: <PaymentCollection />,
+          element: (
+            <PermissionGuard module="payment" action="read">
+              <PaymentCollection />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/payments/:id',
-          element: <PaymentDetail />,
+          element: (
+            <PermissionGuard module="payment" action="read">
+              <PaymentDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/invoices',
-          element: <InvoicesManagement />,
+          element: (
+            <PermissionGuard module="invoice" action="read">
+              <InvoicesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/credit-notes',
-          element: <CreditNotesManagement />,
+          element: (
+            <PermissionGuard module="credit-note" action="read">
+              <CreditNotesManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/visits',
-          element: <SurveyAnswers />,
+          element: (
+            <PermissionGuard module="visit" action="read">
+              <SurveyAnswers />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/visits/:id',
-          element: <VisitDetail />,
+          element: (
+            <PermissionGuard module="visit" action="read">
+              <VisitDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/asset-movement',
-          element: <AssetMovementManagement />,
+          element: (
+            <PermissionGuard module="asset-movement" action="read">
+              <AssetMovementManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/competitor',
-          element: <CompetitorActivityManagement />,
+          element: (
+            <PermissionGuard module="competitor" action="read">
+              <CompetitorActivityManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/maintenance',
-          element: <AssetMaintenanceManagement />,
+          element: (
+            <PermissionGuard module="maintenance" action="read">
+              <AssetMaintenanceManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/installations',
-          element: <CoolerInstallationsManagement />,
+          element: (
+            <PermissionGuard module="installation" action="read">
+              <CoolerInstallationsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/installations/:id',
-          element: <CoolerInstallationDetail />,
+          element: (
+            <PermissionGuard module="installation" action="read">
+              <CoolerInstallationDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/inspections',
-          element: <CoolerInspectionsManagement />,
+          element: (
+            <PermissionGuard module="inspection" action="read">
+              <CoolerInspectionsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/inspections/:id',
-          element: <CoolerInspectionDetail />,
+          element: (
+            <PermissionGuard module="inspection" action="read">
+              <CoolerInspectionDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/stock-transfer',
-          element: <StockTransferRequestsManagement />,
+          element: (
+            <PermissionGuard module="stock-transfer" action="read">
+              <StockTransferRequestsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/stock-movements',
-          element: <StockMovementsManagement />,
+          element: (
+            <PermissionGuard module="stock-movement" action="read">
+              <StockMovementsManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/transactions/van-stock',
-          element: <VanStockManagement />,
+          element: (
+            <PermissionGuard module="van-stock" action="read">
+              <VanStockManagement />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/tracking/location',
-          element: <RepLocationTracking />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <RepLocationTracking />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/tracking/routes',
-          element: <RouteEffectiveness />,
+          element: (
+            <PermissionGuard module="route-effectiveness" action="read">
+              <RouteEffectiveness />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/orders',
-          element: <OrdersInvoicesReturnsReport />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <OrdersInvoicesReturnsReport />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/sales-target',
-          element: <SalesVsTargetReport />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <SalesVsTargetReport />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/asset-status',
-          element: <AssetMovementStatusReport />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <AssetMovementStatusReport />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/visits',
-          element: <VisitFrequencyCompletionReport />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <VisitFrequencyCompletionReport />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/promos',
-          element: <PromoEffectivenessReport />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <PromoEffectivenessReport />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/territory',
-          element: <RegionTerritorySalesReport />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <RegionTerritorySalesReport />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/productivity',
-          element: <RepProductivityReport />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <RepProductivityReport />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/competitor',
-          element: <CompetitorAnalysisReport />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <CompetitorAnalysisReport />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/collection',
-          element: <OutstandingCollectionReport />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <OutstandingCollectionReport />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/attendance-history',
-          element: <AttendanceReports />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <AttendanceReports />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/audit-logs',
-          element: <AuditLogs />,
+          element: (
+            <PermissionGuard module="report" action="read">
+              <AuditLogs />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/survey-responses',
-          element: <SurveyResponses />,
+          element: (
+            <PermissionGuard module="survey" action="read">
+              <SurveyResponses />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/reports/survey-responses/:id',
-          element: <SurveyResponseDetail />,
+          element: (
+            <PermissionGuard module="survey" action="read">
+              <SurveyResponseDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/workflows/approvals',
-          element: <ApprovalWorkflows />,
+          element: (
+            <PermissionGuard module="approval" action="read">
+              <ApprovalWorkflows />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/workflows/approval-setup',
-          element: <ApprovalSetup />,
+          element: (
+            <PermissionGuard module="approval" action="read">
+              <ApprovalSetup />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/workflows/exceptions',
-          element: <RouteExceptions />,
+          element: (
+            <PermissionGuard module="exception" action="read">
+              <RouteExceptions />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/workflows/alerts',
-          element: <AlertsReminders />,
+          element: (
+            <PermissionGuard module="alert" action="read">
+              <AlertsReminders />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/settings/tokens',
-          element: <ApiTokensPage />,
+          element: (
+            <PermissionGuard module="token" action="read">
+              <ApiTokensPage />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/settings/system',
-          element: <SystemSettings />,
+          element: (
+            <PermissionGuard module="setting" action="read">
+              <SystemSettings />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/profile',
-          element: <Profile />,
+          element: (
+            <PermissionGuard module="profile" action="read">
+              <Profile />
+            </PermissionGuard>
+          ),
         },
         {
           path: '*',

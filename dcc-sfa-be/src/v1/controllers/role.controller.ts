@@ -341,6 +341,28 @@ export const rolesController = {
     }
   },
 
+  async getRolesDropdown(req: any, res: any): Promise<void> {
+    try {
+      const roles = await prisma.roles.findMany({
+        where: {
+          is_active: 'Y',
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      res.success('Roles dropdown fetched successfully', roles, 200);
+    } catch (error: any) {
+      console.error('Error fetching roles dropdown:', error);
+      res.error(error.message);
+    }
+  },
+
   async getAllRoles(req: any, res: any): Promise<void> {
     try {
       const { page = '1', limit = '10', search = '', isActive } = req.query;

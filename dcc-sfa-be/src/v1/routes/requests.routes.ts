@@ -53,7 +53,6 @@ router.delete(
 router.post(
   '/requests/action',
   authenticateToken,
-  requirePermission([{ module: 'approval', action: 'update' }]),
   requestsController.takeActionOnRequest
 );
 
@@ -61,6 +60,12 @@ router.get(
   '/requests-by-users',
   authenticateToken,
   requirePermission([{ module: 'approval', action: 'read' }]),
+  requestsController.getRequestsByUsers
+);
+
+router.get(
+  '/requests-by-users-without-permission',
+  authenticateToken,
   requestsController.getRequestsByUsers
 );
 

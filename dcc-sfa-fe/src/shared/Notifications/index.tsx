@@ -41,7 +41,6 @@ const Notifications: React.FC<NotificationsProps> = ({
   const navigate = useNavigate();
   const open = Boolean(anchorEl);
 
-  // Fetch notifications from API
   const {
     data: notificationsData,
     isLoading,
@@ -51,14 +50,8 @@ const Notifications: React.FC<NotificationsProps> = ({
   const markAllAsReadMutation = useMarkAllNotificationsAsRead();
   const clearAllMutation = useClearAllNotifications();
 
-  const notifications =
-    (notificationsData as any)?.data?.notifications ||
-    notificationsData?.data ||
-    [];
-  const unreadCount =
-    (notificationsData as any)?.data?.unread_count ||
-    notificationsData?.unread_count ||
-    0;
+  const notifications: Notification[] = notificationsData?.data || [];
+  const unreadCount: number = notificationsData?.unread_count || 0;
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -69,12 +62,10 @@ const Notifications: React.FC<NotificationsProps> = ({
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read if not already read
     if (!notification.is_read) {
       await markAsReadMutation.mutateAsync(notification.id);
     }
 
-    // Navigate to action URL if available
     if (notification.action_url) {
       navigate(notification.action_url);
     }

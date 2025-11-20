@@ -116,7 +116,6 @@ export const useDeleteRoute = (options?: {
     mutationFn: deleteRoute,
     loadingMessage: 'Deleting route...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch routes list
       queryClient.invalidateQueries({ queryKey: routeKeys.lists() });
       options?.onSuccess?.(data, variables);
     },

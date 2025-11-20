@@ -76,4 +76,10 @@ router.delete(
   userController.deleteUser
 );
 
+router.get(
+  '/users-dropdown',
+  authenticateToken,
+  userController.getUsersDropdown
+);
+
 export default router;

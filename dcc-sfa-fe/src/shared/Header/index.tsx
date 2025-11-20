@@ -1,29 +1,29 @@
 import {
+  AccountCircle,
+  Assignment,
+  Logout,
+  Settings,
+} from '@mui/icons-material';
+import {
   Avatar,
-  Skeleton,
+  Badge,
+  Box,
+  Divider,
   IconButton,
-  Menu,
-  MenuItem,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
+  Skeleton,
   Typography,
-  Divider,
-  Box,
-  Badge,
 } from '@mui/material';
-import {
-  AccountCircle,
-  Settings,
-  Logout,
-  Assignment,
-} from '@mui/icons-material';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import Notifications from '../Notifications';
+import { useRequestsByUsersWithoutPermission } from '../../hooks/useRequests';
 import ApprovalsSidebar from '../ApprovalsSidebar';
-import { useRequestsByUsers } from '../../hooks/useRequests';
+import Notifications from '../Notifications';
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   } = useAuth();
 
   // Fetch pending approvals for badge count
-  const { data: pendingRequestsResponse } = useRequestsByUsers(
+  const { data: pendingRequestsResponse } = useRequestsByUsersWithoutPermission(
     {
       page: 1,
       limit: 100,

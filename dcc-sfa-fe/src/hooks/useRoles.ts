@@ -12,6 +12,7 @@ import type { ApiResponse } from '../types/api.types';
 
 export type {
   Role,
+  RoleDropdown,
   ManageRolePayload,
   UpdateRolePayload,
   GetRolesParams,
@@ -27,6 +28,25 @@ export const roleQueryKeys = {
   list: (params?: any) => [...roleQueryKeys.lists(), params] as const,
   details: () => [...roleQueryKeys.all, 'detail'] as const,
   detail: (id: number) => [...roleQueryKeys.details(), id] as const,
+};
+
+/**
+ * Hook to fetch roles dropdown (id and name only, no pagination)
+ * @param options - React Query options
+ * @returns Query result with roles dropdown data
+ */
+export const useRolesDropdown = (
+  options?: Omit<
+    UseQueryOptions<ApiResponse<roleService.RoleDropdown[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: [...roleQueryKeys.all, 'dropdown'] as const,
+    queryFn: () => roleService.fetchRolesDropdown(),
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
 };
 
 /**

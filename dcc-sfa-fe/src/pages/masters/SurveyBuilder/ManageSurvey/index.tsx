@@ -8,7 +8,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import { useRoles } from '../../../../hooks/useRoles';
+import { useRolesDropdown } from '../../../../hooks/useRoles';
 import {
   useCreateOrUpdateSurvey,
   type Survey,
@@ -50,11 +50,7 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
   const isEdit = !!selectedSurvey;
   const [surveyFields, setSurveyFields] = useState<SurveyFieldFormData[]>([]);
 
-  // Fetch active roles for target_roles select
-  const { data: rolesResponse, isLoading: isLoadingRoles } = useRoles({
-    limit: 1000,
-    isActive: 'Y',
-  });
+  const { data: rolesResponse, isLoading: isLoadingRoles } = useRolesDropdown();
   const roles = rolesResponse?.data || [];
 
   const handleCancel = () => {

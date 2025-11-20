@@ -609,4 +609,56 @@ export const userController = {
       res.error(error.message);
     }
   },
+
+  async getUsersDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', user_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const userId = user_id ? Number(user_id) : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (userId) {
+        where.id = userId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            name: {
+              contains: searchLower,
+            },
+          },
+          {
+            email: {
+              contains: searchLower,
+            },
+          },
+          {
+            employee_id: {
+              contains: searchLower,
+            },
+          },
+        ];
+      }
+
+      const users = await prisma.users.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success('Users dropdown fetched successfully', users, 200);
+    } catch (error: any) {
+      console.error('Error fetching users dropdown:', error);
+      res.error(error.message);
+    }
+  },
 };

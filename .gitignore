@@ -18,6 +18,8 @@ dist/
 build/
 out/
 
+.cursor/
+
 # Package-specific build outputs
 dcc-sfa-be/dist/
 dcc-sfa-fe/dist/

@@ -9,7 +9,10 @@ import {
   Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
-import { useRequestsByUsers, useTakeActionOnRequest } from 'hooks/useRequests';
+import {
+  useRequestsByUsersWithoutPermission,
+  useTakeActionOnRequest,
+} from 'hooks/useRequests';
 import { Check, FileText, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -34,19 +37,20 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
   const [dialogType, setDialogType] = useState<'approve' | 'reject'>('approve');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
 
-  const { data: requestsResponse, isLoading } = useRequestsByUsers(
-    {
-      page: 1,
-      limit: 10,
-      status: 'P',
-    },
-    {
-      enabled: open,
-      retry: false,
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
-    }
-  );
+  const { data: requestsResponse, isLoading } =
+    useRequestsByUsersWithoutPermission(
+      {
+        page: 1,
+        limit: 10,
+        status: 'P',
+      },
+      {
+        enabled: open,
+        retry: false,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+      }
+    );
 
   const requests: Request[] = requestsResponse?.data || [];
 

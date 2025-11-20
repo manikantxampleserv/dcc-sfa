@@ -6,67 +6,15 @@
  */
 
 import { useMemo } from 'react';
+import { type BackendModule } from '../utils/permission-auto-generator';
 import { useCurrentUser } from './useUsers';
 
 /**
  * @type Module
  * @description Union type of all available module keys
- * @description Matches the module keys from backend permissions.config.ts
+ * @description Derived from BackendModule to ensure single source of truth
  */
-type Module =
-  | 'dashboard'
-  | 'company'
-  | 'user'
-  | 'role'
-  | 'depot'
-  | 'zone'
-  | 'currency'
-  | 'route'
-  | 'route-type'
-  | 'outlet'
-  | 'outlet-group'
-  | 'asset-type'
-  | 'asset-master'
-  | 'warehouse'
-  | 'vehicle'
-  | 'brand'
-  | 'product-category'
-  | 'product-sub-category'
-  | 'unit-of-measurement'
-  | 'product'
-  | 'pricelist'
-  | 'sales-target-group'
-  | 'sales-target'
-  | 'sales-bonus-rule'
-  | 'kpi-target'
-  | 'survey'
-  | 'order'
-  | 'delivery'
-  | 'return'
-  | 'payment'
-  | 'invoice'
-  | 'credit-note'
-  | 'visit'
-  | 'asset-movement'
-  | 'maintenance'
-  | 'installation'
-  | 'inspection'
-  | 'van-stock'
-  | 'stock-movement'
-  | 'stock-transfer'
-  | 'competitor'
-  | 'customer-complaint'
-  | 'location'
-  | 'route-effectiveness'
-  | 'erp-sync'
-  | 'report'
-  | 'approval'
-  | 'exception'
-  | 'alert'
-  | 'profile'
-  | 'login-history'
-  | 'token'
-  | 'setting';
+type Module = BackendModule;
 
 /**
  * @type Action

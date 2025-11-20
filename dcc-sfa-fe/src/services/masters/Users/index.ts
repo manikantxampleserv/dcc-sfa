@@ -223,6 +223,28 @@ export const updateUserProfile = async (
   return response.data;
 };
 
+export interface UserDropdown {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface GetUsersDropdownParams {
+  search?: string;
+  user_id?: number;
+}
+
+export const fetchUsersDropdown = async (
+  params?: GetUsersDropdownParams
+): Promise<ApiResponse<UserDropdown[]>> => {
+  try {
+    const response = await axiosInstance.get('/users-dropdown', { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export default {
   fetchUsers,
   fetchUserById,

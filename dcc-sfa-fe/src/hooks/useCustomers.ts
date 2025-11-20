@@ -11,11 +11,13 @@ import {
   deleteCustomer,
   fetchCustomerById,
   fetchCustomers,
+  fetchCustomersDropdown,
   updateCustomer,
   type GetCustomersParams,
   type ManageCustomerPayload,
   type UpdateCustomerPayload,
   type Customer,
+  type CustomerDropdown,
 } from '../services/masters/Customers';
 import { useApiMutation } from './useApiMutation';
 
@@ -53,6 +55,29 @@ export const useCustomer = (id: number) => {
 };
 
 /**
+ * Hook to fetch customers for dropdowns (id, name, code only) with search support
+ * @param params - Query parameters for search and customer_id
+ * @param options - React Query options
+ * @returns Query result with customers data
+ */
+export const useCustomersDropdown = (
+  params?: { search?: string; customer_id?: number },
+  options?: Omit<
+    import('@tanstack/react-query').UseQueryOptions<
+      import('../types/api.types').ApiResponse<CustomerDropdown[]>
+    >,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: ['customers', 'dropdown', params],
+    queryFn: () => fetchCustomersDropdown(params),
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
  * Hook to create a new customer
  */
 export const useCreateCustomer = (options?: {
@@ -65,7 +90,6 @@ export const useCreateCustomer = (options?: {
     mutationFn: createCustomer,
     loadingMessage: 'Creating customer...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch customers list
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
       options?.onSuccess?.(data, variables);
     },
@@ -96,7 +120,6 @@ export const useUpdateCustomer = (options?: {
       updateCustomer(id, customerData),
     loadingMessage: 'Updating customer...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch customers list and specific customer
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
       queryClient.invalidateQueries({
         queryKey: customerKeys.detail(variables.id),
@@ -120,7 +143,6 @@ export const useDeleteCustomer = (options?: {
     mutationFn: deleteCustomer,
     loadingMessage: 'Deleting customer...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch customers list
       queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
       options?.onSuccess?.(data, variables);
     },

@@ -193,6 +193,28 @@ export const deleteCustomer = async (
   return response.data;
 };
 
+export interface CustomerDropdown {
+  id: number;
+  name: string;
+  code: string;
+}
+
+export interface GetCustomersDropdownParams {
+  search?: string;
+  customer_id?: number;
+}
+
+export const fetchCustomersDropdown = async (
+  params?: GetCustomersDropdownParams
+): Promise<ApiResponse<CustomerDropdown[]>> => {
+  try {
+    const response = await axiosInstance.get('/customers-dropdown', { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export default {
   fetchCustomers,
   fetchCustomerById,

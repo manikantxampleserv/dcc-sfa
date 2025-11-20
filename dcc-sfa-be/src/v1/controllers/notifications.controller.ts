@@ -1,6 +1,5 @@
-import { Request } from 'express';
-import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { paginate } from '../../utils/paginate';
 
 interface NotificationSerialized {
   id: number;
@@ -83,7 +82,6 @@ export const notificationsController = {
         where.priority = priority as string;
       }
 
-      // Filter out expired notifications
       where.OR = [{ expires_at: null }, { expires_at: { gt: new Date() } }];
 
       const pageNum = parseInt(page as string, 10);

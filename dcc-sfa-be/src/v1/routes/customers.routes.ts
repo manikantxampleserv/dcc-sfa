@@ -53,4 +53,11 @@ router.post(
   requirePermission([{ module: 'outlet', action: 'create' }]),
   customerController.bulkUpsertCustomers
 );
+
+router.get(
+  '/customers-dropdown',
+  authenticateToken,
+  customerController.getCustomersDropdown
+);
+
 export default router;

@@ -20,6 +20,11 @@ interface Role {
   };
 }
 
+interface RoleDropdown {
+  id: number;
+  name: string;
+}
+
 interface RolePermission {
   permission_id: number;
   is_active: string;
@@ -61,6 +66,21 @@ interface PaginationMeta {
   limit: number;
   totalPages: number;
 }
+
+/**
+ * Fetch roles dropdown (id and name only, no pagination)
+ * @returns Promise<ApiResponse<RoleDropdown[]>>
+ */
+export const fetchRolesDropdown = async (): Promise<
+  ApiResponse<RoleDropdown[]>
+> => {
+  try {
+    const response = await axiosInstance.get('/roles-dropdown');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
 
 /**
  * Fetch all roles with pagination and filters
@@ -130,6 +150,7 @@ export const deleteRole = async (id: number): Promise<ApiResponse<void>> => {
 
 export default {
   fetchRoles,
+  fetchRolesDropdown,
   fetchRoleById,
   createRole,
   updateRole,
@@ -142,5 +163,6 @@ export type {
   UpdateRolePayload,
   PaginationMeta,
   Role,
+  RoleDropdown,
   RolePermission,
 };

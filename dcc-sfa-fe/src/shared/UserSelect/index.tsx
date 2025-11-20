@@ -1,6 +1,6 @@
 import { Autocomplete, CircularProgress, TextField } from '@mui/material';
 import type { FormikProps } from 'formik';
-import { useUser, useUsers } from 'hooks/useUsers';
+import { useUsersDropdown } from 'hooks/useUsers';
 import React, { useCallback, useEffect, useState } from 'react';
 
 /**
@@ -103,7 +103,6 @@ const UserSelect: React.FC<UserSelectProps> = ({
 
   const currentValue = formik ? formik.values[name] : value;
 
-  // Normalize currentValue to handle both number and string
   const normalizedValue = currentValue
     ? typeof currentValue === 'number'
       ? currentValue.toString()
@@ -114,7 +113,6 @@ const UserSelect: React.FC<UserSelectProps> = ({
     const timer = setTimeout(() => {
       if (!isSelecting) {
         setDebouncedSearch(inputValue);
-        // Once user starts typing, mark as initialized
         if (inputValue) {
           setHasInitialized(true);
         }
@@ -124,13 +122,10 @@ const UserSelect: React.FC<UserSelectProps> = ({
     return () => clearTimeout(timer);
   }, [inputValue, isSelecting]);
 
-  // Use nameToSearch only on initial mount when we have a value but haven't initialized yet
-  // Once user types or component is initialized, use debouncedSearch
   const effectiveSearch = React.useMemo(() => {
     if (hasInitialized || inputValue) {
       return debouncedSearch;
     }
-    // On initial mount with value, use nameToSearch if provided
     if (normalizedValue && nameToSearch && !hasInitialized) {
       return nameToSearch;
     }
@@ -143,30 +138,24 @@ const UserSelect: React.FC<UserSelectProps> = ({
     inputValue,
   ]);
 
-  const { data: usersResponse, isLoading: usersLoading } = useUsers({
-    limit: 20,
+  const userId = normalizedValue ? Number(normalizedValue) : undefined;
+
+  const { data: dropdownResponse, isLoading: isLoading } = useUsersDropdown({
     search: effectiveSearch,
+    user_id: userId && !effectiveSearch ? userId : undefined,
   });
-  const searchResults: User[] = usersResponse?.data || [];
 
-  // Only fetch individual user if not found in list and we have a value
-  const userId = normalizedValue ? Number(normalizedValue) : 0;
-  const userFoundInList = searchResults.some(
-    user => user.id.toString() === normalizedValue
-  );
-  const shouldFetchIndividual =
-    normalizedValue && !userFoundInList && !usersLoading && !selectedUserData;
-
-  const { data: initialUserResponse } = useUser(
-    shouldFetchIndividual ? userId : 0
-  );
+  const searchResults: User[] = (dropdownResponse?.data || []).map(user => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+  }));
 
   useEffect(() => {
-    // First, try to find user in the list results
     if (
       normalizedValue &&
       !selectedUserData &&
-      !usersLoading &&
+      !isLoading &&
       searchResults.length > 0
     ) {
       const found = searchResults.find(
@@ -178,40 +167,9 @@ const UserSelect: React.FC<UserSelectProps> = ({
           setInputValue(found.name);
         }
         setHasInitialized(true);
-        return; // Found in list, no need to check individual fetch
       }
     }
-
-    // Fallback: if not found in list, use individual fetch result
-    if (initialUserResponse?.data && normalizedValue) {
-      const user = initialUserResponse.data as any;
-      const userData = user.user || user;
-      if (
-        userData &&
-        userData.id &&
-        userData.id.toString() === normalizedValue &&
-        (!selectedUserData || selectedUserData.id !== userData.id)
-      ) {
-        setSelectedUserData({
-          id: userData.id,
-          name: userData.name,
-          email: userData.email || '',
-        });
-        // Set input value to show the user name
-        if (!inputValue) {
-          setInputValue(userData.name);
-        }
-        setHasInitialized(true);
-      }
-    }
-  }, [
-    initialUserResponse,
-    normalizedValue,
-    selectedUserData,
-    inputValue,
-    searchResults,
-    usersLoading,
-  ]);
+  }, [normalizedValue, selectedUserData, inputValue, searchResults, isLoading]);
 
   const selectedUser = React.useMemo(() => {
     if (!normalizedValue) {
@@ -246,12 +204,10 @@ const UserSelect: React.FC<UserSelectProps> = ({
       setSelectedUserData(null);
       setInputValue('');
     } else if (selectedUserData && !inputValue && normalizedValue) {
-      // Set input value when component mounts with existing value
       setInputValue(selectedUserData.name);
     }
   }, [selectedUser, normalizedValue, selectedUserData, inputValue]);
 
-  // Reset inputValue when normalizedValue changes externally (e.g., formik reinitializes)
   useEffect(() => {
     if (!normalizedValue) {
       if (selectedUserData || inputValue) {
@@ -263,7 +219,6 @@ const UserSelect: React.FC<UserSelectProps> = ({
       selectedUserData &&
       selectedUserData.id.toString() !== normalizedValue
     ) {
-      // Value changed externally, reset to allow new fetch
       setSelectedUserData(null);
       setInputValue('');
       setHasInitialized(false);
@@ -338,7 +293,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
       options={users}
       getOptionLabel={(option: User) => option.name}
       value={selectedUser}
-      loading={usersLoading}
+      loading={isLoading}
       onChange={handleChange}
       inputValue={inputValue}
       onInputChange={handleInputChange}
@@ -363,7 +318,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
         />
       )}
       noOptionsText={
-        debouncedSearch && !usersLoading
+        debouncedSearch && !isLoading
           ? 'No users found'
           : 'Type to search users'
       }

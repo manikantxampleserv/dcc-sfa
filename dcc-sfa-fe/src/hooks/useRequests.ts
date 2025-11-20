@@ -26,6 +26,8 @@ export const requestQueryKeys = {
   list: (params?: any) => [...requestQueryKeys.lists(), params] as const,
   byUsers: (params?: any) =>
     [...requestQueryKeys.all, 'by-users', params] as const,
+  byUsersWithoutPermission: (params?: any) =>
+    [...requestQueryKeys.all, 'by-users-without-permission', params] as const,
   details: () => [...requestQueryKeys.all, 'detail'] as const,
   detail: (id: number) => [...requestQueryKeys.details(), id] as const,
 };
@@ -46,6 +48,27 @@ export const useRequestsByUsers = (
   return useQuery({
     queryKey: requestQueryKeys.byUsers(params),
     queryFn: () => requestService.fetchRequestsByUsers(params),
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch requests by users (for approvers) without permission check
+ * @param params - Query parameters for filtering and pagination
+ * @param options - React Query options
+ * @returns Query result with requests data
+ */
+export const useRequestsByUsersWithoutPermission = (
+  params?: requestService.GetRequestsByUsersParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<requestService.Request[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: requestQueryKeys.byUsersWithoutPermission(params),
+    queryFn: () => requestService.fetchRequestsByUsersWithoutPermission(params),
     staleTime: 5 * 60 * 1000,
     ...options,
   });

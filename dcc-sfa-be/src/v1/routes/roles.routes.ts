@@ -67,4 +67,10 @@ router.get(
   rolesController.getRolePermissions
 );
 
+router.get(
+  '/roles-dropdown',
+  authenticateToken,
+  rolesController.getRolesDropdown
+);
+
 export default router;

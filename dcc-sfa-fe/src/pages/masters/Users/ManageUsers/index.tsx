@@ -1,7 +1,7 @@
 import { Close as CloseIcon } from '@mui/icons-material';
 import { Box, IconButton, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
-import { useRoles } from 'hooks/useRoles';
+import { useRolesDropdown } from 'hooks/useRoles';
 import { useCreateUser, useUpdateUser, type User } from 'hooks/useUsers';
 import React, { useState } from 'react';
 import validationSchema from 'schemas/masters/Users';
@@ -28,15 +28,9 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const isEdit = !!selectedUser;
 
-  const { data: rolesResponse, isLoading: rolesLoading } = useRoles(
-    {
-      limit: 1000,
-      isActive: 'Y',
-    },
-    {
-      enabled: drawerOpen,
-    }
-  );
+  const { data: rolesResponse, isLoading: rolesLoading } = useRolesDropdown({
+    enabled: drawerOpen,
+  });
   const roles = rolesResponse?.data || [];
 
   const createUserMutation = useCreateUser({
