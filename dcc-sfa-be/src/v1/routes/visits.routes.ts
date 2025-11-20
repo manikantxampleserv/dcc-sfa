@@ -17,7 +17,7 @@ router.post(
   authenticateToken,
   auditCreate('visits'),
   requirePermission([{ module: 'visit', action: 'create' }]),
-  visitsController.createVisits
+  visitsController.bulkUpsertVisits
 );
 router.get(
   '/reports/visits',
