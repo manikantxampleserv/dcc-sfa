@@ -12,7 +12,7 @@ import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ManageUsers from './ManageUsers';
-import { usePermissions } from 'hooks/usePermission';
+import { usePermission } from 'hooks/usePermission';
 
 const UsersManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -22,8 +22,7 @@ const UsersManagement: React.FC = () => {
   const [limit] = useState(8);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermissions('user');
-  console.log(isCreate, isUpdate, isDelete, isRead);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('user');
 
   const {
     data: usersResponse,

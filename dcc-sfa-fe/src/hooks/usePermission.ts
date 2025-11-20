@@ -150,7 +150,7 @@ const hasModulePermission = (
  *   // Show create button
  * }
  */
-export const usePermissions = (module: Module) => {
+export const usePermission = (module: Module) => {
   const { data: user, isLoading } = useCurrentUser();
 
   /**

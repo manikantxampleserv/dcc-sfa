@@ -149,7 +149,7 @@ model attendance_history {
 model roles {
   id                      Int                  @id @default(autoincrement())
   name                    String               @unique @db.NVarChar(100)
-  role_key                String               @unique @default(dbgenerated("(lower(replace([name],' ','_')))")) @db.NVarChar(100)
+  role_key                String               @unique @db.NVarChar(100)
   description             String?              @db.NVarChar(500)
   level                   Int                  @default(1)
   is_active               String               @default("Y") @db.Char(1)
