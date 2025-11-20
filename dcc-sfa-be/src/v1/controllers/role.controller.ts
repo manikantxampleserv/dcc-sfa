@@ -75,6 +75,7 @@ export const rolesController = {
             is_active: is_active ?? 'Y',
             createdby: req.user?.id || 1,
             createdate: new Date(),
+            role_key: name.toLowerCase().replace(/ /g, '_'),
             log_inst: 1,
           },
           include: {
