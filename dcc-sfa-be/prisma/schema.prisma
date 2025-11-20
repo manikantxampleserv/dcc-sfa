@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlserver"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 model users {
@@ -719,6 +719,8 @@ model customers {
   name                             String                   @db.NVarChar(255)
   code                             String                   @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
   zones_id                         Int?
+  customer_profile_pic             String?                  @db.NVarChar(500)
+  customer_images                  String?                  @db.NVarChar(500)
   type                             String?                  @db.NVarChar(50)
   contact_person                   String?                  @db.NVarChar(255)
   phone_number                     String?                  @db.NVarChar(20)
