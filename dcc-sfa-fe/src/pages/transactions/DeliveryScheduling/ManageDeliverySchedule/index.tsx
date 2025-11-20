@@ -7,10 +7,9 @@ import {
 } from 'hooks/useDeliverySchedules';
 import React, { useRef, useState } from 'react';
 import { deliveryScheduleValidationSchema } from 'schemas/deliverySchedule.schema';
+import type { Order } from 'services/masters/Orders';
 import type { User } from 'services/masters/Users';
 import type { Vehicle } from 'services/masters/Vehicles';
-import type { Customer } from 'services/masters/Customers';
-import type { Order } from 'services/masters/Orders';
 import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
@@ -24,7 +23,6 @@ interface ManageDeliveryScheduleProps {
   ) => void;
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
-  customers: Customer[];
   users: User[];
   vehicles: Vehicle[];
   orders: Order[];
@@ -35,7 +33,6 @@ const ManageDeliverySchedule: React.FC<ManageDeliveryScheduleProps> = ({
   setSelectedDeliverySchedule,
   drawerOpen,
   setDrawerOpen,
-  customers,
   users,
   vehicles,
   orders,

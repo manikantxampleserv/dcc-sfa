@@ -143,12 +143,23 @@ export async function seedSurveyTemplates(): Promise<void> {
       });
 
       if (!existingTemplate) {
+        // Convert target_roles string to role ID
+        let targetRoleId: number | null = null;
+        if (template.target_roles) {
+          // Get the first role from the comma-separated string
+          const firstRoleName = template.target_roles.split(',')[0].trim();
+          const role = await prisma.roles.findFirst({
+            where: { name: firstRoleName },
+          });
+          targetRoleId = role?.id || null;
+        }
+
         await prisma.surveys.create({
           data: {
             title: template.title,
             description: template.description,
             category: template.category,
-            target_roles: template.target_roles,
+            target_roles: targetRoleId,
             is_published: template.is_published,
             published_at: template.published_at,
             expires_at: template.expires_at,

@@ -25,7 +25,6 @@ import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import { useCustomers } from '../../../hooks/useCustomers';
 import { useProducts } from '../../../hooks/useProducts';
 import {
   useDeleteReturnRequest,
@@ -64,11 +63,6 @@ const ReturnRequests: React.FC = () => {
     limit: 1000, // Get all users for approver filtering
   });
 
-  const { data: customersResponse } = useCustomers({
-    page: 1,
-    limit: 1000, // Get all customers
-  });
-
   const { data: productsResponse } = useProducts({
     page: 1,
     limit: 1000, // Get all products
@@ -76,7 +70,6 @@ const ReturnRequests: React.FC = () => {
 
   const returnRequests = returnRequestsResponse?.data || [];
   const users = usersResponse?.data || [];
-  const customers = customersResponse?.data || [];
   const products = productsResponse?.data || [];
   const totalCount = returnRequestsResponse?.pagination?.total_count || 0;
   const currentPage =
@@ -616,7 +609,6 @@ const ReturnRequests: React.FC = () => {
         setSelectedReturnRequest={setSelectedReturnRequest}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        customers={customers}
         users={users}
         products={products}
       />

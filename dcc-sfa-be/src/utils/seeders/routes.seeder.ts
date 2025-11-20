@@ -199,6 +199,23 @@ export async function seedRoutes(): Promise<void> {
         const depot = depots.find(d => d.name === route.depot_name);
 
         if (depot) {
+          // Ensure we have a default route type
+          let defaultRouteType = await prisma.route_type.findFirst({
+            where: { name: 'Standard' },
+          });
+
+          if (!defaultRouteType) {
+            defaultRouteType = await prisma.route_type.create({
+              data: {
+                name: 'Standard',
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby: 1,
+                log_inst: 1,
+              },
+            });
+          }
+
           await prisma.routes.create({
             data: {
               name: route.name,
@@ -207,6 +224,7 @@ export async function seedRoutes(): Promise<void> {
               parent_id: zone.id, // parent_id references zones, not companies
               depot_id: depot.id,
               salesperson_id: 1, // Use admin user ID
+              route_type_id: defaultRouteType.id, // Add required route_type_id
               start_location: route.start_location,
               end_location: route.end_location,
               estimated_distance: route.estimated_distance,

@@ -7,9 +7,8 @@ import {
 } from 'hooks/useReturnRequests';
 import React from 'react';
 import { returnRequestValidationSchema } from 'schemas/returnRequest.schema';
-import type { User } from 'services/masters/Users';
-import type { Customer } from 'services/masters/Customers';
 import type { Product } from 'services/masters/Products';
+import type { User } from 'services/masters/Users';
 import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
@@ -21,7 +20,6 @@ interface ManageReturnRequestProps {
   setSelectedReturnRequest: (returnRequest: ReturnRequest | null) => void;
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
-  customers: Customer[];
   users: User[];
   products: Product[];
 }
@@ -31,7 +29,6 @@ const ManageReturnRequest: React.FC<ManageReturnRequestProps> = ({
   setSelectedReturnRequest,
   drawerOpen,
   setDrawerOpen,
-  customers,
   users,
   products,
 }) => {

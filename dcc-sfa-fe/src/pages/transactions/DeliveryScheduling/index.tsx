@@ -1,13 +1,14 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { useExportToExcel } from 'hooks/useImportExport';
 import {
+  AlertTriangle,
   Calendar,
   Clock,
   Package,
   Truck,
   User,
   XCircle,
-  AlertTriangle,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -17,18 +18,16 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import { useExportToExcel } from 'hooks/useImportExport';
-import { useUsers } from '../../../hooks/useUsers';
-import { useVehicles } from '../../../hooks/useVehicles';
-import { useCustomers } from '../../../hooks/useCustomers';
-import { useOrders } from '../../../hooks/useOrders';
 import {
   useDeleteDeliverySchedule,
   useDeliverySchedules,
   type DeliverySchedule,
 } from '../../../hooks/useDeliverySchedules';
-import ManageDeliverySchedule from './ManageDeliverySchedule';
+import { useOrders } from '../../../hooks/useOrders';
+import { useUsers } from '../../../hooks/useUsers';
+import { useVehicles } from '../../../hooks/useVehicles';
 import ImportDeliverySchedule from './ImportDeliverySchedule';
+import ManageDeliverySchedule from './ManageDeliverySchedule';
 
 const DeliveryScheduling: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -64,11 +63,6 @@ const DeliveryScheduling: React.FC = () => {
     limit: 1000, // Get all vehicles
   });
 
-  const { data: customersResponse } = useCustomers({
-    page: 1,
-    limit: 1000, // Get all customers
-  });
-
   const { data: ordersResponse } = useOrders({
     page: 1,
     limit: 1000, // Get all orders
@@ -77,7 +71,6 @@ const DeliveryScheduling: React.FC = () => {
   const deliverySchedules = deliverySchedulesResponse?.data || [];
   const users = usersResponse?.data || [];
   const vehicles = vehiclesResponse?.data || [];
-  const customers = customersResponse?.data || [];
   const orders = ordersResponse?.data || [];
   const totalCount = deliverySchedulesResponse?.meta?.total || 0;
   const currentPage = (deliverySchedulesResponse?.meta?.page || 1) - 1;
@@ -617,7 +610,6 @@ const DeliveryScheduling: React.FC = () => {
         setSelectedDeliverySchedule={setSelectedDeliverySchedule}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        customers={customers}
         users={drivers}
         vehicles={vehicles}
         orders={orders}

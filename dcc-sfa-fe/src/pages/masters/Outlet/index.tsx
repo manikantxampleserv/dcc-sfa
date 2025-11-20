@@ -21,7 +21,6 @@ import {
   type Customer,
 } from '../../../hooks/useCustomers';
 import { useRoutes } from '../../../hooks/useRoutes';
-import { useUsers } from '../../../hooks/useUsers';
 import { useZones } from '../../../hooks/useZones';
 import ManageOutlet from './ManageOutlet';
 import {
@@ -57,11 +56,6 @@ const OutletsManagement: React.FC = () => {
     type: typeFilter === 'all' ? undefined : typeFilter,
   });
 
-  const { data: usersResponse } = useUsers({
-    page: 1,
-    limit: 1000,
-  });
-
   const { data: routesResponse } = useRoutes({
     page: 1,
     limit: 100,
@@ -73,7 +67,6 @@ const OutletsManagement: React.FC = () => {
   });
 
   const customers = customersResponse?.data || [];
-  const users = usersResponse?.data || [];
   const routes = routesResponse?.data || [];
   const zones = zonesResponse?.data || [];
   const totalCount = customersResponse?.meta?.total || 0;
@@ -451,7 +444,6 @@ const OutletsManagement: React.FC = () => {
         setSelectedOutlet={setSelectedOutlet}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        users={users}
         routes={routes}
         zones={zones}
       />

@@ -1,7 +1,6 @@
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import WorkflowTimeline from 'components/WorkflowTimeline';
-import { useCustomers } from 'hooks/useCustomers';
 import { useProducts } from 'hooks/useProducts';
 import { useReturnRequest } from 'hooks/useReturnRequests';
 import { useUsers } from 'hooks/useUsers';
@@ -35,11 +34,6 @@ const ReturnRequestDetail: React.FC = () => {
     limit: 1000,
   });
 
-  const { data: customersResponse } = useCustomers({
-    page: 1,
-    limit: 1000,
-  });
-
   const { data: productsResponse } = useProducts({
     page: 1,
     limit: 1000,
@@ -47,7 +41,6 @@ const ReturnRequestDetail: React.FC = () => {
 
   const returnRequest = returnRequestResponse?.data;
   const users = usersResponse?.data || [];
-  const customers = customersResponse?.data || [];
   const products = productsResponse?.data || [];
 
   const getStatusColor = (status: string) => {
@@ -520,7 +513,6 @@ const ReturnRequestDetail: React.FC = () => {
         setSelectedReturnRequest={() => {}}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        customers={customers}
         users={users}
         products={products}
       />

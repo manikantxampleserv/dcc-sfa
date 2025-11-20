@@ -7,8 +7,8 @@
   "type": "commonjs",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/index.js",
-    "build": "tsc",
+    "start": "cross-env PORT=4001 node dist/index.js",
+    "build": "cross-env PORT=4001 tsc",
     "dev": "nodemon --exec ts-node src/index.ts",
     "prisma:generate": "npx prisma generate",
     "seed:clean": "ts-node src/utils/seeders/index.ts clear",

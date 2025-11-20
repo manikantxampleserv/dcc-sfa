@@ -12,6 +12,7 @@ const serializeRole = (
   description: role.description,
   // user_id: role.user_id,
   is_active: role.is_active,
+  role_key: role.role_key,
   ...(includeCreatedAt && { created_at: role.createdate }),
   ...(includeUpdatedAt && { updated_at: role.updatedate }),
   permissions: role.roles_permission
