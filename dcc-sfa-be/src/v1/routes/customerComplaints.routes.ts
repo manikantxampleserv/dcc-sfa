@@ -9,6 +9,8 @@ import {
   auditDelete,
 } from '../../middlewares/audit.middleware';
 import { customerComplaintsController } from '../controllers/customerComplaints.controller';
+import { createCustomerComplaintsValidation } from '../validations/customerComplaints.validation';
+import { validate } from '../../middlewares/validation.middleware';
 
 const router = Router();
 
@@ -16,12 +18,9 @@ router.post(
   '/customer-complaints',
   authenticateToken,
   auditCreate('customerComplaints'),
-<<<<<<< HEAD
-=======
   requirePermission([{ module: 'customer-complaint', action: 'create' }]),
   createCustomerComplaintsValidation,
   validate,
->>>>>>> 53d5d69d12fb083c8349e5a336abbd33ebe803d9
   customerComplaintsController.createOrUpdateCustomerComplaints
 );
 
