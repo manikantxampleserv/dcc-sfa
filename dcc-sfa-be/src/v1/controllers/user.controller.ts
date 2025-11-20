@@ -64,7 +64,9 @@ const serializeUser = (
     : null,
   permissions: user.user_role?.roles_permission
     ? user.user_role.roles_permission
-        .filter((rp: any) => rp.permission?.is_active === 'Y')
+        .filter(
+          (rp: any) => rp.is_active === 'Y' && rp.permission?.is_active === 'Y'
+        )
         .map((rp: any) => rp.permission!.name)
     : [],
 });

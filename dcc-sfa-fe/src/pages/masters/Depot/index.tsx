@@ -23,14 +23,14 @@ import {
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
-import { PopConfirm } from 'shared/DeleteConfirmation';
 import Button from 'shared/Button';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import ManageDepot from './ManageDepot';
 import ImportDepot from './ImportDepot';
+import ManageDepot from './ManageDepot';
 
 const DepotsManagement: React.FC = () => {
   const navigate = useNavigate();

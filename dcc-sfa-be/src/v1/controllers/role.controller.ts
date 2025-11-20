@@ -294,17 +294,16 @@ export const rolesController = {
         return;
       }
 
-      const id = Number(req.params.id);
+      const { id } = req.params;
 
-      if (isNaN(id) || id <= 0) {
+      if (!id || isNaN(parseInt(id))) {
         res.error('Invalid role ID', 400);
         return;
       }
 
-      const existingRole = await prisma.roles.findFirst({
+      const existingRole = await prisma.roles.findUnique({
         where: {
-          id: id,
-          is_active: 'Y',
+          id: parseInt(id),
         },
       });
 
@@ -315,7 +314,7 @@ export const rolesController = {
 
       const usersWithRole = await prisma.users.count({
         where: {
-          role_id: id,
+          role_id: parseInt(id),
           is_active: 'Y',
         },
       });
@@ -326,22 +325,12 @@ export const rolesController = {
       }
 
       await prisma.$transaction(async tx => {
-        await tx.roles.update({
-          where: { id: id },
-          data: {
-            is_active: 'N',
-            updatedby: req.user?.id ?? 0,
-            updatedate: new Date(),
-          },
+        await tx.role_permissions.deleteMany({
+          where: { role_id: parseInt(id) },
         });
 
-        await tx.role_permissions.updateMany({
-          where: { role_id: id },
-          data: {
-            is_active: 'N',
-            updatedby: req.user?.id ?? 0,
-            updatedate: new Date(),
-          },
+        await tx.roles.delete({
+          where: { id: parseInt(id) },
         });
       });
 

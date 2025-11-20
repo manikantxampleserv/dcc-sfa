@@ -92,7 +92,7 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
       name: user.name,
       role: user.user_role.name,
       permissions: user.user_role.roles_permission
-        .filter(rp => rp.permission?.is_active === 'Y')
+        .filter(rp => rp.is_active === 'Y' && rp.permission?.is_active === 'Y')
         .map(rp => rp.permission!.name),
       parent_id: user.parent_id,
       depot_id: user.depot_id,
@@ -208,7 +208,7 @@ export const authenticateApiToken = async (req: any, res: any, next: any) => {
       name: user.name,
       role: user.user_role.name,
       permissions: user.user_role.roles_permission
-        .filter(rp => rp.permission?.is_active === 'Y')
+        .filter(rp => rp.is_active === 'Y' && rp.permission?.is_active === 'Y')
         .map(rp => rp.permission!.name),
       parent_id: user.parent_id,
       depot_id: user.depot_id,
