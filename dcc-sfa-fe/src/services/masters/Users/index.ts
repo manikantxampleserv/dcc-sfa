@@ -1,6 +1,18 @@
 import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
+interface RecentActivity {
+  audit_logs: Array<{
+    id: number;
+    table_name: string;
+    record_id: number;
+    action: string;
+    changed_at: string | null;
+    ip_address: string | null;
+    device_info: string | null;
+  }>;
+}
+
 interface User {
   id: number;
   email: string;
@@ -45,6 +57,7 @@ interface User {
     email: string;
   } | null;
   permissions?: string[];
+  recent_activities?: RecentActivity;
 }
 
 interface ManageUserPayload {
@@ -262,4 +275,5 @@ export type {
   PaginationMeta,
   UpdateProfilePayload,
   User,
+  RecentActivity,
 };

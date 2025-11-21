@@ -26,6 +26,7 @@ const serializeSettings = (
   smtp_port: settings.smtp_port,
   smtp_username: settings.smtp_username,
   smtp_password: settings.smtp_password,
+  currency_id: settings.currency_id,
   ...(includeCreatedAt && { created_date: settings.created_date }),
   ...(includeUpdatedAt && { updated_date: settings.updated_date }),
 
@@ -128,6 +129,7 @@ export const settingsController = {
         smtp_port,
         smtp_username,
         smtp_password,
+        currency_id,
       } = req.body;
 
       const data: any = {
@@ -150,6 +152,9 @@ export const settingsController = {
         }),
         ...(smtp_username !== undefined && { smtp_username }),
         ...(smtp_password !== undefined && { smtp_password }),
+        ...(currency_id !== undefined && {
+          currency_id: currency_id ? Number(currency_id) : null,
+        }),
         updated_date: new Date(),
         updated_by: req.user?.id,
       };

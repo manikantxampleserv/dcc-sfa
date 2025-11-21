@@ -4,10 +4,9 @@
 
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { Application, RequestHandler } from 'express';
+import express, { Application } from 'express';
 import { responseHandler } from './middlewares/response.middleware';
 import routes from './routes';
-import helmet from 'helmet';
 
 /**
  * Creates and configures the Express application
