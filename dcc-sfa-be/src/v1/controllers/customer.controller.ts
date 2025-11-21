@@ -821,8 +821,8 @@ export const customerController = {
                 }
 
                 // Store old profile pic for deletion if being replaced
-                if (hasNewProfile && existingCustomer.customer_profile_pic) {
-                  oldProfilePic = existingCustomer.customer_profile_pic;
+                if (hasNewProfile && existingCustomer.profile_picture) {
+                  oldProfilePic = existingCustomer.profile_picture;
                 }
 
                 const updateData: any = {
@@ -864,7 +864,7 @@ export const customerController = {
                     customer_zones: true,
                     customer_routes: true,
                     customer_users: true,
-                    customer_image_customers: {
+                    outlet_images_customers: {
                       // Add this
                       where: { is_active: 'Y' },
                       orderBy: { createdate: 'desc' },
@@ -948,7 +948,7 @@ export const customerController = {
                     customer_zones: true,
                     customer_routes: true,
                     customer_users: true,
-                    customer_image_customers: {
+                    outlet_images_customers: {
                       // Add this
                       where: { is_active: 'Y' },
                       orderBy: { createdate: 'desc' },
