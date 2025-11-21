@@ -35,7 +35,7 @@ const EditButton: React.FC<EditButtonProps> = ({
       disabled={disabled}
       className="!bg-blue-100 !rounded hover:!bg-blue-200 !text-blue-600"
     >
-      <Edit fontSize={size} />
+      <Edit fontSize="small" />
     </IconButton>
   );
 
@@ -62,7 +62,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
       disabled={disabled}
       className="!bg-red-100 !rounded hover:!bg-red-200 !text-red-600"
     >
-      <Delete fontSize={size} />
+      <Delete fontSize="small" />
     </IconButton>
   );
 

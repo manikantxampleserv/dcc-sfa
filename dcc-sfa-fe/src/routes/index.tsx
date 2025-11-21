@@ -81,7 +81,7 @@ import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
 import RouteExceptions from 'pages/workflows/RouteExceptions';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-const SystemSettings = () => <h1>System Settings</h1>;
+import SystemSettings from 'pages/settings/SystemSettings';
 
 const router = createBrowserRouter(
   [

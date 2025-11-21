@@ -59,8 +59,8 @@ router.post(
   '/customers/bulk-upsert',
   authenticateToken,
   upload.fields([
-    { name: 'customer_images', maxCount: 50 }, // Multiple images per customer
-    { name: 'profile_pics', maxCount: 10 }, // One profile pic per customer
+    { name: 'customer_images', maxCount: 50 },
+    { name: 'profile_pics', maxCount: 10 },
   ]),
   auditCreate('customers'),
   requirePermission([{ module: 'outlet', action: 'create' }]),

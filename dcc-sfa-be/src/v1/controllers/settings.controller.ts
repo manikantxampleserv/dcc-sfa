@@ -1,5 +1,4 @@
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
-import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 
 const serializeSettings = (
@@ -109,7 +108,7 @@ export const settingsController = {
       });
 
       if (!existingCompany) {
-        res.error('Company  Setting not found', 404);
+        res.error('Company settings not found', 404);
         return;
       }
 
@@ -180,7 +179,7 @@ export const settingsController = {
       }
 
       res.success(
-        'Company  setting updated successfully',
+        'Company settings updated successfully',
         serializeSettings(company, true, true),
         200
       );

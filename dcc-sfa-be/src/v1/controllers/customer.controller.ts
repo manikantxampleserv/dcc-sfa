@@ -71,7 +71,6 @@ const generateCustomerCode = async (name: string) => {
   return code;
 };
 const serializeCustomer = async (customer: any): Promise<any> => {
-  // Fetch customer images
   const customerImages = await prisma.customer_image.findMany({
     where: {
       customer_id: customer.id,
