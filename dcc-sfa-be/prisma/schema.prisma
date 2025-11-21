@@ -720,7 +720,6 @@ model customers {
   code                             String                   @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
   zones_id                         Int?
   customer_profile_pic             String?                  @db.NVarChar(500)
-  customer_images                  String?                  @db.NVarChar(500)
   type                             String?                  @db.NVarChar(50)
   contact_person                   String?                  @db.NVarChar(255)
   phone_number                     String?                  @db.NVarChar(20)
@@ -764,6 +763,20 @@ model customers {
   survey_response_customer         survey_responses[]       @relation("SurveyRresponsesCustomer")
   warranty_claims_customers        warranty_claims[]
   customer_complaint               customer_complaints[]    @relation("CustomerComplaints")
+  customer_image_customers         customer_image[]
+}
+
+model customer_image {
+  id                       Int       @id @default(autoincrement())
+  customer_id              Int
+  image_url                String    @db.NVarChar(500)
+  is_active                String    @default("Y") @db.Char(1)
+  createdate               DateTime? @default(now()) @db.DateTime
+  createdby                Int
+  updatedate               DateTime? @db.DateTime
+  updatedby                Int?
+  log_inst                 Int?
+  customer_image_customers customers @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model delivery_schedules {

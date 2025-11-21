@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { deleteFile, uploadFile } from '../../utils/blackbaze';
 interface CustomerSerialized {
   id: number;
   name: string;
@@ -22,14 +23,33 @@ interface CustomerSerialized {
   salesperson_id?: number | null;
   last_visit_date?: Date | null;
   is_active: string;
+  customer_profile_pic?: string | null;
   createdate?: Date | null;
   createdby: number;
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  customer_zones?: { id: number; name: string; code: string } | null;
-  customer_routes?: { id: number; name: string; code: string } | null;
-  customer_users?: { id: number; name: string; email: string } | null;
+  customer_zones?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  customer_routes?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  customer_users?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+  customer_images: {
+    id: number;
+    image_url: string;
+    createdate: Date | null;
+    createdby: number;
+  }[];
 }
 
 const generateCustomerCode = async (name: string) => {
@@ -50,55 +70,73 @@ const generateCustomerCode = async (name: string) => {
 
   return code;
 };
-const serializeCustomer = (customer: any): CustomerSerialized => ({
-  id: customer.id,
-  name: customer.name,
-  code: customer.code,
-  zones_id: customer.zones_id,
-  type: customer.type,
-  contact_person: customer.contact_person,
-  phone_number: customer.phone_number,
-  email: customer.email,
-  address: customer.address,
-  city: customer.city,
-  state: customer.state,
-  zipcode: customer.zipcode,
-  latitude: customer.latitude?.toString() || null,
-  longitude: customer.longitude?.toString() || null,
-  credit_limit: customer.credit_limit?.toString() || null,
-  outstanding_amount: customer.outstanding_amount?.toString() || '0',
-  route_id: customer.route_id,
-  salesperson_id: customer.salesperson_id,
-  last_visit_date: customer.last_visit_date,
-  is_active: customer.is_active,
-  createdate: customer.createdate,
-  createdby: customer.createdby,
-  updatedate: customer.updatedate,
-  updatedby: customer.updatedby,
-  log_inst: customer.log_inst,
+const serializeCustomer = async (customer: any): Promise<any> => {
+  // Fetch customer images
+  const customerImages = await prisma.customer_image.findMany({
+    where: {
+      customer_id: customer.id,
+      is_active: 'Y',
+    },
+    orderBy: { createdate: 'desc' },
+    select: {
+      id: true,
+      image_url: true,
+      createdate: true,
+      createdby: true,
+    },
+  });
 
-  customer_zones: customer.customer_zones
-    ? {
-        id: customer.customer_zones.id,
-        name: customer.customer_zones.name,
-        code: customer.customer_zones.code,
-      }
-    : null,
-  customer_routes: customer.customer_routes
-    ? {
-        id: customer.customer_routes.id,
-        name: customer.customer_routes.name,
-        code: customer.customer_routes.code,
-      }
-    : null,
-  customer_users: customer.customer_users
-    ? {
-        id: customer.customer_users.id,
-        name: customer.customer_users.name,
-        email: customer.customer_users.email,
-      }
-    : null,
-});
+  return {
+    id: customer.id,
+    name: customer.name,
+    code: customer.code,
+    zones_id: customer.zones_id,
+    type: customer.type,
+    contact_person: customer.contact_person,
+    phone_number: customer.phone_number,
+    email: customer.email,
+    address: customer.address,
+    city: customer.city,
+    state: customer.state,
+    zipcode: customer.zipcode,
+    latitude: customer.latitude?.toString() || null,
+    longitude: customer.longitude?.toString() || null,
+    credit_limit: customer.credit_limit?.toString() || null,
+    outstanding_amount: customer.outstanding_amount?.toString() || '0',
+    route_id: customer.route_id,
+    salesperson_id: customer.salesperson_id,
+    last_visit_date: customer.last_visit_date,
+    is_active: customer.is_active,
+    customer_profile_pic: customer.customer_profile_pic || null,
+    createdate: customer.createdate,
+    createdby: customer.createdby,
+    updatedate: customer.updatedate,
+    updatedby: customer.updatedby,
+    log_inst: customer.log_inst,
+    customer_zones: customer.customer_zones
+      ? {
+          id: customer.customer_zones.id,
+          name: customer.customer_zones.name,
+          code: customer.customer_zones.code,
+        }
+      : null,
+    customer_routes: customer.customer_routes
+      ? {
+          id: customer.customer_routes.id,
+          name: customer.customer_routes.name,
+          code: customer.customer_routes.code,
+        }
+      : null,
+    customer_users: customer.customer_users
+      ? {
+          id: customer.customer_users.id,
+          name: customer.customer_users.name,
+          email: customer.customer_users.email,
+        }
+      : null,
+    customer_images: customerImages,
+  };
+};
 
 const checkIfCustomerChanged = (existing: any, incoming: any): boolean => {
   const fieldsToCompare = [
@@ -172,6 +210,7 @@ const checkIfCustomerChanged = (existing: any, incoming: any): boolean => {
 
   return hasAnyChange;
 };
+
 export const customerController = {
   // async bulkUpsertCustomers(req: any, res: any) {
   //   try {
@@ -184,32 +223,54 @@ export const customerController = {
   //       });
   //     }
 
+  //     const allowedFields = [
+  //       'code',
+  //       'name',
+  //       'type',
+  //       'contact_person',
+  //       'phone_number',
+  //       'email',
+  //       'address',
+  //       'city',
+  //       'state',
+  //       'zipcode',
+  //       'latitude',
+  //       'longitude',
+  //       'credit_limit',
+  //       'outstanding_amount',
+  //       'last_visit_date',
+  //       'is_active',
+  //       'log_inst',
+  //     ];
+
+  //     const relationFields = ['zones_id', 'route_id', 'salesperson_id'];
+
+  //     const systemFields = [
+  //       'id',
+  //       'createdate',
+  //       'createdby',
+  //       'updatedate',
+  //       'updatedby',
+  //     ];
+
   //     const validationErrors = [];
 
   //     for (let i = 0; i < customersData.length; i++) {
   //       const customer = customersData[i];
-
-  //       if ('id' in customer || customer.id !== undefined) {
-  //         validationErrors.push({
-  //           index: i,
-  //           customer: customer,
-  //           reason: 'ID field is not allowed. Use code to identify customers.',
-  //         });
-  //       }
-
-  //       if (!customer.code) {
-  //         validationErrors.push({
-  //           index: i,
-  //           customer: customer,
-  //           reason: 'Customer code is required',
-  //         });
-  //       }
 
   //       if (!customer.name) {
   //         validationErrors.push({
   //           index: i,
   //           customer: customer,
   //           reason: 'Customer name is required',
+  //         });
+  //       }
+
+  //       if (!customer.email && !customer.phone_number) {
+  //         validationErrors.push({
+  //           index: i,
+  //           customer: customer,
+  //           reason: 'Either email or phone_number is required',
   //         });
   //       }
   //     }
@@ -222,19 +283,6 @@ export const customerController = {
   //       });
   //     }
 
-  //     const codes = customersData.map((c: any) => c.code);
-  //     const duplicateCodes = codes.filter(
-  //       (code: string, index: number) => codes.indexOf(code) !== index
-  //     );
-
-  //     if (duplicateCodes.length > 0) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'Duplicate codes found in request',
-  //         duplicates: [...new Set(duplicateCodes)],
-  //       });
-  //     }
-
   //     const results = {
   //       created: [] as any[],
   //       updated: [] as any[],
@@ -244,17 +292,51 @@ export const customerController = {
 
   //     for (const customerData of customersData) {
   //       try {
-  //         const {
-  //           id,
-  //           zones_id,
-  //           route_id,
-  //           salesperson_id,
-  //           visit_status,
-  //           ...cleanData
-  //         } = customerData;
+  //         const zones_id = customerData.zones_id;
+  //         const route_id = customerData.route_id;
+  //         const salesperson_id = customerData.salesperson_id;
 
-  //         const existingCustomer = await prisma.customers.findUnique({
-  //           where: { code: cleanData.code },
+  //         const cleanData: any = {};
+
+  //         Object.keys(customerData).forEach(key => {
+  //           if (allowedFields.includes(key)) {
+  //             cleanData[key] = customerData[key];
+  //           }
+  //         });
+
+  //         const ignoredFields = Object.keys(customerData).filter(
+  //           key =>
+  //             !allowedFields.includes(key) &&
+  //             !relationFields.includes(key) &&
+  //             !systemFields.includes(key)
+  //         );
+
+  //         if (ignoredFields.length > 0) {
+  //           console.log(
+  //             `Ignored fields for ${customerData.name}:`,
+  //             ignoredFields
+  //           );
+  //         }
+
+  //         const whereConditions: any = {
+  //           AND: [{ name: cleanData.name }],
+  //         };
+
+  //         if (cleanData.email && cleanData.phone_number) {
+  //           whereConditions.AND.push({
+  //             OR: [
+  //               { email: cleanData.email },
+  //               { phone_number: cleanData.phone_number },
+  //             ],
+  //           });
+  //         } else if (cleanData.email) {
+  //           whereConditions.AND.push({ email: cleanData.email });
+  //         } else if (cleanData.phone_number) {
+  //           whereConditions.AND.push({ phone_number: cleanData.phone_number });
+  //         }
+
+  //         const existingCustomer = await prisma.customers.findFirst({
+  //           where: whereConditions,
   //         });
 
   //         if (existingCustomer) {
@@ -267,6 +349,7 @@ export const customerController = {
   //             results.skipped.push({
   //               code: existingCustomer.code,
   //               id: existingCustomer.id,
+  //               name: existingCustomer.name,
   //               reason: 'No changes detected',
   //             });
   //             continue;
@@ -314,6 +397,120 @@ export const customerController = {
 
   //           results.updated.push(serializeCustomer(updatedCustomer));
   //         } else {
+  //           if (!cleanData.code) {
+  //             let uniqueCode = await generateCustomerCode(cleanData.name);
+  //             let attempts = 0;
+  //             const maxAttempts = 10;
+
+  //             while (attempts < maxAttempts) {
+  //               const codeExists = await prisma.customers.findUnique({
+  //                 where: { code: uniqueCode },
+  //               });
+
+  //               if (!codeExists) {
+  //                 break;
+  //               }
+
+  //               const timestamp = Date.now().toString().slice(-4);
+  //               uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+  //               attempts++;
+  //             }
+
+  //             if (attempts >= maxAttempts) {
+  //               results.errors.push({
+  //                 customer: {
+  //                   name: customerData.name,
+  //                   email: customerData.email,
+  //                   phone_number: customerData.phone_number,
+  //                 },
+  //                 reason:
+  //                   'Failed to generate unique code after multiple attempts',
+  //               });
+  //               continue;
+  //             }
+
+  //             cleanData.code = uniqueCode;
+  //           } else {
+  //             const codeExists = await prisma.customers.findUnique({
+  //               where: { code: cleanData.code },
+  //             });
+
+  //             if (codeExists) {
+  //               const isSameCustomer =
+  //                 (cleanData.email && codeExists.email === cleanData.email) ||
+  //                 (cleanData.phone_number &&
+  //                   codeExists.phone_number === cleanData.phone_number);
+
+  //               if (isSameCustomer) {
+  //                 const hasChanged = checkIfCustomerChanged(
+  //                   codeExists,
+  //                   customerData
+  //                 );
+
+  //                 if (!hasChanged) {
+  //                   results.skipped.push({
+  //                     code: codeExists.code,
+  //                     id: codeExists.id,
+  //                     name: codeExists.name,
+  //                     reason: 'No changes detected',
+  //                   });
+  //                   continue;
+  //                 }
+
+  //                 const updateData: any = {
+  //                   ...cleanData,
+  //                   updatedate: new Date(),
+  //                   updatedby: req.user?.id || 1,
+  //                 };
+
+  //                 if (zones_id !== undefined) {
+  //                   updateData.customer_zones =
+  //                     zones_id === null
+  //                       ? { disconnect: true }
+  //                       : { connect: { id: zones_id } };
+  //                 }
+
+  //                 if (route_id !== undefined) {
+  //                   updateData.customer_routes =
+  //                     route_id === null
+  //                       ? { disconnect: true }
+  //                       : { connect: { id: route_id } };
+  //                 }
+
+  //                 if (salesperson_id !== undefined) {
+  //                   updateData.customer_users =
+  //                     salesperson_id === null
+  //                       ? { disconnect: true }
+  //                       : { connect: { id: salesperson_id } };
+  //                 }
+
+  //                 const updatedCustomer = await prisma.customers.update({
+  //                   where: { id: codeExists.id },
+  //                   data: updateData,
+  //                   include: {
+  //                     customer_zones: true,
+  //                     customer_routes: true,
+  //                     customer_users: true,
+  //                   },
+  //                 });
+
+  //                 results.updated.push(serializeCustomer(updatedCustomer));
+  //                 continue;
+  //               } else {
+  //                 results.errors.push({
+  //                   customer: {
+  //                     name: customerData.name,
+  //                     email: customerData.email,
+  //                     phone_number: customerData.phone_number,
+  //                     code: cleanData.code,
+  //                   },
+  //                   reason: `Code ${cleanData.code} already exists for a different customer`,
+  //                 });
+  //                 continue;
+  //               }
+  //             }
+  //           }
+
   //           const createData: any = {
   //             ...cleanData,
   //             createdby: req.user?.id || 1,
@@ -347,44 +544,24 @@ export const customerController = {
   //       } catch (error: any) {
   //         console.error('Error processing customer:', error);
 
-  //         if (error.code === 'P2002') {
-  //           return res.status(400).json({
-  //             success: false,
-  //             message: `Duplicate code error: ${customerData.code} already exists in database`,
-  //             error: {
-  //               code: customerData.code,
-  //               name: customerData.name,
-  //             },
-  //           });
-  //         }
-
-  //         if (error.code === 'P2025') {
-  //           return res.status(400).json({
-  //             success: false,
-  //             message: `Foreign key error: Referenced record not found (zones_id, route_id, or salesperson_id may be invalid)`,
-  //             error: {
-  //               code: customerData.code,
-  //               name: customerData.name,
-  //               details: error.meta?.cause || error.message,
-  //             },
-  //           });
-  //         }
-
-  //         return res.status(500).json({
-  //           success: false,
-  //           message: 'Database error occurred',
-  //           error: error.message,
+  //         results.errors.push({
   //           customer: {
-  //             code: customerData.code,
   //             name: customerData.name,
+  //             email: customerData.email,
+  //             phone_number: customerData.phone_number,
+  //             code: customerData.code,
   //           },
+  //           reason: error.message || 'Unknown error occurred',
+  //           error_code: error.code,
   //         });
+
+  //         continue;
   //       }
   //     }
 
   //     res.status(200).json({
   //       success: true,
-  //       message: 'Bulk upsert completed successfully',
+  //       message: 'Bulk upsert completed',
   //       summary: {
   //         total: customersData.length,
   //         created: results.created.length,
@@ -406,13 +583,63 @@ export const customerController = {
 
   async bulkUpsertCustomers(req: any, res: any) {
     try {
-      const customersData = req.body.customers;
+      // Parse customers if it's a string
+      let customersData;
+      if (typeof req.body.customers === 'string') {
+        try {
+          customersData = JSON.parse(req.body.customers);
+        } catch (error) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid JSON format for customers field',
+          });
+        }
+      } else {
+        customersData = req.body.customers;
+      }
+
+      const uploadedFiles =
+        (req.files as {
+          customer_images?: Express.Multer.File[];
+          profile_pics?: Express.Multer.File[];
+        }) || {};
+
+      const customerImages = uploadedFiles.customer_images || [];
+      const profilePics = uploadedFiles.profile_pics || [];
 
       if (!Array.isArray(customersData) || customersData.length === 0) {
         return res.status(400).json({
           success: false,
           message: 'Invalid request. Expected an array of customers',
+          received_type: typeof customersData,
+          is_array: Array.isArray(customersData),
         });
+      }
+
+      // Parse mappings - they're also strings from form-data
+      let imageMapping: Record<number, number[]> = {};
+      let profileMapping: Record<number, number> = {};
+
+      if (req.body.imageMapping) {
+        try {
+          imageMapping =
+            typeof req.body.imageMapping === 'string'
+              ? JSON.parse(req.body.imageMapping)
+              : req.body.imageMapping;
+        } catch (e) {
+          console.log('No valid image mapping provided');
+        }
+      }
+
+      if (req.body.profileMapping) {
+        try {
+          profileMapping =
+            typeof req.body.profileMapping === 'string'
+              ? JSON.parse(req.body.profileMapping)
+              : req.body.profileMapping;
+        } catch (e) {
+          console.log('No valid profile mapping provided');
+        }
       }
 
       const allowedFields = [
@@ -437,16 +664,8 @@ export const customerController = {
 
       const relationFields = ['zones_id', 'route_id', 'salesperson_id'];
 
-      const systemFields = [
-        'id',
-        'createdate',
-        'createdby',
-        'updatedate',
-        'updatedby',
-      ];
-
+      // Validation
       const validationErrors = [];
-
       for (let i = 0; i < customersData.length; i++) {
         const customer = customersData[i];
 
@@ -482,287 +701,344 @@ export const customerController = {
         errors: [] as any[],
       };
 
-      for (const customerData of customersData) {
-        try {
-          const zones_id = customerData.zones_id;
-          const route_id = customerData.route_id;
-          const salesperson_id = customerData.salesperson_id;
+      const uploadedImageUrls: string[] = [];
+      const uploadedProfileUrls: string[] = [];
 
-          const cleanData: any = {};
+      try {
+        // Upload all customer images to Backblaze
+        for (let i = 0; i < customerImages.length; i++) {
+          const file = customerImages[i];
+          const fileName = `customer-images/${Date.now()}-${i}-${file.originalname}`;
 
-          Object.keys(customerData).forEach(key => {
-            if (allowedFields.includes(key)) {
-              cleanData[key] = customerData[key];
-            }
-          });
-
-          const ignoredFields = Object.keys(customerData).filter(
-            key =>
-              !allowedFields.includes(key) &&
-              !relationFields.includes(key) &&
-              !systemFields.includes(key)
-          );
-
-          if (ignoredFields.length > 0) {
-            console.log(
-              `Ignored fields for ${customerData.name}:`,
-              ignoredFields
+          try {
+            const imageUrl = await uploadFile(
+              file.buffer,
+              fileName,
+              file.mimetype
             );
+            uploadedImageUrls.push(imageUrl);
+          } catch (uploadError: any) {
+            console.error(`Error uploading customer image ${i}:`, uploadError);
+            uploadedImageUrls.push('');
           }
-
-          const whereConditions: any = {
-            AND: [{ name: cleanData.name }],
-          };
-
-          if (cleanData.email && cleanData.phone_number) {
-            whereConditions.AND.push({
-              OR: [
-                { email: cleanData.email },
-                { phone_number: cleanData.phone_number },
-              ],
-            });
-          } else if (cleanData.email) {
-            whereConditions.AND.push({ email: cleanData.email });
-          } else if (cleanData.phone_number) {
-            whereConditions.AND.push({ phone_number: cleanData.phone_number });
-          }
-
-          const existingCustomer = await prisma.customers.findFirst({
-            where: whereConditions,
-          });
-
-          if (existingCustomer) {
-            const hasChanged = checkIfCustomerChanged(
-              existingCustomer,
-              customerData
-            );
-
-            if (!hasChanged) {
-              results.skipped.push({
-                code: existingCustomer.code,
-                id: existingCustomer.id,
-                name: existingCustomer.name,
-                reason: 'No changes detected',
-              });
-              continue;
-            }
-
-            const updateData: any = {
-              ...cleanData,
-              updatedate: new Date(),
-              updatedby: req.user?.id || 1,
-            };
-
-            if (zones_id !== undefined) {
-              if (zones_id === null) {
-                updateData.customer_zones = { disconnect: true };
-              } else {
-                updateData.customer_zones = { connect: { id: zones_id } };
-              }
-            }
-
-            if (route_id !== undefined) {
-              if (route_id === null) {
-                updateData.customer_routes = { disconnect: true };
-              } else {
-                updateData.customer_routes = { connect: { id: route_id } };
-              }
-            }
-
-            if (salesperson_id !== undefined) {
-              if (salesperson_id === null) {
-                updateData.customer_users = { disconnect: true };
-              } else {
-                updateData.customer_users = { connect: { id: salesperson_id } };
-              }
-            }
-
-            const updatedCustomer = await prisma.customers.update({
-              where: { id: existingCustomer.id },
-              data: updateData,
-              include: {
-                customer_zones: true,
-                customer_routes: true,
-                customer_users: true,
-              },
-            });
-
-            results.updated.push(serializeCustomer(updatedCustomer));
-          } else {
-            if (!cleanData.code) {
-              let uniqueCode = await generateCustomerCode(cleanData.name);
-              let attempts = 0;
-              const maxAttempts = 10;
-
-              while (attempts < maxAttempts) {
-                const codeExists = await prisma.customers.findUnique({
-                  where: { code: uniqueCode },
-                });
-
-                if (!codeExists) {
-                  break;
-                }
-
-                const timestamp = Date.now().toString().slice(-4);
-                uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
-                attempts++;
-              }
-
-              if (attempts >= maxAttempts) {
-                results.errors.push({
-                  customer: {
-                    name: customerData.name,
-                    email: customerData.email,
-                    phone_number: customerData.phone_number,
-                  },
-                  reason:
-                    'Failed to generate unique code after multiple attempts',
-                });
-                continue;
-              }
-
-              cleanData.code = uniqueCode;
-            } else {
-              const codeExists = await prisma.customers.findUnique({
-                where: { code: cleanData.code },
-              });
-
-              if (codeExists) {
-                const isSameCustomer =
-                  (cleanData.email && codeExists.email === cleanData.email) ||
-                  (cleanData.phone_number &&
-                    codeExists.phone_number === cleanData.phone_number);
-
-                if (isSameCustomer) {
-                  const hasChanged = checkIfCustomerChanged(
-                    codeExists,
-                    customerData
-                  );
-
-                  if (!hasChanged) {
-                    results.skipped.push({
-                      code: codeExists.code,
-                      id: codeExists.id,
-                      name: codeExists.name,
-                      reason: 'No changes detected',
-                    });
-                    continue;
-                  }
-
-                  const updateData: any = {
-                    ...cleanData,
-                    updatedate: new Date(),
-                    updatedby: req.user?.id || 1,
-                  };
-
-                  if (zones_id !== undefined) {
-                    updateData.customer_zones =
-                      zones_id === null
-                        ? { disconnect: true }
-                        : { connect: { id: zones_id } };
-                  }
-
-                  if (route_id !== undefined) {
-                    updateData.customer_routes =
-                      route_id === null
-                        ? { disconnect: true }
-                        : { connect: { id: route_id } };
-                  }
-
-                  if (salesperson_id !== undefined) {
-                    updateData.customer_users =
-                      salesperson_id === null
-                        ? { disconnect: true }
-                        : { connect: { id: salesperson_id } };
-                  }
-
-                  const updatedCustomer = await prisma.customers.update({
-                    where: { id: codeExists.id },
-                    data: updateData,
-                    include: {
-                      customer_zones: true,
-                      customer_routes: true,
-                      customer_users: true,
-                    },
-                  });
-
-                  results.updated.push(serializeCustomer(updatedCustomer));
-                  continue;
-                } else {
-                  results.errors.push({
-                    customer: {
-                      name: customerData.name,
-                      email: customerData.email,
-                      phone_number: customerData.phone_number,
-                      code: cleanData.code,
-                    },
-                    reason: `Code ${cleanData.code} already exists for a different customer`,
-                  });
-                  continue;
-                }
-              }
-            }
-
-            const createData: any = {
-              ...cleanData,
-              createdby: req.user?.id || 1,
-              log_inst: customerData.log_inst || 1,
-              createdate: new Date(),
-            };
-
-            if (zones_id !== undefined && zones_id !== null) {
-              createData.customer_zones = { connect: { id: zones_id } };
-            }
-
-            if (route_id !== undefined && route_id !== null) {
-              createData.customer_routes = { connect: { id: route_id } };
-            }
-
-            if (salesperson_id !== undefined && salesperson_id !== null) {
-              createData.customer_users = { connect: { id: salesperson_id } };
-            }
-
-            const newCustomer = await prisma.customers.create({
-              data: createData,
-              include: {
-                customer_zones: true,
-                customer_routes: true,
-                customer_users: true,
-              },
-            });
-
-            results.created.push(serializeCustomer(newCustomer));
-          }
-        } catch (error: any) {
-          console.error('Error processing customer:', error);
-
-          results.errors.push({
-            customer: {
-              name: customerData.name,
-              email: customerData.email,
-              phone_number: customerData.phone_number,
-              code: customerData.code,
-            },
-            reason: error.message || 'Unknown error occurred',
-            error_code: error.code,
-          });
-
-          continue;
         }
-      }
 
-      res.status(200).json({
-        success: true,
-        message: 'Bulk upsert completed',
-        summary: {
-          total: customersData.length,
-          created: results.created.length,
-          updated: results.updated.length,
-          skipped: results.skipped.length,
-          errors: results.errors.length,
-        },
-        data: results,
-      });
+        // Upload all profile pics to Backblaze
+        for (let i = 0; i < profilePics.length; i++) {
+          const file = profilePics[i];
+          const fileName = `customer-profiles/${Date.now()}-${i}-${file.originalname}`;
+
+          try {
+            const profileUrl = await uploadFile(
+              file.buffer,
+              fileName,
+              file.mimetype
+            );
+            uploadedProfileUrls.push(profileUrl);
+          } catch (uploadError: any) {
+            console.error(`Error uploading profile pic ${i}:`, uploadError);
+            uploadedProfileUrls.push('');
+          }
+        }
+
+        // Process each customer
+        for (
+          let customerIndex = 0;
+          customerIndex < customersData.length;
+          customerIndex++
+        ) {
+          const customerData = customersData[customerIndex];
+
+          try {
+            await prisma.$transaction(async tx => {
+              const zones_id = customerData.zones_id;
+              const route_id = customerData.route_id;
+              const salesperson_id = customerData.salesperson_id;
+
+              const cleanData: any = {};
+              Object.keys(customerData).forEach(key => {
+                if (allowedFields.includes(key)) {
+                  cleanData[key] = customerData[key];
+                }
+              });
+
+              // Add profile pic if mapped
+              if (profileMapping[customerIndex] !== undefined) {
+                const profileIndex = profileMapping[customerIndex];
+                if (
+                  profileIndex < uploadedProfileUrls.length &&
+                  uploadedProfileUrls[profileIndex]
+                ) {
+                  cleanData.customer_profile_pic =
+                    uploadedProfileUrls[profileIndex];
+                }
+              }
+
+              const whereConditions: any = {
+                AND: [{ name: cleanData.name }],
+              };
+
+              if (cleanData.email && cleanData.phone_number) {
+                whereConditions.AND.push({
+                  OR: [
+                    { email: cleanData.email },
+                    { phone_number: cleanData.phone_number },
+                  ],
+                });
+              } else if (cleanData.email) {
+                whereConditions.AND.push({ email: cleanData.email });
+              } else if (cleanData.phone_number) {
+                whereConditions.AND.push({
+                  phone_number: cleanData.phone_number,
+                });
+              }
+
+              const existingCustomer = await tx.customers.findFirst({
+                where: whereConditions,
+              });
+
+              let customerId: number;
+              let isUpdate = false;
+              let oldProfilePic: string | null = null;
+
+              if (existingCustomer) {
+                const hasChanged = checkIfCustomerChanged(
+                  existingCustomer,
+                  customerData
+                );
+
+                const hasNewImages = imageMapping[customerIndex]?.length > 0;
+                const hasNewProfile =
+                  profileMapping[customerIndex] !== undefined;
+
+                if (!hasChanged && !hasNewImages && !hasNewProfile) {
+                  results.skipped.push({
+                    code: existingCustomer.code,
+                    id: existingCustomer.id,
+                    name: existingCustomer.name,
+                    reason: 'No changes detected',
+                  });
+                  return;
+                }
+
+                // Store old profile pic for deletion if being replaced
+                if (hasNewProfile && existingCustomer.customer_profile_pic) {
+                  oldProfilePic = existingCustomer.customer_profile_pic;
+                }
+
+                const updateData: any = {
+                  ...cleanData,
+                  updatedate: new Date(),
+                  updatedby: req.user?.id || 1,
+                };
+
+                if (zones_id !== undefined) {
+                  if (zones_id === null) {
+                    updateData.customer_zones = { disconnect: true };
+                  } else {
+                    updateData.customer_zones = { connect: { id: zones_id } };
+                  }
+                }
+
+                if (route_id !== undefined) {
+                  if (route_id === null) {
+                    updateData.customer_routes = { disconnect: true };
+                  } else {
+                    updateData.customer_routes = { connect: { id: route_id } };
+                  }
+                }
+
+                if (salesperson_id !== undefined) {
+                  if (salesperson_id === null) {
+                    updateData.customer_users = { disconnect: true };
+                  } else {
+                    updateData.customer_users = {
+                      connect: { id: salesperson_id },
+                    };
+                  }
+                }
+
+                const updatedCustomer = await tx.customers.update({
+                  where: { id: existingCustomer.id },
+                  data: updateData,
+                  include: {
+                    customer_zones: true,
+                    customer_routes: true,
+                    customer_users: true,
+                    customer_image_customers: {
+                      // Add this
+                      where: { is_active: 'Y' },
+                      orderBy: { createdate: 'desc' },
+                      select: {
+                        id: true,
+                        image_url: true,
+                        createdate: true,
+                        createdby: true,
+                      },
+                    },
+                  },
+                });
+
+                customerId = updatedCustomer.id;
+                isUpdate = true;
+                results.updated.push(serializeCustomer(updatedCustomer));
+
+                // Delete old profile pic after successful update
+                if (oldProfilePic) {
+                  try {
+                    await deleteFile(oldProfilePic);
+                  } catch (deleteError) {
+                    console.error(
+                      'Error deleting old profile pic:',
+                      deleteError
+                    );
+                  }
+                }
+              } else {
+                // Create new customer
+                if (!cleanData.code) {
+                  let uniqueCode = await generateCustomerCode(cleanData.name);
+                  let attempts = 0;
+                  const maxAttempts = 10;
+
+                  while (attempts < maxAttempts) {
+                    const codeExists = await tx.customers.findUnique({
+                      where: { code: uniqueCode },
+                    });
+
+                    if (!codeExists) {
+                      break;
+                    }
+
+                    const timestamp = Date.now().toString().slice(-4);
+                    uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+                    attempts++;
+                  }
+
+                  if (attempts >= maxAttempts) {
+                    throw new Error('Failed to generate unique code');
+                  }
+
+                  cleanData.code = uniqueCode;
+                }
+
+                const createData: any = {
+                  ...cleanData,
+                  createdby: req.user?.id || 1,
+                  log_inst: customerData.log_inst || 1,
+                  createdate: new Date(),
+                };
+
+                if (zones_id !== undefined && zones_id !== null) {
+                  createData.customer_zones = { connect: { id: zones_id } };
+                }
+
+                if (route_id !== undefined && route_id !== null) {
+                  createData.customer_routes = { connect: { id: route_id } };
+                }
+
+                if (salesperson_id !== undefined && salesperson_id !== null) {
+                  createData.customer_users = {
+                    connect: { id: salesperson_id },
+                  };
+                }
+
+                const newCustomer = await tx.customers.create({
+                  data: createData,
+                  include: {
+                    customer_zones: true,
+                    customer_routes: true,
+                    customer_users: true,
+                    customer_image_customers: {
+                      // Add this
+                      where: { is_active: 'Y' },
+                      orderBy: { createdate: 'desc' },
+                      select: {
+                        id: true,
+                        image_url: true,
+                        createdate: true,
+                        createdby: true,
+                      },
+                    },
+                  },
+                });
+
+                customerId = newCustomer.id;
+                results.created.push(serializeCustomer(newCustomer));
+              }
+
+              // Handle multiple customer images
+              if (
+                imageMapping[customerIndex] &&
+                Array.isArray(imageMapping[customerIndex])
+              ) {
+                const fileIndices = imageMapping[customerIndex];
+
+                for (const fileIndex of fileIndices) {
+                  if (
+                    fileIndex < uploadedImageUrls.length &&
+                    uploadedImageUrls[fileIndex]
+                  ) {
+                    await tx.customer_image.create({
+                      data: {
+                        customer_id: customerId,
+                        image_url: uploadedImageUrls[fileIndex],
+                        is_active: 'Y',
+                        createdby: req.user?.id || 1,
+                        createdate: new Date(),
+                        log_inst: 1,
+                      },
+                    });
+                  }
+                }
+              }
+            });
+          } catch (error: any) {
+            console.error('Error processing customer:', error);
+
+            results.errors.push({
+              customer: {
+                name: customerData.name,
+                email: customerData.email,
+                phone_number: customerData.phone_number,
+                code: customerData.code,
+              },
+              reason: error.message || 'Unknown error occurred',
+              error_code: error.code,
+            });
+          }
+        }
+
+        res.status(200).json({
+          success: true,
+          message: 'Bulk upsert completed',
+          summary: {
+            total: customersData.length,
+            created: results.created.length,
+            updated: results.updated.length,
+            skipped: results.skipped.length,
+            errors: results.errors.length,
+            customer_images_uploaded: uploadedImageUrls.filter(url => url)
+              .length,
+            profile_pics_uploaded: uploadedProfileUrls.filter(url => url)
+              .length,
+          },
+          data: results,
+        });
+      } catch (error: any) {
+        // Cleanup uploaded files on error
+        for (const imageUrl of [...uploadedImageUrls, ...uploadedProfileUrls]) {
+          if (imageUrl) {
+            try {
+              await deleteFile(imageUrl);
+            } catch (deleteError) {
+              console.error('Error cleaning up uploaded file:', deleteError);
+            }
+          }
+        }
+
+        throw error;
+      }
     } catch (error: any) {
       console.error('Bulk Upsert Error:', error);
       res.status(500).json({
@@ -772,6 +1048,7 @@ export const customerController = {
       });
     }
   },
+
   async createCustomers(req: Request, res: Response) {
     try {
       const data = req.body;
@@ -806,7 +1083,7 @@ export const customerController = {
 
   // async getAllCustomers(req: any, res: any) {
   //   try {
-  //     const { page, limit, search, type } = req.query;
+  //     const { page, limit, search, type, salesperson_id, route_id } = req.query;
   //     const pageNum = parseInt(page as string, 10) || 1;
   //     const limitNum = parseInt(limit as string, 10) || 10;
   //     const searchLower = search ? (search as string).toLowerCase() : '';
@@ -817,9 +1094,14 @@ export const customerController = {
   //           { name: { contains: searchLower } },
   //           { code: { contains: searchLower } },
   //           { email: { contains: searchLower } },
+  //           { phone_number: { contains: searchLower } },
   //         ],
   //       }),
   //       ...(type && type !== 'All' && { type }),
+  //       ...(salesperson_id && {
+  //         salesperson_id: parseInt(salesperson_id as string, 10),
+  //       }),
+  //       ...(route_id && { route_id: parseInt(route_id as string, 10) }),
   //     };
 
   //     const { data, pagination } = await paginate({
@@ -873,6 +1155,7 @@ export const customerController = {
   //         },
   //       },
   //     });
+
   //     res.success(
   //       'Customers retrieved successfully',
   //       data.map((c: any) => serializeCustomer(c)),
@@ -929,6 +1212,17 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
+          customer_image_customers: {
+            // ✅ Add this
+            where: { is_active: 'Y' },
+            orderBy: { createdate: 'desc' },
+            select: {
+              id: true,
+              image_url: true,
+              createdate: true,
+              createdby: true,
+            },
+          },
         },
       });
 
@@ -971,9 +1265,14 @@ export const customerController = {
         },
       });
 
+      // ✅ If serializeCustomer is async, use Promise.all
+      const serializedData = await Promise.all(
+        data.map((c: any) => serializeCustomer(c))
+      );
+
       res.success(
         'Customers retrieved successfully',
-        data.map((c: any) => serializeCustomer(c)),
+        serializedData, // ✅ Use the awaited result
         200,
         pagination,
         {
@@ -993,6 +1292,7 @@ export const customerController = {
       res.status(500).json({ message: error.message });
     }
   },
+
   async getCustomersById(req: Request, res: Response) {
     try {
       const { id } = req.params;
