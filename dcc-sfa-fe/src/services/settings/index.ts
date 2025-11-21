@@ -22,6 +22,7 @@ export interface Settings {
   smtp_port?: number | null;
   smtp_username?: string | null;
   smtp_password?: string | null;
+  currency_id?: number | null;
   created_date?: string;
   updated_date?: string;
   users?: Array<{
@@ -59,6 +60,7 @@ export interface UpdateSettingsPayload {
   smtp_port?: number | null;
   smtp_username?: string;
   smtp_password?: string;
+  currency_id?: number | null;
 }
 
 export const fetchSettings = async (): Promise<ApiResponse<Settings>> => {

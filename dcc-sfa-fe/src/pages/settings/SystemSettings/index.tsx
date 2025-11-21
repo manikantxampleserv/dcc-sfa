@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { useSettings, useUpdateSettings } from 'hooks/useSettings';
+import { useCurrencies } from 'hooks/useCurrencies';
 import {
   Building2,
   CheckCircle,
@@ -36,15 +37,18 @@ const validationSchema = Yup.object({
   smtp_port: Yup.number().nullable(),
   smtp_username: Yup.string(),
   smtp_password: Yup.string(),
+  currency_id: Yup.number().nullable(),
 });
 
 const SystemSettings: React.FC = () => {
   const { data: settingsResponse, isLoading } = useSettings();
   const updateSettingsMutation = useUpdateSettings();
+  const { data: currenciesResponse } = useCurrencies({ isActive: 'Y' });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   const settings = settingsResponse?.data;
+  const currencies = currenciesResponse?.data || [];
 
   const formik = useFormik({
     initialValues: {
@@ -62,6 +66,7 @@ const SystemSettings: React.FC = () => {
       smtp_port: settings?.smtp_port || null,
       smtp_username: settings?.smtp_username || '',
       smtp_password: settings?.smtp_password || '',
+      currency_id: settings?.currency_id || null,
     },
     validationSchema,
     enableReinitialize: true,
@@ -89,6 +94,10 @@ const SystemSettings: React.FC = () => {
         );
         formData.append('smtp_username', values.smtp_username || '');
         formData.append('smtp_password', values.smtp_password || '');
+        formData.append(
+          'currency_id',
+          values.currency_id ? values.currency_id.toString() : ''
+        );
 
         if (uploadedFile) {
           formData.append('logo', uploadedFile);
@@ -360,6 +369,19 @@ const SystemSettings: React.FC = () => {
             <Select name="is_active" formik={formik} label="Status" fullWidth>
               <MenuItem value="Y">Active</MenuItem>
               <MenuItem value="N">Inactive</MenuItem>
+            </Select>
+            <Select
+              name="currency_id"
+              formik={formik}
+              label="Currency"
+              fullWidth
+            >
+              <MenuItem value="">Select Currency</MenuItem>
+              {currencies.map(currency => (
+                <MenuItem key={currency.id} value={currency.id}>
+                  {currency.code} - {currency.name}
+                </MenuItem>
+              ))}
             </Select>
           </Box>
         </div>

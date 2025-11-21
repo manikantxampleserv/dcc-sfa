@@ -453,6 +453,8 @@ model companies {
   smtp_port       Int?
   smtp_username   String?   @db.VarChar(200)
   smtp_password   String?   @db.VarChar(100)
+  currency_id     Int?
+  companies_currencies currencies? @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   depot_companies depots[]
   users           users[]
 }
@@ -601,6 +603,7 @@ model currencies {
   updatedate             DateTime?      @db.DateTime
   updatedby              Int?
   log_inst               Int?
+  companies_currencies   companies[]
   credit_note_currencies credit_notes[]
   invoices               invoices[]
   orders_currencies      orders[]       @relation("OrdersCurrencies")

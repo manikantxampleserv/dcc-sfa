@@ -1,9 +1,8 @@
-import { Request, Response } from 'express';
-import { paginate } from '../../utils/paginate';
-import { validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
-import { deleteFile, uploadFile } from '../../utils/blackbaze';
+import { validationResult } from 'express-validator';
 import prisma from '../../configs/prisma.client';
+import { deleteFile, uploadFile } from '../../utils/blackbaze';
+import { paginate } from '../../utils/paginate';
 const serializeUser = (
   user: any,
   includeCreatedAt = false,
@@ -312,7 +311,41 @@ export const userController = {
         return;
       }
 
-      res.success('User fetched successfully', serializeUser(user), 200);
+      const recentAuditLogs = await prisma.audit_logs.findMany({
+        where: {
+          changed_by: id,
+          is_active: 'Y',
+        },
+        orderBy: { changed_at: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          table_name: true,
+          record_id: true,
+          action: true,
+          changed_at: true,
+          ip_address: true,
+          device_info: true,
+        },
+      });
+
+      const serializedUser = serializeUser(user);
+      const responseData = {
+        ...serializedUser,
+        recent_activities: {
+          audit_logs: recentAuditLogs.map(log => ({
+            id: log.id,
+            table_name: log.table_name,
+            record_id: log.record_id,
+            action: log.action,
+            changed_at: log.changed_at,
+            ip_address: log.ip_address,
+            device_info: log.device_info,
+          })),
+        },
+      };
+
+      res.success('User fetched successfully', responseData, 200);
     } catch (error: any) {
       console.error('Error fetching user:', error);
       res.error(error.message);

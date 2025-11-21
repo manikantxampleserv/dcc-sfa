@@ -83,7 +83,7 @@ const serializeReturnRequest = (rr: any): ReturnRequestSerialized => ({
   serial_number: rr.return_requests_serial_numbers
     ? {
         id: rr.return_requests_serial_numbers.id,
-        serial_no: rr.return_requests_serial_numbers.serial_no,
+        serial_no: rr.return_requests_serial_numbers.serial_number,
       }
     : null,
 
@@ -124,10 +124,33 @@ export const returnRequestsController = {
           log_inst: 1,
         },
         include: {
-          return_requests_users: true,
-          return_requests_customers: true,
-          return_requests_products: true,
-          return_requests_serial_numbers: true,
+          return_requests_users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          return_requests_customers: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          return_requests_products: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          return_requests_serial_numbers: {
+            select: {
+              id: true,
+              serial_number: true,
+            },
+          },
         },
       });
 
@@ -190,10 +213,33 @@ export const returnRequestsController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          return_requests_users: true,
-          return_requests_customers: true,
-          return_requests_products: true,
-          return_requests_serial_numbers: true,
+          return_requests_users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          return_requests_customers: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          return_requests_products: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          return_requests_serial_numbers: {
+            select: {
+              id: true,
+              serial_number: true,
+            },
+          },
         },
       });
 
@@ -259,10 +305,33 @@ export const returnRequestsController = {
       const rr = await prisma.return_requests.findUnique({
         where: { id: Number(id) },
         include: {
-          return_requests_users: true,
-          return_requests_customers: true,
-          return_requests_products: true,
-          return_requests_serial_numbers: true,
+          return_requests_users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          return_requests_customers: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          return_requests_products: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          return_requests_serial_numbers: {
+            select: {
+              id: true,
+              serial_number: true,
+            },
+          },
         },
       });
 
@@ -308,10 +377,33 @@ export const returnRequestsController = {
           log_inst: (existing.log_inst || 0) + 1,
         },
         include: {
-          return_requests_users: true,
-          return_requests_customers: true,
-          return_requests_products: true,
-          return_requests_serial_numbers: true,
+          return_requests_users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          return_requests_customers: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          return_requests_products: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          return_requests_serial_numbers: {
+            select: {
+              id: true,
+              serial_number: true,
+            },
+          },
         },
       });
 
