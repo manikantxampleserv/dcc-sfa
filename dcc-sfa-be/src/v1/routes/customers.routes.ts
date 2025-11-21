@@ -47,21 +47,18 @@ router.delete(
   customerController.deleteCustomers
 );
 
-// router.post(
-//   '/customers/bulk-upsert',
-//   authenticateToken,
-//   auditCreate('customers'),
-//   requirePermission([{ module: 'outlet', action: 'create' }]),
-//   customerController.bulkUpsertCustomers
-// );
-
+router.post(
+  '/customers-upload/:id/images',
+  upload.fields([
+    { name: 'profile_picture', maxCount: 1 },
+    { name: 'outlet_images', maxCount: 10 },
+  ]),
+  customerController.uploadCustomerImages
+);
 router.post(
   '/customers/bulk-upsert',
   authenticateToken,
-  upload.fields([
-    { name: 'customer_images', maxCount: 50 },
-    { name: 'profile_pics', maxCount: 10 },
-  ]),
+
   auditCreate('customers'),
   requirePermission([{ module: 'outlet', action: 'create' }]),
   customerController.bulkUpsertCustomers

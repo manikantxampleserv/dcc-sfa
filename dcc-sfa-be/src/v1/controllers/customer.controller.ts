@@ -44,7 +44,7 @@ interface CustomerSerialized {
     name: string;
     email: string;
   } | null;
-  customer_images: {
+  outlet_images: {
     id: number;
     image_url: string;
     createdate: Date | null;
@@ -70,47 +70,37 @@ const generateCustomerCode = async (name: string) => {
 
   return code;
 };
-const serializeCustomer = async (customer: any): Promise<any> => {
-  const customerImages = await prisma.customer_image.findMany({
-    where: {
-      customer_id: customer.id,
-      is_active: 'Y',
-    },
-    orderBy: { createdate: 'desc' },
-    select: {
-      id: true,
-      image_url: true,
-      createdate: true,
-      createdby: true,
-    },
-  });
+const serializeCustomer = async (customer: any) => {
+  if (!customer) {
+    return {};
+  }
 
   return {
     id: customer.id,
     name: customer.name,
     code: customer.code,
-    zones_id: customer.zones_id,
-    type: customer.type,
-    contact_person: customer.contact_person,
-    phone_number: customer.phone_number,
-    email: customer.email,
-    address: customer.address,
-    city: customer.city,
-    state: customer.state,
-    zipcode: customer.zipcode,
+    zones_id: customer.zones_id || null,
+    profile_picture: customer.profile_picture || null,
+    type: customer.type || null,
+    contact_person: customer.contact_person || null,
+    phone_number: customer.phone_number || null,
+    email: customer.email || null,
+    address: customer.address || null,
+    city: customer.city || null,
+    state: customer.state || null,
+    zipcode: customer.zipcode || null,
     latitude: customer.latitude?.toString() || null,
     longitude: customer.longitude?.toString() || null,
     credit_limit: customer.credit_limit?.toString() || null,
     outstanding_amount: customer.outstanding_amount?.toString() || '0',
-    route_id: customer.route_id,
-    salesperson_id: customer.salesperson_id,
-    last_visit_date: customer.last_visit_date,
+    route_id: customer.route_id || null,
+    salesperson_id: customer.salesperson_id || null,
+    last_visit_date: customer.last_visit_date || null,
     is_active: customer.is_active,
-    customer_profile_pic: customer.customer_profile_pic || null,
     createdate: customer.createdate,
     createdby: customer.createdby,
-    updatedate: customer.updatedate,
-    updatedby: customer.updatedby,
+    updatedate: customer.updatedate || null,
+    updatedby: customer.updatedby || null,
     log_inst: customer.log_inst,
     customer_zones: customer.customer_zones
       ? {
@@ -133,7 +123,14 @@ const serializeCustomer = async (customer: any): Promise<any> => {
           email: customer.customer_users.email,
         }
       : null,
-    customer_images: customerImages,
+    customer_images: (customer.outlet_images_customers || []).map(
+      (img: any) => ({
+        id: img.id,
+        image_url: img.image_url,
+        createdate: img.createdate,
+        createdby: img.createdby,
+      })
+    ),
   };
 };
 
@@ -157,7 +154,6 @@ const checkIfCustomerChanged = (existing: any, incoming: any): boolean => {
     'salesperson_id',
     'is_active',
   ];
-
   let hasAnyChange = false;
 
   for (const field of fieldsToCompare) {
@@ -580,14 +576,104 @@ export const customerController = {
   //   }
   // },
 
+  //II
+
+  async uploadCustomerImages(req: any, res: any) {
+    try {
+      const customerId = parseInt(req.params.id, 10);
+      if (!customerId) {
+        return res
+          .status(400)
+          .json({ success: false, message: 'Missing customer id.' });
+      }
+
+      const profileFile = req.files?.profile_picture?.[0] || req.file;
+      const outletFiles = req.files?.outlet_images || [];
+
+      let profileUrl = null;
+      if (profileFile) {
+        const customer = await prisma.customers.findUnique({
+          where: { id: customerId },
+        });
+        if (customer?.profile_picture) {
+          try {
+            await deleteFile(customer.profile_picture);
+          } catch {}
+        }
+
+        const fileName = `customer-profiles/${Date.now()}-${customerId}-${profileFile.originalname}`;
+        profileUrl = await uploadFile(
+          profileFile.buffer,
+          fileName,
+          profileFile.mimetype
+        );
+
+        await prisma.customers.update({
+          where: { id: customerId },
+          data: { profile_picture: profileUrl, updatedate: new Date() },
+        });
+      }
+
+      if (outletFiles.length > 0) {
+        const oldImages = await prisma.customer_image.findMany({
+          where: { customer_id: customerId, is_active: 'Y' },
+        });
+        for (const img of oldImages) {
+          try {
+            await deleteFile(img.image_url);
+          } catch {}
+        }
+
+        await prisma.customer_image.updateMany({
+          where: { customer_id: customerId, is_active: 'Y' },
+          data: { is_active: 'N' },
+        });
+        const uploadedOutletUrls: string[] = [];
+        for (let i = 0; i < outletFiles.length; i++) {
+          const file = outletFiles[i];
+          const fileName = `customer-images/${Date.now()}-${i}-${file.originalname}`;
+          const url = await uploadFile(file.buffer, fileName, file.mimetype);
+          uploadedOutletUrls.push(url);
+          await prisma.customer_image.create({
+            data: {
+              customer_id: customerId,
+              image_url: url,
+              is_active: 'Y',
+              createdby: req.user?.id || 1,
+              createdate: new Date(),
+              log_inst: 1,
+            },
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Images  replaced.',
+          profile_picture: profileUrl,
+          outlet_images: uploadedOutletUrls,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: profileUrl
+          ? 'Profile picture replaced.'
+          : 'No images uploaded.',
+        profile_picture: profileUrl,
+        outlet_images: [],
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  },
+
   async bulkUpsertCustomers(req: any, res: any) {
     try {
-      // Parse customers if it's a string
       let customersData;
       if (typeof req.body.customers === 'string') {
         try {
           customersData = JSON.parse(req.body.customers);
-        } catch (error) {
+        } catch (error: any) {
           return res.status(400).json({
             success: false,
             message: 'Invalid JSON format for customers field',
@@ -599,23 +685,20 @@ export const customerController = {
 
       const uploadedFiles =
         (req.files as {
-          customer_images?: Express.Multer.File[];
-          profile_pics?: Express.Multer.File[];
+          outlet_images?: Express.Multer.File[];
+          profile_picture?: Express.Multer.File[];
         }) || {};
 
-      const customerImages = uploadedFiles.customer_images || [];
-      const profilePics = uploadedFiles.profile_pics || [];
+      const customerImages = uploadedFiles.outlet_images || [];
+      const profilePics = uploadedFiles.profile_picture || [];
 
       if (!Array.isArray(customersData) || customersData.length === 0) {
         return res.status(400).json({
           success: false,
           message: 'Invalid request. Expected an array of customers',
-          received_type: typeof customersData,
-          is_array: Array.isArray(customersData),
         });
       }
 
-      // Parse mappings - they're also strings from form-data
       let imageMapping: Record<number, number[]> = {};
       let profileMapping: Record<number, number> = {};
 
@@ -626,7 +709,7 @@ export const customerController = {
               ? JSON.parse(req.body.imageMapping)
               : req.body.imageMapping;
         } catch (e) {
-          console.log('No valid image mapping provided');
+          imageMapping = {};
         }
       }
 
@@ -637,7 +720,30 @@ export const customerController = {
               ? JSON.parse(req.body.profileMapping)
               : req.body.profileMapping;
         } catch (e) {
-          console.log('No valid profile mapping provided');
+          profileMapping = {};
+        }
+      }
+
+      const hasImageMapping = Object.keys(imageMapping).length > 0;
+      const hasProfileMapping = Object.keys(profileMapping).length > 0;
+
+      if (!hasImageMapping && customerImages.length > 0) {
+        for (
+          let i = 0;
+          i < customersData.length && i < customerImages.length;
+          i++
+        ) {
+          imageMapping[i] = [i];
+        }
+      }
+
+      if (!hasProfileMapping && profilePics.length > 0) {
+        for (
+          let i = 0;
+          i < customersData.length && i < profilePics.length;
+          i++
+        ) {
+          profileMapping[i] = i;
         }
       }
 
@@ -661,37 +767,34 @@ export const customerController = {
         'log_inst',
       ];
 
-      const relationFields = ['zones_id', 'route_id', 'salesperson_id'];
+      // const validationErrors = [];
+      // for (let i = 0; i < customersData.length; i++) {
+      //   const customer = customersData[i];
 
-      // Validation
-      const validationErrors = [];
-      for (let i = 0; i < customersData.length; i++) {
-        const customer = customersData[i];
+      //   if (!customer.name) {
+      //     validationErrors.push({
+      //       index: i,
+      //       customer: customer,
+      //       reason: 'Customer name is required',
+      //     });
+      //   }
 
-        if (!customer.name) {
-          validationErrors.push({
-            index: i,
-            customer: customer,
-            reason: 'Customer name is required',
-          });
-        }
+      //   // if (!customer.email && !customer.phone_number) {
+      //   //   validationErrors.push({
+      //   //     index: i,
+      //   //     customer: customer,
+      //   //     reason: 'Either email or phone_number is required',
+      //   //   });
+      //   // }
+      // }
 
-        if (!customer.email && !customer.phone_number) {
-          validationErrors.push({
-            index: i,
-            customer: customer,
-            reason: 'Either email or phone_number is required',
-          });
-        }
-      }
-
-      if (validationErrors.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: validationErrors,
-        });
-      }
+      // if (validationErrors.length > 0) {
+      //   return res.status(400).json({
+      //     success: false,
+      //     message: 'Validation failed',
+      //     errors: validationErrors,
+      //   });
+      // }
 
       const results = {
         created: [] as any[],
@@ -704,7 +807,6 @@ export const customerController = {
       const uploadedProfileUrls: string[] = [];
 
       try {
-        // Upload all customer images to Backblaze
         for (let i = 0; i < customerImages.length; i++) {
           const file = customerImages[i];
           const fileName = `customer-images/${Date.now()}-${i}-${file.originalname}`;
@@ -722,7 +824,6 @@ export const customerController = {
           }
         }
 
-        // Upload all profile pics to Backblaze
         for (let i = 0; i < profilePics.length; i++) {
           const file = profilePics[i];
           const fileName = `customer-profiles/${Date.now()}-${i}-${file.originalname}`;
@@ -740,7 +841,6 @@ export const customerController = {
           }
         }
 
-        // Process each customer
         for (
           let customerIndex = 0;
           customerIndex < customersData.length;
@@ -761,35 +861,27 @@ export const customerController = {
                 }
               });
 
-              // Add profile pic if mapped
               if (profileMapping[customerIndex] !== undefined) {
                 const profileIndex = profileMapping[customerIndex];
                 if (
                   profileIndex < uploadedProfileUrls.length &&
                   uploadedProfileUrls[profileIndex]
                 ) {
-                  cleanData.customer_profile_pic =
-                    uploadedProfileUrls[profileIndex];
+                  cleanData.profile_picture = uploadedProfileUrls[profileIndex];
                 }
               }
 
-              const whereConditions: any = {
-                AND: [{ name: cleanData.name }],
-              };
+              let whereConditions: any = {};
 
               if (cleanData.email && cleanData.phone_number) {
-                whereConditions.AND.push({
-                  OR: [
-                    { email: cleanData.email },
-                    { phone_number: cleanData.phone_number },
-                  ],
-                });
+                whereConditions.OR = [
+                  { email: cleanData.email },
+                  { phone_number: cleanData.phone_number },
+                ];
               } else if (cleanData.email) {
-                whereConditions.AND.push({ email: cleanData.email });
+                whereConditions.email = cleanData.email;
               } else if (cleanData.phone_number) {
-                whereConditions.AND.push({
-                  phone_number: cleanData.phone_number,
-                });
+                whereConditions.phone_number = cleanData.phone_number;
               }
 
               const existingCustomer = await tx.customers.findFirst({
@@ -797,15 +889,14 @@ export const customerController = {
               });
 
               let customerId: number;
-              let isUpdate = false;
               let oldProfilePic: string | null = null;
+              let isUpdate = false;
 
               if (existingCustomer) {
                 const hasChanged = checkIfCustomerChanged(
                   existingCustomer,
                   customerData
                 );
-
                 const hasNewImages = imageMapping[customerIndex]?.length > 0;
                 const hasNewProfile =
                   profileMapping[customerIndex] !== undefined;
@@ -820,7 +911,6 @@ export const customerController = {
                   return;
                 }
 
-                // Store old profile pic for deletion if being replaced
                 if (hasNewProfile && existingCustomer.profile_picture) {
                   oldProfilePic = existingCustomer.profile_picture;
                 }
@@ -835,7 +925,12 @@ export const customerController = {
                   if (zones_id === null) {
                     updateData.customer_zones = { disconnect: true };
                   } else {
-                    updateData.customer_zones = { connect: { id: zones_id } };
+                    const zoneExists = await tx.zones.findUnique({
+                      where: { id: zones_id },
+                    });
+                    if (zoneExists) {
+                      updateData.customer_zones = { connect: { id: zones_id } };
+                    }
                   }
                 }
 
@@ -843,7 +938,14 @@ export const customerController = {
                   if (route_id === null) {
                     updateData.customer_routes = { disconnect: true };
                   } else {
-                    updateData.customer_routes = { connect: { id: route_id } };
+                    const routeExists = await tx.routes.findUnique({
+                      where: { id: route_id },
+                    });
+                    if (routeExists) {
+                      updateData.customer_routes = {
+                        connect: { id: route_id },
+                      };
+                    }
                   }
                 }
 
@@ -851,38 +953,25 @@ export const customerController = {
                   if (salesperson_id === null) {
                     updateData.customer_users = { disconnect: true };
                   } else {
-                    updateData.customer_users = {
-                      connect: { id: salesperson_id },
-                    };
+                    const userExists = await tx.users.findUnique({
+                      where: { id: salesperson_id },
+                    });
+                    if (userExists) {
+                      updateData.customer_users = {
+                        connect: { id: salesperson_id },
+                      };
+                    }
                   }
                 }
 
-                const updatedCustomer = await tx.customers.update({
+                await tx.customers.update({
                   where: { id: existingCustomer.id },
                   data: updateData,
-                  include: {
-                    customer_zones: true,
-                    customer_routes: true,
-                    customer_users: true,
-                    outlet_images_customers: {
-                      // Add this
-                      where: { is_active: 'Y' },
-                      orderBy: { createdate: 'desc' },
-                      select: {
-                        id: true,
-                        image_url: true,
-                        createdate: true,
-                        createdby: true,
-                      },
-                    },
-                  },
                 });
 
-                customerId = updatedCustomer.id;
+                customerId = existingCustomer.id;
                 isUpdate = true;
-                results.updated.push(serializeCustomer(updatedCustomer));
 
-                // Delete old profile pic after successful update
                 if (oldProfilePic) {
                   try {
                     await deleteFile(oldProfilePic);
@@ -894,7 +983,6 @@ export const customerController = {
                   }
                 }
               } else {
-                // Create new customer
                 if (!cleanData.code) {
                   let uniqueCode = await generateCustomerCode(cleanData.name);
                   let attempts = 0;
@@ -905,9 +993,7 @@ export const customerController = {
                       where: { code: uniqueCode },
                     });
 
-                    if (!codeExists) {
-                      break;
-                    }
+                    if (!codeExists) break;
 
                     const timestamp = Date.now().toString().slice(-4);
                     uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
@@ -929,44 +1015,41 @@ export const customerController = {
                 };
 
                 if (zones_id !== undefined && zones_id !== null) {
-                  createData.customer_zones = { connect: { id: zones_id } };
+                  const zoneExists = await tx.zones.findUnique({
+                    where: { id: zones_id },
+                  });
+                  if (zoneExists) {
+                    createData.customer_zones = { connect: { id: zones_id } };
+                  }
                 }
 
                 if (route_id !== undefined && route_id !== null) {
-                  createData.customer_routes = { connect: { id: route_id } };
+                  const routeExists = await tx.routes.findUnique({
+                    where: { id: route_id },
+                  });
+                  if (routeExists) {
+                    createData.customer_routes = { connect: { id: route_id } };
+                  }
                 }
 
                 if (salesperson_id !== undefined && salesperson_id !== null) {
-                  createData.customer_users = {
-                    connect: { id: salesperson_id },
-                  };
+                  const userExists = await tx.users.findUnique({
+                    where: { id: salesperson_id },
+                  });
+                  if (userExists) {
+                    createData.customer_users = {
+                      connect: { id: salesperson_id },
+                    };
+                  }
                 }
 
                 const newCustomer = await tx.customers.create({
                   data: createData,
-                  include: {
-                    customer_zones: true,
-                    customer_routes: true,
-                    customer_users: true,
-                    outlet_images_customers: {
-                      // Add this
-                      where: { is_active: 'Y' },
-                      orderBy: { createdate: 'desc' },
-                      select: {
-                        id: true,
-                        image_url: true,
-                        createdate: true,
-                        createdby: true,
-                      },
-                    },
-                  },
                 });
-
                 customerId = newCustomer.id;
-                results.created.push(serializeCustomer(newCustomer));
+                isUpdate = false;
               }
 
-              // Handle multiple customer images
               if (
                 imageMapping[customerIndex] &&
                 Array.isArray(imageMapping[customerIndex])
@@ -991,16 +1074,41 @@ export const customerController = {
                   }
                 }
               }
+
+              const customerToSerialize = await tx.customers.findUnique({
+                where: { id: customerId },
+                include: {
+                  customer_zones: true,
+                  customer_routes: true,
+                  customer_users: true,
+                  outlet_images_customers: {
+                    where: { is_active: 'Y' },
+                    orderBy: { createdate: 'desc' },
+                    select: {
+                      id: true,
+                      image_url: true,
+                      createdate: true,
+                      createdby: true,
+                    },
+                  },
+                },
+              });
+
+              const serialized = await serializeCustomer(customerToSerialize);
+
+              if (isUpdate) {
+                results.updated.push(serialized);
+              } else {
+                results.created.push(serialized);
+              }
             });
           } catch (error: any) {
             console.error('Error processing customer:', error);
-
             results.errors.push({
               customer: {
                 name: customerData.name,
                 email: customerData.email,
                 phone_number: customerData.phone_number,
-                code: customerData.code,
               },
               reason: error.message || 'Unknown error occurred',
               error_code: error.code,
@@ -1017,15 +1125,13 @@ export const customerController = {
             updated: results.updated.length,
             skipped: results.skipped.length,
             errors: results.errors.length,
-            customer_images_uploaded: uploadedImageUrls.filter(url => url)
-              .length,
-            profile_pics_uploaded: uploadedProfileUrls.filter(url => url)
+            outlet_images_uploaded: uploadedImageUrls.filter(url => url).length,
+            profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
               .length,
           },
           data: results,
         });
       } catch (error: any) {
-        // Cleanup uploaded files on error
         for (const imageUrl of [...uploadedImageUrls, ...uploadedProfileUrls]) {
           if (imageUrl) {
             try {
@@ -1035,7 +1141,6 @@ export const customerController = {
             }
           }
         }
-
         throw error;
       }
     } catch (error: any) {
@@ -1211,8 +1316,7 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
-          customer_image_customers: {
-            // ✅ Add this
+          outlet_images_customers: {
             where: { is_active: 'Y' },
             orderBy: { createdate: 'desc' },
             select: {
@@ -1264,14 +1368,13 @@ export const customerController = {
         },
       });
 
-      // ✅ If serializeCustomer is async, use Promise.all
       const serializedData = await Promise.all(
         data.map((c: any) => serializeCustomer(c))
       );
 
       res.success(
         'Customers retrieved successfully',
-        serializedData, // ✅ Use the awaited result
+        serializedData,
         200,
         pagination,
         {
