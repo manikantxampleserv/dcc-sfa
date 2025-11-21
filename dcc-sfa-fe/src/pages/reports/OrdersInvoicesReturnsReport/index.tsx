@@ -1,4 +1,5 @@
 import { Box, Chip, MenuItem } from '@mui/material';
+import { usePermission } from 'hooks/usePermission';
 import { useOrdersInvoicesReturnsReport } from 'hooks/useReports';
 import {
   Download,
@@ -22,14 +23,19 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [status, setStatus] = useState('all');
+  const { isRead } = usePermission('report');
 
-  // Fetch data
-  const { data: reportData, isLoading } = useOrdersInvoicesReturnsReport({
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    customer_id: customerId,
-    status: status === 'all' ? undefined : status?.toUpperCase(),
-  });
+  const { data: reportData, isLoading } = useOrdersInvoicesReturnsReport(
+    {
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      customer_id: customerId,
+      status: status === 'all' ? undefined : status?.toUpperCase(),
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const summary = reportData?.summary || {
     total_orders: 0,
@@ -364,67 +370,70 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
             Comprehensive report on orders, invoices, and returns
           </p>
         </Box>
-        <PopConfirm
-          title="Export Report to Excel"
-          description="Are you sure you want to export the current report data to Excel? This will include all filtered results with Orders, Invoices, and Returns data."
-          onConfirm={handleExportToExcel}
-          confirmText="Export"
-          cancelText="Cancel"
-          placement="bottom"
-        >
-          <Button
-            startIcon={<Download className="w-4 h-4" />}
-            variant="outlined"
+        {isRead && (
+          <PopConfirm
+            title="Export Report to Excel"
+            description="Are you sure you want to export the current report data to Excel? This will include all filtered results with Orders, Invoices, and Returns data."
+            onConfirm={handleExportToExcel}
+            confirmText="Export"
+            cancelText="Cancel"
+            placement="bottom"
           >
-            Export to Excel
-          </Button>
-        </PopConfirm>
+            <Button
+              startIcon={<Download className="w-4 h-4" />}
+              variant="outlined"
+            >
+              Export to Excel
+            </Button>
+          </PopConfirm>
+        )}
       </Box>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Input
-            type="date"
-            label="Start Date"
-            value={startDate}
-            setValue={setStartDate}
-          />
-          <Input
-            type="date"
-            label="End Date"
-            value={endDate}
-            setValue={setEndDate}
-          />
-          <CustomerSelect
-            name="customer_id"
-            label="Customer"
-            value={customerId}
-            setValue={value =>
-              setCustomerId(value ? parseInt(value.toString()) : undefined)
-            }
-            onChange={(_event, customer) =>
-              setCustomerId(customer ? customer.id : undefined)
-            }
-            fullWidth={false}
-          />
-          <div>
-            <Select
-              label="Status"
-              value={status}
-              fullWidth
-              onChange={e => setStatus(e.target.value as string)}
-            >
-              <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
-              <MenuItem value="delivered">Delivered</MenuItem>
-              <MenuItem value="paid">Paid</MenuItem>
-              <MenuItem value="unpaid">Unpaid</MenuItem>
-            </Select>
+      {isRead && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Input
+              type="date"
+              label="Start Date"
+              value={startDate}
+              setValue={setStartDate}
+            />
+            <Input
+              type="date"
+              label="End Date"
+              value={endDate}
+              setValue={setEndDate}
+            />
+            <CustomerSelect
+              name="customer_id"
+              label="Customer"
+              value={customerId}
+              setValue={value =>
+                setCustomerId(value ? parseInt(value.toString()) : undefined)
+              }
+              onChange={(_event, customer) =>
+                setCustomerId(customer ? customer.id : undefined)
+              }
+              fullWidth={false}
+            />
+            <div>
+              <Select
+                label="Status"
+                value={status}
+                fullWidth
+                onChange={e => setStatus(e.target.value as string)}
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
+                <MenuItem value="delivered">Delivered</MenuItem>
+                <MenuItem value="paid">Paid</MenuItem>
+                <MenuItem value="unpaid">Unpaid</MenuItem>
+              </Select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -579,6 +588,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
           columns={orderColumns}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
 
@@ -593,6 +603,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
           columns={invoiceColumns}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
 
@@ -607,6 +618,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
           columns={returnColumns}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
     </div>

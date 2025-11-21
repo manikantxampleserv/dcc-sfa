@@ -6,6 +6,7 @@ import {
 } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { useSurveys } from 'hooks/useSurveys';
 import {
   useDeleteSurveyResponse,
@@ -32,18 +33,24 @@ const SurveyResponses: React.FC = () => {
   );
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isRead } = usePermission('report');
 
   const {
     data: responsesResponse,
     isLoading,
     error,
-  } = useSurveyResponses({
-    search,
-    page,
-    limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-    survey_id: surveyFilter,
-  });
+  } = useSurveyResponses(
+    {
+      search,
+      page,
+      limit,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      survey_id: surveyFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: surveysResponse } = useSurveys({ limit: 1000 });
   const surveys = surveysResponse?.data || [];

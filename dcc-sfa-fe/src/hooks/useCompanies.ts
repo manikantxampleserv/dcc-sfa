@@ -5,7 +5,7 @@
  * @version 1.0.0
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
 import * as companyService from '../services/masters/Companies';
 import type { ApiResponse } from '../types/api.types';
@@ -30,13 +30,21 @@ export const companyQueryKeys = {
 /**
  * Hook to fetch companies with pagination and filters
  * @param params - Query parameters for filtering and pagination
+ * @param options - React Query options
  * @returns Query result with companies data
  */
-export const useCompanies = (params?: companyService.GetCompaniesParams) => {
+export const useCompanies = (
+  params?: companyService.GetCompaniesParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<companyService.Company[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
   return useQuery({
     queryKey: companyQueryKeys.list(params),
     queryFn: () => companyService.fetchCompanies(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

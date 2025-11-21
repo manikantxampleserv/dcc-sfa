@@ -1,4 +1,5 @@
 import { Box, Chip, MenuItem } from '@mui/material';
+import { usePermission } from 'hooks/usePermission';
 import { useSalesVsTargetReport } from 'hooks/useReports';
 import { useProductCategories } from 'hooks/useProductCategories';
 import { useUsers } from 'hooks/useUsers';
@@ -18,13 +19,19 @@ const SalesVsTargetReport: React.FC = () => {
     undefined
   );
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+  const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useSalesVsTargetReport({
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    salesperson_id: salespersonId,
-    product_category_id: categoryId,
-  });
+  const { data: reportData, isLoading } = useSalesVsTargetReport(
+    {
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      salesperson_id: salespersonId,
+      product_category_id: categoryId,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: categoriesData } = useProductCategories();
   const { data: usersData } = useUsers();
@@ -217,88 +224,91 @@ const SalesVsTargetReport: React.FC = () => {
             Track sales performance against targets
           </p>
         </Box>
-        <PopConfirm
-          title="Export Report to Excel"
-          description="Are you sure you want to export the current report data to Excel?"
-          onConfirm={handleExportToExcel}
-          confirmText="Export"
-          cancelText="Cancel"
-          placement="bottom"
-        >
-          <Button
-            startIcon={<Download className="w-4 h-4" />}
-            variant="outlined"
+        {isRead && (
+          <PopConfirm
+            title="Export Report to Excel"
+            description="Are you sure you want to export the current report data to Excel?"
+            onConfirm={handleExportToExcel}
+            confirmText="Export"
+            cancelText="Cancel"
+            placement="bottom"
           >
-            Export to Excel
-          </Button>
-        </PopConfirm>
+            <Button
+              startIcon={<Download className="w-4 h-4" />}
+              variant="outlined"
+            >
+              Export to Excel
+            </Button>
+          </PopConfirm>
+        )}
       </Box>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <Input
-              type="date"
-              value={startDate}
-              setValue={setStartDate}
-              placeholder="Start Date"
-              label="Start Date"
-            />
-          </div>
-          <div>
-            <Input
-              type="date"
-              value={endDate}
-              setValue={setEndDate}
-              placeholder="End Date"
-              label="End Date"
-            />
-          </div>
-          <div>
-            <Select
-              label="Sales Person"
-              fullWidth
-              value={salespersonId ? salespersonId.toString() : 'all'}
-              onChange={e =>
-                setSalespersonId(
-                  e.target.value === 'all'
-                    ? undefined
-                    : parseInt(e.target.value)
-                )
-              }
-            >
-              <MenuItem value="all">All Salespeople</MenuItem>
-              {users.map(user => (
-                <MenuItem key={user.id} value={user.id.toString()}>
-                  {user.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <Select
-              value={categoryId ? categoryId.toString() : 'all'}
-              fullWidth
-              label="Product Category"
-              onChange={e =>
-                setCategoryId(
-                  e.target.value === 'all'
-                    ? undefined
-                    : parseInt(e.target.value)
-                )
-              }
-            >
-              <MenuItem value="all">All Categories</MenuItem>
-              {categories.map((category: any) => (
-                <MenuItem key={category.id} value={category.id.toString()}>
-                  {category.category_name}
-                </MenuItem>
-              ))}
-            </Select>
+      {isRead && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Input
+                type="date"
+                value={startDate}
+                setValue={setStartDate}
+                placeholder="Start Date"
+                label="Start Date"
+              />
+            </div>
+            <div>
+              <Input
+                type="date"
+                value={endDate}
+                setValue={setEndDate}
+                placeholder="End Date"
+                label="End Date"
+              />
+            </div>
+            <div>
+              <Select
+                label="Sales Person"
+                fullWidth
+                value={salespersonId ? salespersonId.toString() : 'all'}
+                onChange={e =>
+                  setSalespersonId(
+                    e.target.value === 'all'
+                      ? undefined
+                      : parseInt(e.target.value)
+                  )
+                }
+              >
+                <MenuItem value="all">All Salespeople</MenuItem>
+                {users.map(user => (
+                  <MenuItem key={user.id} value={user.id.toString()}>
+                    {user.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </div>
+            <div>
+              <Select
+                value={categoryId ? categoryId.toString() : 'all'}
+                fullWidth
+                label="Product Category"
+                onChange={e =>
+                  setCategoryId(
+                    e.target.value === 'all'
+                      ? undefined
+                      : parseInt(e.target.value)
+                  )
+                }
+              >
+                <MenuItem value="all">All Categories</MenuItem>
+                {categories.map((category: any) => (
+                  <MenuItem key={category.id} value={category.id.toString()}>
+                    {category.category_name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5">
@@ -383,6 +393,7 @@ const SalesVsTargetReport: React.FC = () => {
           data={performance}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
 
@@ -396,6 +407,7 @@ const SalesVsTargetReport: React.FC = () => {
           data={categoryPerformance}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
     </div>

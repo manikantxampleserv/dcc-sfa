@@ -1,6 +1,7 @@
 import { Box, Chip, MenuItem } from '@mui/material';
-import { useVisitFrequencyCompletionReport } from 'hooks/useReports';
 import { useCustomers } from 'hooks/useCustomers';
+import { usePermission } from 'hooks/usePermission';
+import { useVisitFrequencyCompletionReport } from 'hooks/useReports';
 import { useUsers } from 'hooks/useUsers';
 import {
   Download,
@@ -27,15 +28,20 @@ const VisitFrequencyCompletionReport: React.FC = () => {
   );
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [status, setStatus] = useState('all');
+  const { isRead } = usePermission('report');
 
-  // Fetch data
-  const { data: reportData, isLoading } = useVisitFrequencyCompletionReport({
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    salesperson_id: salespersonId,
-    customer_id: customerId,
-    status: status === 'all' ? undefined : status,
-  });
+  const { data: reportData, isLoading } = useVisitFrequencyCompletionReport(
+    {
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      salesperson_id: salespersonId,
+      customer_id: customerId,
+      status: status === 'all' ? undefined : status,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: customersData } = useCustomers();
   const { data: usersData } = useUsers();
@@ -310,87 +316,90 @@ const VisitFrequencyCompletionReport: React.FC = () => {
             Track visit patterns, completion rates, and GPS logs
           </p>
         </Box>
-        <PopConfirm
-          title="Export Report to Excel"
-          description="Are you sure you want to export the current report data to Excel?"
-          onConfirm={handleExportToExcel}
-          confirmText="Export"
-          cancelText="Cancel"
-          placement="bottom"
-        >
-          <Button
-            startIcon={<Download className="w-4 h-4" />}
-            variant="outlined"
+        {isRead && (
+          <PopConfirm
+            title="Export Report to Excel"
+            description="Are you sure you want to export the current report data to Excel?"
+            onConfirm={handleExportToExcel}
+            confirmText="Export"
+            cancelText="Cancel"
+            placement="bottom"
           >
-            Export to Excel
-          </Button>
-        </PopConfirm>
+            <Button
+              startIcon={<Download className="w-4 h-4" />}
+              variant="outlined"
+            >
+              Export to Excel
+            </Button>
+          </PopConfirm>
+        )}
       </Box>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Input
-            type="date"
-            label="Start Date"
-            value={startDate}
-            setValue={setStartDate}
-          />
-          <Input
-            type="date"
-            label="End Date"
-            value={endDate}
-            setValue={setEndDate}
-          />
-          <Select
-            label="Salesperson"
-            value={salespersonId?.toString() || 'all'}
-            onChange={e =>
-              setSalespersonId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
-            }
-          >
-            <MenuItem value="all">All Salespeople</MenuItem>
-            {users.map((user: any) => (
-              <MenuItem key={user.id} value={user.id.toString()}>
-                {user.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            label="Customer"
-            value={customerId?.toString() || 'all'}
-            onChange={e =>
-              setCustomerId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
-            }
-          >
-            <MenuItem value="all">All Customers</MenuItem>
-            {customers.map((customer: any) => (
-              <MenuItem key={customer.id} value={customer.id.toString()}>
-                {customer.name} ({customer.code})
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            label="Status"
-            value={status}
-            onChange={e => setStatus(e.target.value)}
-          >
-            <MenuItem value="all">All Status</MenuItem>
-            <MenuItem value="planned">Planned</MenuItem>
-            <MenuItem value="in_progress">In Progress</MenuItem>
-            <MenuItem value="completed">Completed</MenuItem>
-            <MenuItem value="cancelled">Cancelled</MenuItem>
-          </Select>
+      {isRead && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <Input
+              type="date"
+              label="Start Date"
+              value={startDate}
+              setValue={setStartDate}
+            />
+            <Input
+              type="date"
+              label="End Date"
+              value={endDate}
+              setValue={setEndDate}
+            />
+            <Select
+              label="Salesperson"
+              value={salespersonId?.toString() || 'all'}
+              onChange={e =>
+                setSalespersonId(
+                  e.target.value && e.target.value !== 'all'
+                    ? parseInt(e.target.value)
+                    : undefined
+                )
+              }
+            >
+              <MenuItem value="all">All Salespeople</MenuItem>
+              {users.map((user: any) => (
+                <MenuItem key={user.id} value={user.id.toString()}>
+                  {user.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <Select
+              label="Customer"
+              value={customerId?.toString() || 'all'}
+              onChange={e =>
+                setCustomerId(
+                  e.target.value && e.target.value !== 'all'
+                    ? parseInt(e.target.value)
+                    : undefined
+                )
+              }
+            >
+              <MenuItem value="all">All Customers</MenuItem>
+              {customers.map((customer: any) => (
+                <MenuItem key={customer.id} value={customer.id.toString()}>
+                  {customer.name} ({customer.code})
+                </MenuItem>
+              ))}
+            </Select>
+            <Select
+              label="Status"
+              value={status}
+              onChange={e => setStatus(e.target.value)}
+            >
+              <MenuItem value="all">All Status</MenuItem>
+              <MenuItem value="planned">Planned</MenuItem>
+              <MenuItem value="in_progress">In Progress</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="cancelled">Cancelled</MenuItem>
+            </Select>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5">
@@ -478,6 +487,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
           data={reportData?.data?.visits || []}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
 

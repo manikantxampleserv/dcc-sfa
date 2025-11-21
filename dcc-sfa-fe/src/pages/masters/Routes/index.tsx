@@ -1,6 +1,7 @@
 import { Add, Block, CheckCircle, Visibility } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useDepots } from 'hooks/useDepots';
+import { usePermission } from 'hooks/usePermission';
 import { useDeleteRoute, useRoutes, type Route } from 'hooks/useRoutes';
 import { useZones } from 'hooks/useZones';
 import { Building2, Clock, Navigation, Route as RouteIcon } from 'lucide-react';
@@ -23,32 +24,38 @@ const RoutesManagement: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('route');
 
   const {
     data: routesResponse,
     isLoading,
     error,
-  } = useRoutes({
-    search,
-    page,
-    limit,
-    isActive:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-    depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
-  });
+  } = useRoutes(
+    {
+      search,
+      page,
+      limit,
+      isActive:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+      depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: depotsResponse } = useDepots({
     page: 1,
-    limit: 100, // Get all depots for filter
+    limit: 100,
   });
 
   const { data: zonesResponse } = useZones({
     page: 1,
-    limit: 100, // Get all zones for filter
+    limit: 100,
   });
 
   const routes = routesResponse?.data || [];
@@ -243,31 +250,41 @@ const RoutesManagement: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <ActionButton
-            onClick={() => handleViewRoute(row)}
-            tooltip={`View ${row.name}`}
-            icon={<Visibility fontSize="small" />}
-            color="info"
-          />
-          <EditButton
-            onClick={() => handleEditRoute(row)}
-            tooltip={`Edit ${row.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteRoute(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Route) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewRoute(row)}
+                    tooltip={`View ${row.name}`}
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditRoute(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteRoute(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -370,51 +387,61 @@ const RoutesManagement: React.FC = () => {
         data={routes}
         columns={routeColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Routes"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={depotFilter}
-                onChange={e => setDepotFilter(e.target.value)}
-                className="!min-w-60"
-                size="small"
-              >
-                <MenuItem value="all">All Depots</MenuItem>
-                {depots.map(depot => (
-                  <MenuItem key={depot.id} value={depot.id.toString()}>
-                    {depot.name}
-                  </MenuItem>
-                ))}
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Routes"
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      fullWidth={false}
+                      className="!min-w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!min-w-32"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={depotFilter}
+                      onChange={e => setDepotFilter(e.target.value)}
+                      className="!min-w-60"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Depots</MenuItem>
+                      {depots.map(depot => (
+                        <MenuItem key={depot.id} value={depot.id.toString()}>
+                          {depot.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </>
+                )}
+              </div>
+              {isCreate && (
+                <Button
+                  variant="contained"
+                  className="!capitalize"
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateRoute}
+                >
+                  Create
+                </Button>
+              )}
             </div>
-            <Button
-              variant="contained"
-              className="!capitalize"
-              disableElevation
-              startIcon={<Add />}
-              onClick={handleCreateRoute}
-            >
-              Create
-            </Button>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={route => route.id}
         initialOrderBy="name"
@@ -422,6 +449,7 @@ const RoutesManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

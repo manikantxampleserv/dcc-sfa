@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import {
   fetchApiTokens,
   fetchApiTokenById,
@@ -11,6 +11,7 @@ import {
   type ApiToken,
 } from '../services/masters/ApiTokens';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 
 export const apiTokenKeys = {
   all: ['api-tokens'] as const,
@@ -21,11 +22,15 @@ export const apiTokenKeys = {
   detail: (id: number) => [...apiTokenKeys.details(), id] as const,
 };
 
-export const useApiTokens = (params?: GetApiTokensParams) => {
+export const useApiTokens = (
+  params?: GetApiTokensParams,
+  options?: Omit<UseQueryOptions<ApiResponse<ApiToken[]>>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery({
     queryKey: apiTokenKeys.list(params || {}),
     queryFn: () => fetchApiTokens(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

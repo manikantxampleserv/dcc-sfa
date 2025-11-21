@@ -6,6 +6,7 @@ import {
   type SalesTarget,
 } from 'hooks/useSalesTargets';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { Target, Calendar, TrendingUp, Package } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -29,34 +30,49 @@ const SalesTargetsManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('sales-target');
+
   const {
     data: targetsResponse,
     isLoading,
     error,
-  } = useSalesTargets({
-    search,
-    page,
-    limit,
-    is_active:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-  });
+  } = useSalesTargets(
+    {
+      search,
+      page,
+      limit,
+      is_active:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const targets = targetsResponse?.data || [];
-  const totalCount = targetsResponse?.meta?.total || 0;
-  const currentPage = (targetsResponse?.meta?.page || 1) - 1;
+  const totalCount =
+    targetsResponse?.meta?.total_count || targetsResponse?.meta?.total || 0;
+  const currentPage =
+    (targetsResponse?.meta?.current_page || targetsResponse?.meta?.page || 1) -
+    1;
 
   const deleteTargetMutation = useDeleteSalesTarget();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalTargets = targetsResponse?.stats?.total_sales_targets ?? 0;
-  const activeTargets = targetsResponse?.stats?.active_sales_targets ?? 0;
-  const inactiveTargets = targetsResponse?.stats?.inactive_sales_targets ?? 0;
-  const targetsThisMonth =
-    targetsResponse?.stats?.sales_targets_this_month ?? 0;
+  const stats = (targetsResponse?.stats as any) || {};
+  const totalTargets = stats.total_sales_targets ?? targets.length;
+  const activeTargets =
+    stats.active_sales_targets ??
+    targets.filter((t: SalesTarget) => t.is_active === 'Y').length;
+  const inactiveTargets =
+    stats.inactive_sales_targets ??
+    targets.filter((t: SalesTarget) => t.is_active === 'N').length;
+  const targetsThisMonth = stats.sales_targets_this_month ?? 0;
 
   const handleCreateTarget = useCallback(() => {
     setSelectedTarget(null);
@@ -212,25 +228,33 @@ const SalesTargetsManagement: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditTarget(row)}
-            tooltip={`Edit Target ${row.id}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteTarget(row.id)}
-            tooltip={`Delete Target ${row.id}`}
-            itemName={`Target ${row.id}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: SalesTarget) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditTarget(row)}
+                    tooltip={`Edit Target ${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteTarget(row.id)}
+                    tooltip={`Delete Target ${row.id}`}
+                    itemName={`Target ${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -332,65 +356,79 @@ const SalesTargetsManagement: React.FC = () => {
         data={targets}
         columns={targetColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Sales Targets"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              {isRead && (
+                <div className="flex items-center flex-wrap gap-2">
+                  <SearchInput
+                    placeholder="Search Sales Targets"
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    fullWidth={false}
+                    className="!min-w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="!min-w-32"
+                    size="small"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </div>
+              )}
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Sales Targets"
+                    description="Are you sure you want to export the current sales targets data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateTarget}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center flex-wrap gap-2">
-              <PopConfirm
-                title="Export Sales Targets"
-                description="Are you sure you want to export the current sales targets data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateTarget}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={target => target.id}
         initialOrderBy="target_quantity"
@@ -399,6 +437,7 @@ const SalesTargetsManagement: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No sales targets found matching "${search}"`

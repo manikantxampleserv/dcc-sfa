@@ -7,6 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 import * as competitorActivityService from '../services/masters/CompetitorActivity';
 
 export type {
@@ -37,7 +38,12 @@ export const competitorActivityQueryKeys = {
  */
 export const useCompetitorActivities = (
   params?: competitorActivityService.CompetitorActivityQueryParams,
-  options?: Omit<UseQueryOptions<any>, 'queryKey' | 'queryFn'>
+  options?: Omit<
+    UseQueryOptions<
+      ApiResponse<competitorActivityService.CompetitorActivity[]>
+    >,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery({
     queryKey: competitorActivityQueryKeys.list(params),

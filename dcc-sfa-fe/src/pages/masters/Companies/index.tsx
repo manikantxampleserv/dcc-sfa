@@ -7,6 +7,7 @@ import {
   useDeleteCompany,
   type Company,
 } from 'hooks/useCompanies';
+import { usePermission } from 'hooks/usePermission';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
@@ -22,19 +23,25 @@ const CompaniesManagement: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('company');
 
   // Fetch companies with API
-  const { data: companiesData, isLoading } = useCompanies({
-    page,
-    limit,
-    search,
-    is_active:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-  });
+  const { data: companiesData, isLoading } = useCompanies(
+    {
+      page,
+      limit,
+      search,
+      is_active:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   // Delete company mutation
   const deleteCompanyMutation = useDeleteCompany();
@@ -187,25 +194,33 @@ const CompaniesManagement: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditCompany(row)}
-            tooltip={`Edit ${row.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteCompany(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Company) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditCompany(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteCompany(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -305,38 +320,48 @@ const CompaniesManagement: React.FC = () => {
         data={filteredCompanies}
         columns={companyColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Companies"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Companies"
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      fullWidth={false}
+                      className="!min-w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!min-w-32"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                  </>
+                )}
+              </div>
+              {isCreate && (
+                <Button
+                  variant="contained"
+                  className="!capitalize"
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateCompany}
+                >
+                  Create
+                </Button>
+              )}
             </div>
-            <Button
-              variant="contained"
-              className="!capitalize"
-              disableElevation
-              startIcon={<Add />}
-              onClick={handleCreateCompany}
-            >
-              Create
-            </Button>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={company => company.id}
         initialOrderBy="name"
@@ -344,6 +369,7 @@ const CompaniesManagement: React.FC = () => {
         totalCount={companiesData?.meta?.total_count || 0}
         page={page - 1}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

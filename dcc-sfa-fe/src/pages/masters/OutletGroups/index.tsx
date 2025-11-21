@@ -7,6 +7,7 @@ import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
+import { usePermission } from 'hooks/usePermission';
 import {
   useDeleteOutletGroup,
   useOutletGroups,
@@ -22,22 +23,29 @@ const OutletGroupsManagement: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('outlet-group');
 
   const {
     data: outletGroupsResponse,
     isLoading,
     error,
-  } = useOutletGroups({
-    search,
-    page,
-    limit,
-    isActive:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-  });
+  } = useOutletGroups(
+    {
+      search,
+      page,
+      limit,
+      isActive:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const outletGroups = outletGroupsResponse?.data || [];
   const totalCount = outletGroupsResponse?.meta?.total || 0;
@@ -201,25 +209,33 @@ const OutletGroupsManagement: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditOutletGroup(row)}
-            tooltip={`Edit ${row.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteOutletGroup(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: OutletGroup) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditOutletGroup(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteOutletGroup(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -321,38 +337,48 @@ const OutletGroupsManagement: React.FC = () => {
         data={outletGroups}
         columns={outletGroupColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Outlet Groups"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Outlet Groups"
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      fullWidth={false}
+                      className="!min-w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!min-w-32"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                  </>
+                )}
+              </div>
+              {isCreate && (
+                <Button
+                  variant="contained"
+                  className="!capitalize"
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateOutletGroup}
+                >
+                  Add Outlet Group
+                </Button>
+              )}
             </div>
-            <Button
-              variant="contained"
-              className="!capitalize"
-              disableElevation
-              startIcon={<Add />}
-              onClick={handleCreateOutletGroup}
-            >
-              Add Outlet Group
-            </Button>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={outletGroup => outletGroup.id}
         initialOrderBy="name"
@@ -360,6 +386,7 @@ const OutletGroupsManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

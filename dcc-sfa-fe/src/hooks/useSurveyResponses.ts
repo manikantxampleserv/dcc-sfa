@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   createOrUpdateSurveyResponse,
   deleteSurveyResponse,
@@ -16,6 +20,7 @@ import {
   type SurveyResponse,
 } from '../services/reports/SurveyResponses';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 
 // Query Keys
 export const surveyResponseKeys = {
@@ -30,11 +35,18 @@ export const surveyResponseKeys = {
 /**
  * Hook to fetch survey responses with pagination and filters
  */
-export const useSurveyResponses = (params?: GetSurveyResponsesParams) => {
+export const useSurveyResponses = (
+  params?: GetSurveyResponsesParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<SurveyResponse[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
   return useQuery({
     queryKey: surveyResponseKeys.list(params || {}),
     queryFn: () => fetchSurveyResponses(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

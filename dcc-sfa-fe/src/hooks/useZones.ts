@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   createZone,
   deleteZone,
@@ -17,6 +21,7 @@ import {
   type UpdateZonePayload,
   type Zone,
 } from '../services/masters/Zones';
+import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
 
 // Query Keys
@@ -31,11 +36,15 @@ export const zoneKeys = {
 /**
  * Hook to fetch zones with pagination and filters
  */
-export const useZones = (params?: GetZonesParams) => {
+export const useZones = (
+  params?: GetZonesParams,
+  options?: Omit<UseQueryOptions<ApiResponse<Zone[]>>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery({
     queryKey: zoneKeys.list(params || {}),
     queryFn: () => fetchZones(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   upsertStockTransferRequest,
   deleteStockTransferRequest,
@@ -17,6 +21,7 @@ import {
   type UpdateStockTransferRequestPayload,
 } from '../services/masters/StockTransferRequests';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 
 // Query Keys
 export const stockTransferRequestKeys = {
@@ -32,12 +37,17 @@ export const stockTransferRequestKeys = {
  * Hook to fetch stock transfer requests with pagination and filters
  */
 export const useStockTransferRequests = (
-  params?: GetStockTransferRequestsParams
+  params?: GetStockTransferRequestsParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<StockTransferRequest[]>>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery({
     queryKey: stockTransferRequestKeys.list(params || {}),
     queryFn: () => fetchStockTransferRequests(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

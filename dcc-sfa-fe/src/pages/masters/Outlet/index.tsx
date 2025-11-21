@@ -20,6 +20,7 @@ import {
   useDeleteCustomer,
   type Customer,
 } from '../../../hooks/useCustomers';
+import { usePermission } from 'hooks/usePermission';
 import { useRoutes } from '../../../hooks/useRoutes';
 import { useZones } from '../../../hooks/useZones';
 import ManageOutlet from './ManageOutlet';
@@ -38,23 +39,29 @@ const OutletsManagement: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('outlet');
 
   const {
     data: customersResponse,
     isLoading,
     error,
-  } = useCustomers({
-    search,
-    page,
-    limit,
-    isActive:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-    type: typeFilter === 'all' ? undefined : typeFilter,
-  });
+  } = useCustomers(
+    {
+      search,
+      page,
+      limit,
+      isActive:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+      type: typeFilter === 'all' ? undefined : typeFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: routesResponse } = useRoutes({
     page: 1,
@@ -257,25 +264,33 @@ const OutletsManagement: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditOutlet(row)}
-            tooltip={`Edit ${row.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteOutlet(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Customer) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditOutlet(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteOutlet(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -379,51 +394,61 @@ const OutletsManagement: React.FC = () => {
         columns={outletColumns}
         onRowClick={(row: Customer) => navigate(`/masters/outlets/${row.id}`)}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Outlets"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={typeFilter}
-                onChange={e => setTypeFilter(e.target.value)}
-                className="!min-w-40"
-                size="small"
-              >
-                <MenuItem value="all">All Types</MenuItem>
-                {BUSINESS_TYPES.map(type => (
-                  <MenuItem key={type} value={type}>
-                    {type}
-                  </MenuItem>
-                ))}
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Outlets"
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      fullWidth={false}
+                      className="!min-w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!min-w-32"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={typeFilter}
+                      onChange={e => setTypeFilter(e.target.value)}
+                      className="!min-w-40"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Types</MenuItem>
+                      {BUSINESS_TYPES.map(type => (
+                        <MenuItem key={type} value={type}>
+                          {type}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </>
+                )}
+              </div>
+              {isCreate && (
+                <Button
+                  variant="contained"
+                  className="!capitalize"
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateOutlet}
+                >
+                  Add Outlet
+                </Button>
+              )}
             </div>
-            <Button
-              variant="contained"
-              className="!capitalize"
-              disableElevation
-              startIcon={<Add />}
-              onClick={handleCreateOutlet}
-            >
-              Add Outlet
-            </Button>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={customer => customer.id}
         initialOrderBy="name"
@@ -431,6 +456,7 @@ const OutletsManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

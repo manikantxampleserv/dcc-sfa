@@ -13,6 +13,7 @@ import {
   type CustomerComplaint,
 } from 'hooks/useCustomerComplaints';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { AlertCircle, MessageSquare, User } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -35,16 +36,24 @@ const CustomerComplaintsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('customer-complaint');
+
   const {
     data: complaintsResponse,
     isLoading,
     error,
-  } = useCustomerComplaints({
-    page,
-    limit,
-    search: search || undefined,
-    status: statusFilter !== 'all' ? statusFilter : undefined,
-  });
+  } = useCustomerComplaints(
+    {
+      page,
+      limit,
+      search: search || undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const complaints: CustomerComplaint[] = complaintsResponse?.data || [];
   const pagination = complaintsResponse?.pagination;
@@ -208,25 +217,33 @@ const CustomerComplaintsPage: React.FC = () => {
       render: (_value, row) =>
         formatDate(String(row.createdate || '')) || 'N/A',
     },
-    {
-      id: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditComplaint(row)}
-            tooltip={`Edit complaint #${row.id}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteComplaint(row.id)}
-            tooltip={`Delete complaint #${row.id}`}
-            itemName={`complaint #${row.id}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'actions',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CustomerComplaint) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditComplaint(row)}
+                    tooltip={`Edit complaint #${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteComplaint(row.id)}
+                    tooltip={`Delete complaint #${row.id}`}
+                    itemName={`complaint #${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   const totalComplaints = pagination?.total_count || complaints.length;
@@ -337,64 +354,78 @@ const CustomerComplaintsPage: React.FC = () => {
         data={complaints}
         columns={columns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search complaints..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => handleStatusFilterChange(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="P">Pending</MenuItem>
-                <MenuItem value="R">Resolved</MenuItem>
-                <MenuItem value="C">Closed</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              {isRead && (
+                <div className="flex items-center flex-wrap gap-2">
+                  <SearchInput
+                    placeholder="Search complaints..."
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    className="!w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => handleStatusFilterChange(e.target.value)}
+                    className="!w-40"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="P">Pending</MenuItem>
+                    <MenuItem value="R">Resolved</MenuItem>
+                    <MenuItem value="C">Closed</MenuItem>
+                  </Select>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Customer Complaints"
+                    description="Are you sure you want to export the current customer complaints data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateComplaint}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Customer Complaints"
-                description="Are you sure you want to export the current customer complaints data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateComplaint}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={complaint => complaint.id}
         initialOrderBy="createdate"
@@ -403,6 +434,7 @@ const CustomerComplaintsPage: React.FC = () => {
         page={page - 1}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search || statusFilter !== 'all'
             ? `No complaints found matching your filters`

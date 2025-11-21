@@ -14,6 +14,7 @@ import {
   type CompetitorActivity,
 } from 'hooks/useCompetitorActivity';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import {
   Building2,
   Calendar,
@@ -43,16 +44,23 @@ const CompetitorActivityManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('competitor');
+
   const {
     data: competitorActivityResponse,
     isLoading,
     error,
-  } = useCompetitorActivities({
-    search,
-    page,
-    limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-  });
+  } = useCompetitorActivities(
+    {
+      search,
+      page,
+      limit,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const competitorActivities = competitorActivityResponse?.data || [];
   const totalCount = competitorActivityResponse?.meta?.total_count || 0;
@@ -67,7 +75,7 @@ const CompetitorActivityManagement: React.FC = () => {
   const inactiveActivities =
     competitorActivityResponse?.stats?.inactive_records ?? 0;
   const activitiesThisMonth =
-    competitorActivityResponse?.stats?.this_month_records ?? 0;
+    competitorActivityResponse?.stats?.records_this_month ?? 0;
 
   const handleCreateActivity = useCallback(() => {
     setSelectedActivity(null);
@@ -259,25 +267,33 @@ const CompetitorActivityManagement: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditActivity(row)}
-            tooltip={`Edit Activity #${row.id}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteActivity(row.id)}
-            tooltip={`Delete Activity #${row.id}`}
-            itemName={`Activity #${row.id}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CompetitorActivity) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditActivity(row)}
+                    tooltip={`Edit Activity #${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteActivity(row.id)}
+                    tooltip={`Delete Activity #${row.id}`}
+                    itemName={`Activity #${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -419,23 +435,27 @@ const CompetitorActivityManagement: React.FC = () => {
                   {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
                 </Button>
               </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateActivity}
-              >
-                Create
-              </Button>
+              {isCreate && (
+                <Button
+                  variant="outlined"
+                  className="!capitalize"
+                  startIcon={<Upload />}
+                  onClick={() => setImportModalOpen(true)}
+                >
+                  Import
+                </Button>
+              )}
+              {isCreate && (
+                <Button
+                  variant="contained"
+                  className="!capitalize"
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateActivity}
+                >
+                  Create
+                </Button>
+              )}
             </div>
           </div>
         }
@@ -446,6 +466,7 @@ const CompetitorActivityManagement: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No competitor activities found matching "${search}"`

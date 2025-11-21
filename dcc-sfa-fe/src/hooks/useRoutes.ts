@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   createRoute,
   deleteRoute,
@@ -17,6 +21,7 @@ import {
   type UpdateRoutePayload,
   type Route,
 } from '../services/masters/Routes';
+import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
 
 // Query Keys
@@ -31,11 +36,15 @@ export const routeKeys = {
 /**
  * Hook to fetch routes with pagination and filters
  */
-export const useRoutes = (params?: GetRoutesParams) => {
+export const useRoutes = (
+  params?: GetRoutesParams,
+  options?: Omit<UseQueryOptions<ApiResponse<Route[]>>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery({
     queryKey: routeKeys.list(params || {}),
     queryFn: () => fetchRoutes(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

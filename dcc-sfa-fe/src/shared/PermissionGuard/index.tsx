@@ -27,7 +27,12 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
         return permissions.isDelete;
       case 'read':
       default:
-        return permissions.isRead;
+        return (
+          permissions.isRead ||
+          permissions.isCreate ||
+          permissions.isUpdate ||
+          permissions.isDelete
+        );
     }
   })();
 

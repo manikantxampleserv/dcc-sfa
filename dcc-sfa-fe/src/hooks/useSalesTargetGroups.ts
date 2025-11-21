@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   createSalesTargetGroup,
   deleteSalesTargetGroup,
@@ -17,6 +21,7 @@ import {
   type SalesTargetGroup,
   type UpdateSalesTargetGroupPayload,
 } from '../services/masters/SalesTargetGroups';
+import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
 
 // Query Keys
@@ -32,11 +37,18 @@ export const salesTargetGroupKeys = {
 /**
  * Hook to fetch sales target groups with pagination and filters
  */
-export const useSalesTargetGroups = (params?: GetSalesTargetGroupsParams) => {
+export const useSalesTargetGroups = (
+  params?: GetSalesTargetGroupsParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<SalesTargetGroup[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
   return useQuery({
     queryKey: salesTargetGroupKeys.list(params || {}),
     queryFn: () => fetchSalesTargetGroups(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

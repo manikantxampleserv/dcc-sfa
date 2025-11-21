@@ -6,6 +6,7 @@ import {
   useStockMovements,
   type StockMovement,
 } from 'hooks/useStockMovements';
+import { usePermission } from 'hooks/usePermission';
 import { ArrowDown, ArrowRightLeft, ArrowUp, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -29,23 +30,31 @@ const StockMovementsManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('stock-movement');
+
   const {
     data: movementsResponse,
     isLoading,
     error,
-  } = useStockMovements({
-    search,
-    page,
-    limit,
-    status:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'active'
-          : 'inactive',
-    movement_type:
-      movementTypeFilter === 'all' ? undefined : movementTypeFilter,
-  });
+  } = useStockMovements(
+    {
+      search,
+      page,
+      limit,
+      status:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'active'
+            : 'inactive',
+      movement_type:
+        movementTypeFilter === 'all' ? undefined : movementTypeFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const movements = movementsResponse?.data || [];
   const totalCount = movementsResponse?.meta?.total || 0;
@@ -287,25 +296,33 @@ const StockMovementsManagement: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditMovement(row)}
-            tooltip={`Edit movement ${row.id}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteMovement(row.id)}
-            tooltip={`Delete movement ${row.id}`}
-            itemName={`movement ${row.id}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: StockMovement) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditMovement(row)}
+                    tooltip={`Edit movement ${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteMovement(row.id)}
+                    tooltip={`Delete movement ${row.id}`}
+                    itemName={`movement ${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -406,76 +423,90 @@ const StockMovementsManagement: React.FC = () => {
         data={movements}
         columns={movementColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Stock Movements"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={movementTypeFilter}
-                onChange={e => setMovementTypeFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Types</MenuItem>
-                <MenuItem value="IN">Stock In</MenuItem>
-                <MenuItem value="OUT">Stock Out</MenuItem>
-                <MenuItem value="TRANSFER">Transfer</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              {isRead && (
+                <div className="flex items-center flex-wrap gap-2">
+                  <SearchInput
+                    placeholder="Search Stock Movements"
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    fullWidth={false}
+                    className="!min-w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="!min-w-32"
+                    size="small"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                  <Select
+                    value={movementTypeFilter}
+                    onChange={e => setMovementTypeFilter(e.target.value)}
+                    className="!min-w-32"
+                    size="small"
+                  >
+                    <MenuItem value="all">All Types</MenuItem>
+                    <MenuItem value="IN">Stock In</MenuItem>
+                    <MenuItem value="OUT">Stock Out</MenuItem>
+                    <MenuItem value="TRANSFER">Transfer</MenuItem>
+                  </Select>
+                </div>
+              )}
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Stock Movements"
+                    description="Are you sure you want to export the current stock movements data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateMovement}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center flex-wrap gap-2">
-              <PopConfirm
-                title="Export Stock Movements"
-                description="Are you sure you want to export the current stock movements data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateMovement}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={movement => movement.id}
         initialOrderBy="createdate"
@@ -484,6 +515,7 @@ const StockMovementsManagement: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No stock movements found matching "${search}"`

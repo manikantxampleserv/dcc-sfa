@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   createProduct,
   deleteProduct,
@@ -17,6 +21,7 @@ import {
   type UpdateProductPayload,
   type Product,
 } from '../services/masters/Products';
+import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
 
 // Query Keys
@@ -32,11 +37,18 @@ export const productKeys = {
 /**
  * Hook to fetch products with pagination and filters
  */
-export const useProducts = (params?: GetProductsParams) => {
+export const useProducts = (
+  params?: GetProductsParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<Product[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
   return useQuery({
     queryKey: productKeys.list(params || {}),
     queryFn: () => fetchProducts(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

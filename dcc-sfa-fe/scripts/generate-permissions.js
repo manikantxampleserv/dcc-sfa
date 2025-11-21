@@ -103,7 +103,13 @@ ${dependencyArray}
       }
       
       const modulePermission = permissions[requiredModule as keyof typeof permissions];
-      return modulePermission?.isRead || false;
+      return (
+        modulePermission?.isRead ||
+        modulePermission?.isCreate ||
+        modulePermission?.isUpdate ||
+        modulePermission?.isDelete ||
+        false
+      );
     },
     [permissions]
   );

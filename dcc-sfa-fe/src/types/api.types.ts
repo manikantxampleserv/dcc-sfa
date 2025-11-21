@@ -141,6 +141,11 @@ export interface ApiResponse<T = any> {
     active_sales_target_groups?: number;
     inactive_sales_target_groups?: number;
     sales_target_groups_this_month?: number;
+    // Sales target statistics
+    total_sales_targets?: number;
+    active_sales_targets?: number;
+    inactive_sales_targets?: number;
+    sales_targets_this_month?: number;
     // Product statistics
     total_products?: number;
     active_products?: number;

@@ -273,7 +273,7 @@ const OrdersManagement: React.FC = () => {
             icon={getStatusIcon(row.status || 'draft')}
             label={row.status || 'draft'}
             size="small"
-            className={`!text-xs !capitalize ${getStatusColor(row.status || 'draft')} !min-w-20`}
+            className={`!text-xs !capitalize !pl-1 !justify-start ${getStatusColor(row.status || 'draft')} !min-w-20`}
           />
           <Chip
             label={(row.priority || 'medium').toUpperCase()}
