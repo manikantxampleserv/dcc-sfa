@@ -40,7 +40,7 @@ const EditButton: React.FC<EditButtonProps> = ({
   );
 
   return tooltip ? (
-    <Tooltip placement="top" title={tooltip}>
+    <Tooltip placement="top" title={tooltip} arrow>
       {button}
     </Tooltip>
   ) : (
@@ -67,7 +67,7 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({
   );
 
   const tooltipButton = tooltip ? (
-    <Tooltip placement="top" title={tooltip}>
+    <Tooltip placement="top" title={tooltip} arrow>
       {button}
     </Tooltip>
   ) : (
@@ -118,7 +118,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   );
 
   return tooltip ? (
-    <Tooltip placement="top" title={tooltip}>
+    <Tooltip placement="top" title={tooltip} arrow>
       {button}
     </Tooltip>
   ) : (

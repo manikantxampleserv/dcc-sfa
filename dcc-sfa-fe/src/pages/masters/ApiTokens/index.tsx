@@ -1,5 +1,13 @@
-import { Block, CheckCircle, PlayArrow, Stop } from '@mui/icons-material';
-import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { Block, CheckCircle } from '@mui/icons-material';
+import {
+  Alert,
+  Avatar,
+  Box,
+  Chip,
+  MenuItem,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { Key, Shield } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
@@ -8,9 +16,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import {
-  useActivateApiToken,
   useApiTokens,
-  useDeactivateApiToken,
   useDeleteApiToken,
   useRevokeApiToken,
 } from '../../../hooks/useApiTokens';
@@ -57,8 +63,7 @@ const ApiTokensPage: React.FC = () => {
   const currentPage = (tokensResponse?.meta?.current_page || 1) - 1;
 
   const revokeTokenMutation = useRevokeApiToken();
-  const activateTokenMutation = useActivateApiToken();
-  const deactivateTokenMutation = useDeactivateApiToken();
+
   const deleteTokenMutation = useDeleteApiToken();
   const stats = (tokensResponse?.stats as any) || {};
 
@@ -85,28 +90,6 @@ const ApiTokensPage: React.FC = () => {
     [revokeTokenMutation]
   );
 
-  const handleActivateToken = useCallback(
-    async (id: number) => {
-      try {
-        await activateTokenMutation.mutateAsync(id);
-      } catch (error) {
-        console.error('Error activating token:', error);
-      }
-    },
-    [activateTokenMutation]
-  );
-
-  const handleDeactivateToken = useCallback(
-    async (id: number) => {
-      try {
-        await deactivateTokenMutation.mutateAsync(id);
-      } catch (error) {
-        console.error('Error deactivating token:', error);
-      }
-    },
-    [deactivateTokenMutation]
-  );
-
   const handleDeleteToken = useCallback(
     async (id: number) => {
       try {
@@ -125,6 +108,88 @@ const ApiTokensPage: React.FC = () => {
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
+  };
+
+  const formatDeviceInfo = (deviceInfo: string | null | undefined): string => {
+    if (!deviceInfo) return 'Unknown device';
+
+    const info = deviceInfo.toLowerCase();
+
+    if (info.includes('macintosh') || info.includes('mac os x')) {
+      const osMatch = deviceInfo.match(/Mac OS X (\d+[._]\d+[._]\d+)/);
+      const osVersion = osMatch ? osMatch[1].replace(/_/g, '.') : '';
+
+      if (info.includes('chrome')) {
+        const chromeMatch = deviceInfo.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/);
+        const chromeVersion = chromeMatch ? chromeMatch[1] : '';
+        return `Mac${osVersion ? ` (macOS ${osVersion})` : ''} - Chrome${chromeVersion ? ` ${chromeVersion}` : ''}`;
+      }
+      if (info.includes('safari') && !info.includes('chrome')) {
+        return `Mac${osVersion ? ` (macOS ${osVersion})` : ''} - Safari`;
+      }
+      if (info.includes('firefox')) {
+        return `Mac${osVersion ? ` (macOS ${osVersion})` : ''} - Firefox`;
+      }
+    }
+
+    if (info.includes('windows')) {
+      let windowsVersion = '';
+      if (info.includes('windows nt 10.0')) {
+        windowsVersion = 'Windows 10';
+      } else if (info.includes('windows nt 11.0')) {
+        windowsVersion = 'Windows 11';
+      } else if (info.includes('windows nt 6.3')) {
+        windowsVersion = 'Windows 8.1';
+      } else if (info.includes('windows nt 6.2')) {
+        windowsVersion = 'Windows 8';
+      } else if (info.includes('windows nt 6.1')) {
+        windowsVersion = 'Windows 7';
+      } else {
+        const winMatch = deviceInfo.match(/Windows NT (\d+\.\d+)/i);
+        if (winMatch) {
+          const ntVersion = winMatch[1];
+          if (ntVersion === '10.0') windowsVersion = 'Windows 10';
+          else if (ntVersion === '11.0') windowsVersion = 'Windows 11';
+          else if (ntVersion === '6.3') windowsVersion = 'Windows 8.1';
+          else if (ntVersion === '6.2') windowsVersion = 'Windows 8';
+          else if (ntVersion === '6.1') windowsVersion = 'Windows 7';
+          else windowsVersion = `Windows NT ${ntVersion}`;
+        } else {
+          windowsVersion = 'Windows';
+        }
+      }
+
+      if (info.includes('chrome')) {
+        const chromeMatch = deviceInfo.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/);
+        const chromeVersion = chromeMatch ? chromeMatch[1] : '';
+        return `${windowsVersion}${chromeVersion ? ` - Chrome ${chromeVersion}` : ' - Chrome'}`;
+      }
+      if (info.includes('firefox')) {
+        const firefoxMatch = deviceInfo.match(/Firefox\/(\d+\.\d+)/);
+        const firefoxVersion = firefoxMatch ? firefoxMatch[1] : '';
+        return `${windowsVersion}${firefoxVersion ? ` - Firefox ${firefoxVersion}` : ' - Firefox'}`;
+      }
+      if (info.includes('edge')) {
+        const edgeMatch = deviceInfo.match(/Edg\/(\d+\.\d+\.\d+\.\d+)/);
+        const edgeVersion = edgeMatch ? edgeMatch[1] : '';
+        return `${windowsVersion}${edgeVersion ? ` - Edge ${edgeVersion}` : ' - Edge'}`;
+      }
+      return windowsVersion;
+    }
+
+    if (info.includes('android')) {
+      if (info.includes('chrome')) return 'Android - Chrome';
+    }
+
+    if (info.includes('iphone') || info.includes('ipad')) {
+      if (info.includes('safari')) return 'iOS - Safari';
+    }
+
+    if (info.includes('dart')) {
+      return 'Mobile App (Dart)';
+    }
+
+    return deviceInfo;
   };
 
   const getTokenStatus = (token: ApiToken) => {
@@ -182,11 +247,15 @@ const ApiTokensPage: React.FC = () => {
       id: 'device_id',
       label: 'Device',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.device_id || (
-            <span className="italic text-gray-400">No Device</span>
-          )}
-        </Typography>
+        <Tooltip title={row.device_id || 'No Device'} arrow placement="top">
+          <Typography variant="body2" className="!text-gray-900">
+            {row.device_id ? (
+              formatDeviceInfo(row.device_id)
+            ) : (
+              <span className="italic text-gray-400">No Device</span>
+            )}
+          </Typography>
+        </Tooltip>
       ),
     },
     {
@@ -194,7 +263,9 @@ const ApiTokensPage: React.FC = () => {
       label: 'IP Address',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900">
-          {row.ip_address || (
+          {row.ip_address && row.ip_address !== '' ? (
+            row.ip_address?.replace(/^::ffff:/, '')
+          ) : (
             <span className="italic text-gray-400">No IP</span>
           )}
         </Typography>
@@ -263,7 +334,6 @@ const ApiTokensPage: React.FC = () => {
             sortable: false,
             render: (_value: any, row: ApiToken) => {
               const isRevoked = row.is_revoked;
-              const isActive = row.is_active === 'Y';
               const isExpired =
                 row.expires_at && new Date(row.expires_at) < new Date();
 
@@ -271,36 +341,6 @@ const ApiTokensPage: React.FC = () => {
                 <div className="!flex !gap-2 !items-center">
                   {isUpdate && !isRevoked && !isExpired && (
                     <>
-                      {isActive ? (
-                        <PopConfirm
-                          title="Deactivate Token"
-                          description="Are you sure you want to deactivate this token?"
-                          confirmText="Deactivate"
-                          onConfirm={() => handleDeactivateToken(row.id)}
-                        >
-                          <ActionButton
-                            tooltip="Deactivate Token"
-                            disabled={deactivateTokenMutation.isPending}
-                            icon={<Stop />}
-                            color="warning"
-                          />
-                        </PopConfirm>
-                      ) : (
-                        <PopConfirm
-                          title="Activate Token"
-                          description="Are you sure you want to activate this token?"
-                          confirmText="Activate"
-                          onConfirm={() => handleActivateToken(row.id)}
-                        >
-                          <ActionButton
-                            tooltip="Activate Token"
-                            disabled={activateTokenMutation.isPending}
-                            icon={<PlayArrow />}
-                            color="success"
-                          />
-                        </PopConfirm>
-                      )}
-
                       <PopConfirm
                         title="Revoke Token"
                         description="Are you sure you want to revoke this token? It will no longer be usable."
@@ -308,7 +348,7 @@ const ApiTokensPage: React.FC = () => {
                         onConfirm={() => handleRevokeToken(row.id)}
                       >
                         <ActionButton
-                          tooltip="Revoke Token"
+                          tooltip={`Revoke Token #${row.id}`}
                           disabled={revokeTokenMutation.isPending}
                           icon={<Block />}
                           color="error"

@@ -148,6 +148,9 @@ export const login = async (req: any, res: any) => {
 
     const { accessToken, refreshToken } = generateTokens(user);
 
+    const userAgent = req.get('User-Agent') || 'Unknown';
+    const clientIP = getClientIP(req);
+
     await prisma.api_tokens.create({
       data: {
         user_id: user.id,
@@ -155,6 +158,8 @@ export const login = async (req: any, res: any) => {
         token_type: 'Bearer',
         issued_at: new Date(),
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        device_id: truncateString(userAgent, 100),
+        ip_address: truncateString(clientIP, 50),
         is_active: 'Y',
         created_by: user.id,
         created_date: new Date(),
@@ -162,12 +167,11 @@ export const login = async (req: any, res: any) => {
     });
 
     try {
-      const userAgent = req.get('User-Agent') || 'Unknown';
       await prisma.login_history.create({
         data: {
           user_id: user.id,
           login_time: new Date(),
-          ip_address: truncateString(getClientIP(req), 50),
+          ip_address: truncateString(clientIP, 50),
           device_info: truncateString(userAgent, 255),
           os_info: truncateString(userAgent, 100),
           app_version: truncateString(req.get('X-App-Version'), 50) || '1.0.0',

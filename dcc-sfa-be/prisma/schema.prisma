@@ -83,7 +83,7 @@ model users {
   workflow_steps_workflow_steps_assigned_user_idTousers             workflow_steps[]             @relation("workflow_steps_assigned_user_idTousers")
   workflow_steps_workflow_steps_processed_byTousers                 workflow_steps[]             @relation("workflow_steps_processed_byTousers")
   promotion_salesperson_users                                       promotion_salesperson[]
-
+}
 model attendance {
   id                    Int                  @id @default(autoincrement())
   user_id               Int

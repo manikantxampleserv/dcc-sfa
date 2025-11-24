@@ -205,7 +205,7 @@ const PaymentCollection: React.FC = () => {
         <Typography variant="body2" className="!text-gray-900">
           {row.currency ? (
             <span className="!font-medium">
-              {row.currency.code} ({row.currency.name})
+              {row.currency.code || ''} ({row.currency.name})
             </span>
           ) : (
             <span className="italic text-gray-400">No Currency</span>
@@ -241,7 +241,7 @@ const PaymentCollection: React.FC = () => {
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900">
           {row.total_amount ? (
-            `${row.currency?.code} ${row.total_amount.toFixed(2)}`
+            `${row.currency?.code || ''} ${row.total_amount.toFixed(2)}`
           ) : (
             <span className="italic text-gray-400">No Amount</span>
           )}
