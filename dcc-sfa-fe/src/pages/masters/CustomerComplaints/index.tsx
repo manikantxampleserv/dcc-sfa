@@ -207,6 +207,7 @@ const CustomerComplaintsPage: React.FC = () => {
           label={getStatusLabel(row.status)}
           color={getStatusColor(row.status) as any}
           size="small"
+          variant="outlined"
           className="!capitalize"
         />
       ),

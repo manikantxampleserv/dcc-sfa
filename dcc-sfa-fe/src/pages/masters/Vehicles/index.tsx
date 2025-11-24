@@ -189,6 +189,7 @@ const VehiclesPage: React.FC = () => {
         <Chip
           label={status || 'available'}
           size="small"
+          variant="outlined"
           className="!capitalize"
           color={status === 'available' ? 'success' : 'default'}
         />
@@ -202,7 +203,7 @@ const VehiclesPage: React.FC = () => {
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
-          className="w-26"
+          variant="outlined"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),

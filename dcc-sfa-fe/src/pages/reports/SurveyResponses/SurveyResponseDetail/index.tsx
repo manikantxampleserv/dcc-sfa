@@ -274,7 +274,7 @@ const SurveyResponseDetail: React.FC = () => {
     children: React.ReactNode;
     icon?: React.ElementType;
   }) => (
-    <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+    <div className="!bg-white mt-4 !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
       <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
@@ -295,7 +295,7 @@ const SurveyResponseDetail: React.FC = () => {
   return (
     <>
       <div className="flex items-start gap-4">
-        <div className="!flex-2 flex flex-col gap-4">
+        <div className="!flex-2 flex flex-col">
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
@@ -436,6 +436,7 @@ const SurveyResponseDetail: React.FC = () => {
                     </Typography>
                   </div>
                   <Chip
+                    variant="outlined"
                     label={response.is_active === 'Y' ? 'Active' : 'Inactive'}
                     color={response.is_active === 'Y' ? 'success' : 'error'}
                     size="small"
@@ -777,7 +778,7 @@ const SurveyResponseDetail: React.FC = () => {
                   </Typography>
                 </div>
 
-                <div className="!space-y-0.5">
+                <div className="!space-y-0.5 flex flex-col items-start">
                   <Typography
                     variant="caption"
                     className="!text-gray-500 !text-xs !uppercase !tracking-wide"
@@ -788,6 +789,7 @@ const SurveyResponseDetail: React.FC = () => {
                     label={customer.is_active === 'Y' ? 'Active' : 'Inactive'}
                     size="small"
                     color={customer.is_active === 'Y' ? 'success' : 'error'}
+                    variant="outlined"
                   />
                 </div>
               </div>

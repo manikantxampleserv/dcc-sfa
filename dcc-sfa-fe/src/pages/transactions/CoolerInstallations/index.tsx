@@ -247,6 +247,7 @@ const CoolerInstallationsManagement: React.FC = () => {
         <Chip
           label={row.status || 'Unknown'}
           size="small"
+          variant="outlined"
           color={getStatusColor(row.status)}
           className="!capitalize"
         />
@@ -312,6 +313,7 @@ const CoolerInstallationsManagement: React.FC = () => {
           icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
+          variant="outlined"
           color={row.is_active === 'Y' ? 'success' : 'error'}
         />
       ),

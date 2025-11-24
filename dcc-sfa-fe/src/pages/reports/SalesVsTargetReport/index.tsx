@@ -129,6 +129,7 @@ const SalesVsTargetReport: React.FC = () => {
           <Chip
             label={`${percentage.toFixed(1)}%`}
             size="small"
+            variant="outlined"
             color={chipColor}
           />
         );
@@ -191,6 +192,7 @@ const SalesVsTargetReport: React.FC = () => {
           <Chip
             label={`${percentage.toFixed(1)}%`}
             size="small"
+            variant="outlined"
             color={chipColor}
           />
         );
@@ -384,32 +386,34 @@ const SalesVsTargetReport: React.FC = () => {
       </div>
 
       {/* Performance by Salesperson Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">
-          Performance by Sales Person
-        </h2>
-        <Table
-          columns={performanceColumns}
-          data={performance}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        columns={performanceColumns}
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Users className="w-5 h-5" /> Performance by Sales Person (
+            {performance.length})
+          </Box>
+        }
+        data={performance}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
 
       {/* Category Performance Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">
-          Performance by Category
-        </h2>
-        <Table
-          columns={categoryColumns}
-          data={categoryPerformance}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <BarChart3 className="w-5 h-5" /> Performance by Category (
+            {categoryPerformance.length})
+          </Box>
+        }
+        columns={categoryColumns}
+        data={categoryPerformance}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
     </div>
   );
 };

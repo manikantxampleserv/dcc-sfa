@@ -1,4 +1,4 @@
-import { Chip, MenuItem, Skeleton } from '@mui/material';
+import { Chip, MenuItem, Skeleton, Tooltip, Typography } from '@mui/material';
 import { useAuditLogs } from 'hooks/useAuditLogs';
 import { usePermission } from 'hooks/usePermission';
 import { useUsers } from 'hooks/useUsers';
@@ -162,7 +162,12 @@ const ActivityLogs: React.FC = () => {
         return (
           <div className="flex items-center gap-2">
             {getActionIcon(value)}
-            <Chip label={value} size="small" color={getActionColor(value)} />
+            <Chip
+              label={value}
+              size="small"
+              color={getActionColor(value)}
+              variant="outlined"
+            />
           </div>
         );
       },
@@ -171,18 +176,22 @@ const ActivityLogs: React.FC = () => {
       id: 'ip_address',
       label: 'IP Address',
       render: value => (
-        <span className="text-sm text-gray-600 font-mono">
-          {value || 'N/A'}
-        </span>
+        <Tooltip title={value || 'N/A'} placement="top" arrow>
+          <span className="text-sm text-gray-600 font-mono">
+            {value || 'N/A'}
+          </span>
+        </Tooltip>
       ),
     },
     {
       id: 'device_info',
       label: 'Device',
       render: value => (
-        <span className="text-sm text-gray-600" title={value || ''}>
-          {value ? value.substring(0, 30) + '...' : 'N/A'}
-        </span>
+        <Tooltip title={value || 'N/A'} placement="top" arrow>
+          <Typography variant="body2" className="text-gray-600">
+            {value ? value.substring(0, 30) + '...' : 'N/A'}
+          </Typography>
+        </Tooltip>
       ),
     },
   ];

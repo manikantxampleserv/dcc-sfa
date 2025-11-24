@@ -133,6 +133,7 @@ const AttendanceReports: React.FC = () => {
             size="small"
             className="!capitalize !text-xs"
             color={chipColor}
+            variant="outlined"
           />
         );
       },

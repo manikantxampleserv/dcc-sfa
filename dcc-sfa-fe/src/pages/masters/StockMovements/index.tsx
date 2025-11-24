@@ -284,6 +284,7 @@ const StockMovementsManagement: React.FC = () => {
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
           className="w-20"
+          variant="outlined"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),

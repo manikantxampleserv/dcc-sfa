@@ -60,6 +60,8 @@ interface DrawerProps {
   size?: 'small' | 'medium' | 'large' | 'larger' | 'extra-large';
   /** Position where the drawer slides from (default: 'right') */
   anchor?: 'left' | 'right' | 'top' | 'bottom';
+  /** Whether the drawer is full width (default: false) */
+  fullWidth?: boolean;
 }
 
 /**
@@ -98,6 +100,7 @@ const Drawer: React.FC<DrawerProps> = ({
   width,
   size = 'medium',
   anchor = 'right',
+  fullWidth = false,
 }) => {
   const drawerWidth = getDrawerWidth(size, width);
 
@@ -112,7 +115,7 @@ const Drawer: React.FC<DrawerProps> = ({
       onClose={handleClose}
       slotProps={{
         paper: {
-          style: { width: drawerWidth },
+          style: { width: fullWidth ? '100%' : drawerWidth },
         },
       }}
     >

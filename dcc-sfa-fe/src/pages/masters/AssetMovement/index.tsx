@@ -187,6 +187,7 @@ const AssetMovementManagement: React.FC = () => {
       render: (_value, row) => (
         <Chip
           label={row.movement_type || 'Other'}
+          variant="outlined"
           color={getMovementTypeColor(row.movement_type || 'other')}
           size="small"
           className="!capitalize"
@@ -252,6 +253,7 @@ const AssetMovementManagement: React.FC = () => {
           icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
+          variant="outlined"
           color={row.is_active === 'Y' ? 'success' : 'error'}
         />
       ),

@@ -1,4 +1,4 @@
-import { Chip, MenuItem, Skeleton } from '@mui/material';
+import { Box, Chip, MenuItem, Skeleton } from '@mui/material';
 import { useDepots } from 'hooks/useDepots';
 import { useRouteEffectiveness } from 'hooks/useGPSTracking';
 import { useUsers } from 'hooks/useUsers';
@@ -137,7 +137,9 @@ const RouteEffectiveness: React.FC = () => {
           <Chip
             label={`${value}%`}
             size="small"
+            variant="outlined"
             color={rate >= 80 ? 'success' : rate >= 60 ? 'warning' : 'error'}
+            className="w-20"
           />
         );
       },
@@ -152,6 +154,7 @@ const RouteEffectiveness: React.FC = () => {
           <Chip
             label={`${value}%`}
             size="small"
+            variant="outlined"
             color={score >= 80 ? 'success' : score >= 60 ? 'warning' : 'error'}
           />
         );
@@ -305,18 +308,14 @@ const RouteEffectiveness: React.FC = () => {
       )}
 
       {/* Routes Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <MapPin className="w-5 h-5" />
-          Route Performance ({routes.length})
-        </h2>
-        <Table
-          columns={columns}
-          data={routes}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+
+      <Table
+        columns={columns}
+        actions={<Box>Route Performance ({routes.length})</Box>}
+        data={routes}
+        loading={isLoading}
+        pagination={false}
+      />
 
       {/* Route Details Cards */}
       {!isLoading && routes.length > 0 && (
@@ -343,6 +342,7 @@ const RouteEffectiveness: React.FC = () => {
                         : 'error'
                   }
                   size="small"
+                  variant="outlined"
                 />
               </div>
 

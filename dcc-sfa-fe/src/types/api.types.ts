@@ -218,6 +218,11 @@ export interface ApiResponse<T = any> {
     total_transfer_movements: number;
     // Survey response statistics
     records_this_month: number;
+    // KPI target statistics
+    total_targets: number;
+    active_targets: number;
+    inactive_targets: number;
+    targets_this_month: number;
   };
 }
 

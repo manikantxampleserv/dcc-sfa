@@ -239,6 +239,7 @@ const StockTransferRequestsManagement: React.FC = () => {
           label={getStatusLabel(row.status || 'pending')}
           size="small"
           className="w-24"
+          variant="outlined"
           color={getStatusColor(row.status || 'pending') as any}
         />
       ),
@@ -260,7 +261,7 @@ const StockTransferRequestsManagement: React.FC = () => {
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
-          className="w-20"
+          variant="outlined"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),

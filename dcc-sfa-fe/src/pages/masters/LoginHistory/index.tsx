@@ -30,7 +30,7 @@ const LoginHistoryPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission('login-history');
+  const { isDelete, isRead } = usePermission('login-history');
 
   const {
     data: loginHistoryResponse,
@@ -194,7 +194,7 @@ const LoginHistoryPage: React.FC = () => {
           icon={value === 'success' ? <CheckCircle /> : <Block />}
           label={value === 'success' ? 'Success' : 'Failed'}
           size="small"
-          className="w-26"
+          variant="outlined"
           color={value === 'success' ? 'success' : 'error'}
         />
       ),
@@ -215,7 +215,7 @@ const LoginHistoryPage: React.FC = () => {
             id: 'action',
             label: 'Action',
             sortable: false,
-            render: (_value, row) => (
+            render: (_value: any, row: LoginHistory) => (
               <div className="!flex !gap-2 !items-center">
                 {isDelete && (
                   <DeleteButton
@@ -365,7 +365,9 @@ const LoginHistoryPage: React.FC = () => {
                     startIcon={<Download />}
                     disabled={exportToExcelMutation.isPending}
                   >
-                    {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                    {exportToExcelMutation.isPending
+                      ? 'Exporting...'
+                      : 'Export'}
                   </Button>
                 </PopConfirm>
               </div>

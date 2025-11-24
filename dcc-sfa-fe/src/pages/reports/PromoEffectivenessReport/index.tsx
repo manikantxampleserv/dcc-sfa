@@ -148,6 +148,7 @@ const PromoEffectivenessReport: React.FC = () => {
             size="small"
             className="!capitalize"
             color={chipColor}
+            variant="outlined"
           />
         );
       },
@@ -380,46 +381,47 @@ const PromoEffectivenessReport: React.FC = () => {
       </div>
 
       {/* Promotions Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Tag className="w-5 h-5" />
-          Promotions ({reportData?.data?.promotions?.length || 0})
-        </h2>
-        <Table
-          columns={promotionsColumns}
-          data={reportData?.data?.promotions || []}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Tag className="w-5 h-5" />
+            Promotions ({reportData?.data?.promotions?.length || 0})
+          </Box>
+        }
+        columns={promotionsColumns}
+        data={reportData?.data?.promotions || []}
+        loading={isLoading}
+        pagination={false}
+      />
 
       {/* Promotion Products Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Package className="w-5 h-5" />
-          Promotion Products ({reportData?.data?.products?.length || 0})
-        </h2>
-        <Table
-          columns={productsColumns}
-          data={reportData?.data?.products || []}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Package className="w-5 h-5" /> Promotion Products (
+            {reportData?.data?.products?.length || 0})
+          </Box>
+        }
+        columns={productsColumns}
+        data={reportData?.data?.products || []}
+        loading={isLoading}
+        pagination={false}
+      />
 
       {/* Promotion Parameters Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Settings className="w-5 h-5" />
-          Promotion Parameters ({reportData?.data?.parameters?.length || 0})
-        </h2>
-        <Table
-          columns={parametersColumns}
-          data={reportData?.data?.parameters || []}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Settings className="w-5 h-5" /> Promotion Parameters (
+            {reportData?.data?.parameters?.length || 0})
+          </Box>
+        }
+        columns={parametersColumns}
+        data={reportData?.data?.parameters || []}
+        loading={isLoading}
+        pagination={false}
+      />
     </div>
   );
 };
