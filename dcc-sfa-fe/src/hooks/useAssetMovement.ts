@@ -7,6 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 import * as assetMovementService from '../services/masters/AssetMovement';
 
 export type {
@@ -35,7 +36,10 @@ export const assetMovementQueryKeys = {
  */
 export const useAssetMovements = (
   params?: assetMovementService.AssetMovementQueryParams,
-  options?: Omit<UseQueryOptions<any>, 'queryKey' | 'queryFn'>
+  options?: Omit<
+    UseQueryOptions<ApiResponse<assetMovementService.AssetMovement[]>>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery({
     queryKey: assetMovementQueryKeys.list(params),

@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   createCustomer,
   deleteCustomer,
@@ -19,6 +23,7 @@ import {
   type Customer,
   type CustomerDropdown,
 } from '../services/masters/Customers';
+import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
 
 // Query Keys
@@ -34,11 +39,18 @@ export const customerKeys = {
 /**
  * Hook to fetch customers with pagination and filters
  */
-export const useCustomers = (params?: GetCustomersParams) => {
+export const useCustomers = (
+  params?: GetCustomersParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<Customer[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
   return useQuery({
     queryKey: customerKeys.list(params || {}),
     queryFn: () => fetchCustomers(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

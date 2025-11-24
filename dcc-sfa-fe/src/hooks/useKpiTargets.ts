@@ -7,6 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 import * as kpiTargetsService from '../services/masters/KpiTargets';
 
 export type {
@@ -35,7 +36,10 @@ export const kpiTargetsQueryKeys = {
  */
 export const useKpiTargets = (
   params?: kpiTargetsService.GetKpiTargetsParams,
-  options?: Omit<UseQueryOptions<any>, 'queryKey' | 'queryFn'>
+  options?: Omit<
+    UseQueryOptions<ApiResponse<kpiTargetsService.KpiTarget[]>>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery({
     queryKey: kpiTargetsQueryKeys.list(params),

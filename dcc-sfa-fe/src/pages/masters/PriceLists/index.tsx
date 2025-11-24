@@ -1,6 +1,7 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import {
   useDeletePriceList,
   usePriceLists,
@@ -28,17 +29,23 @@ const PriceListsManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('pricelist');
 
   const {
     data: priceListsResponse,
     isLoading,
     error,
-  } = usePriceLists({
-    search,
-    page,
-    limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-  });
+  } = usePriceLists(
+    {
+      search,
+      page,
+      limit,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const priceLists = priceListsResponse?.data || [];
   const totalCount = priceListsResponse?.meta?.total_count || 0;
@@ -204,25 +211,33 @@ const PriceListsManagement: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditPriceList(row)}
-            tooltip={`Edit ${row.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeletePriceList(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: PriceList) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditPriceList(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeletePriceList(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -320,63 +335,79 @@ const PriceListsManagement: React.FC = () => {
         data={priceLists}
         columns={priceListsColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchInput
-                placeholder="Search Price Lists..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-32"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Price Lists..."
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      className="!w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!w-32"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Price Lists"
+                    description="Are you sure you want to export the current price lists data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreatePriceList}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Price Lists"
-                description="Are you sure you want to export the current price lists data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreatePriceList}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={priceList => priceList.id}
         initialOrderBy="name"
@@ -384,6 +415,7 @@ const PriceListsManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

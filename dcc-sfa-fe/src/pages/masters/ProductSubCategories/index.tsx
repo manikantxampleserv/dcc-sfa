@@ -22,6 +22,7 @@ import {
   type ProductSubCategory,
 } from '../../../hooks/useProductSubCategories';
 import { useExportToExcel } from '../../../hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { formatDate } from '../../../utils/dateUtils';
 import ImportProductSubCategory from './ImportProductSubCategory';
 import ManageProductSubCategory from './ManageProductSubCategory';
@@ -35,22 +36,30 @@ const ProductSubCategoriesPage: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission(
+    'product-sub-category'
+  );
 
   const {
     data: productSubCategoriesResponse,
     isLoading,
     error,
-  } = useProductSubCategories({
-    search,
-    page,
-    limit,
-    is_active:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-  });
+  } = useProductSubCategories(
+    {
+      search,
+      page,
+      limit,
+      is_active:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const productSubCategories = productSubCategoriesResponse?.data || [];
   const totalCount = productSubCategoriesResponse?.meta?.total_count || 0;
@@ -198,25 +207,33 @@ const ProductSubCategoriesPage: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditProductSubCategory(row)}
-            tooltip={`Edit ${row.sub_category_name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteProductSubCategory(row.id)}
-            tooltip={`Delete ${row.sub_category_name}`}
-            itemName={row.sub_category_name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: ProductSubCategory) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditProductSubCategory(row)}
+                    tooltip={`Edit ${row.sub_category_name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteProductSubCategory(row.id)}
+                    tooltip={`Delete ${row.sub_category_name}`}
+                    itemName={row.sub_category_name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -322,63 +339,79 @@ const ProductSubCategoriesPage: React.FC = () => {
         data={productSubCategories}
         columns={productSubCategoryColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchInput
-                placeholder="Search Product Sub Categories..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-32"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Product Sub Categories..."
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      className="!w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!w-32"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Product Sub Categories"
+                    description="Are you sure you want to export the current product sub categories data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateProductSubCategory}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Product Sub Categories"
-                description="Are you sure you want to export the current product sub categories data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateProductSubCategory}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={productSubCategory => productSubCategory.id}
         initialOrderBy="sub_category_name"
@@ -386,6 +419,7 @@ const ProductSubCategoriesPage: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

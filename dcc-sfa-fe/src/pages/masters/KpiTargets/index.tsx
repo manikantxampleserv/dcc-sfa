@@ -6,6 +6,7 @@ import {
   useKpiTargets,
   type KpiTarget,
 } from 'hooks/useKpiTargets';
+import { usePermission } from 'hooks/usePermission';
 import { Target, User, Calendar, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -29,16 +30,23 @@ const KpiTargetsManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('kpi-target');
+
   const {
     data: kpiTargetsResponse,
     isLoading,
     error,
-  } = useKpiTargets({
-    search,
-    page,
-    limit,
-    is_active: statusFilter === 'all' ? undefined : statusFilter,
-  });
+  } = useKpiTargets(
+    {
+      search,
+      page,
+      limit,
+      is_active: statusFilter === 'all' ? undefined : statusFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const kpiTargets = kpiTargetsResponse?.data || [];
   const totalCount = kpiTargetsResponse?.meta?.total_count || 0;
@@ -185,25 +193,33 @@ const KpiTargetsManagement: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditKpiTarget(row)}
-            tooltip={`Edit ${row.kpi_name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteKpiTarget(row.id)}
-            tooltip={`Delete ${row.kpi_name}`}
-            itemName={row.kpi_name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: KpiTarget) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditKpiTarget(row)}
+                    tooltip={`Edit ${row.kpi_name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteKpiTarget(row.id)}
+                    tooltip={`Delete ${row.kpi_name}`}
+                    itemName={row.kpi_name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -305,63 +321,77 @@ const KpiTargetsManagement: React.FC = () => {
         data={kpiTargets}
         columns={kpiTargetsColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchInput
-                placeholder="Search KPI Targets..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-32"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="Y">Active</MenuItem>
-                <MenuItem value="N">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              {isRead && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <SearchInput
+                    placeholder="Search KPI Targets..."
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    className="!w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="!w-32"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="Y">Active</MenuItem>
+                    <MenuItem value="N">Inactive</MenuItem>
+                  </Select>
+                </div>
+              )}
+              <div className="flex gap-2 items-center">
+                {isRead && (
+                  <PopConfirm
+                    title="Export KPI Targets"
+                    description="Are you sure you want to export the current KPI targets data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateKpiTarget}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex gap-2 items-center">
-              <PopConfirm
-                title="Export KPI Targets"
-                description="Are you sure you want to export the current KPI targets data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateKpiTarget}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={kpiTarget => kpiTarget.id}
         initialOrderBy="kpi_name"
@@ -370,6 +400,7 @@ const KpiTargetsManagement: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No KPI targets found matching "${search}"`

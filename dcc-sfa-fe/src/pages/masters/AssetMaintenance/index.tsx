@@ -14,6 +14,7 @@ import {
   type AssetMaintenance,
 } from 'hooks/useAssetMaintenance';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { Calendar, DollarSign, FileText, Package, Wrench } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -36,16 +37,23 @@ const AssetMaintenanceManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('maintenance');
+
   const {
     data: assetMaintenanceResponse,
     isLoading,
     error,
-  } = useAssetMaintenances({
-    search,
-    page,
-    limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-  });
+  } = useAssetMaintenances(
+    {
+      search,
+      page,
+      limit,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const assetMaintenances = assetMaintenanceResponse?.data || [];
   const totalCount = assetMaintenanceResponse?.meta?.total_count || 0;
@@ -54,13 +62,12 @@ const AssetMaintenanceManagement: React.FC = () => {
   const deleteAssetMaintenanceMutation = useDeleteAssetMaintenance();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalMaintenances = assetMaintenanceResponse?.stats?.total_records ?? 0;
-  const activeMaintenances =
-    assetMaintenanceResponse?.stats?.active_records ?? 0;
-  const inactiveMaintenances =
-    assetMaintenanceResponse?.stats?.inactive_records ?? 0;
+  const stats = (assetMaintenanceResponse?.stats as any) || {};
+  const totalMaintenances = stats.total_records ?? 0;
+  const activeMaintenances = stats.active_records ?? 0;
+  const inactiveMaintenances = stats.inactive_records ?? 0;
   const maintenancesThisMonth =
-    assetMaintenanceResponse?.stats?.this_month_records ?? 0;
+    stats.this_month_records ?? stats.records_this_month ?? 0;
 
   const handleCreateMaintenance = useCallback(() => {
     setSelectedMaintenance(null);
@@ -235,25 +242,33 @@ const AssetMaintenanceManagement: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditMaintenance(row)}
-            tooltip={`Edit Maintenance #${row.id}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteMaintenance(row.id)}
-            tooltip={`Delete Maintenance #${row.id}`}
-            itemName={`Maintenance #${row.id}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: AssetMaintenance) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditMaintenance(row)}
+                    tooltip={`Edit Maintenance #${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteMaintenance(row.id)}
+                    tooltip={`Delete Maintenance #${row.id}`}
+                    itemName={`Maintenance #${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -355,63 +370,77 @@ const AssetMaintenanceManagement: React.FC = () => {
         data={assetMaintenances}
         columns={assetMaintenanceColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchInput
-                placeholder="Search Maintenance Records..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-32"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              {isRead && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <SearchInput
+                    placeholder="Search Maintenance Records..."
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    className="!w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="!w-32"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Asset Maintenance"
+                    description="Are you sure you want to export the current asset maintenance data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateMaintenance}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Asset Maintenance"
-                description="Are you sure you want to export the current asset maintenance data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateMaintenance}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={maintenance => maintenance.id}
         initialOrderBy="maintenance_date"
@@ -420,6 +449,7 @@ const AssetMaintenanceManagement: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No asset maintenance records found matching "${search}"`

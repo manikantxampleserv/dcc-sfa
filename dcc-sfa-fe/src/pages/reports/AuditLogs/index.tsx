@@ -1,5 +1,6 @@
 import { Chip, MenuItem, Skeleton } from '@mui/material';
 import { useAuditLogs } from 'hooks/useAuditLogs';
+import { usePermission } from 'hooks/usePermission';
 import { useUsers } from 'hooks/useUsers';
 import {
   AlertCircle,
@@ -23,15 +24,21 @@ const ActivityLogs: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [action, setAction] = useState('all');
   const [userId, setUserId] = useState<string>('all');
+  const { isRead } = usePermission('report');
 
-  const { data: auditData, isLoading } = useAuditLogs({
-    page,
-    limit: pageSize,
-    start_date: startDate === '' ? undefined : startDate,
-    end_date: endDate === '' ? undefined : endDate,
-    action: action === 'all' ? undefined : (action as any),
-    user_id: userId === 'all' ? undefined : parseInt(userId as string),
-  });
+  const { data: auditData, isLoading } = useAuditLogs(
+    {
+      page,
+      limit: pageSize,
+      start_date: startDate === '' ? undefined : startDate,
+      end_date: endDate === '' ? undefined : endDate,
+      action: action === 'all' ? undefined : (action as any),
+      user_id: userId === 'all' ? undefined : parseInt(userId as string),
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: usersData } = useUsers();
   const users = usersData?.data || [];
@@ -192,52 +199,53 @@ const ActivityLogs: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <div>
-            <Input
-              type="date"
-              value={startDate}
-              setValue={setStartDate}
-              placeholder="Start Date"
-              label="Start Date"
-            />
-          </div>
-          <div>
-            <Input
-              type="date"
-              value={endDate}
-              setValue={setEndDate}
-              placeholder="End Date"
-              label="End Date"
-            />
-          </div>
+      {isRead && (
+        <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <div>
+              <Input
+                type="date"
+                value={startDate}
+                setValue={setStartDate}
+                placeholder="Start Date"
+                label="Start Date"
+              />
+            </div>
+            <div>
+              <Input
+                type="date"
+                value={endDate}
+                setValue={setEndDate}
+                placeholder="End Date"
+                label="End Date"
+              />
+            </div>
 
-          <Select
-            label="Action"
-            value={action}
-            onChange={e => setAction(e.target.value)}
-          >
-            <MenuItem value="all">All Actions</MenuItem>
-            <MenuItem value="CREATE">Create</MenuItem>
-            <MenuItem value="UPDATE">Update</MenuItem>
-            <MenuItem value="DELETE">Delete</MenuItem>
-          </Select>
-          <Select
-            label="User"
-            value={userId || 'all'}
-            onChange={e => setUserId(e.target.value ? e.target.value : 'all')}
-          >
-            <MenuItem value="all">All Users</MenuItem>
-            {users.map((user: any) => (
-              <MenuItem key={user.id} value={user.id.toString()}>
-                {user.name}
-              </MenuItem>
-            ))}
-          </Select>
+            <Select
+              label="Action"
+              value={action}
+              onChange={e => setAction(e.target.value)}
+            >
+              <MenuItem value="all">All Actions</MenuItem>
+              <MenuItem value="CREATE">Create</MenuItem>
+              <MenuItem value="UPDATE">Update</MenuItem>
+              <MenuItem value="DELETE">Delete</MenuItem>
+            </Select>
+            <Select
+              label="User"
+              value={userId || 'all'}
+              onChange={e => setUserId(e.target.value ? e.target.value : 'all')}
+            >
+              <MenuItem value="all">All Users</MenuItem>
+              {users.map((user: any) => (
+                <MenuItem key={user.id} value={user.id.toString()}>
+                  {user.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Summary Stats */}
       {isLoading ? (
@@ -313,6 +321,7 @@ const ActivityLogs: React.FC = () => {
         rowsPerPage={pageSize}
         totalCount={pagination.total}
         onPageChange={(newPage: number) => setPage(newPage + 1)}
+        isPermission={isRead}
       />
 
       {logs.length === 0 && !isLoading && (

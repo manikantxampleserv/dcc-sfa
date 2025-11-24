@@ -14,6 +14,7 @@ import {
   useDeleteApiToken,
   useRevokeApiToken,
 } from '../../../hooks/useApiTokens';
+import { usePermission } from '../../../hooks/usePermission';
 import type { ApiToken } from '../../../services/masters/ApiTokens';
 import { formatDate } from '../../../utils/dateUtils';
 
@@ -23,28 +24,34 @@ const ApiTokensPage: React.FC = () => {
   const [revokedFilter, setRevokedFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isUpdate, isDelete, isRead } = usePermission('token');
 
   const {
     data: tokensResponse,
     isLoading,
     error,
-  } = useApiTokens({
-    search,
-    page,
-    limit,
-    isActive:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-    isRevoked:
-      revokedFilter === 'all'
-        ? undefined
-        : revokedFilter === 'revoked'
-          ? 'true'
-          : 'false',
-  });
+  } = useApiTokens(
+    {
+      search,
+      page,
+      limit,
+      isActive:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+      isRevoked:
+        revokedFilter === 'all'
+          ? undefined
+          : revokedFilter === 'revoked'
+            ? 'true'
+            : 'false',
+    },
+    {
+      enabled: isRead,
+    }
+  );
   const tokens = tokensResponse?.data || [];
   const totalCount = tokensResponse?.meta?.total_count || 0;
   const currentPage = (tokensResponse?.meta?.current_page || 1) - 1;
@@ -53,16 +60,16 @@ const ApiTokensPage: React.FC = () => {
   const activateTokenMutation = useActivateApiToken();
   const deactivateTokenMutation = useDeactivateApiToken();
   const deleteTokenMutation = useDeleteApiToken();
+  const stats = (tokensResponse?.stats as any) || {};
 
-  const totalTokens = tokensResponse?.stats?.total_tokens ?? tokens.length;
+  const totalTokens = stats.total_tokens ?? tokens.length;
   const activeTokens =
-    tokensResponse?.stats?.active_tokens ??
+    stats.active_tokens ??
     tokens.filter(token => token.is_active === 'Y').length;
   const revokedTokens =
-    tokensResponse?.stats?.revoked_tokens ??
-    tokens.filter(token => token.is_revoked).length;
+    stats.revoked_tokens ?? tokens.filter(token => token.is_revoked).length;
   const expiredTokens =
-    tokensResponse?.stats?.expired_tokens ??
+    stats.expired_tokens ??
     tokens.filter(
       token => token.expires_at && new Date(token.expires_at) < new Date()
     ).length;
@@ -248,76 +255,82 @@ const ApiTokensPage: React.FC = () => {
           <span className="italic text-gray-400">No Expiry</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => {
-        const isRevoked = row.is_revoked;
-        const isActive = row.is_active === 'Y';
-        const isExpired =
-          row.expires_at && new Date(row.expires_at) < new Date();
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: ApiToken) => {
+              const isRevoked = row.is_revoked;
+              const isActive = row.is_active === 'Y';
+              const isExpired =
+                row.expires_at && new Date(row.expires_at) < new Date();
 
-        return (
-          <div className="!flex !gap-2 !items-center">
-            {!isRevoked && !isExpired && (
-              <>
-                {isActive ? (
-                  <PopConfirm
-                    title="Deactivate Token"
-                    description="Are you sure you want to deactivate this token?"
-                    confirmText="Deactivate"
-                    onConfirm={() => handleDeactivateToken(row.id)}
-                  >
-                    <ActionButton
-                      tooltip="Deactivate Token"
-                      disabled={deactivateTokenMutation.isPending}
-                      icon={<Stop />}
-                      color="warning"
+              return (
+                <div className="!flex !gap-2 !items-center">
+                  {isUpdate && !isRevoked && !isExpired && (
+                    <>
+                      {isActive ? (
+                        <PopConfirm
+                          title="Deactivate Token"
+                          description="Are you sure you want to deactivate this token?"
+                          confirmText="Deactivate"
+                          onConfirm={() => handleDeactivateToken(row.id)}
+                        >
+                          <ActionButton
+                            tooltip="Deactivate Token"
+                            disabled={deactivateTokenMutation.isPending}
+                            icon={<Stop />}
+                            color="warning"
+                          />
+                        </PopConfirm>
+                      ) : (
+                        <PopConfirm
+                          title="Activate Token"
+                          description="Are you sure you want to activate this token?"
+                          confirmText="Activate"
+                          onConfirm={() => handleActivateToken(row.id)}
+                        >
+                          <ActionButton
+                            tooltip="Activate Token"
+                            disabled={activateTokenMutation.isPending}
+                            icon={<PlayArrow />}
+                            color="success"
+                          />
+                        </PopConfirm>
+                      )}
+
+                      <PopConfirm
+                        title="Revoke Token"
+                        description="Are you sure you want to revoke this token? It will no longer be usable."
+                        confirmText="Revoke"
+                        onConfirm={() => handleRevokeToken(row.id)}
+                      >
+                        <ActionButton
+                          tooltip="Revoke Token"
+                          disabled={revokeTokenMutation.isPending}
+                          icon={<Block />}
+                          color="error"
+                        />
+                      </PopConfirm>
+                    </>
+                  )}
+
+                  {isDelete && (
+                    <DeleteButton
+                      onClick={() => handleDeleteToken(row.id)}
+                      tooltip={`Delete Token #${row.id}`}
+                      itemName={`Token #${row.id}`}
+                      confirmDelete={true}
                     />
-                  </PopConfirm>
-                ) : (
-                  <PopConfirm
-                    title="Activate Token"
-                    description="Are you sure you want to activate this token?"
-                    confirmText="Activate"
-                    onConfirm={() => handleActivateToken(row.id)}
-                  >
-                    <ActionButton
-                      tooltip="Activate Token"
-                      disabled={activateTokenMutation.isPending}
-                      icon={<PlayArrow />}
-                      color="success"
-                    />
-                  </PopConfirm>
-                )}
-
-                <PopConfirm
-                  title="Revoke Token"
-                  description="Are you sure you want to revoke this token? It will no longer be usable."
-                  confirmText="Revoke"
-                  onConfirm={() => handleRevokeToken(row.id)}
-                >
-                  <ActionButton
-                    tooltip="Revoke Token"
-                    disabled={revokeTokenMutation.isPending}
-                    icon={<Block />}
-                    color="error"
-                  />
-                </PopConfirm>
-              </>
-            )}
-
-            <DeleteButton
-              onClick={() => handleDeleteToken(row.id)}
-              tooltip={`Delete Token #${row.id}`}
-              itemName={`Token #${row.id}`}
-              confirmDelete={true}
-            />
-          </div>
-        );
-      },
-    },
+                  )}
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -421,36 +434,40 @@ const ApiTokensPage: React.FC = () => {
         data={tokens}
         columns={tokenColumns}
         actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap items-center gap-3">
-              <SearchInput
-                placeholder="Search API Tokens..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={revokedFilter}
-                onChange={e => setRevokedFilter(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Revoked</MenuItem>
-                <MenuItem value="revoked">Revoked</MenuItem>
-                <MenuItem value="not-revoked">Not Revoked</MenuItem>
-              </Select>
+          isRead ? (
+            <div className="flex justify-between gap-3 items-center flex-wrap">
+              <div className="flex flex-wrap items-center gap-3">
+                <SearchInput
+                  placeholder="Search API Tokens..."
+                  value={search}
+                  onChange={handleSearchChange}
+                  debounceMs={400}
+                  showClear={true}
+                  className="!w-80"
+                />
+                <Select
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
+                  className="!w-40"
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                </Select>
+                <Select
+                  value={revokedFilter}
+                  onChange={e => setRevokedFilter(e.target.value)}
+                  className="!w-40"
+                >
+                  <MenuItem value="all">All Revoked</MenuItem>
+                  <MenuItem value="revoked">Revoked</MenuItem>
+                  <MenuItem value="not-revoked">Not Revoked</MenuItem>
+                </Select>
+              </div>
             </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={token => token.id}
         initialOrderBy="id"
@@ -459,6 +476,7 @@ const ApiTokensPage: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No API tokens found matching "${search}"`

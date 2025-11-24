@@ -1,6 +1,7 @@
 import { Box, Chip, MenuItem } from '@mui/material';
-import { useOutstandingCollectionReport } from 'hooks/useReports';
 import { useCustomers } from 'hooks/useCustomers';
+import { usePermission } from 'hooks/usePermission';
+import { useOutstandingCollectionReport } from 'hooks/useReports';
 import {
   Download,
   Receipt,
@@ -25,13 +26,19 @@ const OutstandingCollectionReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [invoiceStatus, setInvoiceStatus] = useState<string>('all');
+  const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useOutstandingCollectionReport({
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    customer_id: customerId,
-    invoice_status: invoiceStatus !== 'all' ? invoiceStatus : undefined,
-  });
+  const { data: reportData, isLoading } = useOutstandingCollectionReport(
+    {
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      customer_id: customerId,
+      invoice_status: invoiceStatus !== 'all' ? invoiceStatus : undefined,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: customersData } = useCustomers();
 

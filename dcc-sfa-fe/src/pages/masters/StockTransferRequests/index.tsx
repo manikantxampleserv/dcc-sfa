@@ -6,6 +6,7 @@ import {
   useStockTransferRequests,
   type StockTransferRequest,
 } from 'hooks/useStockTransferRequests';
+import { usePermission } from 'hooks/usePermission';
 import { TrendingUp, Truck, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -28,21 +29,29 @@ const StockTransferRequestsManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('stock-transfer');
+
   const {
     data: requestsResponse,
     isLoading,
     error,
-  } = useStockTransferRequests({
-    search,
-    page,
-    limit,
-    status:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'active'
-          : 'inactive',
-  });
+  } = useStockTransferRequests(
+    {
+      search,
+      page,
+      limit,
+      status:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'active'
+            : 'inactive',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const requests = requestsResponse?.data || [];
   const totalCount = requestsResponse?.meta?.total || 0;
@@ -264,25 +273,33 @@ const StockTransferRequestsManagement: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditRequest(row)}
-            tooltip={`Edit ${row.request_number}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteRequest(row.id)}
-            tooltip={`Delete ${row.request_number}`}
-            itemName={row.request_number}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: StockTransferRequest) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditRequest(row)}
+                    tooltip={`Edit ${row.request_number}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteRequest(row.id)}
+                    tooltip={`Delete ${row.request_number}`}
+                    itemName={row.request_number}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -386,65 +403,79 @@ const StockTransferRequestsManagement: React.FC = () => {
         data={requests}
         columns={requestColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Stock Transfer Requests"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              {isRead && (
+                <div className="flex items-center flex-wrap gap-2">
+                  <SearchInput
+                    placeholder="Search Stock Transfer Requests"
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    fullWidth={false}
+                    className="!min-w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="!min-w-32"
+                    size="small"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </div>
+              )}
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Stock Transfer Requests"
+                    description="Are you sure you want to export the current stock transfer requests data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateRequest}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center flex-wrap gap-2">
-              <PopConfirm
-                title="Export Stock Transfer Requests"
-                description="Are you sure you want to export the current stock transfer requests data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateRequest}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={request => request.id}
         initialOrderBy="request_number"
@@ -453,6 +484,7 @@ const StockTransferRequestsManagement: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No stock transfer requests found matching "${search}"`

@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   createOutletGroup,
   deleteOutletGroup,
@@ -17,6 +21,7 @@ import {
   type UpdateOutletGroupPayload,
   type OutletGroup,
 } from '../services/masters/OutletGroups';
+import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
 
 // Query Keys
@@ -32,11 +37,18 @@ export const outletGroupKeys = {
 /**
  * Hook to fetch outlet groups with pagination and filters
  */
-export const useOutletGroups = (params?: GetOutletGroupsParams) => {
+export const useOutletGroups = (
+  params?: GetOutletGroupsParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<OutletGroup[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
   return useQuery({
     queryKey: outletGroupKeys.list(params || {}),
     queryFn: () => fetchOutletGroups(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 
@@ -65,7 +77,6 @@ export const useCreateOutletGroup = (options?: {
     mutationFn: createOutletGroup,
     loadingMessage: 'Creating outlet group...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch outlet groups list
       queryClient.invalidateQueries({ queryKey: outletGroupKeys.lists() });
       options?.onSuccess?.(data, variables);
     },
@@ -96,7 +107,6 @@ export const useUpdateOutletGroup = (options?: {
       updateOutletGroup(id, outletGroupData),
     loadingMessage: 'Updating outlet group...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch outlet groups list and specific outlet group
       queryClient.invalidateQueries({ queryKey: outletGroupKeys.lists() });
       queryClient.invalidateQueries({
         queryKey: outletGroupKeys.detail(variables.id),
@@ -120,7 +130,6 @@ export const useDeleteOutletGroup = (options?: {
     mutationFn: deleteOutletGroup,
     loadingMessage: 'Deleting outlet group...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch outlet groups list
       queryClient.invalidateQueries({ queryKey: outletGroupKeys.lists() });
       options?.onSuccess?.(data, variables);
     },

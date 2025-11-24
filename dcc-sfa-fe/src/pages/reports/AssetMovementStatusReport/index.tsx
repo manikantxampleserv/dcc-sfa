@@ -1,6 +1,7 @@
 import { Box, Chip, MenuItem } from '@mui/material';
 import { useAssetTypes } from 'hooks/useAssetTypes';
 import { useCustomers } from 'hooks/useCustomers';
+import { usePermission } from 'hooks/usePermission';
 import { useAssetMovementStatusReport } from 'hooks/useReports';
 import { Download, FileText, Move, Package, Users } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
@@ -18,15 +19,20 @@ const AssetMovementStatusReport: React.FC = () => {
   const [assetTypeId, setAssetTypeId] = useState<number | undefined>(undefined);
   const [assetStatus, setAssetStatus] = useState('all');
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
+  const { isRead } = usePermission('report');
 
-  // Fetch data
-  const { data: reportData, isLoading } = useAssetMovementStatusReport({
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    asset_type_id: assetTypeId,
-    asset_status: assetStatus === 'all' ? undefined : assetStatus,
-    customer_id: customerId,
-  });
+  const { data: reportData, isLoading } = useAssetMovementStatusReport(
+    {
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      asset_type_id: assetTypeId,
+      asset_status: assetStatus === 'all' ? undefined : assetStatus,
+      customer_id: customerId,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: assetTypesData } = useAssetTypes();
   const { data: customersData } = useCustomers();
@@ -325,87 +331,90 @@ const AssetMovementStatusReport: React.FC = () => {
             Track asset movements, status, and warranty claims
           </p>
         </Box>
-        <PopConfirm
-          title="Export Report to Excel"
-          description="Are you sure you want to export the current report data to Excel?"
-          onConfirm={handleExportToExcel}
-          confirmText="Export"
-          cancelText="Cancel"
-          placement="bottom"
-        >
-          <Button
-            startIcon={<Download className="w-4 h-4" />}
-            variant="outlined"
+        {isRead && (
+          <PopConfirm
+            title="Export Report to Excel"
+            description="Are you sure you want to export the current report data to Excel?"
+            onConfirm={handleExportToExcel}
+            confirmText="Export"
+            cancelText="Cancel"
+            placement="bottom"
           >
-            Export to Excel
-          </Button>
-        </PopConfirm>
+            <Button
+              startIcon={<Download className="w-4 h-4" />}
+              variant="outlined"
+            >
+              Export to Excel
+            </Button>
+          </PopConfirm>
+        )}
       </Box>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Input
-            type="date"
-            label="Start Date"
-            value={startDate}
-            setValue={setStartDate}
-          />
-          <Input
-            type="date"
-            label="End Date"
-            value={endDate}
-            setValue={setEndDate}
-          />
-          <Select
-            label="Asset Type"
-            value={assetTypeId?.toString() || 'all'}
-            onChange={e =>
-              setAssetTypeId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
-            }
-          >
-            <MenuItem value="all">All Asset Types</MenuItem>
-            {assetTypes.map((type: any) => (
-              <MenuItem key={type.id} value={type.id.toString()}>
-                {type.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            label="Status"
-            value={assetStatus}
-            onChange={e => setAssetStatus(e.target.value)}
-          >
-            <MenuItem value="all">All Status</MenuItem>
-            <MenuItem value="working">Working</MenuItem>
-            <MenuItem value="maintenance">Maintenance</MenuItem>
-            <MenuItem value="retired">Retired</MenuItem>
-            <MenuItem value="available">Available</MenuItem>
-          </Select>
-          <Select
-            label="Customer"
-            value={customerId?.toString() || 'all'}
-            onChange={e =>
-              setCustomerId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
-            }
-          >
-            <MenuItem value="all">All Customers</MenuItem>
-            {customers.map((customer: any) => (
-              <MenuItem key={customer.id} value={customer.id.toString()}>
-                {customer.name} ({customer.code})
-              </MenuItem>
-            ))}
-          </Select>
+      {isRead && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <Input
+              type="date"
+              label="Start Date"
+              value={startDate}
+              setValue={setStartDate}
+            />
+            <Input
+              type="date"
+              label="End Date"
+              value={endDate}
+              setValue={setEndDate}
+            />
+            <Select
+              label="Asset Type"
+              value={assetTypeId?.toString() || 'all'}
+              onChange={e =>
+                setAssetTypeId(
+                  e.target.value && e.target.value !== 'all'
+                    ? parseInt(e.target.value)
+                    : undefined
+                )
+              }
+            >
+              <MenuItem value="all">All Asset Types</MenuItem>
+              {assetTypes.map((type: any) => (
+                <MenuItem key={type.id} value={type.id.toString()}>
+                  {type.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <Select
+              label="Status"
+              value={assetStatus}
+              onChange={e => setAssetStatus(e.target.value)}
+            >
+              <MenuItem value="all">All Status</MenuItem>
+              <MenuItem value="working">Working</MenuItem>
+              <MenuItem value="maintenance">Maintenance</MenuItem>
+              <MenuItem value="retired">Retired</MenuItem>
+              <MenuItem value="available">Available</MenuItem>
+            </Select>
+            <Select
+              label="Customer"
+              value={customerId?.toString() || 'all'}
+              onChange={e =>
+                setCustomerId(
+                  e.target.value && e.target.value !== 'all'
+                    ? parseInt(e.target.value)
+                    : undefined
+                )
+              }
+            >
+              <MenuItem value="all">All Customers</MenuItem>
+              {customers.map((customer: any) => (
+                <MenuItem key={customer.id} value={customer.id.toString()}>
+                  {customer.name} ({customer.code})
+                </MenuItem>
+              ))}
+            </Select>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
@@ -481,6 +490,7 @@ const AssetMovementStatusReport: React.FC = () => {
           data={reportData?.data?.assets || []}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
 
@@ -495,6 +505,7 @@ const AssetMovementStatusReport: React.FC = () => {
           data={reportData?.data?.movements || []}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
 
@@ -509,6 +520,7 @@ const AssetMovementStatusReport: React.FC = () => {
           data={reportData?.data?.customer_assets || []}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
 
@@ -523,6 +535,7 @@ const AssetMovementStatusReport: React.FC = () => {
           data={reportData?.data?.warranty_claims || []}
           loading={isLoading}
           pagination={false}
+          isPermission={isRead}
         />
       </div>
     </div>

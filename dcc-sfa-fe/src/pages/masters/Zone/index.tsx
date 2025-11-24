@@ -2,6 +2,7 @@ import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { Building2, MapPin, User, UserCheck, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
+import { usePermission } from 'hooks/usePermission';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
@@ -25,23 +26,29 @@ const ZonesManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('zone');
 
   const {
     data: zonesResponse,
     isLoading,
     error,
-  } = useZones({
-    search,
-    page,
-    limit,
-    isActive:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-    parent_id: depotFilter === 'all' ? undefined : Number(depotFilter),
-  });
+  } = useZones(
+    {
+      search,
+      page,
+      limit,
+      isActive:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+      parent_id: depotFilter === 'all' ? undefined : Number(depotFilter),
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: depotsResponse } = useDepots({
     page: 1,
@@ -212,25 +219,33 @@ const ZonesManagement: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditZone(row)}
-            tooltip={`Edit ${row.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteZone(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Zone) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditZone(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteZone(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -329,78 +344,94 @@ const ZonesManagement: React.FC = () => {
         data={zones}
         columns={zoneColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Zones"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={depotFilter}
-                onChange={e => setDepotFilter(e.target.value)}
-                className="!min-w-60"
-                size="small"
-              >
-                <MenuItem value="all">All Depots</MenuItem>
-                {depots.map(depot => (
-                  <MenuItem key={depot.id} value={depot.id.toString()}>
-                    {depot.name}
-                  </MenuItem>
-                ))}
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Zones"
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      fullWidth={false}
+                      className="!min-w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!min-w-32"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={depotFilter}
+                      onChange={e => setDepotFilter(e.target.value)}
+                      className="!min-w-60"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Depots</MenuItem>
+                      {depots.map(depot => (
+                        <MenuItem key={depot.id} value={depot.id.toString()}>
+                          {depot.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Zones"
+                    description="Are you sure you want to export the current zones data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateZone}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Zones"
-                description="Are you sure you want to export the current zones data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateZone}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={zone => zone.id}
         initialOrderBy="name"
@@ -408,6 +439,7 @@ const ZonesManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

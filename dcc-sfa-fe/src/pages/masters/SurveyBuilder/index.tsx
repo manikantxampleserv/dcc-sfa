@@ -11,6 +11,7 @@ import {
 } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { useDeleteSurvey, useSurveys, type Survey } from 'hooks/useSurveys';
 import { BarChart3, FileText, Users } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
@@ -36,17 +37,24 @@ const SurveyBuilder: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('survey');
+
   const {
     data: surveysResponse,
     isLoading,
     error,
-  } = useSurveys({
-    search,
-    page,
-    limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-    category: categoryFilter === 'all' ? undefined : categoryFilter,
-  });
+  } = useSurveys(
+    {
+      search,
+      page,
+      limit,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      category: categoryFilter === 'all' ? undefined : categoryFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const surveys = surveysResponse?.data || [];
   const totalCount = surveysResponse?.meta?.total_count || 0;
@@ -261,31 +269,41 @@ const SurveyBuilder: React.FC = () => {
             : row.createdate?.toString() || ''
         ) || <span className="italic text-gray-400">No Date</span>,
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <ActionButton
-            onClick={() => handleViewSurvey(row)}
-            tooltip={`View ${row.title}`}
-            icon={<Visibility fontSize="small" />}
-            color="info"
-          />
-          <EditButton
-            onClick={() => handleEditSurvey(row)}
-            tooltip={`Edit ${row.title}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteSurvey(row.id)}
-            tooltip={`Delete ${row.title}`}
-            itemName={row.title}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Survey) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewSurvey(row)}
+                    tooltip={`View ${row.title}`}
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditSurvey(row)}
+                    tooltip={`Edit ${row.title}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteSurvey(row.id)}
+                    tooltip={`Delete ${row.title}`}
+                    itemName={row.title}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -385,80 +403,100 @@ const SurveyBuilder: React.FC = () => {
         data={surveys}
         columns={surveyColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchInput
-                placeholder="Search Surveys..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-32"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="published">Published</MenuItem>
-                <MenuItem value="draft">Draft</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={categoryFilter}
-                onChange={e => setCategoryFilter(e.target.value)}
-                className="!w-68"
-              >
-                <MenuItem value="all">All Categories</MenuItem>
-                <MenuItem value="cooler_inspection">Cooler Inspection</MenuItem>
-                <MenuItem value="customer_feedback">Customer Feedback</MenuItem>
-                <MenuItem value="outlet_audit">Outlet Audit</MenuItem>
-                <MenuItem value="competitor_analysis">
-                  Competitor Analysis
-                </MenuItem>
-                <MenuItem value="brand_visibility">Brand Visibility</MenuItem>
-                <MenuItem value="general">General</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              {isRead && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <SearchInput
+                    placeholder="Search Surveys..."
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    className="!w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="!w-32"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="published">Published</MenuItem>
+                    <MenuItem value="draft">Draft</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                  <Select
+                    value={categoryFilter}
+                    onChange={e => setCategoryFilter(e.target.value)}
+                    className="!w-68"
+                  >
+                    <MenuItem value="all">All Categories</MenuItem>
+                    <MenuItem value="cooler_inspection">
+                      Cooler Inspection
+                    </MenuItem>
+                    <MenuItem value="customer_feedback">
+                      Customer Feedback
+                    </MenuItem>
+                    <MenuItem value="outlet_audit">Outlet Audit</MenuItem>
+                    <MenuItem value="competitor_analysis">
+                      Competitor Analysis
+                    </MenuItem>
+                    <MenuItem value="brand_visibility">
+                      Brand Visibility
+                    </MenuItem>
+                    <MenuItem value="general">General</MenuItem>
+                  </Select>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Surveys"
+                    description="Are you sure you want to export the current survey data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateSurvey}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Surveys"
-                description="Are you sure you want to export the current survey data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateSurvey}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={survey => survey.id}
         initialOrderBy="title"
@@ -467,6 +505,7 @@ const SurveyBuilder: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No surveys found matching "${search}"`

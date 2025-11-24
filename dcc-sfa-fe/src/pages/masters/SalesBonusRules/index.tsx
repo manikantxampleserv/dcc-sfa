@@ -6,6 +6,7 @@ import {
   useSalesBonusRules,
   type SalesBonusRule,
 } from 'hooks/useSalesBonusRules';
+import { usePermission } from 'hooks/usePermission';
 import { Award, Percent, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -27,34 +28,42 @@ const SalesBonusRulesManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('sales-bonus-rule');
+
   const {
     data: rulesResponse,
     isLoading,
     error,
-  } = useSalesBonusRules({
-    search,
-    page,
-    limit,
-    status:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'active'
-          : 'inactive',
-  });
+  } = useSalesBonusRules(
+    {
+      search,
+      page,
+      limit,
+      status:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'active'
+            : 'inactive',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const rules = rulesResponse?.data || [];
-  const totalCount = rulesResponse?.pagination?.total || 0;
-  const currentPage = (rulesResponse?.pagination?.page || 1) - 1;
+  const totalCount = rulesResponse?.pagination?.total_count || 0;
+  const currentPage = (rulesResponse?.pagination?.current_page || 1) - 1;
 
   const deleteRuleMutation = useDeleteSalesBonusRule();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalRules = rulesResponse?.stats?.total_rules ?? 0;
-  const activeRules = rulesResponse?.stats?.active_rules ?? 0;
-  const inactiveRules = rulesResponse?.stats?.inactive_rules ?? 0;
-  const rulesThisMonth =
-    rulesResponse?.stats?.sales_bonus_rules_this_month ?? 0;
+  const stats = (rulesResponse?.stats as any) || {};
+  const totalRules = stats.total_rules ?? 0;
+  const activeRules = stats.active_rules ?? 0;
+  const inactiveRules = stats.inactive_rules ?? 0;
+  const rulesThisMonth = stats.sales_bonus_rules_this_month ?? 0;
 
   const handleCreateRule = useCallback(() => {
     setSelectedRule(null);
@@ -213,25 +222,33 @@ const SalesBonusRulesManagement: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditRule(row)}
-            tooltip={`Edit Rule ${row.id}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteRule(row.id)}
-            tooltip={`Delete Rule ${row.id}`}
-            itemName={`Rule ${row.id}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: SalesBonusRule) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditRule(row)}
+                    tooltip={`Edit Rule ${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteRule(row.id)}
+                    tooltip={`Delete Rule ${row.id}`}
+                    itemName={`Rule ${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -329,65 +346,79 @@ const SalesBonusRulesManagement: React.FC = () => {
         data={rules}
         columns={ruleColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Sales Bonus Rules"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              {isRead && (
+                <div className="flex items-center flex-wrap gap-2">
+                  <SearchInput
+                    placeholder="Search Sales Bonus Rules"
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    fullWidth={false}
+                    className="!min-w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="!min-w-32"
+                    size="small"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </div>
+              )}
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Sales Bonus Rules"
+                    description="Are you sure you want to export the current sales bonus rules data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateRule}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center flex-wrap gap-2">
-              <PopConfirm
-                title="Export Sales Bonus Rules"
-                description="Are you sure you want to export the current sales bonus rules data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateRule}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={rule => rule.id}
         initialOrderBy="achievement_min_percent"
@@ -396,6 +427,7 @@ const SalesBonusRulesManagement: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No sales bonus rules found matching "${search}"`

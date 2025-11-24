@@ -14,6 +14,7 @@ import {
   useLoginHistory,
   type LoginHistory,
 } from 'hooks/useLoginHistory';
+import { usePermission } from 'hooks/usePermission';
 import { History, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton } from 'shared/ActionButton';
@@ -29,22 +30,28 @@ const LoginHistoryPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('login-history');
 
   const {
     data: loginHistoryResponse,
     isLoading,
     error,
-  } = useLoginHistory({
-    search,
-    page,
-    limit,
-    login_status:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'success'
-          : 'failed',
-  });
+  } = useLoginHistory(
+    {
+      search,
+      page,
+      limit,
+      login_status:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'success'
+            : 'failed',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const loginHistory = loginHistoryResponse?.data || [];
   const totalCount = loginHistoryResponse?.meta?.total_count || 0;
@@ -202,21 +209,27 @@ const LoginHistoryPage: React.FC = () => {
         </Typography>
       ),
     },
-    {
-      id: 'action',
-      label: 'Action',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <DeleteButton
-            onClick={() => handleDeleteLoginHistory(row.id)}
-            tooltip={`Delete login history`}
-            itemName="login history"
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Action',
+            sortable: false,
+            render: (_value, row) => (
+              <div className="!flex !gap-2 !items-center">
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteLoginHistory(row.id)}
+                    tooltip={`Delete login history`}
+                    itemName="login history"
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -316,46 +329,50 @@ const LoginHistoryPage: React.FC = () => {
         data={loginHistory}
         columns={loginHistoryColumns}
         actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap items-center gap-3">
-              <SearchInput
-                placeholder="Search by IP, device, OS, or user..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Successful</MenuItem>
-                <MenuItem value="inactive">Failed</MenuItem>
-              </Select>
-            </div>
-            <div className="flex gap-2 items-center">
-              <PopConfirm
-                title="Export Login History"
-                description="Are you sure you want to export the current login history data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
+          isRead ? (
+            <div className="flex justify-between gap-3 items-center flex-wrap">
+              <div className="flex flex-wrap items-center gap-3">
+                <SearchInput
+                  placeholder="Search by IP, device, OS, or user..."
+                  value={search}
+                  onChange={handleSearchChange}
+                  debounceMs={400}
+                  showClear={true}
+                  className="!w-80"
+                />
+                <Select
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
+                  className="!w-40"
                 >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="active">Successful</MenuItem>
+                  <MenuItem value="inactive">Failed</MenuItem>
+                </Select>
+              </div>
+              <div className="flex gap-2 items-center">
+                <PopConfirm
+                  title="Export Login History"
+                  description="Are you sure you want to export the current login history data to Excel? This will include all filtered results."
+                  onConfirm={handleExportToExcel}
+                  confirmText="Export"
+                  cancelText="Cancel"
+                  placement="top"
+                >
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Download />}
+                    disabled={exportToExcelMutation.isPending}
+                  >
+                    {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                  </Button>
+                </PopConfirm>
+              </div>
             </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={loginHistory => loginHistory.id}
         initialOrderBy="login_time"
@@ -364,6 +381,7 @@ const LoginHistoryPage: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No login history found matching "${search}"`

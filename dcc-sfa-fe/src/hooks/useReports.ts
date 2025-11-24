@@ -2,7 +2,7 @@
  * Reports React Query Hooks
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import {
   fetchOrdersInvoicesReturnsReport,
   type ReportFilters,
@@ -82,22 +82,30 @@ export const reportKeys = {
 /**
  * Hook to fetch Orders, Invoices, and Returns Report
  */
-export const useOrdersInvoicesReturnsReport = (filters?: ReportFilters) => {
+export const useOrdersInvoicesReturnsReport = (
+  filters?: ReportFilters,
+  options?: Omit<UseQueryOptions<ReportData>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery<ReportData>({
     queryKey: reportKeys.ordersInvoicesReturns(filters),
     queryFn: () => fetchOrdersInvoicesReturnsReport(filters),
     staleTime: 2 * 60 * 1000,
+    ...options,
   });
 };
 
 /**
  * Hook to fetch Sales vs Target Report
  */
-export const useSalesVsTargetReport = (filters?: SalesVsTargetFilters) => {
+export const useSalesVsTargetReport = (
+  filters?: SalesVsTargetFilters,
+  options?: Omit<UseQueryOptions<SalesVsTargetData>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery<SalesVsTargetData>({
     queryKey: reportKeys.salesVsTarget(filters),
     queryFn: () => fetchSalesVsTargetReport(filters),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 
@@ -105,12 +113,17 @@ export const useSalesVsTargetReport = (filters?: SalesVsTargetFilters) => {
  * Hook to fetch Asset Movement/Status Report
  */
 export const useAssetMovementStatusReport = (
-  filters?: AssetMovementStatusFilters
+  filters?: AssetMovementStatusFilters,
+  options?: Omit<
+    UseQueryOptions<AssetMovementStatusData>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery<AssetMovementStatusData>({
     queryKey: reportKeys.assetMovementStatus(filters),
     queryFn: () => fetchAssetMovementStatusReport(filters),
     staleTime: 3 * 60 * 1000,
+    ...options,
   });
 };
 
@@ -118,12 +131,17 @@ export const useAssetMovementStatusReport = (
  * Hook to fetch Visit Frequency/Completion Report
  */
 export const useVisitFrequencyCompletionReport = (
-  filters?: VisitFrequencyCompletionFilters
+  filters?: VisitFrequencyCompletionFilters,
+  options?: Omit<
+    UseQueryOptions<VisitFrequencyCompletionData>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery<VisitFrequencyCompletionData>({
     queryKey: reportKeys.visitFrequencyCompletion(filters),
     queryFn: () => fetchVisitFrequencyCompletionReport(filters),
     staleTime: 3 * 60 * 1000,
+    ...options,
   });
 };
 
@@ -131,12 +149,17 @@ export const useVisitFrequencyCompletionReport = (
  * Hook to fetch Promo Effectiveness Report
  */
 export const usePromoEffectivenessReport = (
-  filters?: PromoEffectivenessFilters
+  filters?: PromoEffectivenessFilters,
+  options?: Omit<
+    UseQueryOptions<PromoEffectivenessData>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery<PromoEffectivenessData>({
     queryKey: reportKeys.promoEffectiveness(filters),
     queryFn: () => fetchPromoEffectivenessReport(filters),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 
@@ -144,23 +167,32 @@ export const usePromoEffectivenessReport = (
  * Hook to fetch Region/Territory Sales Report
  */
 export const useRegionTerritorySalesReport = (
-  filters?: RegionTerritorySalesFilters
+  filters?: RegionTerritorySalesFilters,
+  options?: Omit<
+    UseQueryOptions<RegionTerritorySalesData>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery<RegionTerritorySalesData>({
     queryKey: reportKeys.regionTerritorySales(filters),
     queryFn: () => fetchRegionTerritorySalesReport(filters),
     staleTime: 3 * 60 * 1000,
+    ...options,
   });
 };
 
 /**
  * Hook to fetch Rep Productivity Report
  */
-export const useRepProductivityReport = (filters?: RepProductivityFilters) => {
+export const useRepProductivityReport = (
+  filters?: RepProductivityFilters,
+  options?: Omit<UseQueryOptions<RepProductivityData>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery<RepProductivityData>({
     queryKey: reportKeys.repProductivity(filters),
     queryFn: () => fetchRepProductivityReport(filters),
     staleTime: 3 * 60 * 1000,
+    ...options,
   });
 };
 
@@ -168,12 +200,17 @@ export const useRepProductivityReport = (filters?: RepProductivityFilters) => {
  * Hook to fetch Competitor Analysis Report
  */
 export const useCompetitorAnalysisReport = (
-  filters?: CompetitorAnalysisFilters
+  filters?: CompetitorAnalysisFilters,
+  options?: Omit<
+    UseQueryOptions<CompetitorAnalysisData>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery<CompetitorAnalysisData>({
     queryKey: reportKeys.competitorAnalysis(filters),
     queryFn: () => fetchCompetitorAnalysisReport(filters),
     staleTime: 3 * 60 * 1000,
+    ...options,
   });
 };
 
@@ -181,12 +218,17 @@ export const useCompetitorAnalysisReport = (
  * Hook to fetch Outstanding & Collection Report
  */
 export const useOutstandingCollectionReport = (
-  filters?: OutstandingCollectionFilters
+  filters?: OutstandingCollectionFilters,
+  options?: Omit<
+    UseQueryOptions<OutstandingCollectionData>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery<OutstandingCollectionData>({
     queryKey: reportKeys.outstandingCollection(filters),
     queryFn: () => fetchOutstandingCollectionReport(filters),
     staleTime: 3 * 60 * 1000,
+    ...options,
   });
 };
 
@@ -194,11 +236,16 @@ export const useOutstandingCollectionReport = (
  * Hook to fetch Attendance History Report
  */
 export const useAttendanceHistoryReport = (
-  filters?: AttendanceHistoryReportFilters
+  filters?: AttendanceHistoryReportFilters,
+  options?: Omit<
+    UseQueryOptions<AttendanceHistoryReportData>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery<AttendanceHistoryReportData>({
     queryKey: reportKeys.attendanceHistory(filters),
     queryFn: () => fetchAttendanceHistoryReport(filters),
     staleTime: 3 * 60 * 1000,
+    ...options,
   });
 };

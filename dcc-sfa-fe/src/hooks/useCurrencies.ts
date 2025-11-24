@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   createCurrency,
   deleteCurrency,
@@ -17,9 +21,9 @@ import {
   type UpdateCurrencyPayload,
   type Currency,
 } from '../services/masters/Currencies';
+import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
 
-// Query Keys
 export const currencyKeys = {
   all: ['currencies'] as const,
   lists: () => [...currencyKeys.all, 'list'] as const,
@@ -32,11 +36,18 @@ export const currencyKeys = {
 /**
  * Hook to fetch currencies with pagination and filters
  */
-export const useCurrencies = (params?: GetCurrenciesParams) => {
+export const useCurrencies = (
+  params?: GetCurrenciesParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<Currency[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
   return useQuery({
     queryKey: currencyKeys.list(params || {}),
     queryFn: () => fetchCurrencies(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 
@@ -65,7 +76,6 @@ export const useCreateCurrency = (options?: {
     mutationFn: createCurrency,
     loadingMessage: 'Creating currency...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch currencies list
       queryClient.invalidateQueries({ queryKey: currencyKeys.lists() });
       options?.onSuccess?.(data, variables);
     },
@@ -96,7 +106,6 @@ export const useUpdateCurrency = (options?: {
       updateCurrency(id, currencyData),
     loadingMessage: 'Updating currency...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch currencies list and specific currency
       queryClient.invalidateQueries({ queryKey: currencyKeys.lists() });
       queryClient.invalidateQueries({
         queryKey: currencyKeys.detail(variables.id),

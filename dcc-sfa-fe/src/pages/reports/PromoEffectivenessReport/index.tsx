@@ -1,5 +1,6 @@
 import { Box, Chip, MenuItem } from '@mui/material';
 import { useDepots } from 'hooks/useDepots';
+import { usePermission } from 'hooks/usePermission';
 import { usePromoEffectivenessReport } from 'hooks/useReports';
 import { useZones } from 'hooks/useZones';
 import {
@@ -25,14 +26,19 @@ const PromoEffectivenessReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [depotId, setDepotId] = useState<number | undefined>(undefined);
   const [zoneId, setZoneId] = useState<number | undefined>(undefined);
+  const { isRead } = usePermission('report');
 
-  // Fetch data
-  const { data: reportData, isLoading } = usePromoEffectivenessReport({
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    depot_id: depotId,
-    zone_id: zoneId,
-  });
+  const { data: reportData, isLoading } = usePromoEffectivenessReport(
+    {
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      depot_id: depotId,
+      zone_id: zoneId,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: depotsData } = useDepots();
   const { data: zonesData } = useZones();

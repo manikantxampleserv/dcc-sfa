@@ -14,6 +14,7 @@ import {
   type VanInventory,
 } from '../../../hooks/useVanInventory';
 import { useExportToExcel } from '../../../hooks/useImportExport';
+import { usePermission } from '../../../hooks/usePermission';
 import { formatDate } from '../../../utils/dateUtils';
 import UserSelect from '../../../shared/UserSelect';
 import ImportVanInventory from './ImportVanInventory';
@@ -34,22 +35,29 @@ const VanStockPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('van-stock');
+
   const {
     data: vanInventoryResponse,
     isLoading,
     error,
-  } = useVanInventory({
-    search,
-    page,
-    limit,
-    status:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'active'
-          : 'inactive',
-    user_id: userFilter,
-  });
+  } = useVanInventory(
+    {
+      search,
+      page,
+      limit,
+      status:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'active'
+            : 'inactive',
+      user_id: userFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const vanInventory = vanInventoryResponse?.data || [];
   const totalCount = vanInventoryResponse?.meta?.total_count || 0;
@@ -281,37 +289,49 @@ const VanStockPage: React.FC = () => {
         );
       },
     },
-    {
-      id: 'id',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <ActionButton
-            onClick={() => handleViewVanInventory(row)}
-            tooltip="View van inventory details"
-            icon={<FileText />}
-            color="success"
-          />
-          <ActionButton
-            onClick={() => handleManageItems(row)}
-            tooltip="Manage van inventory items"
-            icon={<Package />}
-            color="info"
-          />
-          <EditButton
-            onClick={() => handleEditVanInventory(row)}
-            tooltip={`Edit Van Inventory #${row.id}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteVanInventory(row.id)}
-            tooltip={`Delete Van Inventory #${row.id}`}
-            itemName={`Van Inventory #${row.id}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'id',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: VanInventory) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <>
+                    <ActionButton
+                      onClick={() => handleViewVanInventory(row)}
+                      tooltip="View van inventory details"
+                      icon={<FileText />}
+                      color="success"
+                    />
+                    <ActionButton
+                      onClick={() => handleManageItems(row)}
+                      tooltip="Manage van inventory items"
+                      icon={<Package />}
+                      color="info"
+                    />
+                  </>
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditVanInventory(row)}
+                    tooltip={`Edit Van Inventory #${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteVanInventory(row.id)}
+                    tooltip={`Delete Van Inventory #${row.id}`}
+                    itemName={`Van Inventory #${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -418,69 +438,83 @@ const VanStockPage: React.FC = () => {
         data={vanInventory}
         columns={vanInventoryColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchInput
-                placeholder="Search Van Inventory..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => handleStatusFilterChange(e.target.value)}
-                className="!w-32"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Box className="!w-64">
-                <UserSelect
-                  label="Filter by User"
-                  value={userFilter}
-                  onChange={handleUserFilterChange}
-                  fullWidth
-                  size="small"
-                />
-              </Box>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              {isRead && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <SearchInput
+                    placeholder="Search Van Inventory..."
+                    value={search}
+                    onChange={handleSearchChange}
+                    debounceMs={400}
+                    showClear={true}
+                    className="!w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => handleStatusFilterChange(e.target.value)}
+                    className="!w-32"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                  <Box className="!w-64">
+                    <UserSelect
+                      label="Filter by User"
+                      value={userFilter}
+                      onChange={handleUserFilterChange}
+                      fullWidth
+                      size="small"
+                    />
+                  </Box>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Van Inventory"
+                    description="Are you sure you want to export the current van inventory data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={handleCreateVanInventory}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Van Inventory"
-                description="Are you sure you want to export the current van inventory data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={handleCreateVanInventory}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={vanInventory => vanInventory.id}
         initialOrderBy="last_updated"
@@ -489,6 +523,7 @@ const VanStockPage: React.FC = () => {
         page={currentPage}
         rowsPerPage={limit}
         onPageChange={handlePageChange}
+        isPermission={isRead}
         emptyMessage={
           search
             ? `No van inventory found matching "${search}"`

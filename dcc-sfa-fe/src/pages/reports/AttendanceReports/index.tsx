@@ -1,4 +1,5 @@
 import { Box, Chip, MenuItem } from '@mui/material';
+import { usePermission } from 'hooks/usePermission';
 import { useAttendanceHistoryReport } from 'hooks/useReports';
 import { Clock, Download, MapPin, User, Users } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
@@ -20,16 +21,22 @@ const AttendanceReports: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useAttendanceHistoryReport({
-    page,
-    limit,
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    user_id: userId,
-    action_type: actionType === 'all' ? undefined : actionType,
-    search: search || undefined,
-  });
+  const { data: reportData, isLoading } = useAttendanceHistoryReport(
+    {
+      page,
+      limit,
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      user_id: userId,
+      action_type: actionType === 'all' ? undefined : actionType,
+      search: search || undefined,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const summary = reportData?.stats || {
     total_history_records: 0,

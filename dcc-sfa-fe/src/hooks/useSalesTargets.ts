@@ -7,6 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 import * as salesTargetsService from '../services/masters/SalesTargets';
 
 export type {
@@ -35,7 +36,10 @@ export const salesTargetsQueryKeys = {
  */
 export const useSalesTargets = (
   params?: salesTargetsService.GetSalesTargetsParams,
-  options?: Omit<UseQueryOptions<any>, 'queryKey' | 'queryFn'>
+  options?: Omit<
+    UseQueryOptions<ApiResponse<salesTargetsService.SalesTarget[]>>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery({
     queryKey: salesTargetsQueryKeys.list(params),

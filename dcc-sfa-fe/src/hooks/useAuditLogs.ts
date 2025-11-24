@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import {
   fetchAuditLogs,
   type AuditLogFilters,
@@ -15,10 +15,14 @@ export const auditLogKeys = {
 /**
  * Hook to fetch Audit Logs Data
  */
-export const useAuditLogs = (filters?: AuditLogFilters) => {
+export const useAuditLogs = (
+  filters?: AuditLogFilters,
+  options?: Omit<UseQueryOptions<AuditLogsResponse>, 'queryKey' | 'queryFn'>
+) => {
   return useQuery<AuditLogsResponse>({
     queryKey: auditLogKeys.list(filters),
     queryFn: () => fetchAuditLogs(filters),
-    staleTime: 3 * 60 * 1000, // 3 minutes
+    staleTime: 3 * 60 * 1000,
+    ...options,
   });
 };

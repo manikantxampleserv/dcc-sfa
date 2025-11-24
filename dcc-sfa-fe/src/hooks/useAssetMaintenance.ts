@@ -7,6 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 import * as assetMaintenanceService from '../services/masters/AssetMaintenance';
 
 export type {
@@ -36,7 +37,10 @@ export const assetMaintenanceQueryKeys = {
  */
 export const useAssetMaintenances = (
   params?: assetMaintenanceService.AssetMaintenanceQueryParams,
-  options?: Omit<UseQueryOptions<any>, 'queryKey' | 'queryFn'>
+  options?: Omit<
+    UseQueryOptions<ApiResponse<assetMaintenanceService.AssetMaintenance[]>>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery({
     queryKey: assetMaintenanceQueryKeys.list(params),

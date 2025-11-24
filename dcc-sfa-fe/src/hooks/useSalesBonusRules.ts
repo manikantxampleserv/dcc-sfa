@@ -7,6 +7,7 @@
 
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 import * as salesBonusRulesService from '../services/masters/SalesBonusRules';
 
 export type {
@@ -36,7 +37,10 @@ export const salesBonusRulesQueryKeys = {
  */
 export const useSalesBonusRules = (
   params?: salesBonusRulesService.GetSalesBonusRulesParams,
-  options?: Omit<UseQueryOptions<any>, 'queryKey' | 'queryFn'>
+  options?: Omit<
+    UseQueryOptions<ApiResponse<salesBonusRulesService.SalesBonusRule[]>>,
+    'queryKey' | 'queryFn'
+  >
 ) => {
   return useQuery({
     queryKey: salesBonusRulesQueryKeys.list(params),

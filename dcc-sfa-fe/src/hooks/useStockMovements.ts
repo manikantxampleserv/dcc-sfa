@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   upsertStockMovement,
   updateStockMovement,
@@ -18,6 +22,7 @@ import {
   type UpdateStockMovementPayload,
 } from '../services/masters/StockMovements';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from '../types/api.types';
 
 // Query Keys
 export const stockMovementKeys = {
@@ -32,11 +37,18 @@ export const stockMovementKeys = {
 /**
  * Hook to fetch stock movements with pagination and filters
  */
-export const useStockMovements = (params?: GetStockMovementsParams) => {
+export const useStockMovements = (
+  params?: GetStockMovementsParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<StockMovement[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
   return useQuery({
     queryKey: stockMovementKeys.list(params || {}),
     queryFn: () => fetchStockMovements(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

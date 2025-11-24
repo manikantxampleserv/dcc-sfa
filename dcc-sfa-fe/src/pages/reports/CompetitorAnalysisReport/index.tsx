@@ -1,6 +1,7 @@
 import { Box, Chip, MenuItem } from '@mui/material';
-import { useCompetitorAnalysisReport } from 'hooks/useReports';
 import { useCustomers } from 'hooks/useCustomers';
+import { usePermission } from 'hooks/usePermission';
+import { useCompetitorAnalysisReport } from 'hooks/useReports';
 import {
   Download,
   AlertCircle,
@@ -21,13 +22,19 @@ const CompetitorAnalysisReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [brandName, setBrandName] = useState('');
+  const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useCompetitorAnalysisReport({
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    customer_id: customerId,
-    brand_name: brandName || undefined,
-  });
+  const { data: reportData, isLoading } = useCompetitorAnalysisReport(
+    {
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      customer_id: customerId,
+      brand_name: brandName || undefined,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: customersData } = useCustomers();
 

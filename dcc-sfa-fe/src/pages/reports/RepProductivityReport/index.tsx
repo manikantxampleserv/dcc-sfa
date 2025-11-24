@@ -1,6 +1,7 @@
 import { Box, Chip, MenuItem } from '@mui/material';
-import { useRepProductivityReport } from 'hooks/useReports';
 import { useDepots } from 'hooks/useDepots';
+import { usePermission } from 'hooks/usePermission';
+import { useRepProductivityReport } from 'hooks/useReports';
 import { useUsers } from 'hooks/useUsers';
 import {
   Download,
@@ -26,13 +27,19 @@ const RepProductivityReport: React.FC = () => {
     undefined
   );
   const [depotId, setDepotId] = useState<number | undefined>(undefined);
+  const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useRepProductivityReport({
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    salesperson_id: salespersonId,
-    depot_id: depotId,
-  });
+  const { data: reportData, isLoading } = useRepProductivityReport(
+    {
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      salesperson_id: salespersonId,
+      depot_id: depotId,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: usersData } = useUsers();
   const { data: depotsData } = useDepots();

@@ -6,6 +6,7 @@ import {
   type Currency,
 } from 'hooks/useCurrencies';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { DollarSign, TrendingUp, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -29,22 +30,28 @@ const CurrenciesManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('currency');
 
   const {
     data: currenciesResponse,
     isLoading,
     error,
-  } = useCurrencies({
-    search,
-    page,
-    limit,
-    isActive:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-  });
+  } = useCurrencies(
+    {
+      search,
+      page,
+      limit,
+      isActive:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const currencies = currenciesResponse?.data || [];
   const totalCount = currenciesResponse?.meta?.total || 0;
@@ -192,25 +199,33 @@ const CurrenciesManagement: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditCurrency(row)}
-            tooltip={`Edit ${row.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteCurrency(row.id)}
-            tooltip={`Delete ${row.name}`}
-            itemName={row.name}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete || isRead
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Currency) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditCurrency(row)}
+                    tooltip={`Edit ${row.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteCurrency(row.id)}
+                    tooltip={`Delete ${row.name}`}
+                    itemName={row.name}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -317,75 +332,91 @@ const CurrenciesManagement: React.FC = () => {
         data={currencies}
         columns={currencyColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex items-center flex-wrap gap-2">
-              <SearchInput
-                placeholder="Search Currencies"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={baseFilter}
-                onChange={e => setBaseFilter(e.target.value)}
-                className="!min-w-40"
-                size="small"
-              >
-                <MenuItem value="all">All Types</MenuItem>
-                <MenuItem value="base">Base Currency</MenuItem>
-                <MenuItem value="non-base">Non-Base</MenuItem>
-              </Select>
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex items-center flex-wrap gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Currencies"
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      fullWidth={false}
+                      className="!min-w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!min-w-32"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={baseFilter}
+                      onChange={e => setBaseFilter(e.target.value)}
+                      className="!min-w-40"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Types</MenuItem>
+                      <MenuItem value="base">Base Currency</MenuItem>
+                      <MenuItem value="non-base">Non-Base</MenuItem>
+                    </Select>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isRead && (
+                  <PopConfirm
+                    title="Export Currencies"
+                    description="Are you sure you want to export the current currencies data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateCurrency}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Currencies"
-                description="Are you sure you want to export the current currencies data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateCurrency}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={currency => currency.id}
         initialOrderBy="name"
@@ -393,6 +424,7 @@ const CurrenciesManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search
