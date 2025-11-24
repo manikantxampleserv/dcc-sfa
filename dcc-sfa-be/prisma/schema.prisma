@@ -84,6 +84,7 @@ model users {
   workflow_steps_workflow_steps_processed_byTousers                 workflow_steps[]             @relation("workflow_steps_processed_byTousers")
   promotion_salesperson_users                                       promotion_salesperson[]
 }
+
 model attendance {
   id                    Int                  @id @default(autoincrement())
   user_id               Int
@@ -1550,7 +1551,7 @@ model routes {
   route_type         String?            @db.NVarChar(Max)
   outlet_group       String?            @db.NVarChar(Max)
   customer_routes    customers[]
-  promotion_route   promotion_routes[]
+  promotion_route    promotion_routes[]
   routes_depots      depots             @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   routes_zones       zones              @relation(fields: [parent_id], references: [id], onUpdate: NoAction)
   routes_route_type  route_type         @relation(fields: [route_type_id], references: [id], onUpdate: NoAction)
@@ -2134,16 +2135,16 @@ model customer_complaints {
 }
 
 model customer_category {
-  id                          Int                           @id(map: "PK__customer__3213E83F2343726B") @default(autoincrement())
-  category_name               String                        @db.VarChar(255)
-  category_code               String                        @db.VarChar(100)
-  is_active                   String                        @db.Char(1)
-  createdate                  DateTime?                     @db.DateTime
-  createdby                   Int
-  updatedate                  DateTime?                     @db.DateTime
-  updatedby                   Int?
-  log_inst                    Int?
-  customer_category_condition customer_category_condition[]
+  id                           Int                           @id(map: "PK__customer__3213E83F2343726B") @default(autoincrement())
+  category_name                String                        @db.VarChar(255)
+  category_code                String                        @db.VarChar(100)
+  is_active                    String                        @db.Char(1)
+  createdate                   DateTime?                     @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime?                     @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  customer_category_condition  customer_category_condition[]
   promotion_customer_categorys promotion_customer_category[]
 }
 
@@ -2208,15 +2209,15 @@ model promotion {
 }
 
 model promotion_benefit {
-  id              Int             @id(map: "PK__promotio__3213E83F3BFFCF57") @default(autoincrement())
-  level_id        Int
-  benefit_type    String          @db.VarChar(50)
-  product_code    String?         @db.VarChar(100)
-  benefit_value   Decimal         @db.Decimal(18, 2)
-  condition_type  String?         @db.VarChar(50)
-  gift_limit      Int?            @default(0, map: "DF__promotion__gift___756E3A22")
-  is_active       String          @db.Char(1)
-  promotion_benefit_level promotion_level @relation(fields: [level_id], references: [id], onUpdate: NoAction, map: "FK__promotion__level__76625E5B")
+  id                      Int             @id(map: "PK__promotio__3213E83F3BFFCF57") @default(autoincrement())
+  level_id                Int
+  benefit_type            String          @db.VarChar(50)
+  product_code            String?         @db.VarChar(100)
+  benefit_value           Decimal         @db.Decimal(18, 2)
+  condition_type          String?         @db.VarChar(50)
+  gift_limit              Int?            @default(0, map: "DF__promotion__gift___756E3A22")
+  is_active               String          @db.Char(1)
+  promotion_benefit_level promotion_level @relation(fields: [level_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_channel {
@@ -2224,7 +2225,7 @@ model promotion_channel {
   parent_id                    Int
   channel_type                 String?   @db.VarChar(50)
   is_active                    String    @db.Char(1)
-  promotion_channel_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__7D0F5BEA")
+  promotion_channel_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_condition {
@@ -2243,24 +2244,24 @@ model promotion_condition {
   updatedate                     DateTime?                      @db.DateTime
   updatedby                      Int?
   log_inst                       Int?
-  promotion_condition_promotions promotion                      @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__6CD8F421")
-  promotion_condition_product   promotion_condition_products[]
+  promotion_condition_promotions promotion                      @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  promotion_condition_product    promotion_condition_products[]
 }
 
 model promotion_condition_products {
-  id                  Int                 @id(map: "PK__promotio__3213E83F996F65D7") @default(autoincrement())
-  condition_id        Int
-  product_code        String?             @db.VarChar(100)
-  category_code       String?             @db.VarChar(100)
-  product_group       String?             @db.VarChar(100)
-  condition_quantity  Decimal             @db.Decimal(18, 2)
-  is_active           String              @db.Char(1)
-  createdate          DateTime?           @db.DateTime
-  createdby           Int
-  updatedate          DateTime?           @db.DateTime
-  updatedby           Int?
-  log_inst            Int?
-  promotion_condition_product promotion_condition @relation(fields: [condition_id], references: [id], onUpdate: NoAction, map: "FK__promotion__condi__6FB560CC")
+  id                          Int                 @id(map: "PK__promotio__3213E83F996F65D7") @default(autoincrement())
+  condition_id                Int
+  product_code                String?             @db.VarChar(100)
+  category_code               String?             @db.VarChar(100)
+  product_group               String?             @db.VarChar(100)
+  condition_quantity          Decimal             @db.Decimal(18, 2)
+  is_active                   String              @db.Char(1)
+  createdate                  DateTime?           @db.DateTime
+  createdby                   Int
+  updatedate                  DateTime?           @db.DateTime
+  updatedby                   Int?
+  log_inst                    Int?
+  promotion_condition_product promotion_condition @relation(fields: [condition_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_customer_category {
@@ -2273,8 +2274,8 @@ model promotion_customer_category {
   updatedate                             DateTime?         @db.DateTime
   updatedby                              Int?
   log_inst                               Int?
-  promotion_customer_categorys                      customer_category @relation(fields: [customer_category_id], references: [id], onUpdate: NoAction, map: "FK__promotion__custo__0C519F7A")
-  promotion_customer_category_promotions promotion         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__0B5D7B41")
+  promotion_customer_categorys           customer_category @relation(fields: [customer_category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  promotion_customer_category_promotions promotion         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_customer_exclusion {
@@ -2282,7 +2283,7 @@ model promotion_customer_exclusion {
   parent_id                               Int
   customer_id                             Int
   is_excluded                             String    @db.Char(1)
-  promotion_customer_exclusion_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__0F2E0C25")
+  promotion_customer_exclusion_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_depot {
@@ -2290,8 +2291,8 @@ model promotion_depot {
   parent_id                  Int
   depot_id                   Int
   is_active                  String    @db.Char(1)
-  depots                     depots    @relation(fields: [depot_id], references: [id], onUpdate: NoAction, map: "FK__promotion__depot__00DFECCE")
-  promotion_depot_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__7FEBC895")
+  depots                     depots    @relation(fields: [depot_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  promotion_depot_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_level {
@@ -2307,8 +2308,8 @@ model promotion_level {
   updatedate                 DateTime?           @db.DateTime
   updatedby                  Int?
   log_inst                   Int?
-  promotion_benefit_level          promotion_benefit[]
-  promotion_level_promotions promotion           @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__7291CD77")
+  promotion_benefit_level    promotion_benefit[]
+  promotion_level_promotions promotion           @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_routes {
@@ -2316,8 +2317,8 @@ model promotion_routes {
   parent_id                   Int
   route_id                    Int
   is_active                   String    @db.Char(1)
-  promotion_routes_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__03BC5979")
-  promotion_route                     routes    @relation(fields: [route_id], references: [id], onUpdate: NoAction, map: "FK__promotion__route__04B07DB2")
+  promotion_routes_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  promotion_route             routes    @relation(fields: [route_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_salesperson {
@@ -2326,7 +2327,7 @@ model promotion_salesperson {
   salesperson_id                   Int
   is_active                        String    @db.Char(1)
   promotion_salesperson_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__078CEA5D")
-  promotion_salesperson_users                            users     @relation(fields: [salesperson_id], references: [id], onUpdate: NoAction, map: "FK__promotion__sales__08810E96")
+  promotion_salesperson_users      users     @relation(fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_tracking {
@@ -2337,5 +2338,5 @@ model promotion_tracking {
   user_id                       Int
   comments                      String?   @db.Text
   is_active                     String    @db.Char(1)
-  promotion_tracking_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__7A32EF3F")
+  promotion_tracking_promotions promotion @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
