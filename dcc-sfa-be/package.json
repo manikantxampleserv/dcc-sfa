@@ -14,6 +14,11 @@
     "seed:clean": "ts-node src/utils/seeders/index.ts clear",
     "seed:generate": "ts-node src/utils/seeders/index.ts seed",
     "seed": "npm run seed:clean && npm run seed:generate",
+    "seed:list": "ts-node src/utils/seeders/index.ts list",
+    "seed:section": "ts-node src/utils/seeders/index.ts seed",
+    "seed:clear": "ts-node src/utils/seeders/index.ts clear",
+    "seed:reset": "ts-node src/utils/seeders/index.ts reset",
+    "permission:add": "ts-node src/utils/seeders/index.ts add-permission",
     "lint": "echo \"No linting configured for backend yet\""
   },
   "devDependencies": {

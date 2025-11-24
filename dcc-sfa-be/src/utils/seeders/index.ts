@@ -17,7 +17,12 @@ import { clearCurrencies, seedCurrencies } from './currencies.seeder';
 import { clearCustomers, seedCustomers } from './customers.seeder';
 import { clearDepots, seedDepots } from './depots.seeder';
 import { clearOrders, seedOrders } from './orders.seeder';
-import { clearPermissions, seedPermissions } from './permissions.seeder';
+import {
+  addModulePermissions,
+  addSinglePermission,
+  clearPermissions,
+  seedPermissions,
+} from './permissions.seeder';
 import {
   clearProductCategories,
   seedProductCategories,
@@ -362,7 +367,12 @@ export { clearCurrencies, seedCurrencies } from './currencies.seeder';
 export { clearCustomers, seedCustomers } from './customers.seeder';
 export { clearDepots, seedDepots } from './depots.seeder';
 export { clearOrders, seedOrders } from './orders.seeder';
-export { clearPermissions, seedPermissions } from './permissions.seeder';
+export {
+  addModulePermissions,
+  addSinglePermission,
+  clearPermissions,
+  seedPermissions,
+} from './permissions.seeder';
 export {
   clearProductCategories,
   seedProductCategories,
@@ -392,14 +402,15 @@ export { clearZones, seedZones } from './zones.seeder';
 // CLI Script functionality
 async function main() {
   const command = process.argv[2];
-  const section = process.argv[3];
+  const arg1 = process.argv[3];
+  const arg2 = process.argv[4];
 
   try {
     switch (command) {
       case 'seed':
-        if (section) {
-          logger.info(`Seeding ${section}...`);
-          await seedSection(section);
+        if (arg1) {
+          logger.info(`Seeding ${arg1}...`);
+          await seedSection(arg1);
         } else {
           logger.info('Seeding all sections...');
           await seedAll();
@@ -407,9 +418,9 @@ async function main() {
         break;
 
       case 'clear':
-        if (section) {
-          logger.info(`Clearing ${section}...`);
-          await clearSection(section);
+        if (arg1) {
+          logger.info(`Clearing ${arg1}...`);
+          await clearSection(arg1);
         } else {
           logger.info('Clearing all sections...');
           await clearAll();
@@ -417,13 +428,66 @@ async function main() {
         break;
 
       case 'reset':
-        if (section) {
-          logger.info(`Resetting ${section}...`);
-          await resetSection(section);
+        if (arg1) {
+          logger.info(`Resetting ${arg1}...`);
+          await resetSection(arg1);
         } else {
           logger.info('Resetting all sections...');
           await resetAll();
         }
+        break;
+
+      case 'add-permission':
+        if (!arg1) {
+          logger.error(
+            'Usage: ts-node src/utils/seeders/index.ts add-permission <module> [action]'
+          );
+          logger.info('Examples:');
+          logger.info(
+            '  ts-node src/utils/seeders/index.ts add-permission user        # Add all CRUD permissions for user module'
+          );
+          logger.info(
+            '  ts-node src/utils/seeders/index.ts add-permission user read    # Add only user_read permission'
+          );
+          await prisma.$disconnect();
+          process.exit(1);
+        }
+
+        if (arg2) {
+          logger.info(`Adding permission: ${arg1}_${arg2}...`);
+          const result = await addSinglePermission(arg1, arg2);
+          if (result.success) {
+            logger.success(result.message);
+            logger.info(`Permission ID: ${result.permission?.id}`);
+          } else {
+            logger.error(result.message);
+            await prisma.$disconnect();
+            process.exit(1);
+          }
+        } else {
+          logger.info(`Adding all CRUD permissions for module: ${arg1}...`);
+          const result = await addModulePermissions(arg1);
+          if (result.success) {
+            logger.success(result.message);
+            logger.info(`Added: ${result.added} permission(s)`);
+            if (result.skipped > 0) {
+              logger.info(
+                `Skipped: ${result.skipped} permission(s) (already exist)`
+              );
+            }
+            if (result.permissions && result.permissions.length > 0) {
+              logger.info('Created permissions:');
+              result.permissions.forEach(p => {
+                logger.info(`  - ${p.name} (ID: ${p.id})`);
+              });
+            }
+          } else {
+            logger.error(result.message);
+            await prisma.$disconnect();
+            process.exit(1);
+          }
+        }
+        await prisma.$disconnect();
         break;
 
       case 'list':
@@ -437,10 +501,11 @@ Mock Data Seeder CLI
 Usage: ts-node src/utils/seeders/index.ts [command] [section]
 
 Commands:
-  seed [section]    - Seed specific section or all sections
-  clear [section]   - Clear specific section or all sections
-  reset [section]   - Reset (clear + seed) specific section or all sections
-  list              - List all available sections
+  seed [section]                    - Seed specific section or all sections
+  clear [section]                   - Clear specific section or all sections
+  reset [section]                   - Reset (clear + seed) specific section or all sections
+  add-permission <module> [action]  - Add all CRUD permissions for a module, or a single permission
+  list                              - List all available sections
 
 Sections:
   roles                    - User roles (11 records)
@@ -476,6 +541,9 @@ Examples:
   ts-node src/utils/seeders/index.ts seed roles                     # Seed only roles
   ts-node src/utils/seeders/index.ts clear product-categories       # Clear only product categories
   ts-node src/utils/seeders/index.ts reset currencies               # Reset only currencies
+  ts-node src/utils/seeders/index.ts add-permission user            # Add all CRUD permissions for user module
+  ts-node src/utils/seeders/index.ts add-permission user read       # Add only user_read permission
+  ts-node src/utils/seeders/index.ts add-permission company create # Add only company_create permission
   ts-node src/utils/seeders/index.ts list                           # List all sections
         `);
         process.exit(1);

@@ -51,6 +51,7 @@ const MODULE_MAPPING: Record<string, string> = {
   'sales-bonus-rule': 'Sales Bonus Rule',
   'kpi-target': 'KPI Target',
   survey: 'Survey',
+  promotion: 'Promotion',
   order: 'Order',
   delivery: 'Delivery Schedule',
   return: 'Return Request',
@@ -204,6 +205,195 @@ export async function clearPermissions(): Promise<void> {
     await prisma.role_permissions.deleteMany({});
     await prisma.permissions.deleteMany({});
   } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * @function addSinglePermission
+ * @description Adds a single permission to the database
+ * @param {string} moduleKey - Module key (e.g., 'user', 'company', 'depot')
+ * @param {string} actionKey - Action key (e.g., 'read', 'create', 'update', 'delete')
+ * @param {number} createdBy - User ID who is creating the permission (default: 1)
+ * @returns {Promise<{success: boolean, message: string, permission?: any}>}
+ * @throws {Error} If adding permission fails
+ */
+export async function addSinglePermission(
+  moduleKey: string,
+  actionKey: string,
+  createdBy: number = 1
+): Promise<{ success: boolean; message: string; permission?: any }> {
+  try {
+    const moduleDisplayName = MODULE_MAPPING[moduleKey];
+    if (!moduleDisplayName) {
+      return {
+        success: false,
+        message: `Invalid module key: ${moduleKey}. Available modules: ${MODULES.join(', ')}`,
+      };
+    }
+
+    const action = ACTIONS.find(a => a.key === actionKey);
+    if (!action) {
+      return {
+        success: false,
+        message: `Invalid action key: ${actionKey}. Available actions: ${ACTIONS.map(a => a.key).join(', ')}`,
+      };
+    }
+
+    if (READ_ONLY_MODULES.includes(moduleKey) && actionKey === 'delete') {
+      return {
+        success: false,
+        message: `Module "${moduleKey}" does not support delete action`,
+      };
+    }
+
+    if (moduleKey === 'setting' && actionKey !== 'read') {
+      return {
+        success: false,
+        message: `Module "setting" only supports read action`,
+      };
+    }
+
+    const moduleNameForPermission = moduleKey.replace(/-/g, '_').toLowerCase();
+    const permissionName = `${moduleNameForPermission}_${actionKey}`;
+
+    const existingPermission = await prisma.permissions.findFirst({
+      where: {
+        name: permissionName,
+      },
+    });
+
+    if (existingPermission) {
+      return {
+        success: false,
+        message: `Permission "${permissionName}" already exists`,
+        permission: existingPermission,
+      };
+    }
+
+    const permission = await prisma.permissions.create({
+      data: {
+        name: permissionName,
+        module: moduleDisplayName,
+        action: action.name,
+        description: `${action.description} for ${moduleDisplayName}`,
+        is_active: 'Y',
+        createdate: new Date(),
+        createdby: createdBy,
+        updatedate: new Date(),
+        updatedby: createdBy,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Permission "${permissionName}" created successfully`,
+      permission,
+    };
+  } catch (error) {
+    console.error('Error adding permission:', error);
+    throw error;
+  }
+}
+
+/**
+ * @function addModulePermissions
+ * @description Adds all CRUD permissions for a module
+ * @param {string} moduleKey - Module key (e.g., 'user', 'company', 'depot')
+ * @param {number} createdBy - User ID who is creating the permissions (default: 1)
+ * @returns {Promise<{success: boolean, message: string, added: number, skipped: number, permissions?: any[]}>}
+ * @throws {Error} If adding permissions fails
+ */
+export async function addModulePermissions(
+  moduleKey: string,
+  createdBy: number = 1
+): Promise<{
+  success: boolean;
+  message: string;
+  added: number;
+  skipped: number;
+  permissions?: any[];
+}> {
+  try {
+    const moduleDisplayName = MODULE_MAPPING[moduleKey];
+    if (!moduleDisplayName) {
+      return {
+        success: false,
+        message: `Invalid module key: ${moduleKey}. Available modules: ${MODULES.join(', ')}`,
+        added: 0,
+        skipped: 0,
+      };
+    }
+
+    const moduleNameForPermission = moduleKey.replace(/-/g, '_').toLowerCase();
+    const permissionsToAdd = [];
+    const addedPermissions = [];
+    let skippedCount = 0;
+
+    for (const action of ACTIONS) {
+      if (READ_ONLY_MODULES.includes(moduleKey) && action.key === 'delete') {
+        continue;
+      }
+
+      if (moduleKey === 'setting' && action.key !== 'read') {
+        continue;
+      }
+
+      const permissionName = `${moduleNameForPermission}_${action.key}`;
+
+      const existingPermission = await prisma.permissions.findFirst({
+        where: {
+          name: permissionName,
+        },
+      });
+
+      if (existingPermission) {
+        skippedCount++;
+        continue;
+      }
+
+      permissionsToAdd.push({
+        name: permissionName,
+        module: moduleDisplayName,
+        action: action.name,
+        description: `${action.description} for ${moduleDisplayName}`,
+        is_active: 'Y',
+        createdate: new Date(),
+        createdby: createdBy,
+        updatedate: new Date(),
+        updatedby: createdBy,
+      });
+    }
+
+    if (permissionsToAdd.length === 0) {
+      return {
+        success: true,
+        message: `All permissions for module "${moduleKey}" already exist`,
+        added: 0,
+        skipped: skippedCount,
+      };
+    }
+
+    const createdPermissions = await prisma.permissions.createMany({
+      data: permissionsToAdd,
+    });
+
+    const createdPermissionNames = permissionsToAdd.map(p => p.name);
+    const fetchedPermissions = await prisma.permissions.findMany({
+      where: {
+        name: { in: createdPermissionNames },
+      },
+    });
+
+    return {
+      success: true,
+      message: `Successfully added ${createdPermissions.count} permission(s) for module "${moduleKey}"`,
+      added: createdPermissions.count,
+      skipped: skippedCount,
+      permissions: fetchedPermissions,
+    };
+  } catch (error) {
+    console.error('Error adding module permissions:', error);
     throw error;
   }
 }
