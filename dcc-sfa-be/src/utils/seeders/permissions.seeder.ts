@@ -51,7 +51,7 @@ const MODULE_MAPPING: Record<string, string> = {
   'sales-bonus-rule': 'Sales Bonus Rule',
   'kpi-target': 'KPI Target',
   survey: 'Survey',
-  promotion: 'Promotion',
+  promotions: 'Promotions',
   order: 'Order',
   delivery: 'Delivery Schedule',
   return: 'Return Request',

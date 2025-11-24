@@ -129,6 +129,11 @@ const menuItems: MenuItem[] = [
         label: 'Customer Complaints',
         href: '/masters/customer-complaints',
       },
+      {
+        id: 'promotions',
+        label: 'Promotions',
+        href: '/masters/promotions',
+      },
     ],
   },
   {

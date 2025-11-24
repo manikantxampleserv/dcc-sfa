@@ -141,6 +141,7 @@ export type Modules =
   | 'sales-bonus-rule'
   | 'kpi-target'
   | 'survey'
+  | 'promotions'
   | 'order'
   | 'delivery'
   | 'return'
@@ -208,6 +209,7 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'sales-bonus-rule': 'Sales Bonus Rule',
   'kpi-target': 'KPI Target',
   survey: 'Survey',
+  promotions: 'Promotions',
   order: 'Order',
   delivery: 'Delivery',
   return: 'Return',

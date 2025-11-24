@@ -38,7 +38,7 @@ export const BACKEND_MODULES = [
   'sales-bonus-rule',
   'kpi-target',
   'survey',
-  'promotion',
+  'promotions',
   'order',
   'delivery',
   'return',
