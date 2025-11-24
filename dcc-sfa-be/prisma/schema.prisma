@@ -1184,20 +1184,21 @@ model pricelists {
 }
 
 model product_categories {
-  id                                        Int                         @id @default(autoincrement())
-  category_name                             String                      @db.NVarChar(255)
-  description                               String?
-  is_active                                 String                      @default("Y") @db.Char(1)
-  createdate                                DateTime?                   @default(now()) @db.DateTime
-  createdby                                 Int
-  updatedate                                DateTime?                   @db.DateTime
-  updatedby                                 Int?
-  log_inst                                  Int?
-  customer_purchase_history                 customer_purchase_history[]
-  product_category                          product_sub_categories[]
-  product_categories_products               products[]
-  sales_target_overrides_product_categories sales_target_overrides[]
-  sales_targets_product_categories          sales_targets[]
+  id                                           Int                           @id @default(autoincrement())
+  category_name                                String                        @db.NVarChar(255)
+  description                                  String?
+  is_active                                    String                        @default("Y") @db.Char(1)
+  createdate                                   DateTime?                     @default(now()) @db.DateTime
+  createdby                                    Int
+  updatedate                                   DateTime?                     @db.DateTime
+  updatedby                                    Int?
+  log_inst                                     Int?
+  customer_purchase_history                    customer_purchase_history[]
+  product_category                             product_sub_categories[]
+  product_categories_products                  products[]
+  sales_target_overrides_product_categories    sales_target_overrides[]
+  sales_targets_product_categories             sales_targets[]
+  customer_category_condition_product_category customer_category_condition[]
 }
 
 model product_facing {
@@ -2135,29 +2136,30 @@ model customer_complaints {
 }
 
 model customer_category {
-  id                           Int                           @id(map: "PK__customer__3213E83F2343726B") @default(autoincrement())
-  category_name                String                        @db.VarChar(255)
-  category_code                String                        @db.VarChar(100)
-  is_active                    String                        @db.Char(1)
-  createdate                   DateTime?                     @db.DateTime
-  createdby                    Int
-  updatedate                   DateTime?                     @db.DateTime
-  updatedby                    Int?
-  log_inst                     Int?
-  customer_category_condition  customer_category_condition[]
-  promotion_customer_categorys promotion_customer_category[]
+  id                                            Int                           @id(map: "PK__customer__3213E83F2343726B") @default(autoincrement())
+  category_name                                 String                        @db.VarChar(255)
+  category_code                                 String                        @db.VarChar(100)
+  is_active                                     String                        @db.Char(1)
+  createdate                                    DateTime?                     @db.DateTime
+  createdby                                     Int
+  updatedate                                    DateTime?                     @db.DateTime
+  updatedby                                     Int?
+  log_inst                                      Int?
+  customer_category_condition_customer_category customer_category_condition[]
+  promotion_customer_categorys                  promotion_customer_category[]
 }
 
 model customer_category_condition {
-  id                    Int               @id(map: "PK__customer__3213E83FE9D2975D") @default(autoincrement())
-  customer_category_id  Int
-  condition_type        String            @db.VarChar(50)
-  condition_operator    String            @db.VarChar(50)
-  threshold_value       Decimal           @db.Decimal(18, 2)
-  product_category_id   Int?
-  condition_description String?           @db.Text
-  is_active             String            @db.Char(1)
-  customer_category     customer_category @relation(fields: [customer_category_id], references: [id], onUpdate: NoAction, map: "FK__customer___custo__662BF692")
+  id                                            Int                 @id(map: "PK__customer__3213E83FE9D2975D") @default(autoincrement())
+  customer_category_id                          Int
+  condition_type                                String              @db.VarChar(50)
+  condition_operator                            String              @db.VarChar(50)
+  threshold_value                               Decimal             @db.Decimal(18, 2)
+  product_category_id                           Int?
+  condition_description                         String?             @db.Text
+  is_active                                     String              @db.Char(1)
+  customer_category_condition_customer_category customer_category   @relation(fields: [customer_category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  customer_category_condition_product_category  product_categories? @relation(fields: [product_category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model customer_purchase_history {
