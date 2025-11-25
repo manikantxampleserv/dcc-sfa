@@ -12,6 +12,8 @@ import AssetTypesManagement from 'pages/masters/AssetTypes';
 import BrandsManagement from 'pages/masters/Brands';
 import CompaniesManagement from 'pages/masters/Companies';
 import CompetitorActivityManagement from 'pages/masters/CompetitorActivity';
+import CustomerCategoryPage from 'pages/masters/CustomerCategory';
+import CustomerTypePage from 'pages/masters/CustomerType';
 import CustomerComplaintsPage from 'pages/masters/CustomerComplaints';
 import CurrenciesManagement from 'pages/masters/Currencies';
 import DepotsManagement from 'pages/masters/Depot';
@@ -229,6 +231,22 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="outlet-group" action="read">
               <OutletGroupsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/customer-category',
+          element: (
+            <PermissionGuard module="customer-category" action="read">
+              <CustomerCategoryPage />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/customer-type',
+          element: (
+            <PermissionGuard module="customer-type" action="read">
+              <CustomerTypePage />
             </PermissionGuard>
           ),
         },

@@ -1,5 +1,6 @@
 import prisma from '../../configs/prisma.client';
 import { Request, Response } from 'express';
+import { paginate } from '../../utils/paginate';
 
 interface CustomerCategoryConditionInput {
   id?: number;
@@ -151,19 +152,70 @@ export const customerCategoryController = {
       return res.status(500).json({ message: e.message });
     }
   },
-  async getAllCustomerCategory(req: Request, res: Response) {
+  async getAllCustomerCategory(req: any, res: any) {
     try {
-      const data = await prisma.customer_category.findMany({
+      const { page, limit, search, is_active } = req.query;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 10;
+      const searchLower = search ? (search as string).toLowerCase() : '';
+
+      const filters: any = {
+        ...(search && {
+          OR: [
+            { category_name: { contains: searchLower } },
+            { category_code: { contains: searchLower } },
+          ],
+        }),
+        ...(is_active && { is_active: is_active as string }),
+      };
+
+      const { data, pagination } = await paginate({
+        model: prisma.customer_category,
+        filters,
+        page: pageNum,
+        limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
           customer_category_condition_customer_category: true,
         },
       });
 
-      return res.status(200).json({
-        message: 'Customer categories retrieved successfully',
-        data: data.map(serializeCustomerCategory),
+      const totalCategories = await prisma.customer_category.count({
+        where: filters,
       });
+      const activeCategories = await prisma.customer_category.count({
+        where: { ...filters, is_active: 'Y' },
+      });
+      const inactiveCategories = await prisma.customer_category.count({
+        where: { ...filters, is_active: 'N' },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const newCategoriesThisMonth = await prisma.customer_category.count({
+        where: {
+          ...filters,
+          createdate: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
+      });
+
+      res.success(
+        'Customer categories retrieved successfully',
+        data.map(serializeCustomerCategory),
+        200,
+        pagination,
+        {
+          total_categories: totalCategories,
+          active_categories: activeCategories,
+          inactive_categories: inactiveCategories,
+          new_categories_this_month: newCategoriesThisMonth,
+        }
+      );
     } catch (error: any) {
       return res.status(500).json({ message: error.message });
     }

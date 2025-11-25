@@ -1,7 +1,7 @@
 /**
  * @fileoverview Auto-Generated Menu Permissions Hook
  * @description Generated automatically from menu items and backend modules
- * @generated-at 2025-11-24T05:41:20.258Z
+ * @generated-at 2025-11-25T07:10:12.574Z
  */
 
 import { useCallback, useMemo } from 'react';
@@ -56,6 +56,8 @@ export const useMenuPermissions = () => {
   const stockTransferPerms = usePermission('stock-transfer' as BackendModule);
   const competitorPerms = usePermission('competitor' as BackendModule);
   const customerComplaintPerms = usePermission('customer-complaint' as BackendModule);
+  const customerCategoryPerms = usePermission('customer-category' as BackendModule);
+  const customerTypePerms = usePermission('customer-type' as BackendModule);
   const locationPerms = usePermission('location' as BackendModule);
   const routeEffectivenessPerms = usePermission('route-effectiveness' as BackendModule);
   const erpSyncPerms = usePermission('erp-sync' as BackendModule);
@@ -112,6 +114,8 @@ export const useMenuPermissions = () => {
     'stock-transfer': stockTransferPerms,
     'competitor': competitorPerms,
     'customer-complaint': customerComplaintPerms,
+    'customer-category': customerCategoryPerms,
+    'customer-type': customerTypePerms,
     'location': locationPerms,
     'route-effectiveness': routeEffectivenessPerms,
     'erp-sync': erpSyncPerms,
@@ -167,6 +171,8 @@ export const useMenuPermissions = () => {
     stockTransferPerms,
     competitorPerms,
     customerComplaintPerms,
+    customerCategoryPerms,
+    customerTypePerms,
     locationPerms,
     routeEffectivenessPerms,
     erpSyncPerms,

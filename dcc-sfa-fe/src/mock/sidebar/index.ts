@@ -61,6 +61,16 @@ const menuItems: MenuItem[] = [
         label: 'Outlet Groups',
         href: '/masters/outlet-groups',
       },
+      {
+        id: 'customer-category',
+        label: 'Customer Category',
+        href: '/masters/customer-category',
+      },
+      {
+        id: 'customer-type',
+        label: 'Customer Type',
+        href: '/masters/customer-type',
+      },
       { id: 'asset-types', label: 'Asset Types', href: '/masters/asset-types' },
       {
         id: 'asset-master',

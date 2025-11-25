@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../configs/jwt.config';
 import {
@@ -14,7 +13,7 @@ import prisma from '../configs/prisma.client';
 
 type PermissionItem = { module: Modules; action: Actions };
 
-const userWithRoleAndPermissions = Prisma.validator<Prisma.usersInclude>()({
+const userWithRoleAndPermissions = {
   user_role: {
     include: {
       roles_permission: {
@@ -24,7 +23,7 @@ const userWithRoleAndPermissions = Prisma.validator<Prisma.usersInclude>()({
       },
     },
   },
-});
+};
 
 export const authenticateToken = async (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];

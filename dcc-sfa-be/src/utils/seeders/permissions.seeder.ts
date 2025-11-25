@@ -68,6 +68,8 @@ const MODULE_MAPPING: Record<string, string> = {
   'stock-transfer': 'Stock Transfer Request',
   competitor: 'Competitor Activity',
   'customer-complaint': 'Customer Complaint',
+  'customer-category': 'Customer Category',
+  'customer-type': 'Customer Type',
   location: 'GPS Tracking',
   'route-effectiveness': 'Route Effectiveness',
   'erp-sync': 'ERP Sync',
@@ -86,7 +88,7 @@ const MODULE_MAPPING: Record<string, string> = {
  * @description Array of all module keys extracted from MODULE_MAPPING
  * @type {string[]}
  */
-const MODULES = Object.keys(MODULE_MAPPING);
+const MODULES: string[] = Object.keys(MODULE_MAPPING);
 
 /**
  * @constant ACTIONS

@@ -158,6 +158,8 @@ export type Modules =
   | 'stock-transfer'
   | 'competitor'
   | 'customer-complaint'
+  | 'customer-category'
+  | 'customer-type'
   | 'location'
   | 'route-effectiveness'
   | 'erp-sync'
@@ -226,6 +228,8 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'stock-transfer': 'Stock Transfer',
   competitor: 'Competitor',
   'customer-complaint': 'Customer Complaint',
+  'customer-category': 'Customer Category',
+  'customer-type': 'Customer Type',
   location: 'Location',
   'route-effectiveness': 'Route Effectiveness',
   'erp-sync': 'ERP Sync',
