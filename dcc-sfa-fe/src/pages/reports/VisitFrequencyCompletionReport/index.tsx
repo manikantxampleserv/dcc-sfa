@@ -156,6 +156,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
             size="small"
             className="!capitalize"
             color={chipColor}
+            variant="outlined"
           />
         );
       },
@@ -187,6 +188,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
                 ? 'info'
                 : 'warning'
           }
+          variant="outlined"
         />
       ),
     },
@@ -245,6 +247,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
             size="small"
             className="!capitalize"
             color={chipColor}
+            variant="outlined"
           />
         );
       },
@@ -477,47 +480,49 @@ const VisitFrequencyCompletionReport: React.FC = () => {
       </div>
 
       {/* Visits Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Calendar className="w-5 h-5" />
-          Visits ({reportData?.data?.visits?.length || 0})
-        </h2>
-        <Table
-          columns={visitsColumns}
-          data={reportData?.data?.visits || []}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Calendar className="w-5 h-5" /> Visits (
+            {reportData?.data?.visits?.length || 0})
+          </Box>
+        }
+        columns={visitsColumns}
+        data={reportData?.data?.visits || []}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
 
       {/* Visit Tasks Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Target className="w-5 h-5" />
-          Visit Tasks ({reportData?.data?.tasks?.length || 0})
-        </h2>
-        <Table
-          columns={tasksColumns}
-          data={reportData?.data?.tasks || []}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Target className="w-5 h-5" />
+            Visit Tasks ({reportData?.data?.tasks?.length || 0})
+          </Box>
+        }
+        columns={tasksColumns}
+        data={reportData?.data?.tasks || []}
+        loading={isLoading}
+        pagination={false}
+      />
 
       {/* GPS Logs Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <MapPin className="w-5 h-5" />
-          GPS Logs ({reportData?.data?.gps_logs?.length || 0})
-        </h2>
-        <Table
-          columns={gpsLogsColumns}
-          data={reportData?.data?.gps_logs || []}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <MapPin className="w-5 h-5" /> GPS Logs (
+            {reportData?.data?.gps_logs?.length || 0})
+          </Box>
+        }
+        columns={gpsLogsColumns}
+        data={reportData?.data?.gps_logs || []}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
     </div>
   );
 };

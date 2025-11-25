@@ -24,6 +24,7 @@ import OutletGroupsManagement from 'pages/masters/OutletGroups';
 import PriceListsManagement from 'pages/masters/PriceLists';
 import ProductCategoriesManagement from 'pages/masters/ProductCategories';
 import ProductsManagement from 'pages/masters/Products';
+import PromotionsManagement from 'pages/masters/Promotions';
 import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
@@ -44,6 +45,7 @@ import VehiclesManagement from 'pages/masters/Vehicles';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import ZonesManagement from 'pages/masters/Zone';
 import NotFound from 'pages/NotFound';
+import Unauthorized from 'pages/Unauthorized';
 import Profile from 'pages/Profile';
 import AssetMovementStatusReport from 'pages/reports/AssetMovementStatusReport';
 import AttendanceReports from 'pages/reports/AttendanceReports';
@@ -103,19 +105,11 @@ const router = createBrowserRouter(
       children: [
         {
           path: '/',
-          element: (
-            <PermissionGuard module="dashboard" action="read">
-              <ExecutiveDashboard />
-            </PermissionGuard>
-          ),
+          element: <ExecutiveDashboard />,
         },
         {
           path: '/dashboard/executive',
-          element: (
-            <PermissionGuard module="dashboard" action="read">
-              <ExecutiveDashboard />
-            </PermissionGuard>
-          ),
+          element: <ExecutiveDashboard />,
         },
 
         {
@@ -307,6 +301,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="pricelist" action="read">
               <PriceListsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/promotions',
+          element: (
+            <PermissionGuard module="promotions" action="read">
+              <PromotionsManagement />
             </PermissionGuard>
           ),
         },
@@ -717,6 +719,10 @@ const router = createBrowserRouter(
               <Profile />
             </PermissionGuard>
           ),
+        },
+        {
+          path: '/unauthorized',
+          element: <Unauthorized />,
         },
         {
           path: '*',

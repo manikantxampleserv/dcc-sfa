@@ -206,7 +206,7 @@ const ZonesManagement: React.FC = () => {
           icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
-          className="w-26"
+          variant="outlined"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),

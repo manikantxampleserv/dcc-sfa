@@ -51,19 +51,24 @@ const KpiTargetsManagement: React.FC = () => {
   const kpiTargets = kpiTargetsResponse?.data || [];
   const totalCount = kpiTargetsResponse?.meta?.total_count || 0;
   const currentPage = (kpiTargetsResponse?.meta?.current_page || 1) - 1;
-  const stats = kpiTargetsResponse?.stats || {};
+  const stats = kpiTargetsResponse?.stats || {
+    total_targets: 0,
+    active_targets: 0,
+    inactive_targets: 0,
+    targets_this_month: 0,
+  };
 
   const deleteKpiTargetMutation = useDeleteKpiTarget();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalTargets = stats.total_targets ?? kpiTargets.length;
+  const totalTargets = stats?.total_targets ?? kpiTargets.length;
   const activeTargets =
-    stats.active_targets ??
+    stats?.active_targets ??
     kpiTargets.filter((t: KpiTarget) => t.is_active === 'Y').length;
   const inactiveTargets =
-    stats.inactive_targets ??
+    stats?.inactive_targets ??
     kpiTargets.filter((t: KpiTarget) => t.is_active === 'N').length;
-  const targetsThisMonth = stats.targets_this_month ?? 0;
+  const targetsThisMonth = stats?.targets_this_month ?? 0;
 
   const handleCreateKpiTarget = useCallback(() => {
     setSelectedKpiTarget(null);
@@ -189,6 +194,7 @@ const KpiTargetsManagement: React.FC = () => {
           icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
+          variant="outlined"
           color={row.is_active === 'Y' ? 'success' : 'error'}
         />
       ),

@@ -127,17 +127,25 @@ const CreditNotesManagement: React.FC = () => {
     }).format(amount);
   };
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      draft: '!bg-gray-100 !text-gray-800',
-      pending: '!bg-yellow-100 !text-yellow-800',
-      approved: '!bg-green-100 !text-green-800',
-      rejected: '!bg-red-100 !text-red-800',
-      cancelled: '!bg-red-100 !text-red-800',
-    };
-    return (
-      colors[status as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
-    );
+  const getStatusColor = (
+    status: string
+  ):
+    | 'default'
+    | 'warning'
+    | 'success'
+    | 'error'
+    | 'primary'
+    | 'secondary'
+    | 'info' => {
+    const colors: Record<string, 'default' | 'warning' | 'success' | 'error'> =
+      {
+        draft: 'default',
+        pending: 'warning',
+        approved: 'success',
+        rejected: 'error',
+        cancelled: 'error',
+      };
+    return colors[status] || 'default';
   };
 
   const getStatusIcon = (status: string) => {
@@ -225,14 +233,13 @@ const CreditNotesManagement: React.FC = () => {
       id: 'status',
       label: 'Status',
       render: (_value, row) => (
-        <Box className="flex !gap-2 items-center">
-          <Chip
-            icon={getStatusIcon(row.status || 'draft')}
-            label={row.status || 'draft'}
-            size="small"
-            className={`!text-xs !px-1 !capitalize ${getStatusColor(row.status || 'draft')} !min-w-20`}
-          />
-        </Box>
+        <Chip
+          icon={getStatusIcon(row.status || 'draft')}
+          label={row.status || 'draft'}
+          size="small"
+          variant="outlined"
+          color={getStatusColor(row.status || 'draft')}
+        />
       ),
     },
     {

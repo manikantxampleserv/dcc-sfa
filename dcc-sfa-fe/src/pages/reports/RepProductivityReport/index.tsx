@@ -103,14 +103,7 @@ const RepProductivityReport: React.FC = () => {
       numeric: true,
       render: value => <span className="font-semibold text-sm">{value}</span>,
     },
-    {
-      id: 'completed_tasks',
-      label: 'Completed Tasks',
-      numeric: true,
-      render: value => (
-        <span className="font-semibold text-green-600 text-sm">{value}</span>
-      ),
-    },
+
     {
       id: 'total_orders',
       label: 'Orders',
@@ -325,18 +318,19 @@ const RepProductivityReport: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <User className="w-5 h-5" />
-          Rep Performance ({reps.length})
-        </h2>
-        <Table
-          columns={repsColumns}
-          data={reps}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <User className="w-5 h-5" />
+            Rep Performance ({reps.length})
+          </Box>
+        }
+        columns={repsColumns}
+        data={reps}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
     </div>
   );
 };

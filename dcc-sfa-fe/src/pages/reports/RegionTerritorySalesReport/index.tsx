@@ -153,7 +153,7 @@ const RegionTerritorySalesReport: React.FC = () => {
     },
     {
       id: 'salesperson_name',
-      label: 'Salesperson',
+      label: 'Sales Person',
       render: value => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -344,32 +344,34 @@ const RegionTerritorySalesReport: React.FC = () => {
       </div>
 
       {/* Territory Performance Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <MapPin className="w-5 h-5" />
-          Territory Performance ({reportData?.data?.zones?.length || 0})
-        </h2>
-        <Table
-          columns={territoryColumns}
-          data={reportData?.data?.zones || []}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <MapPin className="w-5 h-5" />
+            Territory Performance ({reportData?.data?.zones?.length || 0})
+          </Box>
+        }
+        columns={territoryColumns}
+        data={reportData?.data?.zones || []}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
 
       {/* Route Performance Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5" />
-          Route Performance ({allRoutes.length})
-        </h2>
-        <Table
-          columns={routeColumns}
-          data={allRoutes}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <TrendingUp className="w-5 h-5" /> Route Performance (
+            {allRoutes.length})
+          </Box>
+        }
+        columns={routeColumns}
+        data={allRoutes}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
     </div>
   );
 };

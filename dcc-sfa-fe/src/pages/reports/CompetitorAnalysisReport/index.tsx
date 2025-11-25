@@ -110,6 +110,7 @@ const CompetitorAnalysisReport: React.FC = () => {
                 ? 'warning'
                 : 'error'
           }
+          variant="outlined"
         />
       ),
     },
@@ -140,6 +141,7 @@ const CompetitorAnalysisReport: React.FC = () => {
             size="small"
             className="!capitalize"
             color={chipColor}
+            variant="outlined"
           />
         );
       },
@@ -179,6 +181,7 @@ const CompetitorAnalysisReport: React.FC = () => {
                 ? 'warning'
                 : 'error'
           }
+          variant="outlined"
         />
       ),
     },
@@ -315,31 +318,32 @@ const CompetitorAnalysisReport: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" />
-          Competitor Activities ({activities.length})
-        </h2>
-        <Table
-          columns={activitiesColumns}
-          data={activities}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5" />
-          Brands Summary ({brandsSummary.length})
-        </h2>
-        <Table
-          columns={brandsColumns}
-          data={brandsSummary}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            Competitor Activities ({activities.length})
+          </Box>
+        }
+        columns={activitiesColumns}
+        data={activities}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <TrendingUp className="w-5 h-5" /> Brands Summary (
+            {brandsSummary.length})
+          </Box>
+        }
+        columns={brandsColumns}
+        data={brandsSummary}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
     </div>
   );
 };

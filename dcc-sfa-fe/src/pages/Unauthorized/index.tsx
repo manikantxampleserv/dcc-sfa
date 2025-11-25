@@ -2,23 +2,24 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import Button from 'shared/Button';
-import NotFoundSvg from 'resources/not-found.svg';
+import UnauthorizedSvg from 'resources/unauthorized.svg';
 
-const NotFound: React.FC = () => {
+const Unauthorized: React.FC = () => {
   const navigate = useNavigate();
 
   return (
     <div className="flex items-center justify-center min-h-full bg-gray-50">
       <div className="text-center px-4">
-        <div className="mb-6 flex justify-center">
+        <div className="flex justify-center">
           <img
-            src={NotFoundSvg}
-            alt="404 Not Found"
+            src={UnauthorizedSvg}
+            alt="403 Unauthorized"
             className="w-96 h-96 max-w-full"
           />
         </div>
-        <p className="text-gray-500 mb-8 max-w-md mx-auto">
-          The page you're looking for doesn't exist or has been moved.
+        <p className="text-gray-500 mb-8 max-w-xl mx-auto">
+          You don't have permission to access this page. Please contact your
+          administrator if you believe this is an error.
         </p>
         <div className="flex gap-4 justify-center">
           <Button
@@ -42,4 +43,4 @@ const NotFound: React.FC = () => {
   );
 };
 
-export default NotFound;
+export default Unauthorized;

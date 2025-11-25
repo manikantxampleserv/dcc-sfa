@@ -264,11 +264,17 @@ const SurveyResponses: React.FC = () => {
       label: 'Status',
       render: (_value, row) => (
         <Chip
-          icon={row.is_active === 'Y' ? <CheckCircle /> : <Description />}
+          icon={
+            row.is_active === 'Y' ? (
+              <CheckCircle fontSize="small" />
+            ) : (
+              <Description fontSize="small" />
+            )
+          }
           label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
-          className="w-26"
           color={row.is_active === 'Y' ? 'success' : 'error'}
+          variant="outlined"
         />
       ),
     },

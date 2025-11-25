@@ -489,7 +489,6 @@ export const creditNotesController = {
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
-      const statusLower = status ? (status as string).toLowerCase() : '';
 
       const filters: any = {
         ...(search && {
@@ -497,10 +496,17 @@ export const creditNotesController = {
             { credit_note_number: { contains: searchLower } },
             { status: { contains: searchLower } },
             { reason: { contains: searchLower } },
+            {
+              credit_notes_customers: {
+                OR: [
+                  { name: { contains: searchLower } },
+                  { code: { contains: searchLower } },
+                ],
+              },
+            },
           ],
         }),
-        ...(statusLower === 'active' && { is_active: 'Y' }),
-        ...(statusLower === 'inactive' && { is_active: 'N' }),
+        ...(status && status !== 'all' && { status: status as string }),
       };
 
       const { data, pagination } = await paginate({

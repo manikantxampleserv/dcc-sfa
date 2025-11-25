@@ -1,5 +1,5 @@
 import { Alert, Chip, MenuItem, Typography } from '@mui/material';
-import { CheckCircle, Settings, Users, XCircle } from 'lucide-react';
+import { Check, CheckCircle, Settings, Users, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import {
   useApprovalWorkflowSetups,
@@ -180,8 +180,16 @@ const ApprovalSetup: React.FC = () => {
       label: 'Status',
       render: (_value, row) => (
         <Chip
+          variant="outlined"
+          icon={
+            row.is_active === 'Y' ? (
+              <Check fontSize="small" />
+            ) : (
+              <XCircle fontSize="small" />
+            )
+          }
           label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
-          color={row.is_active === 'Y' ? 'success' : 'default'}
+          color={row.is_active === 'Y' ? 'success' : 'error'}
           size="small"
         />
       ),

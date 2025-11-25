@@ -212,6 +212,7 @@ const AssetMasterManagement: React.FC = () => {
           icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
+          variant="outlined"
           color={row.is_active === 'Y' ? 'success' : 'error'}
         />
       ),

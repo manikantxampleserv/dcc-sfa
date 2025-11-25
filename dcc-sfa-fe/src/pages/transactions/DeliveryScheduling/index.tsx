@@ -586,7 +586,7 @@ const DeliveryScheduling: React.FC = () => {
                 startIcon={<Add />}
                 onClick={handleCreateDeliverySchedule}
               >
-                Schedule Delivery
+                Schedule
               </Button>
             </div>
           </div>

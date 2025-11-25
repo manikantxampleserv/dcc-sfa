@@ -119,6 +119,7 @@ const AssetMovementStatusReport: React.FC = () => {
             size="small"
             className="!capitalize"
             color={chipColor}
+            variant="outlined"
           />
         );
       },
@@ -480,64 +481,64 @@ const AssetMovementStatusReport: React.FC = () => {
       </div>
 
       {/* Asset Master Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Package className="w-5落{ h-5" />
-          Asset Master ({reportData?.data?.assets?.length || 0})
-        </h2>
-        <Table
-          columns={assetColumns}
-          data={reportData?.data?.assets || []}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Package className="w-5 h-5" /> Asset Master (
+            {reportData?.data?.assets?.length || 0})
+          </Box>
+        }
+        columns={assetColumns}
+        data={reportData?.data?.assets || []}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
 
       {/* Asset Movements Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Move className="w-5 h-5" />
-          Asset Movements ({reportData?.data?.movements?.length || 0})
-        </h2>
-        <Table
-          columns={movementsColumns}
-          data={reportData?.data?.movements || []}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Move className="w-5 h-5" /> Asset Movements (
+            {reportData?.data?.movements?.length || 0})
+          </Box>
+        }
+        columns={movementsColumns}
+        data={reportData?.data?.movements || []}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
 
       {/* Customer Assets Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Customer Assets ({reportData?.data?.customer_assets?.length || 0})
-        </h2>
-        <Table
-          columns={customerAssetsColumns}
-          data={reportData?.data?.customer_assets || []}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Users className="w-5 h-5" /> Customer Assets (
+            {reportData?.data?.customer_assets?.length || 0})
+          </Box>
+        }
+        columns={customerAssetsColumns}
+        data={reportData?.data?.customer_assets || []}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
 
       {/* Warranty Claims Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Warranty Claims ({reportData?.data?.warranty_claims?.length || 0})
-        </h2>
-        <Table
-          columns={warrantyClaimsColumns}
-          data={reportData?.data?.warranty_claims || []}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <FileText className="w-5 h-5" /> Warranty Claims (
+            {reportData?.data?.warranty_claims?.length || 0})
+          </Box>
+        }
+        columns={warrantyClaimsColumns}
+        data={reportData?.data?.warranty_claims || []}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
     </div>
   );
 };

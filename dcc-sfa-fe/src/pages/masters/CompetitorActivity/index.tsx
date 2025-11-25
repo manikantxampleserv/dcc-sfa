@@ -15,14 +15,7 @@ import {
 } from 'hooks/useCompetitorActivity';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
-import {
-  Building2,
-  Calendar,
-  DollarSign,
-  Eye,
-  Image,
-  Target,
-} from 'lucide-react';
+import { Building2, Calendar, DollarSign, Image, Target } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -204,8 +197,8 @@ const CompetitorActivityManagement: React.FC = () => {
       label: 'Visibility',
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
-          <Eye className="w-3 h-3 text-gray-400" />
           <Chip
+            variant="outlined"
             label={row.visibility_score ? `${row.visibility_score}%` : 'N/A'}
             color={getVisibilityScoreColor(row.visibility_score ?? null)}
             size="small"
@@ -263,6 +256,7 @@ const CompetitorActivityManagement: React.FC = () => {
           icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
+          variant="outlined"
           color={row.is_active === 'Y' ? 'success' : 'error'}
         />
       ),

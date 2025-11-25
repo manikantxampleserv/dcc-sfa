@@ -234,6 +234,7 @@ const VanStockPage: React.FC = () => {
           label={getStatusLabel(row.status || 'D')}
           size="small"
           className="w-24"
+          variant="outlined"
           color={getStatusColor(row.status || 'D') as any}
         />
       ),
@@ -273,6 +274,7 @@ const VanStockPage: React.FC = () => {
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
           className="w-20"
+          variant="outlined"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
       ),

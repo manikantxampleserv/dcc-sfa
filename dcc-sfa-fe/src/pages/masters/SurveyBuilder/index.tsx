@@ -230,7 +230,7 @@ const SurveyBuilder: React.FC = () => {
             }
             label={Boolean(row.is_published) ? 'Published' : 'Draft'}
             size="small"
-            className="w-26"
+            variant="outlined"
             color={Boolean(row.is_published) ? 'success' : 'warning'}
           />
           <Chip
@@ -243,7 +243,7 @@ const SurveyBuilder: React.FC = () => {
             }
             label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
             size="small"
-            className="w-26"
+            variant="outlined"
             color={row.is_active === 'Y' ? 'success' : 'error'}
           />
         </Box>

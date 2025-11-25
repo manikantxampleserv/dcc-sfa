@@ -301,10 +301,10 @@ const ApiTokensPage: React.FC = () => {
         const config = statusConfig[status];
         return (
           <Chip
+            variant="outlined"
             icon={config.icon}
             label={config.label}
             size="small"
-            className="w-26"
             color={config.color}
           />
         );

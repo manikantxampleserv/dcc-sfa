@@ -2,6 +2,7 @@ import {
   Add,
   Block,
   CheckCircle,
+  Close,
   Download,
   Upload,
   Visibility,
@@ -14,7 +15,14 @@ import {
 } from 'hooks/useCoolerInspections';
 import { useExportToExcel } from 'hooks/useImportExport';
 import UserSelect from 'shared/UserSelect';
-import { Calendar, Droplets, MapPin, Thermometer, Wrench } from 'lucide-react';
+import {
+  Calendar,
+  Check,
+  Droplets,
+  MapPin,
+  Thermometer,
+  Wrench,
+} from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
@@ -254,8 +262,10 @@ const CoolerInspectionsManagement: React.FC = () => {
       label: 'Working Status',
       render: (_value, row) => (
         <Chip
+          icon={row.is_working === 'Y' ? <Check /> : <Close />}
           label={row.is_working === 'Y' ? 'Working' : 'Not Working'}
           size="small"
+          variant="outlined"
           color={getWorkingStatusColor(row.is_working)}
         />
       ),
@@ -267,6 +277,8 @@ const CoolerInspectionsManagement: React.FC = () => {
         <Chip
           label={row.action_required === 'Y' ? 'Yes' : 'No'}
           size="small"
+          icon={row.action_required === 'Y' ? <Check /> : <Close />}
+          variant="outlined"
           color={getActionRequiredColor(row.action_required)}
         />
       ),
@@ -334,6 +346,7 @@ const CoolerInspectionsManagement: React.FC = () => {
           icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}
           label={row.is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
+          variant="outlined"
           color={row.is_active === 'Y' ? 'success' : 'error'}
         />
       ),

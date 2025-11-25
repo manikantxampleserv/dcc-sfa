@@ -76,7 +76,7 @@ const OutstandingCollectionReport: React.FC = () => {
       label: 'Invoice#',
       render: value => (
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-red-100 rounded-lgonation flex items-center justify-center">
+          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
             <Receipt className="w-5 h-5 text-red-600" />
           </div>
           <span className="font-semibold text-sm">{value}</span>
@@ -126,7 +126,14 @@ const OutstandingCollectionReport: React.FC = () => {
           chipColor = 'error';
         }
 
-        return <Chip label={days} size="small" color={chipColor} />;
+        return (
+          <Chip
+            label={days}
+            size="small"
+            color={chipColor}
+            variant="outlined"
+          />
+        );
       },
     },
     {
@@ -151,6 +158,7 @@ const OutstandingCollectionReport: React.FC = () => {
             size="small"
             className="!capitalize"
             color={chipColor}
+            variant="outlined"
           />
         );
       },
@@ -192,7 +200,14 @@ const OutstandingCollectionReport: React.FC = () => {
           chipColor = 'error';
         }
 
-        return <Chip label={days.toFixed(0)} size="small" color={chipColor} />;
+        return (
+          <Chip
+            label={days.toFixed(0)}
+            size="small"
+            color={chipColor}
+            variant="outlined"
+          />
+        );
       },
     },
   ];
@@ -318,7 +333,7 @@ const OutstandingCollectionReport: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md: Deadlinegrid-cols-6 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -416,44 +431,46 @@ const OutstandingCollectionReport: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Receipt className="w-5 h-5" />
-          Outstanding Invoices ({outstandingInvoices.length})
-        </h2>
-        <Table
-          columns={outstandingColumns}
-          data={outstandingInvoices}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Receipt className="w-5 h-5" />
+            Outstanding Invoices ({outstandingInvoices.length})
+          </Box>
+        }
+        columns={outstandingColumns}
+        data={outstandingInvoices}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Customer Summary ({customerSummary.length})
-        </h2>
-        <Table
-          columns={customerSummaryColumns}
-          data={customerSummary}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <CheckCircle className="w-5 h-5" />
-          Collections ({collections.length})
-        </h2>
-        <Table
-          columns={collectionsColumns}
-          data={collections}
-          loading={isLoading}
-          pagination={false}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <Users className="w-5 h-5" />
+            Customer Summary ({customerSummary.length})
+          </Box>
+        }
+        columns={customerSummaryColumns}
+        data={customerSummary}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            Collections ({collections.length})
+          </Box>
+        }
+        columns={collectionsColumns}
+        data={collections}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { CheckCircle, Pending } from '@mui/icons-material';
 import { Box, Chip, MenuItem } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import { useOrdersInvoicesReturnsReport } from 'hooks/useReports';
@@ -9,6 +10,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
+import { exportOrdersInvoicesReturnsReport } from 'services/reports/ordersInvoicesReturns';
 import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
 import { PopConfirm } from 'shared/DeleteConfirmation';
@@ -16,7 +18,6 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import { exportOrdersInvoicesReturnsReport } from 'services/reports/ordersInvoicesReturns';
 
 const OrdersInvoicesReturnsReport: React.FC = () => {
   const [startDate, setStartDate] = useState('');
@@ -143,7 +144,11 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         let chipColor: 'success' | 'warning' | 'error' | 'info' | 'default' =
           'default';
 
-        if (statusLower === 'delivered' || statusLower === 'completed') {
+        if (
+          statusLower === 'delivered' ||
+          statusLower === 'completed' ||
+          statusLower === 'approved'
+        ) {
           chipColor = 'success';
         } else if (
           statusLower === 'processing' ||
@@ -174,10 +179,18 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
 
         return (
           <Chip
+            icon={
+              statusLower === 'pending' ? (
+                <Pending fontSize="small" />
+              ) : (
+                <CheckCircle fontSize="small" />
+              )
+            }
             label={value}
             size="small"
             className="!capitalize"
             color={chipColor}
+            variant="outlined"
           />
         );
       },
@@ -258,8 +271,16 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
 
         return (
           <Chip
+            icon={
+              statusLower === 'pending' ? (
+                <Pending fontSize="small" />
+              ) : (
+                <CheckCircle fontSize="small" />
+              )
+            }
             label={value}
             size="small"
+            variant="outlined"
             className="!capitalize"
             color={chipColor}
           />
@@ -348,8 +369,16 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
 
         return (
           <Chip
+            icon={
+              statusLower === 'pending' ? (
+                <Pending fontSize="small" />
+              ) : (
+                <CheckCircle fontSize="small" />
+              )
+            }
             label={value}
             size="small"
+            variant="outlined"
             className="!capitalize"
             color={chipColor}
           />
@@ -578,49 +607,49 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <ShoppingCart className="w-5 h-5" />
-          Orders ({reportData?.data?.orders?.length || 0})
-        </h2>
-        <Table
-          data={reportData?.data?.orders || []}
-          columns={orderColumns}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <ShoppingCart className="w-5 h-5" /> Orders (
+            {reportData?.data?.orders?.length || 0})
+          </Box>
+        }
+        data={reportData?.data?.orders || []}
+        columns={orderColumns}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
 
       {/* Invoices Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Invoices ({reportData?.data?.invoices?.length || 0})
-        </h2>
-        <Table
-          data={reportData?.data?.invoices || []}
-          columns={invoiceColumns}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <FileText className="w-5 h-5" /> Invoices (
+            {reportData?.data?.invoices?.length || 0})
+          </Box>
+        }
+        data={reportData?.data?.invoices || []}
+        columns={invoiceColumns}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
 
       {/* Returns Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-        <h2 className="!font-bold text-lg !text-gray-900 !mb-4 flex items-center gap-2">
-          <RefreshCw className="w-5 h-5" />
-          Returns ({reportData?.data?.returns?.length || 0})
-        </h2>
-        <Table
-          data={reportData?.data?.returns || []}
-          columns={returnColumns}
-          loading={isLoading}
-          pagination={false}
-          isPermission={isRead}
-        />
-      </div>
+      <Table
+        actions={
+          <Box className="flex font-bold items-center gap-2">
+            <RefreshCw className="w-5 h-5" /> Returns (
+            {reportData?.data?.returns?.length || 0})
+          </Box>
+        }
+        data={reportData?.data?.returns || []}
+        columns={returnColumns}
+        loading={isLoading}
+        pagination={false}
+        isPermission={isRead}
+      />
     </div>
   );
 };
