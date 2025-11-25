@@ -102,8 +102,8 @@ export const customerTypesController = {
       const filters: any = {
         ...(search && {
           OR: [
-            { type_name: { contains: searchLower, mode: 'insensitive' } },
-            { type_code: { contains: searchLower, mode: 'insensitive' } },
+            { type_name: { contains: searchLower } },
+            { type_code: { contains: searchLower } },
           ],
         }),
       };
