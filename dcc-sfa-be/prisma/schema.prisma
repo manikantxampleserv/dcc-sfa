@@ -717,7 +717,7 @@ model customers {
   name                             String                      @db.NVarChar(255)
   code                             String                      @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
   zones_id                         Int?
-  customer_type_id                 Int?
+  customer_type_id                 Int
   type                             String?                     @db.NVarChar(50)
   contact_person                   String?                     @db.NVarChar(255)
   phone_number                     String?                     @db.NVarChar(20)
@@ -765,7 +765,7 @@ model customers {
   survey_response_customer         survey_responses[]          @relation("SurveyRresponsesCustomer")
   visit_customers                  visits[]
   warranty_claims_customers        warranty_claims[]
-  customer_type_customer           customer_type[]            @relation("CustomerTypeCustomer")
+  customer_type_customer           customer_type               @relation(fields: [customer_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model customer_image {
@@ -2177,17 +2177,17 @@ model customer_purchase_history {
 }
 
 model customer_type {
-  id                     Int       @id(map: "PK__customer__3213E83F2F998C6A") @default(autoincrement())
+  id                     Int         @id(map: "PK__customer__3213E83F2F998C6A") @default(autoincrement())
   customer_id            Int?
-  type_name              String    @db.VarChar(255)
-  type_code              String    @db.VarChar(100)
-  is_active              String    @db.Char(1)
-  createdate             DateTime? @db.DateTime
+  type_name              String      @db.VarChar(255)
+  type_code              String      @db.VarChar(100)
+  is_active              String      @db.Char(1)
+  createdate             DateTime?   @db.DateTime
   createdby              Int
-  updatedate             DateTime? @db.DateTime
+  updatedate             DateTime?   @db.DateTime
   updatedby              Int?
   log_inst               Int?
-  customer_type_customer customers? @relation("CustomerTypeCustomer", fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  customer_type_customer customers[]
 }
 
 model promotion {
