@@ -93,7 +93,7 @@ export const customerTypesController = {
 
   async getAllCustomerTypes(req: any, res: any) {
     try {
-      const { page, limit, search } = req.query;
+      const { page, limit, search, is_active } = req.query;
 
       const pageNum = Number(page) || 1;
       const limitNum = Number(limit) || 10;
@@ -106,6 +106,7 @@ export const customerTypesController = {
             { type_code: { contains: searchLower } },
           ],
         }),
+        ...(is_active && { is_active: is_active as string }),
       };
 
       const { data, pagination } = await paginate({

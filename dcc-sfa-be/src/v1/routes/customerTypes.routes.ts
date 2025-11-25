@@ -12,7 +12,7 @@ const router = Router();
 router.post(
   '/customer-types',
   authenticateToken,
-  auditCreate('customerTypes'),
+  auditCreate('customer_type'),
   customerTypesController.createCustomerTypes
 );
 router.get(
@@ -29,13 +29,13 @@ router.get(
 router.put(
   '/customer-types/:id',
   authenticateToken,
-  auditUpdate('customerTypes'),
+  auditUpdate('customer_type'),
   customerTypesController.updateCustomerTypes
 );
 router.delete(
   '/customer-types/:id',
   authenticateToken,
-  auditDelete('customerTypes'),
+  auditDelete('customer_type'),
   customerTypesController.deleteCustomerTypes
 );
 

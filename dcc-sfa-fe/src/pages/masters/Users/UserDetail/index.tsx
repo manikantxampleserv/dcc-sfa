@@ -251,7 +251,7 @@ const UserDetail: React.FC = () => {
     >
       <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
-        <div className="!flex !items-center !gap-3 !mb-5">
+        <div className="!flex !items-center !gap-3 !mb-3">
           {Icon && (
             <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
               <Icon className="!text-primary-500" />

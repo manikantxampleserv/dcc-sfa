@@ -77,6 +77,14 @@ export const login = async (req: any, res: any) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.error('Email and password are required', 400);
+    }
+
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.error('Email and password must be strings', 400);
+    }
+
     const user = await prisma.users.findFirst({
       where: { email },
       include: {
@@ -197,14 +205,34 @@ export const login = async (req: any, res: any) => {
       tokenType: 'Bearer',
       expiresIn: jwtConfig.expiresIn,
     });
-  } catch (error) {
-    if ((error as Error).message.includes('connection pool')) {
+  } catch (error: any) {
+    console.error('Login error:', error);
+
+    if (
+      error?.message?.includes('connection pool') ||
+      error?.message?.includes('timeout')
+    ) {
       return res.error(
         'Request Time Out. Please check your VPN connection.',
         503
       );
     }
-    return res.error('Login failed', 500);
+
+    if (error?.code === 'P2002') {
+      return res.error('Database constraint violation. Please try again.', 500);
+    }
+
+    if (error?.code === 'P2025') {
+      return res.error('Database record not found. Please try again.', 404);
+    }
+
+    if (!req.body?.email || !req.body?.password) {
+      return res.error('Email and password are required', 400);
+    }
+
+    const errorMessage =
+      error?.message || 'An unexpected error occurred during login';
+    return res.error(`Login failed: ${errorMessage}`, 500);
   }
 };
 export const logout = async (req: any, res: any) => {
