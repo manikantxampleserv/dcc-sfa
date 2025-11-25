@@ -669,8 +669,28 @@ export const customerController = {
 
   async bulkUpsertCustomers(req: any, res: any) {
     try {
+      if (!req.body) {
+        return res.status(400).json({
+          success: false,
+          message: 'Request body is missing',
+        });
+      }
+
+      if (!req.body.customers) {
+        return res.status(400).json({
+          success: false,
+          message: 'customers field is required',
+        });
+      }
+
       let customersData;
       if (typeof req.body.customers === 'string') {
+        if (!req.body.customers.trim()) {
+          return res.status(400).json({
+            success: false,
+            message: 'customers field cannot be empty',
+          });
+        }
         try {
           customersData = JSON.parse(req.body.customers);
         } catch (error: any) {
@@ -687,10 +707,14 @@ export const customerController = {
         (req.files as {
           outlet_images?: Express.Multer.File[];
           profile_picture?: Express.Multer.File[];
+          customer_images?: Express.Multer.File[];
+          profile_pics?: Express.Multer.File[];
         }) || {};
 
-      const customerImages = uploadedFiles.outlet_images || [];
-      const profilePics = uploadedFiles.profile_picture || [];
+      const customerImages =
+        uploadedFiles.outlet_images || uploadedFiles.customer_images || [];
+      const profilePics =
+        uploadedFiles.profile_picture || uploadedFiles.profile_pics || [];
 
       if (!Array.isArray(customersData) || customersData.length === 0) {
         return res.status(400).json({
@@ -1175,9 +1199,10 @@ export const customerController = {
         },
       });
 
+      const serializedCustomer = await serializeCustomer(customer);
       res.status(201).json({
         message: 'Customer created successfully',
-        data: serializeCustomer(customer),
+        data: serializedCustomer,
       });
     } catch (error: any) {
       console.error('Create Customer Error:', error);
@@ -1404,6 +1429,9 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
+          outlet_images_customers: {
+            orderBy: { createdate: 'desc' },
+          },
           customer_documents_customers: {
             orderBy: { createdate: 'desc' },
           },
@@ -1434,11 +1462,12 @@ export const customerController = {
         return res.status(404).json({ message: 'Customer not found' });
       }
 
+      const serializedCustomer = await serializeCustomer(customer);
       res.json({
         success: true,
         message: 'Customer fetched successfully',
         data: {
-          customer: serializeCustomer(customer),
+          customer: serializedCustomer,
           documents: customer.customer_documents_customers || [],
           assets: customer.customer_assets_customers || [],
         },
@@ -1475,9 +1504,10 @@ export const customerController = {
         },
       });
 
+      const serializedCustomer = await serializeCustomer(customer);
       res.json({
         message: 'Customer updated successfully',
-        data: serializeCustomer(customer),
+        data: serializedCustomer,
       });
     } catch (error: any) {
       console.error('Update Customer Error:', error);
