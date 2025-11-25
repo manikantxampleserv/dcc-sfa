@@ -56,7 +56,7 @@ export const customerTypesController = {
       const data = req.body;
 
       if (!data.type_name) {
-        return res.status(400).json({ message: 'type_name is required' });
+        return res.error('type_name is required', 400);
       }
 
       const code = await generateCustomerTypeCode(data.type_name);
@@ -69,18 +69,16 @@ export const customerTypesController = {
           createdate: new Date(),
           log_inst: data.log_inst || 1,
         },
-        // include: {
-        //   customer_type_customer: true,
-        // },
       });
 
-      res.status(201).json({
-        message: 'Customer Type created successfully',
-        data: serializeCustomerType(record),
-      });
+      return res.success(
+        'Customer Type created successfully',
+        serializeCustomerType(record),
+        201
+      );
     } catch (error: any) {
       console.error('Create Customer Type Error:', error);
-      res.status(500).json({ message: error.message });
+      return res.error(error.message || 'Failed to create customer type', 500);
     }
   },
 
@@ -146,7 +144,7 @@ export const customerTypesController = {
       );
     } catch (error: any) {
       console.error('Get Customer Types Error:', error);
-      res.status(500).json({ message: error.message });
+      return res.error(error.message || 'Failed to fetch customer types', 500);
     }
   },
 
@@ -160,16 +158,16 @@ export const customerTypesController = {
       });
 
       if (!record) {
-        return res.status(404).json({ message: 'Customer Type not found' });
+        return res.error('Customer Type not found', 404);
       }
 
-      res.json({
-        message: 'Customer Type fetched successfully',
-        data: serializeCustomerType(record),
-      });
+      return res.success(
+        'Customer Type fetched successfully',
+        serializeCustomerType(record)
+      );
     } catch (error: any) {
       console.error('Get Customer Type Error:', error);
-      res.status(500).json({ message: error.message });
+      return res.error(error.message || 'Failed to fetch customer type', 500);
     }
   },
 
@@ -182,7 +180,7 @@ export const customerTypesController = {
       });
 
       if (!exists) {
-        return res.status(404).json({ message: 'Customer Type not found' });
+        return res.error('Customer Type not found', 404);
       }
 
       const updated = await prisma.customer_type.update({
@@ -195,13 +193,13 @@ export const customerTypesController = {
         include: { customer_type_customer: true },
       });
 
-      res.json({
-        message: 'Customer Type updated successfully',
-        data: serializeCustomerType(updated),
-      });
+      return res.success(
+        'Customer Type updated successfully',
+        serializeCustomerType(updated)
+      );
     } catch (error: any) {
       console.error('Update Customer Type Error:', error);
-      res.status(500).json({ message: error.message });
+      return res.error(error.message || 'Failed to update customer type', 500);
     }
   },
 
@@ -214,17 +212,17 @@ export const customerTypesController = {
       });
 
       if (!exists) {
-        return res.status(404).json({ message: 'Customer Type not found' });
+        return res.error('Customer Type not found', 404);
       }
 
       await prisma.customer_type.delete({
         where: { id: Number(id) },
       });
 
-      res.json({ message: 'Customer Type deleted successfully' });
+      return res.success('Customer Type deleted successfully');
     } catch (error: any) {
       console.error('Delete Customer Type Error:', error);
-      res.status(500).json({ message: error.message });
+      return res.error(error.message || 'Failed to delete customer type', 500);
     }
   },
 };

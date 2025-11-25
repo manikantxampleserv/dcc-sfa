@@ -3,7 +3,6 @@ import type { ApiResponse } from 'types/api.types';
 
 export interface CustomerType {
   id: number;
-  customer_id: number;
   type_name: string;
   type_code: string;
   is_active: string;
@@ -12,17 +11,14 @@ export interface CustomerType {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  customer?: { id: number; name: string } | null;
 }
 
 export interface ManageCustomerTypePayload {
-  customer_id: number;
   type_name: string;
   is_active?: string;
 }
 
 export interface UpdateCustomerTypePayload {
-  customer_id?: number;
   type_name?: string;
   is_active?: string;
 }
@@ -64,10 +60,10 @@ export const fetchCustomerTypeById = async (
 
 export const createCustomerType = async (
   data: ManageCustomerTypePayload
-): Promise<CustomerType> => {
+): Promise<ApiResponse<CustomerType>> => {
   try {
     const response = await api.post('/customer-types', data);
-    return response.data.data;
+    return response.data;
   } catch (error: any) {
     console.error('Error creating customer type:', error);
     throw new Error(
@@ -79,10 +75,10 @@ export const createCustomerType = async (
 export const updateCustomerType = async (
   id: number,
   data: UpdateCustomerTypePayload
-): Promise<CustomerType> => {
+): Promise<ApiResponse<CustomerType>> => {
   try {
     const response = await api.put(`/customer-types/${id}`, data);
-    return response.data.data;
+    return response.data;
   } catch (error: any) {
     console.error('Error updating customer type:', error);
     throw new Error(

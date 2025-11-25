@@ -8,7 +8,6 @@ import {
   useUpdateCustomerType,
   type CustomerType,
 } from 'hooks/useCustomerType';
-import type { Customer } from 'services/masters/Customers';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -19,13 +18,9 @@ interface ManageCustomerTypeProps {
   setSelectedCustomerType: (customerType: CustomerType | null) => void;
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
-  customers: Customer[];
 }
 
 const customerTypeValidationSchema = Yup.object({
-  customer_id: Yup.number()
-    .required('Customer is required')
-    .min(1, 'Customer is required'),
   type_name: Yup.string()
     .required('Type name is required')
     .min(2, 'Type name must be at least 2 characters')
@@ -38,7 +33,6 @@ const ManageCustomerType: React.FC<ManageCustomerTypeProps> = ({
   setSelectedCustomerType,
   drawerOpen,
   setDrawerOpen,
-  customers,
 }) => {
   const isEdit = !!selectedCustomerType;
 
@@ -58,7 +52,6 @@ const ManageCustomerType: React.FC<ManageCustomerTypeProps> = ({
 
   const formik = useFormik({
     initialValues: {
-      customer_id: selectedCustomerType?.customer_id?.toString() || '',
       type_name: selectedCustomerType?.type_name || '',
       is_active: selectedCustomerType?.is_active || 'Y',
     },
@@ -67,7 +60,6 @@ const ManageCustomerType: React.FC<ManageCustomerTypeProps> = ({
     onSubmit: async values => {
       try {
         const customerTypeData = {
-          customer_id: Number(values.customer_id),
           type_name: values.type_name,
           is_active: values.is_active,
         };
@@ -91,7 +83,6 @@ const ManageCustomerType: React.FC<ManageCustomerTypeProps> = ({
   React.useEffect(() => {
     if (customerTypeDetailResponse && isEdit) {
       formik.setValues({
-        customer_id: customerTypeDetailResponse.customer_id?.toString() || '',
         type_name: customerTypeDetailResponse.type_name || '',
         is_active: customerTypeDetailResponse.is_active || 'Y',
       });
@@ -108,20 +99,6 @@ const ManageCustomerType: React.FC<ManageCustomerTypeProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select
-              name="customer_id"
-              label="Customer"
-              formik={formik}
-              required
-            >
-              <MenuItem value="">Select Customer</MenuItem>
-              {customers.map(customer => (
-                <MenuItem key={customer.id} value={customer.id.toString()}>
-                  {customer.name} ({customer.code})
-                </MenuItem>
-              ))}
-            </Select>
-
             <Input
               name="type_name"
               label="Type Name"

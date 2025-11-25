@@ -51,7 +51,10 @@ export const useCustomerTypeById = (
 
 export const useCreateCustomerType = () => {
   return useApiMutation({
-    mutationFn: customerTypeService.createCustomerType,
+    mutationFn: async (data: customerTypeService.ManageCustomerTypePayload) => {
+      const response = await customerTypeService.createCustomerType(data);
+      return response;
+    },
     invalidateQueries: ['customer-type'],
     loadingMessage: 'Creating customer type...',
   });
@@ -59,13 +62,16 @@ export const useCreateCustomerType = () => {
 
 export const useUpdateCustomerType = () => {
   return useApiMutation({
-    mutationFn: ({
+    mutationFn: async ({
       id,
       data,
     }: {
       id: number;
       data: customerTypeService.UpdateCustomerTypePayload;
-    }) => customerTypeService.updateCustomerType(id, data),
+    }) => {
+      const response = await customerTypeService.updateCustomerType(id, data);
+      return response;
+    },
     invalidateQueries: ['customer-type'],
     loadingMessage: 'Updating customer type...',
   });

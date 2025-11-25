@@ -15,7 +15,6 @@ import {
 } from '../../../hooks/useCustomerType';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
-import { useCustomers } from '../../../hooks/useCustomers';
 import { formatDate } from '../../../utils/dateUtils';
 import ManageCustomerType from './ManageCustomerType';
 
@@ -51,13 +50,7 @@ const CustomerTypePage: React.FC = () => {
     }
   );
 
-  const { data: customersResponse } = useCustomers({
-    page: 1,
-    limit: 1000,
-  });
-
   const customerTypes = customerTypesResponse?.data || [];
-  const customers = customersResponse?.data || [];
   const totalCount = customerTypesResponse?.meta?.total || 0;
   const currentPage = (customerTypesResponse?.meta?.page || 1) - 1;
 
@@ -150,15 +143,6 @@ const CustomerTypePage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-      ),
-    },
-    {
-      id: 'customer',
-      label: 'Customer',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.customer?.name || 'N/A'}
-        </Typography>
       ),
     },
     {
@@ -393,7 +377,6 @@ const CustomerTypePage: React.FC = () => {
         setSelectedCustomerType={setSelectedCustomerType}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        customers={customers}
       />
     </>
   );
