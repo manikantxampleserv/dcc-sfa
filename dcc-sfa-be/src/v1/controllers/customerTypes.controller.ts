@@ -4,7 +4,6 @@ import { paginate } from '../../utils/paginate';
 
 interface CustomerTypeSerialized {
   id: number;
-  customer_id: number;
   type_name: string;
   type_code: string;
   is_active: string;
@@ -13,12 +12,10 @@ interface CustomerTypeSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  customer?: { id: number; name: string } | null;
 }
 
 const serializeCustomerType = (c: any): CustomerTypeSerialized => ({
   id: c.id,
-  customer_id: c.customer_id,
   type_name: c.type_name,
   type_code: c.type_code,
   is_active: c.is_active,
@@ -27,15 +24,14 @@ const serializeCustomerType = (c: any): CustomerTypeSerialized => ({
   updatedate: c.updatedate,
   updatedby: c.updatedby,
   log_inst: c.log_inst,
-  customer: c.customer_type_customer
-    ? {
-        id: c.customer_type_customer.id,
-        name: c.customer_type_customer.name,
-      }
-    : null,
+  // customer: c.customer_type_customer
+  //   ? {
+  //       id: c.customer_type_customer.id,
+  //       name: c.customer_type_customer.name,
+  //     }
+  //   : null,
 });
 
-// auto generate type_code (similar to your zone code pattern)
 const generateCustomerTypeCode = async (type_name: string) => {
   const prefix = type_name.slice(0, 3).toUpperCase();
 
@@ -62,9 +58,6 @@ export const customerTypesController = {
       if (!data.type_name) {
         return res.status(400).json({ message: 'type_name is required' });
       }
-      if (!data.customer_id) {
-        return res.status(400).json({ message: 'customer_id is required' });
-      }
 
       const code = await generateCustomerTypeCode(data.type_name);
 
@@ -76,9 +69,9 @@ export const customerTypesController = {
           createdate: new Date(),
           log_inst: data.log_inst || 1,
         },
-        include: {
-          customer_type_customer: true,
-        },
+        // include: {
+        //   customer_type_customer: true,
+        // },
       });
 
       res.status(201).json({
@@ -115,7 +108,7 @@ export const customerTypesController = {
         page: pageNum,
         limit: limitNum,
         orderBy: { createdate: 'desc' },
-        include: { customer_type_customer: true },
+        // include: { customer_type_customer: true },
       });
 
       const total = await prisma.customer_type.count();
