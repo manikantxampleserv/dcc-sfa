@@ -7,6 +7,7 @@ import {
 import { paginate } from '../../utils/paginate';
 import { createRequest } from './requests.controller';
 import prisma from '../../configs/prisma.client';
+import { Decimal } from '@prisma/client/runtime/library';
 
 interface OrderSerialized {
   id: number;
@@ -21,6 +22,7 @@ interface OrderSerialized {
   payment_method?: string | null;
   payment_terms?: string | null;
   subtotal?: number | null;
+  promotion_id?: number | null;
   discount_amount?: number | null;
   tax_amount?: number | null;
   shipping_amount?: number | null;
@@ -65,8 +67,16 @@ interface OrderSerialized {
     tax_amount?: number;
     total_amount?: number;
     notes?: string;
+    is_free_gift?: boolean;
   }[];
   invoices?: { id: number; invoice_number: string; amount: number }[];
+  promotion_applied?: {
+    promotion_id: number;
+    promotion_name: string;
+    promotion_code: string;
+    discount_amount: number;
+    free_products: any[];
+  } | null;
 }
 
 const serializeOrder = (order: any): OrderSerialized => ({
@@ -81,6 +91,7 @@ const serializeOrder = (order: any): OrderSerialized => ({
   order_type: order.order_type,
   payment_method: order.payment_method,
   payment_terms: order.payment_terms,
+  promotion_id: order.promotion_id,
   subtotal: order.subtotal ? Number(order.subtotal) : null,
   discount_amount: order.discount_amount ? Number(order.discount_amount) : null,
   tax_amount: order.tax_amount ? Number(order.tax_amount) : null,
@@ -146,6 +157,7 @@ const serializeOrder = (order: any): OrderSerialized => ({
       tax_amount: oi.tax_amount ? Number(oi.tax_amount) : undefined,
       total_amount: oi.total_amount ? Number(oi.total_amount) : undefined,
       notes: oi.notes,
+      is_free_gift: oi.is_free_gift || false,
     })) || [],
 
   invoices:
@@ -154,6 +166,7 @@ const serializeOrder = (order: any): OrderSerialized => ({
       invoice_number: inv.invoice_number,
       amount: inv.amount,
     })) || [],
+  promotion_applied: order.promotion_applied || null,
 });
 
 async function generateOrderNumber(tx: any): Promise<string> {
@@ -215,16 +228,15 @@ async function generateOrderNumber(tx: any): Promise<string> {
       });
 
       if (!exists) {
-        console.log(' Generated unique order number:', newOrderNumber);
+        console.log('Generated unique order number:', newOrderNumber);
         return newOrderNumber;
       }
 
-      console.log(' Order number exists, retrying...', newOrderNumber);
+      console.log('Order number exists, retrying...', newOrderNumber);
       retryCount++;
     } catch (error) {
       console.error('Error generating order number:', error);
       retryCount++;
-
       await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
@@ -234,7 +246,428 @@ async function generateOrderNumber(tx: any): Promise<string> {
   return fallbackOrderNumber;
 }
 
+async function calculatePromotionsInternal(params: {
+  customer_id: number;
+  depot_id?: number;
+  salesman_id: number;
+  route_id?: number;
+  platform: string;
+  order_date: Date | string;
+  order_lines: Array<{
+    product_id: number;
+    category_id: number;
+    quantity: number;
+    unit_price: number;
+  }>;
+}) {
+  const {
+    customer_id,
+    depot_id,
+    salesman_id,
+    route_id,
+    platform,
+    order_date,
+    order_lines,
+  } = params;
+
+  const checkDate = new Date(order_date);
+
+  // Get customer details
+  const customer = await prisma.customers.findUnique({
+    where: { id: customer_id },
+    select: { type: true },
+  });
+
+  // Get active promotions
+  const promotionsQuery: any = {
+    is_active: 'Y',
+    start_date: { lte: checkDate },
+    end_date: { gte: checkDate },
+  };
+
+  if (platform) {
+    promotionsQuery.promotion_channel_promotions = {
+      some: {
+        channel_type: platform,
+        is_active: 'Y',
+      },
+    };
+  }
+
+  const promotions = await prisma.promotion.findMany({
+    where: promotionsQuery,
+    include: {
+      promotion_depot_promotions: { where: { is_active: 'Y' } },
+      promotion_salesperson_promotions: { where: { is_active: 'Y' } },
+      promotion_routes_promotions: { where: { is_active: 'Y' } },
+      promotion_customer_category_promotions: { where: { is_active: 'Y' } },
+      promotion_customer_exclusion_promotions: true,
+      promotion_condition_promotions: {
+        where: { is_active: 'Y' },
+        include: {
+          promotion_condition_product: {
+            where: { is_active: 'Y' },
+            include: {
+              promotion_condition_productId: true,
+              promotion_condition_categories: true,
+            },
+          },
+        },
+      },
+      promotion_level_promotions: {
+        where: { is_active: 'Y' },
+        include: {
+          promotion_benefit_level: {
+            where: { is_active: 'Y' },
+            include: {
+              promotion_benefit_products: true,
+            },
+          },
+        },
+        orderBy: { threshold_value: 'desc' },
+      },
+    },
+  });
+
+  const eligiblePromotions: any[] = [];
+
+  for (const promo of promotions) {
+    // Check exclusion
+    const isExcluded = promo.promotion_customer_exclusion_promotions.find(
+      exc => exc.customer_id === customer_id && exc.is_excluded === 'Y'
+    );
+    if (isExcluded) continue;
+
+    // Check eligibility
+    let isEligible = false;
+
+    if (
+      promo.promotion_depot_promotions.length === 0 &&
+      promo.promotion_salesperson_promotions.length === 0 &&
+      promo.promotion_routes_promotions.length === 0 &&
+      promo.promotion_customer_category_promotions.length === 0
+    ) {
+      isEligible = true;
+    } else {
+      if (depot_id && promo.promotion_depot_promotions.length > 0) {
+        if (
+          promo.promotion_depot_promotions.find(d => d.depot_id === depot_id)
+        ) {
+          isEligible = true;
+        }
+      }
+      if (salesman_id && promo.promotion_salesperson_promotions.length > 0) {
+        if (
+          promo.promotion_salesperson_promotions.find(
+            s => s.salesperson_id === salesman_id
+          )
+        ) {
+          isEligible = true;
+        }
+      }
+      if (route_id && promo.promotion_routes_promotions.length > 0) {
+        if (
+          promo.promotion_routes_promotions.find(r => r.route_id === route_id)
+        ) {
+          isEligible = true;
+        }
+      }
+      if (
+        customer?.type &&
+        promo.promotion_customer_category_promotions.length > 0
+      ) {
+        for (const cat of promo.promotion_customer_category_promotions) {
+          const category = await prisma.customer_category.findUnique({
+            where: { id: cat.customer_category_id },
+          });
+          if (category && category.category_code === customer.type) {
+            isEligible = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!isEligible) continue;
+
+    for (const condition of promo.promotion_condition_promotions) {
+      let totalQty = new Decimal(0);
+      let totalValue = new Decimal(0);
+
+      for (const line of order_lines) {
+        const productMatch = condition.promotion_condition_product.find(
+          cp =>
+            cp.product_id === line.product_id ||
+            cp.category_id === line.category_id
+        );
+
+        if (productMatch) {
+          const lineQty = new Decimal(line.quantity || 0);
+          const linePrice = new Decimal(line.unit_price || 0);
+          const lineValue = lineQty.mul(linePrice);
+
+          totalQty = totalQty.add(lineQty);
+          totalValue = totalValue.add(lineValue);
+        }
+      }
+
+      const minValue = new Decimal(condition.min_value || 0);
+      if (!totalValue.gte(minValue)) continue;
+
+      const applicableLevel = promo.promotion_level_promotions.find(lvl =>
+        new Decimal(lvl.threshold_value).lte(totalValue)
+      );
+
+      if (!applicableLevel) continue;
+
+      let discountAmount = new Decimal(0);
+
+      if (applicableLevel.discount_type === 'PERCENTAGE') {
+        const discountPercent = new Decimal(
+          applicableLevel.discount_value || 0
+        );
+        discountAmount = totalValue.mul(discountPercent).div(100);
+      } else if (applicableLevel.discount_type === 'FIXED_AMOUNT') {
+        discountAmount = new Decimal(applicableLevel.discount_value || 0);
+      }
+
+      const freeProducts: any[] = [];
+      for (const benefit of applicableLevel.promotion_benefit_level) {
+        if (benefit.benefit_type === 'FREE_PRODUCT') {
+          freeProducts.push({
+            product_id: benefit.product_id,
+            product_name: benefit.promotion_benefit_products?.name || null,
+            product_code: benefit.promotion_benefit_products?.code || null,
+            quantity: benefit.benefit_value.toNumber(),
+            gift_limit: benefit.gift_limit || 0,
+          });
+        }
+      }
+
+      eligiblePromotions.push({
+        promotion_id: promo.id,
+        promotion_name: promo.promotion_name,
+        promotion_code: promo.promotion_code,
+        level_number: applicableLevel.level_number,
+        discount_type: applicableLevel.discount_type,
+        discount_amount: discountAmount.toNumber(),
+        free_products: freeProducts,
+        qualified_quantity: totalQty.toNumber(),
+        qualified_value: totalValue.toNumber(),
+      });
+
+      break;
+    }
+  }
+
+  return eligiblePromotions;
+}
+
 export const ordersController = {
+  // async createOrUpdateOrder(req: Request, res: Response) {
+  //   const data = req.body;
+  //   const userId = req.user?.id || 1;
+
+  //   try {
+  //     const { orderItems, order_items, ...orderData } = data;
+  //     const items = orderItems || order_items || [];
+  //     let orderId = orderData.id;
+
+  //     console.log(' Processing order with items:', {
+  //       orderId,
+  //       orderNumber: orderData.order_number,
+  //       itemsCount: items.length,
+  //     });
+
+  //     const result = await prisma.$transaction(
+  //       async tx => {
+  //         let order;
+  //         let isUpdate = false;
+
+  //         if (!orderId && orderData.order_number) {
+  //           const existingOrder = await tx.orders.findFirst({
+  //             where: { order_number: orderData.order_number },
+  //           });
+  //           if (existingOrder) {
+  //             orderId = existingOrder.id;
+  //             isUpdate = true;
+  //             console.log(' Found existing order by order_number:', orderId);
+  //           }
+  //         } else if (orderId) {
+  //           isUpdate = true;
+  //         }
+
+  //         let orderNumber = orderData.order_number;
+  //         if (!isUpdate && !orderNumber) {
+  //           orderNumber = await generateOrderNumber(tx);
+  //           console.log(' Generated new order number:', orderNumber);
+  //         }
+
+  //         const orderPayload = {
+  //           order_number: orderNumber,
+  //           parent_id: orderData.parent_id,
+  //           salesperson_id: orderData.salesperson_id,
+  //           currency_id: orderData.currency_id || null,
+  //           order_date: orderData.order_date
+  //             ? new Date(orderData.order_date)
+  //             : undefined,
+  //           delivery_date: orderData.delivery_date
+  //             ? new Date(orderData.delivery_date)
+  //             : undefined,
+  //           status: orderData.status || 'draft',
+  //           priority: orderData.priority || 'medium',
+  //           order_type: orderData.order_type || 'regular',
+  //           payment_method: orderData.payment_method || 'credit',
+  //           payment_terms: orderData.payment_terms || 'Net 30',
+  //           subtotal: parseFloat(orderData.subtotal) || 0,
+  //           discount_amount: parseFloat(orderData.discount_amount) || 0,
+  //           tax_amount: parseFloat(orderData.tax_amount) || 0,
+  //           shipping_amount: parseFloat(orderData.shipping_amount) || 0,
+  //           total_amount: parseFloat(orderData.total_amount) || 0,
+  //           notes: orderData.notes || null,
+  //           shipping_address: orderData.shipping_address || null,
+  //           approval_status: orderData.approval_status || 'pending',
+  //           is_active: orderData.is_active || 'Y',
+  //         };
+
+  //         if (isUpdate && orderId) {
+  //           const updatePayload = { ...orderPayload };
+  //           if (!orderData.order_number) {
+  //             delete updatePayload.order_number;
+  //           }
+
+  //           order = await tx.orders.update({
+  //             where: { id: orderId },
+  //             data: {
+  //               ...updatePayload,
+  //               updatedate: new Date(),
+  //               updatedby: userId,
+  //               log_inst: { increment: 1 },
+  //             },
+  //           });
+  //         } else {
+  //           order = await tx.orders.create({
+  //             data: {
+  //               ...orderPayload,
+  //               createdate: new Date(),
+  //               createdby: userId,
+  //               log_inst: 1,
+  //             },
+  //           });
+  //           console.log(' Order created, ID:', order.id);
+  //         }
+
+  //         if (items && items.length > 0) {
+  //           if (isUpdate && orderId) {
+  //             await tx.order_items.deleteMany({
+  //               where: { id: orderId },
+  //             });
+  //             console.log(' Deleted existing order items');
+  //           }
+
+  //           const safeParse = (val: any, fallback = 0) => {
+  //             const num = parseFloat(val);
+  //             return isNaN(num) ? fallback : num;
+  //           };
+
+  //           const orderItemsData = items.map((item: any) => {
+  //             const quantity = safeParse(item.quantity, 0);
+  //             const unitPrice = safeParse(item.unit_price, 0);
+  //             const discountAmount = safeParse(
+  //               item.discount_amount || item.discount,
+  //               0
+  //             );
+  //             const taxAmount = safeParse(item.tax_amount || item.tax, 0);
+
+  //             // Calculate subtotal (not stored in DB, just for calculation)
+  //             const subtotal = quantity * unitPrice;
+
+  //             return {
+  //               parent_id: order.id,
+  //               product_id: item.product_id,
+  //               quantity: quantity,
+  //               unit_price: unitPrice,
+  //               discount_amount: discountAmount,
+  //               tax_amount: taxAmount,
+  //               // Remove subtotal field - it doesn't exist in the schema
+  //               total_amount: subtotal - discountAmount + taxAmount,
+  //             };
+  //           });
+
+  //           await tx.order_items.createMany({
+  //             data: orderItemsData,
+  //           });
+  //           console.log(`Created ${orderItemsData.length} order items`);
+  //         }
+
+  //         const finalOrder = await tx.orders.findUnique({
+  //           where: { id: order.id },
+  //           include: {
+  //             orders_currencies: true,
+  //             orders_customers: true,
+  //             orders_salesperson_users: true,
+  //             order_items: true,
+  //             invoices: true,
+  //           },
+  //         });
+
+  //         return finalOrder;
+  //       },
+  //       {
+  //         maxWait: 10000,
+  //         timeout: 20000,
+  //       }
+  //     );
+
+  //     // ============================================
+  //     // APPROVAL WORKFLOW INTEGRATION (AFTER ORDER CREATION)
+  //     // ============================================
+  //     if (result && !orderId) {
+  //       try {
+  //         const orderEvent = 'created';
+  //         const orderCreatorId = result.createdby || userId;
+
+  //         // Notification
+  //         await createOrderNotification(
+  //           orderCreatorId,
+  //           result.id,
+  //           result.order_number || '',
+  //           orderEvent,
+  //           userId
+  //         );
+
+  //         await createRequest({
+  //           requester_id: result.salesperson_id,
+  //           request_type: 'ORDER_APPROVAL',
+  //           reference_id: result.id,
+  //           createdby: userId,
+  //           log_inst: 1,
+  //         });
+
+  //         console.log(
+  //           'Approval workflow initiated for order:',
+  //           result.order_number
+  //         );
+  //       } catch (error: any) {
+  //         console.error(' Error creating approval request:', error);
+  //       }
+  //     }
+
+  //     res.status(orderId ? 200 : 201).json({
+  //       message: orderId
+  //         ? 'Order updated successfully'
+  //         : 'Order created successfully and sent for approval',
+  //       data: serializeOrder(result),
+  //     });
+  //   } catch (error: any) {
+  //     console.error('❌ Error processing order:', error);
+  //     res.status(500).json({
+  //       message: 'Failed to process order',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
   async createOrUpdateOrder(req: Request, res: Response) {
     const data = req.body;
     const userId = req.user?.id || 1;
@@ -244,11 +677,112 @@ export const ordersController = {
       const items = orderItems || order_items || [];
       let orderId = orderData.id;
 
-      console.log(' Processing order with items:', {
+      console.log('🛒 Processing order with items:', {
         orderId,
         orderNumber: orderData.order_number,
         itemsCount: items.length,
       });
+
+      // ============================================
+      // STEP 1: Calculate Subtotal
+      // ============================================
+      let calculatedSubtotal = new Decimal(0);
+      for (const item of items) {
+        const itemTotal = new Decimal(item.quantity).mul(
+          new Decimal(item.price || item.unit_price || 0)
+        );
+        calculatedSubtotal = calculatedSubtotal.add(itemTotal);
+      }
+
+      // ============================================
+      // STEP 2: Get Customer Details
+      // ============================================
+      const customer = await prisma.customers.findUnique({
+        where: { id: orderData.parent_id },
+        select: {
+          id: true,
+          type: true,
+          route_id: true,
+        },
+      });
+
+      if (!customer) {
+        return res.status(404).json({ message: 'Customer not found' });
+      }
+
+      // ============================================
+      // STEP 3: Calculate Promotions (if not manually set)
+      // ============================================
+      let appliedPromotion = null;
+      let promotionDiscount = new Decimal(0);
+      let freeProducts: any[] = [];
+
+      // Only calculate if no manual promotion/discount override
+      if (!orderData.promotion_id && !orderData.manual_discount) {
+        try {
+          // Get product details with category_id
+          const productsWithCategories = await Promise.all(
+            items.map(async (item: any) => {
+              const product = await prisma.products.findUnique({
+                where: { id: item.product_id },
+                select: { id: true, category_id: true },
+              });
+              return {
+                product_id: item.product_id,
+                category_id: product?.category_id || 0,
+                quantity: item.quantity,
+                unit_price: item.price || item.unit_price || 0,
+              };
+            })
+          );
+
+          // Calculate promotions
+          const platform = (req.headers['x-platform'] as string) || 'OFFICE';
+          const promotionCalculation = await calculatePromotionsInternal({
+            customer_id: orderData.parent_id,
+            salesman_id: orderData.salesperson_id,
+            route_id: customer.route_id || undefined,
+            platform,
+            order_date: orderData.order_date || new Date(),
+            order_lines: productsWithCategories,
+          });
+
+          // Select best promotion (highest discount)
+          if (promotionCalculation.length > 0) {
+            appliedPromotion = promotionCalculation.sort(
+              (a, b) => b.discount_amount - a.discount_amount
+            )[0];
+
+            promotionDiscount = new Decimal(appliedPromotion.discount_amount);
+            freeProducts = appliedPromotion.free_products || [];
+
+            console.log(
+              '🎉 Promotion Applied:',
+              appliedPromotion.promotion_name
+            );
+            console.log('💰 Discount:', appliedPromotion.discount_amount);
+            console.log('🎁 Free Products:', freeProducts.length);
+          }
+        } catch (error) {
+          console.error('⚠️ Promotion calculation failed:', error);
+          // Continue without promotion if calculation fails
+        }
+      } else if (orderData.manual_discount) {
+        promotionDiscount = new Decimal(orderData.manual_discount);
+      }
+
+      // ============================================
+      // STEP 4: Calculate Final Amounts
+      // ============================================
+      const subtotal = calculatedSubtotal;
+      const discount_amount = promotionDiscount;
+      const tax_amount = new Decimal(orderData.tax_amount || 0);
+      const shipping_amount = new Decimal(orderData.shipping_amount || 0);
+
+      const total_amount = subtotal
+        .minus(discount_amount)
+        .plus(tax_amount)
+        .plus(shipping_amount);
 
       const result = await prisma.$transaction(
         async tx => {
@@ -262,7 +796,7 @@ export const ordersController = {
             if (existingOrder) {
               orderId = existingOrder.id;
               isUpdate = true;
-              console.log(' Found existing order by order_number:', orderId);
+              console.log('🔄 Found existing order by order_number:', orderId);
             }
           } else if (orderId) {
             isUpdate = true;
@@ -271,7 +805,7 @@ export const ordersController = {
           let orderNumber = orderData.order_number;
           if (!isUpdate && !orderNumber) {
             orderNumber = await generateOrderNumber(tx);
-            console.log(' Generated new order number:', orderNumber);
+            console.log('✅ Generated new order number:', orderNumber);
           }
 
           const orderPayload = {
@@ -290,15 +824,17 @@ export const ordersController = {
             order_type: orderData.order_type || 'regular',
             payment_method: orderData.payment_method || 'credit',
             payment_terms: orderData.payment_terms || 'Net 30',
-            subtotal: parseFloat(orderData.subtotal) || 0,
-            discount_amount: parseFloat(orderData.discount_amount) || 0,
-            tax_amount: parseFloat(orderData.tax_amount) || 0,
-            shipping_amount: parseFloat(orderData.shipping_amount) || 0,
-            total_amount: parseFloat(orderData.total_amount) || 0,
+            subtotal: subtotal.toNumber(),
+            discount_amount: discount_amount.toNumber(),
+            tax_amount: tax_amount.toNumber(),
+            shipping_amount: shipping_amount.toNumber(),
+            total_amount: total_amount.toNumber(),
             notes: orderData.notes || null,
             shipping_address: orderData.shipping_address || null,
             approval_status: orderData.approval_status || 'pending',
             is_active: orderData.is_active || 'Y',
+            promotion_id:
+              orderData.promotion_id || appliedPromotion?.promotion_id || null, // ✅ Save promotion
           };
 
           if (isUpdate && orderId) {
@@ -325,15 +861,18 @@ export const ordersController = {
                 log_inst: 1,
               },
             });
-            console.log(' Order created, ID:', order.id);
+            console.log('✅ Order created, ID:', order.id);
           }
 
+          // ============================================
+          // STEP 5: Create Order Items (Regular + Free)
+          // ============================================
           if (items && items.length > 0) {
             if (isUpdate && orderId) {
               await tx.order_items.deleteMany({
-                where: { id: orderId },
+                where: { parent_id: orderId },
               });
-              console.log(' Deleted existing order items');
+              console.log('🗑️ Deleted existing order items');
             }
 
             const safeParse = (val: any, fallback = 0) => {
@@ -341,34 +880,60 @@ export const ordersController = {
               return isNaN(num) ? fallback : num;
             };
 
+            // Regular items
             const orderItemsData = items.map((item: any) => {
               const quantity = safeParse(item.quantity, 0);
-              const unitPrice = safeParse(item.unit_price, 0);
+              const unitPrice = safeParse(item.unit_price || item.price, 0);
               const discountAmount = safeParse(
                 item.discount_amount || item.discount,
                 0
               );
               const taxAmount = safeParse(item.tax_amount || item.tax, 0);
-
-              // Calculate subtotal (not stored in DB, just for calculation)
               const subtotal = quantity * unitPrice;
 
               return {
                 parent_id: order.id,
                 product_id: item.product_id,
+                product_name: item.product_name || null,
+                unit: item.unit || null,
                 quantity: quantity,
                 unit_price: unitPrice,
                 discount_amount: discountAmount,
                 tax_amount: taxAmount,
-                // Remove subtotal field - it doesn't exist in the schema
                 total_amount: subtotal - discountAmount + taxAmount,
+                notes: item.notes || null,
+                is_free_gift: false, // ✅ Regular item
               };
             });
 
             await tx.order_items.createMany({
               data: orderItemsData,
             });
-            console.log(`Created ${orderItemsData.length} order items`);
+            console.log(`✅ Created ${orderItemsData.length} order items`);
+
+            // ============================================
+            // STEP 6: Add Free Products from Promotion
+            // ============================================
+            if (freeProducts.length > 0) {
+              const freeItemsData = freeProducts.map((freeProduct: any) => ({
+                parent_id: order.id,
+                product_id: freeProduct.product_id,
+                product_name: freeProduct.product_name || null,
+                unit: null,
+                quantity: freeProduct.quantity,
+                unit_price: 0, // ✅ Free!
+                discount_amount: 0,
+                tax_amount: 0,
+                total_amount: 0,
+                notes: `Free gift from promotion: ${appliedPromotion?.promotion_name}`,
+                is_free_gift: true, // ✅ Mark as free gift
+              }));
+
+              await tx.order_items.createMany({
+                data: freeItemsData,
+              });
+              console.log(`🎁 Added ${freeItemsData.length} free products`);
+            }
           }
 
           const finalOrder = await tx.orders.findUnique({
@@ -391,16 +956,34 @@ export const ordersController = {
       );
 
       // ============================================
-      // APPROVAL WORKFLOW INTEGRATION (AFTER ORDER CREATION)
+      // STEP 7: Track Promotion Usage
       // ============================================
+      if (appliedPromotion && !orderId) {
+        try {
+          await prisma.promotion_tracking.create({
+            data: {
+              parent_id: appliedPromotion.promotion_id,
+              action_type: 'APPLIED',
+              action_date: new Date(),
+              user_id: userId,
+              comments: `Applied to order ${result?.order_number} for customer ${orderData.parent_id}. Discount: ${discount_amount.toNumber()}. Free Products: ${JSON.stringify(freeProducts.map(p => ({ product_id: p.product_id, quantity: p.quantity })))}`,
+              is_active: 'Y',
+            },
+          });
+          console.log(' Promotion tracked successfully');
+        } catch (error) {
+          console.error(' Promotion tracking failed:', error);
+        }
+      }
+
       if (result && !orderId) {
         try {
           const orderEvent = 'created';
           const orderCreatorId = result.createdby || userId;
 
-          // Notification
           await createOrderNotification(
             orderCreatorId,
+
             result.id,
             result.order_number || '',
             orderEvent,
@@ -416,20 +999,36 @@ export const ordersController = {
           });
 
           console.log(
-            'Approval workflow initiated for order:',
+            '✅ Approval workflow initiated for order:',
             result.order_number
           );
         } catch (error: any) {
-          console.error(' Error creating approval request:', error);
+          console.error('⚠️ Error creating approval request:', error);
         }
       }
 
-      res.status(orderId ? 200 : 201).json({
+      // ============================================
+      // RESPONSE WITH PROMOTION DETAILS
+      // ============================================
+      const response = {
         message: orderId
           ? 'Order updated successfully'
           : 'Order created successfully and sent for approval',
-        data: serializeOrder(result),
-      });
+        data: {
+          ...serializeOrder(result),
+          promotion_applied: appliedPromotion
+            ? {
+                promotion_id: appliedPromotion.promotion_id,
+                promotion_name: appliedPromotion.promotion_name,
+                promotion_code: appliedPromotion.promotion_code,
+                discount_amount: appliedPromotion.discount_amount,
+                free_products: freeProducts,
+              }
+            : null,
+        },
+      };
+
+      res.status(orderId ? 200 : 201).json(response);
     } catch (error: any) {
       console.error('❌ Error processing order:', error);
       res.status(500).json({
@@ -438,7 +1037,6 @@ export const ordersController = {
       });
     }
   },
-
   async getAllOrders(req: any, res: any) {
     try {
       const {
