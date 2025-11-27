@@ -213,7 +213,7 @@ async function generateOrderNumber(tx: any): Promise<string> {
         return newOrderNumber;
       }
 
-      console.log('⚠️ Order number exists, retrying...', newOrderNumber);
+      console.log(' Order number exists, retrying...', newOrderNumber);
       retryCount++;
     } catch (error) {
       console.error('Error generating order number:', error);
