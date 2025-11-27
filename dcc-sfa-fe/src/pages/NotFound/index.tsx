@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import Button from 'shared/Button';
-import NotFoundSvg from 'resources/not-found.svg';
+import { NotFoundIcon } from '../../resources';
 
 const NotFound: React.FC = () => {
   const navigate = useNavigate();
@@ -11,11 +11,7 @@ const NotFound: React.FC = () => {
     <div className="flex items-center justify-center min-h-full bg-gray-50">
       <div className="text-center px-4">
         <div className="mb-6 flex justify-center">
-          <img
-            src={NotFoundSvg}
-            alt="404 Not Found"
-            className="w-96 h-96 max-w-full"
-          />
+          <NotFoundIcon />
         </div>
         <p className="text-gray-500 mb-8 max-w-md mx-auto">
           The page you're looking for doesn't exist or has been moved.

@@ -521,6 +521,19 @@ export const reportsController = {
         salespersonIds.add(requestedSalespersonId);
       }
 
+      const salespersons = await prisma.users.findMany({
+        where: {
+          id: { in: Array.from(salespersonIds) },
+          is_active: 'Y',
+        },
+        select: { id: true, name: true, email: true },
+      });
+
+      const salespersonMap = new Map<number, string>();
+      salespersons.forEach(sp => {
+        salespersonMap.set(sp.id, sp.name || 'N/A');
+      });
+
       const actualSales = await prisma.order_items.findMany({
         where: {
           orders: {
@@ -550,11 +563,16 @@ export const reportsController = {
       });
 
       const salesMap = new Map<string, { quantity: number; amount: number }>();
+      const actualSalespersonIds = new Set<number>();
 
       actualSales.forEach(item => {
         const salespersonId = item.orders.salesperson_id;
         const categoryId = item.products.category_id;
         const key = `${salespersonId}_${categoryId}`;
+
+        if (salespersonId) {
+          actualSalespersonIds.add(salespersonId);
+        }
 
         const current = salesMap.get(key) || { quantity: 0, amount: 0 };
         salesMap.set(key, {
@@ -562,6 +580,23 @@ export const reportsController = {
           amount: current.amount + Number(item.total_amount || 0),
         });
       });
+
+      const salespersonIdsToFetch = Array.from(actualSalespersonIds).filter(
+        id => !salespersonMap.has(id) || salespersonMap.get(id) === 'N/A'
+      );
+
+      if (salespersonIdsToFetch.length > 0) {
+        const missingSalespersons = await prisma.users.findMany({
+          where: {
+            id: { in: salespersonIdsToFetch },
+          },
+          select: { id: true, name: true, email: true },
+        });
+
+        missingSalespersons.forEach(sp => {
+          salespersonMap.set(sp.id, sp.name || 'N/A');
+        });
+      }
 
       const performanceData: any[] = [];
 
@@ -579,6 +614,7 @@ export const reportsController = {
 
           performanceData.push({
             salesperson_id: salespersonId,
+            salesperson_name: salespersonMap.get(salespersonId) || 'N/A',
             category_id: categoryId,
             category_name:
               target.sales_targets_product_categories?.category_name || 'N/A',
@@ -803,11 +839,16 @@ export const reportsController = {
       });
 
       const salesMap = new Map<string, { quantity: number; amount: number }>();
+      const actualSalespersonIds = new Set<number>();
 
       actualSales.forEach(item => {
         const salespersonId = item.orders.salesperson_id;
         const categoryId = item.products.category_id;
         const key = `${salespersonId}_${categoryId}`;
+
+        if (salespersonId) {
+          actualSalespersonIds.add(salespersonId);
+        }
 
         const current = salesMap.get(key) || { quantity: 0, amount: 0 };
         salesMap.set(key, {
@@ -815,6 +856,23 @@ export const reportsController = {
           amount: current.amount + Number(item.total_amount || 0),
         });
       });
+
+      const salespersonIdsToFetch = Array.from(actualSalespersonIds).filter(
+        id => !salespersonMap.has(id) || salespersonMap.get(id) === 'N/A'
+      );
+
+      if (salespersonIdsToFetch.length > 0) {
+        const missingSalespersons = await prisma.users.findMany({
+          where: {
+            id: { in: salespersonIdsToFetch },
+          },
+          select: { id: true, name: true, email: true },
+        });
+
+        missingSalespersons.forEach(sp => {
+          salespersonMap.set(sp.id, sp.name || 'N/A');
+        });
+      }
 
       const performanceData: any[] = [];
 

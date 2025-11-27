@@ -6,6 +6,7 @@ import {
   type CreditNote,
 } from 'hooks/useCreditNotes';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import {
   AlertTriangle,
   Calendar,
@@ -22,6 +23,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import ImportCreditNote from './ImportCreditNote';
 import ManageCreditNote from './ManageCreditNote';
@@ -30,7 +32,6 @@ import CreditNoteDetail from './CreditNoteDetail';
 const CreditNotesManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-
   const [selectedCreditNote, setSelectedCreditNote] =
     useState<CreditNote | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -38,17 +39,23 @@ const CreditNotesManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('credit-note');
 
   const {
     data: creditNotesResponse,
     isLoading,
     error,
-  } = useCreditNotes({
-    search,
-    page,
-    limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-  });
+  } = useCreditNotes(
+    {
+      search,
+      page,
+      limit,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const creditNotes = creditNotesResponse?.data || [];
   const totalCount = creditNotesResponse?.meta?.total || 0;
@@ -305,25 +312,33 @@ const CreditNotesManagement: React.FC = () => {
         </Box>
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditCreditNote(row)}
-            tooltip={`Edit ${row.credit_note_number}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteCreditNote(row.id)}
-            tooltip={`Delete ${row.credit_note_number}`}
-            itemName={row.credit_note_number}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CreditNote) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditCreditNote(row)}
+                    tooltip={`Edit ${row.credit_note_number}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteCreditNote(row.id)}
+                    tooltip={`Delete ${row.credit_note_number}`}
+                    itemName={row.credit_note_number}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   if (error) {
@@ -347,82 +362,35 @@ const CreditNotesManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Credit Notes
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {totalCreditNotes}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Receipt className="w-6 h-6 text-primary-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-500">Total Value</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {formatCurrency(totalValue)}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-600">
-                Avg Credit Note Value
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(avgCreditNoteValue)}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-orange-600">
-                Pending Approval
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-orange-600">
-                  {pendingApproval}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Credit Notes"
+          value={totalCreditNotes}
+          icon={<Receipt className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Total Value"
+          value={formatCurrency(totalValue)}
+          icon={<DollarSign className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Avg Credit Note Value"
+          value={formatCurrency(avgCreditNoteValue)}
+          icon={<DollarSign className="w-6 h-6" />}
+          color="purple"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Pending Approval"
+          value={pendingApproval}
+          icon={<AlertTriangle className="w-6 h-6" />}
+          color="orange"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (
@@ -435,66 +403,80 @@ const CreditNotesManagement: React.FC = () => {
         data={creditNotes}
         columns={creditNoteColumns}
         actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap items-center gap-3">
-              <SearchInput
-                placeholder="Search Credit Notes..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="draft">Draft</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="approved">Approved</MenuItem>
-                <MenuItem value="rejected">Rejected</MenuItem>
-                <MenuItem value="cancelled">Cancelled</MenuItem>
-              </Select>
-            </div>
-            <div className="flex gap-2 items-center">
-              <PopConfirm
-                title="Export Credit Notes"
-                description="Are you sure you want to export the current credit notes data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
+          isRead || isCreate ? (
+            <div className="flex justify-between gap-3 items-center flex-wrap">
+              <div className="flex flex-wrap items-center gap-3">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Credit Notes..."
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      className="!w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!w-40"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="draft">Draft</MenuItem>
+                      <MenuItem value="pending">Pending</MenuItem>
+                      <MenuItem value="approved">Approved</MenuItem>
+                      <MenuItem value="rejected">Rejected</MenuItem>
+                      <MenuItem value="cancelled">Cancelled</MenuItem>
+                    </Select>
+                  </>
+                )}
+              </div>
+              {isRead && (
+                <div className="flex gap-2 items-center">
+                  <PopConfirm
+                    title="Export Credit Notes"
+                    description="Are you sure you want to export the current credit notes data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                </div>
+              )}
+              {isCreate && (
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateCreditNote}
                 >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                  Create
                 </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateCreditNote}
-              >
-                Create
-              </Button>
+              )}
             </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={creditNote => creditNote.id}
         initialOrderBy="credit_note_number"
@@ -502,6 +484,7 @@ const CreditNotesManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

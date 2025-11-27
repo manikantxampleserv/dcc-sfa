@@ -14,6 +14,7 @@ import {
   useTakeActionOnRequest,
   useRequestTypes,
 } from 'hooks/useRequests';
+import { usePermission } from 'hooks/usePermission';
 import {
   AlertTriangle,
   Check,
@@ -29,6 +30,7 @@ import Button from 'shared/Button';
 import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import * as yup from 'yup';
@@ -42,14 +44,20 @@ const ApprovalWorkflows: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'approve' | 'reject'>('approve');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const { isRead, isUpdate } = usePermission('approval-workflow');
 
-  const { data: requestsResponse, isLoading } = useRequestsByUsers({
-    page,
-    limit,
-    search: search || undefined,
-    status: statusFilter !== 'all' ? statusFilter : undefined,
-    request_type: requestTypeFilter !== 'all' ? requestTypeFilter : undefined,
-  });
+  const { data: requestsResponse, isLoading } = useRequestsByUsers(
+    {
+      page,
+      limit,
+      search: search || undefined,
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      request_type: requestTypeFilter !== 'all' ? requestTypeFilter : undefined,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: requestTypesResponse } = useRequestTypes();
 
@@ -226,32 +234,36 @@ const ApprovalWorkflows: React.FC = () => {
             : String(row.createdate || '')
         ) || 'N/A',
     },
-    {
-      id: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => {
-        const canAction = canApproveOrReject(row);
-        return (
-          <div className="!flex !gap-2 !items-center">
-            <ActionButton
-              onClick={() => handleApproveClick(row)}
-              tooltip="Approve request"
-              icon={<Check className="!w-4 !h-4" />}
-              color="success"
-              disabled={!canAction || takeActionMutation.isPending}
-            />
-            <ActionButton
-              onClick={() => handleRejectClick(row)}
-              tooltip="Reject request"
-              icon={<X className="!w-4 !h-4" />}
-              color="error"
-              disabled={!canAction || takeActionMutation.isPending}
-            />
-          </div>
-        );
-      },
-    },
+    ...(isUpdate
+      ? [
+          {
+            id: 'actions',
+            label: 'Actions',
+            sortable: false,
+            render: (_value, row) => {
+              const canAction = canApproveOrReject(row);
+              return (
+                <div className="!flex !gap-2 !items-center">
+                  <ActionButton
+                    onClick={() => handleApproveClick(row)}
+                    tooltip="Approve request"
+                    icon={<Check className="!w-4 !h-4" />}
+                    color="success"
+                    disabled={!canAction || takeActionMutation.isPending}
+                  />
+                  <ActionButton
+                    onClick={() => handleRejectClick(row)}
+                    tooltip="Reject request"
+                    icon={<X className="!w-4 !h-4" />}
+                    color="error"
+                    disabled={!canAction || takeActionMutation.isPending}
+                  />
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -267,136 +279,94 @@ const ApprovalWorkflows: React.FC = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Requests
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {stats?.total_requests || 0}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <FileText className="w-6 h-6 text-primary-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-orange-600">
-                Pending Requests
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-orange-600">
-                  {stats?.pending_requests || 0}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-500">
-                Approved Requests
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {stats?.approved_requests || 0}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-600">
-                Rejected Requests
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-600">
-                  {stats?.rejected_requests || 0}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <XCircle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Requests"
+          value={stats?.total_requests || 0}
+          icon={<FileText className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Pending Requests"
+          value={stats?.pending_requests || 0}
+          icon={<AlertTriangle className="w-6 h-6" />}
+          color="orange"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Approved Requests"
+          value={stats?.approved_requests || 0}
+          icon={<CheckCircle className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Rejected Requests"
+          value={stats?.rejected_requests || 0}
+          icon={<XCircle className="w-6 h-6" />}
+          color="red"
+          isLoading={isLoading}
+        />
       </div>
 
-      <Table
-        columns={columns}
-        data={requests}
-        loading={isLoading}
-        page={page - 1}
-        onPageChange={newPage => setPage(newPage + 1)}
-        rowsPerPage={limit}
-        totalCount={pagination?.total_count || 0}
-        actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap items-center gap-3">
-              <SearchInput
-                placeholder="Search requests..."
-                value={search}
-                onChange={setSearch}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="P">Pending</MenuItem>
-                <MenuItem value="A">Approved</MenuItem>
-                <MenuItem value="R">Rejected</MenuItem>
-              </Select>
-              <Select
-                value={requestTypeFilter}
-                onChange={e => setRequestTypeFilter(e.target.value)}
-                className="!w-48"
-              >
-                <MenuItem value="all">All Types</MenuItem>
-                {requestTypes.map(type => (
-                  <MenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </div>
-          </div>
-        }
-        emptyMessage={
-          search
-            ? `No requests found matching "${search}"`
-            : 'No approval requests found'
-        }
-      />
+      {isRead && (
+        <Table
+          columns={columns}
+          data={requests}
+          loading={isLoading}
+          page={page - 1}
+          onPageChange={newPage => setPage(newPage + 1)}
+          rowsPerPage={limit}
+          totalCount={pagination?.total_count || 0}
+          isPermission={isRead}
+          actions={
+            isRead ? (
+              <div className="flex justify-between gap-3 items-center flex-wrap">
+                <div className="flex flex-wrap items-center gap-3">
+                  <SearchInput
+                    placeholder="Search requests..."
+                    value={search}
+                    onChange={setSearch}
+                    debounceMs={400}
+                    showClear={true}
+                    className="!w-80"
+                  />
+                  <Select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="!w-40"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="P">Pending</MenuItem>
+                    <MenuItem value="A">Approved</MenuItem>
+                    <MenuItem value="R">Rejected</MenuItem>
+                  </Select>
+                  <Select
+                    value={requestTypeFilter}
+                    onChange={e => setRequestTypeFilter(e.target.value)}
+                    className="!w-48"
+                  >
+                    <MenuItem value="all">All Types</MenuItem>
+                    {requestTypes.map(type => (
+                      <MenuItem key={type.value} value={type.value}>
+                        {type.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              false
+            )
+          }
+          emptyMessage={
+            search
+              ? `No requests found matching "${search}"`
+              : 'No approval requests found'
+          }
+        />
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog

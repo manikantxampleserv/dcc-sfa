@@ -8,6 +8,7 @@ import React, { useCallback, useState } from 'react';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import { exportSalesVsTargetReport } from 'services/reports/salesVsTarget';
@@ -50,11 +51,6 @@ const SalesVsTargetReport: React.FC = () => {
   const performance = reportData?.performance || [];
   const categoryPerformance = reportData?.category_performance || [];
 
-  const getSalespersonName = (id: number) => {
-    const user = users.find(u => u.id === id);
-    return user ? `${user.name}` : 'N/A';
-  };
-
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportSalesVsTargetReport({
@@ -70,25 +66,28 @@ const SalesVsTargetReport: React.FC = () => {
 
   const performanceColumns: TableColumn<any>[] = [
     {
-      id: 'salesperson_id',
+      id: 'salesperson_name',
       label: 'Sales Person',
-      render: value => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <span className="text-xs font-semibold text-blue-600">
-              {getSalespersonName(value)
-                ?.split(' ')
-                .map((n: string) => n[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2) || 'U'}
-            </span>
+      render: (_value, row) => {
+        const salespersonName = row.salesperson_name || 'N/A';
+        const initials =
+          salespersonName
+            .split(' ')
+            .map((n: string) => n[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2) || 'U';
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <span className="text-xs font-semibold text-blue-600">
+                {initials}
+              </span>
+            </div>
+            <span className="font-semibold text-sm">{salespersonName}</span>
           </div>
-          <span className="font-semibold text-sm">
-            {getSalespersonName(value)}
-          </span>
-        </div>
-      ),
+        );
+      },
     },
     {
       id: 'category_name',
@@ -312,78 +311,45 @@ const SalesVsTargetReport: React.FC = () => {
         </div>
       )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Sales Person</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_salespeople}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
+      {isRead && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5">
+          <StatsCard
+            title="Sales Person"
+            value={summary.total_salespeople}
+            icon={<Users className="w-6 h-6" />}
+            color="blue"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Categories"
+            value={summary.total_categories}
+            icon={<BarChart3 className="w-6 h-6" />}
+            color="purple"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Target Amount"
+            value={`₹${summary.total_target_amount.toLocaleString()}`}
+            icon={<Target className="w-6 h-6" />}
+            color="orange"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Actual Sales"
+            value={`₹${summary.total_actual_sales.toLocaleString()}`}
+            icon={<TrendingUp className="w-6 h-6" />}
+            color="green"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Achievement"
+            value={`${summary.achievement_percentage.toFixed(1)}%`}
+            icon={<TrendingUp className="w-6 h-6" />}
+            color="emerald"
+            isLoading={isLoading}
+          />
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Categories</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_categories}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Target Amount</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{summary.total_target_amount.toLocaleString()}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-              <Target className="w-6 h-6 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Actual Sales</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{summary.total_actual_sales.toLocaleString()}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Achievement</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.achievement_percentage.toFixed(1)}%
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-emerald-600" />
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Performance by Salesperson Table */}
       <Table

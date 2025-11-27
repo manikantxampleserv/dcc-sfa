@@ -12,6 +12,7 @@ import {
   useGPSTrackingData,
   useRealTimeGPSTracking,
 } from 'hooks/useGPSTracking';
+import { usePermission } from 'hooks/usePermission';
 import { useUsers } from 'hooks/useUsers';
 import {
   Activity,
@@ -24,6 +25,7 @@ import {
 import React, { useState } from 'react';
 import Button from 'shared/Button';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import { formatDate } from 'utils/dateUtils';
 import toastService from 'utils/toast';
 import LocationDetail from './LocationDetail';
@@ -45,12 +47,21 @@ const RepLocationTracking: React.FC = () => {
     network_type: '4G',
   });
 
+  const { isRead } = usePermission('rep-location-tracking');
+
   const { data: realTimeData, isLoading: isLoadingRealTime } =
-    useRealTimeGPSTracking();
-  const { data: trackingData, isLoading: isLoadingTracking } =
-    useGPSTrackingData({
-      user_id: selectedUserId,
+    useRealTimeGPSTracking({
+      enabled: isRead,
     });
+  const { data: trackingData, isLoading: isLoadingTracking } =
+    useGPSTrackingData(
+      {
+        user_id: selectedUserId,
+      },
+      {
+        enabled: isRead,
+      }
+    );
 
   const createGPSLog = useCreateGPSLog();
 
@@ -101,35 +112,6 @@ const RepLocationTracking: React.FC = () => {
     setTestDialogOpen(false);
   };
 
-  const SummaryStatsSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-      {[1, 2, 3, 4].map(item => (
-        <div
-          key={item}
-          className="bg-white shadow-sm p-6 rounded-lg border border-gray-100"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <Skeleton
-                variant="text"
-                width="60%"
-                height={20}
-                className="!mb-2"
-              />
-              <Skeleton variant="text" width="40%" height={32} />
-            </div>
-            <Skeleton
-              variant="circular"
-              width={48}
-              height={48}
-              className="!bg-gray-100"
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   const RepCardsSkeleton = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
       {[1, 2, 3, 4, 5, 6].map(item => (
@@ -175,206 +157,183 @@ const RepLocationTracking: React.FC = () => {
             representatives
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* <Button
-            onClick={() => setTestDialogOpen(true)}
-            startIcon={<Plus className="w-5 h-5" />}
-            variant="contained"
-            color="primary"
-          >
-            Test GPS Log
-          </Button> */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-blue-500 text-blue-700 rounded-full bg-blue-50">
-            <Clock className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              Last Update: {formatDate(summary.timestamp)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter */}
-      <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
-        <div className="flex items-center flex-wrap gap-4">
-          <Select
-            label="Representative"
-            value={selectedUserId?.toString() || 'all'}
-            onChange={e =>
-              setSelectedUserId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
-            }
-            className="!min-w-[250px]"
-          >
-            <MenuItem value="all">All Representatives</MenuItem>
-            {users.map((user: any) => (
-              <MenuItem key={user.id} value={user.id.toString()}>
-                {user.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 rounded-full">
-              <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-green-700">
-                Live Tracking
+        {isRead && (
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-blue-500 text-blue-700 rounded-full bg-blue-50">
+              <Clock className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                Last Update: {formatDate(summary.timestamp)}
               </span>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Summary Stats */}
-      {isLoading ? (
-        <SummaryStatsSkeleton />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Total Reps</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {summary.total_users}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Active Now</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {summary.users_with_location}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Navigation className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Avg Speed</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {activeReps.length > 0
-                    ? `${Math.round(activeReps.reduce((sum, r) => sum + (r.speed_kph || 0), 0) / activeReps.length)} km/h`
-                    : '0 km/h'}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <Activity className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Tracking Points
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {historicalLogs.length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <MapPin className="w-6 h-6 text-purple-600" />
+      {isRead && (
+        <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
+          <div className="flex items-center flex-wrap gap-4">
+            <Select
+              label="Representative"
+              value={selectedUserId?.toString() || 'all'}
+              onChange={e =>
+                setSelectedUserId(
+                  e.target.value && e.target.value !== 'all'
+                    ? parseInt(e.target.value)
+                    : undefined
+                )
+              }
+              className="!min-w-[250px]"
+            >
+              <MenuItem value="all">All Representatives</MenuItem>
+              {users.map((user: any) => (
+                <MenuItem key={user.id} value={user.id.toString()}>
+                  {user.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <div className="ml-auto flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 rounded-full">
+                <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-green-700">
+                  Live Tracking
+                </span>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Real-Time Rep Locations Grid */}
-      {isLoading ? (
-        <RepCardsSkeleton />
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-          {realTimeGPS.map((rep: any) => (
-            <div
-              key={rep.user_id}
-              className="bg-white shadow-sm p-6 rounded-lg border border-gray-100 transition-shadow cursor-pointer hover:shadow-md"
-              onClick={() => handleRepCardClick(rep)}
-            >
-              <div className="flex items-start gap-3">
+      {isRead && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <StatsCard
+            title="Total Reps"
+            value={summary.total_users}
+            icon={<Users className="w-6 h-6" />}
+            color="blue"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Active Now"
+            value={summary.users_with_location}
+            icon={<Navigation className="w-6 h-6" />}
+            color="green"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Avg Speed"
+            value={
+              activeReps.length > 0
+                ? `${Math.round(activeReps.reduce((sum, r) => sum + (r.speed_kph || 0), 0) / activeReps.length)} km/h`
+                : '0 km/h'
+            }
+            icon={<Activity className="w-6 h-6" />}
+            color="orange"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Tracking Points"
+            value={historicalLogs.length}
+            icon={<MapPin className="w-6 h-6" />}
+            color="purple"
+            isLoading={isLoading}
+          />
+        </div>
+      )}
+
+      {!isRead && (
+        <div className="col-span-full text-center py-12">
+          <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg">
+            You do not have permission to view location tracking data
+          </p>
+        </div>
+      )}
+
+      {isRead && (
+        <>
+          {isLoading ? (
+            <RepCardsSkeleton />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+              {realTimeGPS.map((rep: any) => (
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    rep.latitude && rep.longitude
-                      ? 'bg-green-100'
-                      : 'bg-gray-100'
-                  }`}
+                  key={rep.user_id}
+                  className="bg-white shadow-sm p-6 rounded-lg border border-gray-100 transition-shadow cursor-pointer hover:shadow-md"
+                  onClick={() => handleRepCardClick(rep)}
                 >
-                  {rep.latitude && rep.longitude ? (
-                    <MapPin className="w-6 h-6 text-green-600" />
-                  ) : (
-                    <MapPin className="w-6 h-6 text-gray-400" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-lg text-gray-900 truncate">
-                      {rep.user_name}
-                    </h3>
-                    {rep.employee_id && (
-                      <span className="text-xs text-gray-500">
-                        #{rep.employee_id}
-                      </span>
-                    )}
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        rep.latitude && rep.longitude
+                          ? 'bg-green-100'
+                          : 'bg-gray-100'
+                      }`}
+                    >
+                      {rep.latitude && rep.longitude ? (
+                        <MapPin className="w-6 h-6 text-green-600" />
+                      ) : (
+                        <MapPin className="w-6 h-6 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-bold text-lg text-gray-900 truncate">
+                          {rep.user_name}
+                        </h3>
+                        {rep.employee_id && (
+                          <span className="text-xs text-gray-500">
+                            #{rep.employee_id}
+                          </span>
+                        )}
+                      </div>
+
+                      {rep.latitude && rep.longitude ? (
+                        <div className="flex items-center gap-4 pt-1">
+                          {rep.speed_kph !== null && (
+                            <div className="flex items-center gap-1.5 text-sm">
+                              <Activity className="w-4 h-4 text-orange-500" />
+                              <span className="text-gray-700 font-medium">
+                                {rep.speed_kph.toFixed(0)} km/h
+                              </span>
+                            </div>
+                          )}
+                          {rep.battery_level !== null && (
+                            <div className="flex items-center gap-1.5 text-sm">
+                              <Battery className="w-4 h-4 text-purple-500" />
+                              <span className="text-gray-700 font-medium">
+                                {rep.battery_level}%
+                              </span>
+                            </div>
+                          )}
+                          {rep.last_update && (
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 ml-auto">
+                              <Clock className="w-3 h-3" />
+                              {formatDate(rep.last_update)}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 italic">
+                          No location data available
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  {rep.latitude && rep.longitude ? (
-                    <div className="flex items-center gap-4 pt-1">
-                      {rep.speed_kph !== null && (
-                        <div className="flex items-center gap-1.5 text-sm">
-                          <Activity className="w-4 h-4 text-orange-500" />
-                          <span className="text-gray-700 font-medium">
-                            {rep.speed_kph.toFixed(0)} km/h
-                          </span>
-                        </div>
-                      )}
-                      {rep.battery_level !== null && (
-                        <div className="flex items-center gap-1.5 text-sm">
-                          <Battery className="w-4 h-4 text-purple-500" />
-                          <span className="text-gray-700 font-medium">
-                            {rep.battery_level}%
-                          </span>
-                        </div>
-                      )}
-                      {rep.last_update && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 ml-auto">
-                          <Clock className="w-3 h-3" />
-                          {formatDate(rep.last_update)}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500 italic">
-                      No location data available
-                    </div>
-                  )}
                 </div>
-              </div>
-            </div>
-          ))}
+              ))}
 
-          {realTimeGPS.length === 0 && !isLoading && (
-            <div className="col-span-full text-center py-12">
-              <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No GPS data available</p>
-              <p className="text-gray-400 text-sm mt-2">
-                No sales representatives are currently being tracked
-              </p>
+              {realTimeGPS.length === 0 && !isLoading && (
+                <div className="col-span-full text-center py-12">
+                  <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg">No GPS data available</p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    No sales representatives are currently being tracked
+                  </p>
+                </div>
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Test GPS Log Dialog */}

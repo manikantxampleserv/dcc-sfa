@@ -14,6 +14,7 @@ import {
   type CoolerInspection,
 } from 'hooks/useCoolerInspections';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import UserSelect from 'shared/UserSelect';
 import {
   Calendar,
@@ -30,6 +31,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportCoolerInspection from './ImportCoolerInspection';
@@ -48,23 +50,30 @@ const CoolerInspectionsManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('cooler-inspection');
 
   const {
     data: coolerInspectionsResponse,
     isLoading,
     error,
-  } = useCoolerInspections({
-    search,
-    page,
-    limit,
-    isActive: statusFilter === 'all' ? undefined : statusFilter,
-    isWorking: workingFilter === 'all' ? undefined : workingFilter,
-    actionRequired: actionFilter === 'all' ? undefined : actionFilter,
-    inspector_id:
-      inspectorFilter === 'all' || inspectorFilter === '' || !inspectorFilter
-        ? undefined
-        : Number(inspectorFilter),
-  });
+  } = useCoolerInspections(
+    {
+      search,
+      page,
+      limit,
+      isActive: statusFilter === 'all' ? undefined : statusFilter,
+      isWorking: workingFilter === 'all' ? undefined : workingFilter,
+      actionRequired: actionFilter === 'all' ? undefined : actionFilter,
+      inspector_id:
+        inspectorFilter === 'all' || inspectorFilter === '' || !inspectorFilter
+          ? undefined
+          : Number(inspectorFilter),
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const coolerInspections = coolerInspectionsResponse?.data || [];
   const totalCount = coolerInspectionsResponse?.meta?.total_count || 0;
@@ -351,31 +360,41 @@ const CoolerInspectionsManagement: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <ActionButton
-            onClick={() => handleViewInspection(row)}
-            tooltip="View cooler inspection details"
-            icon={<Visibility />}
-            color="success"
-          />
-          <EditButton
-            onClick={() => handleEditInspection(row)}
-            tooltip={`Edit Inspection ${row.id}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteInspection(row.id)}
-            tooltip={`Delete Inspection ${row.id}`}
-            itemName={`Inspection ${row.id}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isRead || isUpdate || isDelete
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CoolerInspection) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewInspection(row)}
+                    tooltip="View cooler inspection details"
+                    icon={<Visibility />}
+                    color="success"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditInspection(row)}
+                    tooltip={`Edit Inspection ${row.id}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteInspection(row.id)}
+                    tooltip={`Delete Inspection ${row.id}`}
+                    itemName={`Inspection ${row.id}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -391,82 +410,35 @@ const CoolerInspectionsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-blue-500">
-                Total Inspections
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-blue-500">
-                  {totalInspections}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Wrench className="w-6 h-6 text-blue-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-500">
-                Active Inspections
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {activeInspections}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-500">
-                Inactive Inspections
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-500">
-                  {inactiveInspections}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <Block className="w-6 h-6 text-red-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-600">This Month</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {inspectionsThisMonth}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Inspections"
+          value={totalInspections}
+          icon={<Wrench className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Active Inspections"
+          value={activeInspections}
+          icon={<CheckCircle className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Inactive Inspections"
+          value={inactiveInspections}
+          icon={<Block className="w-6 h-6" />}
+          color="red"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="This Month"
+          value={inspectionsThisMonth}
+          icon={<Calendar className="w-6 h-6" />}
+          color="purple"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (
@@ -479,93 +451,107 @@ const CoolerInspectionsManagement: React.FC = () => {
         data={coolerInspections}
         columns={coolerInspectionColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchInput
-                placeholder="Search Cooler Inspections..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={workingFilter}
-                onChange={e => setWorkingFilter(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Working</MenuItem>
-                <MenuItem value="Y">Working</MenuItem>
-                <MenuItem value="N">Not Working</MenuItem>
-              </Select>
-              <Select
-                value={actionFilter}
-                onChange={e => setActionFilter(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Action</MenuItem>
-                <MenuItem value="Y">Action Required</MenuItem>
-                <MenuItem value="N">No Action</MenuItem>
-              </Select>
-              <UserSelect
-                label="Inspector"
-                value={
-                  inspectorFilter === 'all' || inspectorFilter === 'null'
-                    ? undefined
-                    : inspectorFilter
-                }
-                onChange={handleInspectorFilterChange}
-                fullWidth={true}
-                size="small"
-                className="!w-60"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Cooler Inspections"
-                description="Are you sure you want to export the current cooler inspections data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Cooler Inspections..."
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      className="!w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!w-40"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={workingFilter}
+                      onChange={e => setWorkingFilter(e.target.value)}
+                      className="!w-40"
+                    >
+                      <MenuItem value="all">All Working</MenuItem>
+                      <MenuItem value="Y">Working</MenuItem>
+                      <MenuItem value="N">Not Working</MenuItem>
+                    </Select>
+                    <Select
+                      value={actionFilter}
+                      onChange={e => setActionFilter(e.target.value)}
+                      className="!w-40"
+                    >
+                      <MenuItem value="all">All Action</MenuItem>
+                      <MenuItem value="Y">Action Required</MenuItem>
+                      <MenuItem value="N">No Action</MenuItem>
+                    </Select>
+                    <UserSelect
+                      label="Inspector"
+                      value={
+                        inspectorFilter === 'all' || inspectorFilter === 'null'
+                          ? undefined
+                          : inspectorFilter
+                      }
+                      onChange={handleInspectorFilterChange}
+                      fullWidth={true}
+                      size="small"
+                      className="!w-60"
+                    />
+                  </>
+                )}
+              </div>
+              {isRead && (
+                <div className="flex items-center gap-2">
+                  <PopConfirm
+                    title="Export Cooler Inspections"
+                    description="Are you sure you want to export the current cooler inspections data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                </div>
+              )}
+              {isCreate && (
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateInspection}
                 >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                  Create
                 </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateInspection}
-              >
-                Create
-              </Button>
+              )}
             </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={inspection => inspection.id}
         initialOrderBy="inspection_date"
@@ -573,6 +559,7 @@ const CoolerInspectionsManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search
