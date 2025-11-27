@@ -262,6 +262,7 @@ const UsersManagement: React.FC = () => {
           color="red"
           isLoading={isLoading}
         />
+
         <StatsCard
           title="New This Month"
           value={usersResponse?.stats?.new_users || 0}
