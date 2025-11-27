@@ -449,6 +449,398 @@ async function calculatePromotionsInternal(params: {
 }
 
 export const ordersController = {
+  // async createOrUpdateOrder(req: Request, res: Response) {
+  //   const data = req.body;
+  //   const userId = req.user?.id || 1;
+
+  //   try {
+  //     const { orderItems, order_items, selected_promotion_id, ...orderData } =
+  //       data;
+
+  //     const items = orderItems || order_items || [];
+  //     let orderId = orderData.id;
+
+  //     console.log(' Processing order with items:', {
+  //       orderId,
+  //       orderNumber: orderData.order_number,
+  //       itemsCount: items.length,
+  //       selected_promotion_id: selected_promotion_id || 'None',
+  //     });
+
+  //     let calculatedSubtotal = new Decimal(0);
+  //     for (const item of items) {
+  //       const itemTotal = new Decimal(item.quantity).mul(
+  //         new Decimal(item.price || item.unit_price || 0)
+  //       );
+  //       calculatedSubtotal = calculatedSubtotal.add(itemTotal);
+  //     }
+
+  //     const customer = await prisma.customers.findUnique({
+  //       where: { id: orderData.parent_id },
+  //       select: {
+  //         id: true,
+  //         type: true,
+  //         route_id: true,
+  //       },
+  //     });
+
+  //     if (!customer) {
+  //       return res.status(404).json({
+  //         success: false,
+  //         message: 'Customer not found',
+  //       });
+  //     }
+
+  //     let appliedPromotion = null;
+  //     let promotionDiscount = new Decimal(0);
+  //     let freeProducts: any[] = [];
+
+  //     if (selected_promotion_id) {
+  //       try {
+  //         const promotionCheck = await prisma.promotions.findUnique({
+  //           where: { id: parseInt(selected_promotion_id) },
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             code: true,
+  //             is_active: true,
+  //             start_date: true,
+  //             end_date: true,
+  //           },
+  //         });
+
+  //         if (!promotionCheck) {
+  //           return res.status(404).json({
+  //             success: false,
+  //             message: 'Selected promotion not found',
+  //           });
+  //         }
+
+  //         const now = new Date();
+  //         if (
+  //           promotionCheck.is_active !== 'Y' ||
+  //           promotionCheck.start_date > now ||
+  //           promotionCheck.end_date < now
+  //         ) {
+  //           return res.status(400).json({
+  //             success: false,
+  //             message: 'Selected promotion is not active or has expired',
+  //           });
+  //         }
+
+  //         const productsWithCategories = await Promise.all(
+  //           items.map(async (item: any) => {
+  //             const product = await prisma.products.findUnique({
+  //               where: { id: item.product_id },
+  //               select: { id: true, category_id: true },
+  //             });
+  //             return {
+  //               product_id: item.product_id,
+  //               category_id: product?.category_id || 0,
+  //               quantity: item.quantity,
+  //               unit_price: item.price || item.unit_price || 0,
+  //             };
+  //           })
+  //         );
+
+  //         const platform = (req.headers['x-platform'] as string) || 'OFFICE';
+  //         const allPromotions = await calculatePromotionsInternal({
+  //           customer_id: orderData.parent_id,
+  //           salesman_id: orderData.salesperson_id,
+  //           route_id: customer.route_id || undefined,
+  //           platform,
+  //           order_date: orderData.order_date || new Date(),
+  //           order_lines: productsWithCategories,
+  //         });
+
+  //         // Find the selected promotion in eligible list
+  //         appliedPromotion = allPromotions.find(
+  //           p => p.promotion_id === parseInt(selected_promotion_id)
+  //         );
+
+  //         if (!appliedPromotion) {
+  //           return res.status(400).json({
+  //             success: false,
+  //             message:
+  //               'Selected promotion is no longer valid or customer does not qualify',
+  //           });
+  //         }
+
+  //         promotionDiscount = new Decimal(appliedPromotion.discount_amount);
+  //         freeProducts = appliedPromotion.free_products || [];
+
+  //         console.log(
+  //           ' Customer-selected promotion applied:',
+  //           appliedPromotion.promotion_name
+  //         );
+  //         console.log(' Discount:', appliedPromotion.discount_amount);
+  //         console.log(' Free Products:', freeProducts.length);
+  //       } catch (error) {
+  //         console.error(' Error applying selected promotion:', error);
+  //         return res.status(400).json({
+  //           success: false,
+  //           message: 'Failed to apply selected promotion',
+  //         });
+  //       }
+  //     } else if (orderData.manual_discount) {
+  //       promotionDiscount = new Decimal(orderData.manual_discount);
+  //     } else {
+  //       console.log(' No promotion selected by customer');
+  //     }
+
+  //     const subtotal = calculatedSubtotal;
+  //     const discount_amount = promotionDiscount;
+  //     const tax_amount = new Decimal(orderData.tax_amount || 0);
+  //     const shipping_amount = new Decimal(orderData.shipping_amount || 0);
+
+  //     const total_amount = subtotal
+  //       .minus(discount_amount)
+  //       .plus(tax_amount)
+  //       .plus(shipping_amount);
+
+  //     const result = await prisma.$transaction(
+  //       async tx => {
+  //         let order;
+  //         let isUpdate = false;
+
+  //         if (!orderId && orderData.order_number) {
+  //           const existingOrder = await tx.orders.findFirst({
+  //             where: { order_number: orderData.order_number },
+  //           });
+  //           if (existingOrder) {
+  //             orderId = existingOrder.id;
+  //             isUpdate = true;
+  //             console.log('🔄 Found existing order by order_number:', orderId);
+  //           }
+  //         } else if (orderId) {
+  //           isUpdate = true;
+  //         }
+
+  //         let orderNumber = orderData.order_number;
+  //         if (!isUpdate && !orderNumber) {
+  //           orderNumber = await generateOrderNumber(tx);
+  //           console.log(' Generated new order number:', orderNumber);
+  //         }
+
+  //         const orderPayload = {
+  //           order_number: orderNumber,
+  //           parent_id: orderData.parent_id,
+  //           salesperson_id: orderData.salesperson_id,
+  //           currency_id: orderData.currency_id || null,
+  //           order_date: orderData.order_date
+  //             ? new Date(orderData.order_date)
+  //             : undefined,
+  //           delivery_date: orderData.delivery_date
+  //             ? new Date(orderData.delivery_date)
+  //             : undefined,
+  //           status: orderData.status || 'draft',
+  //           priority: orderData.priority || 'medium',
+  //           order_type: orderData.order_type || 'regular',
+  //           payment_method: orderData.payment_method || 'credit',
+  //           payment_terms: orderData.payment_terms || 'Net 30',
+  //           subtotal: subtotal.toNumber(),
+  //           discount_amount: discount_amount.toNumber(),
+  //           tax_amount: tax_amount.toNumber(),
+  //           shipping_amount: shipping_amount.toNumber(),
+  //           total_amount: total_amount.toNumber(),
+  //           notes: orderData.notes || null,
+  //           shipping_address: orderData.shipping_address || null,
+  //           approval_status: orderData.approval_status || 'pending',
+  //           is_active: orderData.is_active || 'Y',
+  //           promotion_id: selected_promotion_id
+  //             ? parseInt(selected_promotion_id)
+  //             : null,
+  //         };
+
+  //         if (isUpdate && orderId) {
+  //           const updatePayload = { ...orderPayload };
+  //           if (!orderData.order_number) {
+  //             delete updatePayload.order_number;
+  //           }
+
+  //           order = await tx.orders.update({
+  //             where: { id: orderId },
+  //             data: {
+  //               ...updatePayload,
+  //               updatedate: new Date(),
+  //               updatedby: userId,
+  //               log_inst: { increment: 1 },
+  //             },
+  //           });
+  //         } else {
+  //           order = await tx.orders.create({
+  //             data: {
+  //               ...orderPayload,
+  //               createdate: new Date(),
+  //               createdby: userId,
+  //               log_inst: 1,
+  //             },
+  //           });
+  //           console.log(' Order created, ID:', order.id);
+  //         }
+
+  //         if (items && items.length > 0) {
+  //           if (isUpdate && orderId) {
+  //             await tx.order_items.deleteMany({
+  //               where: { parent_id: orderId },
+  //             });
+  //             console.log(' Deleted existing order items');
+  //           }
+
+  //           const safeParse = (val: any, fallback = 0) => {
+  //             const num = parseFloat(val);
+  //             return isNaN(num) ? fallback : num;
+  //           };
+
+  //           const orderItemsData = items.map((item: any) => {
+  //             const quantity = safeParse(item.quantity, 0);
+  //             const unitPrice = safeParse(item.unit_price || item.price, 0);
+  //             const discountAmount = safeParse(
+  //               item.discount_amount || item.discount,
+  //               0
+  //             );
+  //             const taxAmount = safeParse(item.tax_amount || item.tax, 0);
+  //             const subtotal = quantity * unitPrice;
+
+  //             return {
+  //               parent_id: order.id,
+  //               product_id: item.product_id,
+  //               product_name: item.product_name || null,
+  //               unit: item.unit || null,
+  //               quantity: quantity,
+  //               unit_price: unitPrice,
+  //               discount_amount: discountAmount,
+  //               tax_amount: taxAmount,
+  //               total_amount: subtotal - discountAmount + taxAmount,
+  //               notes: item.notes || null,
+  //               is_free_gift: false,
+  //             };
+  //           });
+
+  //           await tx.order_items.createMany({
+  //             data: orderItemsData,
+  //           });
+  //           console.log(` Created ${orderItemsData.length} order items`);
+
+  //           if (freeProducts.length > 0) {
+  //             const freeItemsData = freeProducts.map((freeProduct: any) => ({
+  //               parent_id: order.id,
+  //               product_id: freeProduct.product_id,
+  //               product_name: freeProduct.product_name || null,
+  //               unit: null,
+  //               quantity: freeProduct.quantity,
+  //               unit_price: 0,
+  //               discount_amount: 0,
+  //               tax_amount: 0,
+  //               total_amount: 0,
+  //               notes: `Free gift from promotion: ${appliedPromotion?.promotion_name}`,
+  //               is_free_gift: true,
+  //             }));
+
+  //             await tx.order_items.createMany({
+  //               data: freeItemsData,
+  //             });
+  //             console.log(` Added ${freeItemsData.length} free products`);
+  //           }
+  //         }
+
+  //         const finalOrder = await tx.orders.findUnique({
+  //           where: { id: order.id },
+  //           include: {
+  //             orders_currencies: true,
+  //             orders_customers: true,
+  //             orders_salesperson_users: true,
+  //             order_items: true,
+  //             invoices: true,
+  //           },
+  //         });
+
+  //         return finalOrder;
+  //       },
+  //       {
+  //         maxWait: 10000,
+  //         timeout: 20000,
+  //       }
+  //     );
+
+  //     if (appliedPromotion && !orderId) {
+  //       try {
+  //         await prisma.promotion_tracking.create({
+  //           data: {
+  //             parent_id: appliedPromotion.promotion_id,
+  //             action_type: 'APPLIED',
+  //             action_date: new Date(),
+  //             user_id: userId,
+  //             comments: `Applied to order ${result?.order_number} for customer ${orderData.parent_id}. Discount: ${discount_amount.toNumber()}. Free Products: ${JSON.stringify(freeProducts.map(p => ({ product_id: p.product_id, quantity: p.quantity })))}`,
+  //             is_active: 'Y',
+  //           },
+  //         });
+  //         console.log(' Promotion tracked successfully');
+  //       } catch (error) {
+  //         console.error('Promotion tracking failed:', error);
+  //       }
+  //     }
+
+  //     if (result && !orderId) {
+  //       try {
+  //         const orderEvent = 'created';
+  //         const orderCreatorId = result.createdby || userId;
+
+  //         await createOrderNotification(
+  //           orderCreatorId,
+  //           result.id,
+  //           result.order_number || '',
+  //           orderEvent,
+  //           userId
+  //         );
+
+  //         await createRequest({
+  //           requester_id: result.salesperson_id,
+  //           request_type: 'ORDER_APPROVAL',
+  //           reference_id: result.id,
+  //           createdby: userId,
+  //           log_inst: 1,
+  //         });
+
+  //         console.log(
+  //           ' Approval workflow initiated for order:',
+  //           result.order_number
+  //         );
+  //       } catch (error: any) {
+  //         console.error('  Error creating approval request:', error);
+  //       }
+  //     }
+
+  //     const response = {
+  //       success: true,
+  //       message: orderId
+  //         ? 'Order updated successfully'
+  //         : 'Order created successfully and sent for approval',
+  //       data: {
+  //         ...serializeOrder(result),
+  //         promotion_applied: appliedPromotion
+  //           ? {
+  //               promotion_id: appliedPromotion.promotion_id,
+  //               promotion_name: appliedPromotion.promotion_name,
+  //               promotion_code: appliedPromotion.promotion_code,
+  //               discount_amount: appliedPromotion.discount_amount,
+  //               free_products: freeProducts,
+  //             }
+  //           : null,
+  //       },
+  //     };
+
+  //     res.status(orderId ? 200 : 201).json(response);
+  //   } catch (error: any) {
+  //     console.error(' Error processing order:', error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to process order',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
   async createOrUpdateOrder(req: Request, res: Response) {
     const data = req.body;
     const userId = req.user?.id || 1;
@@ -456,17 +848,19 @@ export const ordersController = {
     try {
       const { orderItems, order_items, selected_promotion_id, ...orderData } =
         data;
-
       const items = orderItems || order_items || [];
       let orderId = orderData.id;
 
-      console.log(' Processing order with items:', {
+      console.log('🛒 Processing order with items:', {
         orderId,
         orderNumber: orderData.order_number,
         itemsCount: items.length,
         selected_promotion_id: selected_promotion_id || 'None',
       });
 
+      // ============================================
+      // STEP 1: Calculate Subtotal
+      // ============================================
       let calculatedSubtotal = new Decimal(0);
       for (const item of items) {
         const itemTotal = new Decimal(item.quantity).mul(
@@ -475,6 +869,9 @@ export const ordersController = {
         calculatedSubtotal = calculatedSubtotal.add(itemTotal);
       }
 
+      // ============================================
+      // STEP 2: Get Customer Details (OPTIMIZED)
+      // ============================================
       const customer = await prisma.customers.findUnique({
         where: { id: orderData.parent_id },
         select: {
@@ -491,36 +888,77 @@ export const ordersController = {
         });
       }
 
+      // ============================================
+      // STEP 3: Handle Selected Promotion (OPTIMIZED)
+      // ============================================
       let appliedPromotion = null;
       let promotionDiscount = new Decimal(0);
       let freeProducts: any[] = [];
 
       if (selected_promotion_id) {
         try {
-          const promotionCheck = await prisma.promotions.findUnique({
+          // ✅ OPTIMIZATION 1: Get promotion with all relations in ONE query
+          const promotion = await prisma.promotions.findUnique({
             where: { id: parseInt(selected_promotion_id) },
-            select: {
-              id: true,
-              name: true,
-              code: true,
-              is_active: true,
-              start_date: true,
-              end_date: true,
+            include: {
+              promotion_condition_promotions: {
+                where: { is_active: 'Y' },
+                include: {
+                  promotion_condition_products: {
+                    where: { is_active: 'Y' },
+                  },
+                },
+              },
+              promotion_level_promotions: {
+                where: { is_active: 'Y' },
+                include: {
+                  promotion_benefit_level: {
+                    where: { is_active: 'Y' },
+                    include: {
+                      promotion_benefit_products: {
+                        select: {
+                          id: true,
+                          name: true,
+                          code: true,
+                        },
+                      },
+                    },
+                  },
+                },
+                orderBy: { threshold_value: 'desc' },
+              },
+              promotion_salesperson_promotions: {
+                where: { is_active: 'Y' },
+                select: { salesperson_id: true },
+              },
+              promotion_routes_promotions: {
+                where: { is_active: 'Y' },
+                select: { route_id: true },
+              },
+              promotion_customer_category_promotions: {
+                where: { is_active: 'Y' },
+                select: { customer_category_id: true },
+              },
+              promotion_customer_exclusion_promotions: {
+                where: { customer_id: orderData.parent_id },
+                select: { is_excluded: true },
+              },
             },
           });
 
-          if (!promotionCheck) {
+          if (!promotion) {
             return res.status(404).json({
               success: false,
               message: 'Selected promotion not found',
             });
           }
 
+          // ✅ OPTIMIZATION 2: Quick validation checks
           const now = new Date();
           if (
-            promotionCheck.is_active !== 'Y' ||
-            promotionCheck.start_date > now ||
-            promotionCheck.end_date < now
+            promotion.is_active !== 'Y' ||
+            promotion.start_date > now ||
+            promotion.end_date < now
           ) {
             return res.status(400).json({
               success: false,
@@ -528,65 +966,196 @@ export const ordersController = {
             });
           }
 
-          const productsWithCategories = await Promise.all(
-            items.map(async (item: any) => {
-              const product = await prisma.products.findUnique({
-                where: { id: item.product_id },
-                select: { id: true, category_id: true },
+          // Check exclusion
+          if (promotion.promotion_customer_exclusion_promotions.length > 0) {
+            const isExcluded =
+              promotion.promotion_customer_exclusion_promotions.some(
+                exc => exc.is_excluded === 'Y'
+              );
+            if (isExcluded) {
+              return res.status(400).json({
+                success: false,
+                message: 'Customer is excluded from this promotion',
               });
-              return {
-                product_id: item.product_id,
-                category_id: product?.category_id || 0,
-                quantity: item.quantity,
-                unit_price: item.price || item.unit_price || 0,
-              };
-            })
-          );
+            }
+          }
 
-          const platform = (req.headers['x-platform'] as string) || 'OFFICE';
-          const allPromotions = await calculatePromotionsInternal({
-            customer_id: orderData.parent_id,
-            salesman_id: orderData.salesperson_id,
-            route_id: customer.route_id || undefined,
-            platform,
-            order_date: orderData.order_date || new Date(),
-            order_lines: productsWithCategories,
-          });
+          // ✅ OPTIMIZATION 3: Check eligibility WITHOUT extra queries
+          let isEligible = false;
 
-          appliedPromotion = allPromotions.find(
-            p => p.promotion_id === parseInt(selected_promotion_id)
-          );
+          // If no restrictions, everyone is eligible
+          if (
+            promotion.promotion_salesperson_promotions.length === 0 &&
+            promotion.promotion_routes_promotions.length === 0 &&
+            promotion.promotion_customer_category_promotions.length === 0
+          ) {
+            isEligible = true;
+          } else {
+            // Check salesperson
+            if (
+              promotion.promotion_salesperson_promotions.length > 0 &&
+              promotion.promotion_salesperson_promotions.some(
+                s => s.salesperson_id === orderData.salesperson_id
+              )
+            ) {
+              isEligible = true;
+            }
 
-          if (!appliedPromotion) {
+            // Check route
+            if (
+              !isEligible &&
+              customer.route_id &&
+              promotion.promotion_routes_promotions.length > 0 &&
+              promotion.promotion_routes_promotions.some(
+                r => r.route_id === customer.route_id
+              )
+            ) {
+              isEligible = true;
+            }
+
+            // Check customer category (only if needed)
+            if (
+              !isEligible &&
+              customer.type &&
+              promotion.promotion_customer_category_promotions.length > 0
+            ) {
+              // ✅ OPTIMIZATION 4: Batch fetch categories
+              const categoryIds =
+                promotion.promotion_customer_category_promotions.map(
+                  c => c.customer_category_id
+                );
+              const categories = await prisma.customer_category.findMany({
+                where: {
+                  id: { in: categoryIds },
+                  category_code: customer.type,
+                },
+                select: { id: true },
+              });
+
+              if (categories.length > 0) {
+                isEligible = true;
+              }
+            }
+          }
+
+          if (!isEligible) {
             return res.status(400).json({
               success: false,
-              message:
-                'Selected promotion is no longer valid or customer does not qualify',
+              message: 'Customer does not qualify for this promotion',
             });
           }
 
-          promotionDiscount = new Decimal(appliedPromotion.discount_amount);
-          freeProducts = appliedPromotion.free_products || [];
+          // ✅ OPTIMIZATION 5: Calculate qualification inline (no extra function call)
+          if (promotion.promotion_condition_promotions.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'Promotion has no conditions defined',
+            });
+          }
 
-          console.log(
-            ' Customer-selected promotion applied:',
-            appliedPromotion.promotion_name
+          const condition = promotion.promotion_condition_promotions[0];
+          let totalQty = new Decimal(0);
+          let totalValue = new Decimal(0);
+
+          // ✅ OPTIMIZATION 6: Get all product categories in ONE query
+          const productIds = items.map((item: any) => item.product_id);
+          const products = await prisma.products.findMany({
+            where: { id: { in: productIds } },
+            select: { id: true, category_id: true },
+          });
+
+          const productCategoryMap = new Map(
+            products.map(p => [p.id, p.category_id])
           );
-          console.log(' Discount:', appliedPromotion.discount_amount);
-          console.log(' Free Products:', freeProducts.length);
+
+          // Calculate totals
+          for (const item of items) {
+            const productMatch = condition.promotion_condition_products.find(
+              cp =>
+                cp.product_id === item.product_id ||
+                cp.category_id === productCategoryMap.get(item.product_id)
+            );
+
+            if (productMatch) {
+              const lineQty = new Decimal(item.quantity || 0);
+              const linePrice = new Decimal(item.price || item.unit_price || 0);
+              const lineValue = lineQty.mul(linePrice);
+
+              totalQty = totalQty.add(lineQty);
+              totalValue = totalValue.add(lineValue);
+            }
+          }
+
+          // Check minimum value
+          const minValue = new Decimal(condition.min_value || 0);
+          if (!totalValue.gte(minValue)) {
+            return res.status(400).json({
+              success: false,
+              message: `Order value ${totalValue.toFixed(2)} does not meet minimum ${minValue.toFixed(2)}`,
+            });
+          }
+
+          // Find applicable level
+          const applicableLevel = promotion.promotion_level_promotions.find(
+            lvl => new Decimal(lvl.threshold_value).lte(totalValue)
+          );
+
+          if (!applicableLevel) {
+            return res.status(400).json({
+              success: false,
+              message: 'Order does not meet promotion threshold',
+            });
+          }
+
+          // Calculate discount
+          let discountAmount = new Decimal(0);
+          if (applicableLevel.discount_type === 'PERCENTAGE') {
+            const discountPercent = new Decimal(
+              applicableLevel.discount_value || 0
+            );
+            discountAmount = totalValue.mul(discountPercent).div(100);
+          } else if (applicableLevel.discount_type === 'FIXED_AMOUNT') {
+            discountAmount = new Decimal(applicableLevel.discount_value || 0);
+          }
+
+          // Get free products
+          for (const benefit of applicableLevel.promotion_benefit_level) {
+            if (benefit.benefit_type === 'FREE_PRODUCT') {
+              freeProducts.push({
+                product_id: benefit.product_id,
+                product_name: benefit.promotion_benefit_products?.name || null,
+                product_code: benefit.promotion_benefit_products?.code || null,
+                quantity: benefit.benefit_value.toNumber(),
+                gift_limit: benefit.gift_limit || 0,
+              });
+            }
+          }
+
+          appliedPromotion = {
+            promotion_id: promotion.id,
+            promotion_name: promotion.name,
+            promotion_code: promotion.code,
+            discount_amount: discountAmount.toNumber(),
+            free_products: freeProducts,
+          };
+
+          promotionDiscount = discountAmount;
+
+          console.log('✅ Promotion applied:', appliedPromotion.promotion_name);
+          console.log('💰 Discount:', appliedPromotion.discount_amount);
+          console.log('🎁 Free Products:', freeProducts.length);
         } catch (error) {
-          console.error(' Error applying selected promotion:', error);
+          console.error('⚠️ Error applying promotion:', error);
           return res.status(400).json({
             success: false,
             message: 'Failed to apply selected promotion',
           });
         }
-      } else if (orderData.manual_discount) {
-        promotionDiscount = new Decimal(orderData.manual_discount);
-      } else {
-        console.log(' No promotion selected by customer');
       }
 
+      // ============================================
+      // STEP 4: Calculate Final Amounts
+      // ============================================
       const subtotal = calculatedSubtotal;
       const discount_amount = promotionDiscount;
       const tax_amount = new Decimal(orderData.tax_amount || 0);
@@ -597,6 +1166,9 @@ export const ordersController = {
         .plus(tax_amount)
         .plus(shipping_amount);
 
+      // ============================================
+      // STEP 5: Create Order in Transaction
+      // ============================================
       const result = await prisma.$transaction(
         async tx => {
           let order;
@@ -609,7 +1181,6 @@ export const ordersController = {
             if (existingOrder) {
               orderId = existingOrder.id;
               isUpdate = true;
-              console.log('🔄 Found existing order by order_number:', orderId);
             }
           } else if (orderId) {
             isUpdate = true;
@@ -618,7 +1189,6 @@ export const ordersController = {
           let orderNumber = orderData.order_number;
           if (!isUpdate && !orderNumber) {
             orderNumber = await generateOrderNumber(tx);
-            console.log(' Generated new order number:', orderNumber);
           }
 
           const orderPayload = {
@@ -675,15 +1245,14 @@ export const ordersController = {
                 log_inst: 1,
               },
             });
-            console.log(' Order created, ID:', order.id);
           }
 
+          // Create Order Items
           if (items && items.length > 0) {
             if (isUpdate && orderId) {
               await tx.order_items.deleteMany({
                 where: { parent_id: orderId },
               });
-              console.log(' Deleted existing order items');
             }
 
             const safeParse = (val: any, fallback = 0) => {
@@ -719,8 +1288,8 @@ export const ordersController = {
             await tx.order_items.createMany({
               data: orderItemsData,
             });
-            console.log(` Created ${orderItemsData.length} order items`);
 
+            // Add Free Products
             if (freeProducts.length > 0) {
               const freeItemsData = freeProducts.map((freeProduct: any) => ({
                 parent_id: order.id,
@@ -739,7 +1308,6 @@ export const ordersController = {
               await tx.order_items.createMany({
                 data: freeItemsData,
               });
-              console.log(` Added ${freeItemsData.length} free products`);
             }
           }
 
@@ -747,7 +1315,11 @@ export const ordersController = {
             where: { id: order.id },
             include: {
               orders_currencies: true,
-              orders_customers: true,
+              orders_customers: {
+                include: {
+                  customer_routes: true,
+                },
+              },
               orders_salesperson_users: true,
               order_items: true,
               invoices: true,
@@ -757,11 +1329,12 @@ export const ordersController = {
           return finalOrder;
         },
         {
-          maxWait: 10000,
-          timeout: 20000,
+          maxWait: 5000,
+          timeout: 10000,
         }
       );
 
+      // Track Promotion Usage
       if (appliedPromotion && !orderId) {
         try {
           await prisma.promotion_tracking.create({
@@ -770,26 +1343,23 @@ export const ordersController = {
               action_type: 'APPLIED',
               action_date: new Date(),
               user_id: userId,
-              comments: `Applied to order ${result?.order_number} for customer ${orderData.parent_id}. Discount: ${discount_amount.toNumber()}. Free Products: ${JSON.stringify(freeProducts.map(p => ({ product_id: p.product_id, quantity: p.quantity })))}`,
+              comments: `Applied to order ${result?.order_number}`,
               is_active: 'Y',
             },
           });
-          console.log(' Promotion tracked successfully');
         } catch (error) {
-          console.error('Promotion tracking failed:', error);
+          console.error('⚠️ Promotion tracking failed:', error);
         }
       }
 
+      // Approval Workflow
       if (result && !orderId) {
         try {
-          const orderEvent = 'created';
-          const orderCreatorId = result.createdby || userId;
-
           await createOrderNotification(
-            orderCreatorId,
+            result.createdby || userId,
             result.id,
             result.order_number || '',
-            orderEvent,
+            'created',
             userId
           );
 
@@ -800,13 +1370,8 @@ export const ordersController = {
             createdby: userId,
             log_inst: 1,
           });
-
-          console.log(
-            ' Approval workflow initiated for order:',
-            result.order_number
-          );
         } catch (error: any) {
-          console.error('  Error creating approval request:', error);
+          console.error('⚠️ Error creating approval request:', error);
         }
       }
 
@@ -817,21 +1382,13 @@ export const ordersController = {
           : 'Order created successfully and sent for approval',
         data: {
           ...serializeOrder(result),
-          promotion_applied: appliedPromotion
-            ? {
-                promotion_id: appliedPromotion.promotion_id,
-                promotion_name: appliedPromotion.promotion_name,
-                promotion_code: appliedPromotion.promotion_code,
-                discount_amount: appliedPromotion.discount_amount,
-                free_products: freeProducts,
-              }
-            : null,
+          promotion_applied: appliedPromotion,
         },
       };
 
       res.status(orderId ? 200 : 201).json(response);
     } catch (error: any) {
-      console.error(' Error processing order:', error);
+      console.error('❌ Error processing order:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to process order',
@@ -839,6 +1396,247 @@ export const ordersController = {
       });
     }
   },
+
+  // async getAllOrders(req: any, res: any) {
+  //   try {
+  //     const {
+  //       page,
+  //       limit,
+  //       search,
+  //       sales_person_id,
+  //       customer_id,
+  //       status,
+  //       isActive,
+  //       route_id,
+  //       route_ids,
+  //     } = req.query;
+
+  //     const pageNum = parseInt(page as string, 10) || 1;
+  //     const limitNum = parseInt(limit as string, 10) || 10;
+  //     const searchLower = search ? (search as string).toLowerCase() : '';
+
+  //     const filters: any = {};
+
+  //     if (search) {
+  //       filters.OR = [
+  //         { order_number: { contains: searchLower } },
+  //         { status: { contains: searchLower } },
+  //         { notes: { contains: searchLower } },
+  //         {
+  //           orders_customers: {
+  //             name: { contains: searchLower },
+  //           },
+  //         },
+  //       ];
+  //     }
+
+  //     if (sales_person_id) {
+  //       filters.salesperson_id = parseInt(sales_person_id as string, 10);
+  //     }
+
+  //     if (customer_id) {
+  //       filters.parent_id = parseInt(customer_id as string, 10);
+  //     }
+
+  //     if (status) {
+  //       filters.status = status as string;
+  //     }
+
+  //     if (route_ids) {
+  //       const routeIdArray = route_ids
+  //         .split(',')
+  //         .map((id: string) => parseInt(id.trim(), 10))
+  //         .filter((id: number) => !isNaN(id));
+
+  //       if (routeIdArray.length > 0) {
+  //         filters.orders_customers = {
+  //           ...filters.orders_customers,
+  //           route_id: {
+  //             in: routeIdArray,
+  //           },
+  //         };
+  //       }
+  //     } else if (route_id) {
+  //       const parsedRouteId = parseInt(route_id as string, 10);
+  //       if (!isNaN(parsedRouteId)) {
+  //         filters.orders_customers = {
+  //           ...filters.orders_customers,
+  //           route_id: parsedRouteId,
+  //         };
+  //       }
+  //     }
+
+  //     if (isActive !== undefined && isActive !== '') {
+  //       let activeValue = isActive.toString().toUpperCase();
+
+  //       if (
+  //         activeValue === 'TRUE' ||
+  //         activeValue === '1' ||
+  //         activeValue === 'ACTIVE'
+  //       ) {
+  //         activeValue = 'Y';
+  //       } else if (
+  //         activeValue === 'FALSE' ||
+  //         activeValue === '0' ||
+  //         activeValue === 'INACTIVE'
+  //       ) {
+  //         activeValue = 'N';
+  //       }
+
+  //       if (activeValue === 'Y' || activeValue === 'N') {
+  //         filters.is_active = activeValue;
+  //       }
+  //     }
+
+  //     const { data, pagination } = await paginate({
+  //       model: prisma.orders,
+  //       filters,
+  //       page: pageNum,
+  //       limit: limitNum,
+  //       orderBy: { createdate: 'desc' },
+  //       include: {
+  //         orders_currencies: true,
+  //         orders_customers: {
+  //           include: {
+  //             customer_routes: true,
+  //           },
+  //         },
+  //         orders_salesperson_users: true,
+  //         order_items: true,
+  //         invoices: true,
+  //       },
+  //     });
+
+  //     const statsFilter: any = {};
+
+  //     if (route_ids) {
+  //       const routeIdArray = route_ids
+  //         .split(',')
+  //         .map((id: string) => parseInt(id.trim(), 10))
+  //         .filter((id: number) => !isNaN(id));
+
+  //       if (routeIdArray.length > 0) {
+  //         statsFilter.orders_customers = {
+  //           route_id: { in: routeIdArray },
+  //         };
+  //       }
+  //     } else if (route_id) {
+  //       const parsedRouteId = parseInt(route_id as string, 10);
+  //       if (!isNaN(parsedRouteId)) {
+  //         statsFilter.orders_customers = {
+  //           route_id: parsedRouteId,
+  //         };
+  //       }
+  //     }
+
+  //     if (customer_id) {
+  //       statsFilter.parent_id = parseInt(customer_id as string, 10);
+  //     }
+
+  //     if (sales_person_id) {
+  //       statsFilter.salesperson_id = parseInt(sales_person_id as string, 10);
+  //     }
+
+  //     if (status) {
+  //       statsFilter.status = status as string;
+  //     }
+  //     const totalOrders = await prisma.orders.count({
+  //       where: statsFilter,
+  //     });
+
+  //     const activeOrders = await prisma.orders.count({
+  //       where: {
+  //         ...statsFilter,
+  //         is_active: 'Y',
+  //       },
+  //     });
+
+  //     const inactiveOrders = await prisma.orders.count({
+  //       where: {
+  //         ...statsFilter,
+  //         is_active: 'N',
+  //       },
+  //     });
+
+  //     const now = new Date();
+  //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  //     const ordersThisMonth = await prisma.orders.count({
+  //       where: {
+  //         ...statsFilter,
+  //         createdate: {
+  //           gte: startOfMonth,
+  //           lte: endOfMonth,
+  //         },
+  //       },
+  //     });
+
+  //     let routeStats = null;
+  //     if (route_id || route_ids) {
+  //       const routeFilter = route_ids
+  //         ? {
+  //             route_id: {
+  //               in: route_ids
+  //                 .split(',')
+  //                 .map((id: string) => parseInt(id.trim(), 10))
+  //                 .filter((id: number) => !isNaN(id)),
+  //             },
+  //           }
+  //         : { route_id: parseInt(route_id as string, 10) };
+
+  //       const customersInRoutes = await prisma.customers.count({
+  //         where: routeFilter,
+  //       });
+
+  //       const orderTotals = await prisma.orders.aggregate({
+  //         where: {
+  //           orders_customers: routeFilter,
+  //         },
+  //         _sum: {
+  //           total_amount: true,
+  //         },
+  //         _avg: {
+  //           total_amount: true,
+  //         },
+  //       });
+
+  //       routeStats = {
+  //         customers_in_routes: customersInRoutes,
+  //         total_order_value: orderTotals._sum.total_amount || 0,
+  //         average_order_value: orderTotals._avg.total_amount || 0,
+  //       };
+  //     }
+
+  //     res.success(
+  //       'Orders retrieved successfully',
+  //       data.map((order: any) => serializeOrder(order)),
+  //       200,
+  //       pagination,
+  //       {
+  //         total_orders: totalOrders,
+  //         active_orders: activeOrders,
+  //         inactive_orders: inactiveOrders,
+  //         orders_this_month: ordersThisMonth,
+  //         ...(routeStats && { route_statistics: routeStats }),
+  //         filters_applied: {
+  //           route_id: route_id || null,
+  //           route_ids: route_ids || null,
+  //           sales_person_id: sales_person_id || null,
+  //           customer_id: customer_id || null,
+  //           status: status || null,
+  //           is_active: isActive || null,
+  //         },
+  //       }
+  //     );
+  //   } catch (error: any) {
+  //     console.error('Get Orders Error:', error);
+  //     res.status(500).json({
+  //       message: 'Failed to retrieve orders',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
 
   async getAllOrders(req: any, res: any) {
     try {
@@ -947,8 +1745,47 @@ export const ordersController = {
           orders_salesperson_users: true,
           order_items: true,
           invoices: true,
+          // ✅ ADD THIS: Include the promotion relation
+          orders_promotion: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              type: true,
+              description: true,
+            },
+          },
         },
       });
+
+      // ✅ ADD THIS: Enrich orders with promotion_applied data
+      const enrichedOrders = data.map((order: any) => {
+        const serialized = serializeOrder(order);
+
+        // Build promotion_applied from the relation or order data
+        if (order.promotion_id && order.orders_promotion) {
+          serialized.promotion_applied = {
+            promotion_id: order.orders_promotion.id,
+            promotion_name: order.orders_promotion.name,
+            promotion_code: order.orders_promotion.code,
+            discount_amount: order.discount_amount
+              ? Number(order.discount_amount)
+              : 0,
+            free_products:
+              order.order_items
+                ?.filter((item: any) => item.is_free_gift === true)
+                .map((item: any) => ({
+                  product_id: item.product_id,
+                  product_name: item.product_name,
+                  quantity: item.quantity,
+                })) || [],
+          };
+        }
+
+        return serialized;
+      });
+
+      // ... rest of your stats code stays the same ...
 
       const statsFilter: any = {};
 
@@ -983,6 +1820,7 @@ export const ordersController = {
       if (status) {
         statsFilter.status = status as string;
       }
+
       const totalOrders = await prisma.orders.count({
         where: statsFilter,
       });
@@ -1051,9 +1889,10 @@ export const ordersController = {
         };
       }
 
+      // ✅ CHANGED: Use enrichedOrders instead of data.map(serializeOrder)
       res.success(
         'Orders retrieved successfully',
-        data.map((order: any) => serializeOrder(order)),
+        enrichedOrders,
         200,
         pagination,
         {
@@ -1080,7 +1919,6 @@ export const ordersController = {
       });
     }
   },
-
   async getOrdersById(req: Request, res: Response) {
     try {
       const { id } = req.params;
