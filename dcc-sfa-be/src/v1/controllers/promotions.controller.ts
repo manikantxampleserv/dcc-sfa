@@ -249,89 +249,101 @@ import prisma from '../../configs/prisma.client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 interface PromotionCreateInput {
-  promotion_name: string;
-  promotion_code?: string;
-  short_name?: string;
-  pay_type?: string;
-  slip_type?: string;
-  prom_conflict?: string;
-  nr?: number;
-  mandator?: boolean;
-  degree?: number;
-  reg_disc_conf?: string;
-  start_date: string;
-  finish_date: string;
-  conflict_with_constant_disc?: boolean;
-  disabled?: boolean;
-  scope?: string;
+  name: string;
+  code?: string;
+  type?: string;
   description?: string;
-
+  start_date: string;
+  end_date: string;
+  disabled?: boolean;
   platforms?: string[];
 
-  group_type?: string;
-  dist_comp_participation_from?: number;
-  dist_comp_participation_to?: number;
-
-  level_type?: string;
-
-  quantity_type?: string;
+  // Product conditions - support both naming conventions
+  productconditions?: Array<{
+    product_id: number;
+    category_id: number;
+    productgroup?: string;
+    product_group?: string;
+    minquantity?: number;
+    min_quantity?: number;
+    minvalue?: number;
+    min_value?: number;
+  }>;
   product_conditions?: Array<{
     product_id: number;
     category_id: number;
+    productgroup?: string;
     product_group?: string;
+    minquantity?: number;
     min_quantity?: number;
+    minvalue?: number;
     min_value?: number;
   }>;
 
-  outlet_date_from?: string;
-  outlet_date_to?: string;
-  document_types?: string[];
+  // Quantity type for conditions
+  quantity_type?: string;
 
+  // Location areas - support both naming conventions
+  locationareas?: number[];
   location_areas?: number[];
-  location_distributors?: number[];
 
+  // Distributor distributors - support both naming conventions
+  distributordistributors?: number[];
   distributor_distributors?: number[];
-  distributor_roles?: number[];
 
+  // Seller data - support both naming conventions
+  sellerdata?: number[];
   seller_data?: number[];
 
+  // Outlet groups - support both naming conventions
+  outlet1groups?: number[];
   outlet1_groups?: number[];
-  outlet1_roles?: number[];
+  outlet2groups?: number[];
   outlet2_groups?: number[];
-  outlet2_roles?: number[];
 
+  // Levels
   levels?: Array<{
-    level_number: number;
-    threshold_value: number;
+    level_number?: number;
+    levelnumber?: number;
+    threshold_value?: number;
+    thresholdvalue?: number;
     discount_type?: string;
+    discounttype?: string;
     discount_value?: number;
-    unit?: string;
-    step?: boolean;
+    discountvalue?: number;
     benefits?: Array<{
-      benefit_type: string;
+      benefit_type?: string;
+      benefittype?: string;
       product_id?: number;
-      benefit_value: number;
+      benefit_value?: number;
+      benefitvalue?: number;
       gift_limit?: number;
+      giftlimit?: number;
       condition_type?: string;
+      conditiontype?: string;
     }>;
   }>;
+
+  customerexclusions?: number[];
   customer_exclusions?: number[];
 }
 
 const generatePromotionCode = async (name: string): Promise<string> => {
   const prefix = name.slice(0, 3).toUpperCase();
-  const lastPromo = await prisma.promotion.findFirst({
+
+  const lastPromo = await prisma.promotions.findFirst({
     orderBy: { id: 'desc' },
-    select: { promotion_code: true },
+    select: { code: true },
   });
 
   let newNumber = 1;
-  if (lastPromo?.promotion_code) {
-    const match = lastPromo.promotion_code.match(/(\d+)$/);
+  if (lastPromo?.code) {
+    const match = lastPromo.code.match(/\d+/);
     if (match) {
-      newNumber = parseInt(match[1], 10) + 1;
+      newNumber = parseInt(match[0], 10) + 1;
     }
   }
+
   return `${prefix}${newNumber.toString().padStart(4, '0')}`;
 };
 
@@ -340,8 +352,9 @@ const serializePromotion = (promo: any) => {
 
   return {
     id: promo.id,
-    promotion_name: promo.promotion_name,
-    promotion_code: promo.promotion_code,
+    name: promo.name,
+    code: promo.code,
+    type: promo.type,
     start_date: promo.start_date,
     end_date: promo.end_date,
     description: promo.description,
@@ -350,307 +363,52 @@ const serializePromotion = (promo: any) => {
     createdby: promo.createdby,
     updatedate: promo.updatedate,
     updatedby: promo.updatedby,
-
-    channels: promo.promotion_channel_promotions || [],
-    depots: promo.promotion_depot_promotions || [],
-    salespersons: promo.promotion_salesperson_promotions || [],
-    routes: promo.promotion_routes_promotions || [],
-    customer_categories: promo.promotion_customer_category_promotions || [],
-    customer_exclusions: promo.promotion_customer_exclusion_promotions || [],
-    conditions: promo.promotion_condition_promotions || [],
-    levels: promo.promotion_level_promotions || [],
-    tracking: promo.promotion_tracking_promotions || [],
+    channels: promo.promotion_channel_promotions,
+    depots: promo.promotion_depot_promotions,
+    salespersons: promo.promotion_salesperson_promotions,
+    routes: promo.promotion_routes_promotions,
+    customer_categories: promo.promotion_customer_category_promotions,
+    customer_exclusions: promo.promotion_customer_exclusion_promotions,
+    conditions: promo.promotion_condition_promotions,
+    levels: promo.promotion_level_promotions,
+    tracking: promo.promotion_tracking_promotions,
   };
 };
 
 export const promotionsController = {
-  // async createPromotion(req: any, res: Response) {
-  //   try {
-  //     const input: PromotionCreateInput = req.body;
-
-  //     if (!input.promotion_name || !input.start_date || !input.finish_date) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'promotion_name, start_date, and finish_date are required',
-  //       });
-  //     }
-
-  //     const code =
-  //       input.promotion_code ||
-  //       (await generatePromotionCode(input.promotion_name));
-
-  //     const promotion = await prisma.promotion.create({
-  //       data: {
-  //         promotion_name: input.promotion_name,
-  //         promotion_code: code,
-  //         start_date: new Date(input.start_date),
-  //         end_date: new Date(input.finish_date),
-  //         is_active: input.disabled ? 'N' : 'Y',
-  //         createdby: req.user?.id || 1,
-  //         createdate: new Date(),
-  //         log_inst: 1,
-  //       },
-  //     });
-  //     const promotionId = promotion.id;
-
-  //     if (input.platforms && Array.isArray(input.platforms)) {
-  //       for (const platform of input.platforms) {
-  //         await prisma.promotion_channel.create({
-  //           data: {
-  //             parent_id: promotionId,
-  //             channel_type: platform,
-  //             is_active: 'Y',
-  //           },
-  //         });
-  //       }
-  //     }
-  //     if (input.product_conditions && Array.isArray(input.product_conditions)) {
-  //       for (const conditionInput of input.product_conditions) {
-  //         const condition = await prisma.promotion_condition.create({
-  //           data: {
-  //             parent_id: promotionId,
-  //             condition_type: input.quantity_type || 'QUANTITY',
-  //             applies_to_type: conditionInput.product_group
-  //               ? 'PRODUCT_GROUP'
-  //               : conditionInput.category_id
-  //                 ? 'CATEGORY'
-  //                 : 'SINGLE_PRODUCT',
-  //             min_value: new Decimal(conditionInput.min_value || 0),
-  //             max_value: null,
-  //             effective_start_date: new Date(input.start_date),
-  //             effective_end_date: new Date(input.finish_date),
-  //             status: 'active',
-  //             is_active: 'Y',
-  //             createdby: req.user?.id || 1,
-  //             createdate: new Date(),
-  //             log_inst: 1,
-  //           },
-  //         });
-
-  //         await prisma.promotion_condition_products.create({
-  //           data: {
-  //             condition_id: condition.id,
-  //             product_id: conditionInput.product_id,
-  //             category_id: conditionInput.category_id,
-  //             product_group: conditionInput.product_group || null,
-  //             condition_quantity: new Decimal(conditionInput.min_quantity || 0),
-  //             is_active: 'Y',
-  //             createdby: req.user?.id || 1,
-  //             createdate: new Date(),
-  //             log_inst: 1,
-  //           },
-  //         });
-  //       }
-  //     }
-
-  //     if (input.levels && Array.isArray(input.levels)) {
-  //       for (const levelInput of input.levels) {
-  //         const level = await prisma.promotion_level.create({
-  //           data: {
-  //             parent_id: promotionId,
-  //             level_number: levelInput.level_number || 1,
-  //             threshold_value: new Decimal(levelInput.threshold_value || 0),
-  //             discount_type: levelInput.discount_type || 'PERCENTAGE',
-  //             discount_value: new Decimal(levelInput.discount_value || 0),
-  //             is_active: 'Y',
-  //             createdby: req.user?.id || 1,
-  //             createdate: new Date(),
-  //             log_inst: 1,
-  //           },
-  //         });
-
-  //         if (levelInput.benefits && Array.isArray(levelInput.benefits)) {
-  //           for (const benefitInput of levelInput.benefits) {
-  //             await prisma.promotion_benefit.create({
-  //               data: {
-  //                 level_id: level.id,
-  //                 benefit_type: benefitInput.benefit_type || 'FREE_PRODUCT',
-  //                 product_id: benefitInput.product_id || null,
-  //                 benefit_value: new Decimal(benefitInput.benefit_value || 0),
-  //                 condition_type: benefitInput.condition_type || null,
-  //                 gift_limit: benefitInput.gift_limit || 0,
-  //                 is_active: 'Y',
-  //               },
-  //             });
-  //           }
-  //         }
-  //       }
-  //     }
-
-  //     if (input.location_areas && Array.isArray(input.location_areas)) {
-  //       for (const depotId of input.location_areas) {
-  //         await prisma.promotion_depot.create({
-  //           data: {
-  //             parent_id: promotionId,
-  //             depot_id: depotId,
-  //             is_active: 'Y',
-  //           },
-  //         });
-  //       }
-  //     }
-
-  //     if (
-  //       input.distributor_distributors &&
-  //       Array.isArray(input.distributor_distributors)
-  //     ) {
-  //       for (const salespersonId of input.distributor_distributors) {
-  //         await prisma.promotion_salesperson.create({
-  //           data: {
-  //             parent_id: promotionId,
-  //             salesperson_id: salespersonId,
-  //             is_active: 'Y',
-  //           },
-  //         });
-  //       }
-  //     }
-  //     if (input.seller_data && Array.isArray(input.seller_data)) {
-  //       for (const routeId of input.seller_data) {
-  //         await prisma.promotion_routes.create({
-  //           data: {
-  //             parent_id: promotionId,
-  //             route_id: routeId,
-  //             is_active: 'Y',
-  //           },
-  //         });
-  //       }
-  //     }
-
-  //     const allOutletGroups = [
-  //       ...(input.outlet1_groups || []),
-  //       ...(input.outlet2_groups || []),
-  //     ];
-
-  //     for (const categoryId of allOutletGroups) {
-  //       await prisma.promotion_customer_category.create({
-  //         data: {
-  //           parent_id: promotionId,
-  //           customer_category_id: categoryId,
-  //           is_active: 'Y',
-  //           createdby: req.user?.id || 1,
-  //           createdate: new Date(),
-  //           log_inst: 1,
-  //         },
-  //       });
-  //     }
-
-  //     if (
-  //       input.customer_exclusions &&
-  //       Array.isArray(input.customer_exclusions)
-  //     ) {
-  //       for (const customerId of input.customer_exclusions) {
-  //         await prisma.promotion_customer_exclusion.create({
-  //           data: {
-  //             parent_id: promotionId,
-  //             customer_id: customerId,
-  //             is_excluded: 'Y',
-  //           },
-  //         });
-  //       }
-  //     }
-
-  //     await prisma.promotion_tracking.create({
-  //       data: {
-  //         parent_id: promotionId,
-  //         action_type: 'CREATED',
-  //         action_date: new Date(),
-  //         user_id: req.user?.id || 1,
-  //         comments: `Promotion created: ${input.promotion_name}`,
-  //         is_active: 'Y',
-  //       },
-  //     });
-
-  //     const completePromotion = await prisma.promotion.findUnique({
-  //       where: { id: promotionId },
-  //       include: {
-  //         promotion_channel_promotions: { where: { is_active: 'Y' } },
-  //         promotion_depot_promotions: {
-  //           where: { is_active: 'Y' },
-  //           include: { depots: true },
-  //         },
-  //         promotion_salesperson_promotions: {
-  //           where: { is_active: 'Y' },
-  //           include: { promotion_salesperson_users: true },
-  //         },
-  //         promotion_routes_promotions: {
-  //           where: { is_active: 'Y' },
-  //           include: { promotion_route: true },
-  //         },
-  //         promotion_customer_category_promotions: {
-  //           where: { is_active: 'Y' },
-  //           include: { promotion_customer_categorys: true },
-  //         },
-  //         promotion_customer_exclusion_promotions: {
-  //           include: { promotion_customer_exclusion_customers: true },
-  //         },
-  //         promotion_condition_promotions: {
-  //           where: { is_active: 'Y' },
-  //           include: {
-  //             promotion_condition_product: {
-  //               where: { is_active: 'Y' },
-  //               include: {
-  //                 promotion_condition_productId: true,
-  //                 promotion_condition_categories: true,
-  //               },
-  //             },
-  //           },
-  //         },
-  //         promotion_level_promotions: {
-  //           where: { is_active: 'Y' },
-  //           include: {
-  //             promotion_benefit_level: {
-  //               where: { is_active: 'Y' },
-  //               include: {
-  //                 promotion_benefit_products: true,
-  //               },
-  //             },
-  //           },
-  //           orderBy: { level_number: 'asc' },
-  //         },
-  //         promotion_tracking_promotions: {
-  //           where: { is_active: 'Y' },
-  //           include: {
-  //             promotion_tracking_users: true, // ✅ NEW: User relation
-  //           },
-  //         },
-  //       },
-  //     });
-
-  //     res.status(201).json({
-  //       success: true,
-  //       message: 'Promotion created successfully',
-  //       data: serializePromotion(completePromotion),
-  //     });
-  //   } catch (error: any) {
-  //     console.error('Create Promotion Error:', error);
-  //     res.status(500).json({
-  //       success: false,
-  //       message: error.message,
-  //       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-  //     });
-  //   }
-  // },
-
   async createPromotion(req: any, res: Response) {
     try {
       const input: PromotionCreateInput = req.body;
 
-      if (!input.promotion_name || !input.start_date || !input.finish_date) {
+      const startDateInput = input.start_date;
+      const endDateInput = input.end_date;
+
+      if (!input.name || !startDateInput || !endDateInput) {
         return res.status(400).json({
           success: false,
-          message: 'promotion_name, start_date, and finish_date are required',
+          message: 'name, start_date, and end_date are required',
         });
       }
 
-      const code =
-        input.promotion_code ||
-        (await generatePromotionCode(input.promotion_name));
+      const startDate = new Date(startDateInput);
+      const endDate = new Date(endDateInput);
 
-      const promotion = await prisma.promotion.create({
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid date format. Use YYYY-MM-DD or ISO 8601 format',
+        });
+      }
+
+      const code = input.code || (await generatePromotionCode(input.name));
+
+      const promotion = await prisma.promotions.create({
         data: {
-          promotion_name: input.promotion_name,
-          promotion_code: code,
-          start_date: new Date(input.start_date),
-          end_date: new Date(input.finish_date),
+          name: input.name,
+          code: code,
+          type: input.type || 'GENERAL',
+          start_date: startDate,
+          end_date: endDate,
           description: input.description || null,
           is_active: input.disabled ? 'N' : 'Y',
           createdby: req.user?.id || 1,
@@ -673,21 +431,23 @@ export const promotionsController = {
         }
       }
 
-      if (input.product_conditions && Array.isArray(input.product_conditions)) {
-        for (const conditionInput of input.product_conditions) {
+      const productConditions =
+        input.product_conditions || input.productconditions;
+      if (productConditions && Array.isArray(productConditions)) {
+        for (const conditionInput of productConditions) {
           const condition = await prisma.promotion_condition.create({
             data: {
               parent_id: promotionId,
               condition_type: input.quantity_type || 'QUANTITY',
               applies_to_type: conditionInput.product_group
-                ? 'PRODUCT_GROUP'
+                ? 'PRODUCTGROUP'
                 : conditionInput.category_id
                   ? 'CATEGORY'
-                  : 'SINGLE_PRODUCT',
+                  : 'SINGLEPRODUCT',
               min_value: new Decimal(conditionInput.min_value || 0),
               max_value: null,
-              effective_start_date: new Date(input.start_date),
-              effective_end_date: new Date(input.finish_date),
+              effective_start_date: startDate,
+              effective_end_date: endDate,
               status: 'active',
               is_active: 'Y',
               createdby: req.user?.id || 1,
@@ -717,10 +477,18 @@ export const promotionsController = {
           const level = await prisma.promotion_level.create({
             data: {
               parent_id: promotionId,
-              level_number: levelInput.level_number || 1,
-              threshold_value: new Decimal(levelInput.threshold_value || 0),
-              discount_type: levelInput.discount_type || 'PERCENTAGE',
-              discount_value: new Decimal(levelInput.discount_value || 0),
+              level_number:
+                levelInput.level_number ?? levelInput.levelnumber ?? 1,
+              threshold_value: new Decimal(
+                levelInput.threshold_value ?? levelInput.thresholdvalue ?? 0
+              ),
+              discount_type:
+                levelInput.discount_type ||
+                levelInput.discounttype ||
+                'PERCENTAGE',
+              discount_value: new Decimal(
+                levelInput.discount_value ?? levelInput.discountvalue ?? 0
+              ),
               is_active: 'Y',
               createdby: req.user?.id || 1,
               createdate: new Date(),
@@ -733,11 +501,20 @@ export const promotionsController = {
               await prisma.promotion_benefit.create({
                 data: {
                   level_id: level.id,
-                  benefit_type: benefitInput.benefit_type || 'FREE_PRODUCT',
+                  benefit_type:
+                    benefitInput.benefit_type ||
+                    benefitInput.benefittype ||
+                    'FREE_PRODUCT',
                   product_id: benefitInput.product_id || null,
-                  benefit_value: new Decimal(benefitInput.benefit_value || 0),
-                  condition_type: benefitInput.condition_type || null,
-                  gift_limit: benefitInput.gift_limit || 0,
+                  benefit_value: new Decimal(
+                    benefitInput.benefit_value ?? benefitInput.benefitvalue ?? 0
+                  ),
+                  condition_type:
+                    benefitInput.condition_type ||
+                    benefitInput.conditiontype ||
+                    null,
+                  gift_limit:
+                    benefitInput.gift_limit ?? benefitInput.giftlimit ?? 0,
                   is_active: 'Y',
                 },
               });
@@ -746,8 +523,9 @@ export const promotionsController = {
         }
       }
 
-      if (input.location_areas && Array.isArray(input.location_areas)) {
-        for (const depotId of input.location_areas) {
+      const locationAreas = input.location_areas || input.locationareas;
+      if (locationAreas && Array.isArray(locationAreas)) {
+        for (const depotId of locationAreas) {
           await prisma.promotion_depot.create({
             data: {
               parent_id: promotionId,
@@ -758,11 +536,10 @@ export const promotionsController = {
         }
       }
 
-      if (
-        input.distributor_distributors &&
-        Array.isArray(input.distributor_distributors)
-      ) {
-        for (const salespersonId of input.distributor_distributors) {
+      const distributorDistributors =
+        input.distributor_distributors || input.distributordistributors;
+      if (distributorDistributors && Array.isArray(distributorDistributors)) {
+        for (const salespersonId of distributorDistributors) {
           await prisma.promotion_salesperson.create({
             data: {
               parent_id: promotionId,
@@ -773,8 +550,9 @@ export const promotionsController = {
         }
       }
 
-      if (input.seller_data && Array.isArray(input.seller_data)) {
-        for (const routeId of input.seller_data) {
+      const sellerData = input.seller_data || input.sellerdata;
+      if (sellerData && Array.isArray(sellerData)) {
+        for (const routeId of sellerData) {
           await prisma.promotion_routes.create({
             data: {
               parent_id: promotionId,
@@ -785,11 +563,9 @@ export const promotionsController = {
         }
       }
 
-      // 8. ASSIGN CUSTOMER CATEGORIES
-      const allOutletGroups = [
-        ...(input.outlet1_groups || []),
-        ...(input.outlet2_groups || []),
-      ];
+      const outlet1Groups = input.outlet1_groups || input.outlet1groups || [];
+      const outlet2Groups = input.outlet2_groups || input.outlet2groups || [];
+      const allOutletGroups = [...outlet1Groups, ...outlet2Groups];
 
       for (const categoryId of allOutletGroups) {
         await prisma.promotion_customer_category.create({
@@ -804,11 +580,10 @@ export const promotionsController = {
         });
       }
 
-      if (
-        input.customer_exclusions &&
-        Array.isArray(input.customer_exclusions)
-      ) {
-        for (const customerId of input.customer_exclusions) {
+      const customerExclusions =
+        input.customer_exclusions || input.customerexclusions;
+      if (customerExclusions && Array.isArray(customerExclusions)) {
+        for (const customerId of customerExclusions) {
           await prisma.promotion_customer_exclusion.create({
             data: {
               parent_id: promotionId,
@@ -825,12 +600,12 @@ export const promotionsController = {
           action_type: 'CREATED',
           action_date: new Date(),
           user_id: req.user?.id || 1,
-          comments: `Promotion created: ${input.promotion_name}`,
+          comments: `Promotion created: ${input.name}`,
           is_active: 'Y',
         },
       });
 
-      const completePromotion = await prisma.promotion.findUnique({
+      const completePromotion = await prisma.promotions.findUnique({
         where: { id: promotionId },
         include: {
           promotion_channel_promotions: { where: { is_active: 'Y' } },
@@ -856,7 +631,7 @@ export const promotionsController = {
           promotion_condition_promotions: {
             where: { is_active: 'Y' },
             include: {
-              promotion_condition_product: {
+              promotion_condition_products: {
                 where: { is_active: 'Y' },
                 include: {
                   promotion_condition_productId: true,
@@ -879,9 +654,7 @@ export const promotionsController = {
           },
           promotion_tracking_promotions: {
             where: { is_active: 'Y' },
-            include: {
-              promotion_tracking_users: true,
-            },
+            include: { promotion_tracking_users: true },
           },
         },
       });
@@ -896,7 +669,6 @@ export const promotionsController = {
       res.status(500).json({
         success: false,
         message: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       });
     }
   },
@@ -914,7 +686,7 @@ export const promotionsController = {
         route_id,
         start_date,
         end_date,
-        active_only,
+        activeonly,
       } = req.query;
 
       const pageNum = parseInt(page as string, 10) || 1;
@@ -924,12 +696,8 @@ export const promotionsController = {
 
       if (search) {
         filters.OR = [
-          {
-            promotion_name: { contains: search as string, mode: 'insensitive' },
-          },
-          {
-            promotion_code: { contains: search as string, mode: 'insensitive' },
-          },
+          { name: { contains: search as string, mode: 'insensitive' } },
+          { code: { contains: search as string, mode: 'insensitive' } },
           { description: { contains: search as string, mode: 'insensitive' } },
         ];
       }
@@ -938,7 +706,7 @@ export const promotionsController = {
         filters.is_active = is_active;
       }
 
-      if (active_only === 'true') {
+      if (activeonly === 'true') {
         const now = new Date();
         filters.is_active = 'Y';
         filters.start_date = { lte: now };
@@ -990,7 +758,7 @@ export const promotionsController = {
       }
 
       const { data, pagination } = await paginate({
-        model: prisma.promotion,
+        model: prisma.promotions,
         filters,
         page: pageNum,
         limit: limitNum,
@@ -1014,9 +782,7 @@ export const promotionsController = {
           promotion_routes_promotions: {
             where: { is_active: 'Y' },
             include: {
-              promotion_route: {
-                select: { id: true, name: true, code: true },
-              },
+              promotion_route: { select: { id: true, name: true, code: true } },
             },
           },
           promotion_customer_category_promotions: {
@@ -1054,8 +820,8 @@ export const promotionsController = {
         },
       });
 
-      const totalPromotions = await prisma.promotion.count();
-      const activePromotions = await prisma.promotion.count({
+      const totalPromotions = await prisma.promotions.count();
+      const activePromotions = await prisma.promotions.count({
         where: {
           is_active: 'Y',
           start_date: { lte: new Date() },
@@ -1076,7 +842,10 @@ export const promotionsController = {
       });
     } catch (error: any) {
       console.error('Get All Promotions Error:', error);
-      res.status(500).json({ success: false, message: error.message });
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
     }
   },
 
@@ -1084,7 +853,7 @@ export const promotionsController = {
     try {
       const { id } = req.params;
 
-      const promotion = await prisma.promotion.findUnique({
+      const promotion = await prisma.promotions.findUnique({
         where: { id: Number(id) },
         include: {
           promotion_channel_promotions: { where: { is_active: 'Y' } },
@@ -1108,13 +877,21 @@ export const promotionsController = {
           promotion_condition_promotions: {
             where: { is_active: 'Y' },
             include: {
-              promotion_condition_product: { where: { is_active: 'Y' } },
+              promotion_condition_products: {
+                where: { is_active: 'Y' },
+                include: {
+                  promotion_condition_productId: true,
+                  promotion_condition_categories: true,
+                },
+              },
             },
           },
           promotion_level_promotions: {
             where: { is_active: 'Y' },
             include: {
-              promotion_benefit_level: { where: { is_active: 'Y' } },
+              promotion_benefit_level: {
+                where: { is_active: 'Y' },
+              },
             },
             orderBy: { level_number: 'asc' },
           },
@@ -1140,7 +917,10 @@ export const promotionsController = {
       });
     } catch (error: any) {
       console.error('Get Promotion By ID Error:', error);
-      res.status(500).json({ success: false, message: error.message });
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
     }
   },
 
@@ -1148,22 +928,20 @@ export const promotionsController = {
     try {
       const { id } = req.params;
       const {
-        promotion_name,
+        name,
         start_date,
         end_date,
         description,
         is_active,
         platforms,
-        location_areas,
-        distributor_distributors,
-        seller_data,
-        outlet1_groups,
-        outlet2_groups,
-        product_conditions,
-        levels,
-        customer_exclusions,
+        locationareas,
+        distributordistributors,
+        sellerdata,
+        outlet1groups,
+        outlet2groups,
       } = req.body;
-      const existing = await prisma.promotion.findUnique({
+
+      const existing = await prisma.promotions.findUnique({
         where: { id: Number(id) },
       });
 
@@ -1173,10 +951,11 @@ export const promotionsController = {
           message: 'Promotion not found',
         });
       }
-      const promotion = await prisma.promotion.update({
+
+      const promotion = await prisma.promotions.update({
         where: { id: Number(id) },
         data: {
-          ...(promotion_name && { promotion_name }),
+          ...(name && { name }),
           ...(start_date && { start_date: new Date(start_date) }),
           ...(end_date && { end_date: new Date(end_date) }),
           ...(description !== undefined && { description }),
@@ -1191,7 +970,6 @@ export const promotionsController = {
           where: { parent_id: Number(id) },
           data: { is_active: 'N' },
         });
-
         for (const platform of platforms) {
           await prisma.promotion_channel.create({
             data: {
@@ -1203,75 +981,17 @@ export const promotionsController = {
         }
       }
 
-      if (location_areas && Array.isArray(location_areas)) {
+      if (locationareas && Array.isArray(locationareas)) {
         await prisma.promotion_depot.updateMany({
           where: { parent_id: Number(id) },
           data: { is_active: 'N' },
         });
-
-        for (const depotId of location_areas) {
+        for (const depotId of locationareas) {
           await prisma.promotion_depot.create({
             data: {
               parent_id: Number(id),
               depot_id: depotId,
               is_active: 'Y',
-            },
-          });
-        }
-      }
-      if (distributor_distributors && Array.isArray(distributor_distributors)) {
-        await prisma.promotion_salesperson.updateMany({
-          where: { parent_id: Number(id) },
-          data: { is_active: 'N' },
-        });
-
-        for (const salespersonId of distributor_distributors) {
-          await prisma.promotion_salesperson.create({
-            data: {
-              parent_id: Number(id),
-              salesperson_id: salespersonId,
-              is_active: 'Y',
-            },
-          });
-        }
-      }
-
-      if (seller_data && Array.isArray(seller_data)) {
-        await prisma.promotion_routes.updateMany({
-          where: { parent_id: Number(id) },
-          data: { is_active: 'N' },
-        });
-
-        for (const routeId of seller_data) {
-          await prisma.promotion_routes.create({
-            data: {
-              parent_id: Number(id),
-              route_id: routeId,
-              is_active: 'Y',
-            },
-          });
-        }
-      }
-
-      if (outlet1_groups || outlet2_groups) {
-        await prisma.promotion_customer_category.updateMany({
-          where: { parent_id: Number(id) },
-          data: { is_active: 'N' },
-        });
-
-        const allGroups = [
-          ...(outlet1_groups || []),
-          ...(outlet2_groups || []),
-        ];
-        for (const categoryId of allGroups) {
-          await prisma.promotion_customer_category.create({
-            data: {
-              parent_id: Number(id),
-              customer_category_id: categoryId,
-              is_active: 'Y',
-              createdby: req.user?.id || 1,
-              createdate: new Date(),
-              log_inst: 1,
             },
           });
         }
@@ -1283,12 +1003,12 @@ export const promotionsController = {
           action_type: 'UPDATED',
           action_date: new Date(),
           user_id: req.user?.id || 1,
-          comments: `Promotion updated: ${promotion.promotion_name}`,
+          comments: `Promotion updated: ${promotion.name}`,
           is_active: 'Y',
         },
       });
 
-      const updatedPromotion = await prisma.promotion.findUnique({
+      const updatedPromotion = await prisma.promotions.findUnique({
         where: { id: Number(id) },
         include: {
           promotion_channel_promotions: { where: { is_active: 'Y' } },
@@ -1299,12 +1019,20 @@ export const promotionsController = {
           promotion_condition_promotions: {
             where: { is_active: 'Y' },
             include: {
-              promotion_condition_product: { where: { is_active: 'Y' } },
+              promotion_condition_products: {
+                where: { is_active: 'Y' },
+                include: {
+                  promotion_condition_productId: true,
+                  promotion_condition_categories: true,
+                },
+              },
             },
           },
           promotion_level_promotions: {
             where: { is_active: 'Y' },
-            include: { promotion_benefit_level: { where: { is_active: 'Y' } } },
+            include: {
+              promotion_benefit_level: { where: { is_active: 'Y' } },
+            },
           },
         },
       });
@@ -1314,14 +1042,20 @@ export const promotionsController = {
         message: 'Promotion updated successfully',
         data: serializePromotion(updatedPromotion),
       });
-    } catch (error) {}
+    } catch (error: any) {
+      console.error('Update Promotion Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
   },
 
   async deletePromotion(req: Request, res: Response) {
     try {
       const { id } = req.params;
 
-      const existing = await prisma.promotion.findUnique({
+      const existing = await prisma.promotions.findUnique({
         where: { id: Number(id) },
       });
 
@@ -1332,7 +1066,7 @@ export const promotionsController = {
         });
       }
 
-      await prisma.promotion.delete({
+      await prisma.promotions.delete({
         where: { id: Number(id) },
       });
 
@@ -1342,7 +1076,10 @@ export const promotionsController = {
       });
     } catch (error: any) {
       console.error('Delete Promotion Error:', error);
-      res.status(500).json({ success: false, message: error.message });
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
     }
   },
 
@@ -1745,14 +1482,13 @@ export const promotionsController = {
         data: { is_active: 'N' },
       });
 
-      // ✅ UPDATED: Use product_id and category_id
       const created = await Promise.all(
         products.map((p: any) =>
           prisma.promotion_condition_products.create({
             data: {
               condition_id: Number(conditionId),
-              product_id: p.product_id, // ✅ Required
-              category_id: p.category_id, // ✅ Required
+              product_id: p.product_id,
+              category_id: p.category_id,
               product_group: p.product_group || null,
               condition_quantity: new Decimal(p.condition_quantity || 0),
               is_active: 'Y',
@@ -1862,53 +1598,12 @@ export const promotionsController = {
     }
   },
 
-  // async createBenefit(req: any, res: Response) {
-  //   try {
-  //     const { levelId } = req.params;
-  //     const {
-  //       benefit_type,
-  //       product_id,
-  //       benefit_value,
-  //       condition_type,
-  //       gift_limit,
-  //     } = req.body;
-
-  //     if (!benefit_type || benefit_value === undefined) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'benefit_type and benefit_value are required',
-  //       });
-  //     }
-
-  //     const benefit = await prisma.promotion_benefit.create({
-  //       data: {
-  //         level_id: Number(levelId),
-  //         benefit_type,
-  //         product_id: product_id || null,
-  //         benefit_value: new Decimal(benefit_value),
-  //         condition_type: condition_type || null,
-  //         gift_limit: gift_limit || 0,
-  //         is_active: 'Y',
-  //       },
-  //     });
-
-  //     res.status(201).json({
-  //       success: true,
-  //       message: 'Benefit created successfully',
-  //       data: benefit,
-  //     });
-  //   } catch (error: any) {
-  //     console.error('Create Benefit Error:', error);
-  //     res.status(500).json({ success: false, message: error.message });
-  //   }
-  // },
-
   async createBenefit(req: any, res: Response) {
     try {
       const { levelId } = req.params;
       const {
         benefit_type,
-        product_id, // ✅ Changed from product_code
+        product_id,
         benefit_value,
         condition_type,
         gift_limit,
@@ -1925,7 +1620,7 @@ export const promotionsController = {
         data: {
           level_id: Number(levelId),
           benefit_type,
-          product_id: product_id || null, // ✅ Changed
+          product_id: product_id || null,
           benefit_value: new Decimal(benefit_value),
           condition_type: condition_type || null,
           gift_limit: gift_limit || 0,
@@ -2172,7 +1867,7 @@ export const promotionsController = {
   //           discountAmount = new Decimal(applicableLevel.discount_value || 0);
   //         }
 
-  //         // ✅ UPDATED: Get product details from relation
+  //         //  UPDATED: Get product details from relation
   //         for (const benefit of applicableLevel.promotion_benefit_level) {
   //           if (benefit.benefit_type === 'FREE_PRODUCT') {
   //             freeProducts.push({
@@ -2224,7 +1919,7 @@ export const promotionsController = {
     try {
       const {
         customer_id,
-        order_lines, // Now expects: [{ product_id, quantity, unit_price }]
+        order_lines,
         depot_id,
         salesman_id,
         route_id,
@@ -2241,13 +1936,11 @@ export const promotionsController = {
 
       const checkDate = order_date ? new Date(order_date) : new Date();
 
-      // Get customer details
       const customer = await prisma.customers.findUnique({
         where: { id: customer_id },
         select: { type: true },
       });
 
-      // Get active promotions
       let promotionsQuery: any = {
         is_active: 'Y',
         start_date: { lte: checkDate },
@@ -2263,7 +1956,7 @@ export const promotionsController = {
         };
       }
 
-      const promotions = await prisma.promotion.findMany({
+      const promotions = await prisma.promotions.findMany({
         where: promotionsQuery,
         include: {
           promotion_depot_promotions: { where: { is_active: 'Y' } },
@@ -2274,11 +1967,11 @@ export const promotionsController = {
           promotion_condition_promotions: {
             where: { is_active: 'Y' },
             include: {
-              promotion_condition_product: {
+              promotion_condition_products: {
                 where: { is_active: 'Y' },
                 include: {
-                  promotion_condition_productId: true, // ✅ NEW
-                  promotion_condition_categories: true, // ✅ NEW
+                  promotion_condition_productId: true,
+                  promotion_condition_categories: true,
                 },
               },
             },
@@ -2289,7 +1982,7 @@ export const promotionsController = {
               promotion_benefit_level: {
                 where: { is_active: 'Y' },
                 include: {
-                  promotion_benefit_products: true, // ✅ NEW
+                  promotion_benefit_products: true,
                 },
               },
             },
@@ -2301,14 +1994,13 @@ export const promotionsController = {
       const eligiblePromotions: any[] = [];
 
       for (const promo of promotions) {
-        // Check exclusion
         const isExcluded = promo.promotion_customer_exclusion_promotions.find(
-          exc => exc.customer_id === customer_id && exc.is_excluded === 'Y'
+          (exc: { customer_id: number; is_excluded: string }) =>
+            exc.customer_id === customer_id && exc.is_excluded === 'Y'
         );
 
         if (isExcluded) continue;
 
-        // Check eligibility
         let isEligible = false;
 
         if (
@@ -2321,7 +2013,7 @@ export const promotionsController = {
         } else {
           if (depot_id && promo.promotion_depot_promotions.length > 0) {
             const depotMatch = promo.promotion_depot_promotions.find(
-              d => d.depot_id === depot_id
+              (d: { depot_id: number }) => d.depot_id === depot_id
             );
             if (depotMatch) isEligible = true;
           }
@@ -2331,14 +2023,15 @@ export const promotionsController = {
             promo.promotion_salesperson_promotions.length > 0
           ) {
             const salesmanMatch = promo.promotion_salesperson_promotions.find(
-              s => s.salesperson_id === salesman_id
+              (s: { salesperson_id: number }) =>
+                s.salesperson_id === salesman_id
             );
             if (salesmanMatch) isEligible = true;
           }
 
           if (route_id && promo.promotion_routes_promotions.length > 0) {
             const routeMatch = promo.promotion_routes_promotions.find(
-              r => r.route_id === route_id
+              (r: { route_id: number }) => r.route_id === route_id
             );
             if (routeMatch) isEligible = true;
           }
@@ -2362,15 +2055,17 @@ export const promotionsController = {
 
         if (!isEligible) continue;
 
-        // ✅ UPDATED: Calculate with product_id and category_id
         for (const condition of promo.promotion_condition_promotions) {
           let totalQty = new Decimal(0);
           let totalValue = new Decimal(0);
 
           for (const line of order_lines) {
-            // ✅ Match by product_id or category_id
-            const productMatch = condition.promotion_condition_product.find(
-              cp =>
+            const productMatch = condition.promotion_condition_products.find(
+              (cp: {
+                product_id: number | null;
+                category_id: number | null;
+                product_group: string | null;
+              }) =>
                 cp.product_id === line.product_id ||
                 cp.category_id === line.category_id ||
                 cp.product_group === line.product_group
@@ -2391,8 +2086,9 @@ export const promotionsController = {
 
           if (!conditionMet) continue;
 
-          const applicableLevel = promo.promotion_level_promotions.find(lvl =>
-            new Decimal(lvl.threshold_value).lte(totalValue)
+          const applicableLevel = promo.promotion_level_promotions.find(
+            (lvl: { threshold_value: Decimal | number }) =>
+              new Decimal(lvl.threshold_value).lte(totalValue)
           );
 
           if (!applicableLevel) continue;
@@ -2409,7 +2105,6 @@ export const promotionsController = {
             discountAmount = new Decimal(applicableLevel.discount_value || 0);
           }
 
-          // ✅ UPDATED: Get product details from relation
           for (const benefit of applicableLevel.promotion_benefit_level) {
             if (benefit.benefit_type === 'FREE_PRODUCT') {
               freeProducts.push({
@@ -2424,8 +2119,8 @@ export const promotionsController = {
 
           eligiblePromotions.push({
             promotion_id: promo.id,
-            promotion_name: promo.promotion_name,
-            promotion_code: promo.promotion_code,
+            promotion_name: promo.name,
+            promotion_code: promo.code,
             level_number: applicableLevel.level_number,
             discount_type: applicableLevel.discount_type,
             discount_amount: discountAmount.toNumber(),
@@ -2456,7 +2151,6 @@ export const promotionsController = {
       res.status(500).json({ success: false, message: error.message });
     }
   },
-
   async applyPromotion(req: any, res: Response) {
     try {
       const {
@@ -2746,7 +2440,7 @@ export const promotionsController = {
         };
       }
 
-      const activePromotions = await prisma.promotion.findMany({
+      const activePromotions = await prisma.promotions.findMany({
         where: filters,
         include: {
           promotion_channel_promotions: { where: { is_active: 'Y' } },
@@ -2813,7 +2507,7 @@ export const promotionsController = {
         where: filters,
         include: {
           promotion_tracking_promotions: {
-            select: { id: true, promotion_name: true, promotion_code: true },
+            select: { id: true, name: true, code: true },
           },
         },
         orderBy: { action_date: 'desc' },

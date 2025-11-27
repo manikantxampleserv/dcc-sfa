@@ -220,21 +220,21 @@ interface BulkVisitInput {
     }>;
   }>;
   payments?: Array<{
-    payment_id?: number; // ✅ Changed from collection_id
+    payment_id?: number;
     visit_id?: number;
-    payment_number?: string; // ✅ New field
+    payment_number?: string;
     customer_id: number;
-    payment_date?: Date | string; // ✅ New field
+    payment_date?: Date | string;
     collected_by: number;
-    method: string; // ✅ Changed from payment_method
+    method: string;
     reference_number?: string | null;
     total_amount: number;
     notes?: string | null;
-    is_active?: string; // ✅ New field
-    currency_id?: number; // ✅ New field
+    is_active?: string;
+    currency_id?: number;
   }>;
   cooler_inspections?: Array<{
-    id?: number; // ✅ Changed from inspection_id
+    id?: number;
     visit_id?: number;
     inspected_by: number;
     inspection_date?: Date | string;
@@ -248,7 +248,7 @@ interface BulkVisitInput {
     action_taken?: string;
     next_inspection_due?: Date | string;
     cooler?: {
-      id?: number; // ✅ Changed from cooler_id
+      id?: number;
       code?: string;
       brand?: string;
       model?: string;
@@ -270,19 +270,19 @@ interface BulkVisitInput {
   }>;
   survey?: {
     survey_response: {
-      id?: number; // ✅ Changed from response_id
-      parent_id: number; // ✅ Changed from survey_id (this is the survey ID)
+      id?: number;
+      parent_id: number;
       customer_id?: number;
-      submitted_by: number; // ✅ Changed from user_id
+      submitted_by: number;
       submitted_at?: Date | string;
       location?: string;
       photo_url?: string;
-      is_active?: string; // ✅ Added
+      is_active?: string;
       survey_answers?: Array<{
-        id?: number; // ✅ Changed from answer_id
-        parent_id?: number; // ✅ This will be the survey_response id
+        id?: number;
+        parent_id?: number;
         field_id: number;
-        answer?: string; // ✅ Changed from value/answer_value
+        answer?: string;
       }>;
     };
   };

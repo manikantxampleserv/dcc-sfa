@@ -1030,9 +1030,6 @@ export const requestsController = {
             throw new Error('This approval has already been processed');
           }
 
-          // ========================================
-          // ✅ SEQUENTIAL VALIDATION (Only for APPROVE)
-          // ========================================
           if (action === 'A' && currentApproval.sequence > 1) {
             const previousApprovals = await tx.sfa_d_request_approvals.findMany(
               {
@@ -1051,7 +1048,6 @@ export const requestsController = {
             );
 
             if (notApproved) {
-              // ✅ FIX: Throw error instead of returning response
               throw new Error(
                 `Cannot approve. Sequence ${notApproved.sequence} must be approved first`
               );
@@ -1235,8 +1231,6 @@ export const requestsController = {
       });
     } catch (error: any) {
       console.error('Take Action Error:', error);
-
-      // ✅ Handle validation errors with proper status code
       if (error.message.includes('Cannot approve')) {
         return res.status(400).json({
           message: error.message,

@@ -142,7 +142,6 @@ export const promotionParametersController = {
     }
   },
 
-  // ✅ Get by ID
   async getPromotionParameterById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -166,7 +165,6 @@ export const promotionParametersController = {
     }
   },
 
-  // ✅ Update
   async updatePromotionParameter(req: any, res: any) {
     try {
       const { id } = req.params;
@@ -201,7 +199,6 @@ export const promotionParametersController = {
     }
   },
 
-  // ✅ Delete
   async deletePromotionParameter(req: Request, res: Response) {
     try {
       const { id } = req.params;

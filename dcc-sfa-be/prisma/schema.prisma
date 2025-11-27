@@ -2219,8 +2219,6 @@ model promotion {
   updatedate                              DateTime?                      @db.DateTime
   updatedby                               Int?
   log_inst                                Int?
-  promotion_channel_promotions            promotion_channel[]
-  promotion_condition_promotions          promotion_condition[]
   promotion_customer_category_promotions  promotion_customer_category[]
   promotion_customer_exclusion_promotions promotion_customer_exclusion[]
   promotion_depot_promotions              promotion_depot[]
@@ -2249,8 +2247,6 @@ model promotion_channel {
   channel_type                 String?    @db.VarChar(50)
   is_active                    String     @db.Char(1)
   promotion_channel_promotions promotions @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion                    promotion? @relation(fields: [promotionId], references: [id])
-  promotionId                  Int?
 }
 
 model promotion_condition {
@@ -2269,10 +2265,8 @@ model promotion_condition {
   updatedate                     DateTime?                      @db.DateTime
   updatedby                      Int?
   log_inst                       Int?
-  promotion_condition_promotions promotion                      @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion_condition_product    promotion_condition_products[]
-  promotions                     promotions?                    @relation(fields: [promotionsId], references: [id])
-  promotionsId                   Int?
+  promotion_condition_promotions promotions                     @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  promotion_condition_products   promotion_condition_products[]
 }
 
 model promotion_condition_products {
