@@ -858,9 +858,6 @@ export const ordersController = {
         selected_promotion_id: selected_promotion_id || 'None',
       });
 
-      // ============================================
-      // STEP 1: Calculate Subtotal
-      // ============================================
       let calculatedSubtotal = new Decimal(0);
       for (const item of items) {
         const itemTotal = new Decimal(item.quantity).mul(
@@ -869,9 +866,6 @@ export const ordersController = {
         calculatedSubtotal = calculatedSubtotal.add(itemTotal);
       }
 
-      // ============================================
-      // STEP 2: Get Customer Details (OPTIMIZED)
-      // ============================================
       const customer = await prisma.customers.findUnique({
         where: { id: orderData.parent_id },
         select: {
@@ -888,16 +882,12 @@ export const ordersController = {
         });
       }
 
-      // ============================================
-      // STEP 3: Handle Selected Promotion (OPTIMIZED)
-      // ============================================
       let appliedPromotion = null;
       let promotionDiscount = new Decimal(0);
       let freeProducts: any[] = [];
 
       if (selected_promotion_id) {
         try {
-          // ✅ OPTIMIZATION 1: Get promotion with all relations in ONE query
           const promotion = await prisma.promotions.findUnique({
             where: { id: parseInt(selected_promotion_id) },
             include: {
@@ -953,7 +943,6 @@ export const ordersController = {
             });
           }
 
-          // ✅ OPTIMIZATION 2: Quick validation checks
           const now = new Date();
           if (
             promotion.is_active !== 'Y' ||
@@ -966,7 +955,6 @@ export const ordersController = {
             });
           }
 
-          // Check exclusion
           if (promotion.promotion_customer_exclusion_promotions.length > 0) {
             const isExcluded =
               promotion.promotion_customer_exclusion_promotions.some(
@@ -980,10 +968,8 @@ export const ordersController = {
             }
           }
 
-          // ✅ OPTIMIZATION 3: Check eligibility WITHOUT extra queries
           let isEligible = false;
 
-          // If no restrictions, everyone is eligible
           if (
             promotion.promotion_salesperson_promotions.length === 0 &&
             promotion.promotion_routes_promotions.length === 0 &&
@@ -991,7 +977,6 @@ export const ordersController = {
           ) {
             isEligible = true;
           } else {
-            // Check salesperson
             if (
               promotion.promotion_salesperson_promotions.length > 0 &&
               promotion.promotion_salesperson_promotions.some(
@@ -1001,7 +986,6 @@ export const ordersController = {
               isEligible = true;
             }
 
-            // Check route
             if (
               !isEligible &&
               customer.route_id &&
@@ -1013,13 +997,11 @@ export const ordersController = {
               isEligible = true;
             }
 
-            // Check customer category (only if needed)
             if (
               !isEligible &&
               customer.type &&
               promotion.promotion_customer_category_promotions.length > 0
             ) {
-              // ✅ OPTIMIZATION 4: Batch fetch categories
               const categoryIds =
                 promotion.promotion_customer_category_promotions.map(
                   c => c.customer_category_id
@@ -1045,7 +1027,6 @@ export const ordersController = {
             });
           }
 
-          // ✅ OPTIMIZATION 5: Calculate qualification inline (no extra function call)
           if (promotion.promotion_condition_promotions.length === 0) {
             return res.status(400).json({
               success: false,
@@ -1057,7 +1038,6 @@ export const ordersController = {
           let totalQty = new Decimal(0);
           let totalValue = new Decimal(0);
 
-          // ✅ OPTIMIZATION 6: Get all product categories in ONE query
           const productIds = items.map((item: any) => item.product_id);
           const products = await prisma.products.findMany({
             where: { id: { in: productIds } },
@@ -1068,7 +1048,6 @@ export const ordersController = {
             products.map(p => [p.id, p.category_id])
           );
 
-          // Calculate totals
           for (const item of items) {
             const productMatch = condition.promotion_condition_products.find(
               cp =>
@@ -1086,7 +1065,6 @@ export const ordersController = {
             }
           }
 
-          // Check minimum value
           const minValue = new Decimal(condition.min_value || 0);
           if (!totalValue.gte(minValue)) {
             return res.status(400).json({
@@ -1095,7 +1073,6 @@ export const ordersController = {
             });
           }
 
-          // Find applicable level
           const applicableLevel = promotion.promotion_level_promotions.find(
             lvl => new Decimal(lvl.threshold_value).lte(totalValue)
           );
@@ -1107,7 +1084,6 @@ export const ordersController = {
             });
           }
 
-          // Calculate discount
           let discountAmount = new Decimal(0);
           if (applicableLevel.discount_type === 'PERCENTAGE') {
             const discountPercent = new Decimal(
@@ -1118,7 +1094,6 @@ export const ordersController = {
             discountAmount = new Decimal(applicableLevel.discount_value || 0);
           }
 
-          // Get free products
           for (const benefit of applicableLevel.promotion_benefit_level) {
             if (benefit.benefit_type === 'FREE_PRODUCT') {
               freeProducts.push({
@@ -1141,11 +1116,11 @@ export const ordersController = {
 
           promotionDiscount = discountAmount;
 
-          console.log('✅ Promotion applied:', appliedPromotion.promotion_name);
-          console.log('💰 Discount:', appliedPromotion.discount_amount);
-          console.log('🎁 Free Products:', freeProducts.length);
+          console.log(appliedPromotion.promotion_name);
+          console.log(appliedPromotion.discount_amount);
+          console.log(freeProducts.length);
         } catch (error) {
-          console.error('⚠️ Error applying promotion:', error);
+          console.error(' Error applying promotion:', error);
           return res.status(400).json({
             success: false,
             message: 'Failed to apply selected promotion',
@@ -1153,9 +1128,6 @@ export const ordersController = {
         }
       }
 
-      // ============================================
-      // STEP 4: Calculate Final Amounts
-      // ============================================
       const subtotal = calculatedSubtotal;
       const discount_amount = promotionDiscount;
       const tax_amount = new Decimal(orderData.tax_amount || 0);
@@ -1166,9 +1138,6 @@ export const ordersController = {
         .plus(tax_amount)
         .plus(shipping_amount);
 
-      // ============================================
-      // STEP 5: Create Order in Transaction
-      // ============================================
       const result = await prisma.$transaction(
         async tx => {
           let order;
@@ -1247,7 +1216,6 @@ export const ordersController = {
             });
           }
 
-          // Create Order Items
           if (items && items.length > 0) {
             if (isUpdate && orderId) {
               await tx.order_items.deleteMany({
@@ -1289,7 +1257,6 @@ export const ordersController = {
               data: orderItemsData,
             });
 
-            // Add Free Products
             if (freeProducts.length > 0) {
               const freeItemsData = freeProducts.map((freeProduct: any) => ({
                 parent_id: order.id,
@@ -1334,7 +1301,6 @@ export const ordersController = {
         }
       );
 
-      // Track Promotion Usage
       if (appliedPromotion && !orderId) {
         try {
           await prisma.promotion_tracking.create({
@@ -1348,11 +1314,10 @@ export const ordersController = {
             },
           });
         } catch (error) {
-          console.error('⚠️ Promotion tracking failed:', error);
+          console.error(' Promotion tracking failed:', error);
         }
       }
 
-      // Approval Workflow
       if (result && !orderId) {
         try {
           await createOrderNotification(
@@ -1371,7 +1336,7 @@ export const ordersController = {
             log_inst: 1,
           });
         } catch (error: any) {
-          console.error('⚠️ Error creating approval request:', error);
+          console.error(' Error creating approval request:', error);
         }
       }
 
@@ -1388,7 +1353,7 @@ export const ordersController = {
 
       res.status(orderId ? 200 : 201).json(response);
     } catch (error: any) {
-      console.error('❌ Error processing order:', error);
+      console.error(' Error processing order:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to process order',
