@@ -13,6 +13,7 @@ import {
   type CoolerInstallation,
 } from 'hooks/useCoolerInstallations';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import UserSelect from 'shared/UserSelect';
 import { Calendar, Droplets, Package, Thermometer } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
@@ -22,6 +23,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportCoolerInstallation from './ImportCoolerInstallation';
@@ -39,23 +41,33 @@ const CoolerInstallationsManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission(
+    'cooler-installation'
+  );
 
   const {
     data: coolerInstallationsResponse,
     isLoading,
     error,
-  } = useCoolerInstallations({
-    search,
-    page,
-    limit,
-    isActive: statusFilter === 'all' ? undefined : statusFilter,
-    status:
-      operationalStatusFilter === 'all' ? undefined : operationalStatusFilter,
-    technician_id:
-      technicianFilter === 'all' || technicianFilter === '' || !technicianFilter
-        ? undefined
-        : Number(technicianFilter),
-  });
+  } = useCoolerInstallations(
+    {
+      search,
+      page,
+      limit,
+      isActive: statusFilter === 'all' ? undefined : statusFilter,
+      status:
+        operationalStatusFilter === 'all' ? undefined : operationalStatusFilter,
+      technician_id:
+        technicianFilter === 'all' ||
+        technicianFilter === '' ||
+        !technicianFilter
+          ? undefined
+          : Number(technicianFilter),
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const coolerInstallations = coolerInstallationsResponse?.data || [];
   const totalCount = coolerInstallationsResponse?.meta?.total_count || 0;
@@ -318,31 +330,41 @@ const CoolerInstallationsManagement: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <ActionButton
-            onClick={() => handleViewInstallation(row)}
-            tooltip="View cooler installation details"
-            icon={<Visibility />}
-            color="success"
-          />
-          <EditButton
-            onClick={() => handleEditInstallation(row)}
-            tooltip={`Edit Installation ${row.code}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteInstallation(row.id)}
-            tooltip={`Delete Installation ${row.code}`}
-            itemName={`Installation ${row.code}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isRead || isUpdate || isDelete
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: CoolerInstallation) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewInstallation(row)}
+                    tooltip="View cooler installation details"
+                    icon={<Visibility />}
+                    color="success"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditInstallation(row)}
+                    tooltip={`Edit Installation ${row.code}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteInstallation(row.id)}
+                    tooltip={`Delete Installation ${row.code}`}
+                    itemName={`Installation ${row.code}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -358,82 +380,35 @@ const CoolerInstallationsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-blue-500">
-                Total Installations
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-blue-500">
-                  {totalInstallations}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Droplets className="w-6 h-6 text-blue-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-500">
-                Active Installations
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {activeInstallations}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-500">
-                Inactive Installations
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-500">
-                  {inactiveInstallations}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <Block className="w-6 h-6 text-red-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-600">This Month</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {installationsThisMonth}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Installations"
+          value={totalInstallations}
+          icon={<Droplets className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Active Installations"
+          value={activeInstallations}
+          icon={<CheckCircle className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Inactive Installations"
+          value={inactiveInstallations}
+          icon={<Block className="w-6 h-6" />}
+          color="red"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="This Month"
+          value={installationsThisMonth}
+          icon={<Calendar className="w-6 h-6" />}
+          color="purple"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (
@@ -446,86 +421,101 @@ const CoolerInstallationsManagement: React.FC = () => {
         data={coolerInstallations}
         columns={coolerInstallationColumns}
         actions={
-          <div className="flex justify-between w-full items-center flex-wrap gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <SearchInput
-                placeholder="Search Cooler Installations..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-32"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="Y">Active</MenuItem>
-                <MenuItem value="N">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={operationalStatusFilter}
-                onChange={e => setOperationalStatusFilter(e.target.value)}
-                className="!w-50"
-              >
-                <MenuItem value="all">All Operational</MenuItem>
-                <MenuItem value="working">Working</MenuItem>
-                <MenuItem value="maintenance">Maintenance</MenuItem>
-                <MenuItem value="broken">Broken</MenuItem>
-                <MenuItem value="offline">Offline</MenuItem>
-              </Select>
-              <UserSelect
-                label="Technician"
-                value={
-                  technicianFilter === 'all' || technicianFilter === 'null'
-                    ? undefined
-                    : technicianFilter
-                }
-                onChange={handleTechnicianFilterChange}
-                fullWidth={true}
-                size="small"
-                className="!w-60"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Cooler Installations"
-                description="Are you sure you want to export the current cooler installations data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
+          isRead || isCreate ? (
+            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Cooler Installations..."
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      className="!w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!w-32"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="Y">Active</MenuItem>
+                      <MenuItem value="N">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={operationalStatusFilter}
+                      onChange={e => setOperationalStatusFilter(e.target.value)}
+                      className="!w-50"
+                    >
+                      <MenuItem value="all">All Operational</MenuItem>
+                      <MenuItem value="working">Working</MenuItem>
+                      <MenuItem value="maintenance">Maintenance</MenuItem>
+                      <MenuItem value="broken">Broken</MenuItem>
+                      <MenuItem value="offline">Offline</MenuItem>
+                    </Select>
+                    <UserSelect
+                      label="Technician"
+                      value={
+                        technicianFilter === 'all' ||
+                        technicianFilter === 'null'
+                          ? undefined
+                          : technicianFilter
+                      }
+                      onChange={handleTechnicianFilterChange}
+                      fullWidth={true}
+                      size="small"
+                      className="!w-60"
+                    />
+                  </>
+                )}
+              </div>
+              {isRead && (
+                <div className="flex items-center gap-2">
+                  <PopConfirm
+                    title="Export Cooler Installations"
+                    description="Are you sure you want to export the current cooler installations data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                </div>
+              )}
+              {isCreate && (
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateInstallation}
                 >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                  Create
                 </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateInstallation}
-              >
-                Create
-              </Button>
+              )}
             </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={installation => installation.id}
         initialOrderBy="install_date"
@@ -533,6 +523,7 @@ const CoolerInstallationsManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

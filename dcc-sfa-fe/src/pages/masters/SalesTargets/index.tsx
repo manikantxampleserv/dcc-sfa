@@ -14,6 +14,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportSalesTarget from './ImportSalesTarget';
@@ -270,80 +271,35 @@ const SalesTargetsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Targets</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-gray-900">
-                  {totalTargets}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Target className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Active Targets
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-600">
-                  {activeTargets}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Inactive Targets
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-600">
-                  {inactiveTargets}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <Block className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">This Month</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {targetsThisMonth}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Targets"
+          value={totalTargets}
+          icon={<Target className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Active Targets"
+          value={activeTargets}
+          icon={<CheckCircle className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Inactive Targets"
+          value={inactiveTargets}
+          icon={<Block className="w-6 h-6" />}
+          color="red"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="This Month"
+          value={targetsThisMonth}
+          icon={<TrendingUp className="w-6 h-6" />}
+          color="purple"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (

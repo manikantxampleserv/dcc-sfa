@@ -8,6 +8,7 @@ import {
 } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { useUsers } from 'hooks/useUsers';
 import { useDeleteVisit, useVisits, type Visit } from 'hooks/useVisits';
 import {
@@ -25,6 +26,7 @@ import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportVisit from './ImportVisit';
@@ -40,28 +42,35 @@ const VisitLogging: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('visit-logging');
 
   const {
     data: visitsResponse,
     isLoading,
     error,
-  } = useVisits({
-    search,
-    page,
-    limit,
-    isActive:
-      statusFilter === 'all'
-        ? undefined
-        : statusFilter === 'active'
-          ? 'Y'
-          : 'N',
-    sales_person_id:
-      salespersonFilter === 'all' ? undefined : Number(salespersonFilter),
-  });
+  } = useVisits(
+    {
+      search,
+      page,
+      limit,
+      isActive:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
+      sales_person_id:
+        salespersonFilter === 'all' ? undefined : Number(salespersonFilter),
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: usersResponse } = useUsers({
     page: 1,
-    limit: 1000, // Get all users for salesperson filtering
+    limit: 1000,
   });
 
   const visits = visitsResponse?.data || [];
@@ -72,7 +81,6 @@ const VisitLogging: React.FC = () => {
   const deleteVisitMutation = useDeleteVisit();
   const exportToExcelMutation = useExportToExcel();
 
-  // Statistics - Use API stats when available, fallback to local calculation
   const totalVisits = visitsResponse?.stats?.total_visits ?? 0;
   const activeVisits = visitsResponse?.stats?.active_visits ?? 0;
   const inactiveVisits = visitsResponse?.stats?.inactive_visits ?? 0;
@@ -153,7 +161,6 @@ const VisitLogging: React.FC = () => {
     return labels[status as keyof typeof labels] || status;
   };
 
-  // Define table columns following Zone pattern
   const visitColumns: TableColumn<Visit>[] = [
     {
       id: 'customer',
@@ -291,34 +298,43 @@ const VisitLogging: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <ActionButton
-            onClick={() => handleViewVisit(row)}
-            tooltip={`View visit for ${row.customer?.name}`}
-            icon={<Visibility fontSize="small" />}
-            color="info"
-          />
-          <EditButton
-            onClick={() => handleEditVisit(row)}
-            tooltip={`Edit visit for ${row.customer?.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteVisit(row.id)}
-            tooltip={`Delete visit for ${row.customer?.name}`}
-            itemName={`visit for ${row.customer?.name}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isRead || isUpdate || isDelete
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Visit) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewVisit(row)}
+                    tooltip={`View visit for ${row.customer?.name}`}
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditVisit(row)}
+                    tooltip={`Edit visit for ${row.customer?.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteVisit(row.id)}
+                    tooltip={`Delete visit for ${row.customer?.name}`}
+                    itemName={`visit for ${row.customer?.name}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
-  // Show all users as potential salespeople
   const salespeople = users;
 
   return (
@@ -333,80 +349,35 @@ const VisitLogging: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Visits</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-gray-900">
-                  {totalVisits}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active Visits</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-600">
-                  {activeVisits}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <UserCheck className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Inactive Visits
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-600">
-                  {inactiveVisits}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <XCircle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                New This Month
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {newVisitsThisMonth}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Visits"
+          value={totalVisits}
+          icon={<User className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Active Visits"
+          value={activeVisits}
+          icon={<UserCheck className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Inactive Visits"
+          value={inactiveVisits}
+          icon={<XCircle className="w-6 h-6" />}
+          color="red"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="New This Month"
+          value={newVisitsThisMonth}
+          icon={<Calendar className="w-6 h-6" />}
+          color="purple"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (
@@ -419,73 +390,87 @@ const VisitLogging: React.FC = () => {
         data={visits}
         columns={visitColumns}
         actions={
-          <div className="flex justify-between !items-center gap-2 flex-wrap w-full">
-            <div className="flex gap-2 items-center flex-wrap">
-              <SearchInput
-                placeholder="Search Visits"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-32"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={salespersonFilter}
-                onChange={e => setSalespersonFilter(e.target.value)}
-                className="!min-w-60"
-                size="small"
-              >
-                <MenuItem value="all">All Sales Persons</MenuItem>
-                {salespeople.map(salesperson => (
-                  <MenuItem
-                    key={salesperson.id}
-                    value={salesperson.id.toString()}
+          isRead || isCreate ? (
+            <div className="flex justify-between !items-center gap-2 flex-wrap w-full">
+              <div className="flex gap-2 items-center flex-wrap">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Visits"
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      fullWidth={false}
+                      className="!min-w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!min-w-32"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={salespersonFilter}
+                      onChange={e => setSalespersonFilter(e.target.value)}
+                      className="!min-w-60"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Sales Persons</MenuItem>
+                      {salespeople.map(salesperson => (
+                        <MenuItem
+                          key={salesperson.id}
+                          value={salesperson.id.toString()}
+                        >
+                          {salesperson.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </>
+                )}
+              </div>
+              {isRead && (
+                <div className="flex gap-2 items-center">
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Download />}
+                    disabled={exportToExcelMutation.isPending}
+                    onClick={handleExportToExcel}
                   >
-                    {salesperson.name}
-                  </MenuItem>
-                ))}
-              </Select>
+                    {exportToExcelMutation.isPending
+                      ? 'Exporting...'
+                      : 'Export'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                </div>
+              )}
+              {isCreate && (
+                <Button
+                  variant="contained"
+                  className="!capitalize"
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateVisit}
+                >
+                  Create
+                </Button>
+              )}
             </div>
-            <div className="flex gap-2 items-center">
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Download />}
-                disabled={exportToExcelMutation.isPending}
-                onClick={handleExportToExcel}
-              >
-                {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-              </Button>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateVisit}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={visit => visit.id}
         initialOrderBy="visit_date"
@@ -493,6 +478,7 @@ const VisitLogging: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

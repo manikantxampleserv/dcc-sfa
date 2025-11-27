@@ -21,6 +21,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportSurvey from './ImportSurvey';
@@ -317,80 +318,35 @@ const SurveyBuilder: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Surveys
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {totalSurveys}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <FileText className="w-6 h-6 text-primary-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-500">Published</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {publishedSurveys}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <PlayArrow className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-600">Active</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {activeSurveys}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Settings className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-teal-600">
-                Total Responses
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-teal-600">
-                  {totalResponses}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-teal-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Surveys"
+          value={totalSurveys}
+          icon={<FileText className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Published"
+          value={publishedSurveys}
+          icon={<PlayArrow className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Active"
+          value={activeSurveys}
+          icon={<Settings className="w-6 h-6" />}
+          color="purple"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Total Responses"
+          value={totalResponses}
+          icon={<BarChart3 className="w-6 h-6" />}
+          color="teal"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (

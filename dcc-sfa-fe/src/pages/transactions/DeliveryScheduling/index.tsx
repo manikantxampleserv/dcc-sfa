@@ -16,8 +16,10 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
+import { usePermission } from '../../../hooks/usePermission';
 import {
   useDeleteDeliverySchedule,
   useDeliverySchedules,
@@ -39,33 +41,40 @@ const DeliveryScheduling: React.FC = () => {
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('delivery-schedule');
 
   const {
     data: deliverySchedulesResponse,
     isLoading,
     error,
-  } = useDeliverySchedules({
-    search,
-    page,
-    limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-    priority: priorityFilter === 'all' ? undefined : priorityFilter,
-    isActive: 'Y', // Only show active delivery schedules by default
-  });
+  } = useDeliverySchedules(
+    {
+      search,
+      page,
+      limit,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      priority: priorityFilter === 'all' ? undefined : priorityFilter,
+      isActive: 'Y',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: usersResponse } = useUsers({
     page: 1,
-    limit: 1000, // Get all users for driver filtering
+    limit: 1000,
   });
 
   const { data: vehiclesResponse } = useVehicles({
     page: 1,
-    limit: 1000, // Get all vehicles
+    limit: 1000,
   });
 
   const { data: ordersResponse } = useOrders({
     page: 1,
-    limit: 1000, // Get all orders
+    limit: 1000,
   });
 
   const deliverySchedules = deliverySchedulesResponse?.data || [];
@@ -78,7 +87,6 @@ const DeliveryScheduling: React.FC = () => {
   const deleteDeliveryScheduleMutation = useDeleteDeliverySchedule();
   const exportToExcelMutation = useExportToExcel();
 
-  // Statistics - Use API stats when available, fallback to local calculation
   const totalDeliveries =
     (deliverySchedulesResponse?.stats as any)?.total_deliveries ??
     deliverySchedules.length;
@@ -196,7 +204,6 @@ const DeliveryScheduling: React.FC = () => {
     return labels[priority as keyof typeof labels] || priority;
   };
 
-  // Define table columns
   const deliveryScheduleColumns: TableColumn<DeliverySchedule>[] = [
     {
       id: 'order_customer',
@@ -385,28 +392,35 @@ const DeliveryScheduling: React.FC = () => {
           <span className="italic text-gray-400">No Date</span>
         ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleEditDeliverySchedule(row)}
-            tooltip={`Edit delivery schedule for order ${row.order?.order_number}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteDeliverySchedule(row.id)}
-            tooltip={`Delete delivery schedule for order ${row.order?.order_number}`}
-            itemName={`delivery schedule for order ${row.order?.order_number}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: DeliverySchedule) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditDeliverySchedule(row)}
+                    tooltip={`Edit delivery schedule for order ${row.order?.order_number}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteDeliverySchedule(row.id)}
+                    tooltip={`Delete delivery schedule for order ${row.order?.order_number}`}
+                    itemName={`delivery schedule for order ${row.order?.order_number}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
-  // Show all users as potential drivers
   const drivers = users;
 
   return (
@@ -423,84 +437,35 @@ const DeliveryScheduling: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Deliveries
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-gray-900">
-                  {totalDeliveries}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Active Deliveries
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-600">
-                  {activeDeliveries}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Truck className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Inactive Deliveries
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-600">
-                  {inactiveDeliveries}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <XCircle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                New This Month
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {newDeliveriesThisMonth}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Deliveries"
+          value={totalDeliveries}
+          icon={<Package className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Active Deliveries"
+          value={activeDeliveries}
+          icon={<Truck className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Inactive Deliveries"
+          value={inactiveDeliveries}
+          icon={<XCircle className="w-6 h-6" />}
+          color="red"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="New This Month"
+          value={newDeliveriesThisMonth}
+          icon={<Calendar className="w-6 h-6" />}
+          color="purple"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (
@@ -513,83 +478,97 @@ const DeliveryScheduling: React.FC = () => {
         data={deliverySchedules}
         columns={deliveryScheduleColumns}
         actions={
-          <div className="flex justify-between items-center flex-wrap w-full gap-2">
-            <div className="flex gap-2 items-center flex-wrap">
-              <SearchInput
-                placeholder="Search Delivery Schedules"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-40"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="scheduled">Scheduled</MenuItem>
-                <MenuItem value="in_transit">In Transit</MenuItem>
-                <MenuItem value="delivered">Delivered</MenuItem>
-                <MenuItem value="failed">Failed</MenuItem>
-                <MenuItem value="cancelled">Cancelled</MenuItem>
-                <MenuItem value="rescheduled">Rescheduled</MenuItem>
-                <MenuItem value="returned">Returned</MenuItem>
-                <MenuItem value="refunded">Refunded</MenuItem>
-              </Select>
-              <Select
-                value={priorityFilter}
-                onChange={e => setPriorityFilter(e.target.value)}
-                className="!min-w-40"
-                size="small"
-              >
-                <MenuItem value="all">All Priority</MenuItem>
-                <MenuItem value="low">Low</MenuItem>
-                <MenuItem value="medium">Medium</MenuItem>
-                <MenuItem value="high">High</MenuItem>
-                <MenuItem value="urgent">Urgent</MenuItem>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Delivery Schedules"
-                description="Are you sure you want to export the current delivery schedules data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
+          isRead || isCreate ? (
+            <div className="flex justify-between items-center flex-wrap w-full gap-2">
+              <div className="flex gap-2 items-center flex-wrap">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Delivery Schedules"
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      fullWidth={false}
+                      className="!min-w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!min-w-40"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="scheduled">Scheduled</MenuItem>
+                      <MenuItem value="in_transit">In Transit</MenuItem>
+                      <MenuItem value="delivered">Delivered</MenuItem>
+                      <MenuItem value="failed">Failed</MenuItem>
+                      <MenuItem value="cancelled">Cancelled</MenuItem>
+                      <MenuItem value="rescheduled">Rescheduled</MenuItem>
+                      <MenuItem value="returned">Returned</MenuItem>
+                      <MenuItem value="refunded">Refunded</MenuItem>
+                    </Select>
+                    <Select
+                      value={priorityFilter}
+                      onChange={e => setPriorityFilter(e.target.value)}
+                      className="!min-w-40"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Priority</MenuItem>
+                      <MenuItem value="low">Low</MenuItem>
+                      <MenuItem value="medium">Medium</MenuItem>
+                      <MenuItem value="high">High</MenuItem>
+                      <MenuItem value="urgent">Urgent</MenuItem>
+                    </Select>
+                  </>
+                )}
+              </div>
+              {isRead && (
+                <div className="flex items-center gap-2">
+                  <PopConfirm
+                    title="Export Delivery Schedules"
+                    description="Are you sure you want to export the current delivery schedules data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={handleImportDeliverySchedules}
+                  >
+                    Import
+                  </Button>
+                </div>
+              )}
+              {isCreate && (
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateDeliverySchedule}
                 >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                  Schedule
                 </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={handleImportDeliverySchedules}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateDeliverySchedule}
-              >
-                Schedule
-              </Button>
+              )}
             </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={deliverySchedule => deliverySchedule.id}
         initialOrderBy="scheduled_date"
@@ -597,6 +576,7 @@ const DeliveryScheduling: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

@@ -21,6 +21,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportCustomerComplaint from './ImportCustomerComplaint';
@@ -265,84 +266,35 @@ const CustomerComplaintsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Complaints
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {totalComplaints}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <MessageSquare className="w-6 h-6 text-primary-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-orange-600">
-                Pending Complaints
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-orange-600">
-                  {pendingComplaints}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-500">
-                Resolved Complaints
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {resolvedComplaints}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <MessageSquare className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Closed Complaints
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-gray-600">
-                  {closedComplaints}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-              <MessageSquare className="w-6 h-6 text-gray-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Complaints"
+          value={totalComplaints}
+          icon={<MessageSquare className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Pending Complaints"
+          value={pendingComplaints}
+          icon={<AlertCircle className="w-6 h-6" />}
+          color="orange"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Resolved Complaints"
+          value={resolvedComplaints}
+          icon={<MessageSquare className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Closed Complaints"
+          value={closedComplaints}
+          icon={<MessageSquare className="w-6 h-6" />}
+          color="gray"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (

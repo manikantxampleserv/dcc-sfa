@@ -96,6 +96,7 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
       MuiIconButton: {
         styleOverrides: {
           root: {
+            borderRadius: '6px',
             '& .MuiTouchRipple-root': {
               borderRadius: '6px',
               overflow: 'hidden',

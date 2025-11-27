@@ -1,8 +1,10 @@
-import { Chip, MenuItem, Skeleton, Typography } from '@mui/material';
+import { Alert, Chip, MenuItem, Skeleton, Typography } from '@mui/material';
 import { Bell, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
+import { usePermission } from 'hooks/usePermission';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate, formatDateTime } from 'utils/dateUtils';
 
@@ -34,10 +36,21 @@ const AlertsReminders: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isRead } = usePermission('alerts-reminders');
 
-  // TODO: Replace with actual API call
   const isLoading = false;
   const alertsReminders: AlertReminder[] = [];
+
+  const totalAlerts = alertsReminders.filter(a => a.type === 'alert').length;
+  const totalReminders = alertsReminders.filter(
+    a => a.type === 'reminder'
+  ).length;
+  const activeAlerts = alertsReminders.filter(
+    a => a.status === 'active'
+  ).length;
+  const highPriority = alertsReminders.filter(
+    a => a.priority === 'high'
+  ).length;
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -170,81 +183,127 @@ const AlertsReminders: React.FC = () => {
         </div>
       </div>
 
-      <div className="!bg-white !rounded-lg !shadow-sm !p-4 !mb-6">
-        <div className="!flex !flex-wrap !gap-4 !items-end">
-          <div className="!flex-1 !min-w-[250px]">
-            <SearchInput
-              placeholder="Search Alerts & Reminders..."
-              value={search}
-              onChange={setSearch}
-              className="!min-w-[300px]"
-            />
-          </div>
-          <div className="!w-[180px]">
-            <Select
-              label="Type"
-              value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
-              fullWidth
-            >
-              <MenuItem value="all">All Types</MenuItem>
-              <MenuItem value="alert">Alerts</MenuItem>
-              <MenuItem value="reminder">Reminders</MenuItem>
-            </Select>
-          </div>
-          <div className="!w-[180px]">
-            <Select
-              label="Status"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              fullWidth
-            >
-              <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
-              <MenuItem value="cancelled">Cancelled</MenuItem>
-            </Select>
-          </div>
-          <div className="!w-[180px]">
-            <Select
-              label="Priority"
-              value={priorityFilter}
-              onChange={e => setPriorityFilter(e.target.value)}
-              fullWidth
-            >
-              <MenuItem value="all">All Priorities</MenuItem>
-              <MenuItem value="high">High</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="low">Low</MenuItem>
-            </Select>
-          </div>
+      {isRead && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <StatsCard
+            title="Total Alerts"
+            value={totalAlerts}
+            icon={<XCircle className="w-6 h-6" />}
+            color="red"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Total Reminders"
+            value={totalReminders}
+            icon={<Bell className="w-6 h-6" />}
+            color="blue"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Active Alerts"
+            value={activeAlerts}
+            icon={<Bell className="w-6 h-6" />}
+            color="green"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="High Priority"
+            value={highPriority}
+            icon={<XCircle className="w-6 h-6" />}
+            color="orange"
+            isLoading={isLoading}
+          />
         </div>
-      </div>
+      )}
 
-      {isLoading ? (
-        <div className="!bg-white !rounded-lg !shadow-sm !p-4">
-          {[1, 2, 3, 4, 5].map(item => (
-            <Skeleton key={item} height={60} className="!mb-2" />
-          ))}
+      {!isRead && (
+        <Alert severity="error" className="!mb-4">
+          You do not have permission to view alerts and reminders.
+        </Alert>
+      )}
+
+      {isRead && (
+        <div className="!bg-white !rounded-lg !shadow-sm !p-4 !mb-6">
+          <div className="!flex !flex-wrap !gap-4 !items-end">
+            <div className="!flex-1 !min-w-[250px]">
+              <SearchInput
+                placeholder="Search Alerts & Reminders..."
+                value={search}
+                onChange={setSearch}
+                className="!min-w-[300px]"
+              />
+            </div>
+            <div className="!w-[180px]">
+              <Select
+                label="Type"
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                fullWidth
+              >
+                <MenuItem value="all">All Types</MenuItem>
+                <MenuItem value="alert">Alerts</MenuItem>
+                <MenuItem value="reminder">Reminders</MenuItem>
+              </Select>
+            </div>
+            <div className="!w-[180px]">
+              <Select
+                label="Status"
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                fullWidth
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
+                <MenuItem value="cancelled">Cancelled</MenuItem>
+              </Select>
+            </div>
+            <div className="!w-[180px]">
+              <Select
+                label="Priority"
+                value={priorityFilter}
+                onChange={e => setPriorityFilter(e.target.value)}
+                fullWidth
+              >
+                <MenuItem value="all">All Priorities</MenuItem>
+                <MenuItem value="high">High</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="low">Low</MenuItem>
+              </Select>
+            </div>
+          </div>
         </div>
-      ) : alertsReminders.length === 0 ? (
-        <div className="!bg-white !rounded-lg !shadow-sm !p-12 !text-center">
-          <Bell className="!w-16 !h-16 !text-gray-400 !mx-auto !mb-4" />
-          <Typography variant="h6" className="!text-gray-600 !mb-2">
-            No Alerts & Reminders
-          </Typography>
-          <Typography variant="body2" className="!text-gray-500">
-            There are no alerts or reminders configured at this time.
-          </Typography>
-        </div>
-      ) : (
-        <Table
-          columns={columns}
-          data={alertsReminders}
-          page={page - 1}
-          onPageChange={newPage => setPage(newPage + 1)}
-          rowsPerPage={limit}
-        />
+      )}
+
+      {isRead && (
+        <>
+          {isLoading ? (
+            <div className="!bg-white !rounded-lg !shadow-sm !p-4">
+              {[1, 2, 3, 4, 5].map(item => (
+                <Skeleton key={item} height={60} className="!mb-2" />
+              ))}
+            </div>
+          ) : alertsReminders.length === 0 ? (
+            <div className="!bg-white !rounded-lg !shadow-sm !p-12 !text-center">
+              <Bell className="!w-16 !h-16 !text-gray-400 !mx-auto !mb-4" />
+              <Typography variant="h6" className="!text-gray-600 !mb-2">
+                No Alerts & Reminders
+              </Typography>
+              <Typography variant="body2" className="!text-gray-500">
+                There are no alerts or reminders configured at this time.
+              </Typography>
+            </div>
+          ) : (
+            <Table
+              columns={columns}
+              data={alertsReminders}
+              page={page - 1}
+              onPageChange={newPage => setPage(newPage + 1)}
+              rowsPerPage={limit}
+              isPermission={isRead}
+            />
+          )}
+        </>
       )}
     </>
   );

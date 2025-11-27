@@ -34,23 +34,28 @@ export const gpsTrackingKeys = {
 /**
  * Hook to fetch GPS Tracking Data
  */
-export const useGPSTrackingData = (filters?: GPSTrackingFilters) => {
+export const useGPSTrackingData = (
+  filters?: GPSTrackingFilters,
+  options?: { enabled?: boolean }
+) => {
   return useQuery<GPSTrackingData>({
     queryKey: gpsTrackingKeys.list(filters),
     queryFn: () => fetchGPSTrackingData(filters),
     staleTime: 3 * 60 * 1000,
+    enabled: options?.enabled !== false,
   });
 };
 
 /**
  * Hook to fetch Real-Time GPS Tracking Data
  */
-export const useRealTimeGPSTracking = () => {
+export const useRealTimeGPSTracking = (options?: { enabled?: boolean }) => {
   return useQuery<RealTimeGPSData>({
     queryKey: gpsTrackingKeys.realtime(),
     queryFn: () => fetchRealTimeGPSTracking(),
-    staleTime: 30 * 1000, // 30 seconds for real-time data
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 30 * 1000,
+    refetchInterval: options?.enabled !== false ? 30000 : false,
+    enabled: options?.enabled !== false,
   });
 };
 
@@ -83,10 +88,14 @@ export const useCreateGPSLog = () => {
 /**
  * Hook to fetch Route Effectiveness Data
  */
-export const useRouteEffectiveness = (filters?: RouteEffectivenessFilters) => {
+export const useRouteEffectiveness = (
+  filters?: RouteEffectivenessFilters,
+  options?: { enabled?: boolean }
+) => {
   return useQuery<RouteEffectivenessData>({
     queryKey: gpsTrackingKeys.routeEffectiveness(filters),
     queryFn: () => fetchRouteEffectiveness(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
+    enabled: options?.enabled !== false,
   });
 };

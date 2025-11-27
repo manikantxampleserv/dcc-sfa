@@ -1,6 +1,7 @@
 import { Add, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import { useDeleteInvoice, useInvoices, type Invoice } from 'hooks/useInvoices';
 import {
   AlertTriangle,
@@ -20,6 +21,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import ImportInvoice from './ImportInvoice';
 import InvoiceDetail from './InvoiceDetail';
@@ -30,7 +32,6 @@ import ManageInvoice from './ManageInvoice';
 const InvoicesManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
@@ -40,17 +41,23 @@ const InvoicesManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('invoice');
 
   const {
     data: invoicesResponse,
     isLoading,
     error,
-  } = useInvoices({
-    search,
-    page,
-    limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-  });
+  } = useInvoices(
+    {
+      search,
+      page,
+      limit,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const invoices = invoicesResponse?.data || [];
   const totalCount = invoicesResponse?.pagination?.total_count || 0;
@@ -296,43 +303,55 @@ const InvoicesManagement: React.FC = () => {
         </Typography>
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <ActionButton
-            onClick={() => handleViewInvoice(row)}
-            tooltip="View invoice details"
-            icon={<FileText />}
-            color="success"
-          />
-          <ActionButton
-            onClick={() => handleManageItems(row)}
-            tooltip="Manage invoice items"
-            icon={<Package />}
-            color="info"
-          />
-          <ActionButton
-            onClick={() => handlePaymentTracking(row)}
-            tooltip="Track payments"
-            icon={<CreditCard />}
-            color="secondary"
-          />
-          <EditButton
-            onClick={() => handleEditInvoice(row)}
-            tooltip={`Edit ${row.invoice_number}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteInvoice(row.id)}
-            tooltip={`Delete ${row.invoice_number}`}
-            itemName={row.invoice_number}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isRead || isUpdate || isDelete
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: Invoice) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <>
+                    <ActionButton
+                      onClick={() => handleViewInvoice(row)}
+                      tooltip="View invoice details"
+                      icon={<FileText />}
+                      color="success"
+                    />
+                    <ActionButton
+                      onClick={() => handleManageItems(row)}
+                      tooltip="Manage invoice items"
+                      icon={<Package />}
+                      color="info"
+                    />
+                    <ActionButton
+                      onClick={() => handlePaymentTracking(row)}
+                      tooltip="Track payments"
+                      icon={<CreditCard />}
+                      color="secondary"
+                    />
+                  </>
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditInvoice(row)}
+                    tooltip={`Edit ${row.invoice_number}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteInvoice(row.id)}
+                    tooltip={`Delete ${row.invoice_number}`}
+                    itemName={row.invoice_number}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   if (error) {
@@ -357,80 +376,35 @@ const InvoicesManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Invoices
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {totalInvoices}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Receipt className="w-6 h-6 text-primary-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-500">Total Amount</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {formatCurrency(totalAmount)}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-blue-600">Amount Paid</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-blue-600">
-                  {formatCurrency(totalPaid)}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <CheckCircleIcon className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-600">
-                Outstanding Balance
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-600">
-                  {formatCurrency(totalBalance)}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Invoices"
+          value={totalInvoices}
+          icon={<Receipt className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Total Amount"
+          value={formatCurrency(totalAmount)}
+          icon={<DollarSign className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Amount Paid"
+          value={formatCurrency(totalPaid)}
+          icon={<CheckCircleIcon className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Outstanding Balance"
+          value={formatCurrency(totalBalance)}
+          icon={<AlertTriangle className="w-6 h-6" />}
+          color="red"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (
@@ -443,66 +417,80 @@ const InvoicesManagement: React.FC = () => {
         data={invoices}
         columns={invoiceColumns}
         actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap items-center gap-3">
-              <SearchInput
-                placeholder="Search Invoices..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="draft">Draft</MenuItem>
-                <MenuItem value="sent">Sent</MenuItem>
-                <MenuItem value="paid">Paid</MenuItem>
-                <MenuItem value="overdue">Overdue</MenuItem>
-                <MenuItem value="cancelled">Cancelled</MenuItem>
-              </Select>
-            </div>
-            <div className="flex gap-2 items-center">
-              <PopConfirm
-                title="Export Invoices"
-                description="Are you sure you want to export the current invoices data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
+          isRead || isCreate ? (
+            <div className="flex justify-between gap-3 items-center flex-wrap">
+              <div className="flex flex-wrap items-center gap-3">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Invoices..."
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      className="!w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!w-40"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="draft">Draft</MenuItem>
+                      <MenuItem value="sent">Sent</MenuItem>
+                      <MenuItem value="paid">Paid</MenuItem>
+                      <MenuItem value="overdue">Overdue</MenuItem>
+                      <MenuItem value="cancelled">Cancelled</MenuItem>
+                    </Select>
+                  </>
+                )}
+              </div>
+              {isRead && (
+                <div className="flex gap-2 items-center">
+                  <PopConfirm
+                    title="Export Invoices"
+                    description="Are you sure you want to export the current invoices data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={() => setImportModalOpen(true)}
+                  >
+                    Import
+                  </Button>
+                </div>
+              )}
+              {isCreate && (
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateInvoice}
                 >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                  Create
                 </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={() => setImportModalOpen(true)}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateInvoice}
-              >
-                Create
-              </Button>
+              )}
             </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={invoice => invoice.id}
         initialOrderBy="invoice_number"
@@ -510,6 +498,7 @@ const InvoicesManagement: React.FC = () => {
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

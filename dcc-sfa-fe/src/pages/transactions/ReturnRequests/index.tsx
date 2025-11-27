@@ -24,7 +24,9 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { usePermission } from '../../../hooks/usePermission';
 import { useProducts } from '../../../hooks/useProducts';
 import {
   useDeleteReturnRequest,
@@ -45,27 +47,34 @@ const ReturnRequests: React.FC = () => {
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('return-request');
 
   const {
     data: returnRequestsResponse,
     isLoading,
     error,
-  } = useReturnRequests({
-    search,
-    page,
-    limit,
-    status: statusFilter === 'all' ? undefined : statusFilter,
-    is_active: 'Y', // Only show active return requests by default
-  });
+  } = useReturnRequests(
+    {
+      search,
+      page,
+      limit,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      is_active: 'Y',
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: usersResponse } = useUsers({
     page: 1,
-    limit: 1000, // Get all users for approver filtering
+    limit: 1000,
   });
 
   const { data: productsResponse } = useProducts({
     page: 1,
-    limit: 1000, // Get all products
+    limit: 1000,
   });
 
   const returnRequests = returnRequestsResponse?.data || [];
@@ -337,32 +346,41 @@ const ReturnRequests: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'action',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <ActionButton
-            icon={<Visibility />}
-            onClick={() => handleViewDetails(row)}
-            tooltip={`View return request for ${row.customer?.name}`}
-            color="success"
-          />
-
-          <EditButton
-            onClick={() => handleEditReturnRequest(row)}
-            tooltip={`Edit return request for ${row.customer?.name}`}
-          />
-          <DeleteButton
-            onClick={() => handleDeleteReturnRequest(row.id)}
-            tooltip={`Delete return request for ${row.customer?.name}`}
-            itemName={`return request for ${row.customer?.name}`}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isRead || isUpdate || isDelete
+      ? [
+          {
+            id: 'action',
+            label: 'Actions',
+            sortable: false,
+            render: (_value: any, row: ReturnRequest) => (
+              <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    icon={<Visibility />}
+                    onClick={() => handleViewDetails(row)}
+                    tooltip={`View return request for ${row.customer?.name}`}
+                    color="success"
+                  />
+                )}
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleEditReturnRequest(row)}
+                    tooltip={`Edit return request for ${row.customer?.name}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDeleteReturnRequest(row.id)}
+                    tooltip={`Delete return request for ${row.customer?.name}`}
+                    itemName={`return request for ${row.customer?.name}`}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -377,144 +395,63 @@ const ReturnRequests: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[80px] flex flex-col justify-center">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600">Total</p>
-              {isLoading ? (
-                <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-xl font-bold text-gray-900">
-                  {totalRequests}
-                </p>
-              )}
-            </div>
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <FileText className="w-4 h-4 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[80px] flex flex-col justify-center">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600">Pending</p>
-              {isLoading ? (
-                <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-xl font-bold text-yellow-600">
-                  {pendingRequests}
-                </p>
-              )}
-            </div>
-            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-              <Clock className="w-4 h-4 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[80px] flex flex-col justify-center">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600">Approved</p>
-              {isLoading ? (
-                <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-xl font-bold text-green-600">
-                  {approvedRequests}
-                </p>
-              )}
-            </div>
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[80px] flex flex-col justify-center">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600">Rejected</p>
-              {isLoading ? (
-                <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-xl font-bold text-red-600">
-                  {rejectedRequests}
-                </p>
-              )}
-            </div>
-            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-              <XCircle className="w-4 h-4 text-red-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[80px] flex flex-col justify-center">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600">Processing</p>
-              {isLoading ? (
-                <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-xl font-bold text-blue-600">
-                  {processingRequests}
-                </p>
-              )}
-            </div>
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <Clock className="w-4 h-4 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[80px] flex flex-col justify-center">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600">Completed</p>
-              {isLoading ? (
-                <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-xl font-bold text-green-600">
-                  {completedRequests}
-                </p>
-              )}
-            </div>
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-4 h-4 text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[80px] flex flex-col justify-center">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600">Cancelled</p>
-              {isLoading ? (
-                <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-xl font-bold text-gray-600">
-                  {cancelledRequests}
-                </p>
-              )}
-            </div>
-            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-              <XCircle className="w-4 h-4 text-gray-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[80px] flex flex-col justify-center">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-gray-600">New</p>
-              {isLoading ? (
-                <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-xl font-bold text-gray-600">
-                  {newRequestsThisMonth}
-                </p>
-              )}
-            </div>
-            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-gray-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total"
+          value={totalRequests}
+          icon={<FileText className="w-4 h-4" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Pending"
+          value={pendingRequests}
+          icon={<Clock className="w-4 h-4" />}
+          color="yellow"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Approved"
+          value={approvedRequests}
+          icon={<CheckCircle className="w-4 h-4" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Rejected"
+          value={rejectedRequests}
+          icon={<XCircle className="w-4 h-4" />}
+          color="red"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Processing"
+          value={processingRequests}
+          icon={<Clock className="w-4 h-4" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Completed"
+          value={completedRequests}
+          icon={<CheckCircle className="w-4 h-4" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Cancelled"
+          value={cancelledRequests}
+          icon={<XCircle className="w-4 h-4" />}
+          color="gray"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="New"
+          value={newRequestsThisMonth}
+          icon={<Calendar className="w-4 h-4" />}
+          color="gray"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (
@@ -527,75 +464,90 @@ const ReturnRequests: React.FC = () => {
         data={returnRequests}
         columns={returnRequestColumns}
         actions={
-          <div className="flex justify-between items-center flex-wrap w-full gap-2">
-            <div className="flex gap-2 items-center flex-wrap">
-              <SearchInput
-                placeholder="Search Return Requests"
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                fullWidth={false}
-                className="!min-w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                className="!min-w-40"
-                size="small"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="approved">Approved</MenuItem>
-                <MenuItem value="rejected">Rejected</MenuItem>
-                <MenuItem value="processing">Processing</MenuItem>
-                <MenuItem value="completed">Completed</MenuItem>
-                <MenuItem value="cancelled">Cancelled</MenuItem>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <PopConfirm
-                title="Export Return Requests"
-                description="Are you sure you want to export the current return requests data to Excel? This will include all filtered results."
-                onConfirm={handleExportToExcel}
-                confirmText="Export"
-                cancelText="Cancel"
-                placement="top"
-              >
+          isRead || isCreate ? (
+            <div className="flex justify-between items-center flex-wrap w-full gap-2">
+              <div className="flex gap-2 items-center flex-wrap">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search Return Requests"
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      fullWidth={false}
+                      className="!min-w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => setStatusFilter(e.target.value)}
+                      className="!min-w-40"
+                      size="small"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="pending">Pending</MenuItem>
+                      <MenuItem value="approved">Approved</MenuItem>
+                      <MenuItem value="rejected">Rejected</MenuItem>
+                      <MenuItem value="processing">Processing</MenuItem>
+                      <MenuItem value="completed">Completed</MenuItem>
+                      <MenuItem value="cancelled">Cancelled</MenuItem>
+                    </Select>
+                  </>
+                )}
+              </div>
+              {isRead && (
+                <div className="flex items-center gap-2">
+                  <PopConfirm
+                    title="Export Return Requests"
+                    description="Are you sure you want to export the current return requests data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                    placement="top"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    startIcon={<Upload />}
+                    onClick={handleImportReturnRequests}
+                  >
+                    Import
+                  </Button>
+                </div>
+              )}
+              {isCreate && (
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   className="!capitalize"
-                  startIcon={<Download />}
-                  disabled={exportToExcelMutation.isPending}
+                  disableElevation
+                  startIcon={<Add />}
+                  onClick={handleCreateReturnRequest}
                 >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+                  Create
                 </Button>
-              </PopConfirm>
-              <Button
-                variant="outlined"
-                className="!capitalize"
-                startIcon={<Upload />}
-                onClick={handleImportReturnRequests}
-              >
-                Import
-              </Button>
-              <Button
-                variant="contained"
-                className="!capitalize"
-                disableElevation
-                startIcon={<Add />}
-                onClick={handleCreateReturnRequest}
-              >
-                Create
-              </Button>
+              )}
             </div>
-          </div>
+          ) : (
+            false
+          )
         }
         getRowId={returnRequest => returnRequest.id}
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
+        isPermission={isRead}
         onPageChange={handlePageChange}
         emptyMessage={
           search

@@ -1,6 +1,7 @@
-import { Box, Chip, MenuItem, Skeleton } from '@mui/material';
+import { Box, Chip, MenuItem } from '@mui/material';
 import { useDepots } from 'hooks/useDepots';
 import { useRouteEffectiveness } from 'hooks/useGPSTracking';
+import { usePermission } from 'hooks/usePermission';
 import { useUsers } from 'hooks/useUsers';
 import {
   Activity,
@@ -14,6 +15,7 @@ import {
 import React, { useState } from 'react';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 
 const RouteEffectiveness: React.FC = () => {
@@ -23,13 +25,19 @@ const RouteEffectiveness: React.FC = () => {
     undefined
   );
   const [depotId, setDepotId] = useState<number | undefined>(undefined);
+  const { isRead } = usePermission('route-effectiveness');
 
-  const { data: reportData, isLoading } = useRouteEffectiveness({
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-    salesperson_id: salespersonId,
-    depot_id: depotId,
-  });
+  const { data: reportData, isLoading } = useRouteEffectiveness(
+    {
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+      salesperson_id: salespersonId,
+      depot_id: depotId,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const { data: usersData } = useUsers();
   const { data: depotsData } = useDepots();
@@ -53,35 +61,6 @@ const RouteEffectiveness: React.FC = () => {
   };
 
   const routes = reportData?.routes || [];
-
-  const SummaryStatsSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-      {[1, 2, 3, 4].map(item => (
-        <div
-          key={item}
-          className="bg-white shadow-sm p-6 rounded-lg border border-gray-100"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <Skeleton
-                variant="text"
-                width="60%"
-                height={20}
-                className="!mb-2"
-              />
-              <Skeleton variant="text" width="40%" height={32} />
-            </div>
-            <Skeleton
-              variant="circular"
-              width={48}
-              height={48}
-              className="!bg-gray-100"
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 
   const columns: TableColumn<any>[] = [
     {
@@ -176,149 +155,121 @@ const RouteEffectiveness: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              placeholder="Start Date"
-              label="Start Date"
-            />
-          </div>
-          <div>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              placeholder="End Date"
-              label="End Date"
-            />
-          </div>
-          <Select
-            label="Salesperson"
-            value={salespersonId?.toString() || 'all'}
-            onChange={e =>
-              setSalespersonId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
-            }
-          >
-            <MenuItem value="all">All Salespersons</MenuItem>
-            {users.map((user: any) => (
-              <MenuItem key={user.id} value={user.id.toString()}>
-                {user.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <Select
-            label="Depot"
-            value={depotId?.toString() || 'all'}
-            onChange={e =>
-              setDepotId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
-            }
-          >
-            <MenuItem value="all">All Depots</MenuItem>
-            {depots.map((depot: any) => (
-              <MenuItem key={depot.id} value={depot.id.toString()}>
-                {depot.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </div>
-      </div>
-
-      {/* Summary Stats */}
-      {isLoading ? (
-        <SummaryStatsSkeleton />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Total Routes
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {summary.total_routes}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Navigation className="w-6 h-6 text-blue-600" />
-              </div>
+      {isRead && (
+        <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                placeholder="Start Date"
+                label="Start Date"
+              />
             </div>
-          </div>
-
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Completion Rate
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {summary.avg_completion_rate}%
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Target className="w-6 h-6 text-green-600" />
-              </div>
+            <div>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                placeholder="End Date"
+                label="End Date"
+              />
             </div>
-          </div>
-
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Efficiency Score
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {summary.avg_efficiency_score}%
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <Activity className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">
-                  Missed Visits
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {summary.missed_visits}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
+            <Select
+              label="Salesperson"
+              value={salespersonId?.toString() || 'all'}
+              onChange={e =>
+                setSalespersonId(
+                  e.target.value && e.target.value !== 'all'
+                    ? parseInt(e.target.value)
+                    : undefined
+                )
+              }
+            >
+              <MenuItem value="all">All Salespersons</MenuItem>
+              {users.map((user: any) => (
+                <MenuItem key={user.id} value={user.id.toString()}>
+                  {user.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <Select
+              label="Depot"
+              value={depotId?.toString() || 'all'}
+              onChange={e =>
+                setDepotId(
+                  e.target.value && e.target.value !== 'all'
+                    ? parseInt(e.target.value)
+                    : undefined
+                )
+              }
+            >
+              <MenuItem value="all">All Depots</MenuItem>
+              {depots.map((depot: any) => (
+                <MenuItem key={depot.id} value={depot.id.toString()}>
+                  {depot.name}
+                </MenuItem>
+              ))}
+            </Select>
           </div>
         </div>
       )}
 
-      {/* Routes Table */}
+      {isRead && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+          <StatsCard
+            title="Total Routes"
+            value={summary.total_routes}
+            icon={<Navigation className="w-6 h-6" />}
+            color="blue"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Completion Rate"
+            value={`${summary.avg_completion_rate}%`}
+            icon={<Target className="w-6 h-6" />}
+            color="green"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Efficiency Score"
+            value={`${summary.avg_efficiency_score}%`}
+            icon={<Activity className="w-6 h-6" />}
+            color="purple"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Missed Visits"
+            value={summary.missed_visits}
+            icon={<AlertCircle className="w-6 h-6" />}
+            color="orange"
+            isLoading={isLoading}
+          />
+        </div>
+      )}
 
-      <Table
-        columns={columns}
-        actions={<Box>Route Performance ({routes.length})</Box>}
-        data={routes}
-        loading={isLoading}
-        pagination={false}
-      />
+      {isRead && (
+        <Table
+          columns={columns}
+          actions={<Box>Route Performance ({routes.length})</Box>}
+          data={routes}
+          loading={isLoading}
+          pagination={false}
+          isPermission={isRead}
+        />
+      )}
 
-      {/* Route Details Cards */}
-      {!isLoading && routes.length > 0 && (
+      {!isRead && (
+        <div className="col-span-full text-center py-12">
+          <Navigation className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg">
+            You do not have permission to view route effectiveness data
+          </p>
+        </div>
+      )}
+
+      {isRead && !isLoading && routes.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {routes.slice(0, 4).map((route: any) => (
             <div
@@ -385,7 +336,7 @@ const RouteEffectiveness: React.FC = () => {
         </div>
       )}
 
-      {routes.length === 0 && !isLoading && (
+      {isRead && routes.length === 0 && !isLoading && (
         <div className="col-span-full text-center py-12">
           <Navigation className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 text-lg">No route data available</p>

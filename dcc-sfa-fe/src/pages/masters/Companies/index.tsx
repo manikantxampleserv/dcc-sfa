@@ -12,6 +12,7 @@ import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ManageCompanies from './ManageCompanies';
@@ -25,7 +26,6 @@ const CompaniesManagement: React.FC = () => {
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('company');
 
-  // Fetch companies with API
   const { data: companiesData, isLoading } = useCompanies(
     {
       page,
@@ -43,7 +43,6 @@ const CompaniesManagement: React.FC = () => {
     }
   );
 
-  // Delete company mutation
   const deleteCompanyMutation = useDeleteCompany();
 
   const companies = companiesData?.data || [];
@@ -236,84 +235,35 @@ const CompaniesManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Companies
-              </p>
-              {isLoading ? (
-                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-gray-900">
-                  {companiesData?.stats?.total_companies || 0}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Active Companies
-              </p>
-              {isLoading ? (
-                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-600">
-                  {companiesData?.stats?.active_companies || 0}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Inactive Companies
-              </p>
-              {isLoading ? (
-                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-600">
-                  {companiesData?.stats?.inactive_companies || 0}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <XCircle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                New This Month
-              </p>
-              {isLoading ? (
-                <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {companiesData?.stats?.new_companies || 0}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Globe className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Companies"
+          value={companiesData?.stats?.total_companies || 0}
+          icon={<Building2 className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Active Companies"
+          value={companiesData?.stats?.active_companies || 0}
+          icon={<CheckCircle className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="Inactive Companies"
+          value={companiesData?.stats?.inactive_companies || 0}
+          icon={<XCircle className="w-6 h-6" />}
+          color="red"
+          isLoading={isLoading}
+        />
+        <StatsCard
+          title="New This Month"
+          value={companiesData?.stats?.new_companies || 0}
+          icon={<Globe className="w-6 h-6" />}
+          color="purple"
+          isLoading={isLoading}
+        />
       </div>
 
       <Table

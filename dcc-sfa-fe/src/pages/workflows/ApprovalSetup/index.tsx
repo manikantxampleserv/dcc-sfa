@@ -5,12 +5,14 @@ import {
   useApprovalWorkflowSetups,
   useDeleteApprovalWorkflowSetupByRequestType,
 } from 'hooks/useApprovalWorkflowSetup';
+import { usePermission } from 'hooks/usePermission';
 import { useRequestTypes } from 'hooks/useRequests';
 import type { ApprovalWorkflowSetupGrouped } from 'services/approvalWorkflowSetup';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import ManageApprovalSetup from './ManageApprovalSetup';
 
@@ -24,6 +26,8 @@ const ApprovalSetup: React.FC = () => {
     null
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { isCreate, isRead, isUpdate, isDelete } =
+    usePermission('approval-setup');
 
   const { data: requestTypesResponse } = useRequestTypes();
 
@@ -31,12 +35,17 @@ const ApprovalSetup: React.FC = () => {
     data: workflowsResponse,
     isLoading,
     error,
-  } = useApprovalWorkflowSetups({
-    page,
-    size,
-    search: search || undefined,
-    request_type: requestTypeFilter !== 'all' ? requestTypeFilter : undefined,
-  });
+  } = useApprovalWorkflowSetups(
+    {
+      page,
+      size,
+      search: search || undefined,
+      request_type: requestTypeFilter !== 'all' ? requestTypeFilter : undefined,
+    },
+    {
+      enabled: isRead,
+    }
+  );
 
   const workflows: ApprovalWorkflowSetupGrouped[] =
     workflowsResponse?.data || [];
@@ -194,25 +203,33 @@ const ApprovalSetup: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <div className="!flex !gap-2 !items-center">
-          <EditButton
-            onClick={() => handleManage(row.request_type)}
-            tooltip={`Manage ${row.request_type.replace(/_/g, ' ')}`}
-          />
-          <DeleteButton
-            onClick={() => handleDelete(row.request_type)}
-            tooltip={`Delete ${row.request_type.replace(/_/g, ' ')}`}
-            itemName={row.request_type.replace(/_/g, ' ')}
-            confirmDelete={true}
-          />
-        </div>
-      ),
-    },
+    ...(isUpdate || isDelete
+      ? [
+          {
+            id: 'actions',
+            label: 'Actions',
+            sortable: false,
+            render: (_value, row) => (
+              <div className="!flex !gap-2 !items-center">
+                {isUpdate && (
+                  <EditButton
+                    onClick={() => handleManage(row.request_type)}
+                    tooltip={`Manage ${row.request_type.replace(/_/g, ' ')}`}
+                  />
+                )}
+                {isDelete && (
+                  <DeleteButton
+                    onClick={() => handleDelete(row.request_type)}
+                    tooltip={`Delete ${row.request_type.replace(/_/g, ' ')}`}
+                    itemName={row.request_type.replace(/_/g, ' ')}
+                    confirmDelete={true}
+                  />
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -228,158 +245,130 @@ const ApprovalSetup: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Workflows
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {totalWorkflows}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Settings className="w-6 h-6 text-primary-500" />
-            </div>
-          </div>
+      {isRead && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <StatsCard
+            title="Total Workflows"
+            value={totalWorkflows}
+            icon={<Settings className="w-6 h-6" />}
+            color="blue"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Active Workflows"
+            value={activeWorkflows}
+            icon={<CheckCircle className="w-6 h-6" />}
+            color="green"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Inactive Workflows"
+            value={inactiveWorkflows}
+            icon={<XCircle className="w-6 h-6" />}
+            color="red"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Total Approvers"
+            value={totalApprovers}
+            icon={<Users className="w-6 h-6" />}
+            color="purple"
+            isLoading={isLoading}
+          />
         </div>
+      )}
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-500">
-                Active Workflows
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {activeWorkflows}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-500">
-                Inactive Workflows
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-500">
-                  {inactiveWorkflows}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <XCircle className="w-6 h-6 text-red-500" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-600">
-                Total Approvers
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-purple-600">
-                  {totalApprovers}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {error && (
+      {error && isRead && (
         <Alert severity="error" className="!mb-4">
           Failed to load approval workflows. Please try again.
         </Alert>
       )}
 
-      <Table
-        data={filteredWorkflows}
-        columns={columns}
-        actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <div className="flex flex-wrap items-center gap-3">
-              <SearchInput
-                placeholder="Search by request type..."
-                value={search}
-                onChange={handleSearchChange}
-                debounceMs={400}
-                showClear={true}
-                className="!w-80"
-              />
-              <Select
-                value={statusFilter}
-                onChange={e => handleStatusFilterChange(e.target.value)}
-                className="!w-40"
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              <Select
-                value={requestTypeFilter}
-                onChange={e => handleRequestTypeFilterChange(e.target.value)}
-                className="!w-48"
-              >
-                <MenuItem value="all">All Request Types</MenuItem>
-                {requestTypes.map(type => (
-                  <MenuItem key={type.value} value={type.value}>
-                    {type.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </div>
-            <Button
-              variant="contained"
-              className="!capitalize"
-              disableElevation
-              startIcon={<Settings />}
-              onClick={handleCreateSetup}
-            >
-              Create
-            </Button>
-          </div>
-        }
-        getRowId={workflow => workflow.request_type}
-        initialOrderBy="request_type"
-        loading={isLoading}
-        totalCount={
-          statusFilter !== 'all'
-            ? filteredWorkflows.length
-            : pagination?.totalCount || 0
-        }
-        page={page - 1}
-        rowsPerPage={size}
-        onPageChange={handlePageChange}
-        emptyMessage={
-          search || statusFilter !== 'all' || requestTypeFilter !== 'all'
-            ? `No workflows found matching your filters`
-            : 'No approval workflows found in the system'
-        }
-      />
+      {!isRead && (
+        <Alert severity="error" className="!mb-4">
+          You do not have permission to view approval setups.
+        </Alert>
+      )}
+
+      {isRead && (
+        <Table
+          data={filteredWorkflows}
+          columns={columns}
+          actions={
+            isRead || isCreate ? (
+              <div className="flex justify-between gap-3 items-center flex-wrap">
+                <div className="flex flex-wrap items-center gap-3">
+                  {isRead && (
+                    <>
+                      <SearchInput
+                        placeholder="Search by request type..."
+                        value={search}
+                        onChange={handleSearchChange}
+                        debounceMs={400}
+                        showClear={true}
+                        className="!w-80"
+                      />
+                      <Select
+                        value={statusFilter}
+                        onChange={e => handleStatusFilterChange(e.target.value)}
+                        className="!w-40"
+                      >
+                        <MenuItem value="all">All Status</MenuItem>
+                        <MenuItem value="active">Active</MenuItem>
+                        <MenuItem value="inactive">Inactive</MenuItem>
+                      </Select>
+                      <Select
+                        value={requestTypeFilter}
+                        onChange={e =>
+                          handleRequestTypeFilterChange(e.target.value)
+                        }
+                        className="!w-48"
+                      >
+                        <MenuItem value="all">All Request Types</MenuItem>
+                        {requestTypes.map(type => (
+                          <MenuItem key={type.value} value={type.value}>
+                            {type.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </>
+                  )}
+                </div>
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Settings />}
+                    onClick={handleCreateSetup}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
+            ) : (
+              false
+            )
+          }
+          getRowId={workflow => workflow.request_type}
+          initialOrderBy="request_type"
+          loading={isLoading}
+          totalCount={
+            statusFilter !== 'all'
+              ? filteredWorkflows.length
+              : pagination?.totalCount || 0
+          }
+          page={page - 1}
+          rowsPerPage={size}
+          isPermission={isRead}
+          onPageChange={handlePageChange}
+          emptyMessage={
+            search || statusFilter !== 'all' || requestTypeFilter !== 'all'
+              ? `No workflows found matching your filters`
+              : 'No approval workflows found in the system'
+          }
+        />
+      )}
 
       <ManageApprovalSetup
         requestType={selectedRequestType}

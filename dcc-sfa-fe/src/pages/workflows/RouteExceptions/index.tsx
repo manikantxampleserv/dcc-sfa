@@ -1,8 +1,10 @@
-import { Chip, MenuItem, Skeleton, Typography } from '@mui/material';
+import { Alert, Chip, MenuItem, Skeleton, Typography } from '@mui/material';
 import { AlertTriangle, Truck } from 'lucide-react';
 import React, { useState } from 'react';
+import { usePermission } from 'hooks/usePermission';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 
@@ -31,10 +33,19 @@ const RouteExceptions: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { isRead } = usePermission('route-exceptions');
 
-  // TODO: Replace with actual API call
   const isLoading = false;
   const exceptions: RouteException[] = [];
+
+  const totalExceptions = exceptions.length;
+  const openExceptions = exceptions.filter(e => e.status === 'open').length;
+  const resolvedExceptions = exceptions.filter(
+    e => e.status === 'resolved'
+  ).length;
+  const criticalExceptions = exceptions.filter(
+    e => e.severity === 'critical'
+  ).length;
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -149,70 +160,116 @@ const RouteExceptions: React.FC = () => {
         </div>
       </div>
 
-      <div className="!bg-white !rounded-lg !shadow-sm !p-4 !mb-6">
-        <div className="!flex !flex-wrap !gap-4 !items-end">
-          <div className="!flex-1 ">
-            <SearchInput
-              placeholder="Search Route Exceptions..."
-              value={search}
-              className="!min-w-[300px]"
-              onChange={setSearch}
-            />
-          </div>
-          <div className="!w-[180px]">
-            <Select
-              label="Status"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              fullWidth={true}
-            >
-              <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="open">Open</MenuItem>
-              <MenuItem value="in_progress">In Progress</MenuItem>
-              <MenuItem value="resolved">Resolved</MenuItem>
-            </Select>
-          </div>
-          <div className="!w-[180px]">
-            <Select
-              label="Severity"
-              value={severityFilter}
-              onChange={e => setSeverityFilter(e.target.value)}
-              fullWidth={true}
-            >
-              <MenuItem value="all">All Severities</MenuItem>
-              <MenuItem value="critical">Critical</MenuItem>
-              <MenuItem value="high">High</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="low">Low</MenuItem>
-            </Select>
-          </div>
+      {isRead && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <StatsCard
+            title="Total Exceptions"
+            value={totalExceptions}
+            icon={<AlertTriangle className="w-6 h-6" />}
+            color="blue"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Open Exceptions"
+            value={openExceptions}
+            icon={<AlertTriangle className="w-6 h-6" />}
+            color="red"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Resolved Exceptions"
+            value={resolvedExceptions}
+            icon={<Truck className="w-6 h-6" />}
+            color="green"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Critical Exceptions"
+            value={criticalExceptions}
+            icon={<AlertTriangle className="w-6 h-6" />}
+            color="orange"
+            isLoading={isLoading}
+          />
         </div>
-      </div>
+      )}
 
-      {isLoading ? (
-        <div className="!bg-white !rounded-lg !shadow-sm !p-4">
-          {[1, 2, 3, 4, 5].map(item => (
-            <Skeleton key={item} height={60} className="!mb-2" />
-          ))}
+      {!isRead && (
+        <Alert severity="error" className="!mb-4">
+          You do not have permission to view route exceptions.
+        </Alert>
+      )}
+
+      {isRead && (
+        <div className="!bg-white !rounded-lg !shadow-sm !p-4 !mb-6">
+          <div className="!flex !flex-wrap !gap-4 !items-end">
+            <div className="!flex-1 ">
+              <SearchInput
+                placeholder="Search Route Exceptions..."
+                value={search}
+                className="!min-w-[300px]"
+                onChange={setSearch}
+              />
+            </div>
+            <div className="!w-[180px]">
+              <Select
+                label="Status"
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                fullWidth={true}
+              >
+                <MenuItem value="all">All Status</MenuItem>
+                <MenuItem value="open">Open</MenuItem>
+                <MenuItem value="in_progress">In Progress</MenuItem>
+                <MenuItem value="resolved">Resolved</MenuItem>
+              </Select>
+            </div>
+            <div className="!w-[180px]">
+              <Select
+                label="Severity"
+                value={severityFilter}
+                onChange={e => setSeverityFilter(e.target.value)}
+                fullWidth={true}
+              >
+                <MenuItem value="all">All Severities</MenuItem>
+                <MenuItem value="critical">Critical</MenuItem>
+                <MenuItem value="high">High</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="low">Low</MenuItem>
+              </Select>
+            </div>
+          </div>
         </div>
-      ) : exceptions.length === 0 ? (
-        <div className="!bg-white !rounded-lg !shadow-sm !p-12 !text-center">
-          <AlertTriangle className="!w-16 !h-16 !text-gray-400 !mx-auto !mb-4" />
-          <Typography variant="h6" className="!text-gray-600 !mb-2">
-            No Route Exceptions
-          </Typography>
-          <Typography variant="body2" className="!text-gray-500">
-            There are no route exceptions to display at this time.
-          </Typography>
-        </div>
-      ) : (
-        <Table
-          columns={columns}
-          data={exceptions}
-          page={page - 1}
-          onPageChange={newPage => setPage(newPage + 1)}
-          rowsPerPage={limit}
-        />
+      )}
+
+      {isRead && (
+        <>
+          {isLoading ? (
+            <div className="!bg-white !rounded-lg !shadow-sm !p-4">
+              {[1, 2, 3, 4, 5].map(item => (
+                <Skeleton key={item} height={60} className="!mb-2" />
+              ))}
+            </div>
+          ) : exceptions.length === 0 ? (
+            <div className="!bg-white !rounded-lg !shadow-sm !p-12 !text-center">
+              <AlertTriangle className="!w-16 !h-16 !text-gray-400 !mx-auto !mb-4" />
+              <Typography variant="h6" className="!text-gray-600 !mb-2">
+                No Route Exceptions
+              </Typography>
+              <Typography variant="body2" className="!text-gray-500">
+                There are no route exceptions to display at this time.
+              </Typography>
+            </div>
+          ) : (
+            <Table
+              columns={columns}
+              data={exceptions}
+              page={page - 1}
+              onPageChange={newPage => setPage(newPage + 1)}
+              rowsPerPage={limit}
+              isPermission={isRead}
+            />
+          )}
+        </>
       )}
     </>
   );
