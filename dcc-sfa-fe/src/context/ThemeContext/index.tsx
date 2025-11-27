@@ -119,6 +119,5 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
   return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
 };
 
-// Export primaryColors as named export for consistency
 export { primaryColors };
 export default ThemeContext;
