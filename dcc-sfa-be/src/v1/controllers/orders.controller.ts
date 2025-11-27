@@ -1093,6 +1093,7 @@ export const ordersController = {
           } else if (applicableLevel.discount_type === 'FIXED_AMOUNT') {
             discountAmount = new Decimal(applicableLevel.discount_value || 0);
           }
+
           for (const benefit of applicableLevel.promotion_benefit_level) {
             if (benefit.benefit_type === 'FREE_PRODUCT') {
               freeProducts.push({
@@ -1119,7 +1120,7 @@ export const ordersController = {
           console.log(appliedPromotion.discount_amount);
           console.log(freeProducts.length);
         } catch (error) {
-          console.error(error);
+          console.error(' Error applying promotion:', error);
           return res.status(400).json({
             success: false,
             message: 'Failed to apply selected promotion',
@@ -1335,7 +1336,7 @@ export const ordersController = {
             log_inst: 1,
           });
         } catch (error: any) {
-          console.error('Error creating approval request:', error);
+          console.error(' Error creating approval request:', error);
         }
       }
 
@@ -1352,7 +1353,7 @@ export const ordersController = {
 
       res.status(orderId ? 200 : 201).json(response);
     } catch (error: any) {
-      console.error('❌ Error processing order:', error);
+      console.error(' Error processing order:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to process order',
