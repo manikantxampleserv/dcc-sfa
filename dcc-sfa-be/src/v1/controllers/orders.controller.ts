@@ -851,7 +851,7 @@ export const ordersController = {
       const items = orderItems || order_items || [];
       let orderId = orderData.id;
 
-      console.log('🛒 Processing order with items:', {
+      console.log(' Processing order with items:', {
         orderId,
         orderNumber: orderData.order_number,
         itemsCount: items.length,
@@ -1314,7 +1314,7 @@ export const ordersController = {
             },
           });
         } catch (error) {
-          console.error(' Promotion tracking failed:', error);
+          console.error('Promotion tracking failed:', error);
         }
       }
 
