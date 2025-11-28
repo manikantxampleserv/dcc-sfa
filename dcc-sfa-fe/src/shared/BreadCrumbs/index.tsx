@@ -93,7 +93,9 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
         {breadCrumbs.map((item, index) => {
           return (
             <Chip
-              label={item.navItem?.replaceAll('-', ' ')}
+              label={
+                item.navItem ? item.navItem?.replaceAll('-', ' ') : 'Dashboard'
+              }
               className={classNames(
                 '!rounded-md flex items-center !capitalize !text-white px-2 py-1',
                 item.id === id
