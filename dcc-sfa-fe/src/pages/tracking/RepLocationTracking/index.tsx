@@ -20,6 +20,7 @@ import {
   Clock,
   MapPin,
   Navigation,
+  Plus,
   Users,
 } from 'lucide-react';
 import React, { useState } from 'react';
