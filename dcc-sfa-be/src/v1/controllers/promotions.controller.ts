@@ -691,14 +691,15 @@ export const promotionsController = {
 
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
+      const searchLower = search ? (search as string).toLowerCase().trim() : '';
 
       const filters: any = {};
 
-      if (search) {
+      if (searchLower) {
         filters.OR = [
-          { name: { contains: search as string, mode: 'insensitive' } },
-          { code: { contains: search as string, mode: 'insensitive' } },
-          { description: { contains: search as string, mode: 'insensitive' } },
+          { name: { contains: searchLower } },
+          { code: { contains: searchLower } },
+          { description: { contains: searchLower } },
         ];
       }
 
@@ -796,7 +797,7 @@ export const promotionsController = {
           promotion_condition_promotions: {
             where: { is_active: 'Y' },
             include: {
-              promotion_condition_product: {
+              promotion_condition_products: {
                 where: { is_active: 'Y' },
                 include: {
                   promotion_condition_productId: true,
