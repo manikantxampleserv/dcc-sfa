@@ -16,20 +16,29 @@ import {
   Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
-import React, { useState } from 'react';
-import { useProducts } from 'hooks/useProducts';
+import { useApiMutation } from 'hooks/useApiMutation';
 import { useCustomers } from 'hooks/useCustomers';
 import { useDepots } from 'hooks/useDepots';
+import { useProducts } from 'hooks/useProducts';
+import { usePromotion } from 'hooks/usePromotions';
+import React, { useEffect, useState } from 'react';
+import {
+  createPromotion,
+  updatePromotion,
+  type CreatePromotionPayload,
+  type UpdatePromotionPayload,
+  type Promotion,
+} from 'services/masters/Promotions';
+import { DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import { DeleteButton } from 'shared/ActionButton';
 
 interface ManagePromotionProps {
-  selectedPromotion?: any | null;
-  setSelectedPromotion: (promotion: any | null) => void;
+  selectedPromotion?: Promotion | null;
+  setSelectedPromotion: (promotion: Promotion | null) => void;
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
@@ -43,6 +52,7 @@ interface PromotionLevel {
 
 interface PromotionGift {
   _index: number;
+  level_index: number;
   type: string;
   application: string;
   gift: string;
@@ -50,6 +60,7 @@ interface PromotionGift {
   maximum: string;
   product_code: string;
   product_name: string;
+  product_id?: number;
   product_not_in_condition: boolean;
 }
 
@@ -66,6 +77,8 @@ interface OutletCondition {
 interface ProductCondition {
   _index: number;
   product_group: string;
+  product_id?: number;
+  category_id?: number;
   at_least: string;
 }
 
@@ -166,6 +179,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const { data: depotsResponse } = useDepots({ limit: 1000 });
   const depots = depotsResponse?.data || [];
 
+  const { data: promotionData } = usePromotion(selectedPromotion?.id || null);
+  const promotion = promotionData?.data;
+
   const handleCancel = () => {
     setSelectedPromotion(null);
     setDrawerOpen(false);
@@ -177,124 +193,329 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     setSelectedGiftIndex(null);
     setLevelInput({ level: '', unit: '', step: false });
     setGiftInput({ code: '', name: '', product_not_in_condition: false });
+    setQuantityType('quantity');
+    setLevelType('total');
+    setGiftType('amount');
+    setLocationTab(0);
+    setGiftProductTab(0);
+    setLocationForms({
+      0: {
+        area: '',
+        group: '',
+        distributor_id: '',
+        distributor_name: '',
+        role: '',
+        slip_limit: false,
+        disc_limit: false,
+        date_limit: false,
+        dc_par: false,
+      },
+    });
     formik.resetForm();
   };
+
+  const createMutation = useApiMutation({
+    mutationFn: (data: CreatePromotionPayload) => createPromotion(data),
+    loadingMessage: 'Creating promotion...',
+    invalidateQueries: [['promotions']],
+    onSuccess: () => {
+      handleCancel();
+    },
+  });
+
+  const updateMutation = useApiMutation({
+    mutationFn: (data: { id: number; payload: UpdatePromotionPayload }) =>
+      updatePromotion(data.id, data.payload),
+    loadingMessage: 'Updating promotion...',
+    invalidateQueries: [['promotions'], ['promotion']],
+    onSuccess: () => {
+      handleCancel();
+    },
+  });
 
   const formik = useFormik({
     initialValues: {
       disabled: false,
-      name: selectedPromotion?.promotion_name || '',
-      short_name: selectedPromotion?.promotion_name || '',
-      code: selectedPromotion?.promotion_code || '',
-      pay_type: 'All',
-      scope: '',
-      slip_type: 'All',
-      mandatory: true,
-      prom_conflict: 'Normal',
-      degree: '1',
-      nr: '1',
-      reg_disc_conf: 'Normal',
-      conflict_with_constant_disc: false,
-      start_date: selectedPromotion?.start_date
-        ? selectedPromotion.start_date.split('T')[0]
+      name: promotion?.name || '',
+      code: promotion?.code || '',
+      start_date: promotion?.start_date
+        ? new Date(promotion.start_date).toISOString().split('T')[0]
         : '',
-      finish_date: selectedPromotion?.end_date
-        ? selectedPromotion.end_date.split('T')[0]
+      finish_date: promotion?.end_date
+        ? new Date(promotion.end_date).toISOString().split('T')[0]
         : '',
-      office: true,
-      mobile: true,
-      b2b: true,
-      group: '',
-      dist_comp_participation_from: '0',
-      dist_comp_participation_to: '100',
-      gift_count: '1',
+      office:
+        promotion?.channels?.some(c => c.channel_type === 'OFFICE') || true,
+      mobile:
+        promotion?.channels?.some(c => c.channel_type === 'MOBILE') || true,
+      b2b: promotion?.channels?.some(c => c.channel_type === 'B2B') || true,
+      description: promotion?.description || '',
       disc_amount: '',
       maximum: '0.00',
-      description: selectedPromotion?.description || '',
     },
     enableReinitialize: true,
     onSubmit: async values => {
       try {
-        const promotionChannels = [];
-        if (values.office) {
-          promotionChannels.push({ channel_type: 'office' });
-        }
-        if (values.mobile) {
-          promotionChannels.push({ channel_type: 'mobile' });
-        }
-        if (values.b2b) {
-          promotionChannels.push({ channel_type: 'b2b' });
-        }
+        const platforms: string[] = [];
+        if (values.office) platforms.push('OFFICE');
+        if (values.mobile) platforms.push('MOBILE');
+        if (values.b2b) platforms.push('B2B');
 
-        const promotionConditions = productConditions.map(condition => ({
-          condition_type: quantityType,
-          applies_to_type: 'product',
-          min_value: parseFloat(condition.at_least) || 0,
-          effective_start_date: values.start_date,
-          effective_end_date: values.finish_date,
-          status: 'active',
-          promotion_condition_products: [
-            {
-              product_group: condition.product_group,
-              condition_quantity: parseFloat(condition.at_least) || 0,
-            },
-          ],
-        }));
+        const productConditionsData = productConditions.map(condition => {
+          const product = products.find(
+            p => p.name === condition.product_group
+          );
+          return {
+            product_id: product?.id || condition.product_id || 0,
+            category_id: product?.category_id || condition.category_id || 0,
+            product_group: condition.product_group || undefined,
+            min_quantity: parseFloat(condition.at_least) || 0,
+            min_value: parseFloat(condition.at_least) || 0,
+          };
+        });
 
-        const promotionLevelsData = promotionLevels.map((level, index) => ({
-          level_number: index + 1,
-          threshold_value: parseFloat(level.level) || 0,
-          discount_type: levelType,
-          discount_value: parseFloat(level.gift_percent) || 0,
-          promotion_benefits: promotionGifts
-            .filter((_gift, giftIndex) => giftIndex === index)
-            .map(gift => ({
-              benefit_type: giftType,
-              product_code: gift.product_code,
-              benefit_value: parseFloat(gift.disc_amount) || 0,
-              condition_type: gift.application,
-              gift_limit: parseInt(gift.maximum) || 0,
-            })),
-        }));
+        const levelsData = promotionLevels.map((level, index) => {
+          const levelGifts = promotionGifts.filter(
+            gift => gift.level_index === index
+          );
+          return {
+            level_number: index + 1,
+            threshold_value: parseFloat(level.level) || 0,
+            discount_type: levelType.toUpperCase(),
+            discount_value: parseFloat(level.gift_percent) || 0,
+            benefits: levelGifts.map(gift => {
+              const product = products.find(p => p.code === gift.product_code);
+              return {
+                benefit_type: gift.type.toUpperCase(),
+                product_id: product?.id || gift.product_id,
+                benefit_value: parseFloat(gift.disc_amount) || 0,
+                condition_type: gift.application || undefined,
+                gift_limit: parseInt(gift.maximum) || 0,
+              };
+            }),
+          };
+        });
 
-        const promotionDepots = Object.values(locationForms)
+        const locationAreas = Object.values(locationForms)
           .filter(form => form.distributor_id)
-          .map(form => ({
-            depot_id: parseInt(form.distributor_id),
-          }));
+          .map(form => parseInt(form.distributor_id))
+          .filter(id => !isNaN(id));
 
-        const submitData = {
-          promotion_name: values.name,
-          promotion_code: values.code,
-          start_date: values.start_date,
-          end_date: values.finish_date,
-          description: values.description,
-          is_active: values.disabled ? 'N' : 'Y',
-          promotion_channels: promotionChannels,
-          promotion_conditions: promotionConditions,
-          promotion_levels: promotionLevelsData,
-          promotion_depots: promotionDepots,
-          promotion_customer_exclusions: outletConditions
-            .filter(condition => condition.outlet_condition === '►Outlet')
-            .map(condition => ({
-              customer_id: parseInt(condition.outlet_value) || 0,
-              is_excluded: 'N',
-            })),
-        };
-        console.log('Submit promotion:', submitData);
-        handleCancel();
+        const customerExclusions = outletConditions
+          .filter(condition => condition.outlet_condition === '►Outlet')
+          .map(condition => {
+            const customer = customers.find(
+              c =>
+                c.code === condition.outlet_value ||
+                c.name === condition.outlet_name
+            );
+            return customer?.id || parseInt(condition.outlet_value) || 0;
+          })
+          .filter(id => id > 0);
+
+        if (isEdit && selectedPromotion?.id) {
+          const updatePayload: UpdatePromotionPayload = {
+            name: values.name,
+            start_date: values.start_date,
+            end_date: values.finish_date,
+            description: values.description,
+            is_active: values.disabled ? 'N' : 'Y',
+            platforms: platforms.length > 0 ? platforms : undefined,
+            quantity_type: quantityType.toUpperCase(),
+            product_conditions:
+              productConditionsData.length > 0
+                ? productConditionsData
+                : undefined,
+            location_areas:
+              locationAreas.length > 0 ? locationAreas : undefined,
+            levels: levelsData.length > 0 ? levelsData : undefined,
+            customer_exclusions:
+              customerExclusions.length > 0 ? customerExclusions : undefined,
+          };
+          updateMutation.mutate({
+            id: selectedPromotion.id,
+            payload: updatePayload,
+          });
+        } else {
+          const createPayload: CreatePromotionPayload = {
+            name: values.name,
+            code: values.code || undefined,
+            start_date: values.start_date,
+            end_date: values.finish_date,
+            description: values.description || undefined,
+            disabled: values.disabled,
+            platforms: platforms.length > 0 ? platforms : undefined,
+            quantity_type: quantityType.toUpperCase(),
+            product_conditions:
+              productConditionsData.length > 0
+                ? productConditionsData
+                : undefined,
+            location_areas:
+              locationAreas.length > 0 ? locationAreas : undefined,
+            levels: levelsData.length > 0 ? levelsData : undefined,
+            customer_exclusions:
+              customerExclusions.length > 0 ? customerExclusions : undefined,
+          };
+          createMutation.mutate(createPayload);
+        }
       } catch (error) {
         console.error('Error submitting promotion:', error);
       }
     },
   });
 
+  useEffect(() => {
+    if (!drawerOpen && !isEdit) {
+      setPromotionLevels([]);
+      setPromotionGifts([]);
+      setOutletConditions([]);
+      setProductConditions([]);
+      setSelectedLevelIndex(null);
+      setSelectedGiftIndex(null);
+      setLevelInput({ level: '', unit: '', step: false });
+      setGiftInput({ code: '', name: '', product_not_in_condition: false });
+      setQuantityType('quantity');
+      setLevelType('total');
+      setGiftType('amount');
+      setLocationTab(0);
+      setGiftProductTab(0);
+    }
+  }, [drawerOpen, isEdit]);
+
+  useEffect(() => {
+    if (promotion && isEdit && drawerOpen) {
+      if (promotion.conditions && promotion.conditions.length > 0) {
+        const mappedConditions: ProductCondition[] = promotion.conditions.map(
+          (cond, idx) => {
+            const condProduct = cond.promotion_condition_products?.[0];
+            return {
+              _index: idx,
+              product_group: condProduct?.product_group || '',
+              product_id: condProduct?.product_id,
+              category_id: condProduct?.category_id,
+              at_least: condProduct?.condition_quantity?.toString() || '0',
+            };
+          }
+        );
+        setProductConditions(mappedConditions);
+        if (promotion.conditions[0]?.condition_type) {
+          setQuantityType(promotion.conditions[0].condition_type.toLowerCase());
+        }
+      }
+
+      if (promotion.levels && promotion.levels.length > 0) {
+        const mappedLevels: PromotionLevel[] = promotion.levels.map(
+          (level, idx) => ({
+            _index: idx,
+            level: level.threshold_value?.toString() || '',
+            step: false,
+            gift_percent: level.discount_value?.toString() || '',
+          })
+        );
+        setPromotionLevels(mappedLevels);
+        if (promotion.levels[0]?.discount_type) {
+          setLevelType(promotion.levels[0].discount_type.toLowerCase());
+        }
+
+        const allGifts: PromotionGift[] = [];
+        promotion.levels.forEach((level, levelIdx) => {
+          if (level.promotion_benefit_level) {
+            level.promotion_benefit_level.forEach(benefit => {
+              const product =
+                benefit.promotion_benefit_products ||
+                products.find(p => p.id === benefit.product_id);
+              allGifts.push({
+                _index: allGifts.length,
+                level_index: levelIdx,
+                type: benefit.benefit_type?.toLowerCase() || 'amount',
+                application: benefit.condition_type || 'Product',
+                gift: product
+                  ? `${product.code} - ${product.name}`
+                  : benefit.product_id
+                    ? `Product ID: ${benefit.product_id}`
+                    : '',
+                disc_amount: benefit.benefit_value?.toString() || '0',
+                maximum: benefit.gift_limit?.toString() || '0',
+                product_code: product?.code || '',
+                product_name: product?.name || '',
+                product_id: benefit.product_id || undefined,
+                product_not_in_condition: false,
+              });
+            });
+          }
+        });
+        setPromotionGifts(allGifts);
+      }
+
+      if (
+        promotion.customer_exclusions &&
+        promotion.customer_exclusions.length > 0
+      ) {
+        const mappedExclusions: OutletCondition[] =
+          promotion.customer_exclusions.map((excl, idx) => {
+            const customer = customers.find(c => c.id === excl.customer_id);
+            return {
+              _index: idx,
+              outlet_condition: '►Outlet',
+              dist: '',
+              outlet_value: customer?.code || excl.customer_id.toString(),
+              outlet_name: customer?.name || '',
+              start: promotion.start_date
+                ? new Date(promotion.start_date).toISOString().split('T')[0]
+                : '',
+              finish: promotion.end_date
+                ? new Date(promotion.end_date).toISOString().split('T')[0]
+                : '',
+            };
+          });
+        setOutletConditions(mappedExclusions);
+      }
+
+      if (promotion.depots && promotion.depots.length > 0) {
+        const depotForm: LocationFormData = {
+          area: '',
+          group: '',
+          distributor_id: promotion.depots[0].depot_id.toString(),
+          distributor_name: promotion.depots[0].depots?.name || '',
+          role: '',
+          slip_limit: false,
+          disc_limit: false,
+          date_limit: false,
+          dc_par: false,
+        };
+        setLocationForms({ 0: depotForm });
+      }
+    } else if (!isEdit && drawerOpen) {
+      setPromotionLevels([]);
+      setPromotionGifts([]);
+      setOutletConditions([]);
+      setProductConditions([]);
+      setQuantityType('quantity');
+      setLevelType('total');
+      setGiftType('amount');
+      setLocationTab(0);
+      setGiftProductTab(0);
+      setLocationForms({
+        0: {
+          area: '',
+          group: '',
+          distributor_id: '',
+          distributor_name: '',
+          role: '',
+          slip_limit: false,
+          disc_limit: false,
+          date_limit: false,
+          dc_par: false,
+        },
+      });
+    }
+  }, [promotion, isEdit, drawerOpen, products, customers]);
+
   const handleCopyPromotion = () => {
     const copiedData = {
       ...formik.values,
       code: `${formik.values.code}_COPY`,
       name: `${formik.values.name} (Copy)`,
-      short_name: `${formik.values.short_name} (Copy)`,
     };
     formik.setValues(copiedData);
   };
@@ -332,21 +553,32 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
 
   const removePromotionLevel = (index: number) => {
     setPromotionLevels(promotionLevels.filter((_, i) => i !== index));
-  };
-
-  const handleLevelRowClick = (row: PromotionLevel) => {
-    setSelectedLevelIndex(row._index);
-    setLevelInput({
-      level: row.level,
-      unit: '',
-      step: row.step,
+    setPromotionGifts(prevGifts => {
+      const filtered = prevGifts.filter(gift => gift.level_index !== index);
+      return filtered.map(gift => ({
+        ...gift,
+        level_index:
+          gift.level_index > index ? gift.level_index - 1 : gift.level_index,
+      }));
     });
+    if (selectedLevelIndex === index) {
+      setSelectedLevelIndex(null);
+      setLevelInput({ level: '', unit: '', step: false });
+    } else if (selectedLevelIndex !== null && selectedLevelIndex > index) {
+      setSelectedLevelIndex(selectedLevelIndex - 1);
+    }
   };
 
   const addPromotionGift = () => {
     if (giftInput.code) {
+      const product = products.find(p => p.code === giftInput.code);
+      const currentLevelIndex =
+        selectedLevelIndex !== null
+          ? selectedLevelIndex
+          : promotionLevels.length - 1;
       const newGift: PromotionGift = {
         _index: promotionGifts.length,
+        level_index: currentLevelIndex >= 0 ? currentLevelIndex : 0,
         type: giftType,
         application:
           giftProductTab === 0
@@ -363,6 +595,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
         maximum: formik.values.maximum || '0.00',
         product_code: giftInput.code,
         product_name: giftInput.name,
+        product_id: product?.id,
         product_not_in_condition: giftInput.product_not_in_condition,
       };
       setPromotionGifts([...promotionGifts, newGift]);
@@ -374,9 +607,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
 
   const updatePromotionGift = () => {
     if (giftInput.code && selectedGiftIndex !== null) {
+      const product = products.find(p => p.code === giftInput.code);
       const updated = [...promotionGifts];
+      const currentGift = updated[selectedGiftIndex];
       updated[selectedGiftIndex] = {
-        ...updated[selectedGiftIndex],
+        ...currentGift,
         type: giftType,
         application:
           giftProductTab === 0
@@ -393,6 +628,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
         maximum: formik.values.maximum || '0.00',
         product_code: giftInput.code,
         product_name: giftInput.name,
+        product_id: product?.id,
         product_not_in_condition: giftInput.product_not_in_condition,
       };
       setPromotionGifts(updated);
@@ -405,18 +641,14 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
 
   const removePromotionGift = (index: number) => {
     setPromotionGifts(promotionGifts.filter((_, i) => i !== index));
-  };
-
-  const handleGiftRowClick = (row: PromotionGift) => {
-    setSelectedGiftIndex(row._index);
-    setGiftInput({
-      code: row.product_code,
-      name: row.product_name,
-      product_not_in_condition: row.product_not_in_condition,
-    });
-    setGiftType(row.type);
-    formik.setFieldValue('disc_amount', row.disc_amount);
-    formik.setFieldValue('maximum', row.maximum);
+    if (selectedGiftIndex === index) {
+      setSelectedGiftIndex(null);
+      setGiftInput({ code: '', name: '', product_not_in_condition: false });
+      formik.setFieldValue('disc_amount', '');
+      formik.setFieldValue('maximum', '0.00');
+    } else if (selectedGiftIndex !== null && selectedGiftIndex > index) {
+      setSelectedGiftIndex(selectedGiftIndex - 1);
+    }
   };
 
   const addOutletCondition = () => {
@@ -508,15 +740,20 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     {
       id: 'level',
       label: 'Level',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Typography
           variant="body2"
           className={
-            selectedLevelIndex === row._index
-              ? '!font-bold !text-primary-600'
-              : ''
+            selectedLevelIndex === index ? '!font-bold !text-primary-600' : ''
           }
-          onClick={() => handleLevelRowClick(row)}
+          onClick={() => {
+            setSelectedLevelIndex(index);
+            setLevelInput({
+              level: row.level,
+              unit: '',
+              step: row.step,
+            });
+          }}
           style={{ cursor: 'pointer' }}
         >
           {row.level ? `${row.level} unit and above` : '-'}
@@ -526,13 +763,13 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     {
       id: 'step',
       label: 'Step',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Checkbox
           checked={row.step}
           onChange={e => {
             const updated = [...promotionLevels];
-            updated[row._index] = {
-              ...updated[row._index],
+            updated[index] = {
+              ...updated[index],
               step: e.target.checked,
             };
             setPromotionLevels(updated);
@@ -544,13 +781,13 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     {
       id: 'gift_percent',
       label: 'Gift+%',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Input
           value={row.gift_percent}
           onChange={e => {
             const updated = [...promotionLevels];
-            updated[row._index] = {
-              ...updated[row._index],
+            updated[index] = {
+              ...updated[index],
               gift_percent: e.target.value,
             };
             setPromotionLevels(updated);
@@ -565,9 +802,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       id: 'actions',
       label: 'Actions',
       sortable: false,
-      render: (_value, row) => (
+      render: (_value, _row, index) => (
         <DeleteButton
-          onClick={() => removePromotionLevel(row._index)}
+          onClick={() => removePromotionLevel(index)}
           tooltip="Remove level"
         />
       ),
@@ -578,15 +815,23 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     {
       id: 'type',
       label: 'Type',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Typography
           variant="body2"
           className={
-            selectedGiftIndex === row._index
-              ? '!font-bold !text-primary-600'
-              : ''
+            selectedGiftIndex === index ? '!font-bold !text-primary-600' : ''
           }
-          onClick={() => handleGiftRowClick(row)}
+          onClick={() => {
+            setSelectedGiftIndex(index);
+            setGiftInput({
+              code: row.product_code,
+              name: row.product_name,
+              product_not_in_condition: row.product_not_in_condition,
+            });
+            setGiftType(row.type);
+            formik.setFieldValue('disc_amount', row.disc_amount);
+            formik.setFieldValue('maximum', row.maximum);
+          }}
           style={{ cursor: 'pointer' }}
         >
           {row.type}
@@ -611,9 +856,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       id: 'actions',
       label: 'Actions',
       sortable: false,
-      render: (_value, row) => (
+      render: (_value, _row, index) => (
         <DeleteButton
-          onClick={() => removePromotionGift(row._index)}
+          onClick={() => removePromotionGift(index)}
           tooltip="Remove gift"
         />
       ),
@@ -624,12 +869,12 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     {
       id: 'outlet_condition',
       label: 'Outlet Condition',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Select
           value={row.outlet_condition}
           onChange={e =>
             updateOutletConditionField(
-              row._index,
+              index,
               'outlet_condition',
               e.target.value
             )
@@ -646,11 +891,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     {
       id: 'dist',
       label: 'Dist.',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Input
           value={row.dist}
           onChange={e =>
-            updateOutletConditionField(row._index, 'dist', e.target.value)
+            updateOutletConditionField(index, 'dist', e.target.value)
           }
           placeholder="Dist."
           size="small"
@@ -661,7 +906,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     {
       id: 'outlet_value',
       label: 'Outlet Value',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Autocomplete
           options={customers}
           getOptionLabel={option => `${option.code} - ${option.name}`}
@@ -672,19 +917,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           }
           onChange={(_e, newValue) => {
             if (newValue) {
-              updateOutletConditionField(
-                row._index,
-                'outlet_value',
-                newValue.code
-              );
-              updateOutletConditionField(
-                row._index,
-                'outlet_name',
-                newValue.name
-              );
+              updateOutletConditionField(index, 'outlet_value', newValue.code);
+              updateOutletConditionField(index, 'outlet_name', newValue.name);
             } else {
-              updateOutletConditionField(row._index, 'outlet_value', '');
-              updateOutletConditionField(row._index, 'outlet_name', '');
+              updateOutletConditionField(index, 'outlet_value', '');
+              updateOutletConditionField(index, 'outlet_name', '');
             }
           }}
           size="small"
@@ -698,11 +935,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     {
       id: 'start',
       label: 'Start',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Input
           value={row.start}
           onChange={e =>
-            updateOutletConditionField(row._index, 'start', e.target.value)
+            updateOutletConditionField(index, 'start', e.target.value)
           }
           type="date"
           size="small"
@@ -714,11 +951,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     {
       id: 'finish',
       label: 'Finish',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Input
           value={row.finish}
           onChange={e =>
-            updateOutletConditionField(row._index, 'finish', e.target.value)
+            updateOutletConditionField(index, 'finish', e.target.value)
           }
           type="date"
           size="small"
@@ -731,9 +968,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       id: 'actions',
       label: 'Actions',
       sortable: false,
-      render: (_value, row) => (
+      render: (_value, _row, index) => (
         <DeleteButton
-          onClick={() => removeOutletCondition(row._index)}
+          onClick={() => removeOutletCondition(index)}
           tooltip="Remove outlet condition"
         />
       ),
@@ -746,7 +983,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       label: 'Product/Group',
       width: 150,
       className: '!px-2',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Box className="!overflow-hidden w-[300px] !py-1">
           <Autocomplete
             options={products}
@@ -755,11 +992,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
             value={products.find(p => p.name === row.product_group) || null}
             onChange={(_e, newValue) => {
               if (newValue) {
-                updateProductCondition(
-                  row._index,
-                  'product_group',
-                  newValue.name
-                );
+                updateProductCondition(index, 'product_group', newValue.name);
               }
             }}
             size="small"
@@ -780,12 +1013,12 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       label: 'At least',
       width: 120,
       className: '!px-2',
-      render: (_value, row) => (
+      render: (_value, row, index) => (
         <Box className="!flex !items-center !gap-1 !max-w-[120px] !py-1">
           <Input
             value={row.at_least}
             onChange={e =>
-              updateProductCondition(row._index, 'at_least', e.target.value)
+              updateProductCondition(index, 'at_least', e.target.value)
             }
             placeholder="0.00"
             type="number"
@@ -804,10 +1037,10 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       width: 80,
       className: '!px-2',
       sortable: false,
-      render: (_value, row) => (
+      render: (_value, _row, index) => (
         <Box className="!flex !justify-center !max-w-[80px] !py-1">
           <DeleteButton
-            onClick={() => removeProductCondition(row._index)}
+            onClick={() => removeProductCondition(index)}
             tooltip="Remove product condition"
             size="small"
           />
@@ -848,17 +1081,6 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   Header Information
                 </Typography>
                 <Box className="!grid !grid-cols-2 !gap-4">
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.disabled}
-                        onChange={formik.handleChange}
-                        name="disabled"
-                      />
-                    }
-                    label="Disabled"
-                  />
-
                   <Input
                     name="name"
                     label="Name"
@@ -868,87 +1090,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   />
 
                   <Input
-                    name="short_name"
-                    label="Short Name"
-                    placeholder="Enter short name"
-                    formik={formik}
-                  />
-
-                  <Input
                     name="code"
                     label="Code"
                     placeholder="Enter code"
                     formik={formik}
                     required
-                  />
-
-                  <Select name="pay_type" label="Pay Type" formik={formik}>
-                    <MenuItem value="All">All</MenuItem>
-                    <MenuItem value="cash">Cash</MenuItem>
-                    <MenuItem value="credit">Credit</MenuItem>
-                  </Select>
-
-                  <Select name="scope" label="Scope" formik={formik}>
-                    <MenuItem value="">Select Scope</MenuItem>
-                    <MenuItem value="distributor">
-                      (B) Distributor Channel
-                    </MenuItem>
-                    <MenuItem value="retailer">(R) Retailer Channel</MenuItem>
-                  </Select>
-
-                  <Select name="slip_type" label="Slip Type" formik={formik}>
-                    <MenuItem value="All">All</MenuItem>
-                    <MenuItem value="Invoice">Invoice</MenuItem>
-                    <MenuItem value="Waybill">Waybill</MenuItem>
-                  </Select>
-
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.mandatory}
-                        onChange={formik.handleChange}
-                        name="mandatory"
-                      />
-                    }
-                    label="Mandatory"
-                  />
-
-                  <Select
-                    name="prom_conflict"
-                    label="Prom. Conflict"
-                    formik={formik}
-                  >
-                    <MenuItem value="Normal">Normal</MenuItem>
-                    <MenuItem value="Priority">Priority</MenuItem>
-                  </Select>
-
-                  <Input
-                    name="degree"
-                    label="Degree"
-                    type="number"
-                    formik={formik}
-                  />
-
-                  <Input name="nr" label="Nr" type="number" formik={formik} />
-
-                  <Select
-                    name="reg_disc_conf"
-                    label="Reg.Disc. Conf."
-                    formik={formik}
-                  >
-                    <MenuItem value="Normal">Normal</MenuItem>
-                    <MenuItem value="Override">Override</MenuItem>
-                  </Select>
-
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={formik.values.conflict_with_constant_disc}
-                        onChange={formik.handleChange}
-                        name="conflict_with_constant_disc"
-                      />
-                    }
-                    label="Conflict with Constant disc."
                   />
 
                   <Input
@@ -1003,43 +1149,6 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                           />
                         }
                         label="B2B"
-                      />
-                    </Box>
-                  </Box>
-
-                  <Box className="!col-span-2">
-                    <Select
-                      name="group"
-                      label="Group"
-                      formik={formik}
-                      fullWidth
-                    >
-                      <MenuItem value="">Select Group</MenuItem>
-                      <MenuItem value="DSM QTY BASED DISCOUN">
-                        DSM QTY BASED DISCOUN
-                      </MenuItem>
-                    </Select>
-                  </Box>
-
-                  <Box className="!col-span-2">
-                    <Typography variant="body2" className="!mb-2 !font-medium">
-                      Dist./Comp. Participation
-                    </Typography>
-                    <Box className="!flex !gap-2 !items-center">
-                      <Input
-                        name="dist_comp_participation_from"
-                        placeholder="0"
-                        type="number"
-                        formik={formik}
-                        className="!flex-1"
-                      />
-                      <Typography variant="body2">to</Typography>
-                      <Input
-                        name="dist_comp_participation_to"
-                        placeholder="100"
-                        type="number"
-                        formik={formik}
-                        className="!flex-1"
                       />
                     </Box>
                   </Box>
@@ -1220,7 +1329,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       />
                       <Input
                         type="date"
-                        className="!w-60"
+                        className="!w-40"
                         value={dateFilter.date_from}
                         onChange={e =>
                           setDateFilter({
@@ -1247,7 +1356,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       />
                       <Input
                         type="date"
-                        className="!w-60"
+                        className="!w-40"
                         value={dateFilter.date_to}
                         onChange={e =>
                           setDateFilter({
@@ -1357,55 +1466,39 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       <MenuItem value="">Select Group</MenuItem>
                     </Select>
 
-                    <Box>
-                      <Input
-                        placeholder="Distributor"
-                        value={currentLocationForm.distributor_id}
-                        onChange={e => {
-                          setLocationForms({
-                            ...locationForms,
-                            [locationTab]: {
-                              ...currentLocationForm,
-                              distributor_id: e.target.value,
-                            },
-                          });
-                        }}
-                        className="!mb-2"
-                      />
-                      <Autocomplete
-                        options={depots}
-                        getOptionLabel={option =>
-                          `${option.code} - ${option.name}`
-                        }
-                        value={
-                          depots.find(
-                            d =>
-                              d.id.toString() ===
-                              currentLocationForm.distributor_id
-                          ) || null
-                        }
-                        onChange={(_e, newValue) => {
-                          setLocationForms({
-                            ...locationForms,
-                            [locationTab]: {
-                              ...currentLocationForm,
-                              distributor_id: newValue
-                                ? newValue.id.toString()
-                                : '',
-                              distributor_name: newValue ? newValue.name : '',
-                            },
-                          });
-                        }}
-                        fullWidth
-                        renderInput={params => (
-                          <TextField
-                            {...params}
-                            label="Distributor"
-                            size="small"
-                          />
-                        )}
-                      />
-                    </Box>
+                    <Autocomplete
+                      options={depots}
+                      getOptionLabel={option =>
+                        `${option.code} - ${option.name}`
+                      }
+                      value={
+                        depots.find(
+                          d =>
+                            d.id.toString() ===
+                            currentLocationForm.distributor_id
+                        ) || null
+                      }
+                      onChange={(_e, newValue) => {
+                        setLocationForms({
+                          ...locationForms,
+                          [locationTab]: {
+                            ...currentLocationForm,
+                            distributor_id: newValue
+                              ? newValue.id.toString()
+                              : '',
+                            distributor_name: newValue ? newValue.name : '',
+                          },
+                        });
+                      }}
+                      fullWidth
+                      renderInput={params => (
+                        <TextField
+                          {...params}
+                          label="Distributor"
+                          size="small"
+                        />
+                      )}
+                    />
 
                     <Select
                       label="Role"
@@ -1636,14 +1729,6 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                     </Button>
                   </Box>
 
-                  <Input
-                    name="gift_count"
-                    label="Gift Count"
-                    type="number"
-                    formik={formik}
-                    className="!max-w-32"
-                  />
-
                   {promotionGifts.length > 0 && (
                     <Table
                       data={promotionGifts}
@@ -1830,8 +1915,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 type="submit"
                 variant="contained"
                 className="!bg-green-600 hover:!bg-green-700"
+                disabled={createMutation.isPending || updateMutation.isPending}
               >
-                Save
+                {createMutation.isPending || updateMutation.isPending
+                  ? 'Saving...'
+                  : 'Save'}
               </Button>
             </Box>
           </form>

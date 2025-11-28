@@ -89,6 +89,11 @@ const Input: React.FC<InputProps> = ({
       formik.setFieldValue(name as string, dateValue);
     } else if (setValue) {
       setValue(dateValue);
+    } else if (onChange) {
+      const syntheticEvent = {
+        target: { value: dateValue },
+      } as React.ChangeEvent<HTMLInputElement>;
+      onChange(syntheticEvent);
     }
   };
 
@@ -128,6 +133,7 @@ const Input: React.FC<InputProps> = ({
         value={dateValue}
         onChange={handleDateChange}
         format="DD/MM/YYYY"
+        disabled={rest.disabled}
         slotProps={{
           desktopPaper: {
             elevation: 0,
@@ -143,6 +149,7 @@ const Input: React.FC<InputProps> = ({
             InputLabelProps: {
               shrink: true,
             },
+            className: rest.className,
             ...rest,
           },
         }}
