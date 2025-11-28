@@ -1396,6 +1396,7 @@ model promotions {
   updatedate                              DateTime?                      @db.DateTime
   updatedby                               Int?
   log_inst                                Int?
+  promotion_zones                         zones?                         @relation("ZonePromotions", fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotion_customer_types                promotion_customer_types[]
   promotion_parameters_promotions         promotion_parameters[]
   products_promotion_products             promotion_products[]
@@ -2050,6 +2051,7 @@ model zones {
   routes_zones            routes[]
   user_zones              users[]
   visit_zones             visits[]             @relation("VisitZones")
+  promotion_zones         promotions[]         @relation("ZonePromotions")
   zone_depots             depots?              @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 

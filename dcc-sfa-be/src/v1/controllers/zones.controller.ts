@@ -97,7 +97,6 @@ export const zonesController = {
           createdate: new Date(),
         },
         include: {
-          promotion_zones: true,
           routes_zones: true,
           user_zones: true,
           zone_depots: true,
