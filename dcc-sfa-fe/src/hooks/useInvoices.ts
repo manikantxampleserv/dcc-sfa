@@ -5,7 +5,11 @@
  * @version 1.0.0
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query';
 import {
   createInvoice,
   deleteInvoice,
@@ -18,6 +22,7 @@ import {
   type Invoice,
 } from '../services/masters/Invoices';
 import { useApiMutation } from './useApiMutation';
+import type { ApiResponse } from 'types/api.types';
 
 export const invoiceKeys = {
   all: ['invoices'] as const,
@@ -31,11 +36,18 @@ export const invoiceKeys = {
 /**
  * Hook to fetch invoices with pagination and filters
  */
-export const useInvoices = (params?: GetInvoicesParams) => {
+export const useInvoices = (
+  params?: GetInvoicesParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<Invoice[]>>,
+    'queryKey' | 'queryFn' | 'staleTime'
+  >
+) => {
   return useQuery({
     queryKey: invoiceKeys.list(params || {}),
     queryFn: () => fetchInvoices(params),
     staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };
 

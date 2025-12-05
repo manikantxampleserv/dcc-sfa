@@ -236,7 +236,7 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: '/masters/customer-category',
+          path: '/masters/outlet-category',
           element: (
             <PermissionGuard module="customer-category" action="read">
               <CustomerCategoryPage />
@@ -244,7 +244,7 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: '/masters/customer-type',
+          path: '/masters/outlet-type',
           element: (
             <PermissionGuard module="customer-type" action="read">
               <CustomerTypePage />

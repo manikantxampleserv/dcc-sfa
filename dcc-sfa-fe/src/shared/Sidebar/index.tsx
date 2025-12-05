@@ -213,7 +213,7 @@ const Sidebar = () => {
                   className={`${isCollapsed ? '!opacity-0' : '!opacity-100'}`}
                   slotProps={{
                     primary: {
-                      className: `${level > 0 ? '!text-sm' : '!text-base'} ${
+                      className: `${level > 0 ? '!text-sm' : '!text-sm'} ${
                         isDirectActive ? '!font-semibold' : '!font-medium'
                       }`,
                     },
@@ -257,7 +257,7 @@ const Sidebar = () => {
                   className={`${isCollapsed ? '!opacity-0' : '!opacity-100'}`}
                   slotProps={{
                     primary: {
-                      className: `${level > 0 ? '!text-sm' : '!text-base'} ${
+                      className: `${level > 0 ? '!text-sm' : '!text-sm'} ${
                         isActive ? '!font-semibold' : '!font-medium'
                       }`,
                     },
@@ -301,7 +301,7 @@ const Sidebar = () => {
   return (
     <div
       className={`!h-screen !bg-white !border-r !border-gray-200 !flex !flex-col !transition-all !duration-300 !ease-in-out ${
-        isCollapsed ? '!w-16' : '!w-72'
+        isCollapsed ? '!w-16' : '!w-75'
       }`}
     >
       <div

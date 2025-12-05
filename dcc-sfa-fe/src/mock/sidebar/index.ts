@@ -1,12 +1,20 @@
 import type { IconType } from 'react-icons';
 import {
   MdBarChart,
-  MdBusiness,
+  MdCategory,
+  MdChat,
   MdDashboard,
+  MdDomain,
+  MdExplore,
+  MdInventory,
+  MdLocalShipping,
   MdMap,
   MdNotifications,
+  MdPeople,
   MdSettings,
   MdShoppingCart,
+  MdTrendingUp,
+  MdBuild,
 } from 'react-icons/md';
 
 export interface MenuItem {
@@ -31,9 +39,9 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
-    id: 'masters',
-    label: 'Masters',
-    icon: MdBusiness,
+    id: 'organization-setup',
+    label: 'Organization Setup',
+    icon: MdDomain,
     children: [
       {
         id: 'company-master',
@@ -46,37 +54,16 @@ const menuItems: MenuItem[] = [
         label: 'Role & Permission Setup',
         href: '/masters/roles',
       },
-      { id: 'depots', label: 'Depots', href: '/masters/depots' },
       { id: 'zones', label: 'Zones', href: '/masters/zones' },
+      { id: 'depots', label: 'Depots', href: '/masters/depots' },
       { id: 'currency', label: 'Currency', href: '/masters/currency' },
-      { id: 'routes', label: 'Routes', href: '/masters/routes' },
-      {
-        id: 'route-types',
-        label: 'Route Types',
-        href: '/masters/route-types',
-      },
-      { id: 'outlet-master', label: 'Outlet Master', href: '/masters/outlets' },
-      {
-        id: 'outlet-groups',
-        label: 'Outlet Groups',
-        href: '/masters/outlet-groups',
-      },
-      {
-        id: 'customer-category',
-        label: 'Customer Category',
-        href: '/masters/customer-category',
-      },
-      {
-        id: 'customer-type',
-        label: 'Customer Type',
-        href: '/masters/customer-type',
-      },
-      { id: 'asset-types', label: 'Asset Types', href: '/masters/asset-types' },
-      {
-        id: 'asset-master',
-        label: 'Asset Master',
-        href: '/masters/asset-master',
-      },
+    ],
+  },
+  {
+    id: 'operations-logistics',
+    label: 'Operations & Logistics',
+    icon: MdLocalShipping,
+    children: [
       {
         id: 'warehouse-master',
         label: 'Warehouse Master',
@@ -87,6 +74,48 @@ const menuItems: MenuItem[] = [
         label: 'Vehicle Master',
         href: '/masters/vehicles',
       },
+      { id: 'asset-types', label: 'Asset Types', href: '/masters/asset-types' },
+      {
+        id: 'asset-master',
+        label: 'Asset Master',
+        href: '/masters/asset-master',
+      },
+      {
+        id: 'route-types',
+        label: 'Route Types',
+        href: '/masters/route-types',
+      },
+      { id: 'routes', label: 'Routes', href: '/masters/routes' },
+    ],
+  },
+  {
+    id: 'customer-outlet-management',
+    label: 'Outlet Management',
+    icon: MdPeople,
+    children: [
+      {
+        id: 'outlet-groups',
+        label: 'Outlet Groups',
+        href: '/masters/outlet-groups',
+      },
+      { id: 'outlet-master', label: 'Outlet Master', href: '/masters/outlets' },
+      {
+        id: 'outlet-type',
+        label: 'Outlet Type',
+        href: '/masters/outlet-type',
+      },
+      {
+        id: 'outlet-category',
+        label: 'Outlet Category',
+        href: '/masters/outlet-category',
+      },
+    ],
+  },
+  {
+    id: 'product-pricing-setup',
+    label: 'Product & Pricing Setup',
+    icon: MdCategory,
+    children: [
       {
         id: 'brands',
         label: 'Brands',
@@ -113,6 +142,13 @@ const menuItems: MenuItem[] = [
         href: '/masters/products',
       },
       { id: 'pricelists', label: 'Pricelists', href: '/masters/pricelists' },
+    ],
+  },
+  {
+    id: 'sales-planning-targets',
+    label: 'Sales Planning & Targets',
+    icon: MdTrendingUp,
+    children: [
       {
         id: 'sales-target-groups',
         label: 'Sales Target Groups',
@@ -123,12 +159,19 @@ const menuItems: MenuItem[] = [
         label: 'Sales Targets',
         href: '/masters/sales-targets',
       },
+      { id: 'kpi-targets', label: 'KPI Targets', href: '/masters/kpi-targets' },
       {
         id: 'sales-bonus-rules',
         label: 'Sales Bonus Rules',
         href: '/masters/sales-bonus-rules',
       },
-      { id: 'kpi-targets', label: 'KPI Targets', href: '/masters/kpi-targets' },
+    ],
+  },
+  {
+    id: 'feedback-engagement',
+    label: 'Feedback & Engagement',
+    icon: MdChat,
+    children: [
       {
         id: 'survey-templates',
         label: 'Survey Templates',
@@ -147,26 +190,11 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
-    id: 'transactions',
-    label: 'Transactions',
+    id: 'sales-operations',
+    label: 'Sales Operations',
     icon: MdShoppingCart,
     children: [
       { id: 'order-entry', label: 'Order Entry', href: '/transactions/orders' },
-      {
-        id: 'delivery-scheduling',
-        label: 'Delivery Scheduling',
-        href: '/transactions/delivery',
-      },
-      {
-        id: 'return-requests',
-        label: 'Return Requests',
-        href: '/transactions/returns',
-      },
-      {
-        id: 'payment-collection',
-        label: 'Payment Collection',
-        href: '/transactions/payments',
-      },
       {
         id: 'invoice-management',
         label: 'Invoice Management',
@@ -178,10 +206,34 @@ const menuItems: MenuItem[] = [
         href: '/transactions/credit-notes',
       },
       {
-        id: 'visit-logging',
-        label: 'Visit Logging',
-        href: '/transactions/visits',
+        id: 'payment-collection',
+        label: 'Payment Collection',
+        href: '/transactions/payments',
       },
+    ],
+  },
+  {
+    id: 'delivery-returns',
+    label: 'Delivery & Returns',
+    icon: MdLocalShipping,
+    children: [
+      {
+        id: 'delivery-scheduling',
+        label: 'Delivery Scheduling',
+        href: '/transactions/delivery',
+      },
+      {
+        id: 'return-requests',
+        label: 'Return Requests',
+        href: '/transactions/returns',
+      },
+    ],
+  },
+  {
+    id: 'asset-cooler-management',
+    label: 'Asset & Cooler Management',
+    icon: MdBuild,
+    children: [
       {
         id: 'asset-movement',
         label: 'Asset Movement',
@@ -202,6 +254,13 @@ const menuItems: MenuItem[] = [
         label: 'Cooler Inspections',
         href: '/transactions/inspections',
       },
+    ],
+  },
+  {
+    id: 'van-warehouse-stock',
+    label: 'Van & Stock Operations',
+    icon: MdInventory,
+    children: [
       {
         id: 'van-stock',
         label: 'Van Stock Load/Unload',
@@ -216,6 +275,18 @@ const menuItems: MenuItem[] = [
         id: 'stock-transfer-requests',
         label: 'Stock Transfer Requests',
         href: '/transactions/stock-transfer',
+      },
+    ],
+  },
+  {
+    id: 'field-visit-market',
+    label: 'Field Visit & Market Activities',
+    icon: MdExplore,
+    children: [
+      {
+        id: 'visit-logging',
+        label: 'Visit Logging',
+        href: '/transactions/visits',
       },
       {
         id: 'competitor-activity',

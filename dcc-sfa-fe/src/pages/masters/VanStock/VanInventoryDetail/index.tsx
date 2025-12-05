@@ -197,7 +197,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
     children: React.ReactNode;
     icon?: React.ElementType;
   }) => (
-    <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
+    <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-2 !relative !overflow-hidden">
       <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
       <div className="!relative !z-10">
         <div className="!flex !items-center !gap-2 !mb-4">
@@ -542,6 +542,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
                 columns={itemColumns}
                 getRowId={row => row.id?.toString() || Math.random().toString()}
                 pagination={false}
+                compact={true}
                 sortable={false}
                 emptyMessage="No items found"
               />
