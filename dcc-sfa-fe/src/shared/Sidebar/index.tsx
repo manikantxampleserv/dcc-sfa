@@ -12,7 +12,7 @@ import {
 import { useLocalStorage } from 'hooks/useLocalStorage';
 import { useMenuPermissions } from 'hooks/useMenuPermissions';
 import menuItems, { type MenuItem } from 'mock/sidebar';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import SearchInput from 'shared/SearchInput';
 
@@ -24,9 +24,9 @@ const Sidebar = () => {
     'sidebar-collapsed',
     false
   );
-  const [activeSection, setActiveSection] = useLocalStorage<string | null>(
-    'sidebar-active-section',
-    'dashboards'
+  const [expandedSections, setExpandedSections] = useLocalStorage<string[]>(
+    'sidebar-expanded-sections',
+    ['dashboards']
   );
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,19 +39,73 @@ const Sidebar = () => {
     return filterMenuItems(menuItems);
   }, [filterMenuItems, isLoading]);
 
+  const prevPathnameRef = React.useRef<string>('');
+  const filteredMenuItemsRef = React.useRef<MenuItem[]>([]);
+
+  useEffect(() => {
+    filteredMenuItemsRef.current = filteredMenuItems;
+  }, [filteredMenuItems]);
+
+  useEffect(() => {
+    if (isLoading || isCollapsed) return;
+    if (prevPathnameRef.current === location.pathname) return;
+
+    const findParentSections = (
+      items: MenuItem[],
+      targetPath: string,
+      parents: string[] = []
+    ): string[] => {
+      for (const item of items) {
+        if (item.href === targetPath) {
+          return parents;
+        }
+        if (item.children) {
+          const found = findParentSections(item.children, targetPath, [
+            ...parents,
+            item.id,
+          ]);
+          if (found.length > 0) {
+            return found;
+          }
+        }
+      }
+      return [];
+    };
+
+    const parentSections = findParentSections(
+      filteredMenuItemsRef.current,
+      location.pathname
+    );
+
+    if (parentSections.length > 0) {
+      setExpandedSections(prevExpanded => {
+        const newExpanded = [...new Set([...prevExpanded, ...parentSections])];
+        if (
+          newExpanded.length === prevExpanded.length &&
+          newExpanded.every(id => prevExpanded.includes(id))
+        ) {
+          return prevExpanded;
+        }
+        return newExpanded;
+      });
+    }
+
+    prevPathnameRef.current = location.pathname;
+  }, [location.pathname, isLoading, isCollapsed, setExpandedSections]);
+
   const toggleSection = useCallback(
     (sectionId: string) => {
       if (isCollapsed) return;
 
-      setActiveSection(prevActive => {
-        if (prevActive === sectionId) {
-          return null;
+      setExpandedSections(prevExpanded => {
+        if (prevExpanded.includes(sectionId)) {
+          return prevExpanded.filter(id => id !== sectionId);
         } else {
-          return sectionId;
+          return [...prevExpanded, sectionId];
         }
       });
     },
-    [isCollapsed, setActiveSection]
+    [isCollapsed, setExpandedSections]
   );
 
   const getAllMenuItems = useCallback((items: MenuItem[]): MenuItem[] => {
@@ -86,9 +140,16 @@ const Sidebar = () => {
           const traverse = (menuItems: MenuItem[]) => {
             menuItems.forEach(item => {
               if (item.children && item.children.length > 0) {
-                const hasMatchingChild = item.children.some(child =>
-                  child.label.toLowerCase().includes(normalizedValue)
-                );
+                const hasMatchingChild = item.children.some(child => {
+                  if (child.children && child.children.length > 0) {
+                    return (
+                      child.children.some(grandchild =>
+                        grandchild.label.toLowerCase().includes(normalizedValue)
+                      ) || child.label.toLowerCase().includes(normalizedValue)
+                    );
+                  }
+                  return child.label.toLowerCase().includes(normalizedValue);
+                });
                 const parentMatches = item.label
                   .toLowerCase()
                   .includes(normalizedValue);
@@ -108,10 +169,12 @@ const Sidebar = () => {
         const matchingSections = findMatchingSections(filteredMenuItems);
 
         if (matchingSections.length > 0) {
-          const firstMatchingSection = matchingSections[0];
-          if (!activeSection || !matchingSections.includes(activeSection)) {
-            setActiveSection(firstMatchingSection);
-          }
+          setExpandedSections(prevExpanded => {
+            const newExpanded = [
+              ...new Set([...prevExpanded, ...matchingSections]),
+            ];
+            return newExpanded;
+          });
         }
 
         setLastSearchQuery(value);
@@ -119,7 +182,7 @@ const Sidebar = () => {
         setLastSearchQuery('');
       }
     },
-    [setActiveSection, activeSection, lastSearchQuery]
+    [setExpandedSections, lastSearchQuery, filteredMenuItems]
   );
 
   const handleSearchEnter = useCallback(
@@ -150,7 +213,7 @@ const Sidebar = () => {
   };
 
   const renderMenuItem = (item: MenuItem, level: number = 0) => {
-    const isExpanded = activeSection === item.id;
+    const isExpanded = expandedSections.includes(item.id);
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isItemActive(item);
     const isDirectActive = item.href === location.pathname;
@@ -162,9 +225,18 @@ const Sidebar = () => {
 
     if (searchQuery.trim()) {
       if (hasChildren) {
-        const hasMatchingChild = item.children?.some(child =>
-          child.label.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        const hasMatchingChild = item.children?.some(child => {
+          if (child.children && child.children.length > 0) {
+            return (
+              child.children.some(grandchild =>
+                grandchild.label
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase())
+              ) || child.label.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+          }
+          return child.label.toLowerCase().includes(searchQuery.toLowerCase());
+        });
         const parentMatches = item.label
           .toLowerCase()
           .includes(searchQuery.toLowerCase());
@@ -178,48 +250,54 @@ const Sidebar = () => {
       }
     }
 
+    const getPaddingLeft = () => {
+      if (level === 0) return 0;
+      if (level === 1) return 16;
+      return 32;
+    };
+
     return (
       <React.Fragment key={item.id}>
         {item.href && !hasChildren ? (
           <Tooltip title={isCollapsed ? item.label : ''} placement="right">
-            <ListItem disablePadding sx={{ pl: level * 1 }}>
-              <ListItemButton
-                component={Link}
+            <ListItem disablePadding>
+              <Link
                 to={item.href}
-                className={`!min-h-10 !px-2 !py-1 !rounded ${
-                  isCollapsed
-                    ? '!justify-center !mx-1 !my-1'
-                    : '!justify-start !mx-1 !mb-px'
-                } ${isDirectActive ? '!text-blue-700' : '!text-gray-700'}`}
+                style={{
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  display: 'block',
+                  width: '100%',
+                }}
               >
-                {Icon && level === 0 && (
-                  <ListItemIcon
-                    className={`!min-w-0 p-2 !justify-center ${
-                      isCollapsed ? '!pr-0' : '!pr-3'
-                    } ${isDirectActive ? '!text-blue-700' : '!text-gray-500'}`}
-                  >
-                    <Icon fontSize="large" />
-                  </ListItemIcon>
-                )}
-                {level > 0 && !isCollapsed && (
-                  <div
-                    className={`!w-1.5 !h-1.5 !rounded-full !mr-3 !ml-1 ${
-                      isDirectActive ? '!bg-blue-700' : '!bg-gray-400'
-                    }`}
-                  />
-                )}
-                <ListItemText
-                  primary={item.label}
-                  className={`${isCollapsed ? '!opacity-0' : '!opacity-100'}`}
-                  slotProps={{
-                    primary: {
-                      className: `${level > 0 ? '!text-sm' : '!text-sm'} ${
-                        isDirectActive ? '!font-semibold' : '!font-medium'
-                      }`,
-                    },
+                <ListItemButton
+                  sx={{
+                    pl: `${getPaddingLeft() + 12}px`,
+                    pr: '12px',
+                    py: '6px',
+                    minHeight: '36px',
                   }}
-                />
-              </ListItemButton>
+                  className={`${
+                    isDirectActive
+                      ? '!bg-transparent !text-blue-600'
+                      : '!bg-transparent !text-gray-700 hover:!bg-gray-100'
+                  }`}
+                >
+                  <ListItemText
+                    primary={item.label}
+                    className={`${isCollapsed ? '!opacity-0' : '!opacity-100'}`}
+                    slotProps={{
+                      primary: {
+                        className: `!text-sm ${
+                          isDirectActive
+                            ? '!font-medium !text-blue-600'
+                            : '!font-normal !text-gray-700'
+                        }`,
+                      },
+                    }}
+                  />
+                </ListItemButton>
+              </Link>
             </ListItem>
           </Tooltip>
         ) : (
@@ -231,25 +309,33 @@ const Sidebar = () => {
                     ? toggleSection(item.id)
                     : undefined
                 }
-                className={`!min-h-8 !py-1 !px-2 group !rounded ${
-                  isCollapsed
-                    ? '!justify-center !mx-1 !my-1'
-                    : '!justify-start !mx-1 !mb-px'
-                } ${
-                  isActive && !isCollapsed
-                    ? '!bg-blue-100 !text-blue-700 hover:!bg-blue-200'
-                    : isActive
-                      ? '!bg-transparent !text-blue-700 hover:!bg-blue-200'
+                sx={{
+                  pl: `${getPaddingLeft() + 12}px`,
+                  pr: '12px',
+                  py: level === 0 ? '10px' : '8px',
+                  minHeight: level === 0 ? '44px' : '36px',
+                }}
+                className={`${
+                  isActive && level === 1 && !isCollapsed
+                    ? '!bg-blue-600 !text-white'
+                    : isActive && level === 0
+                      ? '!bg-blue-50 !text-blue-700'
                       : '!bg-transparent !text-gray-700 hover:!bg-gray-100'
                 }`}
               >
-                {Icon && (
+                {Icon && level === 0 && (
                   <ListItemIcon
-                    className={`!min-w-0 !p-1 !justify-center !rounded ${
-                      isCollapsed ? '!mr-0' : '!mr-2'
-                    } ${isActive ? '!text-white !bg-blue-600' : '!text-gray-500 !bg-gray-100 group-hover:!bg-gray-200'}`}
+                    sx={{
+                      minWidth: '40px',
+                      mr: '12px',
+                    }}
+                    className={`!justify-center ${
+                      isActive && level === 0
+                        ? '!text-blue-600'
+                        : '!text-gray-500'
+                    }`}
                   >
-                    <Icon />
+                    <Icon fontSize="medium" />
                   </ListItemIcon>
                 )}
                 <ListItemText
@@ -257,15 +343,25 @@ const Sidebar = () => {
                   className={`${isCollapsed ? '!opacity-0' : '!opacity-100'}`}
                   slotProps={{
                     primary: {
-                      className: `${level > 0 ? '!text-sm' : '!text-sm'} ${
-                        isActive ? '!font-semibold' : '!font-medium'
+                      className: `!text-sm ${
+                        isActive && level === 1
+                          ? '!font-semibold !text-white'
+                          : isActive && level === 0
+                            ? '!font-semibold !text-blue-700'
+                            : '!font-medium !text-gray-700'
                       }`,
                     },
                   }}
                 />
                 {hasChildren && !isCollapsed && (
                   <div
-                    className={`${isActive ? '!text-blue-700' : '!text-gray-500'}`}
+                    className={`!ml-auto ${
+                      isActive && level === 1
+                        ? '!text-white'
+                        : isActive
+                          ? '!text-blue-700'
+                          : '!text-gray-500'
+                    }`}
                   >
                     {isExpanded ? <ExpandMore /> : <ChevronRight />}
                   </div>
@@ -293,7 +389,7 @@ const Sidebar = () => {
   if (isLoading) {
     return (
       <div className="!h-screen !bg-white !border-r !border-gray-200 !flex !items-center !justify-center !w-72">
-        <div className="text-gray-500">Loading permissions...</div>
+        <div className="!text-gray-500">Loading permissions...</div>
       </div>
     );
   }
@@ -310,17 +406,17 @@ const Sidebar = () => {
         }`}
       >
         {!isCollapsed && (
-          <div className="flex items-center gap-3">
+          <div className="!flex !items-center !gap-3">
             <img
               src="/sfa.png"
               alt="DCC-SFA Logo"
-              className="h-[42px] w-auto object-contain"
+              className="!h-[42px] !w-auto !object-contain"
             />
-            <div className="flex flex-col">
-              <span className="!font-bold text-[#004080] !text-xl leading-tight">
+            <div className="!flex !flex-col">
+              <span className="!font-bold !text-[#004080] !text-xl !leading-tight">
                 DCC-SFA
               </span>
-              <span className="!font-medium text-[#666666] !text-xs leading-tight">
+              <span className="!font-medium !text-[#666666] !text-xs !leading-tight">
                 Your Reliable IT Partner
               </span>
             </div>

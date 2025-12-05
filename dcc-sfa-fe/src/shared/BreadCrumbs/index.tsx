@@ -93,6 +93,7 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
         {breadCrumbs.map((item, index) => {
           return (
             <Chip
+              key={item.id}
               label={
                 item.navItem ? item.navItem?.replaceAll('-', ' ') : 'Dashboard'
               }
