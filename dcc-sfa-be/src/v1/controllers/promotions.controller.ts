@@ -2659,4 +2659,232 @@ export const promotionsController = {
       res.status(500).json({ success: false, message: error.message });
     }
   },
+
+  async createDepotPriceOverride(req: Request, res: Response) {
+    try {
+      const {
+        depot_id,
+        product_id,
+        override_price,
+        start_date,
+        end_date,
+        products,
+      } = req.body;
+
+      const userId = req.user?.id || 1;
+
+      if (product_id && !products) {
+        const product = await prisma.products.findUnique({
+          where: { id: product_id },
+          select: { base_price: true },
+        });
+
+        if (!product) {
+          return res.status(404).json({
+            success: false,
+            message: 'Product not found',
+          });
+        }
+
+        const discountAmount = new Decimal(product.base_price || 0).minus(
+          new Decimal(override_price)
+        );
+
+        const priceOverride = await prisma.depot_price_overrides.create({
+          data: {
+            depot_id,
+            product_id,
+            original_price: product.base_price || 0,
+            override_price: new Decimal(override_price),
+            discount_amount: discountAmount,
+            start_date: new Date(start_date),
+            end_date: new Date(end_date),
+            is_active: 'Y',
+            created_by: userId,
+          },
+        });
+
+        return res.status(201).json({
+          success: true,
+          message: 'Depot price override created successfully',
+          data: priceOverride,
+        });
+      }
+
+      if (Array.isArray(products)) {
+        const overrides = await Promise.all(
+          products.map(async (p: any) => {
+            const product = await prisma.products.findUnique({
+              where: { id: p.product_id },
+              select: { base_price: true },
+            });
+
+            const discountAmount = new Decimal(product?.base_price || 0).minus(
+              new Decimal(p.override_price)
+            );
+
+            return prisma.depot_price_overrides.create({
+              data: {
+                depot_id: p.depot_id || depot_id,
+                product_id: p.product_id,
+                original_price: product?.base_price || 0,
+                override_price: new Decimal(p.override_price),
+                discount_amount: discountAmount,
+                start_date: new Date(start_date),
+                end_date: new Date(end_date),
+                is_active: 'Y',
+                created_by: userId,
+              },
+            });
+          })
+        );
+
+        return res.status(201).json({
+          success: true,
+          message: `${overrides.length} depot price overrides created successfully`,
+          data: overrides,
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: 'Either product_id or products array is required',
+      });
+    } catch (error: any) {
+      console.error('Create Depot Price Override Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+
+  async getDepotPriceOverrides(req: Request, res: Response) {
+    try {
+      const { depot_id, product_id, active_only } = req.query;
+
+      const filters: any = {};
+
+      if (depot_id) {
+        filters.depot_id = parseInt(depot_id as string, 10);
+      }
+
+      if (product_id) {
+        filters.product_id = parseInt(product_id as string, 10);
+      }
+
+      if (active_only === 'true') {
+        const now = new Date();
+        filters.is_active = 'Y';
+        filters.start_date = { lte: now };
+        filters.end_date = { gte: now };
+      }
+
+      const overrides = await prisma.depot_price_overrides.findMany({
+        where: filters,
+        include: {
+          depots: { select: { id: true, name: true, code: true } },
+          products: {
+            select: { id: true, name: true, code: true, base_price: true },
+          },
+        },
+        orderBy: { start_date: 'desc' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Depot price overrides retrieved successfully',
+        data: overrides,
+      });
+    } catch (error: any) {
+      console.error('Get Depot Price Overrides Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+
+  async getProductPrice(req: Request, res: Response) {
+    try {
+      const { product_id, depot_id } = req.query;
+
+      if (!product_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'product_id is required',
+        });
+      }
+
+      const product = await prisma.products.findUnique({
+        where: { id: parseInt(product_id as string, 10) },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          base_price: true,
+        },
+      });
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found',
+        });
+      }
+
+      let finalPrice = product.base_price;
+      let priceType = 'base';
+      let override = null;
+
+      if (depot_id) {
+        const now = new Date();
+        override = await prisma.depot_price_overrides.findFirst({
+          where: {
+            product_id: parseInt(product_id as string, 10),
+            depot_id: parseInt(depot_id as string, 10),
+            is_active: 'Y',
+            start_date: { lte: now },
+            end_date: { gte: now },
+          },
+          include: {
+            depots: { select: { name: true, code: true } },
+          },
+        });
+
+        if (override) {
+          finalPrice = override.override_price;
+          priceType = 'depot_override';
+        }
+      }
+
+      res.json({
+        success: true,
+        data: {
+          product_id: product.id,
+          product_name: product.name,
+          product_code: product.code,
+          base_price: product.base_price,
+          final_price: finalPrice,
+          price_type: priceType,
+          override: override
+            ? {
+                depot_id: override.depot_id,
+                depot_name: override.depots.name,
+                override_price: override.override_price,
+                discount_amount: override.discount_amount,
+                valid_from: override.start_date,
+                valid_to: override.end_date,
+              }
+            : null,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Product Price Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
 };

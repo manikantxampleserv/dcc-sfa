@@ -188,39 +188,40 @@ model role_permissions {
 }
 
 model depots {
-  id                       Int                  @id(map: "PK__depots__3213E83F2BEB71BC") @default(autoincrement())
-  parent_id                Int
-  name                     String               @db.NVarChar(255)
-  code                     String               @db.NVarChar(50)
-  address                  String?              @db.NVarChar(500)
-  city                     String?              @db.NVarChar(100)
-  state                    String?              @db.NVarChar(100)
-  zipcode                  String?              @db.NVarChar(20)
-  phone_number             String?              @db.NVarChar(20)
-  email                    String?              @db.NVarChar(255)
-  manager_id               Int?
-  supervisor_id            Int?
-  coordinator_id           Int?
-  latitude                 Decimal?             @db.Decimal(10, 8)
-  longitude                Decimal?             @db.Decimal(11, 8)
-  is_active                String               @default("Y", map: "DF__depots__is_activ__29572725") @db.Char(1)
-  createdate               DateTime?            @default(now(), map: "DF__depots__createda__2A4B4B5E") @db.DateTime
-  createdby                Int
-  updatedate               DateTime?            @db.DateTime
-  updatedby                Int?
-  log_inst                 Int?
-  approval_work_flow_depot approval_work_flow[] @relation("ApprovalWorkFlowDepot")
-  depots_coodrinator       users?               @relation("DepotsCoodrinator", fields: [coordinator_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  depots_manager           users?               @relation("DeportsManager", fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  depot_companies          companies            @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  depots_supervisior       users?               @relation("DeportsSupervisior", fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  inventory_stock_depots   inventory_stock[]
-  promotion_depot          promotion_depot[]
-  promotion_depots         promotions[]
-  routes_depots            routes[]
-  serial_numbers           serial_numbers[]
-  user_depot               users[]
-  zone_depots              zones[]
+  id                           Int                     @id(map: "PK__depots__3213E83F2BEB71BC") @default(autoincrement())
+  parent_id                    Int
+  name                         String                  @db.NVarChar(255)
+  code                         String                  @db.NVarChar(50)
+  address                      String?                 @db.NVarChar(500)
+  city                         String?                 @db.NVarChar(100)
+  state                        String?                 @db.NVarChar(100)
+  zipcode                      String?                 @db.NVarChar(20)
+  phone_number                 String?                 @db.NVarChar(20)
+  email                        String?                 @db.NVarChar(255)
+  manager_id                   Int?
+  supervisor_id                Int?
+  coordinator_id               Int?
+  latitude                     Decimal?                @db.Decimal(10, 8)
+  longitude                    Decimal?                @db.Decimal(11, 8)
+  is_active                    String                  @default("Y", map: "DF__depots__is_activ__29572725") @db.Char(1)
+  createdate                   DateTime?               @default(now(), map: "DF__depots__createda__2A4B4B5E") @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime?               @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  approval_work_flow_depot     approval_work_flow[]    @relation("ApprovalWorkFlowDepot")
+  depots_coodrinator           users?                  @relation("DepotsCoodrinator", fields: [coordinator_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  depots_manager               users?                  @relation("DeportsManager", fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  depot_companies              companies               @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  depots_supervisior           users?                  @relation("DeportsSupervisior", fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  inventory_stock_depots       inventory_stock[]
+  promotion_depot              promotion_depot[]
+  promotion_depots             promotions[]
+  routes_depots                routes[]
+  serial_numbers               serial_numbers[]
+  user_depot                   users[]
+  zone_depots                  zones[]
+  depot_price_overrides_depots depot_price_overrides[]
 }
 
 model api_tokens {
@@ -1304,6 +1305,7 @@ model products {
   warranty_claims_products         warranty_claims[]
   promotion_condition_productId    promotion_condition_products[]
   promotion_benefit_products       promotion_benefit[]
+  depot_price_overrides            depot_price_overrides[]
 }
 
 model brands {
@@ -2380,4 +2382,22 @@ model promotion_tracking {
   promotion_tracking_users      users      @relation(fields: [user_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   promotion                     promotion? @relation(fields: [promotionId], references: [id])
   promotionId                   Int?
+}
+
+model depot_price_overrides {
+  id                             Int       @id @default(autoincrement())
+  depot_id                       Int
+  product_id                     Int
+  original_price                 Decimal   @db.Decimal(18, 2)
+  override_price                 Decimal   @db.Decimal(18, 2)
+  discount_amount                Decimal   @db.Decimal(18, 2)
+  start_date                     DateTime
+  end_date                       DateTime
+  is_active                      String    @default("Y") @db.Char(1)
+  created_by                     Int
+  createdate                     DateTime  @default(now())
+  updatedate                     DateTime?
+  updated_by                     Int?
+  depot_price_overrides_depots   depots    @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  depot_price_overrides_products products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
