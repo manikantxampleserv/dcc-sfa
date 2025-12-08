@@ -2805,8 +2805,10 @@ export const promotionsController = {
       const overrides = await prisma.depot_price_overrides.findMany({
         where: filters,
         include: {
-          depots: { select: { id: true, name: true, code: true } },
-          products: {
+          depot_price_overrides_depots: {
+            select: { id: true, name: true, code: true },
+          },
+          depot_price_overrides_products: {
             select: { id: true, name: true, code: true, base_price: true },
           },
         },
@@ -2870,7 +2872,9 @@ export const promotionsController = {
             end_date: { gte: now },
           },
           include: {
-            depots: { select: { name: true, code: true } },
+            depot_price_overrides_depots: {
+              select: { name: true, code: true },
+            },
           },
         });
 
@@ -2892,7 +2896,7 @@ export const promotionsController = {
           override: override
             ? {
                 depot_id: override.depot_id,
-                depot_name: override.depots.name,
+                depot_name: override.depot_price_overrides_depots.name,
                 override_price: override.override_price,
                 discount_amount: override.discount_amount,
                 valid_from: override.start_date,
