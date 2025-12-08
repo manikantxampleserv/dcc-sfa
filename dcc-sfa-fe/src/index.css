@@ -53,6 +53,11 @@
   /* Even darker gray when clicked */
 }
 
+/* Hide scrollbar */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Remove number input spinners globally */
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button {

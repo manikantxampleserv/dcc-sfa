@@ -1,61 +1,81 @@
-import { Add, Block, CheckCircle, Download } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { useApiMutation } from 'hooks/useApiMutation';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
+import { usePromotions } from 'hooks/usePromotions';
 import { Tag, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { deletePromotion, type Promotion } from 'services/masters/Promotions';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { usePermission } from 'hooks/usePermission';
 import { formatDate } from 'utils/dateUtils';
-import { useExportToExcel } from 'hooks/useImportExport';
-import ManagePromotion from './ManagePromotion';
-
-interface Promotion {
-  id: number;
-  promotion_name: string;
-  promotion_code: string;
-  start_date: string;
-  end_date: string;
-  description?: string;
-  is_active: string;
-  createdate?: string;
-}
+import UpdatedManagePromotion from './UpdatedManagePromotion';
 
 const PromotionsManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(
     null
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [_page, setPage] = useState(1);
+  const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('promotions');
 
-  // TODO: Implement promotion hooks and API calls
-  // const { data: promotionsResponse, isLoading, error } = usePromotions({
-  //   search,
-  //   page, // Using page state
-  //   limit,
-  //   status: statusFilter === 'all' ? undefined : statusFilter,
-  // });
+  const {
+    data: promotionsResponse,
+    isLoading,
+    error,
+  } = usePromotions({
+    search,
+    page,
+    limit,
+    is_active:
+      statusFilter === 'all'
+        ? undefined
+        : statusFilter === 'active'
+          ? 'Y'
+          : 'N',
+  });
 
-  const promotions: Promotion[] = [];
-  const totalCount = 0;
-  const currentPage = 0;
-  const isLoading = false;
-  const error = null;
+  const promotions: Promotion[] = promotionsResponse?.data || [];
+  const totalCount = promotionsResponse?.pagination?.total_count || 0;
+  const currentPage = (promotionsResponse?.pagination?.current_page || 1) - 1;
 
   const exportToExcelMutation = useExportToExcel();
 
-  const totalPromotions = promotions.length;
-  const activePromotions = promotions.filter(p => p.is_active === 'Y').length;
-  const inactivePromotions = promotions.filter(p => p.is_active === 'N').length;
-  const newPromotionsThisMonth = 0;
+  const deleteMutation = useApiMutation({
+    mutationFn: (id: number) => deletePromotion(id),
+    loadingMessage: 'Deleting promotion...',
+    invalidateQueries: [['promotions']],
+  });
+
+  const totalPromotions =
+    promotionsResponse?.stats?.total_promotions ||
+    promotionsResponse?.pagination?.total_count ||
+    0;
+  const activePromotions =
+    promotionsResponse?.stats?.active_promotions ||
+    promotions.filter(p => p.is_active === 'Y').length;
+  const inactivePromotions =
+    promotionsResponse?.stats?.inactive_promotions ||
+    promotions.filter(p => p.is_active === 'N').length;
+  const newPromotionsThisMonth =
+    promotionsResponse?.stats?.promotions_this_month || 0;
 
   const handleCreatePromotion = useCallback(() => {
     setSelectedPromotion(null);
@@ -67,13 +87,16 @@ const PromotionsManagement: React.FC = () => {
     setDrawerOpen(true);
   }, []);
 
-  const handleDeletePromotion = useCallback(async (id: number) => {
-    try {
-      console.log('Delete promotion:', id);
-    } catch (error) {
-      console.error('Error deleting promotion:', error);
-    }
-  }, []);
+  const handleDeletePromotion = useCallback(
+    async (id: number) => {
+      try {
+        await deleteMutation.mutateAsync(id);
+      } catch (error) {
+        console.error('Error deleting promotion:', error);
+      }
+    },
+    [deleteMutation]
+  );
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
@@ -107,12 +130,12 @@ const PromotionsManagement: React.FC = () => {
 
   const promotionColumns: TableColumn<Promotion>[] = [
     {
-      id: 'promotion_name',
+      id: 'name',
       label: 'Promotion Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.promotion_name}
+            alt={row.name}
             className="!rounded !bg-primary-100 !text-primary-600"
           >
             <Tag className="w-5 h-5" />
@@ -122,13 +145,13 @@ const PromotionsManagement: React.FC = () => {
               variant="body1"
               className="!text-gray-900 !leading-tight !font-medium"
             >
-              {row.promotion_name}
+              {row.name}
             </Typography>
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.promotion_code}
+              {row.code}
             </Typography>
           </Box>
         </Box>
@@ -193,6 +216,14 @@ const PromotionsManagement: React.FC = () => {
                   <EditButton
                     onClick={() => handleEditPromotion(row)}
                     tooltip="Edit promotion"
+                  />
+                )}
+                {isRead && (
+                  <ActionButton
+                    onClick={() => navigate(`/masters/promotions/${row.id}`)}
+                    tooltip="View promotion"
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
                   />
                 )}
                 {isDelete && (
@@ -333,7 +364,7 @@ const PromotionsManagement: React.FC = () => {
           )
         }
         getRowId={promotion => promotion.id}
-        initialOrderBy="promotion_name"
+        initialOrderBy="name"
         loading={isLoading}
         totalCount={totalCount}
         page={currentPage}
@@ -347,7 +378,7 @@ const PromotionsManagement: React.FC = () => {
         }
       />
 
-      <ManagePromotion
+      <UpdatedManagePromotion
         selectedPromotion={selectedPromotion}
         setSelectedPromotion={setSelectedPromotion}
         drawerOpen={drawerOpen}

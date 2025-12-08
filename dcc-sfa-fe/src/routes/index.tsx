@@ -27,6 +27,7 @@ import PriceListsManagement from 'pages/masters/PriceLists';
 import ProductCategoriesManagement from 'pages/masters/ProductCategories';
 import ProductsManagement from 'pages/masters/Products';
 import PromotionsManagement from 'pages/masters/Promotions';
+import PromotionDetail from 'pages/masters/Promotions/PromotionDetail';
 import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
@@ -235,7 +236,7 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: '/masters/customer-category',
+          path: '/masters/outlet-category',
           element: (
             <PermissionGuard module="customer-category" action="read">
               <CustomerCategoryPage />
@@ -243,7 +244,7 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: '/masters/customer-type',
+          path: '/masters/outlet-type',
           element: (
             <PermissionGuard module="customer-type" action="read">
               <CustomerTypePage />
@@ -327,6 +328,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="promotions" action="read">
               <PromotionsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/promotions/:id',
+          element: (
+            <PermissionGuard module="promotions" action="read">
+              <PromotionDetail />
             </PermissionGuard>
           ),
         },

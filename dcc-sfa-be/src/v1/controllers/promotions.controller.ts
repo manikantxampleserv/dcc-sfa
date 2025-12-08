@@ -1483,13 +1483,35 @@ export const promotionsController = {
         data: { is_active: 'N' },
       });
 
+      const validProducts = products.filter(
+        (p: any) => p.product_id || p.category_id || p.product_group
+      );
+
+      if (validProducts.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'At least one of product_id, category_id, or product_group must be provided',
+        });
+      }
+
+      const firstProduct = await prisma.products.findFirst({
+        select: { id: true },
+      });
+      const firstCategory = await prisma.product_categories.findFirst({
+        select: { id: true },
+      });
+
+      const defaultProductId = firstProduct?.id || 1;
+      const defaultCategoryId = firstCategory?.id || 1;
+
       const created = await Promise.all(
-        products.map((p: any) =>
+        validProducts.map((p: any) =>
           prisma.promotion_condition_products.create({
             data: {
               condition_id: Number(conditionId),
-              product_id: p.product_id,
-              category_id: p.category_id,
+              product_id: p.product_id || defaultProductId,
+              category_id: p.category_id || defaultCategoryId,
               product_group: p.product_group || null,
               condition_quantity: new Decimal(p.condition_quantity || 0),
               is_active: 'Y',
@@ -1613,7 +1635,7 @@ export const promotionsController = {
       if (!benefit_type || benefit_value === undefined) {
         return res.status(400).json({
           success: false,
-          message: 'benefit_type and benefit_value are required',
+          message: 'Benefit type and benefit value are required',
         });
       }
 
@@ -2212,7 +2234,7 @@ export const promotionsController = {
         });
       }
 
-      const promotion = await prisma.promotion.findUnique({
+      const promotion = await prisma.promotions.findUnique({
         where: { id: Number(id) },
       });
 
@@ -2258,7 +2280,7 @@ export const promotionsController = {
     try {
       const { id } = req.params;
 
-      const promotion = await prisma.promotion.update({
+      const promotion = await prisma.promotions.update({
         where: { id: Number(id) },
         data: {
           is_active: 'Y',
@@ -2293,7 +2315,7 @@ export const promotionsController = {
     try {
       const { id } = req.params;
 
-      const promotion = await prisma.promotion.update({
+      const promotion = await prisma.promotions.update({
         where: { id: Number(id) },
         data: {
           is_active: 'N',
@@ -2335,7 +2357,7 @@ export const promotionsController = {
         });
       }
 
-      const result = await prisma.promotion.updateMany({
+      const result = await prisma.promotions.updateMany({
         where: { id: { in: promotion_ids } },
         data: {
           is_active: 'Y',
@@ -2366,7 +2388,7 @@ export const promotionsController = {
         });
       }
 
-      const result = await prisma.promotion.updateMany({
+      const result = await prisma.promotions.updateMany({
         where: { id: { in: promotion_ids } },
         data: {
           is_active: 'N',
@@ -2397,7 +2419,7 @@ export const promotionsController = {
         });
       }
 
-      const result = await prisma.promotion.deleteMany({
+      const result = await prisma.promotions.deleteMany({
         where: { id: { in: promotion_ids } },
       });
 
@@ -2621,7 +2643,7 @@ export const promotionsController = {
           dateFilters.action_date.lte = new Date(end_date as string);
       }
 
-      const promotions = await prisma.promotion.findMany({
+      const promotions = await prisma.promotions.findMany({
         where: { is_active: 'Y' },
         include: {
           promotion_tracking_promotions: {
@@ -2635,8 +2657,8 @@ export const promotionsController = {
 
       const performance = promotions.map(promo => ({
         promotion_id: promo.id,
-        promotion_name: promo.promotion_name,
-        promotion_code: promo.promotion_code,
+        promotion_name: promo.name,
+        promotion_code: promo.code,
         total_applications: promo.promotion_tracking_promotions.length,
         start_date: promo.start_date,
         end_date: promo.end_date,

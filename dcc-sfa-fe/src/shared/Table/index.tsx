@@ -28,7 +28,7 @@ export interface TableColumn<T = any> {
   disablePadding?: boolean;
   sortable?: boolean;
   width?: string | number;
-  render?: (value: any, row: T) => ReactNode;
+  render?: (value: any, row: T, index: number) => ReactNode;
   className?: string;
 }
 
@@ -114,6 +114,8 @@ export interface TableProps<T = any> {
   isPermission?: boolean;
   /** Custom message for no access state */
   noAccessMessage?: string;
+  /** Disable minimum width constraint to prevent horizontal scrolling */
+  compact?: boolean;
 }
 
 /** Sort order type with three states */
@@ -320,6 +322,7 @@ export default function Table<T extends Record<string, any>>(
     onPageChange,
     isPermission = true,
     noAccessMessage = 'You do not have permission to access this content',
+    compact = false,
   } = props;
 
   const [order, setOrder] = useState<Order>(initialOrder);
@@ -403,7 +406,7 @@ export default function Table<T extends Record<string, any>>(
     if (isInitialLoading) {
       return (
         <MuiTable
-          className="!min-w-[750px]"
+          className={compact ? '' : '!min-w-[750px]'}
           size="small"
           stickyHeader={stickyHeader}
         >
@@ -423,7 +426,7 @@ export default function Table<T extends Record<string, any>>(
 
     return (
       <MuiTable
-        className="!min-w-[750px]"
+        className={compact ? '' : '!min-w-[750px]'}
         size="small"
         stickyHeader={stickyHeader}
       >
@@ -466,7 +469,7 @@ export default function Table<T extends Record<string, any>>(
                       className="!border-b !p-1.5 !border-gray-100 !text-gray-700 !whitespace-nowrap !text-sm"
                     >
                       {column.render
-                        ? column.render(row[column.id], row)
+                        ? column.render(row[column.id], row, index)
                         : String(row[column.id] || '')}
                     </MuiTableCell>
                   ))}

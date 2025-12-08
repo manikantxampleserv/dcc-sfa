@@ -69,7 +69,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
             <Skeleton
               variant="text"
               width={64}
-              height={28}
+              height={35}
               className="mt-1"
               sx={{ bgcolor: 'rgba(229, 231, 235, 1)' }}
             />

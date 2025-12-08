@@ -223,6 +223,11 @@ export interface ApiResponse<T = any> {
     active_targets: number;
     inactive_targets: number;
     targets_this_month: number;
+    // Promotion statistics
+    total_promotions: number;
+    active_promotions: number;
+    inactive_promotions: number;
+    promotions_this_month: number;
   };
 }
 

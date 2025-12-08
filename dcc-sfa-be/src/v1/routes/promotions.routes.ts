@@ -85,6 +85,13 @@ router.get(
   promotionsController.getPromotionById
 );
 
+router.put(
+  '/promotions/:id',
+  authenticateToken,
+  auditUpdate('promotion'),
+  promotionsController.updatePromotion
+);
+
 router.delete(
   '/promotions/:id',
   authenticateToken,

@@ -28,8 +28,7 @@ import {
  * @description Can be overridden via environment variables
  */
 
-const BASE_URL =
-  import.meta.env?.VITE_API_BASE_URL || 'http://10.160.5.101:4000/api/v1';
+const BASE_URL = import.meta.env?.VITE_API_BASE_URL;
 
 /**
  * Request timeout in milliseconds
