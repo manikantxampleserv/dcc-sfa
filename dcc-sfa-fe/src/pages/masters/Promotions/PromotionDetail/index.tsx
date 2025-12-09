@@ -34,7 +34,7 @@ import Button from 'shared/Button';
 import Table from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import { formatLabel } from 'utils/stringUtils';
-import UpdatedManagePromotion from '../UpdatedManagePromotion';
+import UpdatedManagePromotion from '../ManagePromotion';
 
 interface TabPanelProps {
   children?: React.ReactNode;

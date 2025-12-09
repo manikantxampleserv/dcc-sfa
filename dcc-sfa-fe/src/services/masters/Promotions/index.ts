@@ -73,13 +73,15 @@ interface CreatePromotionPayload {
   platforms?: string[];
   quantity_type?: string;
   product_conditions?: Array<{
-    product_id: number;
-    category_id: number;
+    product_id?: number;
+    category_id?: number;
     product_group?: string;
     min_quantity?: number;
     min_value?: number;
   }>;
   location_areas?: number[];
+  routes?: number[];
+  customer_exclusions?: number[];
   distributor_distributors?: number[];
   seller_data?: number[];
   outlet1_groups?: number[];
@@ -97,7 +99,6 @@ interface CreatePromotionPayload {
       gift_limit?: number;
     }>;
   }>;
-  customer_exclusions?: number[];
 }
 
 interface UpdatePromotionPayload {
@@ -109,13 +110,15 @@ interface UpdatePromotionPayload {
   platforms?: string[];
   quantity_type?: string;
   product_conditions?: Array<{
-    product_id: number;
-    category_id: number;
+    product_id?: number;
+    category_id?: number;
     product_group?: string;
     min_quantity?: number;
     min_value?: number;
   }>;
   location_areas?: number[];
+  routes?: number[];
+  customer_exclusions?: number[];
   distributor_distributors?: number[];
   seller_data?: number[];
   outlet1_groups?: number[];
@@ -133,7 +136,6 @@ interface UpdatePromotionPayload {
       gift_limit?: number;
     }>;
   }>;
-  customer_exclusions?: number[];
 }
 
 interface GetPromotionsParams {

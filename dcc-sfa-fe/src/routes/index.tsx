@@ -87,6 +87,8 @@ import RouteExceptions from 'pages/workflows/RouteExceptions';
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import SystemSettings from 'pages/settings/SystemSettings';
+import UpdatedPromotionsManagement from 'pages/masters/UpdatedPromotions';
+import UpdatedPromotionDetail from 'pages/masters/UpdatedPromotions/UpdatedPromotionDetail';
 
 const router = createBrowserRouter(
   [
@@ -336,6 +338,22 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="promotions" action="read">
               <PromotionDetail />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/updated-promotions',
+          element: (
+            <PermissionGuard module="updated-promotion" action="read">
+              <UpdatedPromotionsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/updated-promotions/:id',
+          element: (
+            <PermissionGuard module="updated-promotion" action="read">
+              <UpdatedPromotionDetail />
             </PermissionGuard>
           ),
         },

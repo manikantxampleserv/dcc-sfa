@@ -66,6 +66,11 @@ export const useCreatePromotion = (options?: {
     loadingMessage: 'Creating promotion...',
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: promotionKeys.lists() });
+      if (data?.data?.id) {
+        queryClient.invalidateQueries({
+          queryKey: promotionKeys.detail(data.data.id),
+        });
+      }
       options?.onSuccess?.(data, variables);
     },
     onError: options?.onError,

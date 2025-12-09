@@ -1,40 +1,40 @@
-import { Add, ContentCopy, Description } from '@mui/icons-material';
 import {
-  Autocomplete,
+  Alert,
   Box,
   Checkbox,
-  Dialog,
-  DialogContent,
-  DialogTitle,
   FormControlLabel,
   MenuItem,
+  Paper,
   Radio,
   RadioGroup,
+  Skeleton,
   Tab,
   Tabs,
-  TextField,
   Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
-import { useApiMutation } from 'hooks/useApiMutation';
 import { useCustomers } from 'hooks/useCustomers';
 import { useDepots } from 'hooks/useDepots';
+import { useProductCategories } from 'hooks/useProductCategories';
 import { useProducts } from 'hooks/useProducts';
-import { usePromotion } from 'hooks/usePromotions';
-import React, { useEffect, useState } from 'react';
 import {
-  createPromotion,
-  updatePromotion,
-  type CreatePromotionPayload,
-  type UpdatePromotionPayload,
+  useCreatePromotion,
+  usePromotion,
+  useUpdatePromotion,
   type Promotion,
-} from 'services/masters/Promotions';
-import { DeleteButton } from 'shared/ActionButton';
+} from 'hooks/usePromotions';
+import { useRoutes } from 'hooks/useRoutes';
+import { useUnitOfMeasurement } from 'hooks/useUnitOfMeasurement';
+import { useZones } from 'hooks/useZones';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
-import Table, { type TableColumn } from 'shared/Table';
+import Table from 'shared/Table';
+import * as Yup from 'yup';
 
 interface ManagePromotionProps {
   selectedPromotion?: Promotion | null;
@@ -43,56 +43,72 @@ interface ManagePromotionProps {
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
 
-interface PromotionLevel {
+interface ProductCondition {
   _index: number;
-  level: string;
-  step: boolean;
-  gift_percent: string;
-}
-
-interface PromotionGift {
-  _index: number;
-  level_index: number;
-  type: string;
-  application: string;
-  gift: string;
-  disc_amount: string;
-  maximum: string;
-  product_code: string;
-  product_name: string;
+  id?: number;
   product_id?: number;
-  product_not_in_condition: boolean;
+  product_group?: string;
+  min_quantity?: number;
+  unit?: string;
 }
 
-interface OutletCondition {
+interface OutletRow {
   _index: number;
+  id?: number;
   outlet_condition: string;
   dist: string;
   outlet_value: string;
-  outlet_name: string;
   start: string;
   finish: string;
+  slip_limit?: string;
+  disc_limit?: string;
+  area?: string;
+  group?: string;
+  distributor_id?: string;
+  role?: string;
+  date_limit?: boolean;
+  dc_par?: boolean;
 }
 
-interface ProductCondition {
+interface GiftRow {
   _index: number;
-  product_group: string;
+  id?: number;
+  level_id?: number;
+  type: string;
+  application: string;
+  gift: string;
   product_id?: number;
-  category_id?: number;
-  at_least: string;
+  product_name?: string;
+  product_group?: string;
+  benefit_value?: number;
+  gift_limit?: number;
 }
 
-interface LocationFormData {
-  area: string;
-  group: string;
-  distributor_id: string;
-  distributor_name: string;
-  role: string;
-  slip_limit: boolean;
-  disc_limit: boolean;
-  date_limit: boolean;
-  dc_par: boolean;
-}
+const QUANTITY_TYPES = ['Quantity', 'Price', 'Weight'];
+const GIFT_TYPES = ['Free Product', 'Percent', 'Amount'];
+const PAY_TYPES = ['Cash', 'Credit', 'Both'];
+const SCOPE_TYPES = ['(B) Distributor Channel', '(C) Customer Channel'];
+const SLIP_TYPES = ['All', 'Invoice', 'Waybill', 'Order'];
+const PROM_CONFLICT_TYPES = ['Normal', 'Exclusive', 'Priority'];
+const REG_DISC_CONF_TYPES = ['Normal', 'Override', 'Combine'];
+
+const promotionValidationSchema = Yup.object({
+  name: Yup.string().required('Name is required'),
+  start_date: Yup.string().required('Start date is required'),
+  finish_date: Yup.string()
+    .required('Finish date is required')
+    .test(
+      'is-after-start',
+      'Finish date must be after start date',
+      function (value) {
+        const { start_date } = this.parent;
+        if (!value || !start_date) return true;
+        return new Date(value) >= new Date(start_date);
+      }
+    ),
+  description: Yup.string(),
+  is_active: Yup.string().oneOf(['Y', 'N']).required(),
+});
 
 const ManagePromotion: React.FC<ManagePromotionProps> = ({
   selectedPromotion,
@@ -101,590 +117,543 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   setDrawerOpen,
 }) => {
   const isEdit = !!selectedPromotion;
-  const [locationTab, setLocationTab] = useState(0);
-  const [giftProductTab, setGiftProductTab] = useState(0);
-  const [quantityType, setQuantityType] = useState('quantity');
-  const [levelType, setLevelType] = useState('total');
-  const [giftType, setGiftType] = useState('amount');
-  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
-  const [selectedLevelIndex, setSelectedLevelIndex] = useState<number | null>(
-    null
-  );
-  const [selectedGiftIndex, setSelectedGiftIndex] = useState<number | null>(
-    null
-  );
 
-  const [promotionLevels, setPromotionLevels] = useState<PromotionLevel[]>([]);
-  const [promotionGifts, setPromotionGifts] = useState<PromotionGift[]>([]);
-  const [outletConditions, setOutletConditions] = useState<OutletCondition[]>(
-    []
-  );
-  const [productConditions, setProductConditions] = useState<
-    ProductCondition[]
-  >([]);
-  const [locationForms, setLocationForms] = useState<
-    Record<number, LocationFormData>
-  >({
-    0: {
-      area: '',
-      group: '',
-      distributor_id: '',
-      distributor_name: '',
-      role: '',
-      slip_limit: false,
-      disc_limit: false,
-      date_limit: false,
-      dc_par: false,
-    },
-  });
-
-  const [levelInput, setLevelInput] = useState({
-    level: '',
-    unit: '',
-    step: false,
-  });
-  const [giftInput, setGiftInput] = useState({
-    code: '',
-    name: '',
-    product_not_in_condition: false,
-  });
-  const [dateFilter, setDateFilter] = useState({
-    date_from_enabled: true,
-    date_from: '',
-    date_to_enabled: true,
-    date_to: '',
-  });
-  const [documentTypes, setDocumentTypes] = useState<Record<string, boolean>>({
-    'Sales Invoice': true,
-    'Hot Sales Invoice': true,
-    'Sales Waybill': true,
-    'Hot Sales Waybill': true,
-    Order: true,
-    'Return Invoice From Out': false,
-    'Corrupt Return Invoice F': false,
-    'Return Waybill From Out': false,
-    'Corrupt Return Waybill F': false,
-    'Damaged Return From C': false,
-    Availability: false,
-    'Return Invoice To Headc': false,
-    'Corrupt Return Invoice 1': false,
-    'NC Return Invoice To He': false,
-    'Buv Invoice': false,
-  });
+  const { data: promotionDetailResponse, isLoading: isLoadingPromotion } =
+    usePromotion(selectedPromotion?.id || null);
 
   const { data: productsResponse } = useProducts({ limit: 1000 });
   const products = productsResponse?.data || [];
-  const { data: customersResponse } = useCustomers({ limit: 1000 });
-  const customers = customersResponse?.data || [];
+
   const { data: depotsResponse } = useDepots({ limit: 1000 });
   const depots = depotsResponse?.data || [];
 
-  const { data: promotionData } = usePromotion(selectedPromotion?.id || null);
-  const promotion = promotionData?.data;
+  const { data: zonesResponse } = useZones({ limit: 1000 });
+  const zones = zonesResponse?.data || [];
+
+  const { data: customersResponse } = useCustomers({ limit: 1000 });
+  const customers = customersResponse?.data || [];
+
+  const { data: routesResponse } = useRoutes({ limit: 1000 });
+  const routes = routesResponse?.data || [];
+
+  const { data: productCategoriesResponse } = useProductCategories({
+    limit: 1000,
+  });
+  const productCategories = productCategoriesResponse?.data || [];
+
+  const { data: unitsResponse } = useUnitOfMeasurement({ limit: 1000 });
+  const units = unitsResponse?.data || [];
+
+  const createPromotionMutation = useCreatePromotion();
+  const updatePromotionMutation = useUpdatePromotion();
+
+  const [productConditions, setProductConditions] = useState<
+    ProductCondition[]
+  >([]);
+  const [outletRows, setOutletRows] = useState<OutletRow[]>([]);
+  const [giftRows, setGiftRows] = useState<GiftRow[]>([]);
+  const [locationTab, setLocationTab] = useState(0);
+  const [selectedDepots, setSelectedDepots] = useState<number[]>([]);
+  const [selectedZones, setSelectedZones] = useState<number[]>([]);
+  const [selectedRoutes, setSelectedRoutes] = useState<number[]>([]);
+  const [selectedOutlets, setSelectedOutlets] = useState<number[]>([]);
+  const [locationSearch, setLocationSearch] = useState('');
+
+  const [selectedProductConditionIndex, setSelectedProductConditionIndex] =
+    useState<number | null>(null);
+  const [giftProductTab, setGiftProductTab] = useState(0);
+  const [giftName, setGiftName] = useState('');
+  const [giftNameDisplay, setGiftNameDisplay] = useState('');
+  const [giftApplication, setGiftApplication] = useState('n. Prod. Gr.');
+  const [discAmount, setDiscAmount] = useState('');
+  const [maximumAmount, setMaximumAmount] = useState('');
+  const [selectedGiftType, setSelectedGiftType] = useState<string>('Amount');
+  const [discAmountError, setDiscAmountError] = useState<string>('');
+  const [selectedGiftIndex, setSelectedGiftIndex] = useState<number | null>(
+    null
+  );
+  const [productConditionForm, setProductConditionForm] = useState({
+    group: '',
+    product: '',
+    at_least: '',
+    unit: 'unit',
+  });
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
+  const errorAlertRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!promotionDetailResponse?.data || !isEdit) {
+      setProductConditions(prev => (prev.length > 0 ? [] : prev));
+      setOutletRows(prev => (prev.length > 0 ? [] : prev));
+      setGiftRows(prev => (prev.length > 0 ? [] : prev));
+      setSelectedDepots(prev => (prev.length > 0 ? [] : prev));
+      setSelectedZones(prev => (prev.length > 0 ? [] : prev));
+      setSelectedRoutes(prev => (prev.length > 0 ? [] : prev));
+      setSelectedOutlets(prev => (prev.length > 0 ? [] : prev));
+      return;
+    }
+
+    const promotion = promotionDetailResponse.data;
+
+    if (promotion.conditions && Array.isArray(promotion.conditions)) {
+      const loadedConditions: ProductCondition[] = [];
+      promotion.conditions.forEach((condition: any, idx: number) => {
+        if (
+          condition.promotion_condition_products &&
+          Array.isArray(condition.promotion_condition_products) &&
+          condition.promotion_condition_products.length > 0
+        ) {
+          const conditionProduct = condition.promotion_condition_products[0];
+          loadedConditions.push({
+            _index: idx,
+            id: condition.id,
+            product_id: conditionProduct.product_id || undefined,
+            product_group: conditionProduct.product_group || undefined,
+            min_quantity: Number(conditionProduct.condition_quantity) || 0,
+            unit: 'unit',
+          });
+        }
+      });
+      setProductConditions(prev => {
+        const prevStr = JSON.stringify(prev);
+        const newStr = JSON.stringify(loadedConditions);
+        return prevStr !== newStr ? loadedConditions : prev;
+      });
+    } else {
+      setProductConditions(prev => (prev.length > 0 ? [] : prev));
+    }
+
+    const loadedDepotIds: number[] = [];
+    if (promotion.depots && Array.isArray(promotion.depots)) {
+      promotion.depots.forEach((depot: any) => {
+        if (depot.depot_id) {
+          loadedDepotIds.push(depot.depot_id);
+        }
+      });
+    }
+    setSelectedDepots(prev => {
+      const prevStr = prev.sort().join(',');
+      const newStr = loadedDepotIds.sort().join(',');
+      return prevStr !== newStr ? loadedDepotIds : prev;
+    });
+
+    const loadedRouteIds: number[] = [];
+    if (promotion.routes && Array.isArray(promotion.routes)) {
+      promotion.routes.forEach((route: any) => {
+        if (route.route_id) {
+          loadedRouteIds.push(route.route_id);
+        }
+      });
+    }
+    setSelectedRoutes(prev => {
+      const prevStr = prev.sort().join(',');
+      const newStr = loadedRouteIds.sort().join(',');
+      return prevStr !== newStr ? loadedRouteIds : prev;
+    });
+
+    if (
+      promotion.customer_exclusions &&
+      Array.isArray(promotion.customer_exclusions)
+    ) {
+      const loadedOutletIds: number[] = [];
+      promotion.customer_exclusions.forEach((exclusion: any) => {
+        if (exclusion.customer_id) {
+          loadedOutletIds.push(exclusion.customer_id);
+        }
+      });
+      setSelectedOutlets(prev => {
+        const prevStr = prev.sort().join(',');
+        const newStr = loadedOutletIds.sort().join(',');
+        return prevStr !== newStr ? loadedOutletIds : prev;
+      });
+    } else {
+      setSelectedOutlets(prev => (prev.length > 0 ? [] : prev));
+    }
+
+    if (
+      promotion.customer_categories &&
+      Array.isArray(promotion.customer_categories)
+    ) {
+      const loadedCategoryIds: number[] = [];
+      promotion.customer_categories.forEach((category: any) => {
+        if (category.customer_category_id) {
+          loadedCategoryIds.push(category.customer_category_id);
+        }
+      });
+
+      const loadedOutletRows: OutletRow[] = [];
+      loadedCategoryIds.forEach((categoryId, idx) => {
+        loadedOutletRows.push({
+          _index: idx,
+          id: categoryId,
+          outlet_condition: 'Distributor',
+          dist: '',
+          outlet_value: '',
+          start: promotion.start_date
+            ? new Date(promotion.start_date).toISOString().split('T')[0]
+            : '',
+          finish: promotion.end_date
+            ? new Date(promotion.end_date).toISOString().split('T')[0]
+            : '',
+          group: categoryId.toString(),
+          distributor_id:
+            loadedDepotIds.length > 0 ? loadedDepotIds[0].toString() : '',
+        });
+      });
+      setOutletRows(prev => {
+        const prevStr = JSON.stringify(prev);
+        const newStr = JSON.stringify(loadedOutletRows);
+        return prevStr !== newStr ? loadedOutletRows : prev;
+      });
+    } else {
+      setOutletRows(prev => (prev.length > 0 ? [] : prev));
+    }
+
+    if (promotion.levels && Array.isArray(promotion.levels)) {
+      const loadedGiftRows: GiftRow[] = [];
+      promotion.levels.forEach((level: any) => {
+        if (
+          level.promotion_benefit_level &&
+          Array.isArray(level.promotion_benefit_level)
+        ) {
+          level.promotion_benefit_level.forEach((benefit: any) => {
+            if (benefit.product_id) {
+              const benefitType =
+                benefit.benefit_type === 'FREE_PRODUCT'
+                  ? 'Free Product'
+                  : benefit.benefit_type === 'PERCENT'
+                    ? 'Percent'
+                    : 'Amount';
+              loadedGiftRows.push({
+                _index: loadedGiftRows.length,
+                id: benefit.id,
+                level_id: level.id,
+                type: benefitType,
+                application: benefit.condition_type || 'n. Prod. Gr.',
+                gift: `${benefit.benefit_value || ''} ${benefit.promotion_benefit_products?.name || ''}`,
+                product_id: benefit.product_id,
+                product_name: benefit.promotion_benefit_products?.name || '',
+                benefit_value: Number(benefit.benefit_value) || 0,
+                gift_limit: Number(benefit.gift_limit) || 0,
+              });
+            }
+          });
+        }
+      });
+      setGiftRows(prev => {
+        const prevStr = JSON.stringify(prev);
+        const newStr = JSON.stringify(loadedGiftRows);
+        return prevStr !== newStr ? loadedGiftRows : prev;
+      });
+    } else {
+      setGiftRows(prev => (prev.length > 0 ? [] : prev));
+    }
+  }, [promotionDetailResponse?.data?.id, isEdit]);
+
+  const routesMap = useMemo(() => {
+    const map = new Map<number, number>();
+    routes.forEach((route: any) => {
+      if (route.id && route.parent_id) {
+        map.set(route.id, route.parent_id);
+      }
+    });
+    return map;
+  }, [routes]);
+
+  const promotionRouteIds = useMemo(() => {
+    if (!promotionDetailResponse?.data?.routes) return '';
+    return promotionDetailResponse.data.routes
+      .map((r: any) => r.route_id)
+      .filter(Boolean)
+      .sort()
+      .join(',');
+  }, [promotionDetailResponse?.data?.routes]);
+
+  useEffect(() => {
+    if (
+      !promotionDetailResponse?.data ||
+      !isEdit ||
+      routesMap.size === 0 ||
+      !promotionDetailResponse.data.routes ||
+      !promotionRouteIds
+    ) {
+      return;
+    }
+
+    const promotion = promotionDetailResponse.data;
+
+    if (promotion.routes && Array.isArray(promotion.routes)) {
+      const loadedZoneIds: number[] = [];
+      promotion.routes.forEach((route: any) => {
+        if (route.route_id) {
+          const zoneId = routesMap.get(route.route_id);
+          if (zoneId && !loadedZoneIds.includes(zoneId)) {
+            loadedZoneIds.push(zoneId);
+          }
+        }
+      });
+      setSelectedZones(prevZones => {
+        const prevIds = [...prevZones].sort().join(',');
+        const newIds = [...loadedZoneIds].sort().join(',');
+        if (prevIds !== newIds) {
+          return loadedZoneIds;
+        }
+        return prevZones;
+      });
+    }
+  }, [
+    promotionDetailResponse?.data?.id,
+    promotionRouteIds,
+    isEdit,
+    routes.length,
+  ]);
+
+  const resetProductConditionForm = () => {
+    setProductConditionForm({
+      group: '',
+      product: '',
+      at_least: '',
+      unit: 'unit',
+    });
+  };
 
   const handleCancel = () => {
     setSelectedPromotion(null);
     setDrawerOpen(false);
-    setPromotionLevels([]);
-    setPromotionGifts([]);
-    setOutletConditions([]);
     setProductConditions([]);
-    setSelectedLevelIndex(null);
+    setOutletRows([]);
+    setGiftRows([]);
+    setSelectedProductConditionIndex(null);
     setSelectedGiftIndex(null);
-    setLevelInput({ level: '', unit: '', step: false });
-    setGiftInput({ code: '', name: '', product_not_in_condition: false });
-    setQuantityType('quantity');
-    setLevelType('total');
-    setGiftType('amount');
-    setLocationTab(0);
-    setGiftProductTab(0);
-    setLocationForms({
-      0: {
-        area: '',
-        group: '',
-        distributor_id: '',
-        distributor_name: '',
-        role: '',
-        slip_limit: false,
-        disc_limit: false,
-        date_limit: false,
-        dc_par: false,
-      },
-    });
-    formik.resetForm();
+    setDiscAmount('');
+    setMaximumAmount('');
+    setGiftName('');
+    setGiftNameDisplay('');
+    setGiftApplication('n. Prod. Gr.');
+    setDiscAmountError('');
+    resetProductConditionForm();
   };
-
-  const createMutation = useApiMutation({
-    mutationFn: (data: CreatePromotionPayload) => createPromotion(data),
-    loadingMessage: 'Creating promotion...',
-    invalidateQueries: [['promotions']],
-    onSuccess: () => {
-      handleCancel();
-    },
-  });
-
-  const updateMutation = useApiMutation({
-    mutationFn: (data: { id: number; payload: UpdatePromotionPayload }) =>
-      updatePromotion(data.id, data.payload),
-    loadingMessage: 'Updating promotion...',
-    invalidateQueries: [['promotions'], ['promotion']],
-    onSuccess: () => {
-      handleCancel();
-    },
-  });
 
   const formik = useFormik({
     initialValues: {
-      disabled: false,
-      name: promotion?.name || '',
-      code: promotion?.code || '',
-      start_date: promotion?.start_date
-        ? new Date(promotion.start_date).toISOString().split('T')[0]
+      name: selectedPromotion?.name || '',
+      short_name: selectedPromotion?.name || '',
+      code: selectedPromotion?.code || '',
+      pay_type: '',
+      scope: '',
+      slip_type: 'All',
+      mandatory: false,
+      prom_conflict: 'Normal',
+      degree: '1',
+      nr: '1',
+      reg_disc_conf: 'Normal',
+      conflict_with_constant_disc: false,
+      start_date: selectedPromotion?.start_date
+        ? new Date(selectedPromotion.start_date).toISOString().split('T')[0]
         : '',
-      finish_date: promotion?.end_date
-        ? new Date(promotion.end_date).toISOString().split('T')[0]
+      finish_date: selectedPromotion?.end_date
+        ? new Date(selectedPromotion.end_date).toISOString().split('T')[0]
         : '',
-      office:
-        promotion?.channels?.some(c => c.channel_type === 'OFFICE') || true,
-      mobile:
-        promotion?.channels?.some(c => c.channel_type === 'MOBILE') || true,
-      b2b: promotion?.channels?.some(c => c.channel_type === 'B2B') || true,
-      description: promotion?.description || '',
-      disc_amount: '',
-      maximum: '0.00',
+      platform: ['Mobile'],
+      group: '',
+      dist_comp_participation_min: '0',
+      dist_comp_participation_max: '100',
+      quantity_type: 'Quantity',
+      description: selectedPromotion?.description || '',
+      is_active: selectedPromotion?.is_active || 'Y',
     },
+    validationSchema: promotionValidationSchema,
     enableReinitialize: true,
     onSubmit: async values => {
       try {
-        const platforms: string[] = [];
-        if (values.office) platforms.push('OFFICE');
-        if (values.mobile) platforms.push('MOBILE');
-        if (values.b2b) platforms.push('B2B');
-
-        const productConditionsData = productConditions.map(condition => {
-          const product = products.find(
-            p => p.name === condition.product_group
+        const getUniqueIds = (
+          rows: OutletRow[],
+          field: 'distributor_id' | 'group'
+        ) =>
+          Array.from(
+            new Set(rows.filter(r => r[field]).map(r => Number(r[field])))
           );
-          return {
-            product_id: product?.id || condition.product_id || 0,
-            category_id: product?.category_id || condition.category_id || 0,
-            product_group: condition.product_group || undefined,
-            min_quantity: parseFloat(condition.at_least) || 0,
-            min_value: parseFloat(condition.at_least) || 0,
-          };
-        });
 
-        const levelsData = promotionLevels.map((level, index) => {
-          const levelGifts = promotionGifts.filter(
-            gift => gift.level_index === index
+        const outletDepotIds = getUniqueIds(outletRows, 'distributor_id');
+        const allDepotIds = Array.from(
+          new Set([...selectedDepots, ...outletDepotIds])
+        );
+        const locationAreas = allDepotIds.length > 0 ? allDepotIds : undefined;
+        const outletGroups = getUniqueIds(outletRows, 'group');
+        const routes = selectedRoutes.length > 0 ? selectedRoutes : undefined;
+        const customerExclusions =
+          selectedOutlets.length > 0 ? selectedOutlets : undefined;
+
+        const productConditionsData = productConditions
+          .filter(c => c.product_id || c.product_group)
+          .map(c => {
+            const product = c.product_id
+              ? products.find(p => p.id === c.product_id)
+              : null;
+            const defaultCategoryId =
+              productCategories.length > 0 ? productCategories[0].id : null;
+            return {
+              product_id: c.product_group ? undefined : c.product_id,
+              category_id: product?.category_id || defaultCategoryId,
+              product_group: c.product_group || undefined,
+              min_quantity: c.min_quantity || 0,
+              min_value: c.min_quantity || 0,
+            };
+          });
+
+        const giftBenefits = giftRows
+          .filter(g => g.product_id)
+          .map(g => ({
+            benefit_type:
+              g.type === 'Free Product' ? 'FREE_PRODUCT' : 'PERCENT',
+            product_id: g.product_id,
+            benefit_value: g.benefit_value || 0,
+            condition_type: g.application || undefined,
+            gift_limit: g.gift_limit || 0,
+          }));
+
+        const promotionData = {
+          name: values.name,
+          description: values.description || undefined,
+          start_date: values.start_date,
+          end_date: values.finish_date,
+          platforms: ['Mobile'],
+          quantity_type: values.quantity_type || 'QUANTITY',
+          product_conditions:
+            productConditionsData.length > 0
+              ? productConditionsData
+              : undefined,
+          location_areas: locationAreas,
+          routes: routes,
+          customer_exclusions: customerExclusions,
+          outlet1_groups: outletGroups.length > 0 ? outletGroups : undefined,
+          levels:
+            giftBenefits.length > 0
+              ? [
+                  {
+                    level_number: 1,
+                    threshold_value: 0,
+                    discount_type: 'PERCENTAGE',
+                    discount_value: 0,
+                    benefits: giftBenefits,
+                  },
+                ]
+              : undefined,
+        };
+
+        if (isEdit && selectedPromotion) {
+          const updateOutletDepotIds = getUniqueIds(
+            outletRows,
+            'distributor_id'
           );
-          return {
-            level_number: index + 1,
-            threshold_value: parseFloat(level.level) || 0,
-            discount_type: levelType.toUpperCase(),
-            discount_value: parseFloat(level.gift_percent) || 0,
-            benefits: levelGifts.map(gift => {
-              const product = products.find(p => p.code === gift.product_code);
-              return {
-                benefit_type: gift.type.toUpperCase(),
-                product_id: product?.id || gift.product_id,
-                benefit_value: parseFloat(gift.disc_amount) || 0,
-                condition_type: gift.application || undefined,
-                gift_limit: parseInt(gift.maximum) || 0,
-              };
-            }),
-          };
-        });
+          const updateAllDepotIds = Array.from(
+            new Set([...selectedDepots, ...updateOutletDepotIds])
+          );
+          const updateLocationAreas =
+            updateAllDepotIds.length > 0 ? updateAllDepotIds : undefined;
+          const updateOutletGroups = getUniqueIds(outletRows, 'group');
+          const updateRoutes =
+            selectedRoutes.length > 0 ? selectedRoutes : undefined;
+          const updateCustomerExclusions =
+            selectedOutlets.length > 0 ? selectedOutlets : undefined;
 
-        const locationAreas = Object.values(locationForms)
-          .filter(form => form.distributor_id)
-          .map(form => parseInt(form.distributor_id))
-          .filter(id => !isNaN(id));
-
-        const customerExclusions = outletConditions
-          .filter(condition => condition.outlet_condition === '►Outlet')
-          .map(condition => {
-            const customer = customers.find(
-              c =>
-                c.code === condition.outlet_value ||
-                c.name === condition.outlet_name
-            );
-            return customer?.id || parseInt(condition.outlet_value) || 0;
-          })
-          .filter(id => id > 0);
-
-        if (isEdit && selectedPromotion?.id) {
-          const updatePayload: UpdatePromotionPayload = {
-            name: values.name,
-            start_date: values.start_date,
-            end_date: values.finish_date,
-            description: values.description,
-            is_active: values.disabled ? 'N' : 'Y',
-            platforms: platforms.length > 0 ? platforms : undefined,
-            quantity_type: quantityType.toUpperCase(),
-            product_conditions:
-              productConditionsData.length > 0
-                ? productConditionsData
-                : undefined,
-            location_areas:
-              locationAreas.length > 0 ? locationAreas : undefined,
-            levels: levelsData.length > 0 ? levelsData : undefined,
-            customer_exclusions:
-              customerExclusions.length > 0 ? customerExclusions : undefined,
-          };
-          updateMutation.mutate({
+          await updatePromotionMutation.mutateAsync({
             id: selectedPromotion.id,
-            payload: updatePayload,
+            data: {
+              name: values.name,
+              start_date: values.start_date,
+              end_date: values.finish_date,
+              description: values.description || undefined,
+              is_active: values.is_active,
+              platforms: ['Mobile'],
+              quantity_type: values.quantity_type || 'QUANTITY',
+              product_conditions:
+                productConditionsData.length > 0
+                  ? productConditionsData
+                  : undefined,
+              location_areas: updateLocationAreas,
+              routes: updateRoutes,
+              customer_exclusions: updateCustomerExclusions,
+              outlet1_groups:
+                updateOutletGroups.length > 0 ? updateOutletGroups : undefined,
+              levels:
+                giftBenefits.length > 0
+                  ? [
+                      {
+                        level_number: 1,
+                        threshold_value: 0,
+                        discount_type: 'PERCENTAGE',
+                        discount_value: 0,
+                        benefits: giftBenefits,
+                      },
+                    ]
+                  : undefined,
+            },
           });
         } else {
-          const createPayload: CreatePromotionPayload = {
-            name: values.name,
-            code: values.code || undefined,
-            start_date: values.start_date,
-            end_date: values.finish_date,
-            description: values.description || undefined,
-            disabled: values.disabled,
-            platforms: platforms.length > 0 ? platforms : undefined,
-            quantity_type: quantityType.toUpperCase(),
-            product_conditions:
-              productConditionsData.length > 0
-                ? productConditionsData
-                : undefined,
-            location_areas:
-              locationAreas.length > 0 ? locationAreas : undefined,
-            levels: levelsData.length > 0 ? levelsData : undefined,
-            customer_exclusions:
-              customerExclusions.length > 0 ? customerExclusions : undefined,
-          };
-          createMutation.mutate(createPayload);
+          await createPromotionMutation.mutateAsync(promotionData);
         }
+
+        handleCancel();
+        setSelectedDepots([]);
+        setSelectedZones([]);
+        setSelectedRoutes([]);
+        setSelectedOutlets([]);
       } catch (error) {
-        console.error('Error submitting promotion:', error);
+        console.error('Error saving promotion:', error);
       }
     },
   });
 
-  useEffect(() => {
-    if (!drawerOpen && !isEdit) {
-      setPromotionLevels([]);
-      setPromotionGifts([]);
-      setOutletConditions([]);
-      setProductConditions([]);
-      setSelectedLevelIndex(null);
-      setSelectedGiftIndex(null);
-      setLevelInput({ level: '', unit: '', step: false });
-      setGiftInput({ code: '', name: '', product_not_in_condition: false });
-      setQuantityType('quantity');
-      setLevelType('total');
-      setGiftType('amount');
-      setLocationTab(0);
-      setGiftProductTab(0);
-    }
-  }, [drawerOpen, isEdit]);
-
-  useEffect(() => {
-    if (promotion && isEdit && drawerOpen) {
-      if (promotion.conditions && promotion.conditions.length > 0) {
-        const mappedConditions: ProductCondition[] = promotion.conditions.map(
-          (cond, idx) => {
-            const condProduct = cond.promotion_condition_products?.[0];
-            return {
-              _index: idx,
-              product_group: condProduct?.product_group || '',
-              product_id: condProduct?.product_id,
-              category_id: condProduct?.category_id,
-              at_least: condProduct?.condition_quantity?.toString() || '0',
-            };
-          }
-        );
-        setProductConditions(mappedConditions);
-        if (promotion.conditions[0]?.condition_type) {
-          setQuantityType(promotion.conditions[0].condition_type.toLowerCase());
-        }
-      }
-
-      if (promotion.levels && promotion.levels.length > 0) {
-        const mappedLevels: PromotionLevel[] = promotion.levels.map(
-          (level, idx) => ({
-            _index: idx,
-            level: level.threshold_value?.toString() || '',
-            step: false,
-            gift_percent: level.discount_value?.toString() || '',
-          })
-        );
-        setPromotionLevels(mappedLevels);
-        if (promotion.levels[0]?.discount_type) {
-          setLevelType(promotion.levels[0].discount_type.toLowerCase());
-        }
-
-        const allGifts: PromotionGift[] = [];
-        promotion.levels.forEach((level, levelIdx) => {
-          if (level.promotion_benefit_level) {
-            level.promotion_benefit_level.forEach(benefit => {
-              const product =
-                benefit.promotion_benefit_products ||
-                products.find(p => p.id === benefit.product_id);
-              allGifts.push({
-                _index: allGifts.length,
-                level_index: levelIdx,
-                type: benefit.benefit_type?.toLowerCase() || 'amount',
-                application: benefit.condition_type || 'Product',
-                gift: product
-                  ? `${product.code} - ${product.name}`
-                  : benefit.product_id
-                    ? `Product ID: ${benefit.product_id}`
-                    : '',
-                disc_amount: benefit.benefit_value?.toString() || '0',
-                maximum: benefit.gift_limit?.toString() || '0',
-                product_code: product?.code || '',
-                product_name: product?.name || '',
-                product_id: benefit.product_id || undefined,
-                product_not_in_condition: false,
-              });
-            });
-          }
-        });
-        setPromotionGifts(allGifts);
-      }
-
-      if (
-        promotion.customer_exclusions &&
-        promotion.customer_exclusions.length > 0
-      ) {
-        const mappedExclusions: OutletCondition[] =
-          promotion.customer_exclusions.map((excl, idx) => {
-            const customer = customers.find(c => c.id === excl.customer_id);
-            return {
-              _index: idx,
-              outlet_condition: '►Outlet',
-              dist: '',
-              outlet_value: customer?.code || excl.customer_id.toString(),
-              outlet_name: customer?.name || '',
-              start: promotion.start_date
-                ? new Date(promotion.start_date).toISOString().split('T')[0]
-                : '',
-              finish: promotion.end_date
-                ? new Date(promotion.end_date).toISOString().split('T')[0]
-                : '',
-            };
-          });
-        setOutletConditions(mappedExclusions);
-      }
-
-      if (promotion.depots && promotion.depots.length > 0) {
-        const depotForm: LocationFormData = {
-          area: '',
-          group: '',
-          distributor_id: promotion.depots[0].depot_id.toString(),
-          distributor_name: promotion.depots[0].depots?.name || '',
-          role: '',
-          slip_limit: false,
-          disc_limit: false,
-          date_limit: false,
-          dc_par: false,
-        };
-        setLocationForms({ 0: depotForm });
-      }
-    } else if (!isEdit && drawerOpen) {
-      setPromotionLevels([]);
-      setPromotionGifts([]);
-      setOutletConditions([]);
-      setProductConditions([]);
-      setQuantityType('quantity');
-      setLevelType('total');
-      setGiftType('amount');
-      setLocationTab(0);
-      setGiftProductTab(0);
-      setLocationForms({
-        0: {
-          area: '',
-          group: '',
-          distributor_id: '',
-          distributor_name: '',
-          role: '',
-          slip_limit: false,
-          disc_limit: false,
-          date_limit: false,
-          dc_par: false,
-        },
-      });
-    }
-  }, [promotion, isEdit, drawerOpen, products, customers]);
-
-  const handleCopyPromotion = () => {
-    const copiedData = {
-      ...formik.values,
-      code: `${formik.values.code}_COPY`,
-      name: `${formik.values.name} (Copy)`,
-    };
-    formik.setValues(copiedData);
-  };
-
-  const handleDescription = () => {
-    setDescriptionDialogOpen(true);
-  };
-
-  const addPromotionLevel = () => {
-    if (levelInput.level) {
-      const newLevel: PromotionLevel = {
-        _index: promotionLevels.length,
-        level: levelInput.level,
-        step: levelInput.step,
-        gift_percent: '',
-      };
-      setPromotionLevels([...promotionLevels, newLevel]);
-      setLevelInput({ level: '', unit: '', step: false });
-    }
-  };
-
-  const updatePromotionLevel = () => {
-    if (levelInput.level && selectedLevelIndex !== null) {
-      const updated = [...promotionLevels];
-      updated[selectedLevelIndex] = {
-        ...updated[selectedLevelIndex],
-        level: levelInput.level,
-        step: levelInput.step,
-      };
-      setPromotionLevels(updated);
-      setLevelInput({ level: '', unit: '', step: false });
-      setSelectedLevelIndex(null);
-    }
-  };
-
-  const removePromotionLevel = (index: number) => {
-    setPromotionLevels(promotionLevels.filter((_, i) => i !== index));
-    setPromotionGifts(prevGifts => {
-      const filtered = prevGifts.filter(gift => gift.level_index !== index);
-      return filtered.map(gift => ({
-        ...gift,
-        level_index:
-          gift.level_index > index ? gift.level_index - 1 : gift.level_index,
-      }));
-    });
-    if (selectedLevelIndex === index) {
-      setSelectedLevelIndex(null);
-      setLevelInput({ level: '', unit: '', step: false });
-    } else if (selectedLevelIndex !== null && selectedLevelIndex > index) {
-      setSelectedLevelIndex(selectedLevelIndex - 1);
-    }
-  };
-
-  const addPromotionGift = () => {
-    if (giftInput.code) {
-      const product = products.find(p => p.code === giftInput.code);
-      const currentLevelIndex =
-        selectedLevelIndex !== null
-          ? selectedLevelIndex
-          : promotionLevels.length - 1;
-      const newGift: PromotionGift = {
-        _index: promotionGifts.length,
-        level_index: currentLevelIndex >= 0 ? currentLevelIndex : 0,
-        type: giftType,
-        application:
-          giftProductTab === 0
-            ? 'Product'
-            : giftProductTab === 1
-              ? 'Prod. Group'
-              : giftProductTab === 2
-                ? 'Dyn. Prod. Gr.'
-                : giftProductTab === 3
-                  ? 'Conditional Products'
-                  : 'Invoice',
-        gift: `${giftInput.code} ${giftInput.name}`,
-        disc_amount: formik.values.disc_amount || '',
-        maximum: formik.values.maximum || '0.00',
-        product_code: giftInput.code,
-        product_name: giftInput.name,
-        product_id: product?.id,
-        product_not_in_condition: giftInput.product_not_in_condition,
-      };
-      setPromotionGifts([...promotionGifts, newGift]);
-      setGiftInput({ code: '', name: '', product_not_in_condition: false });
-      formik.setFieldValue('disc_amount', '');
-      formik.setFieldValue('maximum', '0.00');
-    }
-  };
-
-  const updatePromotionGift = () => {
-    if (giftInput.code && selectedGiftIndex !== null) {
-      const product = products.find(p => p.code === giftInput.code);
-      const updated = [...promotionGifts];
-      const currentGift = updated[selectedGiftIndex];
-      updated[selectedGiftIndex] = {
-        ...currentGift,
-        type: giftType,
-        application:
-          giftProductTab === 0
-            ? 'Product'
-            : giftProductTab === 1
-              ? 'Prod. Group'
-              : giftProductTab === 2
-                ? 'Dyn. Prod. Gr.'
-                : giftProductTab === 3
-                  ? 'Conditional Products'
-                  : 'Invoice',
-        gift: `${giftInput.code} ${giftInput.name}`,
-        disc_amount: formik.values.disc_amount || '',
-        maximum: formik.values.maximum || '0.00',
-        product_code: giftInput.code,
-        product_name: giftInput.name,
-        product_id: product?.id,
-        product_not_in_condition: giftInput.product_not_in_condition,
-      };
-      setPromotionGifts(updated);
-      setGiftInput({ code: '', name: '', product_not_in_condition: false });
-      formik.setFieldValue('disc_amount', '');
-      formik.setFieldValue('maximum', '0.00');
-      setSelectedGiftIndex(null);
-    }
-  };
-
-  const removePromotionGift = (index: number) => {
-    setPromotionGifts(promotionGifts.filter((_, i) => i !== index));
-    if (selectedGiftIndex === index) {
-      setSelectedGiftIndex(null);
-      setGiftInput({ code: '', name: '', product_not_in_condition: false });
-      formik.setFieldValue('disc_amount', '');
-      formik.setFieldValue('maximum', '0.00');
-    } else if (selectedGiftIndex !== null && selectedGiftIndex > index) {
-      setSelectedGiftIndex(selectedGiftIndex - 1);
-    }
-  };
-
-  const addOutletCondition = () => {
-    const newCondition: OutletCondition = {
-      _index: outletConditions.length,
-      outlet_condition: '►Distributor',
-      dist: '',
-      outlet_value: '',
-      outlet_name: '',
-      start: formik.values.start_date || '',
-      finish: formik.values.finish_date || '',
-    };
-    setOutletConditions([...outletConditions, newCondition]);
-  };
-
-  const removeOutletCondition = (index: number) => {
-    setOutletConditions(outletConditions.filter((_, i) => i !== index));
-  };
-
-  const updateOutletConditionField = (
-    index: number,
-    field: keyof OutletCondition,
-    value: string
-  ) => {
-    const updated = [...outletConditions];
-    updated[index] = { ...updated[index], [field]: value };
-    setOutletConditions(updated);
-  };
-
   const addProductCondition = () => {
+    if (!productConditionForm.group && !productConditionForm.product) {
+      setValidationErrors({
+        ...validationErrors,
+        productCondition_new: 'Product or Product Category must be selected',
+      });
+      setTimeout(() => {
+        errorAlertRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 100);
+      return;
+    }
+    if (
+      !productConditionForm.at_least ||
+      parseFloat(productConditionForm.at_least) <= 0
+    ) {
+      setValidationErrors({
+        ...validationErrors,
+        productCondition_quantity_new: 'At least value must be greater than 0',
+      });
+      setTimeout(() => {
+        errorAlertRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 100);
+      return;
+    }
     const newCondition: ProductCondition = {
       _index: productConditions.length,
-      product_group: '',
-      at_least: '',
+      product_group: productConditionForm.group,
+      product_id: productConditionForm.product
+        ? parseInt(productConditionForm.product)
+        : undefined,
+      min_quantity: parseFloat(productConditionForm.at_least) || 0,
+      unit: productConditionForm.unit,
     };
     setProductConditions([...productConditions, newCondition]);
+    setProductConditionForm({
+      group: '',
+      product: '',
+      at_least: '',
+      unit: 'unit',
+    });
+    setValidationErrors({});
   };
 
   const removeProductCondition = (index: number) => {
@@ -694,1272 +663,1400 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const updateProductCondition = (
     index: number,
     field: keyof ProductCondition,
-    value: string
+    value: any
   ) => {
     const updated = [...productConditions];
     updated[index] = { ...updated[index], [field]: value };
     setProductConditions(updated);
   };
 
-  const handleLocationNew = () => {
-    const currentForm = locationForms[locationTab] || {
-      area: '',
-      group: '',
-      distributor_id: '',
-      distributor_name: '',
-      role: '',
-      slip_limit: false,
-      disc_limit: false,
-      date_limit: false,
-      dc_par: false,
-    };
-    setLocationForms({
-      ...locationForms,
-      [locationTab]: currentForm,
-    });
+  const removeGiftRow = (index: number) => {
+    setGiftRows(giftRows.filter((_, i) => i !== index));
   };
 
-  const handleLocationUpdate = () => {
-    const currentForm = locationForms[locationTab];
-    if (currentForm) {
-      console.log('Update location form:', currentForm);
-    }
+  const updateGiftRow = (
+    index: number,
+    field: keyof GiftRow,
+    value: string | number
+  ) => {
+    const updated = [...giftRows];
+    updated[index] = { ...updated[index], [field]: value };
+    setGiftRows(updated);
   };
 
-  const handleLocationDelete = () => {
-    const updated = { ...locationForms };
-    delete updated[locationTab];
-    setLocationForms(updated);
-  };
-
-  const handleApplyDynamicOutletGroups = () => {
-    console.log('Apply dynamic outlet groups');
-  };
-
-  const levelColumns: TableColumn<PromotionLevel>[] = [
-    {
-      id: 'level',
-      label: 'Level',
-      render: (_value, row, index) => (
-        <Typography
-          variant="body2"
-          className={
-            selectedLevelIndex === index ? '!font-bold !text-primary-600' : ''
-          }
-          onClick={() => {
-            setSelectedLevelIndex(index);
-            setLevelInput({
-              level: row.level,
-              unit: '',
-              step: row.step,
-            });
-          }}
-          style={{ cursor: 'pointer' }}
-        >
-          {row.level ? `${row.level} unit and above` : '-'}
-        </Typography>
-      ),
-    },
-    {
-      id: 'step',
-      label: 'Step',
-      render: (_value, row, index) => (
-        <Checkbox
-          checked={row.step}
-          onChange={e => {
-            const updated = [...promotionLevels];
-            updated[index] = {
-              ...updated[index],
-              step: e.target.checked,
-            };
-            setPromotionLevels(updated);
-          }}
-          size="small"
-        />
-      ),
-    },
-    {
-      id: 'gift_percent',
-      label: 'Gift+%',
-      render: (_value, row, index) => (
-        <Input
-          value={row.gift_percent}
-          onChange={e => {
-            const updated = [...promotionLevels];
-            updated[index] = {
-              ...updated[index],
-              gift_percent: e.target.value,
-            };
-            setPromotionLevels(updated);
-          }}
-          placeholder="0"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, _row, index) => (
-        <DeleteButton
-          onClick={() => removePromotionLevel(index)}
-          tooltip="Remove level"
-        />
-      ),
-    },
-  ];
-
-  const giftColumns: TableColumn<PromotionGift>[] = [
-    {
-      id: 'type',
-      label: 'Type',
-      render: (_value, row, index) => (
-        <Typography
-          variant="body2"
-          className={
-            selectedGiftIndex === index ? '!font-bold !text-primary-600' : ''
-          }
-          onClick={() => {
-            setSelectedGiftIndex(index);
-            setGiftInput({
-              code: row.product_code,
-              name: row.product_name,
-              product_not_in_condition: row.product_not_in_condition,
-            });
-            setGiftType(row.type);
-            formik.setFieldValue('disc_amount', row.disc_amount);
-            formik.setFieldValue('maximum', row.maximum);
-          }}
-          style={{ cursor: 'pointer' }}
-        >
-          {row.type}
-        </Typography>
-      ),
-    },
-    {
-      id: 'application',
-      label: 'Application',
-      render: (_value, row) => (
-        <Typography variant="body2">{row.application || '-'}</Typography>
-      ),
-    },
-    {
-      id: 'gift',
-      label: 'Gift',
-      render: (_value, row) => (
-        <Typography variant="body2">{row.gift || '-'}</Typography>
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, _row, index) => (
-        <DeleteButton
-          onClick={() => removePromotionGift(index)}
-          tooltip="Remove gift"
-        />
-      ),
-    },
-  ];
-
-  const outletColumns: TableColumn<OutletCondition>[] = [
-    {
-      id: 'outlet_condition',
-      label: 'Outlet Condition',
-      render: (_value, row, index) => (
-        <Select
-          value={row.outlet_condition}
-          onChange={e =>
-            updateOutletConditionField(
-              index,
-              'outlet_condition',
-              e.target.value
-            )
-          }
-          size="small"
-          className="!min-w-40"
-        >
-          <MenuItem value="►Distributor">►Distributor</MenuItem>
-          <MenuItem value="►Outlet">►Outlet</MenuItem>
-          <MenuItem value="►Outlet Group">►Outlet Group</MenuItem>
-        </Select>
-      ),
-    },
-    {
-      id: 'dist',
-      label: 'Dist.',
-      render: (_value, row, index) => (
-        <Input
-          value={row.dist}
-          onChange={e =>
-            updateOutletConditionField(index, 'dist', e.target.value)
-          }
-          placeholder="Dist."
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
-      id: 'outlet_value',
-      label: 'Outlet Value',
-      render: (_value, row, index) => (
-        <Autocomplete
-          options={customers}
-          getOptionLabel={option => `${option.code} - ${option.name}`}
-          value={
-            customers.find(
-              c => c.code === row.outlet_value || c.name === row.outlet_name
-            ) || null
-          }
-          onChange={(_e, newValue) => {
-            if (newValue) {
-              updateOutletConditionField(index, 'outlet_value', newValue.code);
-              updateOutletConditionField(index, 'outlet_name', newValue.name);
-            } else {
-              updateOutletConditionField(index, 'outlet_value', '');
-              updateOutletConditionField(index, 'outlet_name', '');
-            }
-          }}
-          size="small"
-          className="!min-w-40"
-          renderInput={params => (
-            <TextField {...params} placeholder="Select" size="small" />
-          )}
-        />
-      ),
-    },
-    {
-      id: 'start',
-      label: 'Start',
-      render: (_value, row, index) => (
-        <Input
-          value={row.start}
-          onChange={e =>
-            updateOutletConditionField(index, 'start', e.target.value)
-          }
-          type="date"
-          size="small"
-          className="!min-w-32"
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-      ),
-    },
-    {
-      id: 'finish',
-      label: 'Finish',
-      render: (_value, row, index) => (
-        <Input
-          value={row.finish}
-          onChange={e =>
-            updateOutletConditionField(index, 'finish', e.target.value)
-          }
-          type="date"
-          size="small"
-          className="!min-w-32"
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, _row, index) => (
-        <DeleteButton
-          onClick={() => removeOutletCondition(index)}
-          tooltip="Remove outlet condition"
-        />
-      ),
-    },
-  ];
-
-  const productColumns: TableColumn<ProductCondition>[] = [
-    {
-      id: 'product_group',
-      label: 'Product/Group',
-      width: 150,
-      className: '!px-2',
-      render: (_value, row, index) => (
-        <Box className="!overflow-hidden w-[300px] !py-1">
-          <Autocomplete
-            options={products}
-            className="!w-[300px]"
-            getOptionLabel={option => option.name}
-            value={products.find(p => p.name === row.product_group) || null}
-            onChange={(_e, newValue) => {
-              if (newValue) {
-                updateProductCondition(index, 'product_group', newValue.name);
-              }
-            }}
-            size="small"
-            renderInput={params => (
-              <TextField
-                {...params}
-                placeholder="Select Product"
-                size="small"
-                className="!w-[300px]"
-              />
-            )}
-          />
-        </Box>
-      ),
-    },
-    {
-      id: 'at_least',
-      label: 'At least',
-      width: 120,
-      className: '!px-2',
-      render: (_value, row, index) => (
-        <Box className="!flex !items-center !gap-1 !max-w-[120px] !py-1">
-          <Input
-            value={row.at_least}
-            onChange={e =>
-              updateProductCondition(index, 'at_least', e.target.value)
-            }
-            placeholder="0.00"
-            type="number"
-            size="small"
-            className="!w-32 !flex-shrink-0"
-          />
-          <Typography variant="body2" className="!whitespace-nowrap">
-            unit
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
-      width: 80,
-      className: '!px-2',
-      sortable: false,
-      render: (_value, _row, index) => (
-        <Box className="!flex !justify-center !max-w-[80px] !py-1">
-          <DeleteButton
-            onClick={() => removeProductCondition(index)}
-            tooltip="Remove product condition"
-            size="small"
-          />
-        </Box>
-      ),
-    },
-  ];
-
-  const currentLocationForm = locationForms[locationTab] || {
-    area: '',
-    group: '',
-    distributor_id: '',
-    distributor_name: '',
-    role: '',
-    slip_limit: false,
-    disc_limit: false,
-    date_limit: false,
-    dc_par: false,
-  };
-
-  return (
-    <>
+  if (isLoadingPromotion && isEdit) {
+    return (
       <CustomDrawer
         open={drawerOpen}
         setOpen={handleCancel}
         title={isEdit ? 'Edit Promotion' : 'Create Promotion'}
-        size="extra-large"
         fullWidth={true}
       >
-        <Box className="!p-5">
-          <form onSubmit={formik.handleSubmit} className="!space-y-5">
-            <Box className="!grid !grid-cols-1 lg:!grid-cols-2 !gap-5">
-              <Box className="!space-y-5">
-                <Typography
-                  variant="h6"
-                  className="!font-semibold !text-gray-900 !mb-4"
-                >
-                  Header Information
-                </Typography>
+        <Box className="!p-4">
+          <Box className="!grid !grid-cols-2 !gap-3">
+            <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
+              <Skeleton
+                variant="text"
+                width="60%"
+                height={28}
+                className="!mb-2"
+              />
+              <Box className="!grid !grid-cols-2 !gap-4">
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  className="!rounded"
+                />
+              </Box>
+            </Paper>
+
+            <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
+              <Skeleton
+                variant="text"
+                width="50%"
+                height={28}
+                className="!mb-2"
+              />
+              <Skeleton
+                variant="rectangular"
+                height={48}
+                className="!rounded !mb-3"
+              />
+              <Skeleton
+                variant="rectangular"
+                height={40}
+                className="!rounded !mb-3"
+              />
+              <Box className="!max-h-64 !overflow-hidden !border !border-gray-200 !rounded !p-2">
+                <Skeleton
+                  variant="rectangular"
+                  height={32}
+                  className="!rounded !mb-2"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={32}
+                  className="!rounded !mb-2"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={32}
+                  className="!rounded !mb-2"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={32}
+                  className="!rounded !mb-2"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={32}
+                  className="!rounded !mb-2"
+                />
+              </Box>
+            </Paper>
+
+            <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
+              <Skeleton
+                variant="text"
+                width="70%"
+                height={28}
+                className="!mb-2"
+              />
+              <Box className="!mb-2">
+                <Skeleton
+                  variant="text"
+                  width="30%"
+                  height={20}
+                  className="!mb-1"
+                />
+                <Box className="!flex !gap-4">
+                  <Skeleton
+                    variant="rectangular"
+                    width={100}
+                    height={40}
+                    className="!rounded"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={100}
+                    height={40}
+                    className="!rounded"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={100}
+                    height={40}
+                    className="!rounded"
+                  />
+                </Box>
+              </Box>
+              <Box className="!space-y-2 !mt-2">
                 <Box className="!grid !grid-cols-2 !gap-4">
-                  <Input
-                    name="name"
-                    label="Name"
-                    placeholder="Enter promotion name"
-                    formik={formik}
-                    required
+                  <Skeleton
+                    variant="rectangular"
+                    height={40}
+                    className="!rounded"
                   />
-
-                  <Input
-                    name="code"
-                    label="Code"
-                    placeholder="Enter code"
-                    formik={formik}
-                    required
+                  <Skeleton
+                    variant="rectangular"
+                    height={40}
+                    className="!rounded"
                   />
-
-                  <Input
-                    name="start_date"
-                    label="Start"
-                    type="date"
-                    formik={formik}
-                    required
-                    slotProps={{ inputLabel: { shrink: true } }}
+                  <Skeleton
+                    variant="rectangular"
+                    height={40}
+                    className="!rounded"
                   />
-
-                  <Input
-                    name="finish_date"
-                    label="Finish"
-                    type="date"
-                    formik={formik}
-                    required
-                    slotProps={{ inputLabel: { shrink: true } }}
+                  <Skeleton
+                    variant="rectangular"
+                    height={40}
+                    className="!rounded"
                   />
-
-                  <Box className="!col-span-2">
-                    <Typography variant="body2" className="!mb-2 !font-medium">
-                      Platform
-                    </Typography>
-                    <Box className="!flex !gap-4">
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={formik.values.office}
-                            onChange={formik.handleChange}
-                            name="office"
-                          />
-                        }
-                        label="Office"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={formik.values.mobile}
-                            onChange={formik.handleChange}
-                            name="mobile"
-                          />
-                        }
-                        label="Mobile"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={formik.values.b2b}
-                            onChange={formik.handleChange}
-                            name="b2b"
-                          />
-                        }
-                        label="B2B"
-                      />
-                    </Box>
-                  </Box>
-
-                  <Box className="!col-span-2">
-                    <Typography variant="body2" className="!mb-2 !font-medium">
-                      Level Type
-                    </Typography>
-                    <RadioGroup
-                      row
-                      value={levelType}
-                      onChange={e => setLevelType(e.target.value)}
-                    >
-                      <FormControlLabel
-                        value="condition_count"
-                        control={<Radio size="small" />}
-                        label="Condition Count"
-                      />
-                      <FormControlLabel
-                        value="total"
-                        control={<Radio size="small" />}
-                        label="Total"
-                      />
-                      <FormControlLabel
-                        value="species"
-                        control={<Radio size="small" />}
-                        label="Species"
-                      />
-                      <FormControlLabel
-                        value="factor"
-                        control={<Radio size="small" />}
-                        label="Factor"
-                      />
-                    </RadioGroup>
-                  </Box>
                 </Box>
-
-                <Box className="!space-y-4 !mt-5">
-                  <Typography
-                    variant="h6"
-                    className="!font-semibold !text-gray-900"
-                  >
-                    Promotion Product Condition
-                  </Typography>
-
-                  <Box>
-                    <Typography variant="body2" className="!mb-2 !font-medium">
-                      Quantity Type
-                    </Typography>
-                    <RadioGroup
-                      row
-                      value={quantityType}
-                      onChange={e => setQuantityType(e.target.value)}
-                    >
-                      <FormControlLabel
-                        value="quantity"
-                        control={<Radio size="small" />}
-                        label="Quantity"
-                      />
-                      <FormControlLabel
-                        value="price"
-                        control={<Radio size="small" />}
-                        label="Price"
-                      />
-                      <FormControlLabel
-                        value="weight"
-                        control={<Radio size="small" />}
-                        label="Weight"
-                      />
-                      <FormControlLabel
-                        value="volume"
-                        control={<Radio size="small" />}
-                        label="Volume"
-                      />
-                      <FormControlLabel
-                        value="epoint"
-                        control={<Radio size="small" />}
-                        label="EPoint"
-                      />
-                    </RadioGroup>
-                  </Box>
-
-                  <Box className="!flex !justify-between !items-center">
-                    <Typography variant="body2" className="!font-medium">
-                      Product/Group
-                    </Typography>
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      startIcon={<Add />}
-                      onClick={addProductCondition}
-                      size="small"
-                    >
-                      Add
-                    </Button>
-                  </Box>
-
-                  {productConditions.length > 0 && (
-                    <Box
-                      className="!w-full !mt-2"
-                      sx={{
-                        '& .MuiTableContainer-root': {
-                          overflowX: 'hidden !important',
-                          width: '100%',
-                        },
-                        '& .MuiTable-root': {
-                          tableLayout: 'fixed !important',
-                          width: '100% !important',
-                          minWidth: '0 !important',
-                        },
-                        '& .MuiTableCell-root': {
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          padding: '8px 8px !important',
-                        },
-                        '& .MuiTableCell-head': {
-                          padding: '12px 8px !important',
-                        },
-                      }}
-                    >
-                      <Table
-                        data={productConditions}
-                        columns={productColumns}
-                        getRowId={row => row._index.toString()}
-                        pagination={false}
-                        sortable={false}
-                      />
-                    </Box>
-                  )}
+                <Box className="!flex !gap-2">
+                  <Skeleton
+                    variant="rectangular"
+                    width={80}
+                    height={36}
+                    className="!rounded"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={80}
+                    height={36}
+                    className="!rounded"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={80}
+                    height={36}
+                    className="!rounded"
+                  />
                 </Box>
               </Box>
+            </Paper>
 
-              <Box className="!space-y-5">
-                <Box className="!space-y-4">
-                  <Typography
-                    variant="h6"
-                    className="!font-semibold !text-gray-900"
-                  >
-                    Suitable Outlets
-                  </Typography>
-                  <Box className="!flex !justify-end !mb-2">
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      startIcon={<Add />}
-                      onClick={addOutletCondition}
-                      size="small"
-                    >
-                      Add
-                    </Button>
-                  </Box>
-
-                  {outletConditions.length > 0 && (
-                    <Table
-                      data={outletConditions}
-                      columns={outletColumns}
-                      getRowId={row => row._index.toString()}
-                      pagination={false}
-                      sortable={false}
-                    />
-                  )}
-
-                  <Box className="!space-y-2">
-                    <Box className="!flex !gap-4 !items-center">
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={dateFilter.date_from_enabled}
-                            onChange={e =>
-                              setDateFilter({
-                                ...dateFilter,
-                                date_from_enabled: e.target.checked,
-                              })
-                            }
-                          />
-                        }
-                        label="Date >="
-                      />
-                      <Input
-                        type="date"
-                        className="!w-40"
-                        value={dateFilter.date_from}
-                        onChange={e =>
-                          setDateFilter({
-                            ...dateFilter,
-                            date_from: e.target.value,
-                          })
-                        }
-                        disabled={!dateFilter.date_from_enabled}
-                        slotProps={{ inputLabel: { shrink: true } }}
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={dateFilter.date_to_enabled}
-                            onChange={e =>
-                              setDateFilter({
-                                ...dateFilter,
-                                date_to_enabled: e.target.checked,
-                              })
-                            }
-                          />
-                        }
-                        label="Date <="
-                      />
-                      <Input
-                        type="date"
-                        className="!w-40"
-                        value={dateFilter.date_to}
-                        onChange={e =>
-                          setDateFilter({
-                            ...dateFilter,
-                            date_to: e.target.value,
-                          })
-                        }
-                        disabled={!dateFilter.date_to_enabled}
-                        slotProps={{ inputLabel: { shrink: true } }}
-                      />
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={handleApplyDynamicOutletGroups}
-                      >
-                        Apply Dyn. Outlet Groups
-                      </Button>
-                    </Box>
-
-                    <Typography variant="body2" className="!font-medium !mt-4">
-                      Document Types
-                    </Typography>
-                    <Box className="!grid !grid-cols-2 !gap-2">
-                      {Object.entries(documentTypes).map(([type, checked]) => (
-                        <FormControlLabel
-                          key={type}
-                          control={
-                            <Checkbox
-                              checked={checked}
-                              onChange={e =>
-                                setDocumentTypes({
-                                  ...documentTypes,
-                                  [type]: e.target.checked,
-                                })
-                              }
-                            />
-                          }
-                          label={type}
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Box className="!space-y-4 !mt-5">
-                  <Box className="!bg-white !rounded-lg !border !border-gray-200">
-                    <Tabs
-                      value={locationTab}
-                      onChange={(_, newValue: number) => {
-                        setLocationTab(newValue);
-                        if (!locationForms[newValue]) {
-                          setLocationForms({
-                            ...locationForms,
-                            [newValue]: {
-                              area: '',
-                              group: '',
-                              distributor_id: '',
-                              distributor_name: '',
-                              role: '',
-                              slip_limit: false,
-                              disc_limit: false,
-                              date_limit: false,
-                              dc_par: false,
-                            },
-                          });
-                        }
-                      }}
-                    >
-                      <Tab label="LOCATION" />
-                      <Tab label="DISTRIBUTOR" />
-                      <Tab label="SELLER" />
-                      <Tab label="OUTLET 1" />
-                      <Tab label="OUTLET 2" />
-                    </Tabs>
-                  </Box>
-
-                  <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-                    <Select
-                      label="Area"
-                      value={currentLocationForm.area}
-                      onChange={e => {
-                        setLocationForms({
-                          ...locationForms,
-                          [locationTab]: {
-                            ...currentLocationForm,
-                            area: e.target.value,
-                          },
-                        });
-                      }}
-                    >
-                      <MenuItem value="">Select Area</MenuItem>
-                    </Select>
-
-                    <Select
-                      label="Group"
-                      value={currentLocationForm.group}
-                      onChange={e => {
-                        setLocationForms({
-                          ...locationForms,
-                          [locationTab]: {
-                            ...currentLocationForm,
-                            group: e.target.value,
-                          },
-                        });
-                      }}
-                    >
-                      <MenuItem value="">Select Group</MenuItem>
-                    </Select>
-
-                    <Autocomplete
-                      options={depots}
-                      getOptionLabel={option =>
-                        `${option.code} - ${option.name}`
-                      }
-                      value={
-                        depots.find(
-                          d =>
-                            d.id.toString() ===
-                            currentLocationForm.distributor_id
-                        ) || null
-                      }
-                      onChange={(_e, newValue) => {
-                        setLocationForms({
-                          ...locationForms,
-                          [locationTab]: {
-                            ...currentLocationForm,
-                            distributor_id: newValue
-                              ? newValue.id.toString()
-                              : '',
-                            distributor_name: newValue ? newValue.name : '',
-                          },
-                        });
-                      }}
-                      fullWidth
-                      renderInput={params => (
-                        <TextField
-                          {...params}
-                          label="Distributor"
-                          size="small"
-                        />
-                      )}
-                    />
-
-                    <Select
-                      label="Role"
-                      value={currentLocationForm.role}
-                      onChange={e => {
-                        setLocationForms({
-                          ...locationForms,
-                          [locationTab]: {
-                            ...currentLocationForm,
-                            role: e.target.value,
-                          },
-                        });
-                      }}
-                    >
-                      <MenuItem value="">Select Role</MenuItem>
-                    </Select>
-
-                    <Box className="md:!col-span-2 !flex !gap-2">
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={handleLocationNew}
-                      >
-                        New
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={handleLocationUpdate}
-                      >
-                        Update
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={handleLocationDelete}
-                      >
-                        Del
-                      </Button>
-                    </Box>
-
-                    <Box className="md:!col-span-2 !flex !gap-4">
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={currentLocationForm.slip_limit}
-                            onChange={e => {
-                              setLocationForms({
-                                ...locationForms,
-                                [locationTab]: {
-                                  ...currentLocationForm,
-                                  slip_limit: e.target.checked,
-                                },
-                              });
-                            }}
-                          />
-                        }
-                        label="Slip Lim.:"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={currentLocationForm.disc_limit}
-                            onChange={e => {
-                              setLocationForms({
-                                ...locationForms,
-                                [locationTab]: {
-                                  ...currentLocationForm,
-                                  disc_limit: e.target.checked,
-                                },
-                              });
-                            }}
-                          />
-                        }
-                        label="Disc. Lim."
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={currentLocationForm.date_limit}
-                            onChange={e => {
-                              setLocationForms({
-                                ...locationForms,
-                                [locationTab]: {
-                                  ...currentLocationForm,
-                                  date_limit: e.target.checked,
-                                },
-                              });
-                            }}
-                          />
-                        }
-                        label="Date:"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={currentLocationForm.dc_par}
-                            onChange={e => {
-                              setLocationForms({
-                                ...locationForms,
-                                [locationTab]: {
-                                  ...currentLocationForm,
-                                  dc_par: e.target.checked,
-                                },
-                              });
-                            }}
-                          />
-                        }
-                        label="D/C Par.:"
-                      />
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Box className="!space-y-4 !mt-5">
-                  <Box className="!flex !justify-between !items-center">
-                    <Typography
-                      variant="h6"
-                      className="!font-semibold !text-gray-900"
-                    >
-                      LEVEL
-                    </Typography>
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      startIcon={<Add />}
-                      onClick={addPromotionLevel}
-                      size="small"
-                    >
-                      Add
-                    </Button>
-                  </Box>
-
-                  {promotionLevels.length > 0 && (
-                    <Table
-                      data={promotionLevels}
-                      columns={levelColumns}
-                      getRowId={row => row._index.toString()}
-                      pagination={false}
-                      sortable={false}
-                    />
-                  )}
-
-                  <Box className="!grid !grid-cols-3 !gap-4 !items-end">
-                    <Input
-                      label="Level:"
-                      placeholder="Level"
-                      type="number"
-                      value={levelInput.level}
-                      onChange={e =>
-                        setLevelInput({ ...levelInput, level: e.target.value })
-                      }
-                    />
-                    <Select
-                      label="unit"
-                      value={levelInput.unit}
-                      onChange={e =>
-                        setLevelInput({ ...levelInput, unit: e.target.value })
-                      }
-                    >
-                      <MenuItem value="">Select unit</MenuItem>
-                      <MenuItem value="unit">unit</MenuItem>
-                    </Select>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={levelInput.step}
-                          onChange={e =>
-                            setLevelInput({
-                              ...levelInput,
-                              step: e.target.checked,
-                            })
-                          }
-                        />
-                      }
-                      label="Step:"
-                    />
-                    <Box className="!col-span-3 !flex !gap-2">
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={updatePromotionLevel}
-                        disabled={selectedLevelIndex === null}
-                      >
-                        Update
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={addPromotionLevel}
-                      >
-                        New
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => {
-                          if (selectedLevelIndex !== null) {
-                            removePromotionLevel(selectedLevelIndex);
-                            setSelectedLevelIndex(null);
-                            setLevelInput({ level: '', unit: '', step: false });
-                          }
-                        }}
-                        disabled={selectedLevelIndex === null}
-                      >
-                        Del
-                      </Button>
-                    </Box>
-                  </Box>
-                </Box>
-
-                <Box className="!space-y-4 !mt-5">
-                  <Box className="!flex !justify-between !items-center">
-                    <Typography
-                      variant="h6"
-                      className="!font-semibold !text-gray-900"
-                    >
-                      GIFT
-                    </Typography>
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      startIcon={<Add />}
-                      onClick={addPromotionGift}
-                      size="small"
-                    >
-                      Add
-                    </Button>
-                  </Box>
-
-                  {promotionGifts.length > 0 && (
-                    <Table
-                      data={promotionGifts}
-                      columns={giftColumns}
-                      getRowId={row => row._index.toString()}
-                      pagination={false}
-                      sortable={false}
-                    />
-                  )}
-
-                  <Box className="!space-y-4">
-                    <Typography variant="body2" className="!font-medium">
-                      Type
-                    </Typography>
-                    <RadioGroup
-                      row
-                      value={giftType}
-                      onChange={e => setGiftType(e.target.value)}
-                    >
-                      <FormControlLabel
-                        value="free_product"
-                        control={<Radio size="small" />}
-                        label="Free Product"
-                      />
-                      <FormControlLabel
-                        value="percent"
-                        control={<Radio size="small" />}
-                        label="Percent"
-                      />
-                      <FormControlLabel
-                        value="amount"
-                        control={<Radio size="small" />}
-                        label="Amount"
-                      />
-                      <FormControlLabel
-                        value="epoint"
-                        control={<Radio size="small" />}
-                        label="EPoint"
-                      />
-                    </RadioGroup>
-
-                    <Box className="!grid !grid-cols-2 !gap-4">
-                      <Input
-                        name="disc_amount"
-                        label="Disc. (Amount)"
-                        type="number"
-                        formik={formik}
-                      />
-                      <Input
-                        name="maximum"
-                        label="Maximum"
-                        type="number"
-                        formik={formik}
-                      />
-                    </Box>
-
-                    <Box className="!bg-white !rounded-lg !border !border-gray-200">
-                      <Tabs
-                        value={giftProductTab}
-                        onChange={(_, newValue: number) =>
-                          setGiftProductTab(newValue)
-                        }
-                      >
-                        <Tab label="PRODUCT" />
-                        <Tab label="PROD. GROUP" />
-                        <Tab label="DYN. PROD. GR." />
-                        <Tab label="CONDITIONAL PRODUCTS" />
-                        <Tab label="INVOICE" />
-                      </Tabs>
-                    </Box>
-
-                    <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-                      <Autocomplete
-                        options={products}
-                        size="small"
-                        getOptionLabel={option =>
-                          `${option.code} - ${option.name}`
-                        }
-                        value={
-                          products.find(p => p.code === giftInput.code) || null
-                        }
-                        onChange={(_e, newValue) => {
-                          setGiftInput({
-                            ...giftInput,
-                            code: newValue ? newValue.code : '',
-                            name: newValue ? newValue.name : '',
-                          });
-                        }}
-                        renderInput={params => (
-                          <TextField
-                            {...params}
-                            label="Code"
-                            placeholder="Product code"
-                          />
-                        )}
-                      />
-                      <Input
-                        label="Name"
-                        placeholder="Product name"
-                        value={giftInput.name}
-                        onChange={e =>
-                          setGiftInput({ ...giftInput, name: e.target.value })
-                        }
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={giftInput.product_not_in_condition}
-                            onChange={e =>
-                              setGiftInput({
-                                ...giftInput,
-                                product_not_in_condition: e.target.checked,
-                              })
-                            }
-                          />
-                        }
-                        label="Product may not be in condition"
-                      />
-                    </Box>
-
-                    <Box className="!flex !gap-2">
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={updatePromotionGift}
-                        disabled={selectedGiftIndex === null}
-                      >
-                        Update
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={addPromotionGift}
-                      >
-                        New
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => {
-                          if (selectedGiftIndex !== null) {
-                            removePromotionGift(selectedGiftIndex);
-                            setSelectedGiftIndex(null);
-                            setGiftInput({
-                              code: '',
-                              name: '',
-                              product_not_in_condition: false,
-                            });
-                          }
-                        }}
-                        disabled={selectedGiftIndex === null}
-                      >
-                        Del
-                      </Button>
-                    </Box>
-                  </Box>
+            <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
+              <Skeleton
+                variant="text"
+                width="40%"
+                height={28}
+                className="!mb-2"
+              />
+              <Box className="!mb-4">
+                <Skeleton
+                  variant="text"
+                  width="20%"
+                  height={20}
+                  className="!mb-1"
+                />
+                <Box className="!flex !gap-4">
+                  <Skeleton
+                    variant="rectangular"
+                    width={120}
+                    height={40}
+                    className="!rounded"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={120}
+                    height={40}
+                    className="!rounded"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={120}
+                    height={40}
+                    className="!rounded"
+                  />
                 </Box>
               </Box>
-            </Box>
-
-            <Box className="!flex !justify-end !gap-2 !pt-4 !border-t !border-gray-200">
-              <Button type="button" variant="outlined" onClick={handleCancel}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="outlined"
-                className="!text-gray-600"
-                startIcon={<Description />}
-                onClick={handleDescription}
-              >
-                Description
-              </Button>
-              <Button
-                type="button"
-                variant="outlined"
-                className="!text-gray-600"
-                startIcon={<ContentCopy />}
-                onClick={handleCopyPromotion}
-              >
-                Copy
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                className="!bg-green-600 hover:!bg-green-700"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                {createMutation.isPending || updateMutation.isPending
-                  ? 'Saving...'
-                  : 'Save'}
-              </Button>
-            </Box>
-          </form>
+              <Box className="!space-y-4 !mt-2">
+                <Box className="!grid !grid-cols-2 !gap-4">
+                  <Skeleton
+                    variant="rectangular"
+                    height={40}
+                    className="!rounded"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    height={40}
+                    className="!rounded"
+                  />
+                </Box>
+                <Skeleton
+                  variant="rectangular"
+                  height={48}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={40}
+                  className="!rounded"
+                />
+                <Box className="!flex !gap-2">
+                  <Skeleton
+                    variant="rectangular"
+                    width={80}
+                    height={36}
+                    className="!rounded"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={80}
+                    height={36}
+                    className="!rounded"
+                  />
+                  <Skeleton
+                    variant="rectangular"
+                    width={80}
+                    height={36}
+                    className="!rounded"
+                  />
+                </Box>
+              </Box>
+            </Paper>
+          </Box>
+          <Box className="!mt-2 !flex !gap-2 !justify-end !col-span-2">
+            <Skeleton
+              variant="rectangular"
+              width={100}
+              height={40}
+              className="!rounded"
+            />
+            <Skeleton
+              variant="rectangular"
+              width={100}
+              height={40}
+              className="!rounded"
+            />
+          </Box>
         </Box>
       </CustomDrawer>
+    );
+  }
 
-      <Dialog
-        open={descriptionDialogOpen}
-        onClose={() => setDescriptionDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Promotion Description</DialogTitle>
-        <DialogContent>
-          <Input
-            name="description"
-            label="Description"
-            placeholder="Enter promotion description"
-            formik={formik}
-            multiline
-            rows={6}
-            className="!mt-4"
-          />
-          <Box className="!flex !justify-end !gap-2 !mt-4">
-            <Button
-              variant="outlined"
-              onClick={() => setDescriptionDialogOpen(false)}
+  return (
+    <CustomDrawer
+      open={drawerOpen}
+      setOpen={handleCancel}
+      title={isEdit ? 'Edit Promotion' : 'Create Promotion'}
+      fullWidth={true}
+    >
+      <Box className="!p-4">
+        {Object.keys(validationErrors).length > 0 && (
+          <Box ref={errorAlertRef}>
+            <Alert severity="error" className="!mb-4">
+              <Typography variant="subtitle2" className="!font-semibold !mb-1">
+                Please fix the following errors:
+              </Typography>
+              <ul className="!list-disc !list-inside !space-y-1">
+                {Object.values(validationErrors).map((error, idx) => (
+                  <li key={idx} className="!text-sm">
+                    {error}
+                  </li>
+                ))}
+              </ul>
+            </Alert>
+          </Box>
+        )}
+        <form
+          onSubmit={formik.handleSubmit}
+          className="!grid !grid-cols-2 !gap-3"
+        >
+          <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
+            <Typography
+              variant="h6"
+              className="!font-semibold !text-gray-900 !mb-2 !text-base"
             >
-              Close
+              Header Information
+            </Typography>
+            <Box className="!grid !grid-cols-2 !gap-4">
+              <Input
+                name="name"
+                label="Name"
+                formik={formik}
+                required
+                fullWidth
+              />
+              <Input
+                name="short_name"
+                label="Short Name"
+                formik={formik}
+                fullWidth
+              />
+              <Input
+                name="code"
+                label="Code"
+                formik={formik}
+                required
+                fullWidth
+              />
+              <Select
+                name="pay_type"
+                label="Pay Type"
+                formik={formik}
+                fullWidth
+              >
+                {PAY_TYPES.map(type => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Select name="scope" label="Scope" formik={formik} fullWidth>
+                {SCOPE_TYPES.map(type => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Select
+                name="slip_type"
+                label="Slip Type"
+                formik={formik}
+                fullWidth
+              >
+                {SLIP_TYPES.map(type => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+
+              <Select
+                name="prom_conflict"
+                label="Prom. Conflict"
+                formik={formik}
+                fullWidth
+              >
+                {PROM_CONFLICT_TYPES.map(type => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Input
+                name="degree"
+                label="Degree"
+                type="number"
+                formik={formik}
+                fullWidth
+              />
+              <Input
+                name="nr"
+                label="Nr"
+                type="number"
+                formik={formik}
+                fullWidth
+              />
+              <Select
+                name="reg_disc_conf"
+                label="Reg.Disc. Conf."
+                formik={formik}
+                fullWidth
+              >
+                {REG_DISC_CONF_TYPES.map(type => (
+                  <MenuItem key={type} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </Select>
+              {/* <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formik.values.conflict_with_constant_disc}
+                    onChange={e =>
+                      formik.setFieldValue(
+                        'conflict_with_constant_disc',
+                        e.target.checked
+                      )
+                    }
+                  />
+                }
+                className="!col-span-2"
+                label="Conflict with Constant disc."
+              /> */}
+              <Input
+                name="start_date"
+                label="Start"
+                type="date"
+                formik={formik}
+                required
+                fullWidth
+              />
+              <Input
+                name="finish_date"
+                label="Finish"
+                type="date"
+                formik={formik}
+                required
+                fullWidth
+              />
+            </Box>
+          </Paper>
+
+          <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
+            <Typography
+              variant="h6"
+              className="!font-semibold !text-gray-900 !mb-2 !text-base"
+            >
+              Suitable Outlets
+            </Typography>
+            <Box className="!mb-3 !border !border-gray-400/50 !rounded">
+              <Tabs
+                value={locationTab}
+                onChange={(_, newValue) => {
+                  setLocationTab(newValue);
+                  setLocationSearch('');
+                }}
+                variant="scrollable"
+                scrollButtons="auto"
+                className="!min-h-9.5"
+              >
+                <Tab
+                  label={`Depots ${selectedDepots.length > 0 ? `(${selectedDepots.length})` : ''}`}
+                  className="!min-h-9.5"
+                />
+                <Tab
+                  label={`Zones ${selectedZones.length > 0 ? `(${selectedZones.length})` : ''}`}
+                  className="!min-h-9.5"
+                />
+                <Tab
+                  label={`Routes ${selectedRoutes.length > 0 ? `(${selectedRoutes.length})` : ''}`}
+                  className="!min-h-9.5"
+                />
+                <Tab
+                  label={`Outlet ${selectedOutlets.length > 0 ? `(${selectedOutlets.length})` : ''}`}
+                  className="!min-h-9.5"
+                />
+              </Tabs>
+            </Box>
+            <Box className="!mb-3">
+              <SearchInput
+                value={locationSearch}
+                onChange={setLocationSearch}
+                placeholder={`Search ${locationTab === 0 ? 'Depots' : locationTab === 1 ? 'Zones' : locationTab === 2 ? 'Routes' : 'Outlets'}...`}
+                fullWidth
+                size="small"
+                debounceMs={0}
+              />
+            </Box>
+            <Box className="!max-h-64 !overflow-y-auto !border !border-gray-200 !rounded !p-2">
+              {locationTab === 0 && (
+                <>
+                  {depots
+                    .filter((depot: any) =>
+                      locationSearch
+                        ? depot.name
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase()) ||
+                          depot.code
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase())
+                        : true
+                    )
+                    .map((depot: any) => (
+                      <FormControlLabel
+                        key={depot.id}
+                        control={
+                          <Checkbox
+                            checked={selectedDepots.includes(depot.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedDepots([
+                                  ...selectedDepots,
+                                  depot.id,
+                                ]);
+                              } else {
+                                setSelectedDepots(
+                                  selectedDepots.filter(id => id !== depot.id)
+                                );
+                              }
+                            }}
+                            size="small"
+                          />
+                        }
+                        label={`${depot.name} (${depot.code})`}
+                        className="!block"
+                      />
+                    ))}
+                </>
+              )}
+              {locationTab === 1 && (
+                <>
+                  {zones
+                    .filter((zone: any) =>
+                      locationSearch
+                        ? zone.name
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase())
+                        : true
+                    )
+                    .map((zone: any) => (
+                      <FormControlLabel
+                        key={zone.id}
+                        control={
+                          <Checkbox
+                            checked={selectedZones.includes(zone.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedZones([...selectedZones, zone.id]);
+                              } else {
+                                setSelectedZones(
+                                  selectedZones.filter(id => id !== zone.id)
+                                );
+                              }
+                            }}
+                            size="small"
+                          />
+                        }
+                        label={zone.name}
+                        className="!block"
+                      />
+                    ))}
+                </>
+              )}
+              {locationTab === 2 && (
+                <>
+                  {routes
+                    .filter((route: any) =>
+                      locationSearch
+                        ? route.name
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase()) ||
+                          route.code
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase())
+                        : true
+                    )
+                    .map((route: any) => (
+                      <FormControlLabel
+                        key={route.id}
+                        control={
+                          <Checkbox
+                            checked={selectedRoutes.includes(route.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedRoutes([
+                                  ...selectedRoutes,
+                                  route.id,
+                                ]);
+                              } else {
+                                setSelectedRoutes(
+                                  selectedRoutes.filter(id => id !== route.id)
+                                );
+                              }
+                            }}
+                            size="small"
+                          />
+                        }
+                        label={`${route.name || route.code || `Route ${route.id}`} ${route.code ? `(${route.code})` : ''}`}
+                        className="!block"
+                      />
+                    ))}
+                </>
+              )}
+              {locationTab === 3 && (
+                <>
+                  {customers
+                    .filter((customer: any) =>
+                      locationSearch
+                        ? customer.name
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase()) ||
+                          customer.code
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase())
+                        : true
+                    )
+                    .map((customer: any) => (
+                      <FormControlLabel
+                        key={customer.id}
+                        control={
+                          <Checkbox
+                            checked={selectedOutlets.includes(customer.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedOutlets([
+                                  ...selectedOutlets,
+                                  customer.id,
+                                ]);
+                              } else {
+                                setSelectedOutlets(
+                                  selectedOutlets.filter(
+                                    id => id !== customer.id
+                                  )
+                                );
+                              }
+                            }}
+                            size="small"
+                          />
+                        }
+                        label={`${customer.name} (${customer.code})`}
+                        className="!block"
+                      />
+                    ))}
+                </>
+              )}
+            </Box>
+          </Paper>
+
+          <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
+            <Typography
+              variant="h6"
+              className="!font-semibold !text-gray-900 !text-base"
+            >
+              Promotion Product Condition{' '}
+              <span className="!text-gray-500">
+                ({productConditions.length || 0})
+              </span>
+            </Typography>
+            <Box className="!mb-2">
+              <Typography className="!mb-1 !text-xs !font-medium">
+                Quantity Type
+              </Typography>
+              <RadioGroup
+                value={formik.values.quantity_type}
+                onChange={e =>
+                  formik.setFieldValue('quantity_type', e.target.value)
+                }
+                row
+              >
+                {QUANTITY_TYPES.map(type => (
+                  <FormControlLabel
+                    key={type}
+                    value={type}
+                    control={<Radio />}
+                    label={type}
+                  />
+                ))}
+              </RadioGroup>
+            </Box>
+
+            {productConditions.length > 0 && (
+              <Box className="!mb-2">
+                <Table
+                  data={productConditions.map((condition, idx) => ({
+                    id: condition._index,
+                    product_group:
+                      condition.product_group ||
+                      (condition.product_id
+                        ? products.find(p => p.id === condition.product_id)
+                            ?.name || '-'
+                        : '-'),
+                    type: condition.product_id ? 'Product' : 'Product Category',
+                    at_least: `${condition.min_quantity || 0} ${condition.unit || 'unit'}`,
+                    _index: idx,
+                  }))}
+                  columns={[
+                    { id: 'product_group', label: 'Product/Category' },
+                    { id: 'type', label: 'Type' },
+                    { id: 'at_least', label: 'At least' },
+                    {
+                      id: 'actions',
+                      label: 'Actions',
+                      render: (_value, row) => (
+                        <Box className="!flex !gap-2">
+                          <EditButton
+                            onClick={() => {
+                              const condition = productConditions[row._index];
+                              setSelectedProductConditionIndex(row._index);
+                              setProductConditionForm({
+                                group: condition.product_group || '',
+                                product: condition.product_id?.toString() || '',
+                                at_least:
+                                  condition.min_quantity?.toString() || '',
+                                unit: condition.unit || 'unit',
+                              });
+                            }}
+                            tooltip="Edit condition"
+                            size="small"
+                          />
+                          <DeleteButton
+                            onClick={() => removeProductCondition(row._index)}
+                            tooltip="Delete condition"
+                            size="small"
+                          />
+                        </Box>
+                      ),
+                    },
+                  ]}
+                  pagination={false}
+                  sortable={false}
+                  compact={true}
+                />
+              </Box>
+            )}
+            <Box className="!space-y-2 !mt-2">
+              <Box className="!grid !grid-cols-2 !gap-4">
+                <Select
+                  value={productConditionForm.product}
+                  onChange={e => {
+                    const selectedProduct = e.target.value;
+                    setProductConditionForm({
+                      ...productConditionForm,
+                      product: selectedProduct,
+                      group: selectedProduct ? '' : productConditionForm.group,
+                    });
+                  }}
+                  label="Product"
+                  size="small"
+                  fullWidth
+                >
+                  <MenuItem value="">Select...</MenuItem>
+                  {products.map((product: any) => (
+                    <MenuItem key={product.id} value={product.id.toString()}>
+                      {product.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <Select
+                  value={productConditionForm.group}
+                  onChange={e => {
+                    const selectedCategory = e.target.value;
+                    setProductConditionForm({
+                      ...productConditionForm,
+                      group: selectedCategory,
+                      product: selectedCategory
+                        ? ''
+                        : productConditionForm.product,
+                    });
+                  }}
+                  label="Product Category"
+                  size="small"
+                  fullWidth
+                >
+                  <MenuItem value="">Select...</MenuItem>
+                  {productCategories.map((category: any) => (
+                    <MenuItem key={category.id} value={category.category_name}>
+                      {category.category_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+
+                <Input
+                  type="number"
+                  value={productConditionForm.at_least}
+                  onChange={e =>
+                    setProductConditionForm({
+                      ...productConditionForm,
+                      at_least: e.target.value,
+                    })
+                  }
+                  label="At least"
+                  size="small"
+                  fullWidth={true}
+                />
+                <Select
+                  value={productConditionForm.unit}
+                  onChange={e =>
+                    setProductConditionForm({
+                      ...productConditionForm,
+                      unit: e.target.value,
+                    })
+                  }
+                  size="small"
+                  fullWidth={true}
+                >
+                  <MenuItem value="unit">unit</MenuItem>
+                  {units.map((unit: any) => (
+                    <MenuItem key={unit.id} value={unit.name}>
+                      {unit.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Box>
+              <Box className="!flex !gap-2">
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    if (selectedProductConditionIndex !== null) {
+                      const idx = selectedProductConditionIndex;
+                      updateProductCondition(
+                        idx,
+                        'product_group',
+                        productConditionForm.group
+                      );
+                      updateProductCondition(
+                        idx,
+                        'product_id',
+                        productConditionForm.product
+                          ? parseInt(productConditionForm.product)
+                          : undefined
+                      );
+                      updateProductCondition(
+                        idx,
+                        'min_quantity',
+                        parseFloat(productConditionForm.at_least) || 0
+                      );
+                      updateProductCondition(
+                        idx,
+                        'unit',
+                        productConditionForm.unit
+                      );
+                      setSelectedProductConditionIndex(null);
+                      resetProductConditionForm();
+                      setValidationErrors({});
+                    }
+                  }}
+                  disabled={selectedProductConditionIndex === null}
+                >
+                  Update
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={addProductCondition}
+                >
+                  New
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    if (selectedProductConditionIndex !== null) {
+                      removeProductCondition(selectedProductConditionIndex);
+                      setSelectedProductConditionIndex(null);
+                      resetProductConditionForm();
+                    }
+                  }}
+                  disabled={selectedProductConditionIndex === null}
+                >
+                  Del
+                </Button>
+              </Box>
+            </Box>
+          </Paper>
+
+          <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
+            <Typography
+              variant="h6"
+              className="!font-semibold !text-gray-900 !mb-2 !text-base"
+            >
+              GIFT <span className="!text-gray-500">({giftRows.length})</span>
+            </Typography>
+            <Box>
+              <Typography className="!mb-1 !text-xs !font-medium">
+                Type
+              </Typography>
+              <RadioGroup
+                value={selectedGiftType}
+                onChange={e => {
+                  const newType = e.target.value;
+                  setSelectedGiftType(newType);
+                  if (newType === 'Percent' && discAmount) {
+                    const numValue = parseFloat(discAmount);
+                    if (!isNaN(numValue) && numValue > 100) {
+                      setDiscAmountError(
+                        'Percent value cannot be more than 100'
+                      );
+                    } else {
+                      setDiscAmountError('');
+                    }
+                  } else {
+                    setDiscAmountError('');
+                  }
+                }}
+                row
+              >
+                {GIFT_TYPES.map(type => (
+                  <FormControlLabel
+                    key={type}
+                    value={type}
+                    control={<Radio />}
+                    label={type}
+                  />
+                ))}
+              </RadioGroup>
+            </Box>
+            {giftRows.length > 0 && (
+              <Box className="!mb-4">
+                <Table
+                  data={giftRows.map((row, idx) => ({
+                    id: idx,
+                    type: row.type,
+                    application: row.application,
+                    gift: row.gift,
+                    _index: idx,
+                  }))}
+                  columns={[
+                    {
+                      id: 'type',
+                      label: 'Type',
+                    },
+                    {
+                      id: 'application',
+                      label: 'Application',
+                    },
+                    {
+                      id: 'gift',
+                      label: 'Gift',
+                      render: (_value, row) => {
+                        const giftRow = giftRows[row._index];
+                        return giftRow.product_name
+                          ? `${giftRow.benefit_value || ''} ${giftRow.product_name}`
+                          : giftRow.gift;
+                      },
+                    },
+                    {
+                      id: 'actions',
+                      label: 'Actions',
+                      render: (_value, row) => (
+                        <Box className="!flex !gap-2">
+                          <EditButton
+                            onClick={() => {
+                              const giftRow = giftRows[row._index];
+                              setSelectedGiftIndex(row._index);
+                              setDiscAmount(
+                                giftRow.benefit_value?.toString() || ''
+                              );
+                              setMaximumAmount(
+                                giftRow.gift_limit?.toString() || ''
+                              );
+                              setGiftApplication(
+                                giftRow.application || 'n. Prod. Gr.'
+                              );
+                              if (giftRow.type === 'Free Product') {
+                                setGiftName(
+                                  giftRow.product_id?.toString() || ''
+                                );
+                                setGiftNameDisplay(giftRow.product_name || '');
+                                setGiftProductTab(0);
+                              } else {
+                                setGiftName(
+                                  giftRow.product_id?.toString() || ''
+                                );
+                                setGiftNameDisplay(giftRow.product_name || '');
+                                setGiftProductTab(1);
+                              }
+                              setSelectedGiftType(giftRow.type);
+                            }}
+                            tooltip="Edit gift"
+                            size="small"
+                          />
+                          <DeleteButton
+                            onClick={() => removeGiftRow(row._index)}
+                            tooltip="Delete gift"
+                            size="small"
+                          />
+                        </Box>
+                      ),
+                    },
+                  ]}
+                  pagination={false}
+                  sortable={false}
+                  compact={true}
+                />
+              </Box>
+            )}
+
+            <Box className="!space-y-4 !mt-2">
+              <Box className="!grid !grid-cols-2 !gap-4">
+                <Box>
+                  <Input
+                    label={`Disc. (${selectedGiftType})`}
+                    type="number"
+                    value={discAmount}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setDiscAmount(value);
+                      if (selectedGiftType === 'Percent') {
+                        const numValue = parseFloat(value);
+                        if (value && !isNaN(numValue) && numValue > 100) {
+                          setDiscAmountError(
+                            'Percent value cannot be more than 100'
+                          );
+                        } else {
+                          setDiscAmountError('');
+                        }
+                      } else {
+                        setDiscAmountError('');
+                      }
+                    }}
+                    fullWidth
+                    size="small"
+                    error={!!discAmountError}
+                  />
+                  {discAmountError && (
+                    <Typography
+                      variant="caption"
+                      className="!text-red-500 !mt-1 !block"
+                    >
+                      {discAmountError}
+                    </Typography>
+                  )}
+                </Box>{' '}
+                {(selectedGiftType === 'Amount' ||
+                  selectedGiftType === 'Percent') && (
+                  <Input
+                    label="Maximum Amount"
+                    type="number"
+                    value={maximumAmount}
+                    onChange={e => setMaximumAmount(e.target.value)}
+                    fullWidth
+                    size="small"
+                  />
+                )}
+              </Box>
+              <Box className="rounded border border-gray-400/50">
+                <Tabs
+                  value={giftProductTab}
+                  onChange={(_, newValue) => {
+                    setGiftProductTab(newValue);
+                    setGiftName('');
+                  }}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  className="!min-h-9.5"
+                >
+                  <Tab label="Product" className="!min-h-9.5" />
+                  <Tab label="Product Category" className="!min-h-9.5" />
+                </Tabs>
+              </Box>
+              {giftProductTab === 0 ? (
+                <Select
+                  label="Product"
+                  value={giftName}
+                  onChange={e => {
+                    const selectedId = e.target.value;
+                    setGiftName(selectedId);
+                    const selectedProduct = products.find(
+                      (p: any) => p.id.toString() === selectedId
+                    );
+                    setGiftNameDisplay(selectedProduct?.name || '');
+                  }}
+                  fullWidth
+                  size="small"
+                >
+                  <MenuItem value="">Select...</MenuItem>
+                  {products.map((product: any) => (
+                    <MenuItem key={product.id} value={product.id.toString()}>
+                      {product.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              ) : (
+                <Select
+                  label="Product Category"
+                  value={giftName}
+                  onChange={e => {
+                    const selectedId = e.target.value;
+                    setGiftName(selectedId);
+                    const selectedCategory = productCategories.find(
+                      (c: any) => c.id.toString() === selectedId
+                    );
+                    setGiftNameDisplay(selectedCategory?.category_name || '');
+                  }}
+                  fullWidth
+                  size="small"
+                >
+                  <MenuItem value="">Select...</MenuItem>
+                  {productCategories.map((category: any) => (
+                    <MenuItem key={category.id} value={category.id.toString()}>
+                      {category.category_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              )}
+
+              <Box className="!flex !gap-2">
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    if (!giftName) {
+                      setValidationErrors({
+                        ...validationErrors,
+                        gift_update:
+                          'Product or Product Category must be selected',
+                      });
+                      setTimeout(() => {
+                        errorAlertRef.current?.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start',
+                        });
+                      }, 100);
+                      return;
+                    }
+                    if (!discAmount || parseFloat(discAmount) <= 0) {
+                      setValidationErrors({
+                        ...validationErrors,
+                        gift_disc_update:
+                          'Discount value must be greater than 0',
+                      });
+                      setTimeout(() => {
+                        errorAlertRef.current?.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start',
+                        });
+                      }, 100);
+                      return;
+                    }
+                    if (selectedGiftType === 'Percent') {
+                      const numValue = parseFloat(discAmount);
+                      if (!isNaN(numValue) && numValue > 100) {
+                        setDiscAmountError(
+                          'Percent value cannot be more than 100'
+                        );
+                        setValidationErrors({
+                          ...validationErrors,
+                          gift_disc_update:
+                            'Percent value cannot be more than 100',
+                        });
+                        setTimeout(() => {
+                          errorAlertRef.current?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start',
+                          });
+                        }, 100);
+                        return;
+                      }
+                    }
+                    if (selectedGiftIndex !== null && giftName) {
+                      updateGiftRow(
+                        selectedGiftIndex,
+                        'type',
+                        selectedGiftType
+                      );
+                      updateGiftRow(
+                        selectedGiftIndex,
+                        'application',
+                        giftApplication
+                      );
+                      updateGiftRow(
+                        selectedGiftIndex,
+                        'gift',
+                        discAmount ? `${discAmount} ${giftNameDisplay}` : ''
+                      );
+                      updateGiftRow(
+                        selectedGiftIndex,
+                        'product_id',
+                        parseInt(giftName)
+                      );
+                      updateGiftRow(
+                        selectedGiftIndex,
+                        'product_name',
+                        giftNameDisplay
+                      );
+                      updateGiftRow(
+                        selectedGiftIndex,
+                        'benefit_value',
+                        parseFloat(discAmount) || 0
+                      );
+                      updateGiftRow(
+                        selectedGiftIndex,
+                        'gift_limit',
+                        parseFloat(maximumAmount) || 0
+                      );
+                      setSelectedGiftIndex(null);
+                      setDiscAmount('');
+                      setMaximumAmount('');
+                      setGiftName('');
+                      setGiftNameDisplay('');
+                      setGiftApplication('n. Prod. Gr.');
+                      setDiscAmountError('');
+                      setValidationErrors({});
+                    }
+                  }}
+                  disabled={!!discAmountError || selectedGiftIndex === null}
+                >
+                  Update
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    if (!giftName) {
+                      setValidationErrors({
+                        ...validationErrors,
+                        gift_new:
+                          'Product or Product Category must be selected',
+                      });
+                      setTimeout(() => {
+                        errorAlertRef.current?.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start',
+                        });
+                      }, 100);
+                      return;
+                    }
+                    if (!discAmount || parseFloat(discAmount) <= 0) {
+                      setValidationErrors({
+                        ...validationErrors,
+                        gift_disc_new: 'Discount value must be greater than 0',
+                      });
+                      setTimeout(() => {
+                        errorAlertRef.current?.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'start',
+                        });
+                      }, 100);
+                      return;
+                    }
+                    if (selectedGiftType === 'Percent') {
+                      const numValue = parseFloat(discAmount);
+                      if (!isNaN(numValue) && numValue > 100) {
+                        setDiscAmountError(
+                          'Percent value cannot be more than 100'
+                        );
+                        setValidationErrors({
+                          ...validationErrors,
+                          gift_disc_new:
+                            'Percent value cannot be more than 100',
+                        });
+                        setTimeout(() => {
+                          errorAlertRef.current?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start',
+                          });
+                        }, 100);
+                        return;
+                      }
+                    }
+                    const newRow: GiftRow = {
+                      _index: giftRows.length,
+                      type: selectedGiftType,
+                      application: giftApplication,
+                      gift: discAmount
+                        ? `${discAmount} ${giftNameDisplay || ''}`
+                        : '',
+                      product_id: giftName ? parseInt(giftName) : undefined,
+                      product_name: giftNameDisplay,
+                      benefit_value: parseFloat(discAmount) || 0,
+                      gift_limit: parseFloat(maximumAmount) || 0,
+                    };
+                    setGiftRows([...giftRows, newRow]);
+                    setDiscAmount('');
+                    setMaximumAmount('');
+                    setGiftName('');
+                    setGiftNameDisplay('');
+                    setGiftApplication('n. Prod. Gr.');
+                    setDiscAmountError('');
+                    setSelectedGiftIndex(null);
+                    setValidationErrors({});
+                  }}
+                  disabled={!!discAmountError}
+                >
+                  New
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    if (giftRows.length > 0) {
+                      removeGiftRow(giftRows.length - 1);
+                      setDiscAmount('');
+                      setMaximumAmount('');
+                      setGiftName('');
+                      setGiftApplication('n. Prod. Gr.');
+                      setSelectedGiftIndex(null);
+                    }
+                  }}
+                  disabled={giftRows.length === 0}
+                >
+                  Del
+                </Button>
+              </Box>
+            </Box>
+          </Paper>
+          <Box className="!mt-2 !flex !gap-2 !justify-end !col-span-2">
+            <Button
+              type="button"
+              variant="outlined"
+              size="medium"
+              onClick={handleCancel}
+            >
+              Cancel
             </Button>
             <Button
+              type="submit"
               variant="contained"
-              onClick={() => setDescriptionDialogOpen(false)}
+              size="medium"
+              disabled={
+                createPromotionMutation.isPending ||
+                updatePromotionMutation.isPending
+              }
             >
               Save
             </Button>
           </Box>
-        </DialogContent>
-      </Dialog>
-    </>
+        </form>
+      </Box>
+    </CustomDrawer>
   );
 };
 
