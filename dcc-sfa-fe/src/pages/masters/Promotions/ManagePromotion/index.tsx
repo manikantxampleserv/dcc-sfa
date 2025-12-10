@@ -50,6 +50,7 @@ interface ProductCondition {
   product_group?: string;
   min_quantity?: number;
   unit?: string;
+  type?: string;
 }
 
 interface OutletRow {
@@ -84,7 +85,7 @@ interface GiftRow {
   gift_limit?: number;
 }
 
-const QUANTITY_TYPES = ['Quantity', 'Price', 'Weight'];
+const QUANTITY_TYPES = ['Price', 'Quantity'];
 const GIFT_TYPES = ['Free Product', 'Percent', 'Amount'];
 const PAY_TYPES = ['Cash', 'Credit', 'Both'];
 const SCOPE_TYPES = ['(B) Distributor Channel', '(C) Customer Channel'];
@@ -161,18 +162,28 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
 
   const [selectedProductConditionIndex, setSelectedProductConditionIndex] =
     useState<number | null>(null);
+  const [conditionProductTab, setConditionProductTab] = useState(0);
+  const [selectedConditionType, setSelectedConditionType] =
+    useState<string>('Price');
+
   const [giftProductTab, setGiftProductTab] = useState(0);
   const [giftName, setGiftName] = useState('');
   const [giftNameDisplay, setGiftNameDisplay] = useState('');
   const [giftApplication, setGiftApplication] = useState('n. Prod. Gr.');
   const [discAmount, setDiscAmount] = useState('');
   const [maximumAmount, setMaximumAmount] = useState('');
-  const [selectedGiftType, setSelectedGiftType] = useState<string>('Amount');
+  const [selectedGiftType, setSelectedGiftType] =
+    useState<string>('Free Product');
   const [discAmountError, setDiscAmountError] = useState<string>('');
   const [selectedGiftIndex, setSelectedGiftIndex] = useState<number | null>(
     null
   );
-  const [productConditionForm, setProductConditionForm] = useState({
+  const [productConditionForm, setProductConditionForm] = useState<{
+    group: string;
+    product: string;
+    at_least: string;
+    unit?: string;
+  }>({
     group: '',
     product: '',
     at_least: '',
@@ -213,6 +224,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
             product_group: conditionProduct.product_group || undefined,
             min_quantity: Number(conditionProduct.condition_quantity) || 0,
             unit: 'unit',
+            type: condition.quantity_type || 'Quantity',
           });
         }
       });
@@ -417,6 +429,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       at_least: '',
       unit: 'unit',
     });
+    setSelectedConditionType('Price');
+    setConditionProductTab(0);
   };
 
   const handleCancel = () => {
@@ -433,6 +447,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     setGiftNameDisplay('');
     setGiftApplication('n. Prod. Gr.');
     setDiscAmountError('');
+    setSelectedConditionType('Price');
+    setConditionProductTab(0);
     resetProductConditionForm();
   };
 
@@ -460,7 +476,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       group: '',
       dist_comp_participation_min: '0',
       dist_comp_participation_max: '100',
-      quantity_type: 'Quantity',
+      quantity_type: 'Price',
       description: selectedPromotion?.description || '',
       is_active: selectedPromotion?.is_active || 'Y',
     },
@@ -500,6 +516,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               product_group: c.product_group || undefined,
               min_quantity: c.min_quantity || 0,
               min_value: c.min_quantity || 0,
+              quantity_type: c.type || 'Quantity',
             };
           });
 
@@ -644,15 +661,14 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
         ? parseInt(productConditionForm.product)
         : undefined,
       min_quantity: parseFloat(productConditionForm.at_least) || 0,
-      unit: productConditionForm.unit,
+      unit:
+        selectedConditionType === 'Quantity'
+          ? productConditionForm.unit
+          : undefined,
+      type: selectedConditionType,
     };
     setProductConditions([...productConditions, newCondition]);
-    setProductConditionForm({
-      group: '',
-      product: '',
-      at_least: '',
-      unit: 'unit',
-    });
+    resetProductConditionForm();
     setValidationErrors({});
   };
 
@@ -690,7 +706,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
         open={drawerOpen}
         setOpen={handleCancel}
         title={isEdit ? 'Edit Promotion' : 'Create Promotion'}
-        fullWidth={true}
+        size="extra-large"
       >
         <Box className="!p-4">
           <Box className="!grid !grid-cols-2 !gap-3">
@@ -1007,7 +1023,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Promotion' : 'Create Promotion'}
-      fullWidth={true}
+      size="extra-large"
     >
       <Box className="!p-4">
         {Object.keys(validationErrors).length > 0 && (
@@ -1371,22 +1387,33 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
             <Typography
               variant="h6"
-              className="!font-semibold !text-gray-900 !text-base"
+              className="!font-semibold !text-gray-900 !mb-2 !text-base"
             >
               Promotion Product Condition{' '}
               <span className="!text-gray-500">
                 ({productConditions.length || 0})
               </span>
             </Typography>
+
             <Box className="!mb-2">
               <Typography className="!mb-1 !text-xs !font-medium">
-                Quantity Type
+                Type
               </Typography>
               <RadioGroup
-                value={formik.values.quantity_type}
-                onChange={e =>
-                  formik.setFieldValue('quantity_type', e.target.value)
-                }
+                value={selectedConditionType}
+                onChange={e => {
+                  const newType = e.target.value;
+                  setSelectedConditionType(newType);
+                  setProductConditionForm({
+                    ...productConditionForm,
+                    product: '',
+                    group: '',
+                    unit:
+                      newType === 'Price'
+                        ? undefined
+                        : productConditionForm.unit || 'unit',
+                  });
+                }}
                 row
               >
                 {QUANTITY_TYPES.map(type => (
@@ -1401,23 +1428,26 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
             </Box>
 
             {productConditions.length > 0 && (
-              <Box className="!mb-2">
+              <Box className="!mb-4">
                 <Table
                   data={productConditions.map((condition, idx) => ({
                     id: condition._index,
+                    type: condition.type || 'Quantity',
                     product_group:
                       condition.product_group ||
                       (condition.product_id
                         ? products.find(p => p.id === condition.product_id)
                             ?.name || '-'
                         : '-'),
-                    type: condition.product_id ? 'Product' : 'Product Category',
-                    at_least: `${condition.min_quantity || 0} ${condition.unit || 'unit'}`,
+                    at_least:
+                      condition.type === 'Price'
+                        ? `${condition.min_quantity || 0}`
+                        : `${condition.min_quantity || 0} ${condition.unit || 'unit'}`,
                     _index: idx,
                   }))}
                   columns={[
-                    { id: 'product_group', label: 'Product/Category' },
                     { id: 'type', label: 'Type' },
+                    { id: 'product_group', label: 'Product/Category' },
                     { id: 'at_least', label: 'At least' },
                     {
                       id: 'actions',
@@ -1433,8 +1463,19 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                                 product: condition.product_id?.toString() || '',
                                 at_least:
                                   condition.min_quantity?.toString() || '',
-                                unit: condition.unit || 'unit',
+                                unit:
+                                  condition.type === 'Price'
+                                    ? undefined
+                                    : condition.unit || 'unit',
                               });
+                              setSelectedConditionType(
+                                condition.type || 'Quantity'
+                              );
+                              if (condition.product_id) {
+                                setConditionProductTab(0);
+                              } else if (condition.product_group) {
+                                setConditionProductTab(1);
+                              }
                             }}
                             tooltip="Edit condition"
                             size="small"
@@ -1454,21 +1495,76 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 />
               </Box>
             )}
-            <Box className="!space-y-2 !mt-2">
+
+            <Box className="!space-y-4 !mt-2">
               <Box className="!grid !grid-cols-2 !gap-4">
+                <Input
+                  type="number"
+                  value={productConditionForm.at_least || ''}
+                  onChange={e =>
+                    setProductConditionForm({
+                      ...productConditionForm,
+                      at_least: e.target.value,
+                    })
+                  }
+                  label={`At least (${selectedConditionType === 'Quantity' ? 'Quantity' : 'Price'})`}
+                  size="small"
+                  fullWidth={true}
+                />
+                {selectedConditionType === 'Quantity' && (
+                  <Select
+                    value={productConditionForm.unit}
+                    onChange={e =>
+                      setProductConditionForm({
+                        ...productConditionForm,
+                        unit: e.target.value,
+                      })
+                    }
+                    size="small"
+                    fullWidth={true}
+                  >
+                    <MenuItem value="unit">unit</MenuItem>
+                    {units.map((unit: any) => (
+                      <MenuItem key={unit.id} value={unit.name}>
+                        {unit.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                )}
+              </Box>
+              <Box className="rounded border border-gray-400/50">
+                <Tabs
+                  value={conditionProductTab}
+                  onChange={(_, newValue) => {
+                    setConditionProductTab(newValue);
+                    setProductConditionForm({
+                      ...productConditionForm,
+                      product: '',
+                      group: '',
+                    });
+                  }}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  className="!min-h-9.5"
+                >
+                  <Tab label="Product" className="!min-h-9.5" />
+                  <Tab label="Product Category" className="!min-h-9.5" />
+                </Tabs>
+              </Box>
+              {conditionProductTab === 0 ? (
                 <Select
+                  label="Product"
                   value={productConditionForm.product}
                   onChange={e => {
                     const selectedProduct = e.target.value;
                     setProductConditionForm({
                       ...productConditionForm,
                       product: selectedProduct,
-                      group: selectedProduct ? '' : productConditionForm.group,
+                      group: '',
                     });
                   }}
-                  label="Product"
-                  size="small"
                   fullWidth
+                  size="small"
                 >
                   <MenuItem value="">Select...</MenuItem>
                   {products.map((product: any) => (
@@ -1477,21 +1573,20 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                     </MenuItem>
                   ))}
                 </Select>
+              ) : (
                 <Select
+                  label="Product Category"
                   value={productConditionForm.group}
                   onChange={e => {
                     const selectedCategory = e.target.value;
                     setProductConditionForm({
                       ...productConditionForm,
                       group: selectedCategory,
-                      product: selectedCategory
-                        ? ''
-                        : productConditionForm.product,
+                      product: '',
                     });
                   }}
-                  label="Product Category"
-                  size="small"
                   fullWidth
+                  size="small"
                 >
                   <MenuItem value="">Select...</MenuItem>
                   {productCategories.map((category: any) => (
@@ -1500,39 +1595,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                     </MenuItem>
                   ))}
                 </Select>
+              )}
 
-                <Input
-                  type="number"
-                  value={productConditionForm.at_least}
-                  onChange={e =>
-                    setProductConditionForm({
-                      ...productConditionForm,
-                      at_least: e.target.value,
-                    })
-                  }
-                  label="At least"
-                  size="small"
-                  fullWidth={true}
-                />
-                <Select
-                  value={productConditionForm.unit}
-                  onChange={e =>
-                    setProductConditionForm({
-                      ...productConditionForm,
-                      unit: e.target.value,
-                    })
-                  }
-                  size="small"
-                  fullWidth={true}
-                >
-                  <MenuItem value="unit">unit</MenuItem>
-                  {units.map((unit: any) => (
-                    <MenuItem key={unit.id} value={unit.name}>
-                      {unit.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </Box>
               <Box className="!flex !gap-2">
                 <Button
                   type="button"
@@ -1561,7 +1625,14 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       updateProductCondition(
                         idx,
                         'unit',
-                        productConditionForm.unit
+                        selectedConditionType === 'Quantity'
+                          ? productConditionForm.unit
+                          : undefined
+                      );
+                      updateProductCondition(
+                        idx,
+                        'type',
+                        selectedConditionType
                       );
                       setSelectedProductConditionIndex(null);
                       resetProductConditionForm();
@@ -1606,7 +1677,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
             >
               GIFT <span className="!text-gray-500">({giftRows.length})</span>
             </Typography>
-            <Box>
+            <Box className="!mb-2">
               <Typography className="!mb-1 !text-xs !font-medium">
                 Type
               </Typography>
@@ -1725,9 +1796,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               <Box className="!grid !grid-cols-2 !gap-4">
                 <Box>
                   <Input
-                    label={`Disc. (${selectedGiftType})`}
+                    label={`${selectedGiftType === 'Free Product' ? 'Discount (Amount)' : 'Discount (Percent)'}`}
                     type="number"
-                    value={discAmount}
+                    value={discAmount || ''}
                     onChange={e => {
                       const value = e.target.value;
                       setDiscAmount(value);
@@ -1757,8 +1828,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                     </Typography>
                   )}
                 </Box>{' '}
-                {(selectedGiftType === 'Amount' ||
-                  selectedGiftType === 'Percent') && (
+                {selectedGiftType === 'Percent' && (
                   <Input
                     label="Maximum Amount"
                     type="number"
@@ -2017,22 +2087,25 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   variant="outlined"
                   size="small"
                   onClick={() => {
-                    if (giftRows.length > 0) {
-                      removeGiftRow(giftRows.length - 1);
+                    if (selectedGiftIndex !== null) {
+                      removeGiftRow(selectedGiftIndex);
+                      setSelectedGiftIndex(null);
                       setDiscAmount('');
                       setMaximumAmount('');
                       setGiftName('');
+                      setGiftNameDisplay('');
                       setGiftApplication('n. Prod. Gr.');
-                      setSelectedGiftIndex(null);
+                      setDiscAmountError('');
                     }
                   }}
-                  disabled={giftRows.length === 0}
+                  disabled={selectedGiftIndex === null}
                 >
                   Del
                 </Button>
               </Box>
             </Box>
           </Paper>
+
           <Box className="!mt-2 !flex !gap-2 !justify-end !col-span-2">
             <Button
               type="button"

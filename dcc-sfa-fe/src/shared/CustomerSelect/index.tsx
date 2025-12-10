@@ -1,4 +1,10 @@
-import { Autocomplete, CircularProgress, TextField } from '@mui/material';
+import {
+  Autocomplete,
+  CircularProgress,
+  TextField,
+  Box,
+  Typography,
+} from '@mui/material';
 import type { FormikProps } from 'formik';
 import { useCustomersDropdown } from 'hooks/useCustomers';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -227,21 +233,31 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
   }, [normalizedValue]);
 
   const customers: Customer[] = React.useMemo(() => {
-    if (!selectedCustomer && !normalizedValue) return searchResults;
+    const allCustomers: Customer[] = [];
 
     if (selectedCustomer) {
       const isSelectedInResults = searchResults.some(
         customer => customer.id === selectedCustomer.id
       );
 
-      if (isSelectedInResults) {
-        return searchResults;
+      if (!isSelectedInResults) {
+        allCustomers.push(selectedCustomer);
       }
-
-      return [selectedCustomer, ...searchResults];
     }
 
-    return searchResults;
+    const seenIds = new Set<number>();
+    if (selectedCustomer) {
+      seenIds.add(selectedCustomer.id);
+    }
+
+    searchResults.forEach(customer => {
+      if (!seenIds.has(customer.id)) {
+        allCustomers.push(customer);
+        seenIds.add(customer.id);
+      }
+    });
+
+    return allCustomers;
   }, [searchResults, selectedCustomer, normalizedValue]);
 
   const error = formik?.touched?.[name] && formik?.errors?.[name];
@@ -304,6 +320,11 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       size="small"
       fullWidth={fullWidth}
       filterOptions={options => options}
+      renderOption={(props, option: Customer) => (
+        <Box component="li" {...props} key={option.id}>
+          <Typography>{option.name}</Typography>
+        </Box>
+      )}
       renderInput={(params: any) => (
         <TextField
           {...params}

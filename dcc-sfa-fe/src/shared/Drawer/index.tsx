@@ -42,7 +42,13 @@
  */
 
 import CloseIcon from '@mui/icons-material/Close';
-import { Box, IconButton, Drawer as MuiDrawer } from '@mui/material';
+import {
+  Box,
+  IconButton,
+  Drawer as MuiDrawer,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import * as React from 'react';
 
 interface DrawerProps {
@@ -54,7 +60,7 @@ interface DrawerProps {
   title: string;
   /** Content to be rendered inside the drawer */
   children: React.ReactNode;
-  /** Custom width in pixels (overrides size prop) */
+  /** Custom width in percentage (overrides size prop) */
   width?: number;
   /** Predefined size options (default: 'medium') */
   size?: 'small' | 'medium' | 'large' | 'larger' | 'extra-large';
@@ -67,28 +73,27 @@ interface DrawerProps {
 /**
  * Calculates the drawer width based on size or custom width
  * @param size - Predefined size option
- * @param customWidth - Custom width in pixels (takes priority over size)
- * @returns Width in pixels
+ * @param customWidth - Custom width in percentage (takes priority over size)
+ * @returns Width in percentage
  */
 const getDrawerWidth = (
   size?: 'small' | 'medium' | 'large' | 'larger' | 'extra-large',
   customWidth?: number
 ): number => {
   if (customWidth) return customWidth;
-
   switch (size) {
     case 'small':
-      return 320;
+      return 30;
     case 'medium':
-      return 580;
+      return 45;
     case 'large':
-      return 740;
+      return 60;
     case 'larger':
-      return 840;
+      return 75;
     case 'extra-large':
-      return 1040;
+      return 85;
     default:
-      return 400;
+      return 40;
   }
 };
 
@@ -102,10 +107,18 @@ const Drawer: React.FC<DrawerProps> = ({
   anchor = 'right',
   fullWidth = false,
 }) => {
-  const drawerWidth = getDrawerWidth(size, width);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const drawerWidthPercent = getDrawerWidth(size, width);
 
   const handleClose = () => {
     setOpen(false);
+  };
+
+  const getWidth = () => {
+    if (fullWidth) return '100%';
+    if (isMobile) return '100%';
+    return `${drawerWidthPercent}%`;
   };
 
   return (
@@ -115,7 +128,7 @@ const Drawer: React.FC<DrawerProps> = ({
       onClose={handleClose}
       slotProps={{
         paper: {
-          style: { width: fullWidth ? '100%' : drawerWidth },
+          style: { width: getWidth() },
         },
       }}
     >

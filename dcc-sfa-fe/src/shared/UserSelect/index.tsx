@@ -1,4 +1,10 @@
-import { Autocomplete, CircularProgress, TextField } from '@mui/material';
+import {
+  Autocomplete,
+  CircularProgress,
+  TextField,
+  Box,
+  Typography,
+} from '@mui/material';
 import type { FormikProps } from 'formik';
 import { useUsersDropdown } from 'hooks/useUsers';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -226,21 +232,31 @@ const UserSelect: React.FC<UserSelectProps> = ({
   }, [normalizedValue]);
 
   const users: User[] = React.useMemo(() => {
-    if (!selectedUser && !normalizedValue) return searchResults;
+    const allUsers: User[] = [];
 
     if (selectedUser) {
       const isSelectedInResults = searchResults.some(
         user => user.id === selectedUser.id
       );
 
-      if (isSelectedInResults) {
-        return searchResults;
+      if (!isSelectedInResults) {
+        allUsers.push(selectedUser);
       }
-
-      return [selectedUser, ...searchResults];
     }
 
-    return searchResults;
+    const seenIds = new Set<number>();
+    if (selectedUser) {
+      seenIds.add(selectedUser.id);
+    }
+
+    searchResults.forEach(user => {
+      if (!seenIds.has(user.id)) {
+        allUsers.push(user);
+        seenIds.add(user.id);
+      }
+    });
+
+    return allUsers;
   }, [searchResults, selectedUser, normalizedValue]);
 
   const error = formik?.touched?.[name] && formik?.errors?.[name];
@@ -304,6 +320,11 @@ const UserSelect: React.FC<UserSelectProps> = ({
       fullWidth={fullWidth}
       className={className}
       filterOptions={options => options}
+      renderOption={(props, option: User) => (
+        <Box component="li" {...props} key={option.id}>
+          <Typography>{option.name}</Typography>
+        </Box>
+      )}
       renderInput={(params: any) => (
         <TextField
           {...params}

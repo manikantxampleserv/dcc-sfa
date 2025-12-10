@@ -4,7 +4,7 @@ import { useCurrencies } from 'hooks/useCurrencies';
 import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
 import { useProducts } from 'hooks/useProducts';
 import { Package, Plus } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { orderValidationSchema } from 'schemas/order.schema';
 import type { Order } from 'services/masters/Orders';
 import { DeleteButton } from 'shared/ActionButton';
@@ -34,6 +34,8 @@ interface OrderItemFormData {
 const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const isEdit = !!order;
   const [orderItems, setOrderItems] = useState<OrderItemFormData[]>([]);
+  const initializedRef = useRef<number | null>(null);
+  const syncedRef = useRef<string>('');
 
   const { data: productsResponse } = useProducts({ limit: 1000 });
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
@@ -122,8 +124,30 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     },
   });
 
-  React.useEffect(() => {
-    if (order && orderResponse?.data) {
+  const orderKey = React.useMemo(
+    () =>
+      open && order?.id ? `order-${order.id}` : open ? 'new-order' : 'closed',
+    [open, order?.id]
+  );
+
+  useEffect(() => {
+    if (!open) {
+      if (initializedRef.current !== null) {
+        initializedRef.current = null;
+        syncedRef.current = '';
+      }
+      return;
+    }
+
+    const orderId = order?.id;
+    const responseId = orderResponse?.data?.id;
+    const hasOrderData = orderId && responseId && orderResponse?.data;
+
+    if (
+      hasOrderData &&
+      initializedRef.current !== orderId &&
+      orderResponse.data
+    ) {
       const items =
         orderResponse.data.order_items?.map(item => ({
           product_id: item.product_id,
@@ -133,13 +157,40 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           tax_amount: (item.tax_amount || 0).toString(),
           notes: item.notes || '',
         })) || [];
-      setOrderItems(items);
-      formik.setFieldValue('order_items', items);
-    } else {
+
+      const itemsStr = JSON.stringify(items);
+
+      if (syncedRef.current !== itemsStr) {
+        initializedRef.current = orderId;
+        syncedRef.current = itemsStr;
+        setOrderItems(items);
+      }
+    } else if (!hasOrderData && initializedRef.current !== null && !orderId) {
+      initializedRef.current = null;
+      syncedRef.current = '';
       setOrderItems([]);
-      formik.setFieldValue('order_items', []);
     }
-  }, [order, orderResponse]);
+  }, [orderKey, orderResponse?.data?.id]);
+
+  const orderItemsStr = React.useMemo(
+    () => JSON.stringify(orderItems),
+    [orderItems]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+
+    const currentFormikItems = formik.values.order_items || [];
+    const formikItemsStr = JSON.stringify(currentFormikItems);
+
+    if (orderItemsStr !== formikItemsStr) {
+      const lastSynced = syncedRef.current;
+      if (lastSynced !== orderItemsStr) {
+        formik.setFieldValue('order_items', orderItems, false);
+        syncedRef.current = orderItemsStr;
+      }
+    }
+  }, [open, orderItemsStr]);
 
   const addOrderItem = () => {
     const newItem: OrderItemFormData = {

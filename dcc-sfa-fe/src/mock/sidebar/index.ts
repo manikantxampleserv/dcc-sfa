@@ -194,11 +194,6 @@ const menuItems: MenuItem[] = [
             label: 'Promotions',
             href: '/masters/promotions',
           },
-          {
-            id: 'updated-promotions',
-            label: 'Updated Promotions',
-            href: '/masters/updated-promotions',
-          },
         ],
       },
     ],
