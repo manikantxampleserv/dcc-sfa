@@ -17,11 +17,14 @@ interface PromotionCreateInput {
     product_group?: string;
     min_quantity?: number;
     min_value?: number;
+    quantity_type?: string;
   }>;
   location_areas?: number[];
   routes?: number[];
+  zones?: number[];
   customer_exclusions?: number[];
   outlet1_groups?: number[];
+  salespersons?: number[];
   levels?: Array<{
     level_number?: number;
     threshold_value?: number;
@@ -51,11 +54,14 @@ interface PromotionUpdateInput {
     product_group?: string;
     min_quantity?: number;
     min_value?: number;
+    quantity_type?: string;
   }>;
   location_areas?: number[];
   routes?: number[];
+  zones?: number[];
   customer_exclusions?: number[];
   outlet1_groups?: number[];
+  salespersons?: number[];
   levels?: Array<{
     level_number?: number;
     threshold_value?: number;
@@ -110,6 +116,7 @@ const serializePromotion = (promo: any) => {
     depots: promo.promotion_depot_promotions,
     salespersons: promo.promotion_salesperson_promotions,
     routes: promo.promotion_routes_promotions,
+    zones: promo.promotion_zones_promotions,
     customer_categories: promo.promotion_customer_category_promotions,
     customer_exclusions: promo.promotion_customer_exclusion_promotions,
     conditions: promo.promotion_condition_promotions,
@@ -190,7 +197,11 @@ export const promotionsNewController = {
           const condition = await prisma.promotion_condition.create({
             data: {
               parent_id: promotionId,
-              condition_type: input.quantity_type || 'QUANTITY',
+              condition_type: (
+                conditionInput.quantity_type ||
+                input.quantity_type ||
+                'QUANTITY'
+              ).toUpperCase(),
               applies_to_type: conditionInput.product_group
                 ? 'PRODUCTGROUP'
                 : conditionInput.category_id
@@ -325,6 +336,32 @@ export const promotionsNewController = {
         }
       }
 
+      const salespersons = input.salespersons || [];
+      if (salespersons.length > 0) {
+        for (const salespersonId of salespersons) {
+          await prisma.promotion_salesperson.create({
+            data: {
+              parent_id: promotionId,
+              salesperson_id: salespersonId,
+              is_active: 'Y',
+            },
+          });
+        }
+      }
+
+      const zones = input.zones || [];
+      if (zones.length > 0) {
+        for (const zoneId of zones) {
+          await prisma.promotion_zones.create({
+            data: {
+              parent_id: promotionId,
+              zone_id: zoneId,
+              is_active: 'Y',
+            },
+          });
+        }
+      }
+
       await prisma.promotion_tracking.create({
         data: {
           parent_id: promotionId,
@@ -351,6 +388,10 @@ export const promotionsNewController = {
           promotion_routes_promotions: {
             where: { is_active: 'Y' },
             include: { promotion_route: true },
+          },
+          promotion_zones_promotions: {
+            where: { is_active: 'Y' },
+            include: { promotion_zones_zones: true },
           },
           promotion_customer_category_promotions: {
             where: { is_active: 'Y' },
@@ -517,6 +558,14 @@ export const promotionsNewController = {
               promotion_route: { select: { id: true, name: true, code: true } },
             },
           },
+          promotion_zones_promotions: {
+            where: { is_active: 'Y' },
+            include: {
+              promotion_zones_zones: {
+                select: { id: true, name: true, code: true },
+              },
+            },
+          },
           promotion_customer_category_promotions: {
             where: { is_active: 'Y' },
             include: {
@@ -600,6 +649,10 @@ export const promotionsNewController = {
           promotion_routes_promotions: {
             where: { is_active: 'Y' },
             include: { promotion_route: true },
+          },
+          promotion_zones_promotions: {
+            where: { is_active: 'Y' },
+            include: { promotion_zones_zones: true },
           },
           promotion_customer_category_promotions: {
             where: { is_active: 'Y' },
@@ -746,6 +799,25 @@ export const promotionsNewController = {
         }
       }
 
+      const zones = input.zones;
+      if (zones !== undefined) {
+        await prisma.promotion_zones.updateMany({
+          where: { parent_id: Number(id) },
+          data: { is_active: 'N' },
+        });
+        if (Array.isArray(zones) && zones.length > 0) {
+          for (const zoneId of zones) {
+            await prisma.promotion_zones.create({
+              data: {
+                parent_id: Number(id),
+                zone_id: zoneId,
+                is_active: 'Y',
+              },
+            });
+          }
+        }
+      }
+
       const customerExclusions = input.customer_exclusions;
       if (customerExclusions !== undefined) {
         await prisma.promotion_customer_exclusion.deleteMany({
@@ -789,6 +861,25 @@ export const promotionsNewController = {
         }
       }
 
+      const salespersons = input.salespersons;
+      if (salespersons !== undefined) {
+        await prisma.promotion_salesperson.updateMany({
+          where: { parent_id: Number(id) },
+          data: { is_active: 'N' },
+        });
+        if (Array.isArray(salespersons) && salespersons.length > 0) {
+          for (const salespersonId of salespersons) {
+            await prisma.promotion_salesperson.create({
+              data: {
+                parent_id: Number(id),
+                salesperson_id: salespersonId,
+                is_active: 'Y',
+              },
+            });
+          }
+        }
+      }
+
       const productConditions = input.product_conditions;
       if (productConditions !== undefined) {
         await prisma.promotion_condition.updateMany({
@@ -818,7 +909,11 @@ export const promotionsNewController = {
             const condition = await prisma.promotion_condition.create({
               data: {
                 parent_id: Number(id),
-                condition_type: input.quantity_type || 'QUANTITY',
+                condition_type: (
+                  conditionInput.quantity_type ||
+                  input.quantity_type ||
+                  'QUANTITY'
+                ).toUpperCase(),
                 applies_to_type: conditionInput.product_group
                   ? 'PRODUCTGROUP'
                   : conditionInput.category_id
@@ -933,6 +1028,10 @@ export const promotionsNewController = {
           promotion_routes_promotions: {
             where: { is_active: 'Y' },
             include: { promotion_route: true },
+          },
+          promotion_zones_promotions: {
+            where: { is_active: 'Y' },
+            include: { promotion_zones_zones: true },
           },
           promotion_customer_category_promotions: {
             where: { is_active: 'Y' },

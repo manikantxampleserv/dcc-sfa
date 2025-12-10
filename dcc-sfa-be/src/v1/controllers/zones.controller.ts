@@ -56,8 +56,11 @@ const serializeZone = (zone: any): ZoneSerialized => ({
   updatedate: zone.updatedate,
   updatedby: zone.updatedby,
   log_inst: zone.log_inst,
-  promotions: zone.promotion_zones
-    ? zone.promotion_zones.map((p: any) => ({ id: p.id, name: p.name }))
+  promotions: zone.promotion_zones_zones
+    ? zone.promotion_zones_zones.map((pz: any) => ({
+        id: pz.parent_id,
+        name: pz.promotion_zones_promotions?.name || '',
+      }))
     : [],
 
   routes_zones: zone.routes_zones
@@ -97,6 +100,13 @@ export const zonesController = {
           createdate: new Date(),
         },
         include: {
+          promotion_zones_zones: {
+            include: {
+              promotion_zones_promotions: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           routes_zones: true,
           user_zones: true,
           zone_depots: true,
@@ -136,7 +146,13 @@ export const zonesController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          promotion_zones: true,
+          promotion_zones_zones: {
+            include: {
+              promotion_zones_promotions: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           routes_zones: true,
           user_zones: true,
           zone_depots: true,
@@ -186,7 +202,13 @@ export const zonesController = {
       const zone = await prisma.zones.findUnique({
         where: { id: Number(id) },
         include: {
-          promotion_zones: true,
+          promotion_zones_zones: {
+            include: {
+              promotion_zones_promotions: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           routes_zones: true,
           user_zones: true,
           zone_depots: true,
@@ -227,7 +249,13 @@ export const zonesController = {
         where: { id: Number(id) },
         data,
         include: {
-          promotion_zones: true,
+          promotion_zones_zones: {
+            include: {
+              promotion_zones_promotions: {
+                select: { id: true, name: true },
+              },
+            },
+          },
           routes_zones: true,
           user_zones: true,
           zone_depots: true,

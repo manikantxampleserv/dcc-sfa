@@ -216,7 +216,6 @@ model depots {
   depots_supervisior           users?                  @relation("DeportsSupervisior", fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   inventory_stock_depots       inventory_stock[]
   promotion_depot              promotion_depot[]
-  promotion_depots             promotions[]
   routes_depots                routes[]
   serial_numbers               serial_numbers[]
   user_depot                   users[]
@@ -1391,14 +1390,12 @@ model promotions {
   start_date                              DateTime
   end_date                                DateTime
   depot_id                                Int?
-  zone_id                                 Int?
   is_active                               String                         @default("Y") @db.Char(1)
   createdate                              DateTime?                      @default(now(), map: "DF__promotion__creat__5B78929E") @db.DateTime
   createdby                               Int
   updatedate                              DateTime?                      @db.DateTime
   updatedby                               Int?
   log_inst                                Int?
-  promotion_zones                         zones?                         @relation("ZonePromotions", fields: [zone_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotion_customer_types                promotion_customer_types[]
   promotion_parameters_promotions         promotion_parameters[]
   products_promotion_products             promotion_products[]
@@ -1410,10 +1407,10 @@ model promotions {
   promotion_depot_promotions              promotion_depot[]
   promotion_level_promotions              promotion_level[]
   promotion_routes_promotions             promotion_routes[]
+  promotion_zones_promotions              promotion_zones[]
   promotion_salesperson_promotions        promotion_salesperson[]
   promotion_tracking_promotions           promotion_tracking[]
-  depots                                  depots?                        @relation(fields: [depotsId], references: [id])
-  depotsId                                Int?
+
 }
 
 model refund_lines {
@@ -2053,7 +2050,7 @@ model zones {
   routes_zones            routes[]
   user_zones              users[]
   visit_zones             visits[]             @relation("VisitZones")
-  promotion_zones         promotions[]         @relation("ZonePromotions")
+  promotion_zones_zones   promotion_zones[]
   zone_depots             depots?              @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
@@ -2223,13 +2220,6 @@ model promotion {
   updatedate                              DateTime?                      @db.DateTime
   updatedby                               Int?
   log_inst                                Int?
-  promotion_customer_category_promotions  promotion_customer_category[]
-  promotion_customer_exclusion_promotions promotion_customer_exclusion[]
-  promotion_depot_promotions              promotion_depot[]
-  promotion_level_promotions              promotion_level[]
-  promotion_routes_promotions             promotion_routes[]
-  promotion_salesperson_promotions        promotion_salesperson[]
-  promotion_tracking_promotions           promotion_tracking[]
 }
 
 model promotion_benefit {
@@ -2302,9 +2292,7 @@ model promotion_customer_category {
   updatedby                              Int?
   log_inst                               Int?
   promotion_customer_categorys           customer_category @relation(fields: [customer_category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion_customer_category_promotions promotions        @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion                              promotion?        @relation(fields: [promotionId], references: [id])
-  promotionId                            Int?
+  promotion_customer_category_promotions promotions        @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)  
 }
 
 model promotion_customer_exclusion {
@@ -2314,8 +2302,6 @@ model promotion_customer_exclusion {
   is_excluded                             String     @db.Char(1)
   promotion_customer_exclusion_promotions promotions @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   promotion_customer_exclusion_customers  customers  @relation(fields: [customer_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion                               promotion? @relation(fields: [promotionId], references: [id])
-  promotionId                             Int?
 }
 
 model promotion_depot {
@@ -2325,8 +2311,6 @@ model promotion_depot {
   is_active                  String     @db.Char(1)
   depots                     depots     @relation(fields: [depot_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   promotion_depot_promotions promotions @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion                  promotion? @relation(fields: [promotionId], references: [id])
-  promotionId                Int?
 }
 
 model promotion_level {
@@ -2344,8 +2328,6 @@ model promotion_level {
   log_inst                   Int?
   promotion_benefit_level    promotion_benefit[]
   promotion_level_promotions promotions          @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion                  promotion?          @relation(fields: [promotionId], references: [id])
-  promotionId                Int?
 }
 
 model promotion_routes {
@@ -2355,8 +2337,15 @@ model promotion_routes {
   is_active                   String     @db.Char(1)
   promotion_routes_promotions promotions @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   promotion_route             routes     @relation(fields: [route_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  promotion                   promotion? @relation(fields: [promotionId], references: [id])
-  promotionId                 Int?
+}
+
+model promotion_zones {
+  id                          Int        @id @default(autoincrement())
+  parent_id                   Int
+  zone_id                     Int
+  is_active                   String     @db.Char(1)
+  promotion_zones_promotions  promotions @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  promotion_zones_zones       zones      @relation(fields: [zone_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model promotion_salesperson {
@@ -2366,8 +2355,6 @@ model promotion_salesperson {
   is_active                        String     @db.Char(1)
   promotion_salesperson_promotions promotions @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__promotion__paren__078CEA5D")
   promotion_salesperson_users      users      @relation(fields: [salesperson_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion                        promotion? @relation(fields: [promotionId], references: [id])
-  promotionId                      Int?
 }
 
 model promotion_tracking {
@@ -2380,8 +2367,6 @@ model promotion_tracking {
   is_active                     String     @db.Char(1)
   promotion_tracking_promotions promotions @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
   promotion_tracking_users      users      @relation(fields: [user_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  promotion                     promotion? @relation(fields: [promotionId], references: [id])
-  promotionId                   Int?
 }
 
 model depot_price_overrides {

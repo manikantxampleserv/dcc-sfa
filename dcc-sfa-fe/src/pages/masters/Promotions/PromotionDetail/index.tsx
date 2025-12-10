@@ -448,7 +448,7 @@ const PromotionDetail: React.FC = () => {
                 <Tab icon={<Info />} label="Overview" iconPosition="start" />
                 <Tab
                   icon={<People />}
-                  label={`Eligibility (${(promotion.depots?.length || 0) + (promotion.salespersons?.length || 0) + (promotion.routes?.length || 0)})`}
+                  label={`Eligibility (${(promotion.depots?.length || 0) + (promotion.salespersons?.length || 0) + (promotion.routes?.length || 0) + (promotion.zones?.length || 0)})`}
                   iconPosition="start"
                 />
                 <Tab
@@ -606,6 +606,31 @@ const PromotionDetail: React.FC = () => {
 
                 <Paper className="!p-4 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
                   <Typography variant="h6" className="!font-semibold !mb-3">
+                    Zones ({promotion.zones?.length || 0})
+                  </Typography>
+                  {promotion.zones && promotion.zones.length > 0 ? (
+                    <Table
+                      data={promotion.zones.map((zone: any) => ({
+                        id: zone.id,
+                        name: zone.promotion_zones_zones?.name || 'N/A',
+                        code: zone.promotion_zones_zones?.code || 'N/A',
+                      }))}
+                      columns={[
+                        { id: 'name', label: 'Zone Name' },
+                        { id: 'code', label: 'Code' },
+                      ]}
+                      pagination={false}
+                      sortable={false}
+                    />
+                  ) : (
+                    <Typography variant="body2" className="!text-gray-500">
+                      No zones assigned
+                    </Typography>
+                  )}
+                </Paper>
+
+                <Paper className="!p-4 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
+                  <Typography variant="h6" className="!font-semibold !mb-3">
                     Customer Categories (
                     {promotion.customer_categories?.length || 0})
                   </Typography>
@@ -680,7 +705,7 @@ const PromotionDetail: React.FC = () => {
                             variant="body2"
                             className="!font-semibold"
                           >
-                            {condition.condition_type}
+                            {formatLabel(condition.condition_type)}
                           </Typography>
                         </div>
                         <div>
@@ -694,7 +719,7 @@ const PromotionDetail: React.FC = () => {
                             variant="body2"
                             className="!font-semibold"
                           >
-                            {condition.applies_to_type}
+                            {formatLabel(condition.applies_to_type)}
                           </Typography>
                         </div>
                         <div>
@@ -718,17 +743,21 @@ const PromotionDetail: React.FC = () => {
                           data={condition.promotion_condition_products.map(
                             (product: any) => ({
                               id: product.id,
-                              product_id: product.product_id,
-                              category_id: product.category_id,
-                              product_group: product.product_group || 'N/A',
-                              quantity: product.condition_quantity,
+                              type: formatLabel(condition.condition_type),
+                              product_group:
+                                product.product_group ||
+                                (product.product_id
+                                  ? `Product ID: ${product.product_id}`
+                                  : product.category_id
+                                    ? `Category ID: ${product.category_id}`
+                                    : 'N/A'),
+                              at_least: product.condition_quantity,
                             })
                           )}
                           columns={[
-                            { id: 'product_id', label: 'Product ID' },
-                            { id: 'category_id', label: 'Category ID' },
-                            { id: 'product_group', label: 'Product Group' },
-                            { id: 'quantity', label: 'Quantity' },
+                            { id: 'type', label: 'Type' },
+                            { id: 'product_group', label: 'Product/Category' },
+                            { id: 'at_least', label: 'At least' },
                           ]}
                           pagination={false}
                           sortable={false}

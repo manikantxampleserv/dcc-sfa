@@ -17,6 +17,7 @@ import { useCustomers } from 'hooks/useCustomers';
 import { useDepots } from 'hooks/useDepots';
 import { useProductCategories } from 'hooks/useProductCategories';
 import { useProducts } from 'hooks/useProducts';
+import { useUsers } from 'hooks/useUsers';
 import {
   useCreatePromotion,
   usePromotion,
@@ -26,7 +27,7 @@ import {
 import { useRoutes } from 'hooks/useRoutes';
 import { useUnitOfMeasurement } from 'hooks/useUnitOfMeasurement';
 import { useZones } from 'hooks/useZones';
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -137,9 +138,13 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const { data: routesResponse } = useRoutes({ limit: 1000 });
   const routes = routesResponse?.data || [];
 
+  const { data: usersResponse } = useUsers({ limit: 1000 });
+  const users = usersResponse?.data || [];
+
   const { data: productCategoriesResponse } = useProductCategories({
     limit: 1000,
   });
+
   const productCategories = productCategoriesResponse?.data || [];
 
   const { data: unitsResponse } = useUnitOfMeasurement({ limit: 1000 });
@@ -157,6 +162,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const [selectedDepots, setSelectedDepots] = useState<number[]>([]);
   const [selectedZones, setSelectedZones] = useState<number[]>([]);
   const [selectedRoutes, setSelectedRoutes] = useState<number[]>([]);
+  const [selectedSalesPersons, setSelectedSalesPersons] = useState<number[]>(
+    []
+  );
   const [selectedOutlets, setSelectedOutlets] = useState<number[]>([]);
   const [locationSearch, setLocationSearch] = useState('');
 
@@ -224,7 +232,12 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
             product_group: conditionProduct.product_group || undefined,
             min_quantity: Number(conditionProduct.condition_quantity) || 0,
             unit: 'unit',
-            type: condition.quantity_type || 'Quantity',
+            type:
+              condition.condition_type === 'PRICE'
+                ? 'Price'
+                : condition.condition_type === 'QUANTITY'
+                  ? 'Quantity'
+                  : 'Quantity',
           });
         }
       });
@@ -263,6 +276,34 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       const prevStr = prev.sort().join(',');
       const newStr = loadedRouteIds.sort().join(',');
       return prevStr !== newStr ? loadedRouteIds : prev;
+    });
+
+    const loadedSalespersonIds: number[] = [];
+    if (promotion.salespersons && Array.isArray(promotion.salespersons)) {
+      promotion.salespersons.forEach((salesperson: any) => {
+        if (salesperson.salesperson_id) {
+          loadedSalespersonIds.push(salesperson.salesperson_id);
+        }
+      });
+    }
+    setSelectedSalesPersons(prev => {
+      const prevStr = prev.sort().join(',');
+      const newStr = loadedSalespersonIds.sort().join(',');
+      return prevStr !== newStr ? loadedSalespersonIds : prev;
+    });
+
+    const loadedZoneIds: number[] = [];
+    if (promotion.zones && Array.isArray(promotion.zones)) {
+      promotion.zones.forEach((zone: any) => {
+        if (zone.zone_id) {
+          loadedZoneIds.push(zone.zone_id);
+        }
+      });
+    }
+    setSelectedZones(prev => {
+      const prevStr = prev.sort().join(',');
+      const newStr = loadedZoneIds.sort().join(',');
+      return prevStr !== newStr ? loadedZoneIds : prev;
     });
 
     if (
@@ -364,64 +405,6 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     }
   }, [promotionDetailResponse?.data?.id, isEdit]);
 
-  const routesMap = useMemo(() => {
-    const map = new Map<number, number>();
-    routes.forEach((route: any) => {
-      if (route.id && route.parent_id) {
-        map.set(route.id, route.parent_id);
-      }
-    });
-    return map;
-  }, [routes]);
-
-  const promotionRouteIds = useMemo(() => {
-    if (!promotionDetailResponse?.data?.routes) return '';
-    return promotionDetailResponse.data.routes
-      .map((r: any) => r.route_id)
-      .filter(Boolean)
-      .sort()
-      .join(',');
-  }, [promotionDetailResponse?.data?.routes]);
-
-  useEffect(() => {
-    if (
-      !promotionDetailResponse?.data ||
-      !isEdit ||
-      routesMap.size === 0 ||
-      !promotionDetailResponse.data.routes ||
-      !promotionRouteIds
-    ) {
-      return;
-    }
-
-    const promotion = promotionDetailResponse.data;
-
-    if (promotion.routes && Array.isArray(promotion.routes)) {
-      const loadedZoneIds: number[] = [];
-      promotion.routes.forEach((route: any) => {
-        if (route.route_id) {
-          const zoneId = routesMap.get(route.route_id);
-          if (zoneId && !loadedZoneIds.includes(zoneId)) {
-            loadedZoneIds.push(zoneId);
-          }
-        }
-      });
-      setSelectedZones(prevZones => {
-        const prevIds = [...prevZones].sort().join(',');
-        const newIds = [...loadedZoneIds].sort().join(',');
-        if (prevIds !== newIds) {
-          return loadedZoneIds;
-        }
-        return prevZones;
-      });
-    }
-  }, [
-    promotionDetailResponse?.data?.id,
-    promotionRouteIds,
-    isEdit,
-    routes.length,
-  ]);
-
   const resetProductConditionForm = () => {
     setProductConditionForm({
       group: '',
@@ -457,8 +440,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       name: selectedPromotion?.name || '',
       short_name: selectedPromotion?.name || '',
       code: selectedPromotion?.code || '',
-      pay_type: '',
-      scope: '',
+      pay_type: 'Cash',
+      scope: '(B) Distributor Channel',
       slip_type: 'All',
       mandatory: false,
       prom_conflict: 'Normal',
@@ -499,6 +482,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
         const locationAreas = allDepotIds.length > 0 ? allDepotIds : undefined;
         const outletGroups = getUniqueIds(outletRows, 'group');
         const routes = selectedRoutes.length > 0 ? selectedRoutes : undefined;
+        const zones = selectedZones.length > 0 ? selectedZones : undefined;
+        const salespersons =
+          selectedSalesPersons.length > 0 ? selectedSalesPersons : undefined;
         const customerExclusions =
           selectedOutlets.length > 0 ? selectedOutlets : undefined;
 
@@ -516,7 +502,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               product_group: c.product_group || undefined,
               min_quantity: c.min_quantity || 0,
               min_value: c.min_quantity || 0,
-              quantity_type: c.type || 'Quantity',
+              quantity_type: (c.type || 'Quantity').toUpperCase(),
             };
           });
 
@@ -524,7 +510,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           .filter(g => g.product_id)
           .map(g => ({
             benefit_type:
-              g.type === 'Free Product' ? 'FREE_PRODUCT' : 'PERCENT',
+              g.type === 'Free Product'
+                ? 'FREE_PRODUCT'
+                : g.type === 'Percent'
+                  ? 'PERCENT'
+                  : 'AMOUNT',
             product_id: g.product_id,
             benefit_value: g.benefit_value || 0,
             condition_type: g.application || undefined,
@@ -537,13 +527,15 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           start_date: values.start_date,
           end_date: values.finish_date,
           platforms: ['Mobile'],
-          quantity_type: values.quantity_type || 'QUANTITY',
+          quantity_type: (values.quantity_type || 'QUANTITY').toUpperCase(),
           product_conditions:
             productConditionsData.length > 0
               ? productConditionsData
               : undefined,
           location_areas: locationAreas,
           routes: routes,
+          zones: zones,
+          salespersons: salespersons,
           customer_exclusions: customerExclusions,
           outlet1_groups: outletGroups.length > 0 ? outletGroups : undefined,
           levels:
@@ -573,6 +565,10 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           const updateOutletGroups = getUniqueIds(outletRows, 'group');
           const updateRoutes =
             selectedRoutes.length > 0 ? selectedRoutes : undefined;
+          const updateZones =
+            selectedZones.length > 0 ? selectedZones : undefined;
+          const updateSalespersons =
+            selectedSalesPersons.length > 0 ? selectedSalesPersons : undefined;
           const updateCustomerExclusions =
             selectedOutlets.length > 0 ? selectedOutlets : undefined;
 
@@ -585,13 +581,15 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               description: values.description || undefined,
               is_active: values.is_active,
               platforms: ['Mobile'],
-              quantity_type: values.quantity_type || 'QUANTITY',
+              quantity_type: (values.quantity_type || 'QUANTITY').toUpperCase(),
               product_conditions:
                 productConditionsData.length > 0
                   ? productConditionsData
                   : undefined,
               location_areas: updateLocationAreas,
               routes: updateRoutes,
+              zones: updateZones,
+              salespersons: updateSalespersons,
               customer_exclusions: updateCustomerExclusions,
               outlet1_groups:
                 updateOutletGroups.length > 0 ? updateOutletGroups : undefined,
@@ -617,6 +615,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
         setSelectedDepots([]);
         setSelectedZones([]);
         setSelectedRoutes([]);
+        setSelectedSalesPersons([]);
         setSelectedOutlets([]);
       } catch (error) {
         console.error('Error saving promotion:', error);
@@ -1208,6 +1207,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   label={`Routes ${selectedRoutes.length > 0 ? `(${selectedRoutes.length})` : ''}`}
                   className="!min-h-9.5"
                 />
+
+                <Tab
+                  label={`Sales Persons ${selectedSalesPersons.length > 0 ? `(${selectedSalesPersons.length})` : ''}`}
+                  className="!min-h-9.5"
+                />
                 <Tab
                   label={`Outlet ${selectedOutlets.length > 0 ? `(${selectedOutlets.length})` : ''}`}
                   className="!min-h-9.5"
@@ -1218,7 +1222,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               <SearchInput
                 value={locationSearch}
                 onChange={setLocationSearch}
-                placeholder={`Search ${locationTab === 0 ? 'Depots' : locationTab === 1 ? 'Zones' : locationTab === 2 ? 'Routes' : 'Outlets'}...`}
+                placeholder={`Search ${locationTab === 0 ? 'Depots' : locationTab === 1 ? 'Zones' : locationTab === 2 ? 'Routes' : locationTab === 3 ? 'Sales Persons' : 'Outlets'}...`}
                 fullWidth
                 size="small"
                 debounceMs={0}
@@ -1340,6 +1344,48 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 </>
               )}
               {locationTab === 3 && (
+                <>
+                  {users
+                    .filter((user: any) =>
+                      locationSearch
+                        ? user.name
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase()) ||
+                          user.email
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase())
+                        : true
+                    )
+                    .map((user: any) => (
+                      <FormControlLabel
+                        key={user.id}
+                        control={
+                          <Checkbox
+                            checked={selectedSalesPersons.includes(user.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedSalesPersons([
+                                  ...selectedSalesPersons,
+                                  user.id,
+                                ]);
+                              } else {
+                                setSelectedSalesPersons(
+                                  selectedSalesPersons.filter(
+                                    id => id !== user.id
+                                  )
+                                );
+                              }
+                            }}
+                            size="small"
+                          />
+                        }
+                        label={`${user.name} ${user.email ? `(${user.email})` : ''}`}
+                        className="!block"
+                      />
+                    ))}
+                </>
+              )}
+              {locationTab === 4 && (
                 <>
                   {customers
                     .filter((customer: any) =>

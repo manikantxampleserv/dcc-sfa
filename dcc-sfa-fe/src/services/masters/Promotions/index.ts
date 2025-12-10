@@ -1,7 +1,7 @@
 import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
-interface Promotion {
+export interface Promotion {
   id: number;
   name: string;
   code: string;
@@ -22,6 +22,11 @@ interface Promotion {
   }>;
   salespersons?: Array<{ id: number; salesperson_id: number }>;
   routes?: Array<{ id: number; route_id: number }>;
+  zones?: Array<{
+    id: number;
+    zone_id: number;
+    promotion_zones_zones?: { id: number; name: string; code: string };
+  }>;
   customer_categories?: Array<{ id: number; customer_category_id: number }>;
   customer_exclusions?: Array<{
     id: number;
@@ -81,6 +86,8 @@ interface CreatePromotionPayload {
   }>;
   location_areas?: number[];
   routes?: number[];
+  zones?: number[];
+  salespersons?: number[];
   customer_exclusions?: number[];
   distributor_distributors?: number[];
   seller_data?: number[];
@@ -118,6 +125,8 @@ interface UpdatePromotionPayload {
   }>;
   location_areas?: number[];
   routes?: number[];
+  zones?: number[];
+  salespersons?: number[];
   customer_exclusions?: number[];
   distributor_distributors?: number[];
   seller_data?: number[];
@@ -567,5 +576,4 @@ export type {
   UpdatePromotionPayload,
   PaginationMeta,
   PromotionStats,
-  Promotion,
 };
