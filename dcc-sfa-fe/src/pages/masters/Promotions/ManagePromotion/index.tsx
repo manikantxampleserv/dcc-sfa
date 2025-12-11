@@ -409,7 +409,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     setProductConditionForm({
       group: '',
       product: '',
-      at_least: '',
+      at_least: '0',
       unit: 'unit',
     });
     setSelectedConditionType('Price');
@@ -2115,8 +2115,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       gift_limit: parseFloat(maximumAmount) || 0,
                     };
                     setGiftRows([...giftRows, newRow]);
-                    setDiscAmount('');
-                    setMaximumAmount('');
+                    setDiscAmount('0');
+                    setMaximumAmount('0');
                     setGiftName('');
                     setGiftNameDisplay('');
                     setGiftApplication('n. Prod. Gr.');
@@ -2136,8 +2136,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                     if (selectedGiftIndex !== null) {
                       removeGiftRow(selectedGiftIndex);
                       setSelectedGiftIndex(null);
-                      setDiscAmount('');
-                      setMaximumAmount('');
+                      setDiscAmount('0');
+                      setMaximumAmount('0');
                       setGiftName('');
                       setGiftNameDisplay('');
                       setGiftApplication('n. Prod. Gr.');
