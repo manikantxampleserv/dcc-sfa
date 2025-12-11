@@ -15,11 +15,14 @@ import {
   deleteProduct,
   fetchProductById,
   fetchProducts,
+  fetchProductsDropdown,
   updateProduct,
   type GetProductsParams,
+  type GetProductsDropdownParams,
   type ManageProductPayload,
   type UpdateProductPayload,
   type Product,
+  type ProductDropdown,
 } from '../services/masters/Products';
 import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
@@ -131,7 +134,6 @@ export const useDeleteProduct = (options?: {
     mutationFn: deleteProduct,
     loadingMessage: 'Deleting product...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch products list
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
       options?.onSuccess?.(data, variables);
     },
@@ -139,9 +141,32 @@ export const useDeleteProduct = (options?: {
   });
 };
 
+/**
+ * Hook to fetch products for dropdowns (id, name, code only) with search support
+ * @param params - Query parameters for search and product_id
+ * @param options - React Query options
+ * @returns Query result with products data
+ */
+export const useProductsDropdown = (
+  params?: GetProductsDropdownParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<ProductDropdown[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: ['products', 'dropdown', params],
+    queryFn: () => fetchProductsDropdown(params),
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
 export type {
   GetProductsParams,
+  GetProductsDropdownParams,
   ManageProductPayload,
   UpdateProductPayload,
   Product,
+  ProductDropdown,
 };

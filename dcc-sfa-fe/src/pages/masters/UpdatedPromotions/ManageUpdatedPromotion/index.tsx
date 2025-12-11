@@ -30,6 +30,8 @@ import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductCategorySelect from 'shared/ProductCategorySelect';
+import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 import Table from 'shared/Table';
 import * as Yup from 'yup';
@@ -740,21 +742,14 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
                   </MenuItem>
                 ))}
               </Select>
-              <Select
+              <ProductCategorySelect
                 value={locationForm.group}
-                onChange={e =>
-                  setLocationForm({ ...locationForm, group: e.target.value })
+                onChange={(_event, category) =>
+                  setLocationForm({ ...locationForm, group: category ? category.id.toString() : '' })
                 }
                 label="Group"
                 fullWidth
-              >
-                <MenuItem value="">Select Group</MenuItem>
-                {productCategories.map((category: any) => (
-                  <MenuItem key={category.id} value={category.id.toString()}>
-                    {category.category_name}
-                  </MenuItem>
-                ))}
-              </Select>
+              />
               <Select
                 value={locationForm.distributor_id}
                 onChange={e =>
@@ -1275,45 +1270,32 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
             )}
             <Box className="!space-y-2 !mt-2">
               <Box className="!grid !grid-cols-2 !gap-2">
-                <Select
-                  value={productConditionForm.group}
-                  onChange={e =>
+                <ProductCategorySelect
+                  value={productConditionForm.group ? productCategories.find((c: any) => c.category_name === productConditionForm.group)?.id.toString() : ''}
+                  nameToSearch={productConditionForm.group || ''}
+                  onChange={(_event, category) =>
                     setProductConditionForm({
                       ...productConditionForm,
-                      group: e.target.value,
+                      group: category ? category.category_name : '',
                     })
                   }
                   label="Group"
                   size="small"
                   fullWidth
-                >
-                  <MenuItem value="">Select...</MenuItem>
-                  {products.map((product: any) => (
-                    <MenuItem key={product.id} value={product.name}>
-                      {product.name}
-                    </MenuItem>
-                  ))}
-                </Select>
+                />
 
-                <Select
+                <ProductSelect
                   value={productConditionForm.product}
-                  onChange={e =>
+                  onChange={(_event, product) =>
                     setProductConditionForm({
                       ...productConditionForm,
-                      product: e.target.value,
+                      product: product ? product.id.toString() : '',
                     })
                   }
                   label="Product"
                   size="small"
                   fullWidth
-                >
-                  <MenuItem value="">Select...</MenuItem>
-                  {products.map((product: any) => (
-                    <MenuItem key={product.id} value={product.id.toString()}>
-                      {product.name}
-                    </MenuItem>
-                  ))}
-                </Select>
+                />
 
                 <Box className="!flex !gap-2">
                   <Input
@@ -1591,20 +1573,13 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
                 fullWidth
                 size="small"
               />
-              <Select
+              <ProductSelect
                 label="Name"
                 value={giftName}
-                onChange={e => setGiftName(e.target.value)}
+                onChange={(_event, product) => setGiftName(product ? product.id.toString() : '')}
                 fullWidth
                 size="small"
-              >
-                <MenuItem value="">Select...</MenuItem>
-                {products.map((product: any) => (
-                  <MenuItem key={product.id} value={product.id.toString()}>
-                    {product.name}
-                  </MenuItem>
-                ))}
-              </Select>
+              />
               <FormControlLabel
                 control={
                   <Checkbox

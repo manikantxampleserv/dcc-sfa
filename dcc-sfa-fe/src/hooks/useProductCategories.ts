@@ -8,12 +8,15 @@
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { useApiMutation } from './useApiMutation';
 import * as productCategoriesService from '../services/masters/ProductCategories';
+import type { ApiResponse } from '../types/api.types';
 
 export type {
   ProductCategory,
   ManageProductCategoryPayload,
   UpdateProductCategoryPayload,
   GetProductCategoriesParams,
+  ProductCategoryDropdown,
+  GetProductCategoriesDropdownParams,
 } from '../services/masters/ProductCategories';
 
 /**
@@ -108,5 +111,26 @@ export const useDeleteProductCategory = () => {
     mutationFn: productCategoriesService.deleteProductCategory,
     invalidateQueries: ['product-categories'],
     loadingMessage: 'Deleting product category...',
+  });
+};
+
+/**
+ * Hook to fetch product categories for dropdowns (id, category_name only) with search support
+ * @param params - Query parameters for search and category_id
+ * @param options - React Query options
+ * @returns Query result with product categories data
+ */
+export const useProductCategoriesDropdown = (
+  params?: productCategoriesService.GetProductCategoriesDropdownParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<productCategoriesService.ProductCategoryDropdown[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: ['product-categories', 'dropdown', params],
+    queryFn: () => productCategoriesService.fetchProductCategoriesDropdown(params),
+    staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };

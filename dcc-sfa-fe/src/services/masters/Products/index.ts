@@ -170,6 +170,28 @@ export const deleteProduct = async (id: number): Promise<ApiResponse<void>> => {
   return response.data;
 };
 
+export interface ProductDropdown {
+  id: number;
+  name: string;
+  code: string;
+}
+
+export interface GetProductsDropdownParams {
+  search?: string;
+  product_id?: number;
+}
+
+export const fetchProductsDropdown = async (
+  params?: GetProductsDropdownParams
+): Promise<ApiResponse<ProductDropdown[]>> => {
+  try {
+    const response = await axiosInstance.get('/products-dropdown', { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export default {
   fetchProducts,
   fetchProductById,

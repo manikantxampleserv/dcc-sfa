@@ -207,4 +207,50 @@ export const productCategoriesController = {
       res.status(500).json({ message: error.message });
     }
   },
+
+  async getProductCategoriesDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', category_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const categoryId = category_id ? Number(category_id) : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (categoryId) {
+        where.id = categoryId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            category_name: {
+              contains: searchLower,
+            },
+          },
+          {
+            description: {
+              contains: searchLower,
+            },
+          },
+        ];
+      }
+
+      const categories = await prisma.product_categories.findMany({
+        where,
+        select: {
+          id: true,
+          category_name: true,
+        },
+        orderBy: {
+          category_name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success('Product categories dropdown fetched successfully', categories, 200);
+    } catch (error: any) {
+      console.error('Error fetching product categories dropdown:', error);
+      res.error(error.message);
+    }
+  },
 };

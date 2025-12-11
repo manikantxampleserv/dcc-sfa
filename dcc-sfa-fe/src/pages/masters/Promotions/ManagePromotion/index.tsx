@@ -32,6 +32,8 @@ import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductCategorySelect from 'shared/ProductCategorySelect';
+import ProductSelect from 'shared/ProductSelect';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table from 'shared/Table';
@@ -1228,7 +1230,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 debounceMs={0}
               />
             </Box>
-            <Box className="!max-h-64 !overflow-y-auto !border !border-gray-200 !rounded !p-2">
+            <Box className="!max-h-64 !overflow-y-auto !border !border-gray-200 !rounded !pl-4 !p-2">
               {locationTab === 0 && (
                 <>
                   {depots
@@ -1598,11 +1600,11 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 </Tabs>
               </Box>
               {conditionProductTab === 0 ? (
-                <Select
+                <ProductSelect
                   label="Product"
                   value={productConditionForm.product}
-                  onChange={e => {
-                    const selectedProduct = e.target.value;
+                  onChange={(_event, product) => {
+                    const selectedProduct = product ? product.id.toString() : '';
                     setProductConditionForm({
                       ...productConditionForm,
                       product: selectedProduct,
@@ -1611,36 +1613,23 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   }}
                   fullWidth
                   size="small"
-                >
-                  <MenuItem value="">Select...</MenuItem>
-                  {products.map((product: any) => (
-                    <MenuItem key={product.id} value={product.id.toString()}>
-                      {product.name}
-                    </MenuItem>
-                  ))}
-                </Select>
+                />
               ) : (
-                <Select
+                <ProductCategorySelect
                   label="Product Category"
-                  value={productConditionForm.group}
-                  onChange={e => {
-                    const selectedCategory = e.target.value;
+                  value={productConditionForm.group ? productCategories.find((c: any) => c.category_name === productConditionForm.group)?.id.toString() : ''}
+                  nameToSearch={productConditionForm.group || ''}
+                  onChange={(_event, category) => {
+                    const selectedCategoryName = category ? category.category_name : '';
                     setProductConditionForm({
                       ...productConditionForm,
-                      group: selectedCategory,
+                      group: selectedCategoryName,
                       product: '',
                     });
                   }}
                   fullWidth
                   size="small"
-                >
-                  <MenuItem value="">Select...</MenuItem>
-                  {productCategories.map((category: any) => (
-                    <MenuItem key={category.id} value={category.category_name}>
-                      {category.category_name}
-                    </MenuItem>
-                  ))}
-                </Select>
+                />
               )}
 
               <Box className="!flex !gap-2">
@@ -1901,49 +1890,29 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 </Tabs>
               </Box>
               {giftProductTab === 0 ? (
-                <Select
+                <ProductSelect
                   label="Product"
                   value={giftName}
-                  onChange={e => {
-                    const selectedId = e.target.value;
+                  onChange={(_event, product) => {
+                    const selectedId = product ? product.id.toString() : '';
                     setGiftName(selectedId);
-                    const selectedProduct = products.find(
-                      (p: any) => p.id.toString() === selectedId
-                    );
-                    setGiftNameDisplay(selectedProduct?.name || '');
+                    setGiftNameDisplay(product?.name || '');
                   }}
                   fullWidth
                   size="small"
-                >
-                  <MenuItem value="">Select...</MenuItem>
-                  {products.map((product: any) => (
-                    <MenuItem key={product.id} value={product.id.toString()}>
-                      {product.name}
-                    </MenuItem>
-                  ))}
-                </Select>
+                />
               ) : (
-                <Select
+                <ProductCategorySelect
                   label="Product Category"
                   value={giftName}
-                  onChange={e => {
-                    const selectedId = e.target.value;
+                  onChange={(_event, category) => {
+                    const selectedId = category ? category.id.toString() : '';
                     setGiftName(selectedId);
-                    const selectedCategory = productCategories.find(
-                      (c: any) => c.id.toString() === selectedId
-                    );
-                    setGiftNameDisplay(selectedCategory?.category_name || '');
+                    setGiftNameDisplay(category?.category_name || '');
                   }}
                   fullWidth
                   size="small"
-                >
-                  <MenuItem value="">Select...</MenuItem>
-                  {productCategories.map((category: any) => (
-                    <MenuItem key={category.id} value={category.id.toString()}>
-                      {category.category_name}
-                    </MenuItem>
-                  ))}
-                </Select>
+                />
               )}
 
               <Box className="!flex !gap-2">

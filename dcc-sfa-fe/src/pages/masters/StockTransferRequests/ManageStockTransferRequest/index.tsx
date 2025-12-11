@@ -15,6 +15,7 @@ import { DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 
@@ -170,21 +171,15 @@ const ManageStockTransferRequest: React.FC<ManageStockTransferRequestProps> = ({
       label: 'Product',
       width: 300,
       render: (_value, row) => (
-        <Select
+        <ProductSelect
           value={row.product_id}
-          onChange={e =>
-            updateTransferLine(row._index, 'product_id', e.target.value)
+          onChange={(_event, product) =>
+            updateTransferLine(row._index, 'product_id', product ? product.id : '')
           }
           size="small"
           fullWidth
           label="Product"
-        >
-          {products.map(product => (
-            <MenuItem key={product.id} value={product.id}>
-              {product.name} ({product.code})
-            </MenuItem>
-          ))}
-        </Select>
+        />
       ),
     },
     {

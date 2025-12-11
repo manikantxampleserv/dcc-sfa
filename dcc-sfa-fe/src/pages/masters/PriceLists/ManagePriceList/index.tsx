@@ -13,6 +13,7 @@ import { DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 
@@ -170,22 +171,14 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       id: 'product_id',
       label: 'Product',
       render: (_value, row) => (
-        <Select
+        <ProductSelect
           value={row.product_id}
-          onChange={e =>
-            updatePriceListItem(row._index, 'product_id', e.target.value)
+          onChange={(_event, product) =>
+            updatePriceListItem(row._index, 'product_id', product ? product.id : '')
           }
           size="small"
           className="!min-w-40"
-          displayEmpty
-        >
-          <MenuItem value="">Select Product</MenuItem>
-          {products.map(product => (
-            <MenuItem key={product.id} value={product.id}>
-              {product.name}
-            </MenuItem>
-          ))}
-        </Select>
+        />
       ),
     },
     {

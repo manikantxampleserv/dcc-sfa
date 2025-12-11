@@ -13,6 +13,7 @@ import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 
 interface ManageReturnRequestProps {
@@ -111,14 +112,7 @@ const ManageReturnRequest: React.FC<ManageReturnRequestProps> = ({
               required
             />
 
-            <Select name="product_id" label="Product" formik={formik} required>
-              <MenuItem value="">Select Product</MenuItem>
-              {products.map(product => (
-                <MenuItem key={product.id} value={product.id.toString()}>
-                  {product.name} ({product.code})
-                </MenuItem>
-              ))}
-            </Select>
+            <ProductSelect name="product_id" label="Product" formik={formik} required />
 
             <Input
               name="serial_id"

@@ -14,6 +14,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import * as Yup from 'yup';
@@ -473,20 +474,13 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
 
             <form onSubmit={formik.handleSubmit} className="!space-y-4">
               <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-                <Select
+                <ProductSelect
                   name="product_id"
                   label="Product"
                   formik={formik}
                   required
                   disabled={isEditing}
-                >
-                  <MenuItem value="">Select Product</MenuItem>
-                  {products.map(product => (
-                    <MenuItem key={product.id} value={product.id}>
-                      {product.name} ({product.code})
-                    </MenuItem>
-                  ))}
-                </Select>
+                />
 
                 <Input
                   name="quantity"

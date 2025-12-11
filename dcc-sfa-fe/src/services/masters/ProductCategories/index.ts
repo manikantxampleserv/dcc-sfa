@@ -133,6 +133,30 @@ export const deleteProductCategory = async (id: number): Promise<void> => {
   }
 };
 
+export interface ProductCategoryDropdown {
+  id: number;
+  category_name: string;
+}
+
+export interface GetProductCategoriesDropdownParams {
+  search?: string;
+  category_id?: number;
+}
+
+export const fetchProductCategoriesDropdown = async (
+  params?: GetProductCategoriesDropdownParams
+): Promise<ApiResponse<ProductCategoryDropdown[]>> => {
+  try {
+    const response = await api.get('/product-categories-dropdown', { params });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching product categories dropdown:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to fetch product categories dropdown'
+    );
+  }
+};
+
 // Export types
 export type {
   ProductCategory,

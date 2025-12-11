@@ -14,6 +14,7 @@ import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductCategorySelect from 'shared/ProductCategorySelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 
@@ -436,30 +437,18 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
                 fullWidth
               />
 
-              <Select
+              <ProductCategorySelect
                 value={conditionInput.product_category_id}
-                onChange={e =>
+                onChange={(_event, category) =>
                   setConditionInput({
                     ...conditionInput,
-                    product_category_id: e.target.value,
+                    product_category_id: category ? category.id.toString() : '',
                   })
                 }
                 label="Product Category (Optional)"
                 size="small"
                 fullWidth
-              >
-                <MenuItem value="">None</MenuItem>
-                {productCategories.map(
-                  (category: { id?: number; category_name: string }) => (
-                    <MenuItem
-                      key={category.id}
-                      value={category.id?.toString() || ''}
-                    >
-                      {category.category_name}
-                    </MenuItem>
-                  )
-                )}
-              </Select>
+              />
 
               <Box className="md:!col-span-2">
                 <Input

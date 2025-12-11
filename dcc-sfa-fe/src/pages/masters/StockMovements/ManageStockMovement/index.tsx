@@ -10,6 +10,7 @@ import type { StockMovement } from 'services/masters/StockMovements';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 
 interface ManageStockMovementProps {
@@ -136,13 +137,7 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
       <Box className="!p-4">
         <form onSubmit={formik.handleSubmit} className="!space-y-4">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
-            <Select name="product_id" label="Product" formik={formik} required>
-              {products.map(product => (
-                <MenuItem key={product.id} value={product.id}>
-                  {product.name} ({product.code})
-                </MenuItem>
-              ))}
-            </Select>
+            <ProductSelect name="product_id" label="Product" formik={formik} required />
 
             <Select
               name="movement_type"

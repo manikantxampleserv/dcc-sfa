@@ -53,4 +53,10 @@ router.delete(
   productsController.deleteProduct
 );
 
+router.get(
+  '/products-dropdown',
+  authenticateToken,
+  productsController.getProductDropdown
+);
+
 export default router;

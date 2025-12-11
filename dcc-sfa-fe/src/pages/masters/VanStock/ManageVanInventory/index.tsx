@@ -17,6 +17,7 @@ import { DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 
@@ -246,20 +247,14 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       label: 'Product',
       width: 250,
       render: (_value, row) => (
-        <Select
+        <ProductSelect
           value={row.product_id}
-          onChange={e =>
-            updateInventoryItem(row._index, 'product_id', e.target.value)
+          onChange={(_event, product) =>
+            updateInventoryItem(row._index, 'product_id', product ? product.id : '')
           }
           size="small"
           fullWidth
-        >
-          {products.map(product => (
-            <MenuItem key={product.id} value={product.id}>
-              {product.name} ({product.code})
-            </MenuItem>
-          ))}
-        </Select>
+        />
       ),
     },
     {

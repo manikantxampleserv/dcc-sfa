@@ -11,6 +11,7 @@ import { productSubCategoryValidationSchema } from 'schemas/productSubCategory.s
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductCategorySelect from 'shared/ProductCategorySelect';
 import Select from 'shared/Select';
 
 interface ManageProductSubCategoryProps {
@@ -103,19 +104,13 @@ const ManageProductSubCategory: React.FC<ManageProductSubCategoryProps> = ({
             </Box>
 
             <Box className="md:!col-span-2">
-              <Select
+              <ProductCategorySelect
                 name="product_category_id"
                 label="Product Category"
                 formik={formik}
                 required
                 fullWidth
-              >
-                {productCategories.map((category: any) => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.category_name}
-                  </MenuItem>
-                ))}
-              </Select>
+              />
             </Box>
 
             <Box className="md:!col-span-2">

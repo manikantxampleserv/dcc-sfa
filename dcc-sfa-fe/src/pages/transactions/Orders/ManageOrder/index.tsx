@@ -12,6 +12,7 @@ import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
@@ -235,22 +236,14 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       id: 'product_id',
       label: 'Product',
       render: (_value, row) => (
-        <Select
+        <ProductSelect
           value={row.product_id}
-          onChange={e =>
-            updateOrderItem(row._index, 'product_id', e.target.value)
+          onChange={(_event, product) =>
+            updateOrderItem(row._index, 'product_id', product ? product.id : '')
           }
           size="small"
           className="!min-w-60"
-          displayEmpty
-        >
-          <MenuItem value="">Select Product</MenuItem>
-          {products.map(product => (
-            <MenuItem key={product.id} value={product.id}>
-              {product.name}
-            </MenuItem>
-          ))}
-        </Select>
+        />
       ),
     },
     {

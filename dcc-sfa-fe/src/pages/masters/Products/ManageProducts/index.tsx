@@ -2,10 +2,6 @@ import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import { useBrands, type Brand } from 'hooks/useBrands';
 import {
-  useProductCategories,
-  type ProductCategory,
-} from 'hooks/useProductCategories';
-import {
   useProductSubCategories,
   type ProductSubCategory,
 } from 'hooks/useProductSubCategories';
@@ -25,6 +21,7 @@ import { productValidationSchema } from 'schemas/product.schema';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import ProductCategorySelect from 'shared/ProductCategorySelect';
 import Select from 'shared/Select';
 
 interface ManageProductProps {
@@ -51,7 +48,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const updateProductMutation = useUpdateProduct();
 
   // Fetch dropdown data
-  const { data: categoriesResponse } = useProductCategories({ limit: 1000 });
   const { data: subCategoriesResponse } = useProductSubCategories({
     limit: 1000,
   });
@@ -60,7 +56,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const { data: routeTypesResponse } = useRouteTypes();
   const { data: outletGroupsResponse } = useOutletGroups({ limit: 1000 });
 
-  const categories = categoriesResponse?.data || [];
   const subCategories = subCategoriesResponse?.data || [];
   const brands = brandsResponse?.data || [];
   const units = unitsResponse?.data || [];
@@ -142,18 +137,12 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               required
             />
 
-            <Select
+            <ProductCategorySelect
               name="category_id"
               label="Category"
               formik={formik}
               required
-            >
-              {categories.map((category: ProductCategory) => (
-                <MenuItem key={category.id} value={category.id}>
-                  {category.category_name}
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <Select
               name="sub_category_id"

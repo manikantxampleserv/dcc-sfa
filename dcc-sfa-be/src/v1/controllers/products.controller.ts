@@ -370,4 +370,51 @@ export const productsController = {
       res.status(500).json({ message: error.message });
     }
   },
+
+  async getProductDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', product_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const productId = product_id ? Number(product_id) : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (productId) {
+        where.id = productId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            name: {
+              contains: searchLower,
+            },
+          },
+          {
+            code: {
+              contains: searchLower,
+            },
+          },
+        ];
+      }
+
+      const products = await prisma.products.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success('Products dropdown fetched successfully', products, 200);
+    } catch (error: any) {
+      console.error('Error fetching products dropdown:', error);
+      res.error(error.message);
+    }
+  },
 };

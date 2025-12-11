@@ -133,7 +133,7 @@ const PromotionsManagement: React.FC = () => {
       id: 'name',
       label: 'Promotion Info',
       render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
+        <Box className="!flex !gap-2 !items-center" onClick={() => navigate(`/masters/promotions/${row.id}`)}>
           <Avatar
             alt={row.name}
             className="!rounded !bg-primary-100 !text-primary-600"
