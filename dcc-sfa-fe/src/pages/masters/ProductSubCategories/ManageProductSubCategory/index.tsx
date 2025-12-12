@@ -5,7 +5,6 @@ import {
   useUpdateProductSubCategory,
   type ProductSubCategory,
 } from 'hooks/useProductSubCategories';
-import { useProductCategories } from 'hooks/useProductCategories';
 import React from 'react';
 import { productSubCategoryValidationSchema } from 'schemas/productSubCategory.schema';
 import Button from 'shared/Button';
@@ -39,11 +38,7 @@ const ManageProductSubCategory: React.FC<ManageProductSubCategoryProps> = ({
   const createProductSubCategoryMutation = useCreateProductSubCategory();
   const updateProductSubCategoryMutation = useUpdateProductSubCategory();
 
-  // Fetch product categories for the dropdown
-  const { data: productCategoriesResponse } = useProductCategories({
-    is_active: 'Y', // Only active categories
-  });
-  const productCategories = productCategoriesResponse?.data || [];
+
 
   const formik = useFormik({
     initialValues: {
