@@ -719,6 +719,7 @@ model customers {
   code                                   String                         @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
   zones_id                               Int?
   customer_type_id                       Int?
+  customer_channel_id                    Int?
   type                                   String?                        @db.NVarChar(50)
   contact_person                         String?                        @db.NVarChar(255)
   phone_number                           String?                        @db.NVarChar(20)
@@ -767,6 +768,7 @@ model customers {
   visit_customers                        visits[]
   warranty_claims_customers              warranty_claims[]
   customer_type_customer                 customer_type?                 @relation(fields: [customer_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  customer_channel_customer              customer_channel?              @relation(fields: [customer_channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   promotion_customer_exclusion_customers promotion_customer_exclusion[]
 }
 
@@ -1339,16 +1341,17 @@ model unit_of_measurement {
 }
 
 model promotion_customer_types {
-  id            Int        @id(map: "PK__promotio__3213E83FFD45B82E") @default(autoincrement())
-  promotion_id  Int
-  customer_type String     @db.NVarChar(50)
-  is_active     String     @default("Y", map: "DF__promotion__is_ac__69C6B1F5") @db.Char(1)
-  createdate    DateTime?  @default(now(), map: "DF__promotion__creat__6ABAD62E") @db.DateTime
-  createdby     Int
-  updatedate    DateTime?  @db.DateTime
-  updatedby     Int?
-  log_inst      Int?
-  promotions    promotions @relation(fields: [promotion_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                                  Int           @id(map: "PK__promotio__3213E83FFD45B82E") @default(autoincrement())
+  parent_id                           Int
+  customer_type_id                    Int
+  is_active                           String        @db.Char(1)
+  createdate                          DateTime?     @db.DateTime
+  createdby                           Int
+  updatedate                          DateTime?     @db.DateTime
+  updatedby                           Int?
+  log_inst                            Int?
+  promotion_customer_types_customer   customer_type @relation(fields: [customer_type_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  promotion_customer_types_promotions promotions    @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_parameters {
@@ -1396,13 +1399,14 @@ model promotions {
   updatedate                              DateTime?                      @db.DateTime
   updatedby                               Int?
   log_inst                                Int?
-  promotion_customer_types                promotion_customer_types[]
+  promotion_customer_types_promotions     promotion_customer_types[]
   promotion_parameters_promotions         promotion_parameters[]
   products_promotion_products             promotion_products[]
   orders_promotion                        orders[]
   promotion_channel_promotions            promotion_channel[]
   promotion_condition_promotions          promotion_condition[]
   promotion_customer_category_promotions  promotion_customer_category[]
+  promotion_customer_channel_promotions   promotion_customer_channel[]
   promotion_customer_exclusion_promotions promotion_customer_exclusion[]
   promotion_depot_promotions              promotion_depot[]
   promotion_level_promotions              promotion_level[]
@@ -1410,7 +1414,6 @@ model promotions {
   promotion_zones_promotions              promotion_zones[]
   promotion_salesperson_promotions        promotion_salesperson[]
   promotion_tracking_promotions           promotion_tracking[]
-
 }
 
 model refund_lines {
@@ -2195,31 +2198,46 @@ model customer_purchase_history {
 }
 
 model customer_type {
-  id                     Int         @id(map: "PK__customer__3213E83F2F998C6A") @default(autoincrement())
-  type_name              String      @db.VarChar(255)
-  type_code              String      @db.VarChar(100)
-  is_active              String      @db.Char(1)
-  createdate             DateTime?   @db.DateTime
-  createdby              Int
-  updatedate             DateTime?   @db.DateTime
-  updatedby              Int?
-  log_inst               Int?
-  customer_type_customer customers[]
+  id                                Int                        @id(map: "PK__customer__3213E83F2F998C6A") @default(autoincrement())
+  type_name                         String                     @db.VarChar(255)
+  type_code                         String                     @db.VarChar(100)
+  is_active                         String                     @db.Char(1)
+  createdate                        DateTime?                  @db.DateTime
+  createdby                         Int
+  updatedate                        DateTime?                  @db.DateTime
+  updatedby                         Int?
+  log_inst                          Int?
+  customer_type_customer            customers[]
+  promotion_customer_types_customer promotion_customer_types[]
+}
+
+model customer_channel {
+  id                                  Int                          @id @default(autoincrement())
+  channel_name                        String                       @db.VarChar(255)
+  channel_code                        String                       @db.VarChar(100)
+  is_active                           String                       @db.Char(1)
+  createdate                          DateTime?                    @db.DateTime
+  createdby                           Int
+  updatedate                          DateTime?                    @db.DateTime
+  updatedby                           Int?
+  log_inst                            Int?
+  customer_channel_customer           customers[]
+  promotion_customer_channel_customer promotion_customer_channel[]
 }
 
 model promotion {
-  id                                      Int                            @id(map: "PK__promotio__3213E83F69211715") @default(autoincrement())
-  promotion_name                          String                         @db.VarChar(255)
-  promotion_code                          String                         @unique(map: "UQ__promotio__8887550577D4D0AB") @db.VarChar(100)
-  start_date                              DateTime                       @db.DateTime
-  end_date                                DateTime                       @db.DateTime
-  description                             String?                        @db.Text
-  is_active                               String                         @db.Char(1)
-  createdate                              DateTime?                      @db.DateTime
-  createdby                               Int
-  updatedate                              DateTime?                      @db.DateTime
-  updatedby                               Int?
-  log_inst                                Int?
+  id             Int       @id(map: "PK__promotio__3213E83F69211715") @default(autoincrement())
+  promotion_name String    @db.VarChar(255)
+  promotion_code String    @unique(map: "UQ__promotio__8887550577D4D0AB") @db.VarChar(100)
+  start_date     DateTime  @db.DateTime
+  end_date       DateTime  @db.DateTime
+  description    String?   @db.Text
+  is_active      String    @db.Char(1)
+  createdate     DateTime? @db.DateTime
+  createdby      Int
+  updatedate     DateTime? @db.DateTime
+  updatedby      Int?
+  log_inst       Int?
 }
 
 model promotion_benefit {
@@ -2292,7 +2310,21 @@ model promotion_customer_category {
   updatedby                              Int?
   log_inst                               Int?
   promotion_customer_categorys           customer_category @relation(fields: [customer_category_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion_customer_category_promotions promotions        @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)  
+  promotion_customer_category_promotions promotions        @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+}
+
+model promotion_customer_channel {
+  id                                    Int              @id @default(autoincrement())
+  parent_id                             Int
+  customer_channel_id                   Int
+  is_active                             String           @db.Char(1)
+  createdate                            DateTime?        @db.DateTime
+  createdby                             Int
+  updatedate                            DateTime?        @db.DateTime
+  updatedby                             Int?
+  log_inst                              Int?
+  promotion_customer_channel_customer   customer_channel @relation(fields: [customer_channel_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  promotion_customer_channel_promotions promotions       @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
 }
 
 model promotion_customer_exclusion {
@@ -2340,12 +2372,12 @@ model promotion_routes {
 }
 
 model promotion_zones {
-  id                          Int        @id @default(autoincrement())
-  parent_id                   Int
-  zone_id                     Int
-  is_active                   String     @db.Char(1)
-  promotion_zones_promotions  promotions @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
-  promotion_zones_zones       zones      @relation(fields: [zone_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  id                         Int        @id @default(autoincrement())
+  parent_id                  Int
+  zone_id                    Int
+  is_active                  String     @db.Char(1)
+  promotion_zones_promotions promotions @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  promotion_zones_zones      zones      @relation(fields: [zone_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
 
 model promotion_salesperson {

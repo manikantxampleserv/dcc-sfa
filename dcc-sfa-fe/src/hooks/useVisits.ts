@@ -31,11 +31,15 @@ export const visitKeys = {
 /**
  * Hook to fetch visits with pagination and filters
  */
-export const useVisits = (params?: GetVisitsParams) => {
+export const useVisits = (
+  params?: GetVisitsParams,
+  options?: { enabled?: boolean }
+) => {
   return useQuery({
     queryKey: visitKeys.list(params || {}),
     queryFn: () => fetchVisits(params),
     staleTime: 5 * 60 * 1000,
+    enabled: options?.enabled ?? true,
   });
 };
 

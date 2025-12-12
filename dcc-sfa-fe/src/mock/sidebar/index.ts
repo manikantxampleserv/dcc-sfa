@@ -107,6 +107,11 @@ const menuItems: MenuItem[] = [
             href: '/masters/outlet-type',
           },
           {
+            id: 'outlet-channel',
+            label: 'Outlet Channel',
+            href: '/masters/outlet-channel',
+          },
+          {
             id: 'outlet-category',
             label: 'Outlet Category',
             href: '/masters/outlet-category',

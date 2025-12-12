@@ -14,6 +14,7 @@ import CompaniesManagement from 'pages/masters/Companies';
 import CompetitorActivityManagement from 'pages/masters/CompetitorActivity';
 import CustomerCategoryPage from 'pages/masters/CustomerCategory';
 import CustomerTypePage from 'pages/masters/CustomerType';
+import CustomerChannelPage from 'pages/masters/CustomerChannel';
 import CustomerComplaintsPage from 'pages/masters/CustomerComplaints';
 import CurrenciesManagement from 'pages/masters/Currencies';
 import DepotsManagement from 'pages/masters/Depot';
@@ -250,6 +251,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="customer-type" action="read">
               <CustomerTypePage />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/outlet-channel',
+          element: (
+            <PermissionGuard module="customer-channel" action="read">
+              <CustomerChannelPage />
             </PermissionGuard>
           ),
         },

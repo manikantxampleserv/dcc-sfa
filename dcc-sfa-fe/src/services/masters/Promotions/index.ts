@@ -28,6 +28,24 @@ export interface Promotion {
     promotion_zones_zones?: { id: number; name: string; code: string };
   }>;
   customer_categories?: Array<{ id: number; customer_category_id: number }>;
+  customer_types?: Array<{
+    id: number;
+    customer_type_id: number;
+    promotion_customer_types_customer?: {
+      id: number;
+      type_name: string;
+      type_code: string;
+    };
+  }>;
+  customer_channels?: Array<{
+    id: number;
+    customer_channel_id: number;
+    promotion_customer_channel_customer?: {
+      id: number;
+      channel_name: string;
+      channel_code: string;
+    };
+  }>;
   customer_exclusions?: Array<{
     id: number;
     customer_id: number;
@@ -89,6 +107,8 @@ interface CreatePromotionPayload {
   zones?: number[];
   salespersons?: number[];
   customer_exclusions?: number[];
+  customer_types?: number[];
+  customer_channels?: number[];
   distributor_distributors?: number[];
   seller_data?: number[];
   outlet1_groups?: number[];
@@ -128,6 +148,8 @@ interface UpdatePromotionPayload {
   zones?: number[];
   salespersons?: number[];
   customer_exclusions?: number[];
+  customer_types?: number[];
+  customer_channels?: number[];
   distributor_distributors?: number[];
   seller_data?: number[];
   outlet1_groups?: number[];

@@ -14,6 +14,9 @@ import {
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCustomers } from 'hooks/useCustomers';
+import { useCustomerTypes } from 'hooks/useCustomerType';
+import { useCustomerCategories } from 'hooks/useCustomerCategory';
+import { useCustomerChannels } from 'hooks/useCustomerChannel';
 import { useDepots } from 'hooks/useDepots';
 import { useProductCategories } from 'hooks/useProductCategories';
 import { useProducts } from 'hooks/useProducts';
@@ -137,6 +140,19 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const { data: customersResponse } = useCustomers({ limit: 1000 });
   const customers = customersResponse?.data || [];
 
+  const { data: customerTypesResponse } = useCustomerTypes({ limit: 1000 });
+  const customerTypes = customerTypesResponse?.data || [];
+
+  const { data: customerCategoriesResponse } = useCustomerCategories({
+    limit: 1000,
+  });
+  const customerCategories = customerCategoriesResponse?.data || [];
+
+  const { data: customerChannelsResponse } = useCustomerChannels({
+    limit: 1000,
+  });
+  const customerChannels = customerChannelsResponse?.data || [];
+
   const { data: routesResponse } = useRoutes({ limit: 1000 });
   const routes = routesResponse?.data || [];
 
@@ -168,6 +184,15 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     []
   );
   const [selectedOutlets, setSelectedOutlets] = useState<number[]>([]);
+  const [selectedCustomerTypes, setSelectedCustomerTypes] = useState<number[]>(
+    []
+  );
+  const [selectedCustomerCategories, setSelectedCustomerCategories] = useState<
+    number[]
+  >([]);
+  const [selectedCustomerChannels, setSelectedCustomerChannels] = useState<
+    number[]
+  >([]);
   const [locationSearch, setLocationSearch] = useState('');
 
   const [selectedProductConditionIndex, setSelectedProductConditionIndex] =
@@ -213,6 +238,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       setSelectedZones(prev => (prev.length > 0 ? [] : prev));
       setSelectedRoutes(prev => (prev.length > 0 ? [] : prev));
       setSelectedOutlets(prev => (prev.length > 0 ? [] : prev));
+      setSelectedCustomerTypes(prev => (prev.length > 0 ? [] : prev));
+      setSelectedCustomerCategories(prev => (prev.length > 0 ? [] : prev));
+      setSelectedCustomerChannels(prev => (prev.length > 0 ? [] : prev));
       return;
     }
 
@@ -338,6 +366,12 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
         }
       });
 
+      setSelectedCustomerCategories(prev => {
+        const prevStr = prev.sort().join(',');
+        const newStr = loadedCategoryIds.sort().join(',');
+        return prevStr !== newStr ? loadedCategoryIds : prev;
+      });
+
       const loadedOutletRows: OutletRow[] = [];
       loadedCategoryIds.forEach((categoryId, idx) => {
         loadedOutletRows.push({
@@ -364,7 +398,39 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
       });
     } else {
       setOutletRows(prev => (prev.length > 0 ? [] : prev));
+      setSelectedCustomerCategories(prev => (prev.length > 0 ? [] : prev));
     }
+
+    const loadedCustomerTypeIds: number[] = [];
+    if (promotion.customer_types && Array.isArray(promotion.customer_types)) {
+      promotion.customer_types.forEach((customerType: any) => {
+        if (customerType.customer_type_id) {
+          loadedCustomerTypeIds.push(customerType.customer_type_id);
+        }
+      });
+    }
+    setSelectedCustomerTypes(prev => {
+      const prevStr = prev.sort().join(',');
+      const newStr = loadedCustomerTypeIds.sort().join(',');
+      return prevStr !== newStr ? loadedCustomerTypeIds : prev;
+    });
+
+    const loadedCustomerChannelIds: number[] = [];
+    if (
+      promotion.customer_channels &&
+      Array.isArray(promotion.customer_channels)
+    ) {
+      promotion.customer_channels.forEach((customerChannel: any) => {
+        if (customerChannel.customer_channel_id) {
+          loadedCustomerChannelIds.push(customerChannel.customer_channel_id);
+        }
+      });
+    }
+    setSelectedCustomerChannels(prev => {
+      const prevStr = prev.sort().join(',');
+      const newStr = loadedCustomerChannelIds.sort().join(',');
+      return prevStr !== newStr ? loadedCustomerChannelIds : prev;
+    });
 
     if (promotion.levels && Array.isArray(promotion.levels)) {
       const loadedGiftRows: GiftRow[] = [];
@@ -426,6 +492,14 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     setGiftRows([]);
     setSelectedProductConditionIndex(null);
     setSelectedGiftIndex(null);
+    setSelectedDepots([]);
+    setSelectedZones([]);
+    setSelectedRoutes([]);
+    setSelectedSalesPersons([]);
+    setSelectedOutlets([]);
+    setSelectedCustomerTypes([]);
+    setSelectedCustomerCategories([]);
+    setSelectedCustomerChannels([]);
     setDiscAmount('');
     setMaximumAmount('');
     setGiftName('');
@@ -489,6 +563,12 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           selectedSalesPersons.length > 0 ? selectedSalesPersons : undefined;
         const customerExclusions =
           selectedOutlets.length > 0 ? selectedOutlets : undefined;
+        const customerTypes =
+          selectedCustomerTypes.length > 0 ? selectedCustomerTypes : undefined;
+        const customerChannels =
+          selectedCustomerChannels.length > 0
+            ? selectedCustomerChannels
+            : undefined;
 
         const productConditionsData = productConditions
           .filter(c => c.product_id || c.product_group)
@@ -540,6 +620,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           salespersons: salespersons,
           customer_exclusions: customerExclusions,
           outlet1_groups: outletGroups.length > 0 ? outletGroups : undefined,
+          customer_types: customerTypes,
+          customer_channels: customerChannels,
           levels:
             giftBenefits.length > 0
               ? [
@@ -573,6 +655,14 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
             selectedSalesPersons.length > 0 ? selectedSalesPersons : undefined;
           const updateCustomerExclusions =
             selectedOutlets.length > 0 ? selectedOutlets : undefined;
+          const updateCustomerTypes =
+            selectedCustomerTypes.length > 0
+              ? selectedCustomerTypes
+              : undefined;
+          const updateCustomerChannels =
+            selectedCustomerChannels.length > 0
+              ? selectedCustomerChannels
+              : undefined;
 
           await updatePromotionMutation.mutateAsync({
             id: selectedPromotion.id,
@@ -595,6 +685,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               customer_exclusions: updateCustomerExclusions,
               outlet1_groups:
                 updateOutletGroups.length > 0 ? updateOutletGroups : undefined,
+              customer_types: updateCustomerTypes,
+              customer_channels: updateCustomerChannels,
               levels:
                 giftBenefits.length > 0
                   ? [
@@ -619,6 +711,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
         setSelectedRoutes([]);
         setSelectedSalesPersons([]);
         setSelectedOutlets([]);
+        setSelectedCustomerTypes([]);
+        setSelectedCustomerCategories([]);
+        setSelectedCustomerChannels([]);
       } catch (error) {
         console.error('Error saving promotion:', error);
       }
@@ -1218,13 +1313,25 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   label={`Outlet ${selectedOutlets.length > 0 ? `(${selectedOutlets.length})` : ''}`}
                   className="!min-h-9.5"
                 />
+                <Tab
+                  label={`Customer Type ${selectedCustomerTypes.length > 0 ? `(${selectedCustomerTypes.length})` : ''}`}
+                  className="!min-h-9.5"
+                />
+                <Tab
+                  label={`Customer Category ${selectedCustomerCategories.length > 0 ? `(${selectedCustomerCategories.length})` : ''}`}
+                  className="!min-h-9.5"
+                />
+                <Tab
+                  label={`Customer Channel ${selectedCustomerChannels.length > 0 ? `(${selectedCustomerChannels.length})` : ''}`}
+                  className="!min-h-9.5"
+                />
               </Tabs>
             </Box>
             <Box className="!mb-3">
               <SearchInput
                 value={locationSearch}
                 onChange={setLocationSearch}
-                placeholder={`Search ${locationTab === 0 ? 'Depots' : locationTab === 1 ? 'Zones' : locationTab === 2 ? 'Routes' : locationTab === 3 ? 'Sales Persons' : 'Outlets'}...`}
+                placeholder={`Search ${locationTab === 0 ? 'Depots' : locationTab === 1 ? 'Zones' : locationTab === 2 ? 'Routes' : locationTab === 3 ? 'Sales Persons' : locationTab === 4 ? 'Outlets' : locationTab === 5 ? 'Customer Types' : locationTab === 6 ? 'Customer Categories' : 'Customer Channels'}...`}
                 fullWidth
                 size="small"
                 debounceMs={0}
@@ -1429,6 +1536,138 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                     ))}
                 </>
               )}
+              {locationTab === 5 && (
+                <>
+                  {customerTypes
+                    .filter((customerType: any) =>
+                      locationSearch
+                        ? customerType.type_name
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase()) ||
+                          customerType.type_code
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase())
+                        : true
+                    )
+                    .map((customerType: any) => (
+                      <FormControlLabel
+                        key={customerType.id}
+                        control={
+                          <Checkbox
+                            checked={selectedCustomerTypes.includes(
+                              customerType.id
+                            )}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedCustomerTypes([
+                                  ...selectedCustomerTypes,
+                                  customerType.id,
+                                ]);
+                              } else {
+                                setSelectedCustomerTypes(
+                                  selectedCustomerTypes.filter(
+                                    id => id !== customerType.id
+                                  )
+                                );
+                              }
+                            }}
+                            size="small"
+                          />
+                        }
+                        label={`${customerType.type_name} (${customerType.type_code})`}
+                        className="!block"
+                      />
+                    ))}
+                </>
+              )}
+              {locationTab === 6 && (
+                <>
+                  {customerCategories
+                    .filter((category: any) =>
+                      locationSearch
+                        ? category.category_name
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase()) ||
+                          category.category_code
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase())
+                        : true
+                    )
+                    .map((category: any) => (
+                      <FormControlLabel
+                        key={category.id}
+                        control={
+                          <Checkbox
+                            checked={selectedCustomerCategories.includes(
+                              category.id
+                            )}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedCustomerCategories([
+                                  ...selectedCustomerCategories,
+                                  category.id,
+                                ]);
+                              } else {
+                                setSelectedCustomerCategories(
+                                  selectedCustomerCategories.filter(
+                                    id => id !== category.id
+                                  )
+                                );
+                              }
+                            }}
+                            size="small"
+                          />
+                        }
+                        label={`${category.category_name} (${category.category_code})`}
+                        className="!block"
+                      />
+                    ))}
+                </>
+              )}
+              {locationTab === 7 && (
+                <>
+                  {customerChannels
+                    .filter((channel: any) =>
+                      locationSearch
+                        ? channel.channel_name
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase()) ||
+                          channel.channel_code
+                            ?.toLowerCase()
+                            .includes(locationSearch.toLowerCase())
+                        : true
+                    )
+                    .map((channel: any) => (
+                      <FormControlLabel
+                        key={channel.id}
+                        control={
+                          <Checkbox
+                            checked={selectedCustomerChannels.includes(
+                              channel.id
+                            )}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedCustomerChannels([
+                                  ...selectedCustomerChannels,
+                                  channel.id,
+                                ]);
+                              } else {
+                                setSelectedCustomerChannels(
+                                  selectedCustomerChannels.filter(
+                                    id => id !== channel.id
+                                  )
+                                );
+                              }
+                            }}
+                            size="small"
+                          />
+                        }
+                        label={`${channel.channel_name} (${channel.channel_code})`}
+                        className="!block"
+                      />
+                    ))}
+                </>
+              )}
             </Box>
           </Paper>
 
@@ -1604,7 +1843,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   label="Product"
                   value={productConditionForm.product}
                   onChange={(_event, product) => {
-                    const selectedProduct = product ? product.id.toString() : '';
+                    const selectedProduct = product
+                      ? product.id.toString()
+                      : '';
                     setProductConditionForm({
                       ...productConditionForm,
                       product: selectedProduct,
@@ -1617,10 +1858,21 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               ) : (
                 <ProductCategorySelect
                   label="Product Category"
-                  value={productConditionForm.group ? productCategories.find((c: any) => c.category_name === productConditionForm.group)?.id.toString() : ''}
+                  value={
+                    productConditionForm.group
+                      ? productCategories
+                          .find(
+                            (c: any) =>
+                              c.category_name === productConditionForm.group
+                          )
+                          ?.id.toString()
+                      : ''
+                  }
                   nameToSearch={productConditionForm.group || ''}
                   onChange={(_event, category) => {
-                    const selectedCategoryName = category ? category.category_name : '';
+                    const selectedCategoryName = category
+                      ? category.category_name
+                      : '';
                     setProductConditionForm({
                       ...productConditionForm,
                       group: selectedCategoryName,

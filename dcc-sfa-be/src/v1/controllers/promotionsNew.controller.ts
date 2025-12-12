@@ -24,6 +24,8 @@ interface PromotionCreateInput {
   zones?: number[];
   customer_exclusions?: number[];
   outlet1_groups?: number[];
+  customer_types?: number[];
+  customer_channels?: number[];
   salespersons?: number[];
   levels?: Array<{
     level_number?: number;
@@ -61,6 +63,8 @@ interface PromotionUpdateInput {
   zones?: number[];
   customer_exclusions?: number[];
   outlet1_groups?: number[];
+  customer_types?: number[];
+  customer_channels?: number[];
   salespersons?: number[];
   levels?: Array<{
     level_number?: number;
@@ -118,6 +122,8 @@ const serializePromotion = (promo: any) => {
     routes: promo.promotion_routes_promotions,
     zones: promo.promotion_zones_promotions,
     customer_categories: promo.promotion_customer_category_promotions,
+    customer_types: promo.promotion_customer_types_promotions,
+    customer_channels: promo.promotion_customer_channel_promotions,
     customer_exclusions: promo.promotion_customer_exclusion_promotions,
     conditions: promo.promotion_condition_promotions,
     levels: promo.promotion_level_promotions,
@@ -336,6 +342,38 @@ export const promotionsNewController = {
         }
       }
 
+      const customerTypes = input.customer_types || [];
+      if (customerTypes.length > 0) {
+        for (const customerTypeId of customerTypes) {
+          await prisma.promotion_customer_types.create({
+            data: {
+              parent_id: promotionId,
+              customer_type_id: customerTypeId,
+              is_active: 'Y',
+              createdby: req.user?.id || 1,
+              createdate: new Date(),
+              log_inst: 1,
+            },
+          });
+        }
+      }
+
+      const customerChannels = input.customer_channels || [];
+      if (customerChannels.length > 0) {
+        for (const customerChannelId of customerChannels) {
+          await prisma.promotion_customer_channel.create({
+            data: {
+              parent_id: promotionId,
+              customer_channel_id: customerChannelId,
+              is_active: 'Y',
+              createdby: req.user?.id || 1,
+              createdate: new Date(),
+              log_inst: 1,
+            },
+          });
+        }
+      }
+
       const salespersons = input.salespersons || [];
       if (salespersons.length > 0) {
         for (const salespersonId of salespersons) {
@@ -396,6 +434,14 @@ export const promotionsNewController = {
           promotion_customer_category_promotions: {
             where: { is_active: 'Y' },
             include: { promotion_customer_categorys: true },
+          },
+          promotion_customer_types_promotions: {
+            where: { is_active: 'Y' },
+            include: { promotion_customer_types_customer: true },
+          },
+          promotion_customer_channel_promotions: {
+            where: { is_active: 'Y' },
+            include: { promotion_customer_channel_customer: true },
           },
           promotion_customer_exclusion_promotions: {
             include: { promotion_customer_exclusion_customers: true },
@@ -574,6 +620,22 @@ export const promotionsNewController = {
               },
             },
           },
+          promotion_customer_types_promotions: {
+            where: { is_active: 'Y' },
+            include: {
+              promotion_customer_types_customer: {
+                select: { id: true, type_name: true, type_code: true },
+              },
+            },
+          },
+          promotion_customer_channel_promotions: {
+            where: { is_active: 'Y' },
+            include: {
+              promotion_customer_channel_customer: {
+                select: { id: true, channel_name: true, channel_code: true },
+              },
+            },
+          },
           promotion_condition_promotions: {
             where: { is_active: 'Y' },
             include: {
@@ -657,6 +719,14 @@ export const promotionsNewController = {
           promotion_customer_category_promotions: {
             where: { is_active: 'Y' },
             include: { promotion_customer_categorys: true },
+          },
+          promotion_customer_types_promotions: {
+            where: { is_active: 'Y' },
+            include: { promotion_customer_types_customer: true },
+          },
+          promotion_customer_channel_promotions: {
+            where: { is_active: 'Y' },
+            include: { promotion_customer_channel_customer: true },
           },
           promotion_customer_exclusion_promotions: true,
           promotion_condition_promotions: {
@@ -861,6 +931,50 @@ export const promotionsNewController = {
         }
       }
 
+      const customerTypes = input.customer_types;
+      if (customerTypes !== undefined) {
+        await prisma.promotion_customer_types.updateMany({
+          where: { parent_id: Number(id) },
+          data: { is_active: 'N' },
+        });
+        if (Array.isArray(customerTypes) && customerTypes.length > 0) {
+          for (const customerTypeId of customerTypes) {
+            await prisma.promotion_customer_types.create({
+              data: {
+                parent_id: Number(id),
+                customer_type_id: customerTypeId,
+                is_active: 'Y',
+                createdby: req.user?.id || 1,
+                createdate: new Date(),
+                log_inst: 1,
+              },
+            });
+          }
+        }
+      }
+
+      const customerChannels = input.customer_channels;
+      if (customerChannels !== undefined) {
+        await prisma.promotion_customer_channel.updateMany({
+          where: { parent_id: Number(id) },
+          data: { is_active: 'N' },
+        });
+        if (Array.isArray(customerChannels) && customerChannels.length > 0) {
+          for (const customerChannelId of customerChannels) {
+            await prisma.promotion_customer_channel.create({
+              data: {
+                parent_id: Number(id),
+                customer_channel_id: customerChannelId,
+                is_active: 'Y',
+                createdby: req.user?.id || 1,
+                createdate: new Date(),
+                log_inst: 1,
+              },
+            });
+          }
+        }
+      }
+
       const salespersons = input.salespersons;
       if (salespersons !== undefined) {
         await prisma.promotion_salesperson.updateMany({
@@ -1036,6 +1150,14 @@ export const promotionsNewController = {
           promotion_customer_category_promotions: {
             where: { is_active: 'Y' },
             include: { promotion_customer_categorys: true },
+          },
+          promotion_customer_types_promotions: {
+            where: { is_active: 'Y' },
+            include: { promotion_customer_types_customer: true },
+          },
+          promotion_customer_channel_promotions: {
+            where: { is_active: 'Y' },
+            include: { promotion_customer_channel_customer: true },
           },
           promotion_condition_promotions: {
             where: { is_active: 'Y' },

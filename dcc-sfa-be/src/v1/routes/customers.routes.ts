@@ -75,4 +75,11 @@ router.get(
   customerController.getCustomersDropdown
 );
 
+router.get(
+  '/customers/:id/relations',
+  authenticateToken,
+  requirePermission([{ module: 'outlet', action: 'read' }]),
+  customerController.getCustomerRelations
+);
+
 export default router;

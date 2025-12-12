@@ -433,6 +433,14 @@ export const visitsController = {
         try {
           const { visit, orders, payments, cooler_inspections, survey } = data;
 
+          if (!visit) {
+            results.failed.push({
+              data,
+              error: 'Visit data is required',
+            });
+            continue;
+          }
+
           if (!visit.customer_id || !visit.sales_person_id) {
             results.failed.push({
               data,
@@ -880,8 +888,8 @@ export const visitsController = {
         } catch (error: any) {
           console.error('Visit Processing Error:', error);
           results.failed.push({
-            data: data.visit,
-            error: error.message,
+            data: data?.visit || data,
+            error: error.message || 'Unknown error occurred',
             stack:
               process.env.NODE_ENV === 'development' ? error.stack : undefined,
           });

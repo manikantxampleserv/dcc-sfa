@@ -406,6 +406,38 @@ export const coolerInspectionsController = {
           }),
       };
 
+      const totalInspections = await prisma.cooler_inspections.count();
+      const activeInspections = await prisma.cooler_inspections.count({
+        where: {
+          is_active: 'Y',
+        },
+      });
+      const inactiveInspections = await prisma.cooler_inspections.count({
+        where: {
+          is_active: 'N',
+        },
+      });
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const newInspectionsThisMonth = await prisma.cooler_inspections.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
+        },
+      });
+
+      const stats = {
+        total_inspections: totalInspections,
+        active_inspections: activeInspections,
+        inactive_inspections: inactiveInspections,
+        new_inspections_this_month: newInspectionsThisMonth,
+      };
+
       const { data, pagination } = await paginate({
         model: prisma.cooler_inspections,
         filters,
@@ -463,6 +495,7 @@ export const coolerInspectionsController = {
           timestamp: new Date().toISOString(),
           ...pagination,
         },
+        stats,
       });
     } catch (error: any) {
       console.error('Get Cooler Inspections Error:', error);
@@ -544,7 +577,16 @@ export const coolerInspectionsController = {
         return res.status(404).json({ message: 'Cooler inspection not found' });
       }
 
-      const data = { ...req.body, updatedate: new Date() };
+      const data = {
+        ...req.body,
+        inspection_date: req.body.inspection_date
+          ? new Date(req.body.inspection_date)
+          : undefined,
+        next_inspection_due: req.body.next_inspection_due
+          ? new Date(req.body.next_inspection_due)
+          : undefined,
+        updatedate: new Date(),
+      };
 
       const inspection = await prisma.cooler_inspections.update({
         where: { id: Number(id) },

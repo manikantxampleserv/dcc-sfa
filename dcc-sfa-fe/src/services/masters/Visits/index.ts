@@ -190,7 +190,7 @@ export const fetchVisitById = async (
 export const createVisit = async (
   visitData: ManageVisitPayload
 ): Promise<ApiResponse<Visit>> => {
-  const response = await axiosInstance.post('/reports/visits', visitData);
+  const response = await axiosInstance.post('/visits', visitData);
   return response.data;
 };
 

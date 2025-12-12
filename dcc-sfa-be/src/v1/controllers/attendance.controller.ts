@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { TeamAttendanceStatus } from '../../types/attendance.types';
 import prisma from '../../configs/prisma.client';
 
 interface AttendanceSerialized {
@@ -134,10 +133,13 @@ export const attendanceController = {
         });
 
         if (!existingAttendance || existingAttendance.status === 'punch_out') {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
           attendance = await prisma.attendance.create({
             data: {
               user_id: userId,
-              attendance_date: new Date(),
+              attendance_date: today,
               punch_in_time: new Date(),
               punch_in_latitude: latitude,
               punch_in_longitude: longitude,

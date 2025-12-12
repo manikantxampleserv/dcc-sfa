@@ -1581,4 +1581,52 @@ export const customerController = {
       res.error(error.message);
     }
   },
+
+  async getCustomerRelations(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const customer = await prisma.customers.findUnique({
+        where: { id: Number(id) },
+        select: {
+          id: true,
+          zones_id: true,
+          route_id: true,
+          salesperson_id: true,
+          customer_type_id: true,
+        },
+      });
+
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          message: 'Customer not found',
+        });
+      }
+
+      const visits = await prisma.visits.findMany({
+        where: { customer_id: Number(id) },
+        select: { id: true },
+        orderBy: { createdate: 'desc' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Customer relations fetched successfully',
+        data: {
+          customer_id: customer.id,
+          zones_id: customer.zones_id,
+          route_id: customer.route_id,
+          salesperson_id: customer.salesperson_id,
+          customer_type_id: customer.customer_type_id,
+          visit_ids: visits.map(v => v.id),
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Customer Relations Error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
 };

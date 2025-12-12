@@ -50,8 +50,7 @@ const CoolerInspectionsManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('cooler-inspection');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('inspection');
 
   const {
     data: coolerInspectionsResponse,
@@ -178,9 +177,9 @@ const CoolerInspectionsManagement: React.FC = () => {
   const getActionRequiredColor = (actionRequired: string) => {
     switch (actionRequired) {
       case 'Y':
-        return 'warning';
-      case 'N':
         return 'success';
+      case 'N':
+        return 'error';
       default:
         return 'default';
     }

@@ -70,6 +70,7 @@ const MODULE_MAPPING: Record<string, string> = {
   'customer-complaint': 'Customer Complaint',
   'customer-category': 'Customer Category',
   'customer-type': 'Customer Type',
+  'customer-channel': 'Customer Channel',
   location: 'GPS Tracking',
   'route-effectiveness': 'Route Effectiveness',
   'erp-sync': 'ERP Sync',

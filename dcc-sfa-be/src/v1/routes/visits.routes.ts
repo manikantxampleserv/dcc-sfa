@@ -13,6 +13,14 @@ import {
 const router = Router();
 
 router.post(
+  '/visits',
+  authenticateToken,
+  auditCreate('visits'),
+  requirePermission([{ module: 'visit', action: 'create' }]),
+  visitsController.createVisits
+);
+
+router.post(
   '/reports/visits',
   authenticateToken,
   auditCreate('visits'),

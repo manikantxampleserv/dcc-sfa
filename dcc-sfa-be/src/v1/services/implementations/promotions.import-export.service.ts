@@ -524,7 +524,7 @@ export class PromotionsImportExportService extends ImportExportService<any> {
         },
         _count: {
           select: {
-            promotion_customer_types: true,
+            promotion_customer_types_promotions: true,
             promotion_parameters_promotions: true,
             products_promotion_products: true,
           },
@@ -593,7 +593,8 @@ export class PromotionsImportExportService extends ImportExportService<any> {
       row.id = promo.id;
       row.depot_name = promo.promotion_depots?.name || '';
       row.zone_name = promo.promotion_zones?.name || '';
-      row.customer_types_count = promo._count?.promotion_customer_types || 0;
+      row.customer_types_count =
+        promo._count?.promotion_customer_types_promotions || 0;
       row.parameters_count = promo._count?.promotion_parameters_promotions || 0;
       row.products_count = promo._count?.products_promotion_products || 0;
 

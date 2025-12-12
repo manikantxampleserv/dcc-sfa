@@ -94,7 +94,7 @@ const ManageCustomerType: React.FC<ManageCustomerTypeProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Customer Type' : 'Create Customer Type'}
-      size="large"
+      size="medium"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

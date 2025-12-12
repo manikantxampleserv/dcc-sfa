@@ -42,8 +42,7 @@ const VisitLogging: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('visit-logging');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('visit');
 
   const {
     data: visitsResponse,

@@ -183,6 +183,20 @@ axiosInstance.interceptors.response.use(
     }
 
     try {
+      const isNetworkError =
+        !error.response &&
+        (error.request ||
+          error.code === 'ERR_NETWORK' ||
+          error.code === 'ECONNREFUSED' ||
+          error.code === 'ETIMEDOUT' ||
+          error.code === 'ENOTFOUND' ||
+          error.message?.includes('Network Error') ||
+          error.message?.includes('network'));
+
+      if (isNetworkError) {
+        return handleNetworkError(error);
+      }
+
       if (error.response) {
         const { status, data } = error.response;
 
@@ -342,11 +356,20 @@ function handleClientError(error: AxiosError): Promise<never> {
  */
 function handleNetworkError(error: AxiosError): Promise<never> {
   let errorType: NetworkErrorTypeType = NetworkErrorType.NETWORK_ERROR;
-  let message = 'Network error occurred';
+  let message =
+    'Network error occurred. Please check your internet connection.';
 
-  if (error.code === 'ECONNABORTED') {
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
     errorType = NetworkErrorType.TIMEOUT;
-    message = 'Request timeout';
+    message = 'Request timeout. Please try again.';
+  } else if (error.code === 'ECONNREFUSED') {
+    message = 'Connection refused. The server may be unavailable.';
+  } else if (error.code === 'ENOTFOUND') {
+    message = 'Server not found. Please check your connection.';
+  } else if (error.code === 'ERR_NETWORK') {
+    message = 'Network error. Unable to reach the server.';
+  } else if (error.message?.includes('Network Error')) {
+    message = 'Network error. Please check your internet connection.';
   }
 
   showNotification(message, NotificationType.ERROR);

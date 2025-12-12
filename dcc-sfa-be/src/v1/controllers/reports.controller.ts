@@ -2151,8 +2151,13 @@ export const reportsController = {
       const promotions = await prisma.promotions.findMany({
         where: wherePromotions,
         include: {
-          promotion_customer_types: {
+          promotion_customer_types_promotions: {
             where: { is_active: 'Y' },
+            include: {
+              promotion_customer_types_customer: {
+                select: { id: true, type_name: true, type_code: true },
+              },
+            },
           },
           promotion_parameters_promotions: {
             where: { is_active: 'Y' },
@@ -2165,27 +2170,40 @@ export const reportsController = {
               },
             },
           },
-          promotion_depots: {
-            select: { id: true, name: true, code: true },
+          promotion_depot_promotions: {
+            where: { is_active: 'Y' },
+            include: {
+              depots: {
+                select: { id: true, name: true, code: true },
+              },
+            },
           },
-          promotion_zones: {
-            select: { id: true, name: true, code: true },
+          promotion_zones_promotions: {
+            where: { is_active: 'Y' },
+            include: {
+              promotion_zones_zones: {
+                select: { id: true, name: true, code: true },
+              },
+            },
           },
         },
         orderBy: { start_date: 'desc' },
       });
 
       // Serialize promotions with their products and parameters
-      const serializedPromotions = promotions.map(promo => {
+      const serializedPromotions = promotions.map((promo: any) => {
         const products = promo.products_promotion_products || [];
         const parameters = promo.promotion_parameters_promotions || [];
-        const customerTypes = promo.promotion_customer_types || [];
+        const customerTypes = promo.promotion_customer_types_promotions || [];
 
         // Calculate effectivness metrics (simplified - you may need to join with order_items or invoices)
         const totalProducts = products.length;
         const totalParameters = parameters.length;
         const applicableCustomerTypes = customerTypes
-          .map(ct => ct.customer_type)
+          .map(
+            (ct: any) =>
+              ct.promotion_customer_types_customer?.type_name || 'N/A'
+          )
           .join(', ');
 
         return {
@@ -2196,8 +2214,11 @@ export const reportsController = {
           description: promo.description || 'N/A',
           start_date: promo.start_date?.toISOString() || '',
           end_date: promo.end_date?.toISOString() || '',
-          depot_name: promo.promotion_depots?.name || 'N/A',
-          zone_name: promo.promotion_zones?.name || 'N/A',
+          depot_name:
+            promo.promotion_depot_promotions?.[0]?.depots?.name || 'N/A',
+          zone_name:
+            promo.promotion_zones_promotions?.[0]?.promotion_zones_zones
+              ?.name || 'N/A',
           total_products: totalProducts,
           total_parameters: totalParameters,
           customer_types: applicableCustomerTypes || 'All',
@@ -2213,7 +2234,7 @@ export const reportsController = {
 
       // Serialize promotion products
       const serializedProducts: any[] = [];
-      promotions.forEach(promo => {
+      promotions.forEach((promo: any) => {
         if (
           promo.products_promotion_products &&
           promo.products_promotion_products.length > 0
@@ -2234,7 +2255,7 @@ export const reportsController = {
 
       // Serialize promotion parameters
       const serializedParameters: any[] = [];
-      promotions.forEach(promo => {
+      promotions.forEach((promo: any) => {
         if (
           promo.promotion_parameters_promotions &&
           promo.promotion_parameters_promotions.length > 0
@@ -2270,8 +2291,11 @@ export const reportsController = {
       const totalProducts = serializedProducts.length;
       const totalParameters = serializedParameters.length;
       const uniqueCustomerTypes = new Set(
-        promotions.flatMap(
-          p => p.promotion_customer_types?.map(ct => ct.customer_type) || []
+        (promotions as any[]).flatMap(
+          (p: any) =>
+            p.promotion_customer_types_promotions?.map(
+              (ct: any) => ct.promotion_customer_types_customer?.type_name
+            ) || []
         )
       ).size;
 
@@ -2285,8 +2309,9 @@ export const reportsController = {
         unique_customer_types: uniqueCustomerTypes,
         unique_depots: new Set(promotions.map(p => p.depot_id).filter(Boolean))
           .size,
-        unique_zones: new Set(promotions.map(p => p.zone_id).filter(Boolean))
-          .size,
+        unique_zones: new Set(
+          (promotions as any[]).map((p: any) => p.zone_id).filter(Boolean)
+        ).size,
       };
 
       const response = {
@@ -2353,8 +2378,13 @@ export const reportsController = {
       const promotions = await prisma.promotions.findMany({
         where: wherePromotions,
         include: {
-          promotion_customer_types: {
+          promotion_customer_types_promotions: {
             where: { is_active: 'Y' },
+            include: {
+              promotion_customer_types_customer: {
+                select: { id: true, type_name: true, type_code: true },
+              },
+            },
           },
           promotion_parameters_promotions: {
             where: { is_active: 'Y' },
@@ -2367,11 +2397,21 @@ export const reportsController = {
               },
             },
           },
-          promotion_depots: {
-            select: { id: true, name: true, code: true },
+          promotion_depot_promotions: {
+            where: { is_active: 'Y' },
+            include: {
+              depots: {
+                select: { id: true, name: true, code: true },
+              },
+            },
           },
-          promotion_zones: {
-            select: { id: true, name: true, code: true },
+          promotion_zones_promotions: {
+            where: { is_active: 'Y' },
+            include: {
+              promotion_zones_zones: {
+                select: { id: true, name: true, code: true },
+              },
+            },
           },
         },
       });
@@ -2399,8 +2439,11 @@ export const reportsController = {
 
       promotions.forEach((promo: any) => {
         const customerTypes =
-          promo.promotion_customer_types
-            ?.map((ct: any) => ct.customer_type)
+          promo.promotion_customer_types_promotions
+            ?.map(
+              (ct: any) =>
+                ct.promotion_customer_types_customer?.type_name || 'N/A'
+            )
             .join(', ') || 'All';
         const productCount = promo.products_promotion_products?.length || 0;
         const status =
@@ -2420,8 +2463,10 @@ export const reportsController = {
           end_date: promo.end_date
             ? new Date(promo.end_date).toLocaleDateString()
             : 'N/A',
-          depot: promo.promotion_depots?.name || 'N/A',
-          zone: promo.promotion_zones?.name || 'N/A',
+          depot: promo.promotion_depot_promotions?.[0]?.depots?.name || 'N/A',
+          zone:
+            promo.promotion_zones_promotions?.[0]?.promotion_zones_zones
+              ?.name || 'N/A',
           products: productCount,
           customer_types: customerTypes,
           status: status,

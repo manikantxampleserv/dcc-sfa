@@ -127,6 +127,9 @@ export class AttendanceCronService {
             attendance_date: {
               lt: today,
             },
+            status: {
+              not: 'punch_out',
+            },
           },
           data: {
             status: 'not_punch',
