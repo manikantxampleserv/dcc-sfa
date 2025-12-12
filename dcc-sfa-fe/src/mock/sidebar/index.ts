@@ -1,12 +1,29 @@
 import type { IconType } from 'react-icons';
 import {
+  MdAssignment,
+  MdAttachMoney,
   MdBarChart,
+  MdBuild,
+  MdBusiness,
+  MdCategory,
   MdDashboard,
-  MdDomain,
+  MdDeliveryDining,
+  MdFolder,
+  MdLocalShipping,
+  MdLocationOn,
   MdMap,
   MdNotifications,
+  MdPayment,
+  MdPeople,
+  MdPerson,
+  MdReceipt,
+  MdRoute,
   MdSettings,
   MdShoppingCart,
+  MdStore,
+  MdSwapHoriz,
+  MdTrendingUp,
+  MdWarehouse,
 } from 'react-icons/md';
 
 export interface MenuItem {
@@ -21,11 +38,11 @@ const menuItems: MenuItem[] = [
   {
     id: 'dashboards',
     label: 'Dashboards',
-    icon: MdDashboard,
     children: [
       {
         id: 'executive-dashboard',
         label: 'Executive Dashboard',
+        icon: MdDashboard,
         href: '/dashboard/executive',
       },
     ],
@@ -33,11 +50,11 @@ const menuItems: MenuItem[] = [
   {
     id: 'masters',
     label: 'Masters',
-    icon: MdDomain,
     children: [
       {
         id: 'organization-setup',
         label: 'Organization Setup',
+        icon: MdBusiness,
         children: [
           {
             id: 'company-master',
@@ -58,6 +75,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'operations-logistics',
         label: 'Operations & Logistics',
+        icon: MdLocalShipping,
         children: [
           {
             id: 'warehouse-master',
@@ -90,6 +108,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'customer-outlet-management',
         label: 'Outlet Management',
+        icon: MdStore,
         children: [
           {
             id: 'outlet-groups',
@@ -121,6 +140,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'product-pricing-setup',
         label: 'Product & Pricing Setup',
+        icon: MdCategory,
         children: [
           {
             id: 'brands',
@@ -157,6 +177,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'sales-planning-targets',
         label: 'Sales Planning & Targets',
+        icon: MdTrendingUp,
         children: [
           {
             id: 'sales-target-groups',
@@ -183,6 +204,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'feedback-engagement',
         label: 'Feedback & Engagement',
+        icon: MdAssignment,
         children: [
           {
             id: 'survey-templates',
@@ -206,11 +228,11 @@ const menuItems: MenuItem[] = [
   {
     id: 'transactions',
     label: 'Transactions',
-    icon: MdShoppingCart,
     children: [
       {
         id: 'sales-operations',
         label: 'Sales Operations',
+        icon: MdShoppingCart,
         children: [
           {
             id: 'order-entry',
@@ -237,6 +259,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'delivery-returns',
         label: 'Delivery & Returns',
+        icon: MdDeliveryDining,
         children: [
           {
             id: 'delivery-scheduling',
@@ -253,6 +276,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'asset-cooler-management',
         label: 'Asset & Cooler Management',
+        icon: MdBuild,
         children: [
           {
             id: 'asset-movement',
@@ -279,6 +303,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'van-warehouse-stock',
         label: 'Van & Stock Operations',
+        icon: MdWarehouse,
         children: [
           {
             id: 'van-stock',
@@ -300,6 +325,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'field-visit-market',
         label: 'Field Visit & Market Activities',
+        icon: MdLocationOn,
         children: [
           {
             id: 'visit-logging',
@@ -318,16 +344,17 @@ const menuItems: MenuItem[] = [
   {
     id: 'tracking',
     label: 'Tracking',
-    icon: MdMap,
     children: [
       {
         id: 'rep-location',
         label: 'Rep Location Tracking',
+        icon: MdMap,
         href: '/tracking/location',
       },
       {
         id: 'route-effectiveness',
         label: 'Route Effectiveness',
+        icon: MdRoute,
         href: '/tracking/routes',
       },
     ],
@@ -335,66 +362,77 @@ const menuItems: MenuItem[] = [
   {
     id: 'reports',
     label: 'Reports',
-    icon: MdBarChart,
     children: [
       {
         id: 'orders-invoices-returns',
         label: 'Orders, Invoices, Returns',
+        icon: MdReceipt,
         href: '/reports/orders',
       },
       {
         id: 'sales-vs-target',
         label: 'Sales vs Target',
+        icon: MdTrendingUp,
         href: '/reports/sales-target',
       },
       {
         id: 'asset-movement-status',
         label: 'Asset Movement/Status',
+        icon: MdSwapHoriz,
         href: '/reports/asset-status',
       },
       {
         id: 'visit-frequency',
         label: 'Visit Frequency/Completion',
+        icon: MdLocationOn,
         href: '/reports/visits',
       },
       {
         id: 'promo-effectiveness',
         label: 'Promo Effectiveness',
+        icon: MdAttachMoney,
         href: '/reports/promos',
       },
       {
         id: 'region-territory',
         label: 'Region/Territory Sales',
+        icon: MdMap,
         href: '/reports/territory',
       },
       {
         id: 'rep-productivity',
         label: 'Rep Productivity',
+        icon: MdPeople,
         href: '/reports/productivity',
       },
       {
         id: 'competitor-analysis',
         label: 'Competitor Analysis',
+        icon: MdBarChart,
         href: '/reports/competitor',
       },
       {
         id: 'outstanding-collection',
         label: 'Outstanding & Collection',
+        icon: MdPayment,
         href: '/reports/collection',
       },
       {
         id: 'attendance-history',
         label: 'Attendance History',
+        icon: MdAssignment,
         href: '/reports/attendance-history',
       },
       {
         id: 'activity-logs',
         label: 'Audit Logs',
+        icon: MdFolder,
         href: '/reports/audit-logs',
       },
       {
         id: 'survey-responses',
         label: 'Survey Responses',
+        icon: MdAssignment,
         href: '/reports/survey-responses',
       },
     ],
@@ -402,26 +440,29 @@ const menuItems: MenuItem[] = [
   {
     id: 'workflows',
     label: 'Workflows',
-    icon: MdNotifications,
     children: [
       {
         id: 'approval-setup',
         label: 'Approval Setup',
+        icon: MdSettings,
         href: '/workflows/approval-setup',
       },
       {
         id: 'approval-requests',
         label: 'Approval Requests',
+        icon: MdNotifications,
         href: '/workflows/approvals',
       },
       {
         id: 'route-exceptions',
         label: 'Route Exceptions',
+        icon: MdRoute,
         href: '/workflows/exceptions',
       },
       {
         id: 'alerts-reminders',
         label: 'Alerts & Reminders',
+        icon: MdNotifications,
         href: '/workflows/alerts',
       },
     ],
@@ -429,22 +470,29 @@ const menuItems: MenuItem[] = [
   {
     id: 'settings',
     label: 'Settings',
-    icon: MdSettings,
     children: [
       {
         id: 'profile',
         label: 'My Profile',
+        icon: MdPerson,
         href: '/profile',
       },
       {
         id: 'login-history',
         label: 'Login History',
+        icon: MdAssignment,
         href: '/settings/login-history',
       },
-      { id: 'api-tokens', label: 'API Tokens', href: '/settings/tokens' },
+      {
+        id: 'api-tokens',
+        label: 'API Tokens',
+        icon: MdSettings,
+        href: '/settings/tokens',
+      },
       {
         id: 'system-settings',
         label: 'System Settings',
+        icon: MdSettings,
         href: '/settings/system',
       },
     ],

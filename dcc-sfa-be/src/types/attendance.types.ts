@@ -1,6 +1,6 @@
 // types/attendance.types.ts
 
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
 
 export interface DeviceInfo {
   deviceId: string;
@@ -50,16 +50,16 @@ export interface AttendanceRecord {
   user_id: number;
   attendance_date: Date;
   punch_in_time: Date;
-  punch_in_latitude?: Decimal | null;
-  punch_in_longitude?: Decimal | null;
+  punch_in_latitude?: Prisma.Decimal | null;
+  punch_in_longitude?: Prisma.Decimal | null;
   punch_in_address?: string | null;
   punch_in_device_info?: string | null;
   punch_out_time?: Date | null;
-  punch_out_latitude?: Decimal | null;
-  punch_out_longitude?: Decimal | null;
+  punch_out_latitude?: Prisma.Decimal | null;
+  punch_out_longitude?: Prisma.Decimal | null;
   punch_out_address?: string | null;
   punch_out_device_info?: string | null;
-  total_hours?: Decimal | null;
+  total_hours?: Prisma.Decimal | null;
   work_type?: string | null;
   status: string;
   remarks?: string | null;

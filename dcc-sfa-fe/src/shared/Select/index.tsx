@@ -1,7 +1,7 @@
 /**
  * ## Select
  *
- * Custom select component with formik integration.
+ * Custom Autocomplete select component with formik integration.
  * Easy to handle when you have using formik, handles errors etc.
  *
  * @param {CustomSelectProps} props - Props for the Select component.
@@ -53,21 +53,32 @@
  */
 
 import {
+  Autocomplete,
   FormControl,
   FormHelperText,
-  InputLabel,
-  Select as MuiSelect,
-  type SelectProps as MuiSelectProps,
-  type SelectChangeEvent,
+  TextField,
+  type AutocompleteProps,
 } from '@mui/material';
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { FormikProps } from 'formik';
 
-interface CustomSelectProps extends Omit<MuiSelectProps, 'onChange'> {
+interface Option {
+  value: any;
+  label: string;
+  disabled?: boolean;
+}
+
+interface CustomSelectProps extends Omit<
+  AutocompleteProps<any, false, false, false>,
+  'options' | 'value' | 'onChange' | 'renderInput'
+> {
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
-  onChange?: (event: SelectChangeEvent<any>) => void;
+  onChange?: (event: any, value: any) => void;
   placeholder?: string;
+  name?: string;
+  label?: string;
+  children?: React.ReactNode;
 }
 
 const Select: React.FC<CustomSelectProps> = ({
@@ -83,49 +94,170 @@ const Select: React.FC<CustomSelectProps> = ({
   placeholder,
   onBlur,
   onChange,
+  disabled,
   ...rest
 }) => {
-  const handleChange = (event: SelectChangeEvent<any>) => {
-    const newValue = event.target.value;
+  const options = useMemo(() => {
+    if (!children) return [];
+    const childrenArray = React.Children.toArray(children);
+    const parsedOptions = childrenArray
+      .filter((child): child is React.ReactElement => {
+        if (!React.isValidElement(child)) return false;
+        return child.props.value !== undefined;
+      })
+      .map((child: React.ReactElement) => {
+        const childValue = child.props.value;
+        let childLabel = '';
+
+        const childrenProp = child.props.children;
+        if (typeof childrenProp === 'string') {
+          childLabel = childrenProp;
+        } else if (React.isValidElement(childrenProp)) {
+          childLabel =
+            childrenProp.props?.children || childValue?.toString() || '';
+        } else if (Array.isArray(childrenProp)) {
+          childLabel =
+            childrenProp
+              .map((c: any) => (typeof c === 'string' ? c : ''))
+              .join('') ||
+            childValue?.toString() ||
+            '';
+        } else if (childrenProp !== null && childrenProp !== undefined) {
+          childLabel = String(childrenProp);
+        } else {
+          childLabel = childValue?.toString() || '';
+        }
+
+        return {
+          value: childValue,
+          label: childLabel || childValue?.toString() || '',
+          disabled: child.props.disabled || false,
+        };
+      })
+      .filter(option => {
+        return option.value !== undefined && option.value !== null;
+      });
+
+    return parsedOptions;
+  }, [children]);
+
+  const currentValue =
+    value !== undefined ? value : formik?.values[name] || null;
+
+  const selectedOption = useMemo(() => {
+    if (
+      currentValue === null ||
+      currentValue === undefined ||
+      currentValue === ''
+    ) {
+      return null;
+    }
+    const found = options.find(option => {
+      if (option.value === currentValue) return true;
+      if (String(option.value) === String(currentValue)) return true;
+      return false;
+    });
+    return found || null;
+  }, [currentValue, options]);
+
+  const handleChange = (_event: any, newValue: Option | null) => {
+    const newValueToSet = newValue?.value ?? null;
     if (formik) {
-      formik.setFieldValue(name, newValue);
+      formik.setFieldValue(name, newValueToSet);
     } else if (setValue) {
-      setValue(newValue);
+      setValue(newValueToSet);
     } else if (onChange) {
-      onChange(event);
+      const syntheticEvent = {
+        target: {
+          name: name,
+          value: newValueToSet,
+        },
+      } as any;
+      onChange(syntheticEvent, newValueToSet);
+    }
+  };
+
+  const handleBlur = () => {
+    if (formik) {
+      formik.setFieldTouched(name, true);
+      formik.handleBlur({ target: { name } } as any);
+    }
+    if (onBlur) {
+      onBlur({ target: { name } } as any);
     }
   };
 
   const error = formik?.touched?.[name] && formik?.errors?.[name];
-
-  // Convert error to string for helperText (only strings are valid ReactNode for helperText)
   const errorMessage = typeof error === 'string' ? error : undefined;
 
   return (
     <FormControl fullWidth={fullWidth} error={!!error}>
-      <InputLabel id={`${name}-label`} size={size} required={required}>
-        {label}
-      </InputLabel>
-      <MuiSelect
-        fullWidth={fullWidth}
-        labelId={`${name}-label`}
-        name={name}
-        required={required}
-        size={size}
-        slotProps={{
-          input: {
-            required: false,
-          },
-        }}
-        onBlur={formik?.handleBlur || onBlur}
-        value={value || formik?.values[name] || ''}
-        label={label}
+      <Autocomplete
+        options={options}
+        value={selectedOption}
         onChange={handleChange}
-        displayEmpty={!!placeholder}
+        onBlur={handleBlur}
+        getOptionLabel={(option: Option) => {
+          if (!option) return '';
+          return option.label || String(option.value) || '';
+        }}
+        isOptionEqualToValue={(option: Option, value: Option) => {
+          if (!option || !value) return false;
+          return (
+            option.value === value.value ||
+            String(option.value) === String(value.value)
+          );
+        }}
+        getOptionDisabled={(option: Option) => option?.disabled || false}
+        disabled={disabled}
+        size={size}
+        fullWidth={fullWidth}
+        openOnFocus
+        selectOnFocus
+        clearOnBlur={false}
+        disableClearable={false}
+        filterOptions={(options: Option[], state: any) => {
+          if (!state.inputValue || state.inputValue.trim() === '') {
+            return options;
+          }
+          return options.filter(option =>
+            option.label.toLowerCase().includes(state.inputValue.toLowerCase())
+          );
+        }}
+        ListboxProps={{
+          style: { maxHeight: '300px' },
+        }}
+        PopperProps={{
+          style: { zIndex: 1300 },
+          placement: 'bottom-start',
+        }}
+        renderInput={(params: any) => (
+          <TextField
+            {...params}
+            label={label}
+            placeholder={placeholder}
+            required={required}
+            error={!!error}
+            name={name}
+            size={size}
+            InputProps={{
+              ...params.InputProps,
+              readOnly: false,
+            }}
+            inputProps={{
+              ...params.inputProps,
+              required: false,
+            }}
+          />
+        )}
+        renderOption={(props: any, option: Option) => (
+          <li {...props} key={`${option.value}-${option.label}`}>
+            {option.label}
+          </li>
+        )}
+        noOptionsText="No options available"
         {...rest}
-      >
-        {children}
-      </MuiSelect>
+      />
       {errorMessage && <FormHelperText>{errorMessage}</FormHelperText>}
     </FormControl>
   );

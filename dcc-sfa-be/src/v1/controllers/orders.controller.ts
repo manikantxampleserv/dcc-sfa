@@ -7,7 +7,6 @@ import {
 import { paginate } from '../../utils/paginate';
 import { createRequest } from './requests.controller';
 import prisma from '../../configs/prisma.client';
-import { Decimal } from '@prisma/client/runtime/library';
 import { Prisma } from '@prisma/client';
 
 interface OrderSerialized {
@@ -375,8 +374,8 @@ async function calculatePromotionsInternal(params: {
     if (!isEligible) continue;
 
     for (const condition of promo.promotion_condition_promotions) {
-      let totalQty = new Decimal(0);
-      let totalValue = new Decimal(0);
+      let totalQty = new Prisma.Decimal(0);
+      let totalValue = new Prisma.Decimal(0);
 
       for (const line of order_lines) {
         const productMatch = condition.promotion_condition_products.find(
@@ -386,8 +385,8 @@ async function calculatePromotionsInternal(params: {
         );
 
         if (productMatch) {
-          const lineQty = new Decimal(line.quantity || 0);
-          const linePrice = new Decimal(line.unit_price || 0);
+          const lineQty = new Prisma.Decimal(line.quantity || 0);
+          const linePrice = new Prisma.Decimal(line.unit_price || 0);
           const lineValue = lineQty.mul(linePrice);
 
           totalQty = totalQty.add(lineQty);
@@ -395,25 +394,27 @@ async function calculatePromotionsInternal(params: {
         }
       }
 
-      const minValue = new Decimal(condition.min_value || 0);
+      const minValue = new Prisma.Decimal(condition.min_value || 0);
       if (!totalValue.gte(minValue)) continue;
 
       const applicableLevel = promo.promotion_level_promotions.find(
-        (lvl: { threshold_value: Decimal | number }) =>
-          new Decimal(lvl.threshold_value).lte(totalValue)
+        (lvl: { threshold_value: Prisma.Decimal | number }) =>
+          new Prisma.Decimal(lvl.threshold_value).lte(totalValue)
       );
 
       if (!applicableLevel) continue;
 
-      let discountAmount = new Decimal(0);
+      let discountAmount = new Prisma.Decimal(0);
 
       if (applicableLevel.discount_type === 'PERCENTAGE') {
-        const discountPercent = new Decimal(
+        const discountPercent = new Prisma.Decimal(
           applicableLevel.discount_value || 0
         );
         discountAmount = totalValue.mul(discountPercent).div(100);
       } else if (applicableLevel.discount_type === 'FIXED_AMOUNT') {
-        discountAmount = new Decimal(applicableLevel.discount_value || 0);
+        discountAmount = new Prisma.Decimal(
+          applicableLevel.discount_value || 0
+        );
       }
 
       const freeProducts: any[] = [];
@@ -467,10 +468,10 @@ export const ordersController = {
   //       selected_promotion_id: selected_promotion_id || 'None',
   //     });
 
-  //     let calculatedSubtotal = new Decimal(0);
+  //     let calculatedSubtotal = new Prisma.Decimal(0);
   //     for (const item of items) {
-  //       const itemTotal = new Decimal(item.quantity).mul(
-  //         new Decimal(item.price || item.unit_price || 0)
+  //       const itemTotal = new Prisma.Decimal(item.quantity).mul(
+  //         new Prisma.Decimal(item.price || item.unit_price || 0)
   //       );
   //       calculatedSubtotal = calculatedSubtotal.add(itemTotal);
   //     }
@@ -492,7 +493,7 @@ export const ordersController = {
   //     }
 
   //     let appliedPromotion = null;
-  //     let promotionDiscount = new Decimal(0);
+  //     let promotionDiscount = new Prisma.Decimal(0);
   //     let freeProducts: any[] = [];
 
   //     if (selected_promotion_id) {
@@ -566,7 +567,7 @@ export const ordersController = {
   //           });
   //         }
 
-  //         promotionDiscount = new Decimal(appliedPromotion.discount_amount);
+  //         promotionDiscount = new Prisma.Decimal(appliedPromotion.discount_amount);
   //         freeProducts = appliedPromotion.free_products || [];
 
   //         console.log(
@@ -583,15 +584,15 @@ export const ordersController = {
   //         });
   //       }
   //     } else if (orderData.manual_discount) {
-  //       promotionDiscount = new Decimal(orderData.manual_discount);
+  //       promotionDiscount = new Prisma.Decimal(orderData.manual_discount);
   //     } else {
   //       console.log(' No promotion selected by customer');
   //     }
 
   //     const subtotal = calculatedSubtotal;
   //     const discount_amount = promotionDiscount;
-  //     const tax_amount = new Decimal(orderData.tax_amount || 0);
-  //     const shipping_amount = new Decimal(orderData.shipping_amount || 0);
+  //     const tax_amount = new Prisma.Decimal(orderData.tax_amount || 0);
+  //     const shipping_amount = new Prisma.Decimal(orderData.shipping_amount || 0);
 
   //     const total_amount = subtotal
   //       .minus(discount_amount)
@@ -858,10 +859,10 @@ export const ordersController = {
         selected_promotion_id: selected_promotion_id || 'None',
       });
 
-      let calculatedSubtotal = new Decimal(0);
+      let calculatedSubtotal = new Prisma.Decimal(0);
       for (const item of items) {
-        const itemTotal = new Decimal(item.quantity).mul(
-          new Decimal(item.price || item.unit_price || 0)
+        const itemTotal = new Prisma.Decimal(item.quantity).mul(
+          new Prisma.Decimal(item.price || item.unit_price || 0)
         );
         calculatedSubtotal = calculatedSubtotal.add(itemTotal);
       }
@@ -883,7 +884,7 @@ export const ordersController = {
       }
 
       let appliedPromotion = null;
-      let promotionDiscount = new Decimal(0);
+      let promotionDiscount = new Prisma.Decimal(0);
       let freeProducts: any[] = [];
 
       if (selected_promotion_id) {
@@ -1035,8 +1036,8 @@ export const ordersController = {
           }
 
           const condition = promotion.promotion_condition_promotions[0];
-          let totalQty = new Decimal(0);
-          let totalValue = new Decimal(0);
+          let totalQty = new Prisma.Decimal(0);
+          let totalValue = new Prisma.Decimal(0);
 
           const productIds = items.map((item: any) => item.product_id);
           const products = await prisma.products.findMany({
@@ -1056,8 +1057,10 @@ export const ordersController = {
             );
 
             if (productMatch) {
-              const lineQty = new Decimal(item.quantity || 0);
-              const linePrice = new Decimal(item.price || item.unit_price || 0);
+              const lineQty = new Prisma.Decimal(item.quantity || 0);
+              const linePrice = new Prisma.Decimal(
+                item.price || item.unit_price || 0
+              );
               const lineValue = lineQty.mul(linePrice);
 
               totalQty = totalQty.add(lineQty);
@@ -1065,7 +1068,7 @@ export const ordersController = {
             }
           }
 
-          const minValue = new Decimal(condition.min_value || 0);
+          const minValue = new Prisma.Decimal(condition.min_value || 0);
           if (!totalValue.gte(minValue)) {
             return res.status(400).json({
               success: false,
@@ -1074,7 +1077,7 @@ export const ordersController = {
           }
 
           const applicableLevel = promotion.promotion_level_promotions.find(
-            lvl => new Decimal(lvl.threshold_value).lte(totalValue)
+            lvl => new Prisma.Decimal(lvl.threshold_value).lte(totalValue)
           );
 
           if (!applicableLevel) {
@@ -1084,14 +1087,16 @@ export const ordersController = {
             });
           }
 
-          let discountAmount = new Decimal(0);
+          let discountAmount = new Prisma.Decimal(0);
           if (applicableLevel.discount_type === 'PERCENTAGE') {
-            const discountPercent = new Decimal(
+            const discountPercent = new Prisma.Decimal(
               applicableLevel.discount_value || 0
             );
             discountAmount = totalValue.mul(discountPercent).div(100);
           } else if (applicableLevel.discount_type === 'FIXED_AMOUNT') {
-            discountAmount = new Decimal(applicableLevel.discount_value || 0);
+            discountAmount = new Prisma.Decimal(
+              applicableLevel.discount_value || 0
+            );
           }
 
           for (const benefit of applicableLevel.promotion_benefit_level) {
@@ -1130,8 +1135,10 @@ export const ordersController = {
 
       const subtotal = calculatedSubtotal;
       const discount_amount = promotionDiscount;
-      const tax_amount = new Decimal(orderData.tax_amount || 0);
-      const shipping_amount = new Decimal(orderData.shipping_amount || 0);
+      const tax_amount = new Prisma.Decimal(orderData.tax_amount || 0);
+      const shipping_amount = new Prisma.Decimal(
+        orderData.shipping_amount || 0
+      );
 
       const total_amount = subtotal
         .minus(discount_amount)

@@ -26,8 +26,7 @@ const ApprovalSetup: React.FC = () => {
     null
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { isCreate, isRead, isUpdate, isDelete } =
-    usePermission('approval-setup');
+  const { isCreate, isRead, isUpdate, isDelete } = usePermission('approval');
 
   const { data: requestTypesResponse } = useRequestTypes();
 
@@ -209,7 +208,7 @@ const ApprovalSetup: React.FC = () => {
             id: 'actions',
             label: 'Actions',
             sortable: false,
-            render: (_value, row) => (
+            render: (_value: any, row: ApprovalWorkflowSetupGrouped) => (
               <div className="!flex !gap-2 !items-center">
                 {isUpdate && (
                   <EditButton
@@ -284,91 +283,81 @@ const ApprovalSetup: React.FC = () => {
         </Alert>
       )}
 
-      {!isRead && (
-        <Alert severity="error" className="!mb-4">
-          You do not have permission to view approval setups.
-        </Alert>
-      )}
-
-      {isRead && (
-        <Table
-          data={filteredWorkflows}
-          columns={columns}
-          actions={
-            isRead || isCreate ? (
-              <div className="flex justify-between gap-3 items-center flex-wrap">
-                <div className="flex flex-wrap items-center gap-3">
-                  {isRead && (
-                    <>
-                      <SearchInput
-                        placeholder="Search by request type..."
-                        value={search}
-                        onChange={handleSearchChange}
-                        debounceMs={400}
-                        showClear={true}
-                        className="!w-80"
-                      />
-                      <Select
-                        value={statusFilter}
-                        onChange={e => handleStatusFilterChange(e.target.value)}
-                        className="!w-40"
-                      >
-                        <MenuItem value="all">All Status</MenuItem>
-                        <MenuItem value="active">Active</MenuItem>
-                        <MenuItem value="inactive">Inactive</MenuItem>
-                      </Select>
-                      <Select
-                        value={requestTypeFilter}
-                        onChange={e =>
-                          handleRequestTypeFilterChange(e.target.value)
-                        }
-                        className="!w-48"
-                      >
-                        <MenuItem value="all">All Request Types</MenuItem>
-                        {requestTypes.map(type => (
-                          <MenuItem key={type.value} value={type.value}>
-                            {type.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </>
-                  )}
-                </div>
-                {isCreate && (
-                  <Button
-                    variant="contained"
-                    className="!capitalize"
-                    disableElevation
-                    startIcon={<Settings />}
-                    onClick={handleCreateSetup}
-                  >
-                    Create
-                  </Button>
+      <Table
+        data={filteredWorkflows}
+        columns={columns}
+        actions={
+          isRead || isCreate ? (
+            <div className="flex justify-between gap-3 items-center flex-wrap">
+              <div className="flex flex-wrap items-center gap-3">
+                {isRead && (
+                  <>
+                    <SearchInput
+                      placeholder="Search by request type..."
+                      value={search}
+                      onChange={handleSearchChange}
+                      debounceMs={400}
+                      showClear={true}
+                      className="!w-80"
+                    />
+                    <Select
+                      value={statusFilter}
+                      onChange={e => handleStatusFilterChange(e.target.value)}
+                      className="!w-40"
+                    >
+                      <MenuItem value="all">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={requestTypeFilter}
+                      onChange={e =>
+                        handleRequestTypeFilterChange(e.target.value)
+                      }
+                      className="!w-48"
+                    >
+                      <MenuItem value="all">All Request Types</MenuItem>
+                      {requestTypes.map(type => (
+                        <MenuItem key={type.value} value={type.value}>
+                          {type.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </>
                 )}
               </div>
-            ) : (
-              false
-            )
-          }
-          getRowId={workflow => workflow.request_type}
-          initialOrderBy="request_type"
-          loading={isLoading}
-          totalCount={
-            statusFilter !== 'all'
-              ? filteredWorkflows.length
-              : pagination?.totalCount || 0
-          }
-          page={page - 1}
-          rowsPerPage={size}
-          isPermission={isRead}
-          onPageChange={handlePageChange}
-          emptyMessage={
-            search || statusFilter !== 'all' || requestTypeFilter !== 'all'
-              ? `No workflows found matching your filters`
-              : 'No approval workflows found in the system'
-          }
-        />
-      )}
+              {isCreate && (
+                <Button
+                  variant="contained"
+                  className="!capitalize"
+                  disableElevation
+                  startIcon={<Settings />}
+                  onClick={handleCreateSetup}
+                >
+                  Create
+                </Button>
+              )}
+            </div>
+          ) : undefined
+        }
+        getRowId={workflow => workflow.request_type}
+        initialOrderBy="request_type"
+        loading={isLoading}
+        totalCount={
+          statusFilter !== 'all'
+            ? filteredWorkflows.length
+            : pagination?.totalCount || 0
+        }
+        page={page - 1}
+        rowsPerPage={size}
+        isPermission={isRead}
+        onPageChange={handlePageChange}
+        emptyMessage={
+          search || statusFilter !== 'all' || requestTypeFilter !== 'all'
+            ? `No workflows found matching your filters`
+            : 'No approval workflows found in the system'
+        }
+      />
 
       <ManageApprovalSetup
         requestType={selectedRequestType}

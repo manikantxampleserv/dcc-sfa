@@ -44,7 +44,7 @@ const ApprovalWorkflows: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'approve' | 'reject'>('approve');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const { isRead, isUpdate } = usePermission('approval-workflow');
+  const { isRead, isUpdate } = usePermission('approval');
 
   const { data: requestsResponse, isLoading } = useRequestsByUsers(
     {
@@ -240,7 +240,7 @@ const ApprovalWorkflows: React.FC = () => {
             id: 'actions',
             label: 'Actions',
             sortable: false,
-            render: (_value, row) => {
+            render: (_value: any, row: Request) => {
               const canAction = canApproveOrReject(row);
               return (
                 <div className="!flex !gap-2 !items-center">
@@ -279,94 +279,92 @@ const ApprovalWorkflows: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <StatsCard
-          title="Total Requests"
-          value={stats?.total_requests || 0}
-          icon={<FileText className="w-6 h-6" />}
-          color="blue"
-          isLoading={isLoading}
-        />
-        <StatsCard
-          title="Pending Requests"
-          value={stats?.pending_requests || 0}
-          icon={<AlertTriangle className="w-6 h-6" />}
-          color="orange"
-          isLoading={isLoading}
-        />
-        <StatsCard
-          title="Approved Requests"
-          value={stats?.approved_requests || 0}
-          icon={<CheckCircle className="w-6 h-6" />}
-          color="green"
-          isLoading={isLoading}
-        />
-        <StatsCard
-          title="Rejected Requests"
-          value={stats?.rejected_requests || 0}
-          icon={<XCircle className="w-6 h-6" />}
-          color="red"
-          isLoading={isLoading}
-        />
-      </div>
-
       {isRead && (
-        <Table
-          columns={columns}
-          data={requests}
-          loading={isLoading}
-          page={page - 1}
-          onPageChange={newPage => setPage(newPage + 1)}
-          rowsPerPage={limit}
-          totalCount={pagination?.total_count || 0}
-          isPermission={isRead}
-          actions={
-            isRead ? (
-              <div className="flex justify-between gap-3 items-center flex-wrap">
-                <div className="flex flex-wrap items-center gap-3">
-                  <SearchInput
-                    placeholder="Search requests..."
-                    value={search}
-                    onChange={setSearch}
-                    debounceMs={400}
-                    showClear={true}
-                    className="!w-80"
-                  />
-                  <Select
-                    value={statusFilter}
-                    onChange={e => setStatusFilter(e.target.value)}
-                    className="!w-40"
-                  >
-                    <MenuItem value="all">All Status</MenuItem>
-                    <MenuItem value="P">Pending</MenuItem>
-                    <MenuItem value="A">Approved</MenuItem>
-                    <MenuItem value="R">Rejected</MenuItem>
-                  </Select>
-                  <Select
-                    value={requestTypeFilter}
-                    onChange={e => setRequestTypeFilter(e.target.value)}
-                    className="!w-48"
-                  >
-                    <MenuItem value="all">All Types</MenuItem>
-                    {requestTypes.map(type => (
-                      <MenuItem key={type.value} value={type.value}>
-                        {type.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </div>
-              </div>
-            ) : (
-              false
-            )
-          }
-          emptyMessage={
-            search
-              ? `No requests found matching "${search}"`
-              : 'No approval requests found'
-          }
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <StatsCard
+            title="Total Requests"
+            value={stats?.total_requests || 0}
+            icon={<FileText className="w-6 h-6" />}
+            color="blue"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Pending Requests"
+            value={stats?.pending_requests || 0}
+            icon={<AlertTriangle className="w-6 h-6" />}
+            color="orange"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Approved Requests"
+            value={stats?.approved_requests || 0}
+            icon={<CheckCircle className="w-6 h-6" />}
+            color="green"
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="Rejected Requests"
+            value={stats?.rejected_requests || 0}
+            icon={<XCircle className="w-6 h-6" />}
+            color="red"
+            isLoading={isLoading}
+          />
+        </div>
       )}
+
+      <Table
+        columns={columns}
+        data={requests}
+        loading={isLoading}
+        page={page - 1}
+        onPageChange={newPage => setPage(newPage + 1)}
+        rowsPerPage={limit}
+        totalCount={pagination?.total_count || 0}
+        isPermission={isRead}
+        actions={
+          isRead ? (
+            <div className="flex justify-between gap-3 items-center flex-wrap">
+              <div className="flex flex-wrap items-center gap-3">
+                <SearchInput
+                  placeholder="Search requests..."
+                  value={search}
+                  onChange={setSearch}
+                  debounceMs={400}
+                  showClear={true}
+                  className="!w-80"
+                />
+                <Select
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
+                  className="!w-40"
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="P">Pending</MenuItem>
+                  <MenuItem value="A">Approved</MenuItem>
+                  <MenuItem value="R">Rejected</MenuItem>
+                </Select>
+                <Select
+                  value={requestTypeFilter}
+                  onChange={e => setRequestTypeFilter(e.target.value)}
+                  className="!w-48"
+                >
+                  <MenuItem value="all">All Types</MenuItem>
+                  {requestTypes.map(type => (
+                    <MenuItem key={type.value} value={type.value}>
+                      {type.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </div>
+            </div>
+          ) : undefined
+        }
+        emptyMessage={
+          search
+            ? `No requests found matching "${search}"`
+            : 'No approval requests found'
+        }
+      />
 
       {/* Confirmation Dialog */}
       <Dialog

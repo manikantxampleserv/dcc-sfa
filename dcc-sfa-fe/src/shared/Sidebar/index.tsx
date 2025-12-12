@@ -59,7 +59,7 @@ const Sidebar = () => {
         if (item.href === targetPath) {
           return parents;
         }
-        if (item.children) {
+        if (item.children && item.children.length > 0) {
           const found = findParentSections(item.children, targetPath, [
             ...parents,
             item.id,
@@ -111,13 +111,13 @@ const Sidebar = () => {
   const getAllMenuItems = useCallback((items: MenuItem[]): MenuItem[] => {
     const result: MenuItem[] = [];
 
-    const traverse = (menuItems: MenuItem[]) => {
+    const traverse = (menuItems: MenuItem[], currentLevel: number = 0) => {
       menuItems.forEach(item => {
-        if (item.href) {
+        if (currentLevel === 2 && item.href) {
           result.push(item);
         }
-        if (item.children) {
-          traverse(item.children);
+        if (item.children && item.children.length > 0) {
+          traverse(item.children, currentLevel + 1);
         }
       });
     };
@@ -134,14 +134,25 @@ const Sidebar = () => {
       const normalizedLastQuery = lastSearchQuery.trim().toLowerCase();
 
       if (normalizedValue && normalizedValue !== normalizedLastQuery) {
-        const findMatchingSections = (items: MenuItem[]): string[] => {
+        const findMatchingSections = (
+          items: MenuItem[],
+          level: number = 0
+        ): string[] => {
           const matchingSections: string[] = [];
 
-          const traverse = (menuItems: MenuItem[]) => {
+          const traverse = (menuItems: MenuItem[], currentLevel: number) => {
             menuItems.forEach(item => {
-              if (item.children && item.children.length > 0) {
+              if (
+                currentLevel < 2 &&
+                item.children &&
+                item.children.length > 0
+              ) {
                 const hasMatchingChild = item.children.some(child => {
-                  if (child.children && child.children.length > 0) {
+                  if (
+                    currentLevel === 0 &&
+                    child.children &&
+                    child.children.length > 0
+                  ) {
                     return (
                       child.children.some(grandchild =>
                         grandchild.label.toLowerCase().includes(normalizedValue)
@@ -157,12 +168,12 @@ const Sidebar = () => {
                 if (hasMatchingChild || parentMatches) {
                   matchingSections.push(item.id);
                 }
-                traverse(item.children);
+                traverse(item.children, currentLevel + 1);
               }
             });
           };
 
-          traverse(items);
+          traverse(items, level);
           return matchingSections;
         };
 
@@ -202,12 +213,12 @@ const Sidebar = () => {
     [getAllMenuItems, navigate]
   );
 
-  const isItemActive = (item: MenuItem): boolean => {
-    if (item.href) {
+  const isItemActive = (item: MenuItem, level: number = 0): boolean => {
+    if (level === 2 && item.href) {
       return location.pathname === item.href;
     }
-    if (item.children) {
-      return item.children.some(child => isItemActive(child));
+    if (level < 2 && item.children && item.children.length > 0) {
+      return item.children.some(child => isItemActive(child, level + 1));
     }
     return false;
   };
@@ -317,7 +328,7 @@ const Sidebar = () => {
                 }}
                 className={`${
                   isActive && level === 1 && !isCollapsed
-                    ? '!bg-blue-600 !text-white'
+                    ? '!bg-blue-600 !text-black'
                     : isActive && level === 0
                       ? '!bg-blue-50 !text-blue-700'
                       : '!bg-transparent !text-gray-700 hover:!bg-gray-100'

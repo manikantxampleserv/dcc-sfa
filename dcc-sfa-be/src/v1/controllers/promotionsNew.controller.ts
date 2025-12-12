@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
 
 interface PromotionCreateInput {
   name: string;
@@ -213,7 +213,7 @@ export const promotionsNewController = {
                 : conditionInput.category_id
                   ? 'CATEGORY'
                   : 'SINGLEPRODUCT',
-              min_value: new Decimal(
+              min_value: new Prisma.Decimal(
                 conditionInput.min_value || conditionInput.min_quantity || 0
               ),
               max_value: null,
@@ -241,7 +241,7 @@ export const promotionsNewController = {
                   ? defaultCategoryId
                   : defaultCategoryId),
               product_group: conditionInput.product_group || null,
-              condition_quantity: new Decimal(
+              condition_quantity: new Prisma.Decimal(
                 conditionInput.min_quantity || conditionInput.min_value || 0
               ),
               is_active: 'Y',
@@ -259,9 +259,13 @@ export const promotionsNewController = {
             data: {
               parent_id: promotionId,
               level_number: levelInput.level_number || 1,
-              threshold_value: new Decimal(levelInput.threshold_value || 0),
+              threshold_value: new Prisma.Decimal(
+                levelInput.threshold_value || 0
+              ),
               discount_type: levelInput.discount_type || 'PERCENTAGE',
-              discount_value: new Decimal(levelInput.discount_value || 0),
+              discount_value: new Prisma.Decimal(
+                levelInput.discount_value || 0
+              ),
               is_active: 'Y',
               createdby: req.user?.id || 1,
               createdate: new Date(),
@@ -276,7 +280,9 @@ export const promotionsNewController = {
                   level_id: level.id,
                   benefit_type: benefitInput.benefit_type || 'FREE_PRODUCT',
                   product_id: benefitInput.product_id || null,
-                  benefit_value: new Decimal(benefitInput.benefit_value || 0),
+                  benefit_value: new Prisma.Decimal(
+                    benefitInput.benefit_value || 0
+                  ),
                   condition_type: benefitInput.condition_type || null,
                   gift_limit: benefitInput.gift_limit || 0,
                   is_active: 'Y',
@@ -1033,7 +1039,7 @@ export const promotionsNewController = {
                   : conditionInput.category_id
                     ? 'CATEGORY'
                     : 'SINGLEPRODUCT',
-                min_value: new Decimal(
+                min_value: new Prisma.Decimal(
                   conditionInput.min_value || conditionInput.min_quantity || 0
                 ),
                 max_value: null,
@@ -1061,7 +1067,7 @@ export const promotionsNewController = {
                     ? defaultCategoryId
                     : defaultCategoryId),
                 product_group: conditionInput.product_group || null,
-                condition_quantity: new Decimal(
+                condition_quantity: new Prisma.Decimal(
                   conditionInput.min_quantity || conditionInput.min_value || 0
                 ),
                 is_active: 'Y',
@@ -1087,9 +1093,13 @@ export const promotionsNewController = {
               data: {
                 parent_id: Number(id),
                 level_number: levelInput.level_number || 1,
-                threshold_value: new Decimal(levelInput.threshold_value || 0),
+                threshold_value: new Prisma.Decimal(
+                  levelInput.threshold_value || 0
+                ),
                 discount_type: levelInput.discount_type || 'PERCENTAGE',
-                discount_value: new Decimal(levelInput.discount_value || 0),
+                discount_value: new Prisma.Decimal(
+                  levelInput.discount_value || 0
+                ),
                 is_active: 'Y',
                 createdby: req.user?.id || 1,
                 createdate: new Date(),
@@ -1104,7 +1114,9 @@ export const promotionsNewController = {
                     level_id: level.id,
                     benefit_type: benefitInput.benefit_type || 'FREE_PRODUCT',
                     product_id: benefitInput.product_id || null,
-                    benefit_value: new Decimal(benefitInput.benefit_value || 0),
+                    benefit_value: new Prisma.Decimal(
+                      benefitInput.benefit_value || 0
+                    ),
                     condition_type: benefitInput.condition_type || null,
                     gift_limit: benefitInput.gift_limit || 0,
                     is_active: 'Y',

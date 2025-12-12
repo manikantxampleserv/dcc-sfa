@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from '../shared/Header';
-import Sidebar from '../shared/Sidebar';
+import Sidebar from '../shared/UpdatedSidebar';
 import BreadCrumbs from 'shared/BreadCrumbs';
 
 const Layout: React.FC = () => {
@@ -10,23 +10,33 @@ const Layout: React.FC = () => {
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const prevPathnameRef = useRef<string>('');
+  const prevForceReloadRef = useRef<number | null>(null);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   useEffect(() => {
     const currentPath = location.pathname + location.search;
+    const locationState = location.state as { forceReload?: number } | null;
+    const forceReload = locationState?.forceReload ?? null;
+    const pathChanged = prevPathnameRef.current !== currentPath;
+    const forceReloadChanged = prevForceReloadRef.current !== forceReload;
 
-    if (prevPathnameRef.current !== currentPath) {
-      prevPathnameRef.current = currentPath;
+    if (pathChanged || forceReloadChanged) {
+      if (pathChanged) {
+        prevPathnameRef.current = currentPath;
+      }
+      if (forceReloadChanged && forceReload !== null) {
+        prevForceReloadRef.current = forceReload;
+      }
       setRemountKey(prev => prev + 1);
 
       if (mainRef.current) {
         mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }
-  }, [location.pathname, location.search, location.key]);
+  }, [location.pathname, location.search, location.key, location.state]);
 
-  const outletKey = `${location.pathname}${location.search}${remountKey}`;
+  const outletKey = `${location.pathname}${location.search}${location.key || remountKey}${(location.state as { forceReload?: number } | null)?.forceReload || ''}`;
 
   const getNavItem = () => {
     const pathSegments = location.pathname.split('/').filter(Boolean);

@@ -17,7 +17,7 @@ import {
   Skeleton,
   Typography,
 } from '@mui/material';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -33,7 +33,6 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [approvalsDrawerOpen, setApprovalsDrawerOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const open = Boolean(anchorEl);
 
@@ -59,27 +58,6 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
   );
 
   const pendingCount = pendingRequestsResponse?.pagination?.total_count || 0;
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        anchorEl &&
-        !anchorEl.contains(event.target as Node)
-      ) {
-        handleClose();
-      }
-    };
-
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [open, anchorEl]);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -161,7 +139,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
             }}
           />
 
-          <div className="relative" ref={menuRef}>
+          <div className="relative">
             <IconButton
               onClick={handleClick}
               className="!p-2 !rounded-md !bg-gray-50 !text-gray-700 hover:!bg-gray-100"

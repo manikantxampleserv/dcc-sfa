@@ -556,7 +556,12 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           new Set([...selectedDepots, ...outletDepotIds])
         );
         const locationAreas = allDepotIds.length > 0 ? allDepotIds : undefined;
-        const outletGroups = getUniqueIds(outletRows, 'group');
+        const outletGroupsFromRows = getUniqueIds(outletRows, 'group');
+        const allCustomerCategories = Array.from(
+          new Set([...selectedCustomerCategories, ...outletGroupsFromRows])
+        );
+        const outletGroups =
+          allCustomerCategories.length > 0 ? allCustomerCategories : undefined;
         const routes = selectedRoutes.length > 0 ? selectedRoutes : undefined;
         const zones = selectedZones.length > 0 ? selectedZones : undefined;
         const salespersons =
@@ -619,7 +624,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           zones: zones,
           salespersons: salespersons,
           customer_exclusions: customerExclusions,
-          outlet1_groups: outletGroups.length > 0 ? outletGroups : undefined,
+          outlet1_groups: outletGroups,
           customer_types: customerTypes,
           customer_channels: customerChannels,
           levels:
@@ -646,7 +651,17 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           );
           const updateLocationAreas =
             updateAllDepotIds.length > 0 ? updateAllDepotIds : undefined;
-          const updateOutletGroups = getUniqueIds(outletRows, 'group');
+          const updateOutletGroupsFromRows = getUniqueIds(outletRows, 'group');
+          const updateAllCustomerCategories = Array.from(
+            new Set([
+              ...selectedCustomerCategories,
+              ...updateOutletGroupsFromRows,
+            ])
+          );
+          const updateOutletGroups =
+            updateAllCustomerCategories.length > 0
+              ? updateAllCustomerCategories
+              : undefined;
           const updateRoutes =
             selectedRoutes.length > 0 ? selectedRoutes : undefined;
           const updateZones =
@@ -683,8 +698,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               zones: updateZones,
               salespersons: updateSalespersons,
               customer_exclusions: updateCustomerExclusions,
-              outlet1_groups:
-                updateOutletGroups.length > 0 ? updateOutletGroups : undefined,
+              outlet1_groups: updateOutletGroups,
               customer_types: updateCustomerTypes,
               customer_channels: updateCustomerChannels,
               levels:
@@ -2083,7 +2097,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               <Box className="!grid !grid-cols-2 !gap-4">
                 <Box>
                   <Input
-                    label={`${selectedGiftType === 'Free Product' ? 'Discount (Amount)' : 'Discount (Percent)'}`}
+                    label={`${selectedGiftType === 'Free Product' ? 'Free Product' : selectedGiftType === 'Percent' ? 'Discount (Percent)' : 'Discount (Amount)'}`}
                     type="number"
                     value={discAmount || ''}
                     onChange={e => {

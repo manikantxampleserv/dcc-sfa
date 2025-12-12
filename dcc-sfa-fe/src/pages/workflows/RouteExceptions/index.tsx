@@ -1,4 +1,4 @@
-import { Alert, Chip, MenuItem, Skeleton, Typography } from '@mui/material';
+import { Chip, MenuItem, Typography } from '@mui/material';
 import { AlertTriangle, Truck } from 'lucide-react';
 import React, { useState } from 'react';
 import { usePermission } from 'hooks/usePermission';
@@ -33,7 +33,7 @@ const RouteExceptions: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isRead } = usePermission('route-exceptions');
+  const { isRead } = usePermission('exception');
 
   const isLoading = false;
   const exceptions: RouteException[] = [];
@@ -193,84 +193,55 @@ const RouteExceptions: React.FC = () => {
         </div>
       )}
 
-      {!isRead && (
-        <Alert severity="error" className="!mb-4">
-          You do not have permission to view route exceptions.
-        </Alert>
-      )}
-
-      {isRead && (
-        <div className="!bg-white !rounded-lg !shadow-sm !p-4 !mb-6">
-          <div className="!flex !flex-wrap !gap-4 !items-end">
-            <div className="!flex-1 ">
-              <SearchInput
-                placeholder="Search Route Exceptions..."
-                value={search}
-                className="!min-w-[300px]"
-                onChange={setSearch}
-              />
+      <Table
+        columns={columns}
+        data={exceptions}
+        loading={isLoading}
+        page={page - 1}
+        onPageChange={newPage => setPage(newPage + 1)}
+        rowsPerPage={limit}
+        isPermission={isRead}
+        actions={
+          isRead ? (
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[300px]">
+                <SearchInput
+                  placeholder="Search Route Exceptions..."
+                  value={search}
+                  onChange={setSearch}
+                />
+              </div>
+              <div className="w-[180px]">
+                <Select
+                  label="Status"
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
+                  fullWidth={true}
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="open">Open</MenuItem>
+                  <MenuItem value="in_progress">In Progress</MenuItem>
+                  <MenuItem value="resolved">Resolved</MenuItem>
+                </Select>
+              </div>
+              <div className="w-[180px]">
+                <Select
+                  label="Severity"
+                  value={severityFilter}
+                  onChange={e => setSeverityFilter(e.target.value)}
+                  fullWidth={true}
+                >
+                  <MenuItem value="all">All Severities</MenuItem>
+                  <MenuItem value="critical">Critical</MenuItem>
+                  <MenuItem value="high">High</MenuItem>
+                  <MenuItem value="medium">Medium</MenuItem>
+                  <MenuItem value="low">Low</MenuItem>
+                </Select>
+              </div>
             </div>
-            <div className="!w-[180px]">
-              <Select
-                label="Status"
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-                fullWidth={true}
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="open">Open</MenuItem>
-                <MenuItem value="in_progress">In Progress</MenuItem>
-                <MenuItem value="resolved">Resolved</MenuItem>
-              </Select>
-            </div>
-            <div className="!w-[180px]">
-              <Select
-                label="Severity"
-                value={severityFilter}
-                onChange={e => setSeverityFilter(e.target.value)}
-                fullWidth={true}
-              >
-                <MenuItem value="all">All Severities</MenuItem>
-                <MenuItem value="critical">Critical</MenuItem>
-                <MenuItem value="high">High</MenuItem>
-                <MenuItem value="medium">Medium</MenuItem>
-                <MenuItem value="low">Low</MenuItem>
-              </Select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isRead && (
-        <>
-          {isLoading ? (
-            <div className="!bg-white !rounded-lg !shadow-sm !p-4">
-              {[1, 2, 3, 4, 5].map(item => (
-                <Skeleton key={item} height={60} className="!mb-2" />
-              ))}
-            </div>
-          ) : exceptions.length === 0 ? (
-            <div className="!bg-white !rounded-lg !shadow-sm !p-12 !text-center">
-              <AlertTriangle className="!w-16 !h-16 !text-gray-400 !mx-auto !mb-4" />
-              <Typography variant="h6" className="!text-gray-600 !mb-2">
-                No Route Exceptions
-              </Typography>
-              <Typography variant="body2" className="!text-gray-500">
-                There are no route exceptions to display at this time.
-              </Typography>
-            </div>
-          ) : (
-            <Table
-              columns={columns}
-              data={exceptions}
-              page={page - 1}
-              onPageChange={newPage => setPage(newPage + 1)}
-              rowsPerPage={limit}
-              isPermission={isRead}
-            />
-          )}
-        </>
-      )}
+          ) : undefined
+        }
+      />
     </>
   );
 };

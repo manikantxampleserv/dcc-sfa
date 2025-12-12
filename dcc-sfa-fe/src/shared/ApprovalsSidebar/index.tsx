@@ -175,7 +175,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
         open={open}
         setOpen={setOpen}
         title="Recent Requests"
-        size="medium"
+        size="small"
         anchor="right"
       >
         <div className="!p-2">

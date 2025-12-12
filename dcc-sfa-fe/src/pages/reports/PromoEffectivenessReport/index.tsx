@@ -306,7 +306,7 @@ const PromoEffectivenessReport: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -361,20 +361,6 @@ const PromoEffectivenessReport: React.FC = () => {
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
               <XCircle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Products</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_products}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-orange-600" />
             </div>
           </div>
         </div>

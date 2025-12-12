@@ -1,20 +1,10 @@
-import { Request, Response } from 'express';
-import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
-import { Decimal } from '@prisma/client/runtime/library';
 
 enum PromotionType {
   INSTANT_DISCOUNT = 'INSTANT_DISCOUNT',
   INSTANT_FREE_PRODUCT = 'INSTANT_FREE_PRODUCT',
   DEPOT_PRICE_REDUCTION = 'DEPOT_PRICE_REDUCTION',
   PERIOD_ACCUMULATED = 'PERIOD_ACCUMULATED',
-}
-
-enum RewardType {
-  PERCENTAGE_DISCOUNT = 'PERCENTAGE_DISCOUNT',
-  FIXED_AMOUNT_DISCOUNT = 'FIXED_AMOUNT_DISCOUNT',
-  FREE_PRODUCT = 'FREE_PRODUCT',
-  PRICE_REDUCTION = 'PRICE_REDUCTION',
 }
 
 enum Platform {
