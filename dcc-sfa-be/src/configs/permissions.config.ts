@@ -134,6 +134,9 @@ export type Modules =
   | 'product-category'
   | 'product-sub-category'
   | 'unit-of-measurement'
+  | 'product-flavour'
+  | 'product-volume'
+  | 'product-shelf-life'
   | 'product'
   | 'pricelist'
   | 'sales-target-group'
@@ -204,6 +207,9 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'product-category': 'Product Category',
   'product-sub-category': 'Product Sub Category',
   'unit-of-measurement': 'Unit Of Measurement',
+  'product-flavour': 'Product Flavour',
+  'product-volume': 'Product Volume',
+  'product-shelf-life': 'Product Shelf Life',
   product: 'Product',
   pricelist: 'Price List',
   'sales-target-group': 'Sales Target Group',

@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@mui/x-charts": "^8.15.0",
+    "@prisma/adapter-mssql": "^7.1.0",
     "@prisma/client": "^7.1.0",
     "@types/multer": "^2.0.0",
     "backblaze-b2": "^1.7.1",

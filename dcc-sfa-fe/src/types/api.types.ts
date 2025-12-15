@@ -228,6 +228,36 @@ export interface ApiResponse<T = any> {
     active_promotions: number;
     inactive_promotions: number;
     promotions_this_month: number;
+    // Product flavour statistics
+    total_product_flavours: number;
+    active_product_flavours: number;
+    inactive_product_flavours: number;
+    new_product_flavours_this_month: number;
+    // Product volume statistics
+    total_product_volumes: number;
+    active_product_volumes: number;
+    inactive_product_volumes: number;
+    new_product_volumes_this_month: number;
+    // Product shelf life statistics
+    total_product_shelf_life: number;
+    active_product_shelf_life: number;
+    inactive_product_shelf_life: number;
+    new_product_shelf_life_this_month: number;
+    // Product type statistics
+    total_product_types: number;
+    active_product_types: number;
+    inactive_product_types: number;
+    new_product_types_this_month: number;
+    // Product target group statistics
+    total_product_target_groups: number;
+    active_product_target_groups: number;
+    inactive_product_target_groups: number;
+    new_product_target_groups_this_month: number;
+    // Product web order statistics
+    total_product_web_orders: number;
+    active_product_web_orders: number;
+    inactive_product_web_orders: number;
+    new_product_web_orders_this_month: number;
   };
 }
 

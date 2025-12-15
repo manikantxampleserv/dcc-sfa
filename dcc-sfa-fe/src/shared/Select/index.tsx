@@ -70,7 +70,7 @@ interface Option {
 
 interface CustomSelectProps
   extends Omit<
-    AutocompleteProps<any, false, false, false>,
+    AutocompleteProps<any, false, boolean, false>,
     'options' | 'onChange' | 'renderInput'
   > {
   formik?: FormikProps<any>;
@@ -85,6 +85,7 @@ interface CustomSelectProps
   children?: React.ReactNode;
   value?: any;
   required?: boolean;
+  disableClearable?: boolean;
 }
 
 const Select: React.FC<CustomSelectProps> = ({
@@ -101,6 +102,7 @@ const Select: React.FC<CustomSelectProps> = ({
   onBlur,
   onChange,
   disabled,
+  disableClearable = false,
   ...rest
 }) => {
   const options = useMemo(() => {
@@ -244,7 +246,7 @@ const Select: React.FC<CustomSelectProps> = ({
         openOnFocus
         selectOnFocus
         clearOnBlur={false}
-        disableClearable={false}
+        disableClearable={disableClearable ? true : false}
         filterOptions={(options: Option[], state: any) => {
           if (!state.inputValue || state.inputValue.trim() === '') {
             return options;
@@ -253,6 +255,7 @@ const Select: React.FC<CustomSelectProps> = ({
             option.label.toLowerCase().includes(state.inputValue.toLowerCase())
           );
         }}
+        sx={{ minWidth: '160px' }}
         slotProps={{
           popper: {
             style: { zIndex: 1300 },
