@@ -133,7 +133,10 @@ const PromotionsManagement: React.FC = () => {
       id: 'name',
       label: 'Promotion Info',
       render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center" onClick={() => navigate(`/masters/promotions/${row.id}`)}>
+        <Box
+          className="!flex !gap-2 !items-center"
+          onClick={() => navigate(`/masters/promotions/${row.id}`)}
+        >
           <Avatar
             alt={row.name}
             className="!rounded !bg-primary-100 !text-primary-600"
@@ -311,7 +314,7 @@ const PromotionsManagement: React.FC = () => {
                     />
                     <Select
                       value={statusFilter}
-                      onChange={e => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         setStatusFilter(e.target.value);
                         setPage(1);
                       }}
