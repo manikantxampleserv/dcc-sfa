@@ -55,7 +55,6 @@ import VehiclesManagement from 'pages/masters/Vehicles';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import ZonesManagement from 'pages/masters/Zone';
 import NotFound from 'pages/NotFound';
-import Unauthorized from 'pages/Unauthorized';
 import Profile from 'pages/Profile';
 import AssetMovementStatusReport from 'pages/reports/AssetMovementStatusReport';
 import AttendanceReports from 'pages/reports/AttendanceReports';
@@ -827,10 +826,6 @@ const router = createBrowserRouter(
               <Profile />
             </PermissionGuard>
           ),
-        },
-        {
-          path: '/unauthorized',
-          element: <Unauthorized />,
         },
         {
           path: '*',

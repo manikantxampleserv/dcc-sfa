@@ -104,9 +104,37 @@ export const deleteProductFlavour = async (
   }
 };
 
+interface ProductFlavourDropdown {
+  id: number;
+  name: string;
+  code: string;
+}
+
+interface GetProductFlavoursDropdownParams {
+  search?: string;
+  flavour_id?: number;
+}
+
+export const fetchProductFlavoursDropdown = async (
+  params?: GetProductFlavoursDropdownParams
+): Promise<ApiResponse<ProductFlavourDropdown[]>> => {
+  try {
+    const response = await api.get('/product-flavours-dropdown', { params });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching product flavours dropdown:', error);
+    throw new Error(
+      error.response?.data?.message ||
+        'Failed to fetch product flavours dropdown'
+    );
+  }
+};
+
 export type {
   GetProductFlavoursParams,
+  GetProductFlavoursDropdownParams,
   ManageProductFlavourPayload,
   UpdateProductFlavourPayload,
   ProductFlavour,
+  ProductFlavourDropdown,
 };

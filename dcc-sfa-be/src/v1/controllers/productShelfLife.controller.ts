@@ -223,4 +223,57 @@ export const productShelfLifeController = {
       res.status(500).json({ message: error.message });
     }
   },
+
+  async getProductShelfLifeDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', shelf_life_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const shelfLifeId = shelf_life_id ? Number(shelf_life_id) : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (shelfLifeId) {
+        where.id = shelfLifeId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            name: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+          {
+            code: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+        ];
+      }
+
+      const shelfLife = await prisma.product_shelf_life.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success(
+        'Product shelf life dropdown fetched successfully',
+        shelfLife,
+        200
+      );
+    } catch (error: any) {
+      console.error('Error fetching product shelf life dropdown:', error);
+      res.error(error.message);
+    }
+  },
 };

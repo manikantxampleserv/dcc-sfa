@@ -21,6 +21,12 @@ interface ProductSerialized {
   route_type_id?: number | null;
   outlet_group_id?: number | null;
   tracking_type?: string | null;
+  product_type_id?: number | null;
+  product_target_group_id?: number | null;
+  product_web_order_id?: number | null;
+  volume_id?: number | null;
+  flavour_id?: number | null;
+  shelf_life_id?: number | null;
   batch_lots?: { id: number; batch_number: string; quantity: number }[];
   inventory_stock?: {
     id: number;
@@ -40,6 +46,12 @@ interface ProductSerialized {
   product_sub_category: { id: number; sub_category_name: string };
   route_type?: { id: number; name: string } | null;
   outlet_group?: { id: number; name: string; code: string } | null;
+  product_type?: { id: number; name: string; code: string } | null;
+  product_target_group?: { id: number; name: string; code: string } | null;
+  product_web_order?: { id: number; name: string; code: string } | null;
+  volume?: { id: number; name: string; code: string } | null;
+  flavour?: { id: number; name: string; code: string } | null;
+  shelf_life?: { id: number; name: string; code: string } | null;
 }
 
 const generateProductsCode = async (name: string) => {
@@ -86,6 +98,12 @@ const serializeProduct = (product: any): ProductSerialized => ({
   route_type_id: product.route_type_id,
   outlet_group_id: product.outlet_group_id,
   tracking_type: product.tracking_type,
+  product_type_id: product.product_type_id,
+  product_target_group_id: product.product_target_group_id,
+  product_web_order_id: product.product_web_order_id,
+  volume_id: product.volume_id,
+  flavour_id: product.flavour_id,
+  shelf_life_id: product.shelf_life_id,
 
   batch_lots: normalizeToArray(product.batch_lots_products).map((b: any) => ({
     id: b.id,
@@ -150,6 +168,48 @@ const serializeProduct = (product: any): ProductSerialized => ({
         code: product.products_outlet_group.code,
       }
     : null,
+  product_type: product.product_types_products
+    ? {
+        id: product.product_types_products.id,
+        name: product.product_types_products.name,
+        code: product.product_types_products.code,
+      }
+    : null,
+  product_target_group: product.product_target_groups_products
+    ? {
+        id: product.product_target_groups_products.id,
+        name: product.product_target_groups_products.name,
+        code: product.product_target_groups_products.code,
+      }
+    : null,
+  product_web_order: product.product_web_orders_products
+    ? {
+        id: product.product_web_orders_products.id,
+        name: product.product_web_orders_products.name,
+        code: product.product_web_orders_products.code,
+      }
+    : null,
+  volume: product.product_volumes_products
+    ? {
+        id: product.product_volumes_products.id,
+        name: product.product_volumes_products.name,
+        code: product.product_volumes_products.code,
+      }
+    : null,
+  flavour: product.product_flavours_products
+    ? {
+        id: product.product_flavours_products.id,
+        name: product.product_flavours_products.name,
+        code: product.product_flavours_products.code,
+      }
+    : null,
+  shelf_life: product.product_shelf_life_products
+    ? {
+        id: product.product_shelf_life_products.id,
+        name: product.product_shelf_life_products.name,
+        code: product.product_shelf_life_products.code,
+      }
+    : null,
 });
 
 export const productsController = {
@@ -173,6 +233,12 @@ export const productsController = {
           route_type_id: data.route_type_id || null,
           outlet_group_id: data.outlet_group_id || null,
           tracking_type: data.tracking_type || null,
+          product_type_id: data.product_type_id || null,
+          product_target_group_id: data.product_target_group_id || null,
+          product_web_order_id: data.product_web_order_id || null,
+          volume_id: data.volume_id || null,
+          flavour_id: data.flavour_id || null,
+          shelf_life_id: data.shelf_life_id || null,
           createdate: new Date(),
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
@@ -188,6 +254,12 @@ export const productsController = {
           product_sub_categories_products: true,
           products_route_type: true,
           products_outlet_group: true,
+          product_types_products: true,
+          product_target_groups_products: true,
+          product_web_orders_products: true,
+          product_volumes_products: true,
+          product_flavours_products: true,
+          product_shelf_life_products: true,
         },
       });
 
@@ -238,6 +310,12 @@ export const productsController = {
           product_sub_categories_products: true,
           products_route_type: true,
           products_outlet_group: true,
+          product_types_products: true,
+          product_target_groups_products: true,
+          product_web_orders_products: true,
+          product_volumes_products: true,
+          product_flavours_products: true,
+          product_shelf_life_products: true,
         },
       });
 
@@ -293,6 +371,12 @@ export const productsController = {
           product_sub_categories_products: true,
           products_route_type: true,
           products_outlet_group: true,
+          product_types_products: true,
+          product_target_groups_products: true,
+          product_web_orders_products: true,
+          product_volumes_products: true,
+          product_flavours_products: true,
+          product_shelf_life_products: true,
         },
       });
 
@@ -339,6 +423,12 @@ export const productsController = {
           product_sub_categories_products: true,
           products_route_type: true,
           products_outlet_group: true,
+          product_types_products: true,
+          product_target_groups_products: true,
+          product_web_orders_products: true,
+          product_volumes_products: true,
+          product_flavours_products: true,
+          product_shelf_life_products: true,
         },
       });
 

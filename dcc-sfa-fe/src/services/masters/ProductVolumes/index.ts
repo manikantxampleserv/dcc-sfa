@@ -104,9 +104,37 @@ export const deleteProductVolume = async (
   }
 };
 
+interface ProductVolumeDropdown {
+  id: number;
+  name: string;
+  code: string;
+}
+
+interface GetProductVolumesDropdownParams {
+  search?: string;
+  volume_id?: number;
+}
+
+export const fetchProductVolumesDropdown = async (
+  params?: GetProductVolumesDropdownParams
+): Promise<ApiResponse<ProductVolumeDropdown[]>> => {
+  try {
+    const response = await api.get('/product-volumes-dropdown', { params });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching product volumes dropdown:', error);
+    throw new Error(
+      error.response?.data?.message ||
+        'Failed to fetch product volumes dropdown'
+    );
+  }
+};
+
 export type {
   GetProductVolumesParams,
+  GetProductVolumesDropdownParams,
   ManageProductVolumePayload,
   UpdateProductVolumePayload,
   ProductVolume,
+  ProductVolumeDropdown,
 };

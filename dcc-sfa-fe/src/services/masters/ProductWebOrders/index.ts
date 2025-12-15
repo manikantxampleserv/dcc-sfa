@@ -116,10 +116,38 @@ export const deleteProductWebOrder = async (
   }
 };
 
+interface ProductWebOrderDropdown {
+  id: number;
+  name: string;
+  code: string;
+}
+
+interface GetProductWebOrdersDropdownParams {
+  search?: string;
+  product_web_order_id?: number;
+}
+
+export const fetchProductWebOrdersDropdown = async (
+  params?: GetProductWebOrdersDropdownParams
+): Promise<ApiResponse<ProductWebOrderDropdown[]>> => {
+  try {
+    const response = await api.get('/product-web-orders-dropdown', { params });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching product web orders dropdown:', error);
+    throw new Error(
+      error.response?.data?.message ||
+        'Failed to fetch product web orders dropdown'
+    );
+  }
+};
+
 export type {
   GetProductWebOrdersParams,
+  GetProductWebOrdersDropdownParams,
   ManageProductWebOrderPayload,
   UpdateProductWebOrderPayload,
   PaginationMeta,
   ProductWebOrder,
+  ProductWebOrderDropdown,
 };

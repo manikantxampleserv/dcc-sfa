@@ -232,4 +232,57 @@ export const productVolumesController = {
       res.status(500).json({ message: error.message });
     }
   },
+
+  async getProductVolumesDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', volume_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const volumeId = volume_id ? Number(volume_id) : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (volumeId) {
+        where.id = volumeId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            name: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+          {
+            code: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+        ];
+      }
+
+      const volumes = await prisma.product_volumes.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success(
+        'Product volumes dropdown fetched successfully',
+        volumes,
+        200
+      );
+    } catch (error: any) {
+      console.error('Error fetching product volumes dropdown:', error);
+      res.error(error.message);
+    }
+  },
 };

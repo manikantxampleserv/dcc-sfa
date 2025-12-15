@@ -39,7 +39,8 @@ export const productWebOrdersController = {
       const productWebOrder = await prisma.product_web_order.create({
         data: {
           ...data,
-          code: data.code || data.name.toUpperCase().replace(/\s+/g, '_'),
+          code:
+            data.code || `WO-${data.name.toUpperCase().replace(/\s+/g, '-')}`,
           createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
@@ -201,6 +202,61 @@ export const productWebOrdersController = {
     } catch (error: any) {
       console.error('Delete Product Web Order Error:', error);
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getProductWebOrdersDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', product_web_order_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const productWebOrderId = product_web_order_id
+        ? Number(product_web_order_id)
+        : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (productWebOrderId) {
+        where.id = productWebOrderId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            name: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+          {
+            code: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+        ];
+      }
+
+      const productWebOrders = await prisma.product_web_order.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success(
+        'Product web orders dropdown fetched successfully',
+        productWebOrders,
+        200
+      );
+    } catch (error: any) {
+      console.error('Error fetching product web orders dropdown:', error);
+      res.error(error.message);
     }
   },
 };

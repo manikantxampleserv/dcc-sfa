@@ -54,4 +54,10 @@ router.delete(
   productVolumesController.deleteProductVolume
 );
 
+router.get(
+  '/product-volumes-dropdown',
+  authenticateToken,
+  productVolumesController.getProductVolumesDropdown
+);
+
 export default router;

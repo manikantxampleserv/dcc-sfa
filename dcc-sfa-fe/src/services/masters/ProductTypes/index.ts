@@ -113,10 +113,37 @@ export const deleteProductType = async (
   }
 };
 
+interface ProductTypeDropdown {
+  id: number;
+  name: string;
+  code: string;
+}
+
+interface GetProductTypesDropdownParams {
+  search?: string;
+  product_type_id?: number;
+}
+
+export const fetchProductTypesDropdown = async (
+  params?: GetProductTypesDropdownParams
+): Promise<ApiResponse<ProductTypeDropdown[]>> => {
+  try {
+    const response = await api.get('/product-types-dropdown', { params });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching product types dropdown:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to fetch product types dropdown'
+    );
+  }
+};
+
 export type {
   GetProductTypesParams,
+  GetProductTypesDropdownParams,
   ManageProductTypePayload,
   UpdateProductTypePayload,
   PaginationMeta,
   ProductType,
+  ProductTypeDropdown,
 };

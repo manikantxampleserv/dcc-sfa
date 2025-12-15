@@ -34,10 +34,20 @@ export const productTypesController = {
           .json({ message: 'Product type name is required' });
       }
 
+      const generateCode = (name: string): string => {
+        const words = name.toUpperCase().split(/\s+/);
+        const firstWord = words[0];
+        let abbreviation = firstWord.substring(0, 4);
+        if (firstWord.length <= 4) {
+          abbreviation = firstWord;
+        }
+        return `PROD-${abbreviation}`;
+      };
+
       const productType = await prisma.product_type.create({
         data: {
           ...data,
-          code: data.code || data.name.toUpperCase().replace(/\s+/g, '_'),
+          code: data.code || generateCode(data.name),
           createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
@@ -193,6 +203,59 @@ export const productTypesController = {
     } catch (error: any) {
       console.error('Delete Product Type Error:', error);
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getProductTypesDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', product_type_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const productTypeId = product_type_id ? Number(product_type_id) : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (productTypeId) {
+        where.id = productTypeId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            name: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+          {
+            code: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+        ];
+      }
+
+      const productTypes = await prisma.product_type.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success(
+        'Product types dropdown fetched successfully',
+        productTypes,
+        200
+      );
+    } catch (error: any) {
+      console.error('Error fetching product types dropdown:', error);
+      res.error(error.message);
     }
   },
 };

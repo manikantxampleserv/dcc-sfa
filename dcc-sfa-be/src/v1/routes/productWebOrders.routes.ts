@@ -54,4 +54,10 @@ router.delete(
   productWebOrdersController.deleteProductWebOrder
 );
 
+router.get(
+  '/product-web-orders-dropdown',
+  authenticateToken,
+  productWebOrdersController.getProductWebOrdersDropdown
+);
+
 export default router;

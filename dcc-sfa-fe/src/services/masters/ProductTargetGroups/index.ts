@@ -119,10 +119,40 @@ export const deleteProductTargetGroup = async (
   }
 };
 
+interface ProductTargetGroupDropdown {
+  id: number;
+  name: string;
+  code: string;
+}
+
+interface GetProductTargetGroupsDropdownParams {
+  search?: string;
+  product_target_group_id?: number;
+}
+
+export const fetchProductTargetGroupsDropdown = async (
+  params?: GetProductTargetGroupsDropdownParams
+): Promise<ApiResponse<ProductTargetGroupDropdown[]>> => {
+  try {
+    const response = await api.get('/product-target-groups-dropdown', {
+      params,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching product target groups dropdown:', error);
+    throw new Error(
+      error.response?.data?.message ||
+        'Failed to fetch product target groups dropdown'
+    );
+  }
+};
+
 export type {
   GetProductTargetGroupsParams,
+  GetProductTargetGroupsDropdownParams,
   ManageProductTargetGroupPayload,
   UpdateProductTargetGroupPayload,
   PaginationMeta,
   ProductTargetGroup,
+  ProductTargetGroupDropdown,
 };

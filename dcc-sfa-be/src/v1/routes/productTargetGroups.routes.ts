@@ -54,4 +54,10 @@ router.delete(
   productTargetGroupsController.deleteProductTargetGroup
 );
 
+router.get(
+  '/product-target-groups-dropdown',
+  authenticateToken,
+  productTargetGroupsController.getProductTargetGroupsDropdown
+);
+
 export default router;

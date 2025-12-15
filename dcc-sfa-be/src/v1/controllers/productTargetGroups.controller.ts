@@ -36,10 +36,34 @@ export const productTargetGroupsController = {
           .json({ message: 'Product target group name is required' });
       }
 
+      const generateCode = (name: string): string => {
+        const upperName = name.toUpperCase();
+        const words = upperName.split(/\s+/);
+        let code = 'TG-';
+
+        if (words.length > 1) {
+          const firstWord = words[0];
+          const rest = words
+            .slice(1)
+            .join(' ')
+            .replace(/[^A-Z0-9]/g, '');
+          if (firstWord.length <= 4) {
+            code += firstWord + '-' + rest;
+          } else {
+            code += firstWord.substring(0, 2) + '-' + rest;
+          }
+        } else {
+          const cleaned = upperName.replace(/[^A-Z0-9]/g, '');
+          code += cleaned.length <= 4 ? cleaned : cleaned.substring(0, 6);
+        }
+
+        return code;
+      };
+
       const productTargetGroup = await prisma.product_target_group.create({
         data: {
           ...data,
-          code: data.code || data.name.toUpperCase().replace(/\s+/g, '_'),
+          code: data.code || generateCode(data.name),
           createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
@@ -208,6 +232,61 @@ export const productTargetGroupsController = {
     } catch (error: any) {
       console.error('Delete Product Target Group Error:', error);
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getProductTargetGroupsDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', product_target_group_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const productTargetGroupId = product_target_group_id
+        ? Number(product_target_group_id)
+        : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (productTargetGroupId) {
+        where.id = productTargetGroupId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            name: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+          {
+            code: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+        ];
+      }
+
+      const productTargetGroups = await prisma.product_target_group.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success(
+        'Product target groups dropdown fetched successfully',
+        productTargetGroups,
+        200
+      );
+    } catch (error: any) {
+      console.error('Error fetching product target groups dropdown:', error);
+      res.error(error.message);
     }
   },
 };

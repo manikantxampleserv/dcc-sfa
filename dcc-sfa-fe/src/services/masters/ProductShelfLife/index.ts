@@ -104,9 +104,37 @@ export const deleteProductShelfLife = async (
   }
 };
 
+interface ProductShelfLifeDropdown {
+  id: number;
+  name: string;
+  code: string;
+}
+
+interface GetProductShelfLifeDropdownParams {
+  search?: string;
+  shelf_life_id?: number;
+}
+
+export const fetchProductShelfLifeDropdown = async (
+  params?: GetProductShelfLifeDropdownParams
+): Promise<ApiResponse<ProductShelfLifeDropdown[]>> => {
+  try {
+    const response = await api.get('/product-shelf-life-dropdown', { params });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching product shelf life dropdown:', error);
+    throw new Error(
+      error.response?.data?.message ||
+        'Failed to fetch product shelf life dropdown'
+    );
+  }
+};
+
 export type {
   GetProductShelfLifeParams,
+  GetProductShelfLifeDropdownParams,
   ManageProductShelfLifePayload,
   UpdateProductShelfLifePayload,
   ProductShelfLife,
+  ProductShelfLifeDropdown,
 };

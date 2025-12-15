@@ -44,8 +44,11 @@ const parseConnectionString = (connectionString: string): config => {
     Object.assign(parts, parseParams(connectionString));
   }
 
+  const server = parts.server || parts['data source'] || '';
+  const isIpAddress = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(server);
+
   const configObj: config = {
-    server: parts.server || parts['data source'] || '',
+    server,
     port: parts.port ? parseInt(parts.port, 10) : 1433,
     database: parts.database || parts['initial catalog'] || '',
     user: parts['user id'] || parts.user || '',
@@ -53,7 +56,13 @@ const parseConnectionString = (connectionString: string): config => {
     options: {
       encrypt: parts.encrypt?.toLowerCase() !== 'false',
       trustServerCertificate: true,
+      ...(isIpAddress && {
+        enableArithAbort: true,
+      }),
     },
+    ...(isIpAddress && {
+      requestTimeout: 30000,
+    }),
   };
 
   if (!configObj.server || !configObj.database) {

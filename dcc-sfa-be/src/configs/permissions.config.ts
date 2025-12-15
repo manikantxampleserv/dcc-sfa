@@ -173,7 +173,10 @@ export type Modules =
   | 'profile'
   | 'login-history'
   | 'token'
-  | 'setting';
+  | 'setting'
+  | 'product-type'
+  | 'product-target-group'
+  | 'product-web-order';
 
 /**
  * @type Actions
@@ -247,6 +250,9 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'login-history': 'Login History',
   token: 'Token',
   setting: 'Setting',
+  'product-type': 'Product Type',
+  'product-target-group': 'Product Target Group',
+  'product-web-order': 'Product Web Order',
 };
 
 /**

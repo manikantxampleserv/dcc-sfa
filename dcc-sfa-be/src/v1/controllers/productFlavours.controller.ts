@@ -216,4 +216,57 @@ export const productFlavoursController = {
       res.status(500).json({ message: error.message });
     }
   },
+
+  async getProductFlavoursDropdown(req: any, res: any): Promise<void> {
+    try {
+      const { search = '', flavour_id } = req.query;
+      const searchLower = search.toLowerCase().trim();
+      const flavourId = flavour_id ? Number(flavour_id) : null;
+
+      const where: any = {
+        is_active: 'Y',
+      };
+
+      if (flavourId) {
+        where.id = flavourId;
+      } else if (searchLower) {
+        where.OR = [
+          {
+            name: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+          {
+            code: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+        ];
+      }
+
+      const flavours = await prisma.product_flavours.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.success(
+        'Product flavours dropdown fetched successfully',
+        flavours,
+        200
+      );
+    } catch (error: any) {
+      console.error('Error fetching product flavours dropdown:', error);
+      res.error(error.message);
+    }
+  },
 };

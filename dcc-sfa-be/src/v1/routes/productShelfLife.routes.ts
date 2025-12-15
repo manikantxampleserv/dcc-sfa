@@ -54,4 +54,10 @@ router.delete(
   productShelfLifeController.deleteProductShelfLife
 );
 
+router.get(
+  '/product-shelf-life-dropdown',
+  authenticateToken,
+  productShelfLifeController.getProductShelfLifeDropdown
+);
+
 export default router;

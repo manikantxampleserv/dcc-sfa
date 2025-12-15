@@ -206,6 +206,60 @@ const ProductsManagement: React.FC = () => {
       ),
     },
     {
+      id: 'product_type',
+      label: 'Product Type',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.product_type?.name || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'target_group',
+      label: 'Target Group',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.product_target_group?.name || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'web_order',
+      label: 'Web Order',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.product_web_order?.name || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'volume',
+      label: 'Volume',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.volume?.name || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'flavour',
+      label: 'Flavour',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.flavour?.name || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'shelf_life',
+      label: 'Shelf Life',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.shelf_life?.name || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
       id: 'description',
       label: 'Description',
       render: (_value, row) => (
@@ -338,7 +392,10 @@ const ProductsManagement: React.FC = () => {
                     />
                     <Select
                       value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setStatusFilter(e.target.value);
+                        setPage(1);
+                      }}
                       className="!min-w-32"
                       size="small"
                     >
