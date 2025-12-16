@@ -720,11 +720,14 @@ model customer_groups {
 model customers {
   id                                     Int                            @id @default(autoincrement())
   name                                   String                         @db.NVarChar(255)
+  short_name                             String?                        @db.NVarChar(50)
   code                                   String                         @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
   zones_id                               Int?
   customer_type_id                       Int?
   customer_channel_id                    Int?
   type                                   String?                        @db.NVarChar(50)
+  internal_code_one                      String?                        @db.NVarChar(50)
+  internal_code_two                      String?                        @db.NVarChar(50)
   contact_person                         String?                        @db.NVarChar(255)
   phone_number                           String?                        @db.NVarChar(20)
   email                                  String?                        @db.NVarChar(255)
@@ -738,6 +741,7 @@ model customers {
   outstanding_amount                     Decimal?                       @default(0, map: "DF__customers__outst__49C3F6B7") @db.Decimal(18, 2)
   route_id                               Int?
   salesperson_id                         Int?
+  nfc_tag_code                           String?                        @db.NVarChar(255)
   last_visit_date                        DateTime?
   is_active                              String                         @default("Y") @db.Char(1)
   createdate                             DateTime?                      @default(now()) @db.DateTime
