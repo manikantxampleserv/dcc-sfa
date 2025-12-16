@@ -4,9 +4,14 @@ import type { ApiResponse } from '../../../types/api.types';
 interface Customer {
   id: number;
   name: string;
+  short_name?: string | null;
   code: string;
   zones_id?: number | null;
+  customer_type_id?: number | null;
+  customer_channel_id?: number | null;
   type?: string | null;
+  internal_code_one?: string | null;
+  internal_code_two?: string | null;
   contact_person?: string | null;
   phone_number?: string | null;
   email?: string | null;
@@ -20,6 +25,7 @@ interface Customer {
   outstanding_amount: string;
   route_id?: number | null;
   salesperson_id?: number | null;
+  nfc_tag_code?: string | null;
   last_visit_date?: string | null;
   is_active: string;
   createdate?: string | null;
@@ -42,12 +48,27 @@ interface Customer {
     name: string;
     email: string;
   } | null;
+  customer_type?: {
+    id: number;
+    type_name: string;
+    type_code: string;
+  } | null;
+  customer_channel?: {
+    id: number;
+    channel_name: string;
+    channel_code: string;
+  } | null;
 }
 
 interface ManageCustomerPayload {
   name: string;
+  short_name?: string;
   zones_id?: number;
+  customer_type_id?: number;
+  customer_channel_id?: number;
   type?: string;
+  internal_code_one?: string;
+  internal_code_two?: string;
   contact_person?: string;
   phone_number?: string;
   email?: string;
@@ -61,14 +82,20 @@ interface ManageCustomerPayload {
   outstanding_amount?: string;
   route_id?: number;
   salesperson_id?: number;
+  nfc_tag_code?: string;
   last_visit_date?: string;
   is_active?: string;
 }
 
 interface UpdateCustomerPayload {
   name?: string;
+  short_name?: string;
   zones_id?: number;
+  customer_type_id?: number;
+  customer_channel_id?: number;
   type?: string;
+  internal_code_one?: string;
+  internal_code_two?: string;
   contact_person?: string;
   phone_number?: string;
   email?: string;
@@ -82,6 +109,7 @@ interface UpdateCustomerPayload {
   outstanding_amount?: string;
   route_id?: number;
   salesperson_id?: number;
+  nfc_tag_code?: string;
   last_visit_date?: string;
   is_active?: string;
 }

@@ -1,13 +1,12 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
-import { useCurrencies } from 'hooks/useCurrencies';
 import {
   useCreateCreditNote,
   useCreditNote,
   useUpdateCreditNote,
 } from 'hooks/useCreditNotes';
+import { useCurrencies } from 'hooks/useCurrencies';
 import { useOrders } from 'hooks/useOrders';
-import { useProducts } from 'hooks/useProducts';
 import { Package, Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import { creditNoteValidationSchema } from 'schemas/creditNote.schema';
@@ -47,12 +46,10 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
     CreditNoteItemFormData[]
   >([]);
 
-  const { data: productsResponse } = useProducts({ limit: 1000 });
   const { data: ordersResponse } = useOrders({ limit: 1000 });
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: creditNoteResponse } = useCreditNote(creditNote?.id || 0);
 
-  const products = productsResponse?.data || [];
   const orders = ordersResponse?.data || [];
   const currencies = currenciesResponse?.data || [];
 
@@ -208,7 +205,11 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
         <ProductSelect
           value={row.product_id}
           onChange={(_event, product) =>
-            updateCreditNoteItem(row._index, 'product_id', product ? product.id.toString() : '')
+            updateCreditNoteItem(
+              row._index,
+              'product_id',
+              product ? product.id.toString() : ''
+            )
           }
           size="small"
           className="!min-w-60"

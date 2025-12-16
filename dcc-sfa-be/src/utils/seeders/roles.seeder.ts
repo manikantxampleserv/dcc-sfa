@@ -37,6 +37,13 @@ const mockRoles: MockRole[] = [
     permissions: ['*'],
   },
   {
+    name: 'Sub Admin',
+    description:
+      'Sub-administrative access with limited administrative permissions',
+    is_active: 'Y',
+    permissions: ['*'],
+  },
+  {
     name: 'Manager',
     description: 'Management role with oversight permissions',
     is_active: 'Y',
@@ -123,9 +130,12 @@ export async function seedRoles(): Promise<void> {
             name: role.name,
             description: role.description,
             is_active: role.is_active,
-            createdate: new Date(),
+            level: 1,
             role_key: role.name.toLowerCase().replace(/ /g, '_'),
+            createdate: new Date(),
             createdby: 1,
+            updatedate: undefined,
+            updatedby: undefined,
             log_inst: 1,
           },
         });

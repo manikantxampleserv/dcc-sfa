@@ -21,6 +21,15 @@ interface Product {
   route_type_id?: number | null;
   outlet_group_id?: number | null;
   tracking_type?: string | null;
+  product_type_id?: number | null;
+  product_target_group_id?: number | null;
+  product_web_order_id?: number | null;
+  volume_id?: number | null;
+  flavour_id?: number | null;
+  shelf_life_id?: number | null;
+  vat_percentage?: number | null;
+  weight_in_grams?: number | null;
+  volume_in_liters?: number | null;
   batch_lots?: { id: number; batch_number: string; quantity: number }[];
   inventory_stock?: {
     id: number;
@@ -40,6 +49,12 @@ interface Product {
   product_sub_category: { id: number; sub_category_name: string };
   route_type?: { id: number; name: string } | null;
   outlet_group?: { id: number; name: string; code: string } | null;
+  product_type?: { id: number; name: string; code: string } | null;
+  product_target_group?: { id: number; name: string; code: string } | null;
+  product_web_order?: { id: number; name: string; code: string } | null;
+  volume?: { id: number; name: string; code: string } | null;
+  flavour?: { id: number; name: string; code: string } | null;
+  shelf_life?: { id: number; name: string; code: string } | null;
 }
 
 interface ManageProductPayload {
@@ -53,7 +68,16 @@ interface ManageProductPayload {
   tax_rate?: number;
   route_type_id?: number;
   outlet_group_id?: number;
-  tracking_type?: 'None' | 'Batch' | 'Serial';
+  tracking_type?: 'Batch' | 'Serial';
+  product_type_id?: number;
+  product_target_group_id?: number;
+  product_web_order_id?: number;
+  volume_id?: number;
+  flavour_id?: number;
+  shelf_life_id?: number;
+  vat_percentage?: number;
+  weight_in_grams?: number;
+  volume_in_liters?: number;
   is_active?: string;
 }
 
@@ -69,6 +93,15 @@ interface UpdateProductPayload {
   route_type_id?: number;
   outlet_group_id?: number;
   tracking_type?: string;
+  product_type_id?: number;
+  product_target_group_id?: number;
+  product_web_order_id?: number;
+  volume_id?: number;
+  flavour_id?: number;
+  shelf_life_id?: number;
+  vat_percentage?: number;
+  weight_in_grams?: number;
+  volume_in_liters?: number;
   is_active?: string;
 }
 

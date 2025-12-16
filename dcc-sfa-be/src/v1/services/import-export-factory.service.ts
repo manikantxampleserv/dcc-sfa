@@ -41,7 +41,14 @@ import { PromotionsImportExportService } from './implementations/promotions.impo
 import { PromotionProductsImportExportService } from './implementations/promotion-products.import-export.service';
 import { RouteTypesImportExportService } from './implementations/routeTypes-import-export.service';
 import { CustomerComplaintsImportExportService } from './implementations/customerComplaints-import-export.service';
-//In future I will add more, reminder me, dont remove this commet
+import { ProductFlavoursImportExportService } from './implementations/productFlavours-import-export.service';
+import { ProductVolumesImportExportService } from './implementations/productVolumes-import-export.service';
+import { ProductShelfLifeImportExportService } from './implementations/productShelfLife-import-export.service';
+import { ProductTypesImportExportService } from './implementations/productTypes-import-export.service';
+import { ProductTargetGroupsImportExportService } from './implementations/productTargetGroups-import-export.service';
+import { ProductWebOrdersImportExportService } from './implementations/productWebOrders-import-export.service';
+import { CoolerTypesImportExportService } from './implementations/coolerTypes-import-export.service';
+import { CoolerSubTypesImportExportService } from './implementations/coolerSubTypes-import-export.service';
 
 type ServiceConstructor = new () => ImportExportService<any>;
 
@@ -93,6 +100,14 @@ export class ImportExportFactory {
     ['promotion_products', PromotionProductsImportExportService],
     ['route_type', RouteTypesImportExportService],
     ['customer_complaints', CustomerComplaintsImportExportService],
+    ['product_flavours', ProductFlavoursImportExportService],
+    ['product_volumes', ProductVolumesImportExportService],
+    ['product_shelf_life', ProductShelfLifeImportExportService],
+    ['product_type', ProductTypesImportExportService],
+    ['product_target_group', ProductTargetGroupsImportExportService],
+    ['product_web_order', ProductWebOrdersImportExportService],
+    ['cooler_types', CoolerTypesImportExportService],
+    ['cooler_sub_types', CoolerSubTypesImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

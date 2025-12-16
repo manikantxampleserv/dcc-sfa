@@ -30,6 +30,14 @@ import ProductsManagement from 'pages/masters/Products';
 import PromotionsManagement from 'pages/masters/Promotions';
 import PromotionDetail from 'pages/masters/Promotions/PromotionDetail';
 import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
+import ProductFlavoursManagement from 'pages/masters/ProductFlavours';
+import ProductVolumesManagement from 'pages/masters/ProductVolumes';
+import ProductShelfLifeManagement from 'pages/masters/ProductShelfLife';
+import ProductTypesManagement from 'pages/masters/ProductTypes';
+import ProductTargetGroupsManagement from 'pages/masters/ProductTargetGroups';
+import ProductWebOrdersManagement from 'pages/masters/ProductWebOrders';
+import CoolerTypesManagement from 'pages/masters/CoolerTypes';
+import CoolerSubTypesManagement from 'pages/masters/CoolerSubTypes';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
 import RouteDetail from 'pages/masters/Routes/RouteDetail';
@@ -49,7 +57,6 @@ import VehiclesManagement from 'pages/masters/Vehicles';
 import WarehousesManagement from 'pages/masters/Warehouses';
 import ZonesManagement from 'pages/masters/Zone';
 import NotFound from 'pages/NotFound';
-import Unauthorized from 'pages/Unauthorized';
 import Profile from 'pages/Profile';
 import AssetMovementStatusReport from 'pages/reports/AssetMovementStatusReport';
 import AttendanceReports from 'pages/reports/AttendanceReports';
@@ -323,6 +330,70 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="unit-of-measurement" action="read">
               <UnitOfMeasurementManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/product-flavours',
+          element: (
+            <PermissionGuard module="product-flavour" action="read">
+              <ProductFlavoursManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/product-volumes',
+          element: (
+            <PermissionGuard module="product-volume" action="read">
+              <ProductVolumesManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/product-shelf-life',
+          element: (
+            <PermissionGuard module="product-shelf-life" action="read">
+              <ProductShelfLifeManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/product-types',
+          element: (
+            <PermissionGuard module="product-type" action="read">
+              <ProductTypesManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/product-target-groups',
+          element: (
+            <PermissionGuard module="product-target-group" action="read">
+              <ProductTargetGroupsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/product-web-orders',
+          element: (
+            <PermissionGuard module="product-web-order" action="read">
+              <ProductWebOrdersManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/cooler-types',
+          element: (
+            <PermissionGuard module="cooler-type" action="read">
+              <CoolerTypesManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/cooler-sub-types',
+          element: (
+            <PermissionGuard module="cooler-sub-type" action="read">
+              <CoolerSubTypesManagement />
             </PermissionGuard>
           ),
         },
@@ -773,10 +844,6 @@ const router = createBrowserRouter(
               <Profile />
             </PermissionGuard>
           ),
-        },
-        {
-          path: '/unauthorized',
-          element: <Unauthorized />,
         },
         {
           path: '*',

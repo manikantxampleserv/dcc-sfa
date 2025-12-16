@@ -1,11 +1,11 @@
 import { ChevronRight } from '@mui/icons-material';
 import { Collapse, ListItemButton, Skeleton } from '@mui/material';
+import { useMenuPermissions } from 'hooks/useMenuPermissions';
+import type { MenuItem } from 'mock/sidebar';
 import menuItems from 'mock/sidebar';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useMenuPermissions } from 'hooks/useMenuPermissions';
 import SearchInput from 'shared/SearchInput';
-import type { MenuItem } from 'mock/sidebar';
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -246,9 +246,9 @@ const Sidebar: React.FC = () => {
                                 </div>
                               )}
                               <span
-                                className={`text-sm truncate transition-colors duration-300 ease-in-out flex items-center gap-1 ${
+                                className={`text-sm truncate !font-medium transition-colors duration-300 ease-in-out flex items-center gap-1 ${
                                   isChildActive
-                                    ? 'text-blue-600 font-medium'
+                                    ? 'text-blue-600 !font-semibold'
                                     : 'text-gray-600 group-hover:text-blue-600'
                                 }`}
                               >
@@ -293,11 +293,12 @@ const Sidebar: React.FC = () => {
                                           grandchild.href as string
                                         );
                                       }}
-                                      className={`group !justify-between !cursor-pointer !flex !items-center hover:!bg-transparent !rounded !p-0 !pl-6 !transition-colors !duration-300`}
+                                      className={`group !justify-between !cursor-pointer !flex !items-center hover:!bg-transparent !rounded !p-0 !pl-10 !transition-colors !duration-300`}
                                     >
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex relative items-center gap-2">
+                                        <div className="absolute z-0 left-1 top-0 h-full border-l-2 border-dotted border-gray-300"></div>
                                         <span
-                                          className={`text-2xl transition-colors duration-300 ${
+                                          className={`text-2xl z-10 transition-colors duration-300 ${
                                             isGrandchildActive
                                               ? 'text-blue-600'
                                               : 'text-gray-600 group-hover:text-blue-600'
@@ -306,9 +307,9 @@ const Sidebar: React.FC = () => {
                                           •
                                         </span>
                                         <span
-                                          className={`text-sm truncate transition-colors duration-300 ease-in-out flex items-center gap-1 ${
+                                          className={`text-sm truncate transition-colors !font-medium duration-300 ease-in-out flex items-center gap-1 ${
                                             isGrandchildActive
-                                              ? 'text-blue-600 font-medium'
+                                              ? 'text-blue-600 !font-semibold'
                                               : 'text-gray-600 group-hover:text-blue-600'
                                           }`}
                                         >

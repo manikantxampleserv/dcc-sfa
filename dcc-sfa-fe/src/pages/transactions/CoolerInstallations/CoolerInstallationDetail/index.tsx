@@ -626,6 +626,42 @@ const CoolerInstallationDetail: React.FC = () => {
                 </Typography>
               </div>
 
+              <div className="!space-y-0.5">
+                <Typography
+                  variant="caption"
+                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                >
+                  Cooler Type
+                </Typography>
+                <Typography
+                  variant="body2"
+                  className="!font-semibold !text-gray-900"
+                >
+                  {cooler.cooler_type?.name || 'Not specified'}
+                </Typography>
+                <Typography variant="caption" className="!text-gray-500">
+                  {cooler.cooler_type?.code}
+                </Typography>
+              </div>
+
+              <div className="!space-y-0.5">
+                <Typography
+                  variant="caption"
+                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                >
+                  Cooler Sub Type
+                </Typography>
+                <Typography
+                  variant="body2"
+                  className="!font-semibold !text-gray-900"
+                >
+                  {cooler.cooler_sub_type?.name || 'Not specified'}
+                </Typography>
+                <Typography variant="caption" className="!text-gray-500">
+                  {cooler.cooler_sub_type?.code}
+                </Typography>
+              </div>
+
               {cooler.maintenance_contract && (
                 <div className="!space-y-0.5 md:!col-span-2">
                   <Typography

@@ -5,6 +5,8 @@ import {
   useUpdateCoolerInstallation,
   type CoolerInstallation,
 } from 'hooks/useCoolerInstallations';
+import { useCoolerTypesDropdown } from 'hooks/useCoolerTypes';
+import { useCoolerSubTypesDropdown } from 'hooks/useCoolerSubTypes';
 import { useUsers } from 'hooks/useUsers';
 import React from 'react';
 import { coolerInstallationValidationSchema } from 'schemas/coolerInstallation.schema';
@@ -38,11 +40,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
   const createCoolerInstallationMutation = useCreateCoolerInstallation();
   const updateCoolerInstallationMutation = useUpdateCoolerInstallation();
 
-  // Fetch users for dropdowns
-  const { data: usersResponse } = useUsers({ limit: 1000 });
-
-  const users = usersResponse?.data || [];
-
   const formik = useFormik({
     initialValues: {
       customer_id: selectedInstallation?.customer_id || '',
@@ -60,6 +57,8 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       next_service_due: selectedInstallation?.next_service_due
         ? formatForDateInput(selectedInstallation.next_service_due)
         : '',
+      cooler_type_id: selectedInstallation?.cooler_type_id || '',
+      cooler_sub_type_id: selectedInstallation?.cooler_sub_type_id || '',
       status: selectedInstallation?.status || 'working',
       temperature: selectedInstallation?.temperature || '',
       energy_rating: selectedInstallation?.energy_rating || '',
@@ -76,6 +75,9 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
     validationSchema: coolerInstallationValidationSchema,
     enableReinitialize: true,
     onSubmit: async values => {
+      if (!values.cooler_type_id) {
+        formik.setFieldValue('cooler_sub_type_id', '');
+      }
       try {
         const installationData = {
           customer_id: Number(values.customer_id),
@@ -87,6 +89,12 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
           install_date: values.install_date || undefined,
           last_service_date: values.last_service_date || undefined,
           next_service_due: values.next_service_due || undefined,
+          cooler_type_id: values.cooler_type_id
+            ? Number(values.cooler_type_id)
+            : undefined,
+          cooler_sub_type_id: values.cooler_sub_type_id
+            ? Number(values.cooler_sub_type_id)
+            : undefined,
           status: values.status || undefined,
           temperature: values.temperature
             ? Number(values.temperature)
@@ -116,7 +124,17 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       }
     },
   });
+  const { data: usersResponse } = useUsers({ limit: 1000 });
+  const { data: coolerTypesDropdown } = useCoolerTypesDropdown();
+  const coolerTypeId = formik.values.cooler_type_id
+    ? Number(formik.values.cooler_type_id)
+    : undefined;
+  const { data: coolerSubTypesDropdown } =
+    useCoolerSubTypesDropdown(coolerTypeId);
 
+  const users = usersResponse?.data || [];
+  const coolerTypes = coolerTypesDropdown?.data || [];
+  const coolerSubTypes = coolerSubTypesDropdown?.data || [];
   return (
     <CustomDrawer
       open={drawerOpen}
@@ -142,9 +160,8 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               <Input
                 name="code"
                 label="Cooler Code"
-                placeholder="Enter unique cooler code"
+                placeholder="Leave empty to auto-generate"
                 formik={formik}
-                required
               />
             </Box>
 
@@ -186,6 +203,37 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               formik={formik}
               type="date"
             />
+
+            {/* Cooler Type */}
+            <Select
+              name="cooler_type_id"
+              label="Cooler Type"
+              formik={formik}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                formik.setFieldValue('cooler_type_id', e.target.value);
+                formik.setFieldValue('cooler_sub_type_id', '');
+              }}
+            >
+              {coolerTypes.map(ct => (
+                <MenuItem key={ct.id} value={ct.id}>
+                  {ct.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            {/* Cooler Sub Type */}
+            <Select
+              name="cooler_sub_type_id"
+              label="Cooler Sub Type"
+              formik={formik}
+              disabled={!formik.values.cooler_type_id}
+            >
+              {coolerSubTypes.map(cst => (
+                <MenuItem key={cst.id} value={cst.id}>
+                  {cst.name}
+                </MenuItem>
+              ))}
+            </Select>
 
             {/* Status */}
             <Select name="status" label="Status" formik={formik}>
@@ -238,9 +286,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
 
             {/* Technician */}
             <Select name="technician_id" label="Technician" formik={formik}>
-              <MenuItem value="">
-                <em>Select Technician</em>
-              </MenuItem>
               {users.map(user => (
                 <MenuItem key={user.id} value={user.id}>
                   {user.name} ({user.email})

@@ -114,7 +114,6 @@ const ImportCoolerInstallation: React.FC<ImportCoolerInstallationProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Cooler Installations"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

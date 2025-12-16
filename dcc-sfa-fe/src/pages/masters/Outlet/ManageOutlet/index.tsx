@@ -5,6 +5,8 @@ import {
   useUpdateCustomer,
   type Customer,
 } from 'hooks/useCustomers';
+import { useCustomerTypes } from 'hooks/useCustomerType';
+import { useCustomerChannels } from 'hooks/useCustomerChannel';
 import React from 'react';
 import { customerValidationSchema } from 'schemas/customer.schema';
 import type { Route } from 'services/masters/Routes';
@@ -42,11 +44,25 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
   const createCustomerMutation = useCreateCustomer();
   const updateCustomerMutation = useUpdateCustomer();
 
+  const { data: customerTypesResponse } = useCustomerTypes({ limit: 1000 });
+  const { data: customerChannelsResponse } = useCustomerChannels({
+    limit: 1000,
+  });
+
+  const customerTypes = customerTypesResponse?.data || [];
+  const customerChannels = customerChannelsResponse?.data || [];
+
   const formik = useFormik({
     initialValues: {
       name: selectedOutlet?.name || '',
+      short_name: selectedOutlet?.short_name || '',
       zones_id: selectedOutlet?.zones_id?.toString() || '',
+      customer_type_id: selectedOutlet?.customer_type_id?.toString() || '',
+      customer_channel_id:
+        selectedOutlet?.customer_channel_id?.toString() || '',
       type: selectedOutlet?.type || 'Retail',
+      internal_code_one: selectedOutlet?.internal_code_one || '',
+      internal_code_two: selectedOutlet?.internal_code_two || '',
       contact_person: selectedOutlet?.contact_person || '',
       phone_number: selectedOutlet?.phone_number || '',
       email: selectedOutlet?.email || '',
@@ -60,6 +76,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       outstanding_amount: selectedOutlet?.outstanding_amount || '0',
       route_id: selectedOutlet?.route_id?.toString() || '',
       salesperson_id: selectedOutlet?.salesperson_id?.toString() || '',
+      nfc_tag_code: selectedOutlet?.nfc_tag_code || '',
       last_visit_date: selectedOutlet?.last_visit_date
         ? selectedOutlet.last_visit_date.split('T')[0]
         : '',
@@ -71,8 +88,17 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       try {
         const customerData = {
           name: values.name,
+          short_name: values.short_name || undefined,
           zones_id: values.zones_id ? Number(values.zones_id) : undefined,
+          customer_type_id: values.customer_type_id
+            ? Number(values.customer_type_id)
+            : undefined,
+          customer_channel_id: values.customer_channel_id
+            ? Number(values.customer_channel_id)
+            : undefined,
           type: values.type || undefined,
+          internal_code_one: values.internal_code_one || undefined,
+          internal_code_two: values.internal_code_two || undefined,
           contact_person: values.contact_person || undefined,
           phone_number: values.phone_number || undefined,
           email: values.email || undefined,
@@ -88,6 +114,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
           salesperson_id: values.salesperson_id
             ? Number(values.salesperson_id)
             : undefined,
+          nfc_tag_code: values.nfc_tag_code || undefined,
           last_visit_date: values.last_visit_date
             ? new Date(values.last_visit_date).toISOString()
             : undefined,
@@ -117,9 +144,8 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Outlet' : 'Create Outlet'}
-      size="large"
     >
-      <Box className="!p-6">
+      <Box className="!p-4">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             <Input
@@ -130,17 +156,46 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               required
             />
 
-            <Select name="type" label="Outlet Type" formik={formik}>
-              <MenuItem value="Retail">Retail</MenuItem>
-              <MenuItem value="Wholesale">Wholesale</MenuItem>
-              <MenuItem value="Corporate">Corporate</MenuItem>
-              <MenuItem value="Industrial">Industrial</MenuItem>
-              <MenuItem value="Healthcare">Healthcare</MenuItem>
-              <MenuItem value="Automotive">Automotive</MenuItem>
-              <MenuItem value="Restaurant">Restaurant</MenuItem>
-              <MenuItem value="Service">Service</MenuItem>
-              <MenuItem value="Manufacturing">Manufacturing</MenuItem>
-              <MenuItem value="Distribution">Distribution</MenuItem>
+            <Input
+              name="short_name"
+              label="Short Name"
+              placeholder="Enter short name"
+              formik={formik}
+            />
+
+            <Select name="zones_id" label="Zone" formik={formik}>
+              <MenuItem value="">Select Zone</MenuItem>
+              {zones.map(zone => (
+                <MenuItem key={zone.id} value={zone.id.toString()}>
+                  {zone.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="customer_type_id"
+              label="Customer Type"
+              formik={formik}
+            >
+              <MenuItem value="">Select Customer Type</MenuItem>
+              {customerTypes.map(ct => (
+                <MenuItem key={ct.id} value={ct.id.toString()}>
+                  {ct.type_name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="customer_channel_id"
+              label="Customer Channel"
+              formik={formik}
+            >
+              <MenuItem value="">Select Customer Channel</MenuItem>
+              {customerChannels.map(cc => (
+                <MenuItem key={cc.id} value={cc.id.toString()}>
+                  {cc.channel_name}
+                </MenuItem>
+              ))}
             </Select>
 
             <Input
@@ -165,14 +220,19 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               formik={formik}
             />
 
-            <Select name="zones_id" label="Zone" formik={formik}>
-              <MenuItem value="">Select Zone</MenuItem>
-              {zones.map(zone => (
-                <MenuItem key={zone.id} value={zone.id.toString()}>
-                  {zone.name}
-                </MenuItem>
-              ))}
-            </Select>
+            <Input
+              name="internal_code_one"
+              label="Internal Code One"
+              placeholder="Enter internal code one"
+              formik={formik}
+            />
+
+            <Input
+              name="internal_code_two"
+              label="Internal Code Two"
+              placeholder="Enter internal code two"
+              formik={formik}
+            />
 
             <Select name="route_id" label="Route" formik={formik}>
               <MenuItem value="">Select Route</MenuItem>

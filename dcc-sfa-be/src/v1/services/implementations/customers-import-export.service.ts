@@ -77,12 +77,40 @@ export class CustomersImportExportService extends ImportExportService<any> {
       description: 'Name of the customer (required, 2-255 characters)',
     },
     {
+      key: 'short_name',
+      header: 'Short Name',
+      width: 20,
+      type: 'string',
+      validation: value =>
+        !value ||
+        value.length <= 50 ||
+        'Short name must be less than 50 characters',
+      description: 'Short name of the customer (optional, max 50 chars)',
+    },
+    {
       key: 'zones_id',
       header: 'Zone ID',
       width: 15,
       type: 'number',
       transform: value => (value ? parseInt(value) : null),
       description: 'ID of the zone this customer belongs to (optional)',
+    },
+    {
+      key: 'customer_type_id',
+      header: 'Customer Type ID',
+      width: 18,
+      type: 'number',
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID of the customer type (optional, must exist in system)',
+    },
+    {
+      key: 'customer_channel_id',
+      header: 'Customer Channel ID',
+      width: 20,
+      type: 'number',
+      transform: value => (value ? parseInt(value) : null),
+      description:
+        'ID of the customer channel (optional, must exist in system)',
     },
     {
       key: 'type',
@@ -111,6 +139,28 @@ export class CustomersImportExportService extends ImportExportService<any> {
       },
       description:
         'Type of customer: Retailer, Wholesaler, Distributor, Direct, Online, Corporate, or Individual (optional)',
+    },
+    {
+      key: 'internal_code_one',
+      header: 'Internal Code One',
+      width: 20,
+      type: 'string',
+      validation: value =>
+        !value ||
+        value.length <= 50 ||
+        'Internal code one must be less than 50 characters',
+      description: 'First internal code (optional, max 50 chars)',
+    },
+    {
+      key: 'internal_code_two',
+      header: 'Internal Code Two',
+      width: 20,
+      type: 'string',
+      validation: value =>
+        !value ||
+        value.length <= 50 ||
+        'Internal code two must be less than 50 characters',
+      description: 'Second internal code (optional, max 50 chars)',
     },
     {
       key: 'contact_person',
@@ -285,6 +335,17 @@ export class CustomersImportExportService extends ImportExportService<any> {
       description: 'ID of the assigned salesperson/user (optional)',
     },
     {
+      key: 'nfc_tag_code',
+      header: 'NFC Tag Code',
+      width: 20,
+      type: 'string',
+      validation: value =>
+        !value ||
+        value.length <= 255 ||
+        'NFC tag code must be less than 255 characters',
+      description: 'NFC tag code for the customer (optional, max 255 chars)',
+    },
+    {
       key: 'last_visit_date',
       header: 'Last Visit Date',
       width: 20,
@@ -318,11 +379,25 @@ export class CustomersImportExportService extends ImportExportService<any> {
   ];
 
   protected async getSampleData(): Promise<any[]> {
+    const [zones, customerTypes, customerChannels, routes, users] =
+      await Promise.all([
+        prisma.zones.findFirst({ select: { id: true } }),
+        prisma.customer_type.findFirst({ select: { id: true } }),
+        prisma.customer_channel.findFirst({ select: { id: true } }),
+        prisma.routes.findFirst({ select: { id: true } }),
+        prisma.users.findFirst({ select: { id: true } }),
+      ]);
+
     return [
       {
         name: 'ABC Retail Store',
-        zones_id: 1,
+        short_name: 'ABC',
+        zones_id: zones?.id || '',
+        customer_type_id: customerTypes?.id || '',
+        customer_channel_id: customerChannels?.id || '',
         type: 'Retailer',
+        internal_code_one: 'INT001',
+        internal_code_two: 'INT002',
         contact_person: 'John Smith',
         phone_number: '+1-555-0100',
         email: 'john@abcstore.com',
@@ -334,8 +409,9 @@ export class CustomersImportExportService extends ImportExportService<any> {
         longitude: -74.006,
         credit_limit: 50000.0,
         outstanding_amount: 15000.0,
-        route_id: 1,
-        salesperson_id: 1,
+        route_id: routes?.id || '',
+        salesperson_id: users?.id || '',
+        nfc_tag_code: 'NFC123456',
         last_visit_date: '2024-01-15',
         is_active: 'Y',
       },
@@ -350,9 +426,14 @@ export class CustomersImportExportService extends ImportExportService<any> {
   protected async transformDataForExport(data: any[]): Promise<any[]> {
     return data.map(customer => ({
       name: customer.name,
+      short_name: customer.short_name || '',
       code: customer.code,
       zones_id: customer.zones_id || '',
+      customer_type_id: customer.customer_type_id || '',
+      customer_channel_id: customer.customer_channel_id || '',
       type: customer.type || '',
+      internal_code_one: customer.internal_code_one || '',
+      internal_code_two: customer.internal_code_two || '',
       contact_person: customer.contact_person || '',
       phone_number: customer.phone_number || '',
       email: customer.email || '',
@@ -370,6 +451,7 @@ export class CustomersImportExportService extends ImportExportService<any> {
         : '0',
       route_id: customer.route_id || '',
       salesperson_id: customer.salesperson_id || '',
+      nfc_tag_code: customer.nfc_tag_code || '',
       last_visit_date: customer.last_visit_date
         ? new Date(customer.last_visit_date).toISOString().split('T')[0]
         : '',
@@ -423,6 +505,32 @@ export class CustomersImportExportService extends ImportExportService<any> {
       }
     }
 
+    if (data.customer_type_id) {
+      try {
+        const customerType = await prismaClient.customer_type.findUnique({
+          where: { id: data.customer_type_id },
+        });
+        if (!customerType) {
+          return `Customer Type with ID ${data.customer_type_id} does not exist`;
+        }
+      } catch (error) {
+        return `Invalid Customer Type ID ${data.customer_type_id}`;
+      }
+    }
+
+    if (data.customer_channel_id) {
+      try {
+        const customerChannel = await prismaClient.customer_channel.findUnique({
+          where: { id: data.customer_channel_id },
+        });
+        if (!customerChannel) {
+          return `Customer Channel with ID ${data.customer_channel_id} does not exist`;
+        }
+      } catch (error) {
+        return `Invalid Customer Channel ID ${data.customer_channel_id}`;
+      }
+    }
+
     if (data.route_id) {
       try {
         const route = await prismaClient.routes.findUnique({
@@ -458,8 +566,13 @@ export class CustomersImportExportService extends ImportExportService<any> {
   ): Promise<any> {
     const preparedData: any = {
       name: data.name,
+      short_name: data.short_name || null,
       zones_id: data.zones_id || null,
+      customer_type_id: data.customer_type_id || null,
+      customer_channel_id: data.customer_channel_id || null,
       type: data.type || null,
+      internal_code_one: data.internal_code_one || null,
+      internal_code_two: data.internal_code_two || null,
       contact_person: data.contact_person || null,
       phone_number: data.phone_number || null,
       email: data.email || null,
@@ -469,6 +582,7 @@ export class CustomersImportExportService extends ImportExportService<any> {
       zipcode: data.zipcode || null,
       route_id: data.route_id || null,
       salesperson_id: data.salesperson_id || null,
+      nfc_tag_code: data.nfc_tag_code || null,
       last_visit_date: data.last_visit_date || null,
       is_active: data.is_active || 'Y',
       createdby: userId,
@@ -594,8 +708,26 @@ export class CustomersImportExportService extends ImportExportService<any> {
 
     const updateData: any = {
       name: data.name,
+      short_name:
+        data.short_name !== undefined ? data.short_name : existing.short_name,
       zones_id: data.zones_id !== undefined ? data.zones_id : existing.zones_id,
+      customer_type_id:
+        data.customer_type_id !== undefined
+          ? data.customer_type_id
+          : existing.customer_type_id,
+      customer_channel_id:
+        data.customer_channel_id !== undefined
+          ? data.customer_channel_id
+          : existing.customer_channel_id,
       type: data.type || existing.type,
+      internal_code_one:
+        data.internal_code_one !== undefined
+          ? data.internal_code_one
+          : existing.internal_code_one,
+      internal_code_two:
+        data.internal_code_two !== undefined
+          ? data.internal_code_two
+          : existing.internal_code_two,
       contact_person:
         data.contact_person !== undefined
           ? data.contact_person
@@ -614,6 +746,10 @@ export class CustomersImportExportService extends ImportExportService<any> {
         data.salesperson_id !== undefined
           ? data.salesperson_id
           : existing.salesperson_id,
+      nfc_tag_code:
+        data.nfc_tag_code !== undefined
+          ? data.nfc_tag_code
+          : existing.nfc_tag_code,
       last_visit_date: data.last_visit_date || existing.last_visit_date,
       is_active: data.is_active || existing.is_active,
       updatedby: userId,
@@ -658,6 +794,18 @@ export class CustomersImportExportService extends ImportExportService<any> {
             code: true,
           },
         },
+        customer_type_customer: {
+          select: {
+            type_name: true,
+            type_code: true,
+          },
+        },
+        customer_channel_customer: {
+          select: {
+            channel_name: true,
+            channel_code: true,
+          },
+        },
         customer_routes: {
           select: {
             name: true,
@@ -697,6 +845,12 @@ export class CustomersImportExportService extends ImportExportService<any> {
       { header: 'Customer Code', key: 'code', width: 20 },
       ...this.columns,
       { header: 'Zone Name', key: 'zone_name', width: 25 },
+      { header: 'Customer Type Name', key: 'customer_type_name', width: 25 },
+      {
+        header: 'Customer Channel Name',
+        key: 'customer_channel_name',
+        width: 28,
+      },
       { header: 'Route Name', key: 'route_name', width: 25 },
       { header: 'Salesperson Name', key: 'salesperson_name', width: 25 },
       { header: 'Total Orders', key: 'total_orders', width: 15 },
@@ -733,6 +887,9 @@ export class CustomersImportExportService extends ImportExportService<any> {
       const customer = data[index] as any;
 
       row.zone_name = customer.customer_zones?.name || '';
+      row.customer_type_name = customer.customer_type_customer?.type_name || '';
+      row.customer_channel_name =
+        customer.customer_channel_customer?.channel_name || '';
       row.route_name = customer.customer_routes?.name || '';
       row.salesperson_name = customer.customer_users?.name || '';
       row.total_orders = customer._count?.orders_customers || 0;

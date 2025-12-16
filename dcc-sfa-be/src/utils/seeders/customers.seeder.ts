@@ -1,253 +1,240 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import logger from '../../configs/logger';
 import prisma from '../../configs/prisma.client';
 
-interface MockCustomer {
-  name: string;
+interface OutletMasterData {
   code: string;
-  type?: string;
+  name: string;
+  short_name?: string;
+  internal_code_one?: string;
+  internal_code_two?: string;
   contact_person?: string;
-  email?: string;
-  phone_number?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipcode?: string;
-  zones_id?: number;
-  is_active: string;
+  status: string;
+  outlet_type?: string;
+  outlet_channel?: string;
+  gps_status?: string;
 }
 
-const BUSINESS_TYPES = [
-  'Retail',
-  'Wholesale',
-  'Corporate',
-  'Industrial',
-  'Healthcare',
-  'Automotive',
-  'Restaurant',
-  'Service',
-  'Manufacturing',
-  'Distribution',
-];
+function loadOutletMasterData(): OutletMasterData[] {
+  const jsonPath = path.join(__dirname, '../outlet-master-data.json');
 
-const FIRST_NAMES = [
-  'John',
-  'Jane',
-  'Mike',
-  'Sarah',
-  'David',
-  'Lisa',
-  'Tom',
-  'Alex',
-  'Emma',
-  'Chris',
-  'Maria',
-  'Robert',
-  'Jennifer',
-  'Michael',
-  'Linda',
-  'William',
-  'Elizabeth',
-  'James',
-  'Patricia',
-  'Richard',
-];
+  if (!fs.existsSync(jsonPath)) {
+    logger.warn(
+      `Outlet master data file not found at ${jsonPath}. Using empty array.`
+    );
+    return [];
+  }
 
-const LAST_NAMES = [
-  'Smith',
-  'Johnson',
-  'Williams',
-  'Brown',
-  'Jones',
-  'Garcia',
-  'Miller',
-  'Davis',
-  'Rodriguez',
-  'Martinez',
-  'Hernandez',
-  'Lopez',
-  'Gonzalez',
-  'Wilson',
-  'Anderson',
-  'Thomas',
-  'Taylor',
-  'Moore',
-  'Jackson',
-  'Martin',
-];
+  try {
+    const fileContent = fs.readFileSync(jsonPath, 'utf8');
+    const rawData: OutletMasterData[] = JSON.parse(fileContent);
 
-const CITIES = [
-  'New York',
-  'Los Angeles',
-  'Chicago',
-  'Houston',
-  'Phoenix',
-  'Philadelphia',
-  'San Antonio',
-  'San Diego',
-  'Dallas',
-  'San Jose',
-  'Austin',
-  'Jacksonville',
-  'Fort Worth',
-  'Columbus',
-  'Charlotte',
-  'San Francisco',
-  'Indianapolis',
-  'Seattle',
-  'Denver',
-  'Washington',
-];
-
-const STATES = [
-  'NY',
-  'CA',
-  'IL',
-  'TX',
-  'AZ',
-  'PA',
-  'FL',
-  'OH',
-  'NC',
-  'WA',
-  'CO',
-  'DC',
-  'IN',
-  'GA',
-  'MI',
-  'VA',
-  'TN',
-  'MA',
-  'MD',
-  'WI',
-];
-
-const STREET_TYPES = [
-  'Street',
-  'Avenue',
-  'Road',
-  'Drive',
-  'Lane',
-  'Boulevard',
-  'Court',
-  'Place',
-  'Way',
-  'Circle',
-];
-
-const BUSINESS_SUFFIXES = [
-  'Store',
-  'Shop',
-  'Mart',
-  'Center',
-  'Hub',
-  'Outlet',
-  'Market',
-  'Plaza',
-  'Mall',
-  'Depot',
-  'Warehouse',
-  'Distributors',
-  'Suppliers',
-  'Services',
-  'Solutions',
-  'Group',
-  'Corp',
-  'Inc',
-  'LLC',
-  'Co',
-];
-
-function generateRandomCustomer(
-  index: number,
-  zoneIds: number[]
-): MockCustomer {
-  const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
-  const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
-  const businessType =
-    BUSINESS_TYPES[Math.floor(Math.random() * BUSINESS_TYPES.length)];
-  const suffix =
-    BUSINESS_SUFFIXES[Math.floor(Math.random() * BUSINESS_SUFFIXES.length)];
-  const city = CITIES[Math.floor(Math.random() * CITIES.length)];
-  const state = STATES[Math.floor(Math.random() * STATES.length)];
-  const streetType =
-    STREET_TYPES[Math.floor(Math.random() * STREET_TYPES.length)];
-
-  const streetNumber = Math.floor(Math.random() * 9999) + 1;
-  const zipcode = Math.floor(Math.random() * 90000) + 10000;
-  const phoneNumber = `+1-555-${Math.floor(Math.random() * 9000) + 1000}`;
-  const businessName = `${businessType} ${suffix} ${index + 1}`;
-  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${businessName.toLowerCase().replace(/\s+/g, '')}.com`;
-
-  return {
-    name: businessName,
-    code: `CUST-${(index + 1).toString().padStart(6, '0')}`,
-    type: businessType,
-    contact_person: `${firstName} ${lastName}`,
-    email,
-    phone_number: phoneNumber,
-    address: `${streetNumber} ${city} ${streetType}`,
-    city,
-    state,
-    zipcode: zipcode.toString(),
-    zones_id: zoneIds[Math.floor(Math.random() * zoneIds.length)],
-    is_active: Math.random() > 0.1 ? 'Y' : 'N',
-  };
+    return rawData.filter(
+      item =>
+        item.code &&
+        item.name &&
+        item.code.trim() !== '' &&
+        item.name.trim() !== ''
+    );
+  } catch (error) {
+    logger.error('Error loading outlet master data:', error);
+    return [];
+  }
 }
 
 export async function seedCustomers(): Promise<void> {
-  const TOTAL_CUSTOMERS = 100000;
-  const BATCH_SIZE = 1000;
-  const totalBatches = Math.ceil(TOTAL_CUSTOMERS / BATCH_SIZE);
+  const outletData = loadOutletMasterData();
 
-  // Get available zone IDs to ensure valid foreign key references
+  if (outletData.length === 0) {
+    logger.warn('No outlet data found. Skipping customer seeding.');
+    return;
+  }
+
+  logger.info(`Loading ${outletData.length} outlets from master data...`);
+
+  const customerTypes = await prisma.customer_type.findMany({
+    select: { id: true, type_name: true },
+  });
+  const typeMap = new Map(customerTypes.map(type => [type.type_name, type.id]));
+
+  const customerChannels = await prisma.customer_channel.findMany({
+    select: { id: true, channel_name: true },
+  });
+  const channelMap = new Map(
+    customerChannels.map(channel => [channel.channel_name, channel.id])
+  );
+
   const availableZones = await prisma.zones.findMany({
     select: { id: true },
     where: { is_active: 'Y' },
   });
 
   if (availableZones.length === 0) {
+    logger.warn('No active zones found. Skipping customer seeding.');
     return;
   }
 
   const zoneIds = availableZones.map(zone => zone.id);
+  const BATCH_SIZE = 1000;
+  const totalBatches = Math.ceil(outletData.length / BATCH_SIZE);
+
+  let successCount = 0;
+  let skipCount = 0;
 
   for (let batch = 0; batch < totalBatches; batch++) {
     const startIndex = batch * BATCH_SIZE;
-    const endIndex = Math.min(startIndex + BATCH_SIZE, TOTAL_CUSTOMERS);
+    const endIndex = Math.min(startIndex + BATCH_SIZE, outletData.length);
+    const batchData = outletData.slice(startIndex, endIndex);
 
-    const customers = Array.from({ length: endIndex - startIndex }, (_, i) =>
-      generateRandomCustomer(startIndex + i, zoneIds)
-    );
+    const customersToCreate = batchData
+      .map(outlet => {
+        const customerTypeId = outlet.outlet_type
+          ? typeMap.get(outlet.outlet_type)
+          : undefined;
+        const customerChannelId = outlet.outlet_channel
+          ? channelMap.get(outlet.outlet_channel)
+          : undefined;
+        const isActive = outlet.status?.toLowerCase() === 'active' ? 'Y' : 'N';
+        const gpsStatus = outlet.gps_status || 'Not Available';
 
-    try {
-      const result = await prisma.customers.createMany({
-        data: customers.map(customer => ({
-          name: customer.name,
-          code: customer.code,
-          type: customer.type,
-          contact_person: customer.contact_person,
-          email: customer.email,
-          phone_number: customer.phone_number,
-          address: customer.address,
-          city: customer.city,
-          state: customer.state,
-          zipcode: customer.zipcode,
-          zones_id: customer.zones_id,
-          is_active: customer.is_active,
+        const randomZoneId =
+          zoneIds.length > 0
+            ? zoneIds[Math.floor(Math.random() * zoneIds.length)]
+            : undefined;
+
+        const customerData: {
+          code: string;
+          name: string;
+          short_name?: string;
+          internal_code_one?: string;
+          internal_code_two?: string;
+          contact_person?: string;
+          customer_type_id?: number;
+          customer_channel_id?: number;
+          customer_category_id?: number;
+          type?: string;
+          gps_status?: string;
+          phone_number?: string;
+          email?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zipcode?: string;
+          latitude?: number;
+          longitude?: number;
+          credit_limit?: number;
+          outstanding_amount?: number;
+          route_id?: number;
+          salesperson_id?: number;
+          nfc_tag_code?: string;
+          last_visit_date?: Date;
+          zones_id?: number;
+          is_active: string;
+          createdate: Date;
+          createdby: number;
+          updatedate?: Date;
+          updatedby?: number;
+          log_inst?: number;
+          outlet_images?: string;
+          profile_picture?: string;
+        } = {
+          code: outlet.code,
+          name: outlet.name,
+          is_active: isActive,
           createdate: new Date(),
           createdby: 1,
           log_inst: 1,
-        })),
-      });
-      logger.info(
-        `Batch ${batch + 1}/${totalBatches} completed (${result.count} customers created)`
-      );
+        };
+
+        if (outlet.short_name) {
+          customerData.short_name = outlet.short_name;
+        }
+        if (outlet.internal_code_one) {
+          customerData.internal_code_one = outlet.internal_code_one;
+        }
+        if (outlet.internal_code_two) {
+          customerData.internal_code_two = outlet.internal_code_two;
+        }
+        if (outlet.contact_person) {
+          customerData.contact_person = outlet.contact_person;
+        }
+        if (customerTypeId) {
+          customerData.customer_type_id = customerTypeId;
+        }
+        if (customerChannelId) {
+          customerData.customer_channel_id = customerChannelId;
+        }
+        if (gpsStatus) {
+          customerData.gps_status = gpsStatus;
+        }
+        if (randomZoneId) {
+          customerData.zones_id = randomZoneId;
+        }
+
+        return customerData;
+      })
+      .filter(customer => customer.code && customer.name);
+
+    try {
+      for (const customer of customersToCreate) {
+        try {
+          const existing = await prisma.customers.findUnique({
+            where: { code: customer.code },
+          });
+
+          if (!existing) {
+            await prisma.customers.create({
+              data: customer,
+            });
+            successCount++;
+          } else {
+            skipCount++;
+          }
+        } catch (error: any) {
+          if (error?.code === 'P2002') {
+            skipCount++;
+          } else {
+            logger.warn(
+              `Failed to create customer ${customer.code}: ${error.message}`
+            );
+            skipCount++;
+          }
+        }
+      }
+
+      if ((batch + 1) % 10 === 0 || batch === totalBatches - 1) {
+        logger.info(
+          `Batch ${batch + 1}/${totalBatches}: Created ${successCount}, Skipped ${skipCount}`
+        );
+      }
     } catch (error: any) {
-      logger.info(`Batch ${batch + 1}/${totalBatches} Skipped`);
+      logger.warn(
+        `Batch ${batch + 1}/${totalBatches} failed: ${error.message}`
+      );
+      skipCount += customersToCreate.length;
     }
   }
+
+  logger.success(
+    `Customer seeding completed: ${successCount} created, ${skipCount} skipped`
+  );
 }
 
 export async function clearCustomers(): Promise<void> {
-  await prisma.customers.deleteMany({});
+  try {
+    await prisma.customers.deleteMany({});
+    logger.info('All customers cleared successfully');
+  } catch (error: any) {
+    if (
+      error?.code === 'P2003' ||
+      error?.message?.includes('Foreign key constraint')
+    ) {
+      logger.warn(
+        '⚠️  Could not clear all customers due to foreign key constraints. Some records may be in use.'
+      );
+    } else {
+      throw error;
+    }
+  }
 }

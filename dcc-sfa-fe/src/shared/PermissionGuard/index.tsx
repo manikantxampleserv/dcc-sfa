@@ -1,19 +1,17 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
 import { usePermission } from 'hooks/usePermission';
+import NoConnection from 'pages/NoConnection';
 
 interface PermissionGuardProps {
   module: string;
   action?: 'read' | 'create' | 'update' | 'delete';
   children: React.ReactNode;
-  redirectTo?: string;
 }
 
 const PermissionGuard: React.FC<PermissionGuardProps> = ({
   module,
   action = 'read',
   children,
-  redirectTo = '/unauthorized',
 }) => {
   const permissions = usePermission(module as any);
 
@@ -44,7 +42,11 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
     );
   }
 
-  return hasPermission ? <>{children}</> : <Navigate to={redirectTo} replace />;
+  if (permissions.isNetworkError || !hasPermission) {
+    return <NoConnection />;
+  }
+
+  return <>{children}</>;
 };
 
 export default PermissionGuard;

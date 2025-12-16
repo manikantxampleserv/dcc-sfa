@@ -20,7 +20,6 @@ import {
   Clock,
   MapPin,
   Navigation,
-  Plus,
   Users,
 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -48,7 +47,7 @@ const RepLocationTracking: React.FC = () => {
     network_type: '4G',
   });
 
-  const { isRead } = usePermission('rep-location-tracking');
+  const { isRead } = usePermission('location');
 
   const { data: realTimeData, isLoading: isLoadingRealTime } =
     useRealTimeGPSTracking({

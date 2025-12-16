@@ -293,7 +293,9 @@ const ProductCategoriesPage: React.FC = () => {
                     />
                     <Select
                       value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setStatusFilter(e.target.value);
+                      }}
                       className="!w-32"
                     >
                       <MenuItem value="all">All Status</MenuItem>

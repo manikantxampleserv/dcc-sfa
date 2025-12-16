@@ -134,6 +134,9 @@ export type Modules =
   | 'product-category'
   | 'product-sub-category'
   | 'unit-of-measurement'
+  | 'product-flavour'
+  | 'product-volume'
+  | 'product-shelf-life'
   | 'product'
   | 'pricelist'
   | 'sales-target-group'
@@ -160,6 +163,8 @@ export type Modules =
   | 'customer-complaint'
   | 'customer-category'
   | 'customer-type'
+  | 'cooler-type'
+  | 'cooler-sub-type'
   | 'location'
   | 'route-effectiveness'
   | 'erp-sync'
@@ -170,7 +175,10 @@ export type Modules =
   | 'profile'
   | 'login-history'
   | 'token'
-  | 'setting';
+  | 'setting'
+  | 'product-type'
+  | 'product-target-group'
+  | 'product-web-order';
 
 /**
  * @type Actions
@@ -204,6 +212,9 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'product-category': 'Product Category',
   'product-sub-category': 'Product Sub Category',
   'unit-of-measurement': 'Unit Of Measurement',
+  'product-flavour': 'Product Flavour',
+  'product-volume': 'Product Volume',
+  'product-shelf-life': 'Product Shelf Life',
   product: 'Product',
   pricelist: 'Price List',
   'sales-target-group': 'Sales Target Group',
@@ -241,6 +252,9 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'login-history': 'Login History',
   token: 'Token',
   setting: 'Setting',
+  'product-type': 'Product Type',
+  'product-target-group': 'Product Target Group',
+  'product-web-order': 'Product Web Order',
 };
 
 /**

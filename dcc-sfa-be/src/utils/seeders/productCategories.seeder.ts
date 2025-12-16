@@ -1,6 +1,6 @@
 /**
  * @fileoverview Product Categories Seeder
- * @description Creates 11 sample product categories for testing and development
+ * @description Creates product categories for testing and development
  * @author DCC-SFA Team
  * @version 1.0.0
  */
@@ -13,67 +13,31 @@ interface MockProductCategory {
   is_active: string;
 }
 
-// Mock Product Categories Data (11 categories)
 const mockProductCategories: MockProductCategory[] = [
   {
-    category_name: 'Electronics',
-    description:
-      'Electronic devices, gadgets, and accessories including smartphones, laptops, tablets, and home appliances',
+    category_name: 'JUICE',
+    description: 'Juice products and beverages',
     is_active: 'Y',
   },
   {
-    category_name: 'Food & Beverages',
-    description: 'Food items, beverages, snacks, and consumable products',
+    category_name: 'KDW',
+    description: 'KDW category products',
     is_active: 'Y',
   },
   {
-    category_name: 'Clothing & Fashion',
-    description: 'Apparel, fashion accessories, shoes, and clothing items',
+    category_name: 'OTHER',
+    description: 'Other miscellaneous products',
     is_active: 'Y',
   },
   {
-    category_name: 'Home & Garden',
-    description: 'Home improvement items, garden tools, furniture, and decor',
+    category_name: 'PET',
+    description: 'PET bottles and containers',
     is_active: 'Y',
   },
   {
-    category_name: 'Sports & Fitness',
-    description:
-      'Sports equipment, fitness gear, outdoor activities, and athletic wear',
+    category_name: 'RGB',
+    description: 'RGB category products',
     is_active: 'Y',
-  },
-  {
-    category_name: 'Books & Media',
-    description:
-      'Books, magazines, digital media, educational materials, and entertainment',
-    is_active: 'Y',
-  },
-  {
-    category_name: 'Health & Beauty',
-    description:
-      'Health supplements, beauty products, personal care items, and wellness products',
-    is_active: 'Y',
-  },
-  {
-    category_name: 'Automotive',
-    description:
-      'Car parts, accessories, tools, and automotive maintenance products',
-    is_active: 'Y',
-  },
-  {
-    category_name: 'Office Supplies',
-    description: 'Office equipment, stationery, and workplace essentials',
-    is_active: 'Y',
-  },
-  {
-    category_name: 'Toys & Games',
-    description: 'Children toys, board games, puzzles, and entertainment items',
-    is_active: 'Y',
-  },
-  {
-    category_name: 'Discontinued Items',
-    description: 'Products that are no longer available for sale',
-    is_active: 'N',
   },
 ];
 
@@ -111,8 +75,17 @@ export async function seedProductCategories(): Promise<void> {
 export async function clearProductCategories(): Promise<void> {
   try {
     await prisma.product_categories.deleteMany({});
-  } catch (error) {
-    throw error;
+  } catch (error: any) {
+    if (
+      error?.code === 'P2003' ||
+      error?.message?.includes('Foreign key constraint')
+    ) {
+      console.warn(
+        '⚠️  Could not clear all product categories due to foreign key constraints. Some records may be in use by products.'
+      );
+    } else {
+      throw error;
+    }
   }
 }
 

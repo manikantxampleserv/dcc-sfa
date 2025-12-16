@@ -172,6 +172,24 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
+      id: 'customer_type',
+      label: 'Customer Type',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.customer_type?.type_name || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'customer_channel',
+      label: 'Customer Channel',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.customer_channel?.channel_name || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
       id: 'contact',
       label: 'Contact Person',
       render: (_value, row) => (

@@ -68,17 +68,21 @@ interface Option {
   disabled?: boolean;
 }
 
-interface CustomSelectProps extends Omit<
-  AutocompleteProps<any, false, false, false>,
-  'options' | 'value' | 'onChange' | 'renderInput'
-> {
+interface CustomSelectProps
+  extends Omit<
+    AutocompleteProps<any, false, boolean, false>,
+    'options' | 'onChange' | 'renderInput'
+  > {
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
-  onChange?: (event: any, value: any) => void;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   name?: string;
   label?: string;
   children?: React.ReactNode;
+  value?: any;
+  required?: boolean;
+  disableClearable?: boolean;
 }
 
 const Select: React.FC<CustomSelectProps> = ({
@@ -95,26 +99,39 @@ const Select: React.FC<CustomSelectProps> = ({
   onBlur,
   onChange,
   disabled,
+  disableClearable = false,
   ...rest
 }) => {
   const options = useMemo(() => {
     if (!children) return [];
     const childrenArray = React.Children.toArray(children);
+    interface MenuItemProps {
+      value?: any;
+      disabled?: boolean;
+      children?: React.ReactNode;
+    }
     const parsedOptions = childrenArray
-      .filter((child): child is React.ReactElement => {
+      .filter((child): child is React.ReactElement<MenuItemProps> => {
         if (!React.isValidElement(child)) return false;
-        return child.props.value !== undefined;
+        const props = child.props as MenuItemProps;
+        return props.value !== undefined;
       })
-      .map((child: React.ReactElement) => {
-        const childValue = child.props.value;
+      .map((child: React.ReactElement<MenuItemProps>) => {
+        const props = child.props as MenuItemProps;
+        const childValue = props.value;
         let childLabel = '';
 
-        const childrenProp = child.props.children;
+        const childrenProp = props.children;
         if (typeof childrenProp === 'string') {
           childLabel = childrenProp;
         } else if (React.isValidElement(childrenProp)) {
+          const nestedProps = childrenProp.props as MenuItemProps;
           childLabel =
-            childrenProp.props?.children || childValue?.toString() || '';
+            (typeof nestedProps?.children === 'string'
+              ? nestedProps.children
+              : nestedProps?.children?.toString()) ||
+            childValue?.toString() ||
+            '';
         } else if (Array.isArray(childrenProp)) {
           childLabel =
             childrenProp
@@ -131,7 +148,7 @@ const Select: React.FC<CustomSelectProps> = ({
         return {
           value: childValue,
           label: childLabel || childValue?.toString() || '',
-          disabled: child.props.disabled || false,
+          disabled: props.disabled || false,
         };
       })
       .filter(option => {
@@ -172,8 +189,12 @@ const Select: React.FC<CustomSelectProps> = ({
           name: name,
           value: newValueToSet,
         },
-      } as any;
-      onChange(syntheticEvent, newValueToSet);
+        currentTarget: {
+          name: name,
+          value: newValueToSet,
+        },
+      } as React.ChangeEvent<HTMLInputElement>;
+      onChange(syntheticEvent);
     }
   };
 
@@ -215,7 +236,7 @@ const Select: React.FC<CustomSelectProps> = ({
         openOnFocus
         selectOnFocus
         clearOnBlur={false}
-        disableClearable={false}
+        disableClearable={disableClearable ? true : false}
         filterOptions={(options: Option[], state: any) => {
           if (!state.inputValue || state.inputValue.trim() === '') {
             return options;
@@ -224,12 +245,15 @@ const Select: React.FC<CustomSelectProps> = ({
             option.label.toLowerCase().includes(state.inputValue.toLowerCase())
           );
         }}
-        ListboxProps={{
-          style: { maxHeight: '300px' },
-        }}
-        PopperProps={{
-          style: { zIndex: 1300 },
-          placement: 'bottom-start',
+        sx={{ minWidth: '160px' }}
+        slotProps={{
+          popper: {
+            style: { zIndex: 1300 },
+            placement: 'bottom-start',
+          },
+          listbox: {
+            style: { maxHeight: '300px' },
+          },
         }}
         renderInput={(params: any) => (
           <TextField
@@ -240,13 +264,16 @@ const Select: React.FC<CustomSelectProps> = ({
             error={!!error}
             name={name}
             size={size}
-            InputProps={{
-              ...params.InputProps,
-              readOnly: false,
-            }}
-            inputProps={{
-              ...params.inputProps,
-              required: false,
+            sx={{ minWidth: '160px' }}
+            slotProps={{
+              input: {
+                ...params.InputProps,
+                readOnly: false,
+              },
+              htmlInput: {
+                ...params.inputProps,
+                required: false,
+              },
             }}
           />
         )}

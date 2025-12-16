@@ -28,6 +28,22 @@ export class ProductsImportExportService extends ImportExportService<any> {
       description: 'Name of the product (required, 2-255 characters)',
     },
     {
+      key: 'code',
+      header: 'Code',
+      width: 20,
+      type: 'string',
+      validation: value => {
+        if (value && value.trim() !== '') {
+          if (value.length < 2) return 'Code must be at least 2 characters';
+          if (value.length > 100)
+            return 'Code must be less than 100 characters';
+        }
+        return true;
+      },
+      description:
+        'Product code (optional, will be auto-generated if not provided)',
+    },
+    {
       key: 'description',
       header: 'Description',
       width: 30,
@@ -154,64 +170,320 @@ export class ProductsImportExportService extends ImportExportService<any> {
       transform: value => (value ? value.toString().toUpperCase() : 'Y'),
       description: 'Active status - Y for Yes, N for No (defaults to Y)',
     },
+    {
+      key: 'route_type_id',
+      header: 'Route Type ID',
+      width: 18,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue)) return 'Route Type ID must be a valid number';
+          if (numValue < 1) return 'Route Type ID must be greater than 0';
+        }
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description: 'ID of the route type (optional, must exist in system)',
+    },
+    {
+      key: 'outlet_group_id',
+      header: 'Outlet Group ID',
+      width: 20,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue)) return 'Outlet Group ID must be a valid number';
+          if (numValue < 1) return 'Outlet Group ID must be greater than 0';
+        }
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description: 'ID of the outlet group (optional, must exist in system)',
+    },
+    {
+      key: 'tracking_type',
+      header: 'Tracking Type',
+      width: 18,
+      type: 'string',
+      validation: value => {
+        if (value && value.length > 20) {
+          return 'Tracking type must not exceed 20 characters';
+        }
+        return true;
+      },
+      transform: value => (value ? value.toString().trim() : null),
+      description: 'Tracking type (optional, max 20 characters)',
+    },
+    {
+      key: 'product_type_id',
+      header: 'Product Type ID',
+      width: 20,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue)) return 'Product Type ID must be a valid number';
+          if (numValue < 1) return 'Product Type ID must be greater than 0';
+        }
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description: 'ID of the product type (optional, must exist in system)',
+    },
+    {
+      key: 'product_target_group_id',
+      header: 'Product Target Group ID',
+      width: 25,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue))
+            return 'Product Target Group ID must be a valid number';
+          if (numValue < 1)
+            return 'Product Target Group ID must be greater than 0';
+        }
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description:
+        'ID of the product target group (optional, must exist in system)',
+    },
+    {
+      key: 'product_web_order_id',
+      header: 'Product Web Order ID',
+      width: 25,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue))
+            return 'Product Web Order ID must be a valid number';
+          if (numValue < 1)
+            return 'Product Web Order ID must be greater than 0';
+        }
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description:
+        'ID of the product web order (optional, must exist in system)',
+    },
+    {
+      key: 'volume_id',
+      header: 'Volume ID',
+      width: 15,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue)) return 'Volume ID must be a valid number';
+          if (numValue < 1) return 'Volume ID must be greater than 0';
+        }
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description: 'ID of the product volume (optional, must exist in system)',
+    },
+    {
+      key: 'flavour_id',
+      header: 'Flavour ID',
+      width: 15,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue)) return 'Flavour ID must be a valid number';
+          if (numValue < 1) return 'Flavour ID must be greater than 0';
+        }
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description: 'ID of the product flavour (optional, must exist in system)',
+    },
+    {
+      key: 'shelf_life_id',
+      header: 'Shelf Life ID',
+      width: 18,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const numValue = Number(value);
+          if (isNaN(numValue)) return 'Shelf Life ID must be a valid number';
+          if (numValue < 1) return 'Shelf Life ID must be greater than 0';
+        }
+        return true;
+      },
+      transform: value => (value ? Number(value) : null),
+      description:
+        'ID of the product shelf life (optional, must exist in system)',
+    },
   ];
 
   protected async getSampleData(): Promise<any[]> {
+    const category = await prisma.product_categories.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const subCategory = await prisma.product_sub_categories.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const brand = await prisma.brands.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const unit = await prisma.unit_of_measurement.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const routeType = await prisma.route_type.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const outletGroup = await prisma.customer_groups.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const productType = await prisma.product_type.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const productTargetGroup = await prisma.product_target_group.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const productWebOrder = await prisma.product_web_order.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const volume = await prisma.product_volumes.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const flavour = await prisma.product_flavours.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
+    const shelfLife = await prisma.product_shelf_life.findFirst({
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    });
+
     return [
       {
         name: 'Coca Cola Classic',
+        code: '',
         description: 'Classic Coca Cola soft drink',
-        category_id: 2, // Food & Beverages
-        sub_category_id: 1, // Soft Drinks (assuming this exists)
-        brand_id: 2, // Coca Cola
-        unit_of_measurement: 2, // Case
+        category_id: category?.id || '',
+        sub_category_id: subCategory?.id || '',
+        brand_id: brand?.id || '',
+        unit_of_measurement: unit?.id || '',
         base_price: 1.99,
         tax_rate: 6.0,
         is_active: 'Y',
+        route_type_id: routeType?.id || '',
+        outlet_group_id: outletGroup?.id || '',
+        tracking_type: '',
+        product_type_id: productType?.id || '',
+        product_target_group_id: productTargetGroup?.id || '',
+        product_web_order_id: productWebOrder?.id || '',
+        volume_id: volume?.id || '',
+        flavour_id: flavour?.id || '',
+        shelf_life_id: shelfLife?.id || '',
       },
       {
         name: 'Potato Chips',
+        code: 'POT001',
         description: 'Crispy potato chips snack',
-        category_id: 2, // Food & Beverages
-        sub_category_id: 2, // Snacks (assuming this exists)
-        brand_id: 3, // Generic
-        unit_of_measurement: 2, // Case
+        category_id: category?.id || '',
+        sub_category_id: subCategory?.id || '',
+        brand_id: brand?.id || '',
+        unit_of_measurement: unit?.id || '',
         base_price: 2.49,
         tax_rate: 6.0,
         is_active: 'Y',
+        route_type_id: routeType?.id || '',
+        outlet_group_id: outletGroup?.id || '',
+        tracking_type: 'BATCH',
+        product_type_id: productType?.id || '',
+        product_target_group_id: productTargetGroup?.id || '',
+        product_web_order_id: productWebOrder?.id || '',
+        volume_id: volume?.id || '',
+        flavour_id: flavour?.id || '',
+        shelf_life_id: shelfLife?.id || '',
       },
       {
         name: 'iPhone 15 Pro',
         description: 'Latest Apple iPhone with advanced camera system',
-        category_id: 1, // Electronics
-        sub_category_id: 3, // Smartphones (assuming this exists)
-        brand_id: 1, // Apple
-        unit_of_measurement: 1, // Piece
+        category_id: category?.id || '',
+        sub_category_id: subCategory?.id || '',
+        brand_id: brand?.id || '',
+        unit_of_measurement: unit?.id || '',
         base_price: 999.99,
         tax_rate: 8.5,
         is_active: 'Y',
+        route_type_id: routeType?.id || '',
+        outlet_group_id: outletGroup?.id || '',
+        tracking_type: '',
+        product_type_id: productType?.id || '',
+        product_target_group_id: productTargetGroup?.id || '',
+        product_web_order_id: productWebOrder?.id || '',
+        volume_id: volume?.id || '',
+        flavour_id: flavour?.id || '',
+        shelf_life_id: shelfLife?.id || '',
       },
       {
         name: 'Nike Running Shoes',
         description: 'High-performance running shoes',
-        category_id: 3, // Clothing & Fashion
-        sub_category_id: 4, // Footwear (assuming this exists)
-        brand_id: 4, // Fashion Brand
-        unit_of_measurement: 1, // Piece
+        category_id: category?.id || '',
+        sub_category_id: subCategory?.id || '',
+        brand_id: brand?.id || '',
+        unit_of_measurement: unit?.id || '',
         base_price: 129.99,
         tax_rate: 8.0,
         is_active: 'Y',
+        route_type_id: routeType?.id || '',
+        outlet_group_id: outletGroup?.id || '',
+        tracking_type: '',
+        product_type_id: productType?.id || '',
+        product_target_group_id: productTargetGroup?.id || '',
+        product_web_order_id: productWebOrder?.id || '',
+        volume_id: volume?.id || '',
+        flavour_id: flavour?.id || '',
+        shelf_life_id: shelfLife?.id || '',
       },
       {
         name: 'Office Chair',
         description: 'Ergonomic office chair with lumbar support',
-        category_id: 4, // Home & Garden
-        sub_category_id: 5, // Furniture (assuming this exists)
-        brand_id: 5, // Office Furniture
-        unit_of_measurement: 1, // Piece
+        category_id: category?.id || '',
+        sub_category_id: subCategory?.id || '',
+        brand_id: brand?.id || '',
+        unit_of_measurement: unit?.id || '',
         base_price: 199.99,
         tax_rate: 8.0,
         is_active: 'N',
+        route_type_id: routeType?.id || '',
+        outlet_group_id: outletGroup?.id || '',
+        tracking_type: '',
+        product_type_id: productType?.id || '',
+        product_target_group_id: productTargetGroup?.id || '',
+        product_web_order_id: productWebOrder?.id || '',
+        volume_id: volume?.id || '',
+        flavour_id: flavour?.id || '',
+        shelf_life_id: shelfLife?.id || '',
       },
     ];
   }
@@ -228,24 +500,35 @@ export class ProductsImportExportService extends ImportExportService<any> {
 - **Unit ID**: ID of the unit of measurement (must exist in system)
 
 ## Optional Fields:
+- **Code**: Product code (will be auto-generated if not provided)
 - **Description**: Description of the product (max 1000 characters)
 - **Base Price**: Base price of the product (must be >= 0)
 - **Tax Rate (%)**: Tax rate percentage (0-100)
 - **Is Active**: Whether the product is active (Y/N, defaults to Y)
+- **Route Type ID**: ID of the route type (must exist in system)
+- **Outlet Group ID**: ID of the outlet group (must exist in system)
+- **Tracking Type**: Tracking type (max 20 characters)
+- **Product Type ID**: ID of the product type (must exist in system)
+- **Product Target Group ID**: ID of the product target group (must exist in system)
+- **Product Web Order ID**: ID of the product web order (must exist in system)
+- **Volume ID**: ID of the product volume (must exist in system)
+- **Flavour ID**: ID of the product flavour (must exist in system)
+- **Shelf Life ID**: ID of the product shelf life (must exist in system)
 
 ## Notes:
 - Product names must be unique across the system.
-- Category ID, Sub-Category ID, Brand ID, and Unit ID must match existing records in the system.
+- All ID fields (Category, Sub-Category, Brand, Unit, Route Type, Outlet Group, Product Type, Product Target Group, Product Web Order, Volume, Flavour, Shelf Life) must match existing records in the system.
 - Base price and tax rate are optional but must be valid numbers if provided.
 - Active products are available for orders and sales.
 - Inactive products are hidden but preserved for historical data.
-- Use the system's master data to get the correct IDs for categories, sub-categories, brands, and units.
+- Use the system's master data to get the correct IDs for all related entities.
     `;
   }
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
     return data.map(product => ({
       name: product.name,
+      code: product.code || '',
       description: product.description || '',
       category_id: product.category_id || '',
       sub_category_id: product.sub_category_id || '',
@@ -254,6 +537,15 @@ export class ProductsImportExportService extends ImportExportService<any> {
       base_price: product.base_price || '',
       tax_rate: product.tax_rate || '',
       is_active: product.is_active || 'Y',
+      route_type_id: product.route_type_id || '',
+      outlet_group_id: product.outlet_group_id || '',
+      tracking_type: product.tracking_type || '',
+      product_type_id: product.product_type_id || '',
+      product_target_group_id: product.product_target_group_id || '',
+      product_web_order_id: product.product_web_order_id || '',
+      volume_id: product.volume_id || '',
+      flavour_id: product.flavour_id || '',
+      shelf_life_id: product.shelf_life_id || '',
       createdate: product.createdate?.toISOString().split('T')[0] || '',
       createdby: product.createdby || '',
       updatedate: product.updatedate?.toISOString().split('T')[0] || '',
@@ -274,6 +566,18 @@ export class ProductsImportExportService extends ImportExportService<any> {
       return `Product "${data.name}" already exists`;
     }
 
+    if (data.code && data.code.trim() !== '') {
+      const existingCode = await model.findFirst({
+        where: {
+          code: data.code.trim(),
+        },
+      });
+
+      if (existingCode) {
+        return `Product with code "${data.code}" already exists`;
+      }
+    }
+
     return null;
   }
 
@@ -281,7 +585,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
     data: any,
     userId: number
   ): Promise<any> {
-    // Validate category exists by ID
     const category = await prisma.product_categories.findFirst({
       where: {
         id: data.category_id,
@@ -292,7 +595,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
       throw new Error(`Category with ID "${data.category_id}" not found`);
     }
 
-    // Validate sub-category exists by ID
     const subCategory = await prisma.product_sub_categories.findFirst({
       where: {
         id: data.sub_category_id,
@@ -305,7 +607,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
       );
     }
 
-    // Validate brand exists by ID
     const brand = await prisma.brands.findFirst({
       where: {
         id: data.brand_id,
@@ -316,7 +617,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
       throw new Error(`Brand with ID "${data.brand_id}" not found`);
     }
 
-    // Validate unit exists by ID
     const unit = await prisma.unit_of_measurement.findFirst({
       where: {
         id: data.unit_of_measurement,
@@ -329,26 +629,119 @@ export class ProductsImportExportService extends ImportExportService<any> {
       );
     }
 
-    // Generate product code
-    const prefix = data.name.slice(0, 3).toUpperCase();
-    const lastProduct = await prisma.products.findFirst({
-      orderBy: { id: 'desc' },
-      select: { code: true },
-    });
-
-    let newNumber = 1;
-    if (lastProduct && lastProduct.code) {
-      const match = lastProduct.code.match(/(\d+)$/);
-      if (match) {
-        newNumber = parseInt(match[1], 10) + 1;
+    if (data.route_type_id) {
+      const routeType = await prisma.route_type.findFirst({
+        where: { id: data.route_type_id },
+      });
+      if (!routeType) {
+        throw new Error(`Route type with ID "${data.route_type_id}" not found`);
       }
     }
 
-    const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+    if (data.outlet_group_id) {
+      const outletGroup = await prisma.customer_groups.findFirst({
+        where: { id: data.outlet_group_id },
+      });
+      if (!outletGroup) {
+        throw new Error(
+          `Outlet group with ID "${data.outlet_group_id}" not found`
+        );
+      }
+    }
+
+    if (data.product_type_id) {
+      const productType = await prisma.product_type.findFirst({
+        where: { id: data.product_type_id },
+      });
+      if (!productType) {
+        throw new Error(
+          `Product type with ID "${data.product_type_id}" not found`
+        );
+      }
+    }
+
+    if (data.product_target_group_id) {
+      const targetGroup = await prisma.product_target_group.findFirst({
+        where: { id: data.product_target_group_id },
+      });
+      if (!targetGroup) {
+        throw new Error(
+          `Product target group with ID "${data.product_target_group_id}" not found`
+        );
+      }
+    }
+
+    if (data.product_web_order_id) {
+      const webOrder = await prisma.product_web_order.findFirst({
+        where: { id: data.product_web_order_id },
+      });
+      if (!webOrder) {
+        throw new Error(
+          `Product web order with ID "${data.product_web_order_id}" not found`
+        );
+      }
+    }
+
+    if (data.volume_id) {
+      const volume = await prisma.product_volumes.findFirst({
+        where: { id: data.volume_id },
+      });
+      if (!volume) {
+        throw new Error(`Volume with ID "${data.volume_id}" not found`);
+      }
+    }
+
+    if (data.flavour_id) {
+      const flavour = await prisma.product_flavours.findFirst({
+        where: { id: data.flavour_id },
+      });
+      if (!flavour) {
+        throw new Error(`Flavour with ID "${data.flavour_id}" not found`);
+      }
+    }
+
+    if (data.shelf_life_id) {
+      const shelfLife = await prisma.product_shelf_life.findFirst({
+        where: { id: data.shelf_life_id },
+      });
+      if (!shelfLife) {
+        throw new Error(`Shelf life with ID "${data.shelf_life_id}" not found`);
+      }
+    }
+
+    let productCode =
+      data.code && data.code.trim() !== '' ? data.code.trim() : null;
+
+    if (!productCode) {
+      const prefix = data.name.slice(0, 3).toUpperCase();
+      const lastProduct = await prisma.products.findFirst({
+        orderBy: { id: 'desc' },
+        select: { code: true },
+      });
+
+      let newNumber = 1;
+      if (lastProduct && lastProduct.code) {
+        const match = lastProduct.code.match(/(\d+)$/);
+        if (match) {
+          newNumber = parseInt(match[1], 10) + 1;
+        }
+      }
+
+      let attempts = 0;
+      while (attempts < 10) {
+        productCode = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+        const existing = await prisma.products.findUnique({
+          where: { code: productCode },
+        });
+        if (!existing) break;
+        newNumber++;
+        attempts++;
+      }
+    }
 
     return {
       name: data.name,
-      code: code,
+      code: productCode,
       description: data.description || null,
       category_id: data.category_id,
       sub_category_id: data.sub_category_id,
@@ -357,6 +750,15 @@ export class ProductsImportExportService extends ImportExportService<any> {
       base_price: data.base_price || null,
       tax_rate: data.tax_rate || null,
       is_active: data.is_active || 'Y',
+      route_type_id: data.route_type_id || null,
+      outlet_group_id: data.outlet_group_id || null,
+      tracking_type: data.tracking_type || null,
+      product_type_id: data.product_type_id || null,
+      product_target_group_id: data.product_target_group_id || null,
+      product_web_order_id: data.product_web_order_id || null,
+      volume_id: data.volume_id || null,
+      flavour_id: data.flavour_id || null,
+      shelf_life_id: data.shelf_life_id || null,
       createdate: new Date(),
       createdby: userId,
       log_inst: 1,
@@ -369,7 +771,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
   ): Promise<string | null> {
     const errors: string[] = [];
 
-    // Check category exists by ID
     const category = await prisma.product_categories.findFirst({
       where: { id: data.category_id },
     });
@@ -377,7 +778,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
       errors.push(`Category with ID "${data.category_id}" not found`);
     }
 
-    // Check sub-category exists by ID
     const subCategory = await prisma.product_sub_categories.findFirst({
       where: { id: data.sub_category_id },
     });
@@ -385,7 +785,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
       errors.push(`Sub-category with ID "${data.sub_category_id}" not found`);
     }
 
-    // Check brand exists by ID
     const brand = await prisma.brands.findFirst({
       where: { id: data.brand_id },
     });
@@ -393,7 +792,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
       errors.push(`Brand with ID "${data.brand_id}" not found`);
     }
 
-    // Check unit exists by ID
     const unit = await prisma.unit_of_measurement.findFirst({
       where: { id: data.unit_of_measurement },
     });
@@ -401,6 +799,82 @@ export class ProductsImportExportService extends ImportExportService<any> {
       errors.push(
         `Unit of measurement with ID "${data.unit_of_measurement}" not found`
       );
+    }
+
+    if (data.route_type_id) {
+      const routeType = await prisma.route_type.findFirst({
+        where: { id: data.route_type_id },
+      });
+      if (!routeType) {
+        errors.push(`Route type with ID "${data.route_type_id}" not found`);
+      }
+    }
+
+    if (data.outlet_group_id) {
+      const outletGroup = await prisma.customer_groups.findFirst({
+        where: { id: data.outlet_group_id },
+      });
+      if (!outletGroup) {
+        errors.push(`Outlet group with ID "${data.outlet_group_id}" not found`);
+      }
+    }
+
+    if (data.product_type_id) {
+      const productType = await prisma.product_type.findFirst({
+        where: { id: data.product_type_id },
+      });
+      if (!productType) {
+        errors.push(`Product type with ID "${data.product_type_id}" not found`);
+      }
+    }
+
+    if (data.product_target_group_id) {
+      const targetGroup = await prisma.product_target_group.findFirst({
+        where: { id: data.product_target_group_id },
+      });
+      if (!targetGroup) {
+        errors.push(
+          `Product target group with ID "${data.product_target_group_id}" not found`
+        );
+      }
+    }
+
+    if (data.product_web_order_id) {
+      const webOrder = await prisma.product_web_order.findFirst({
+        where: { id: data.product_web_order_id },
+      });
+      if (!webOrder) {
+        errors.push(
+          `Product web order with ID "${data.product_web_order_id}" not found`
+        );
+      }
+    }
+
+    if (data.volume_id) {
+      const volume = await prisma.product_volumes.findFirst({
+        where: { id: data.volume_id },
+      });
+      if (!volume) {
+        errors.push(`Volume with ID "${data.volume_id}" not found`);
+      }
+    }
+
+    if (data.flavour_id) {
+      const flavour = await prisma.product_flavours.findFirst({
+        where: { id: data.flavour_id },
+      });
+      if (!flavour) {
+        errors.push(`Flavour with ID "${data.flavour_id}" not found`);
+      }
+    }
+
+    if (data.shelf_life_id) {
+      const shelfLife = await prisma.product_shelf_life.findFirst({
+        where: { id: data.shelf_life_id },
+      });
+      if (!shelfLife) {
+        errors.push(`Shelf life with ID "${data.shelf_life_id}" not found`);
+      }
     }
 
     return errors.length > 0 ? errors.join('; ') : null;
@@ -420,7 +894,6 @@ export class ProductsImportExportService extends ImportExportService<any> {
   ): Promise<any> {
     const model = tx ? tx.products : prisma.products;
 
-    // Find existing record based on unique fields
     const existing = await model.findFirst({
       where: {
         name: data.name,
@@ -429,11 +902,36 @@ export class ProductsImportExportService extends ImportExportService<any> {
 
     if (!existing) return null;
 
-    const updateData = {
-      ...data,
+    const { code, ...restData } = data;
+
+    const updateData: any = {
+      ...restData,
+      ...(code && code.trim() !== '' && { code }),
+      route_type_id: data.route_type_id || null,
+      outlet_group_id: data.outlet_group_id || null,
+      tracking_type: data.tracking_type || null,
+      product_type_id: data.product_type_id || null,
+      product_target_group_id: data.product_target_group_id || null,
+      product_web_order_id: data.product_web_order_id || null,
+      volume_id: data.volume_id || null,
+      flavour_id: data.flavour_id || null,
+      shelf_life_id: data.shelf_life_id || null,
       updatedby: userId,
       updatedate: new Date(),
     };
+
+    if (updateData.code && updateData.code !== existing.code) {
+      const existingCode = await model.findFirst({
+        where: {
+          code: updateData.code,
+          id: { not: existing.id },
+        },
+      });
+
+      if (existingCode) {
+        throw new Error(`Product code "${updateData.code}" already exists`);
+      }
+    }
 
     return await model.update({
       where: { id: existing.id },

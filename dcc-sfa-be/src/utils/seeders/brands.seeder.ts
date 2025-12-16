@@ -1,6 +1,6 @@
 /**
  * @fileoverview Brands Seeder
- * @description Creates 11 sample brands for testing and development
+ * @description Creates brands for testing and development
  * @author DCC-SFA Team
  * @version 1.0.0
  */
@@ -15,83 +15,53 @@ interface MockBrand {
   is_active: string;
 }
 
-// Mock Brands Data (11 brands)
 const mockBrands: MockBrand[] = [
   {
-    name: 'Apple',
-    code: 'APPLE',
-    description: 'Technology company known for innovative products',
-    logo: 'apple-logo.png',
+    name: 'COKE',
+    code: 'COKE',
+    description: 'Coca-Cola brand products',
     is_active: 'Y',
   },
   {
-    name: 'Coca Cola',
-    code: 'COCA',
-    description: 'Leading beverage company',
-    logo: 'coca-cola-logo.png',
+    name: 'FANTA',
+    code: 'FANTA',
+    description: 'Fanta brand products',
     is_active: 'Y',
   },
   {
-    name: 'Generic',
-    code: 'GEN',
-    description: 'Generic brand for various products',
-    logo: 'generic-logo.png',
+    name: 'SPRITE',
+    code: 'SPRITE',
+    description: 'Sprite brand products',
     is_active: 'Y',
   },
   {
-    name: 'Fashion Brand',
-    code: 'FASH',
-    description: 'Fashion and clothing brand',
-    logo: 'fashion-logo.png',
+    name: 'STONEY',
+    code: 'STONEY',
+    description: 'Stoney brand products',
     is_active: 'Y',
   },
   {
-    name: 'Office Furniture',
-    code: 'OFFICE',
-    description: 'Professional office furniture manufacturer',
-    logo: 'office-logo.png',
+    name: 'SPARLETTA',
+    code: 'SPARLETTA',
+    description: 'Sparletta brand products',
     is_active: 'Y',
   },
   {
-    name: 'Fitness Brand',
-    code: 'FIT',
-    description: 'Sports and fitness equipment brand',
-    logo: 'fitness-logo.png',
+    name: 'KREST',
+    code: 'KREST',
+    description: 'Krest brand products',
     is_active: 'Y',
   },
   {
-    name: 'Tech Publisher',
-    code: 'TECH',
-    description: 'Technology and programming book publisher',
-    logo: 'tech-logo.png',
+    name: 'NOVIDA',
+    code: 'NOVIDA',
+    description: 'Novida brand products',
     is_active: 'Y',
   },
   {
-    name: 'Health Brand',
-    code: 'HEALTH',
-    description: 'Health and wellness products brand',
-    logo: 'health-logo.png',
-    is_active: 'Y',
-  },
-  {
-    name: 'Discontinued Brand',
-    code: 'DISC',
-    description: 'Brand no longer in production',
-    logo: 'discontinued-logo.png',
-    is_active: 'N',
-  },
-  {
-    name: 'Premium Brand',
-    code: 'PREMIUM',
-    description: 'High-end luxury products brand',
-    logo: 'premium-logo.png',
-    is_active: 'Y',
-  },
-  {
-    name: 'Budget Brand',
-    code: 'BUDGET',
-    description: 'Affordable products for budget-conscious consumers',
-    logo: 'budget-logo.png',
+    name: 'KILIMANJARO',
+    code: 'KILIMANJARO',
+    description: 'Kilimanjaro brand products',
     is_active: 'Y',
   },
 ];
@@ -132,8 +102,17 @@ export async function seedBrands(): Promise<void> {
 export async function clearBrands(): Promise<void> {
   try {
     await prisma.brands.deleteMany({});
-  } catch (error) {
-    throw error;
+  } catch (error: any) {
+    if (
+      error?.code === 'P2003' ||
+      error?.message?.includes('Foreign key constraint')
+    ) {
+      console.warn(
+        '⚠️  Could not clear all brands due to foreign key constraints. Some records may be in use by products.'
+      );
+    } else {
+      throw error;
+    }
   }
 }
 

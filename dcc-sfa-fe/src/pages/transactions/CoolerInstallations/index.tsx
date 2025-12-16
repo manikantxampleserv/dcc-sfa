@@ -41,13 +41,13 @@ const CoolerInstallationsManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission(
-    'cooler-installation'
-  );
+  const { isCreate, isUpdate, isDelete, isRead } =
+    usePermission('installation');
 
   const {
     data: coolerInstallationsResponse,
     isLoading,
+    isFetching,
     error,
   } = useCoolerInstallations(
     {
@@ -195,9 +195,8 @@ const CoolerInstallationsManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.brand && row.model
-                ? `${row.brand} • ${row.model}`
-                : 'Unknown Model'}
+              {row.brand ? `${row.brand}` : 'Unknown Brand'}
+              {row.model ? `• ${row.model}` : ''}
             </Typography>
           </Box>
         </Box>
@@ -250,6 +249,28 @@ const CoolerInstallationsManagement: React.FC = () => {
             </Box>
           )}
         </Box>
+      ),
+    },
+    {
+      id: 'cooler_type',
+      label: 'Cooler Type',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.cooler_type?.name || (
+            <span className="italic text-gray-400">No Type</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'cooler_sub_type',
+      label: 'Cooler Sub Type',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-900">
+          {row.cooler_sub_type?.name || (
+            <span className="italic text-gray-400">No Sub Type</span>
+          )}
+        </Typography>
       ),
     },
     {
@@ -386,28 +407,28 @@ const CoolerInstallationsManagement: React.FC = () => {
           value={totalInstallations}
           icon={<Droplets className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isLoading || isFetching}
         />
         <StatsCard
           title="Active Installations"
           value={activeInstallations}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isLoading || isFetching}
         />
         <StatsCard
           title="Inactive Installations"
           value={inactiveInstallations}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isLoading || isFetching}
         />
         <StatsCard
           title="This Month"
           value={installationsThisMonth}
           icon={<Calendar className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isLoading || isFetching}
         />
       </div>
 
@@ -431,24 +452,29 @@ const CoolerInstallationsManagement: React.FC = () => {
                       value={search}
                       onChange={handleSearchChange}
                       debounceMs={400}
-                      showClear={true}
-                      className="!w-80"
+                      className="!w-52"
                     />
                     <Select
                       value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setStatusFilter(e.target.value)
+                      }
                       className="!w-32"
+                      label="Active Status"
+                      placeholder="Select Active Status"
                     >
-                      <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="Y">Active</MenuItem>
                       <MenuItem value="N">Inactive</MenuItem>
                     </Select>
                     <Select
                       value={operationalStatusFilter}
-                      onChange={e => setOperationalStatusFilter(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setOperationalStatusFilter(e.target.value)
+                      }
                       className="!w-50"
+                      label="Operational Status"
+                      placeholder="Select Operational Status"
                     >
-                      <MenuItem value="all">All Operational</MenuItem>
                       <MenuItem value="working">Working</MenuItem>
                       <MenuItem value="maintenance">Maintenance</MenuItem>
                       <MenuItem value="broken">Broken</MenuItem>
@@ -519,7 +545,7 @@ const CoolerInstallationsManagement: React.FC = () => {
         }
         getRowId={installation => installation.id}
         initialOrderBy="install_date"
-        loading={isLoading}
+        loading={isLoading || isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

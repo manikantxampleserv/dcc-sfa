@@ -18,45 +18,10 @@ interface MockUnitOfMeasurement {
 // Mock Unit of Measurement Data (11 units)
 const mockUnitOfMeasurements: MockUnitOfMeasurement[] = [
   {
-    name: 'Piece',
-    description: 'Individual item count',
-    category: 'Count',
-    symbol: 'pcs',
-    is_active: 'Y',
-  },
-  {
-    name: 'Case',
-    description: 'Packaging unit containing multiple items',
-    category: 'Packaging',
-    symbol: 'case',
-    is_active: 'Y',
-  },
-  {
-    name: 'Bag',
-    description: 'Flexible container for loose items',
-    category: 'Packaging',
-    symbol: 'bag',
-    is_active: 'Y',
-  },
-  {
     name: 'Bottle',
     description: 'Container for liquids',
     category: 'Container',
     symbol: 'bottle',
-    is_active: 'Y',
-  },
-  {
-    name: 'Box',
-    description: 'Rigid container for various items',
-    category: 'Packaging',
-    symbol: 'box',
-    is_active: 'Y',
-  },
-  {
-    name: 'Kilogram',
-    description: 'Unit of mass measurement',
-    category: 'Weight',
-    symbol: 'kg',
     is_active: 'Y',
   },
   {
@@ -65,34 +30,6 @@ const mockUnitOfMeasurements: MockUnitOfMeasurement[] = [
     category: 'Volume',
     symbol: 'L',
     is_active: 'Y',
-  },
-  {
-    name: 'Meter',
-    description: 'Unit of length measurement',
-    category: 'Length',
-    symbol: 'm',
-    is_active: 'Y',
-  },
-  {
-    name: 'Dozen',
-    description: 'Group of 12 items',
-    category: 'Count',
-    symbol: 'doz',
-    is_active: 'Y',
-  },
-  {
-    name: 'Set',
-    description: 'Collection of related items',
-    category: 'Count',
-    symbol: 'set',
-    is_active: 'Y',
-  },
-  {
-    name: 'Discontinued Unit',
-    description: 'Unit no longer in use',
-    category: 'Legacy',
-    symbol: 'old',
-    is_active: 'N',
   },
 ];
 

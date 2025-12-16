@@ -2,55 +2,6 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
-interface CustomerSerialized {
-  id: number;
-  name: string;
-  code: string;
-  zones_id?: number | null;
-  type?: string | null;
-  contact_person?: string | null;
-  phone_number?: string | null;
-  email?: string | null;
-  address?: string | null;
-  city?: string | null;
-  state?: string | null;
-  zipcode?: string | null;
-  latitude?: string | null;
-  longitude?: string | null;
-  credit_limit?: string | null;
-  outstanding_amount: string;
-  route_id?: number | null;
-  salesperson_id?: number | null;
-  last_visit_date?: Date | null;
-  is_active: string;
-  customer_profile_pic?: string | null;
-  createdate?: Date | null;
-  createdby: number;
-  updatedate?: Date | null;
-  updatedby?: number | null;
-  log_inst?: number | null;
-  customer_zones?: {
-    id: number;
-    name: string;
-    code: string;
-  } | null;
-  customer_routes?: {
-    id: number;
-    name: string;
-    code: string;
-  } | null;
-  customer_users?: {
-    id: number;
-    name: string;
-    email: string;
-  } | null;
-  outlet_images: {
-    id: number;
-    image_url: string;
-    createdate: Date | null;
-    createdby: number;
-  }[];
-}
 
 const generateCustomerCode = async (name: string) => {
   const prefix = name.slice(0, 3).toUpperCase();
@@ -78,10 +29,15 @@ const serializeCustomer = async (customer: any) => {
   return {
     id: customer.id,
     name: customer.name,
+    short_name: customer.short_name || null,
     code: customer.code,
     zones_id: customer.zones_id || null,
+    customer_type_id: customer.customer_type_id || null,
+    customer_channel_id: customer.customer_channel_id || null,
     profile_picture: customer.profile_picture || null,
     type: customer.type || null,
+    internal_code_one: customer.internal_code_one || null,
+    internal_code_two: customer.internal_code_two || null,
     contact_person: customer.contact_person || null,
     phone_number: customer.phone_number || null,
     email: customer.email || null,
@@ -95,6 +51,7 @@ const serializeCustomer = async (customer: any) => {
     outstanding_amount: customer.outstanding_amount?.toString() || '0',
     route_id: customer.route_id || null,
     salesperson_id: customer.salesperson_id || null,
+    nfc_tag_code: customer.nfc_tag_code || null,
     last_visit_date: customer.last_visit_date || null,
     is_active: customer.is_active,
     createdate: customer.createdate,
@@ -123,6 +80,20 @@ const serializeCustomer = async (customer: any) => {
           email: customer.customer_users.email,
         }
       : null,
+    customer_type: customer.customer_type_customer
+      ? {
+          id: customer.customer_type_customer.id,
+          type_name: customer.customer_type_customer.type_name,
+          type_code: customer.customer_type_customer.type_code,
+        }
+      : null,
+    customer_channel: customer.customer_channel_customer
+      ? {
+          id: customer.customer_channel_customer.id,
+          channel_name: customer.customer_channel_customer.channel_name,
+          channel_code: customer.customer_channel_customer.channel_code,
+        }
+      : null,
     customer_images: (customer.outlet_images_customers || []).map(
       (img: any) => ({
         id: img.id,
@@ -137,8 +108,13 @@ const serializeCustomer = async (customer: any) => {
 const checkIfCustomerChanged = (existing: any, incoming: any): boolean => {
   const fieldsToCompare = [
     'name',
+    'short_name',
     'zones_id',
+    'customer_type_id',
+    'customer_channel_id',
     'type',
+    'internal_code_one',
+    'internal_code_two',
     'contact_person',
     'phone_number',
     'email',
@@ -152,6 +128,7 @@ const checkIfCustomerChanged = (existing: any, incoming: any): boolean => {
     'outstanding_amount',
     'route_id',
     'salesperson_id',
+    'nfc_tag_code',
     'is_active',
   ];
   let hasAnyChange = false;
@@ -506,6 +483,8 @@ export const customerController = {
               const zones_id = customerData.zones_id;
               const route_id = customerData.route_id;
               const salesperson_id = customerData.salesperson_id;
+              const customer_type_id = customerData.customer_type_id;
+              const customer_channel_id = customerData.customer_channel_id;
 
               const cleanData: any = {};
               Object.keys(customerData).forEach(key => {
@@ -617,6 +596,36 @@ export const customerController = {
                   }
                 }
 
+                if (customer_type_id !== undefined) {
+                  if (customer_type_id === null) {
+                    updateData.customer_type_customer = { disconnect: true };
+                  } else {
+                    const typeExists = await tx.customer_type.findUnique({
+                      where: { id: customer_type_id },
+                    });
+                    if (typeExists) {
+                      updateData.customer_type_customer = {
+                        connect: { id: customer_type_id },
+                      };
+                    }
+                  }
+                }
+
+                if (customer_channel_id !== undefined) {
+                  if (customer_channel_id === null) {
+                    updateData.customer_channel_customer = { disconnect: true };
+                  } else {
+                    const channelExists = await tx.customer_channel.findUnique({
+                      where: { id: customer_channel_id },
+                    });
+                    if (channelExists) {
+                      updateData.customer_channel_customer = {
+                        connect: { id: customer_channel_id },
+                      };
+                    }
+                  }
+                }
+
                 await tx.customers.update({
                   where: { id: existingCustomer.id },
                   data: updateData,
@@ -696,6 +705,34 @@ export const customerController = {
                   }
                 }
 
+                if (
+                  customer_type_id !== undefined &&
+                  customer_type_id !== null
+                ) {
+                  const typeExists = await tx.customer_type.findUnique({
+                    where: { id: customer_type_id },
+                  });
+                  if (typeExists) {
+                    createData.customer_type_customer = {
+                      connect: { id: customer_type_id },
+                    };
+                  }
+                }
+
+                if (
+                  customer_channel_id !== undefined &&
+                  customer_channel_id !== null
+                ) {
+                  const channelExists = await tx.customer_channel.findUnique({
+                    where: { id: customer_channel_id },
+                  });
+                  if (channelExists) {
+                    createData.customer_channel_customer = {
+                      connect: { id: customer_channel_id },
+                    };
+                  }
+                }
+
                 const newCustomer = await tx.customers.create({
                   data: createData,
                 });
@@ -734,6 +771,20 @@ export const customerController = {
                   customer_zones: true,
                   customer_routes: true,
                   customer_users: true,
+                  customer_type_customer: {
+                    select: {
+                      id: true,
+                      type_name: true,
+                      type_code: true,
+                    },
+                  },
+                  customer_channel_customer: {
+                    select: {
+                      id: true,
+                      channel_name: true,
+                      channel_code: true,
+                    },
+                  },
                   outlet_images_customers: {
                     where: { is_active: 'Y' },
                     orderBy: { createdate: 'desc' },
@@ -825,6 +876,20 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
+          customer_type_customer: {
+            select: {
+              id: true,
+              type_name: true,
+              type_code: true,
+            },
+          },
+          customer_channel_customer: {
+            select: {
+              id: true,
+              channel_name: true,
+              channel_code: true,
+            },
+          },
         },
       });
 
@@ -872,6 +937,20 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
+          customer_type_customer: {
+            select: {
+              id: true,
+              type_name: true,
+              type_code: true,
+            },
+          },
+          customer_channel_customer: {
+            select: {
+              id: true,
+              channel_name: true,
+              channel_code: true,
+            },
+          },
           outlet_images_customers: {
             where: { is_active: 'Y' },
             orderBy: { createdate: 'desc' },
@@ -960,6 +1039,20 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
+          customer_type_customer: {
+            select: {
+              id: true,
+              type_name: true,
+              type_code: true,
+            },
+          },
+          customer_channel_customer: {
+            select: {
+              id: true,
+              channel_name: true,
+              channel_code: true,
+            },
+          },
           outlet_images_customers: {
             orderBy: { createdate: 'desc' },
           },
@@ -1032,6 +1125,20 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
+          customer_type_customer: {
+            select: {
+              id: true,
+              type_name: true,
+              type_code: true,
+            },
+          },
+          customer_channel_customer: {
+            select: {
+              id: true,
+              channel_name: true,
+              channel_code: true,
+            },
+          },
         },
       });
 

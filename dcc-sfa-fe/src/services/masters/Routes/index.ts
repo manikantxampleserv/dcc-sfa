@@ -46,6 +46,7 @@ interface Route {
     id: number;
     name: string;
     email: string;
+    profile_image?: string | null;
   } | null;
   routes_route_type?: {
     id: number;

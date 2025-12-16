@@ -35,16 +35,18 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       key: 'code',
       header: 'Cooler Code',
       width: 20,
-      required: true,
       type: 'string',
       validation: value => {
-        if (!value || value.length < 2)
-          return 'Cooler code must be at least 2 characters';
-        if (value.length > 50)
-          return 'Cooler code must be less than 50 characters';
+        if (value && value.trim() !== '') {
+          if (value.length < 2)
+            return 'Cooler code must be at least 2 characters';
+          if (value.length > 50)
+            return 'Cooler code must be less than 50 characters';
+        }
         return true;
       },
-      description: 'Unique cooler code (required, 2-50 characters)',
+      description:
+        'Unique cooler code (optional, will be auto-generated if not provided)',
     },
     {
       key: 'brand',
@@ -241,10 +243,41 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       transform: value => (value ? value.toString().toUpperCase() : 'Y'),
       description: 'Active status - Y for Yes, N for No (defaults to Y)',
     },
+    {
+      key: 'cooler_type_id',
+      header: 'Cooler Type ID',
+      width: 18,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const id = parseInt(value);
+          if (isNaN(id) || id <= 0)
+            return 'Cooler Type ID must be a positive number';
+        }
+        return true;
+      },
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID of the cooler type (optional, must exist in system)',
+    },
+    {
+      key: 'cooler_sub_type_id',
+      header: 'Cooler Sub Type ID',
+      width: 22,
+      type: 'number',
+      validation: value => {
+        if (value !== null && value !== undefined && value !== '') {
+          const id = parseInt(value);
+          if (isNaN(id) || id <= 0)
+            return 'Cooler Sub Type ID must be a positive number';
+        }
+        return true;
+      },
+      transform: value => (value ? parseInt(value) : null),
+      description: 'ID of the cooler sub type (optional, must exist in system)',
+    },
   ];
 
   protected async getSampleData(): Promise<any[]> {
-    // Fetch actual IDs from database to ensure validity
     const customers = await prisma.customers.findMany({
       take: 3,
       select: { id: true, name: true },
@@ -255,15 +288,31 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       select: { id: true, name: true },
       orderBy: { id: 'asc' },
     });
+    const coolerTypes = await prisma.cooler_types.findMany({
+      take: 2,
+      select: { id: true, name: true },
+      orderBy: { id: 'asc' },
+    });
+    const coolerSubTypes = await prisma.cooler_sub_types.findMany({
+      take: 2,
+      select: { id: true, name: true, cooler_type_id: true },
+      orderBy: { id: 'asc' },
+    });
 
     const customerIds = customers.map(c => c.id);
     const userIds = users.map(u => u.id);
+    const coolerTypeIds = coolerTypes.map(ct => ct.id);
+    const coolerSubTypeIds = coolerSubTypes.map(cst => cst.id);
 
-    const customerId1 = customerIds[0] || 999;
-    const customerId2 = customerIds[1] || 999;
-    const customerId3 = customerIds[2] || 999;
-    const userId1 = userIds[0] || 999;
-    const userId2 = userIds[1] || 999;
+    const customerId1 = customerIds[0] || '';
+    const customerId2 = customerIds[1] || '';
+    const customerId3 = customerIds[2] || '';
+    const userId1 = userIds[0] || '';
+    const userId2 = userIds[1] || '';
+    const coolerTypeId1 = coolerTypeIds[0] || '';
+    const coolerTypeId2 = coolerTypeIds[1] || '';
+    const coolerSubTypeId1 = coolerSubTypeIds[0] || '';
+    const coolerSubTypeId2 = coolerSubTypeIds[1] || '';
 
     return [
       {
@@ -284,6 +333,8 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         technician_id: userId1,
         last_scanned_date: '2024-10-15',
         is_active: 'Y',
+        cooler_type_id: coolerTypeId1,
+        cooler_sub_type_id: coolerSubTypeId1,
       },
       {
         customer_id: customerId2,
@@ -303,6 +354,8 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         technician_id: userId2,
         last_scanned_date: '2024-10-20',
         is_active: 'Y',
+        cooler_type_id: coolerTypeId2,
+        cooler_sub_type_id: coolerSubTypeId2,
       },
       {
         customer_id: customerId3,
@@ -322,6 +375,8 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         technician_id: userId1,
         last_scanned_date: '2024-10-10',
         is_active: 'Y',
+        cooler_type_id: coolerTypeId1,
+        cooler_sub_type_id: '',
       },
     ];
   }
@@ -364,6 +419,12 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
         ? new Date(cooler.last_scanned_date).toISOString().split('T')[0]
         : '',
       is_active: cooler.is_active || 'Y',
+      cooler_type_id: cooler.cooler_type_id || '',
+      cooler_type_name: cooler.cooler_types?.name || '',
+      cooler_type_code: cooler.cooler_types?.code || '',
+      cooler_sub_type_id: cooler.cooler_sub_type_id || '',
+      cooler_sub_type_name: cooler.cooler_sub_types?.name || '',
+      cooler_sub_type_code: cooler.cooler_sub_types?.code || '',
       created_date: cooler.createdate
         ? new Date(cooler.createdate).toISOString().split('T')[0]
         : '',
@@ -378,12 +439,14 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
     const model = tx ? tx.coolers : prisma.coolers;
 
-    const existingCode = await model.findFirst({
-      where: { code: data.code },
-    });
+    if (data.code && data.code.trim() !== '') {
+      const existingCode = await model.findFirst({
+        where: { code: data.code.trim() },
+      });
 
-    if (existingCode) {
-      return `Cooler with code ${data.code} already exists`;
+      if (existingCode) {
+        return `Cooler with code ${data.code} already exists`;
+      }
     }
 
     return null;
@@ -395,7 +458,6 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
   ): Promise<string | null> {
     const prismaClient = tx || prisma;
 
-    // Validate customer exists
     if (data.customer_id) {
       try {
         const customer = await prismaClient.customers.findUnique({
@@ -409,7 +471,6 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       }
     }
 
-    // Validate technician exists
     if (data.technician_id) {
       try {
         const user = await prismaClient.users.findUnique({
@@ -423,6 +484,39 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       }
     }
 
+    if (data.cooler_type_id) {
+      try {
+        const coolerType = await prismaClient.cooler_types.findUnique({
+          where: { id: data.cooler_type_id },
+        });
+        if (!coolerType) {
+          return `Cooler type with ID ${data.cooler_type_id} does not exist`;
+        }
+      } catch (error) {
+        return `Invalid Cooler Type ID ${data.cooler_type_id}`;
+      }
+    }
+
+    if (data.cooler_sub_type_id) {
+      try {
+        const coolerSubType = await prismaClient.cooler_sub_types.findUnique({
+          where: { id: data.cooler_sub_type_id },
+        });
+        if (!coolerSubType) {
+          return `Cooler sub type with ID ${data.cooler_sub_type_id} does not exist`;
+        }
+
+        if (
+          data.cooler_type_id &&
+          coolerSubType.cooler_type_id !== data.cooler_type_id
+        ) {
+          return `Cooler sub type ${data.cooler_sub_type_id} does not belong to cooler type ${data.cooler_type_id}`;
+        }
+      } catch (error) {
+        return `Invalid Cooler Sub Type ID ${data.cooler_sub_type_id}`;
+      }
+    }
+
     return null;
   }
 
@@ -430,9 +524,27 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
     data: any,
     userId: number
   ): Promise<any> {
+    let coolerCode = data.code && data.code.trim() !== '' ? data.code : null;
+
+    if (!coolerCode) {
+      const prefix = 'COOL';
+      const count = await prisma.coolers.count();
+      const timestamp = Date.now().toString().slice(-6);
+      coolerCode = `${prefix}-${String(count + 1).padStart(4, '0')}-${timestamp}`;
+      let attempts = 0;
+      while (attempts < 10) {
+        const existing = await prisma.coolers.findUnique({
+          where: { code: coolerCode },
+        });
+        if (!existing) break;
+        coolerCode = `${prefix}-${String(count + 1 + attempts).padStart(4, '0')}-${timestamp}`;
+        attempts++;
+      }
+    }
+
     return {
       customer_id: data.customer_id,
-      code: data.code,
+      code: coolerCode,
       brand: data.brand || null,
       model: data.model || null,
       serial_number: data.serial_number || null,
@@ -448,6 +560,8 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       technician_id: data.technician_id || null,
       last_scanned_date: data.last_scanned_date || null,
       is_active: data.is_active || 'Y',
+      cooler_type_id: data.cooler_type_id || null,
+      cooler_sub_type_id: data.cooler_sub_type_id || null,
       createdby: userId,
       createdate: new Date(),
       log_inst: 1,
@@ -519,6 +633,14 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
             : existing.last_scanned_date,
         is_active:
           data.is_active !== undefined ? data.is_active : existing.is_active,
+        cooler_type_id:
+          data.cooler_type_id !== undefined
+            ? data.cooler_type_id
+            : existing.cooler_type_id,
+        cooler_sub_type_id:
+          data.cooler_sub_type_id !== undefined
+            ? data.cooler_sub_type_id
+            : existing.cooler_sub_type_id,
         updatedby: userId,
         updatedate: new Date(),
       },
@@ -542,6 +664,20 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
             email: true,
           },
         },
+        cooler_types: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        cooler_sub_types: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
       },
     };
 
@@ -561,6 +697,18 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       { header: 'Customer Code', key: 'customer_code', width: 20 },
       { header: 'Technician Name', key: 'technician_name', width: 25 },
       { header: 'Technician Email', key: 'technician_email', width: 30 },
+      { header: 'Cooler Type Name', key: 'cooler_type_name', width: 25 },
+      { header: 'Cooler Type Code', key: 'cooler_type_code', width: 20 },
+      {
+        header: 'Cooler Sub Type Name',
+        key: 'cooler_sub_type_name',
+        width: 30,
+      },
+      {
+        header: 'Cooler Sub Type Code',
+        key: 'cooler_sub_type_code',
+        width: 25,
+      },
       { header: 'Created Date', key: 'created_date', width: 20 },
       { header: 'Created By', key: 'created_by', width: 15 },
       { header: 'Updated Date', key: 'updated_date', width: 20 },
@@ -598,6 +746,10 @@ export class CoolerInstallationsImportExportService extends ImportExportService<
       row.customer_code = cooler.coolers_customers?.code || '';
       row.technician_name = cooler.users?.name || '';
       row.technician_email = cooler.users?.email || '';
+      row.cooler_type_name = cooler.cooler_types?.name || '';
+      row.cooler_type_code = cooler.cooler_types?.code || '';
+      row.cooler_sub_type_name = cooler.cooler_sub_types?.name || '';
+      row.cooler_sub_type_code = cooler.cooler_sub_types?.code || '';
 
       totalCoolers++;
       if (cooler.is_active === 'Y') activeCoolers++;

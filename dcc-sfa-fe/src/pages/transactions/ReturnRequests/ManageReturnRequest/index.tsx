@@ -31,7 +31,6 @@ const ManageReturnRequest: React.FC<ManageReturnRequestProps> = ({
   drawerOpen,
   setDrawerOpen,
   users,
-  products,
 }) => {
   const isEdit = !!selectedReturnRequest;
 
@@ -112,7 +111,12 @@ const ManageReturnRequest: React.FC<ManageReturnRequestProps> = ({
               required
             />
 
-            <ProductSelect name="product_id" label="Product" formik={formik} required />
+            <ProductSelect
+              name="product_id"
+              label="Product"
+              formik={formik}
+              required
+            />
 
             <Input
               name="serial_id"

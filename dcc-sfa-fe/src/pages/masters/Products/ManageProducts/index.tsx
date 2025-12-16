@@ -23,6 +23,31 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import ProductCategorySelect from 'shared/ProductCategorySelect';
 import Select from 'shared/Select';
+import { useQuery } from '@tanstack/react-query';
+import {
+  fetchProductTypesDropdown,
+  type ProductTypeDropdown,
+} from 'services/masters/ProductTypes';
+import {
+  fetchProductTargetGroupsDropdown,
+  type ProductTargetGroupDropdown,
+} from 'services/masters/ProductTargetGroups';
+import {
+  fetchProductWebOrdersDropdown,
+  type ProductWebOrderDropdown,
+} from 'services/masters/ProductWebOrders';
+import {
+  fetchProductVolumesDropdown,
+  type ProductVolumeDropdown,
+} from 'services/masters/ProductVolumes';
+import {
+  fetchProductFlavoursDropdown,
+  type ProductFlavourDropdown,
+} from 'services/masters/ProductFlavours';
+import {
+  fetchProductShelfLifeDropdown,
+  type ProductShelfLifeDropdown,
+} from 'services/masters/ProductShelfLife';
 
 interface ManageProductProps {
   selectedProduct?: Product | null;
@@ -62,6 +87,43 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const routeTypes = routeTypesResponse?.data || [];
   const outletGroups = outletGroupsResponse?.data || [];
 
+  const { data: productTypesResponse } = useQuery({
+    queryKey: ['product-types-dropdown'],
+    queryFn: () => fetchProductTypesDropdown(),
+  });
+
+  const { data: productTargetGroupsResponse } = useQuery({
+    queryKey: ['product-target-groups-dropdown'],
+    queryFn: () => fetchProductTargetGroupsDropdown(),
+  });
+
+  const { data: productWebOrdersResponse } = useQuery({
+    queryKey: ['product-web-orders-dropdown'],
+    queryFn: () => fetchProductWebOrdersDropdown(),
+  });
+
+  const { data: productVolumesResponse } = useQuery({
+    queryKey: ['product-volumes-dropdown'],
+    queryFn: () => fetchProductVolumesDropdown(),
+  });
+
+  const { data: productFlavoursResponse } = useQuery({
+    queryKey: ['product-flavours-dropdown'],
+    queryFn: () => fetchProductFlavoursDropdown(),
+  });
+
+  const { data: productShelfLifeResponse } = useQuery({
+    queryKey: ['product-shelf-life-dropdown'],
+    queryFn: () => fetchProductShelfLifeDropdown(),
+  });
+
+  const productTypes = productTypesResponse?.data || [];
+  const productTargetGroups = productTargetGroupsResponse?.data || [];
+  const productWebOrders = productWebOrdersResponse?.data || [];
+  const productVolumes = productVolumesResponse?.data || [];
+  const productFlavours = productFlavoursResponse?.data || [];
+  const productShelfLife = productShelfLifeResponse?.data || [];
+
   const formik = useFormik({
     initialValues: {
       name: selectedProduct?.name || '',
@@ -74,7 +136,16 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       tax_rate: selectedProduct?.tax_rate || '',
       route_type_id: selectedProduct?.route_type_id || '',
       outlet_group_id: selectedProduct?.outlet_group_id || '',
-      tracking_type: selectedProduct?.tracking_type || 'None',
+      tracking_type: selectedProduct?.tracking_type || '',
+      product_type_id: selectedProduct?.product_type_id || '',
+      product_target_group_id: selectedProduct?.product_target_group_id || '',
+      product_web_order_id: selectedProduct?.product_web_order_id || '',
+      volume_id: selectedProduct?.volume_id || '',
+      flavour_id: selectedProduct?.flavour_id || '',
+      shelf_life_id: selectedProduct?.shelf_life_id || '',
+      vat_percentage: selectedProduct?.vat_percentage || '',
+      weight_in_grams: selectedProduct?.weight_in_grams || '',
+      volume_in_liters: selectedProduct?.volume_in_liters || '',
       is_active: selectedProduct?.is_active || 'Y',
     },
     validationSchema: productValidationSchema,
@@ -98,8 +169,31 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             : undefined,
           tracking_type:
             values.tracking_type && values.tracking_type !== ''
-              ? (values.tracking_type as 'None' | 'Batch' | 'Serial')
-              : 'None',
+              ? (values.tracking_type as 'Batch' | 'Serial')
+              : undefined,
+          product_type_id: values.product_type_id
+            ? Number(values.product_type_id)
+            : undefined,
+          product_target_group_id: values.product_target_group_id
+            ? Number(values.product_target_group_id)
+            : undefined,
+          product_web_order_id: values.product_web_order_id
+            ? Number(values.product_web_order_id)
+            : undefined,
+          volume_id: values.volume_id ? Number(values.volume_id) : undefined,
+          flavour_id: values.flavour_id ? Number(values.flavour_id) : undefined,
+          shelf_life_id: values.shelf_life_id
+            ? Number(values.shelf_life_id)
+            : undefined,
+          vat_percentage: values.vat_percentage
+            ? Number(values.vat_percentage)
+            : undefined,
+          weight_in_grams: values.weight_in_grams
+            ? Number(values.weight_in_grams)
+            : undefined,
+          volume_in_liters: values.volume_in_liters
+            ? Number(values.volume_in_liters)
+            : undefined,
           is_active: values.is_active,
         };
 
@@ -195,7 +289,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             />
 
             <Select name="route_type_id" label="Route Type" formik={formik}>
-              <MenuItem value="">None</MenuItem>
               {routeTypes.map((routeType: RouteType) => (
                 <MenuItem key={routeType.id} value={routeType.id}>
                   {routeType.name}
@@ -204,7 +297,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             </Select>
 
             <Select name="outlet_group_id" label="Outlet Group" formik={formik}>
-              <MenuItem value="">None</MenuItem>
               {outletGroups.map((outletGroup: OutletGroup) => (
                 <MenuItem key={outletGroup.id} value={outletGroup.id}>
                   {outletGroup.name}
@@ -213,10 +305,91 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             </Select>
 
             <Select name="tracking_type" label="Batch/Serial" formik={formik}>
-              <MenuItem value="None">None</MenuItem>
               <MenuItem value="Batch">Batch</MenuItem>
               <MenuItem value="Serial">Serial</MenuItem>
             </Select>
+
+            <Select name="product_type_id" label="Product Type" formik={formik}>
+              {productTypes.map((productType: ProductTypeDropdown) => (
+                <MenuItem key={productType.id} value={productType.id}>
+                  {productType.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="product_target_group_id"
+              label="Product Target Group"
+              formik={formik}
+            >
+              {productTargetGroups.map(
+                (targetGroup: ProductTargetGroupDropdown) => (
+                  <MenuItem key={targetGroup.id} value={targetGroup.id}>
+                    {targetGroup.name}
+                  </MenuItem>
+                )
+              )}
+            </Select>
+
+            <Select
+              name="product_web_order_id"
+              label="Web Order"
+              formik={formik}
+            >
+              {productWebOrders.map((webOrder: ProductWebOrderDropdown) => (
+                <MenuItem key={webOrder.id} value={webOrder.id}>
+                  {webOrder.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select name="volume_id" label="Volume" formik={formik}>
+              {productVolumes.map((volume: ProductVolumeDropdown) => (
+                <MenuItem key={volume.id} value={volume.id}>
+                  {volume.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select name="flavour_id" label="Flavour" formik={formik}>
+              {productFlavours.map((flavour: ProductFlavourDropdown) => (
+                <MenuItem key={flavour.id} value={flavour.id}>
+                  {flavour.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select name="shelf_life_id" label="Shelf Life" formik={formik}>
+              {productShelfLife.map((shelfLife: ProductShelfLifeDropdown) => (
+                <MenuItem key={shelfLife.id} value={shelfLife.id}>
+                  {shelfLife.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Input
+              name="vat_percentage"
+              label="VAT Percentage (%)"
+              type="number"
+              placeholder="Enter VAT percentage"
+              formik={formik}
+            />
+
+            <Input
+              name="weight_in_grams"
+              label="Weight (grams)"
+              type="number"
+              placeholder="Enter weight in grams"
+              formik={formik}
+            />
+
+            <Input
+              name="volume_in_liters"
+              label="Volume (liters)"
+              type="number"
+              placeholder="Enter volume in liters"
+              formik={formik}
+            />
 
             <Select name="is_active" label="Status" formik={formik} required>
               <MenuItem value="Y">Active</MenuItem>

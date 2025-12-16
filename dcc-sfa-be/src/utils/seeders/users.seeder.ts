@@ -13,7 +13,7 @@ interface MockUser {
   email: string;
   name: string;
   phone_number?: string;
-  role_id: number;
+  role_name: string;
   parent_id?: number;
   depot_id?: number;
   zone_id?: number;
@@ -24,147 +24,46 @@ interface MockUser {
   is_active: string;
 }
 
-// Mock Users Data (11 users)
 const mockUsers: MockUser[] = [
   {
-    email: 'manager1@ampleserv.com',
-    name: 'John Manager',
-    phone_number: '+1-555-0101',
-    role_id: 3,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '456 Manager Ave',
-    employee_id: 'EMP-002',
-    joining_date: new Date('2024-01-02'),
-    reporting_to: undefined,
+    email: 'salesperson@dcc.com',
+    name: 'Sales Person',
+    phone_number: '+255-700-000001',
+    role_name: 'Sales Person',
+    address: 'Sales Department',
+    employee_id: 'EMP-SP-001',
+    joining_date: new Date('2024-01-01'),
     is_active: 'Y',
   },
   {
-    email: 'sales1@ampleserv.com',
-    name: 'Jane Sales',
-    phone_number: '+1-555-0102',
-    role_id: 5,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '789 Sales Blvd',
-    employee_id: 'EMP-003',
-    joining_date: new Date('2024-01-03'),
-    reporting_to: undefined,
+    email: 'merchandiser@dcc.com',
+    name: 'Merchandiser',
+    phone_number: '+255-700-000002',
+    role_name: 'Merchandiser',
+    address: 'Merchandising Department',
+    employee_id: 'EMP-MER-001',
+    joining_date: new Date('2024-01-01'),
     is_active: 'Y',
   },
   {
-    email: 'warehouse1@ampleserv.com',
-    name: 'Mike Warehouse',
-    phone_number: '+1-555-0103',
-    role_id: 6,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '321 Warehouse St',
-    employee_id: 'EMP-004',
-    joining_date: new Date('2024-01-04'),
-    reporting_to: undefined,
+    email: 'technician@dcc.com',
+    name: 'Technician',
+    phone_number: '+255-700-000003',
+    role_name: 'Technician',
+    address: 'Technical Department',
+    employee_id: 'EMP-TEC-001',
+    joining_date: new Date('2024-01-01'),
     is_active: 'Y',
   },
   {
-    email: 'finance1@ampleserv.com',
-    name: 'Sarah Finance',
-    phone_number: '+1-555-0104',
-    role_id: 8,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '654 Finance Rd',
-    employee_id: 'EMP-005',
-    joining_date: new Date('2024-01-05'),
-    reporting_to: undefined,
+    email: 'subadmin@dcc.com',
+    name: 'Sub Admin',
+    phone_number: '+255-700-000004',
+    role_name: 'Sub Admin',
+    address: 'Administration Department',
+    employee_id: 'EMP-SADM-001',
+    joining_date: new Date('2024-01-01'),
     is_active: 'Y',
-  },
-  {
-    email: 'support1@ampleserv.com',
-    name: 'David Support',
-    phone_number: '+1-555-0105',
-    role_id: 10,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '987 Support Lane',
-    employee_id: 'EMP-006',
-    joining_date: new Date('2024-01-06'),
-    reporting_to: undefined,
-    is_active: 'Y',
-  },
-  {
-    email: 'sales2@ampleserv.com',
-    name: 'Lisa Sales',
-    phone_number: '+1-555-0106',
-    role_id: 5,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '147 Sales Drive',
-    employee_id: 'EMP-007',
-    joining_date: new Date('2024-01-07'),
-    reporting_to: undefined,
-    is_active: 'Y',
-  },
-  {
-    email: 'warehouse2@ampleserv.com',
-    name: 'Tom Warehouse',
-    phone_number: '+1-555-0107',
-    role_id: 7,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '258 Warehouse Ave',
-    employee_id: 'EMP-008',
-    joining_date: new Date('2024-01-08'),
-    reporting_to: undefined,
-    is_active: 'Y',
-  },
-  {
-    email: 'manager2@ampleserv.com',
-    name: 'Alex Manager',
-    phone_number: '+1-555-0108',
-    role_id: 3,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '369 Manager St',
-    employee_id: 'EMP-009',
-    joining_date: new Date('2024-01-09'),
-    reporting_to: undefined,
-    is_active: 'Y',
-  },
-  {
-    email: 'sales3@ampleserv.com',
-    name: 'Emma Sales',
-    phone_number: '+1-555-0109',
-    role_id: 5,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '741 Sales Blvd',
-    employee_id: 'EMP-010',
-    joining_date: new Date('2024-01-10'),
-    reporting_to: undefined,
-    is_active: 'Y',
-  },
-  {
-    email: 'inactive@ampleserv.com',
-    name: 'Inactive User',
-    phone_number: '+1-555-0110',
-    role_id: 11,
-    parent_id: 1,
-    depot_id: undefined,
-    zone_id: undefined,
-    address: '852 Inactive St',
-    employee_id: 'EMP-011',
-    joining_date: new Date('2024-01-11'),
-    reporting_to: undefined,
-    is_active: 'N',
   },
 ];
 
@@ -176,7 +75,7 @@ async function createAdminUser(): Promise<void> {
     logger.info('Creating admin user...');
 
     const existingAdmin = await prisma.users.findUnique({
-      where: { email: 'admin@gmail.com' },
+      where: { email: 'admin@dcc.com' },
     });
 
     if (existingAdmin) {
@@ -218,14 +117,14 @@ async function createAdminUser(): Promise<void> {
 
     const adminUser = await prisma.users.create({
       data: {
-        email: 'admin@gmail.com',
+        email: 'admin@dcc.com',
         role_id: adminRole.id,
         password_hash: passwordHash,
         name: 'Admin',
         parent_id: firstCompany.id,
         depot_id: firstDepot?.id || null,
         zone_id: firstZone?.id || null,
-        phone_number: '+91-9999999999',
+        phone_number: '+255-700-000000',
         address: 'System Admin Address',
         employee_id: 'ADMIN001',
         joining_date: new Date('2024-01-01'),
@@ -291,23 +190,30 @@ export async function seedUsers(): Promise<void> {
       return;
     }
 
+    const roleMap = new Map(roles.map(role => [role.name, role.id]));
+
     let usersCreated = 0;
     let usersSkipped = 0;
 
-    // Then create other mock users
+    const defaultPasswordHash = await bcrypt.hash('123456', 10);
+
     for (const user of mockUsers) {
       const existingUser = await prisma.users.findFirst({
         where: { email: user.email },
       });
 
       if (!existingUser) {
-        // Find the role by ID or use first available role
-        const role = roles.find(r => r.id === user.role_id) || roles[0];
+        const roleId = roleMap.get(user.role_name);
 
-        // Use first company for parent_id
+        if (!roleId) {
+          logger.warn(
+            `Role not found: ${user.role_name} for user ${user.email}. Skipping.`
+          );
+          usersSkipped++;
+          continue;
+        }
+
         const company = companies[0];
-
-        // Use first depot and zone if available
         const depot = depots[0];
         const zone = zones[0];
 
@@ -316,7 +222,7 @@ export async function seedUsers(): Promise<void> {
             email: user.email,
             name: user.name,
             phone_number: user.phone_number,
-            role_id: role.id,
+            role_id: roleId,
             parent_id: company.id,
             depot_id: depot?.id || null,
             zone_id: zone?.id || null,
@@ -325,7 +231,7 @@ export async function seedUsers(): Promise<void> {
             joining_date: user.joining_date,
             reporting_to: user.reporting_to,
             is_active: user.is_active,
-            password_hash: 'hashed_password_placeholder', // Required field
+            password_hash: defaultPasswordHash,
             createdate: new Date(),
             createdby: 1,
             log_inst: 1,
@@ -354,11 +260,10 @@ export async function clearUsers(): Promise<void> {
   try {
     logger.info('Clearing users (preserving admin user)...');
 
-    // Delete all users except admin
     await prisma.users.deleteMany({
       where: {
         email: {
-          not: 'admin@gmail.com',
+          not: 'admin@dcc.com',
         },
       },
     });

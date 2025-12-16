@@ -1,6 +1,5 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
-import { useProducts } from 'hooks/useProducts';
 import {
   useStockTransferRequest,
   useUpsertStockTransferRequest,
@@ -44,12 +43,10 @@ const ManageStockTransferRequest: React.FC<ManageStockTransferRequestProps> = ({
 
   const { data: usersResponse } = useUsers({ limit: 1000 });
   const { data: warehousesResponse } = useWarehouses({ limit: 1000 });
-  const { data: productsResponse } = useProducts({ limit: 1000 });
   const { data: requestResponse } = useStockTransferRequest(request?.id || 0);
 
   const users = usersResponse?.data || [];
   const warehouses = warehousesResponse?.data || [];
-  const products = productsResponse?.data || [];
 
   const upsertRequestMutation = useUpsertStockTransferRequest();
 
@@ -174,7 +171,11 @@ const ManageStockTransferRequest: React.FC<ManageStockTransferRequestProps> = ({
         <ProductSelect
           value={row.product_id}
           onChange={(_event, product) =>
-            updateTransferLine(row._index, 'product_id', product ? product.id : '')
+            updateTransferLine(
+              row._index,
+              'product_id',
+              product ? product.id : ''
+            )
           }
           size="small"
           fullWidth

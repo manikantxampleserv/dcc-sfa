@@ -149,18 +149,48 @@ const menuItems: MenuItem[] = [
           },
           {
             id: 'product-categories',
-            label: 'Product Categories',
+            label: 'Categories',
             href: '/masters/product-categories',
           },
           {
             id: 'product-sub-categories',
-            label: 'Product Sub Categories',
+            label: 'Sub Categories',
             href: '/masters/product-sub-categories',
           },
           {
             id: 'unit-of-measurement',
             label: 'Unit of Measurement',
             href: '/masters/unit-of-measurement',
+          },
+          {
+            id: 'product-flavours',
+            label: 'Flavours',
+            href: '/masters/product-flavours',
+          },
+          {
+            id: 'product-volumes',
+            label: 'Volumes',
+            href: '/masters/product-volumes',
+          },
+          {
+            id: 'product-shelf-life',
+            label: 'Shelf Life',
+            href: '/masters/product-shelf-life',
+          },
+          {
+            id: 'product-types',
+            label: 'Product Types',
+            href: '/masters/product-types',
+          },
+          {
+            id: 'product-target-groups',
+            label: 'Product Target Groups',
+            href: '/masters/product-target-groups',
+          },
+          {
+            id: 'product-web-orders',
+            label: 'Web Orders',
+            href: '/masters/product-web-orders',
           },
           {
             id: 'product-catalog',
@@ -287,6 +317,16 @@ const menuItems: MenuItem[] = [
             id: 'asset-maintenance',
             label: 'Asset Maintenance',
             href: '/transactions/maintenance',
+          },
+          {
+            id: 'cooler-types',
+            label: 'Cooler Types',
+            href: '/masters/cooler-types',
+          },
+          {
+            id: 'cooler-sub-types',
+            label: 'Cooler Sub Types',
+            href: '/masters/cooler-sub-types',
           },
           {
             id: 'cooler-installations',

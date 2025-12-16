@@ -1,6 +1,5 @@
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -513,6 +512,8 @@ model coolers {
   install_date         DateTime?
   last_service_date    DateTime?
   next_service_due     DateTime?
+  cooler_type_id       Int?
+  cooler_sub_type_id   Int?
   status               String?              @default("working", map: "DF__coolers__status__2E70E1FD") @db.NVarChar(20)
   temperature          Decimal?             @db.Decimal(5, 2)
   energy_rating        String?              @db.NVarChar(10)
@@ -526,9 +527,12 @@ model coolers {
   updatedate           DateTime?            @db.DateTime
   updatedby            Int?
   log_inst             Int?
+
   cooler_inspections   cooler_inspections[]
   coolers_customers    customers            @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users                users?               @relation(fields: [technician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__coolers__technic__324172E1")
+  cooler_types         cooler_types?        @relation(fields: [cooler_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cooler_sub_types     cooler_sub_types?    @relation(fields: [cooler_sub_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model credit_note_items {
@@ -716,11 +720,16 @@ model customer_groups {
 model customers {
   id                                     Int                            @id @default(autoincrement())
   name                                   String                         @db.NVarChar(255)
+  short_name                             String?                        @db.NVarChar(50)
   code                                   String                         @unique(map: "UQ__customer__357D4CF935D0F3E7") @db.NVarChar(100)
   zones_id                               Int?
   customer_type_id                       Int?
   customer_channel_id                    Int?
+  customer_category_id                   Int?
   type                                   String?                        @db.NVarChar(50)
+  gps_status                             String?                        @default("Not Available") @db.NVarChar(20)
+  internal_code_one                      String?                        @db.NVarChar(50)
+  internal_code_two                      String?                        @db.NVarChar(50)
   contact_person                         String?                        @db.NVarChar(255)
   phone_number                           String?                        @db.NVarChar(20)
   email                                  String?                        @db.NVarChar(255)
@@ -734,6 +743,7 @@ model customers {
   outstanding_amount                     Decimal?                       @default(0, map: "DF__customers__outst__49C3F6B7") @db.Decimal(18, 2)
   route_id                               Int?
   salesperson_id                         Int?
+  nfc_tag_code                           String?                        @db.NVarChar(255)
   last_visit_date                        DateTime?
   is_active                              String                         @default("Y") @db.Char(1)
   createdate                             DateTime?                      @default(now()) @db.DateTime
@@ -769,6 +779,7 @@ model customers {
   warranty_claims_customers              warranty_claims[]
   customer_type_customer                 customer_type?                 @relation(fields: [customer_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   customer_channel_customer              customer_channel?              @relation(fields: [customer_channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  customer_category_customer             customer_category?             @relation(fields: [customer_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   promotion_customer_exclusion_customers promotion_customer_exclusion[]
 }
 
@@ -1281,6 +1292,15 @@ model products {
   route_type_id                    Int?
   outlet_group_id                  Int?
   tracking_type                    String?                        @db.NVarChar(20)
+  product_type_id                  Int?
+  product_target_group_id          Int?
+  product_web_order_id             Int?
+  volume_id                        Int?
+  flavour_id                       Int?
+  shelf_life_id                    Int?
+  vat_percentage                   Decimal?                       @db.Decimal(5, 2)
+  weight_in_grams                  Decimal?                       @db.Decimal(18, 2)
+  volume_in_liters                 Decimal?                       @db.Decimal(18, 2)
   batch_lots_products              batch_lots[]
   credit_notes_items_products      credit_note_items[]
   credit_notes_products            credit_notes[]
@@ -1297,6 +1317,12 @@ model products {
   products_route_type              route_type?                    @relation(fields: [route_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   product_sub_categories_products  product_sub_categories         @relation(fields: [sub_category_id], references: [id], onUpdate: NoAction)
   product_unit_of_measurement      unit_of_measurement            @relation(fields: [unit_of_measurement], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_types_products           product_type?                  @relation(fields: [product_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_target_groups_products   product_target_group?          @relation(fields: [product_target_group_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_web_orders_products      product_web_order?             @relation(fields: [product_web_order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_volumes_products         product_volumes?               @relation(fields: [volume_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_flavours_products        product_flavours?              @relation(fields: [flavour_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_shelf_life_products      product_shelf_life?            @relation(fields: [shelf_life_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   promotion_products_products      promotion_products[]
   return_requests_products         return_requests[]
   serial_numbers_products          serial_numbers[]
@@ -2165,11 +2191,13 @@ model customer_category {
   is_active                                     String                        @db.Char(1)
   createdate                                    DateTime?                     @db.DateTime
   createdby                                     Int
+  level                                         Int                           @default(autoincrement())
   updatedate                                    DateTime?                     @db.DateTime
   updatedby                                     Int?
   log_inst                                      Int?
   customer_category_condition_customer_category customer_category_condition[]
   promotion_customer_categorys                  promotion_customer_category[]
+  customers_customer_category                    customers[]
 }
 
 model customer_category_condition {
@@ -2417,4 +2445,113 @@ model depot_price_overrides {
   updated_by                     Int?
   depot_price_overrides_depots   depots    @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   depot_price_overrides_products products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model product_flavours {
+  id                        Int        @id @default(autoincrement())
+  name                      String     @db.VarChar(255)
+  code                      String     @unique @db.VarChar(100)
+  is_active                 String     @default("Y") @db.Char(1)
+  createdate                DateTime   @default(now())
+  createdby                 Int
+  updatedate                DateTime?
+  updatedby                 Int?
+  log_inst                  Int?
+  product_flavours_products products[]
+}
+
+model product_volumes {
+  id                       Int        @id @default(autoincrement())
+  name                     String     @db.VarChar(255)
+  code                     String     @unique @db.VarChar(100)
+  is_active                String     @default("Y") @db.Char(1)
+  createdate               DateTime   @default(now())
+  createdby                Int
+  updatedate               DateTime?
+  updatedby                Int?
+  log_inst                 Int?
+  product_volumes_products products[]
+}
+
+model product_shelf_life {
+  id                          Int        @id @default(autoincrement())
+  name                        String     @db.VarChar(255)
+  code                        String     @unique @db.VarChar(100)
+  is_active                   String     @default("Y") @db.Char(1)
+  createdate                  DateTime   @default(now())
+  createdby                   Int
+  updatedate                  DateTime?
+  updatedby                   Int?
+  log_inst                    Int?
+  product_shelf_life_products products[]
+}
+
+model product_type {
+  id                     Int        @id @default(autoincrement())
+  name                   String     @db.VarChar(255)
+  code                   String     @unique @db.VarChar(100)
+  is_active              String     @default("Y") @db.Char(1)
+  createdate             DateTime   @default(now())
+  createdby              Int
+  updatedate             DateTime?
+  updatedby              Int?
+  log_inst               Int?
+  product_types_products products[]
+}
+
+model product_target_group {
+  id                             Int        @id @default(autoincrement())
+  name                           String     @db.VarChar(255)
+  code                           String     @unique @db.VarChar(100)
+  is_active                      String     @default("Y") @db.Char(1)
+  createdate                     DateTime   @default(now())
+  createdby                      Int
+  updatedate                     DateTime?
+  updatedby                      Int?
+  log_inst                       Int?
+  product_target_groups_products products[]
+}
+
+model product_web_order {
+  id                          Int        @id @default(autoincrement())
+  name                        String     @db.VarChar(255)
+  code                        String     @unique @db.VarChar(100)
+  is_active                   String     @default("Y") @db.Char(1)
+  createdate                  DateTime   @default(now())
+  createdby                   Int
+  updatedate                  DateTime?
+  updatedby                   Int?
+  log_inst                    Int?
+  product_web_orders_products products[]
+}
+
+model cooler_types {
+  id                            Int                @id @default(autoincrement())
+  name                          String             @db.VarChar(255)
+  description                   String?            @db.Text
+  code                          String             @unique @db.VarChar(100)
+  is_active                     String             @default("Y") @db.Char(1)
+  createdate                    DateTime           @default(now())
+  createdby                     Int
+  updatedate                    DateTime?
+  updatedby                     Int?
+  log_inst                      Int?
+  coolers_cooler_types          coolers[]
+  cooler_sub_types_cooler_types cooler_sub_types[]
+}
+
+model cooler_sub_types {
+  id                            Int          @id @default(autoincrement())
+  name                          String       @db.VarChar(255)
+  cooler_type_id                Int
+  description                   String?      @db.Text
+  code                          String       @unique @db.VarChar(100)
+  is_active                     String       @default("Y") @db.Char(1)
+  createdate                    DateTime     @default(now())
+  createdby                     Int
+  updatedate                    DateTime?
+  updatedby                     Int?
+  log_inst                      Int?
+  cooler_sub_types_coolers      coolers[]
+  cooler_sub_types_cooler_types cooler_types @relation(fields: [cooler_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }

@@ -6,7 +6,6 @@ import {
   useUpdatePriceList,
   type PriceList,
 } from 'hooks/usePriceLists';
-import { useProducts } from 'hooks/useProducts';
 import React, { useState } from 'react';
 import { priceListValidationSchema } from 'schemas/priceLists.schema';
 import { DeleteButton } from 'shared/ActionButton';
@@ -45,10 +44,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
 
   const createPriceListMutation = useCreatePriceList();
   const updatePriceListMutation = useUpdatePriceList();
-
-  // Fetch products for dropdown
-  const { data: productsResponse } = useProducts({ limit: 1000 });
-  const products = productsResponse?.data || [];
 
   const handleCancel = () => {
     setSelectedPriceList(null);
@@ -174,7 +169,11 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
         <ProductSelect
           value={row.product_id}
           onChange={(_event, product) =>
-            updatePriceListItem(row._index, 'product_id', product ? product.id : '')
+            updatePriceListItem(
+              row._index,
+              'product_id',
+              product ? product.id : ''
+            )
           }
           size="small"
           className="!min-w-40"
@@ -262,7 +261,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       render: (_value, row) => (
         <Select
           value={row.is_active}
-          onChange={e =>
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             updatePriceListItem(row._index, 'is_active', e.target.value)
           }
           size="small"
@@ -303,7 +302,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Price List' : 'Create Price List'}
-      size="larger"
+      size="medium"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -386,6 +385,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
 
             {priceListItems.length > 0 && (
               <Table
+                compact
                 data={priceListItemsWithIndex}
                 columns={priceListItemsColumns}
                 getRowId={row => row._index.toString()}

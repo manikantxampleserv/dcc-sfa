@@ -715,7 +715,10 @@ const OutletDetail: React.FC = () => {
             )}
           </Box>
           <Typography variant="body2" className="!text-gray-500 !mt-1">
-            Code: {customer.code} • {customer.email || 'No Email'}
+            Code: {customer.code}
+            {customer.short_name && ` • Short: ${customer.short_name}`}
+            {customer.email && ` • ${customer.email}`}
+            {customer.nfc_tag_code && ` • NFC: ${customer.nfc_tag_code}`}
           </Typography>
         </Box>
       </Box>

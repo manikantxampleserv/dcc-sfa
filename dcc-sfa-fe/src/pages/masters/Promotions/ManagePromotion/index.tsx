@@ -1,8 +1,9 @@
 import {
   Alert,
+  Autocomplete,
   Box,
-  Checkbox,
   FormControlLabel,
+  IconButton,
   MenuItem,
   Paper,
   Radio,
@@ -10,6 +11,7 @@ import {
   Skeleton,
   Tab,
   Tabs,
+  TextField,
   Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
@@ -31,13 +33,13 @@ import { useRoutes } from 'hooks/useRoutes';
 import { useUnitOfMeasurement } from 'hooks/useUnitOfMeasurement';
 import { useZones } from 'hooks/useZones';
 import React, { useEffect, useRef, useState } from 'react';
+import { Close } from '@mui/icons-material';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import ProductCategorySelect from 'shared/ProductCategorySelect';
 import ProductSelect from 'shared/ProductSelect';
-import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table from 'shared/Table';
 import * as Yup from 'yup';
@@ -193,7 +195,6 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const [selectedCustomerChannels, setSelectedCustomerChannels] = useState<
     number[]
   >([]);
-  const [locationSearch, setLocationSearch] = useState('');
 
   const [selectedProductConditionIndex, setSelectedProductConditionIndex] =
     useState<number | null>(null);
@@ -1300,7 +1301,6 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 value={locationTab}
                 onChange={(_, newValue) => {
                   setLocationTab(newValue);
-                  setLocationSearch('');
                 }}
                 variant="scrollable"
                 scrollButtons="auto"
@@ -1342,347 +1342,526 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               </Tabs>
             </Box>
             <Box className="!mb-3">
-              <SearchInput
-                value={locationSearch}
-                onChange={setLocationSearch}
-                placeholder={`Search ${locationTab === 0 ? 'Depots' : locationTab === 1 ? 'Zones' : locationTab === 2 ? 'Routes' : locationTab === 3 ? 'Sales Persons' : locationTab === 4 ? 'Outlets' : locationTab === 5 ? 'Customer Types' : locationTab === 6 ? 'Customer Categories' : 'Customer Channels'}...`}
-                fullWidth
-                size="small"
-                debounceMs={0}
-              />
-            </Box>
-            <Box className="!max-h-64 !overflow-y-auto !border !border-gray-200 !rounded !pl-4 !p-2">
               {locationTab === 0 && (
-                <>
-                  {depots
-                    .filter((depot: any) =>
-                      locationSearch
-                        ? depot.name
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase()) ||
-                          depot.code
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase())
-                        : true
-                    )
-                    .map((depot: any) => (
-                      <FormControlLabel
-                        key={depot.id}
-                        control={
-                          <Checkbox
-                            checked={selectedDepots.includes(depot.id)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedDepots([
-                                  ...selectedDepots,
-                                  depot.id,
-                                ]);
-                              } else {
-                                setSelectedDepots(
-                                  selectedDepots.filter(id => id !== depot.id)
-                                );
-                              }
-                            }}
-                            size="small"
-                          />
-                        }
-                        label={`${depot.name} (${depot.code})`}
-                        className="!block"
-                      />
-                    ))}
-                </>
+                <Autocomplete
+                  multiple
+                  options={depots}
+                  getOptionLabel={(option: any) =>
+                    `${option.name} (${option.code})`
+                  }
+                  value={depots.filter((d: any) =>
+                    selectedDepots.includes(d.id)
+                  )}
+                  onChange={(_, newValue) => {
+                    setSelectedDepots(newValue.map((item: any) => item.id));
+                  }}
+                  size="small"
+                  fullWidth
+                  filterOptions={(options, params) => {
+                    const filtered = options.filter((option: any) => {
+                      const searchLower = params.inputValue.toLowerCase();
+                      return (
+                        option.name?.toLowerCase().includes(searchLower) ||
+                        option.code?.toLowerCase().includes(searchLower)
+                      );
+                    });
+                    return filtered;
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      placeholder="Search and select Depots..."
+                      size="small"
+                    />
+                  )}
+                  renderTags={() => null}
+                />
               )}
               {locationTab === 1 && (
-                <>
-                  {zones
-                    .filter((zone: any) =>
-                      locationSearch
-                        ? zone.name
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase())
-                        : true
-                    )
-                    .map((zone: any) => (
-                      <FormControlLabel
-                        key={zone.id}
-                        control={
-                          <Checkbox
-                            checked={selectedZones.includes(zone.id)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedZones([...selectedZones, zone.id]);
-                              } else {
-                                setSelectedZones(
-                                  selectedZones.filter(id => id !== zone.id)
-                                );
-                              }
-                            }}
-                            size="small"
-                          />
-                        }
-                        label={zone.name}
-                        className="!block"
-                      />
-                    ))}
-                </>
+                <Autocomplete
+                  multiple
+                  options={zones}
+                  getOptionLabel={(option: any) => option.name}
+                  value={zones.filter((z: any) => selectedZones.includes(z.id))}
+                  onChange={(_, newValue) => {
+                    setSelectedZones(newValue.map((item: any) => item.id));
+                  }}
+                  size="small"
+                  fullWidth
+                  filterOptions={(options, params) => {
+                    const filtered = options.filter((option: any) => {
+                      const searchLower = params.inputValue.toLowerCase();
+                      return option.name?.toLowerCase().includes(searchLower);
+                    });
+                    return filtered;
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      placeholder="Search and select Zones..."
+                      size="small"
+                    />
+                  )}
+                  renderTags={() => null}
+                />
               )}
               {locationTab === 2 && (
-                <>
-                  {routes
-                    .filter((route: any) =>
-                      locationSearch
-                        ? route.name
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase()) ||
-                          route.code
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase())
-                        : true
-                    )
-                    .map((route: any) => (
-                      <FormControlLabel
-                        key={route.id}
-                        control={
-                          <Checkbox
-                            checked={selectedRoutes.includes(route.id)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedRoutes([
-                                  ...selectedRoutes,
-                                  route.id,
-                                ]);
-                              } else {
-                                setSelectedRoutes(
-                                  selectedRoutes.filter(id => id !== route.id)
-                                );
-                              }
-                            }}
-                            size="small"
-                          />
-                        }
-                        label={`${route.name || route.code || `Route ${route.id}`} ${route.code ? `(${route.code})` : ''}`}
-                        className="!block"
-                      />
-                    ))}
-                </>
+                <Autocomplete
+                  multiple
+                  options={routes}
+                  getOptionLabel={(option: any) =>
+                    `${option.name || option.code || `Route ${option.id}`} ${option.code ? `(${option.code})` : ''}`
+                  }
+                  value={routes.filter((r: any) =>
+                    selectedRoutes.includes(r.id)
+                  )}
+                  onChange={(_, newValue) => {
+                    setSelectedRoutes(newValue.map((item: any) => item.id));
+                  }}
+                  size="small"
+                  fullWidth
+                  filterOptions={(options, params) => {
+                    const filtered = options.filter((option: any) => {
+                      const searchLower = params.inputValue.toLowerCase();
+                      return (
+                        option.name?.toLowerCase().includes(searchLower) ||
+                        option.code?.toLowerCase().includes(searchLower)
+                      );
+                    });
+                    return filtered;
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      placeholder="Search and select Routes..."
+                      size="small"
+                    />
+                  )}
+                  renderTags={() => null}
+                />
               )}
               {locationTab === 3 && (
-                <>
-                  {users
-                    .filter((user: any) =>
-                      locationSearch
-                        ? user.name
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase()) ||
-                          user.email
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase())
-                        : true
-                    )
-                    .map((user: any) => (
-                      <FormControlLabel
-                        key={user.id}
-                        control={
-                          <Checkbox
-                            checked={selectedSalesPersons.includes(user.id)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedSalesPersons([
-                                  ...selectedSalesPersons,
-                                  user.id,
-                                ]);
-                              } else {
-                                setSelectedSalesPersons(
-                                  selectedSalesPersons.filter(
-                                    id => id !== user.id
-                                  )
-                                );
-                              }
-                            }}
-                            size="small"
-                          />
-                        }
-                        label={`${user.name} ${user.email ? `(${user.email})` : ''}`}
-                        className="!block"
-                      />
-                    ))}
-                </>
+                <Autocomplete
+                  multiple
+                  options={users}
+                  getOptionLabel={(option: any) =>
+                    `${option.name} ${option.email ? `(${option.email})` : ''}`
+                  }
+                  value={users.filter((u: any) =>
+                    selectedSalesPersons.includes(u.id)
+                  )}
+                  onChange={(_, newValue) => {
+                    setSelectedSalesPersons(
+                      newValue.map((item: any) => item.id)
+                    );
+                  }}
+                  size="small"
+                  fullWidth
+                  filterOptions={(options, params) => {
+                    const filtered = options.filter((option: any) => {
+                      const searchLower = params.inputValue.toLowerCase();
+                      return (
+                        option.name?.toLowerCase().includes(searchLower) ||
+                        option.email?.toLowerCase().includes(searchLower)
+                      );
+                    });
+                    return filtered;
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      placeholder="Search and select Sales Persons..."
+                      size="small"
+                    />
+                  )}
+                  renderTags={() => null}
+                />
               )}
               {locationTab === 4 && (
-                <>
-                  {customers
-                    .filter((customer: any) =>
-                      locationSearch
-                        ? customer.name
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase()) ||
-                          customer.code
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase())
-                        : true
-                    )
-                    .map((customer: any) => (
-                      <FormControlLabel
-                        key={customer.id}
-                        control={
-                          <Checkbox
-                            checked={selectedOutlets.includes(customer.id)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedOutlets([
-                                  ...selectedOutlets,
-                                  customer.id,
-                                ]);
-                              } else {
-                                setSelectedOutlets(
-                                  selectedOutlets.filter(
-                                    id => id !== customer.id
-                                  )
-                                );
-                              }
-                            }}
-                            size="small"
-                          />
-                        }
-                        label={`${customer.name} (${customer.code})`}
-                        className="!block"
-                      />
-                    ))}
-                </>
+                <Autocomplete
+                  multiple
+                  options={customers}
+                  getOptionLabel={(option: any) =>
+                    `${option.name} (${option.code})`
+                  }
+                  value={customers.filter((c: any) =>
+                    selectedOutlets.includes(c.id)
+                  )}
+                  onChange={(_, newValue) => {
+                    setSelectedOutlets(newValue.map((item: any) => item.id));
+                  }}
+                  size="small"
+                  fullWidth
+                  filterOptions={(options, params) => {
+                    const filtered = options.filter((option: any) => {
+                      const searchLower = params.inputValue.toLowerCase();
+                      return (
+                        option.name?.toLowerCase().includes(searchLower) ||
+                        option.code?.toLowerCase().includes(searchLower)
+                      );
+                    });
+                    return filtered;
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      placeholder="Search and select Outlets..."
+                      size="small"
+                    />
+                  )}
+                  renderTags={() => null}
+                />
               )}
               {locationTab === 5 && (
-                <>
-                  {customerTypes
-                    .filter((customerType: any) =>
-                      locationSearch
-                        ? customerType.type_name
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase()) ||
-                          customerType.type_code
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase())
-                        : true
-                    )
-                    .map((customerType: any) => (
-                      <FormControlLabel
-                        key={customerType.id}
-                        control={
-                          <Checkbox
-                            checked={selectedCustomerTypes.includes(
-                              customerType.id
-                            )}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedCustomerTypes([
-                                  ...selectedCustomerTypes,
-                                  customerType.id,
-                                ]);
-                              } else {
-                                setSelectedCustomerTypes(
-                                  selectedCustomerTypes.filter(
-                                    id => id !== customerType.id
-                                  )
-                                );
-                              }
-                            }}
-                            size="small"
-                          />
-                        }
-                        label={`${customerType.type_name} (${customerType.type_code})`}
-                        className="!block"
-                      />
-                    ))}
-                </>
+                <Autocomplete
+                  multiple
+                  options={customerTypes}
+                  getOptionLabel={(option: any) =>
+                    `${option.type_name} (${option.type_code})`
+                  }
+                  value={customerTypes.filter((ct: any) =>
+                    selectedCustomerTypes.includes(ct.id)
+                  )}
+                  onChange={(_, newValue) => {
+                    setSelectedCustomerTypes(
+                      newValue.map((item: any) => item.id)
+                    );
+                  }}
+                  size="small"
+                  fullWidth
+                  filterOptions={(options, params) => {
+                    const filtered = options.filter((option: any) => {
+                      const searchLower = params.inputValue.toLowerCase();
+                      return (
+                        option.type_name?.toLowerCase().includes(searchLower) ||
+                        option.type_code?.toLowerCase().includes(searchLower)
+                      );
+                    });
+                    return filtered;
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      placeholder="Search and select Customer Types..."
+                      size="small"
+                    />
+                  )}
+                  renderTags={() => null}
+                />
               )}
               {locationTab === 6 && (
-                <>
-                  {customerCategories
-                    .filter((category: any) =>
-                      locationSearch
-                        ? category.category_name
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase()) ||
-                          category.category_code
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase())
-                        : true
-                    )
-                    .map((category: any) => (
-                      <FormControlLabel
-                        key={category.id}
-                        control={
-                          <Checkbox
-                            checked={selectedCustomerCategories.includes(
-                              category.id
-                            )}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedCustomerCategories([
-                                  ...selectedCustomerCategories,
-                                  category.id,
-                                ]);
-                              } else {
-                                setSelectedCustomerCategories(
-                                  selectedCustomerCategories.filter(
-                                    id => id !== category.id
-                                  )
-                                );
-                              }
-                            }}
-                            size="small"
-                          />
-                        }
-                        label={`${category.category_name} (${category.category_code})`}
-                        className="!block"
-                      />
-                    ))}
-                </>
+                <Autocomplete
+                  multiple
+                  options={customerCategories}
+                  getOptionLabel={(option: any) =>
+                    `${option.category_name} (${option.category_code})`
+                  }
+                  value={customerCategories.filter((cc: any) =>
+                    selectedCustomerCategories.includes(cc.id)
+                  )}
+                  onChange={(_, newValue) => {
+                    setSelectedCustomerCategories(
+                      newValue.map((item: any) => item.id)
+                    );
+                  }}
+                  size="small"
+                  fullWidth
+                  filterOptions={(options, params) => {
+                    const filtered = options.filter((option: any) => {
+                      const searchLower = params.inputValue.toLowerCase();
+                      return (
+                        option.category_name
+                          ?.toLowerCase()
+                          .includes(searchLower) ||
+                        option.category_code
+                          ?.toLowerCase()
+                          .includes(searchLower)
+                      );
+                    });
+                    return filtered;
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      placeholder="Search and select Customer Categories..."
+                      size="small"
+                    />
+                  )}
+                  renderTags={() => null}
+                />
               )}
               {locationTab === 7 && (
-                <>
-                  {customerChannels
-                    .filter((channel: any) =>
-                      locationSearch
-                        ? channel.channel_name
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase()) ||
-                          channel.channel_code
-                            ?.toLowerCase()
-                            .includes(locationSearch.toLowerCase())
-                        : true
-                    )
-                    .map((channel: any) => (
-                      <FormControlLabel
-                        key={channel.id}
-                        control={
-                          <Checkbox
-                            checked={selectedCustomerChannels.includes(
-                              channel.id
-                            )}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedCustomerChannels([
-                                  ...selectedCustomerChannels,
-                                  channel.id,
-                                ]);
-                              } else {
-                                setSelectedCustomerChannels(
-                                  selectedCustomerChannels.filter(
-                                    id => id !== channel.id
-                                  )
-                                );
-                              }
-                            }}
-                            size="small"
-                          />
-                        }
-                        label={`${channel.channel_name} (${channel.channel_code})`}
-                        className="!block"
-                      />
-                    ))}
-                </>
+                <Autocomplete
+                  multiple
+                  options={customerChannels}
+                  getOptionLabel={(option: any) =>
+                    `${option.channel_name} (${option.channel_code})`
+                  }
+                  value={customerChannels.filter((ch: any) =>
+                    selectedCustomerChannels.includes(ch.id)
+                  )}
+                  onChange={(_, newValue) => {
+                    setSelectedCustomerChannels(
+                      newValue.map((item: any) => item.id)
+                    );
+                  }}
+                  size="small"
+                  fullWidth
+                  filterOptions={(options, params) => {
+                    const filtered = options.filter((option: any) => {
+                      const searchLower = params.inputValue.toLowerCase();
+                      return (
+                        option.channel_name
+                          ?.toLowerCase()
+                          .includes(searchLower) ||
+                        option.channel_code?.toLowerCase().includes(searchLower)
+                      );
+                    });
+                    return filtered;
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      placeholder="Search and select Customer Channels..."
+                      size="small"
+                    />
+                  )}
+                  renderTags={() => null}
+                />
               )}
             </Box>
+            {((locationTab === 0 && selectedDepots.length > 0) ||
+              (locationTab === 1 && selectedZones.length > 0) ||
+              (locationTab === 2 && selectedRoutes.length > 0) ||
+              (locationTab === 3 && selectedSalesPersons.length > 0) ||
+              (locationTab === 4 && selectedOutlets.length > 0) ||
+              (locationTab === 5 && selectedCustomerTypes.length > 0) ||
+              (locationTab === 6 && selectedCustomerCategories.length > 0) ||
+              (locationTab === 7 && selectedCustomerChannels.length > 0)) && (
+              <Box className="!mt-3 !border !border-gray-200 !rounded !p-3">
+                <Typography
+                  variant="subtitle2"
+                  className="!font-semibold !text-gray-700 !mb-2"
+                >
+                  Selected Items
+                </Typography>
+                <Box className="!max-h-48 !overflow-y-auto !space-y-2">
+                  {locationTab === 0 &&
+                    selectedDepots.map(depotId => {
+                      const depot = depots.find((d: any) => d.id === depotId);
+                      if (!depot) return null;
+                      return (
+                        <Box
+                          key={depotId}
+                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                        >
+                          <Typography variant="body2">
+                            {depot.name} ({depot.code})
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedDepots(
+                                selectedDepots.filter(id => id !== depotId)
+                              );
+                            }}
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
+                  {locationTab === 1 &&
+                    selectedZones.map(zoneId => {
+                      const zone = zones.find((z: any) => z.id === zoneId);
+                      if (!zone) return null;
+                      return (
+                        <Box
+                          key={zoneId}
+                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                        >
+                          <Typography variant="body2">{zone.name}</Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedZones(
+                                selectedZones.filter(id => id !== zoneId)
+                              );
+                            }}
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
+                  {locationTab === 2 &&
+                    selectedRoutes.map(routeId => {
+                      const route = routes.find((r: any) => r.id === routeId);
+                      if (!route) return null;
+                      return (
+                        <Box
+                          key={routeId}
+                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                        >
+                          <Typography variant="body2">
+                            {route.name || route.code || `Route ${route.id}`}{' '}
+                            {route.code ? `(${route.code})` : ''}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedRoutes(
+                                selectedRoutes.filter(id => id !== routeId)
+                              );
+                            }}
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
+                  {locationTab === 3 &&
+                    selectedSalesPersons.map(userId => {
+                      const user = users.find((u: any) => u.id === userId);
+                      if (!user) return null;
+                      return (
+                        <Box
+                          key={userId}
+                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                        >
+                          <Typography variant="body2">
+                            {user.name} {user.email ? `(${user.email})` : ''}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedSalesPersons(
+                                selectedSalesPersons.filter(id => id !== userId)
+                              );
+                            }}
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
+                  {locationTab === 4 &&
+                    selectedOutlets.map(outletId => {
+                      const customer = customers.find(
+                        (c: any) => c.id === outletId
+                      );
+                      if (!customer) return null;
+                      return (
+                        <Box
+                          key={outletId}
+                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                        >
+                          <Typography variant="body2">
+                            {customer.name} ({customer.code})
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedOutlets(
+                                selectedOutlets.filter(id => id !== outletId)
+                              );
+                            }}
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
+                  {locationTab === 5 &&
+                    selectedCustomerTypes.map(typeId => {
+                      const customerType = customerTypes.find(
+                        (ct: any) => ct.id === typeId
+                      );
+                      if (!customerType) return null;
+                      return (
+                        <Box
+                          key={typeId}
+                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                        >
+                          <Typography variant="body2">
+                            {customerType.type_name} ({customerType.type_code})
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedCustomerTypes(
+                                selectedCustomerTypes.filter(
+                                  id => id !== typeId
+                                )
+                              );
+                            }}
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
+                  {locationTab === 6 &&
+                    selectedCustomerCategories.map(categoryId => {
+                      const category = customerCategories.find(
+                        (cc: any) => cc.id === categoryId
+                      );
+                      if (!category) return null;
+                      return (
+                        <Box
+                          key={categoryId}
+                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                        >
+                          <Typography variant="body2">
+                            {category.category_name} ({category.category_code})
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedCustomerCategories(
+                                selectedCustomerCategories.filter(
+                                  id => id !== categoryId
+                                )
+                              );
+                            }}
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
+                  {locationTab === 7 &&
+                    selectedCustomerChannels.map(channelId => {
+                      const channel = customerChannels.find(
+                        (ch: any) => ch.id === channelId
+                      );
+                      if (!channel) return null;
+                      return (
+                        <Box
+                          key={channelId}
+                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                        >
+                          <Typography variant="body2">
+                            {channel.channel_name} ({channel.channel_code})
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedCustomerChannels(
+                                selectedCustomerChannels.filter(
+                                  id => id !== channelId
+                                )
+                              );
+                            }}
+                          >
+                            <Close fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      );
+                    })}
+                </Box>
+              </Box>
+            )}
           </Paper>
 
           <Paper className="!p-3 !rounded-lg !shadow-sm !border !bg-white !border-gray-200">
@@ -1815,7 +1994,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 {selectedConditionType === 'Quantity' && (
                   <Select
                     value={productConditionForm.unit}
-                    onChange={e =>
+                    onChange={(e: any) =>
                       setProductConditionForm({
                         ...productConditionForm,
                         unit: e.target.value,

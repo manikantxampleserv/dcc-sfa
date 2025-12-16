@@ -18,6 +18,7 @@
     "seed:section": "ts-node src/utils/seeders/index.ts seed",
     "seed:clear": "ts-node src/utils/seeders/index.ts clear",
     "seed:reset": "ts-node src/utils/seeders/index.ts reset",
+    "seed:reset-products": "ts-node src/utils/seeders/index.ts reset-products",
     "permission:add": "ts-node src/utils/seeders/index.ts add-permission",
     "lint": "echo \"No linting configured for backend yet\""
   },
@@ -42,6 +43,7 @@
   },
   "dependencies": {
     "@mui/x-charts": "^8.15.0",
+    "@prisma/adapter-mssql": "^7.1.0",
     "@prisma/client": "^7.1.0",
     "@types/multer": "^2.0.0",
     "backblaze-b2": "^1.7.1",

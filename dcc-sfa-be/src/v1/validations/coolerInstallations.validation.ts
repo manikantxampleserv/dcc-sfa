@@ -8,12 +8,17 @@ export const createCoolerInstallationValidation = [
     .withMessage('Customer ID must be a positive integer'),
 
   body('code')
-    .notEmpty()
-    .withMessage('Cooler code is required')
+    .optional({ checkFalsy: true })
     .isString()
     .withMessage('Cooler code must be a string')
-    .isLength({ min: 2, max: 50 })
-    .withMessage('Cooler code must be between 2 and 50 characters'),
+    .custom(value => {
+      if (value && value.trim() !== '') {
+        if (value.length < 2 || value.length > 50) {
+          throw new Error('Cooler code must be between 2 and 50 characters');
+        }
+      }
+      return true;
+    }),
 
   body('brand')
     .optional()

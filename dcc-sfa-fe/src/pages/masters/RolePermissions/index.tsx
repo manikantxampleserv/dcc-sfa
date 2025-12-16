@@ -231,9 +231,13 @@ const RolePermissions: React.FC = () => {
                   />
                   <Select
                     value={statusFilter}
-                    onChange={e => setStatusFilter(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setStatusFilter(e.target.value);
+                      setPage(1);
+                    }}
                     className="!min-w-32"
                     size="small"
+                    disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
