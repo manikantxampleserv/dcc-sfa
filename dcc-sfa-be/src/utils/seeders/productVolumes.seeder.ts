@@ -7,19 +7,17 @@ interface MockProductVolume {
 }
 
 const mockProductVolumes: MockProductVolume[] = [
-  { name: '0.5LTR', code: 'VOL-05L-001', is_active: 'Y' },
-  { name: '1.0LTR', code: 'VOL-1L-001', is_active: 'Y' },
-  { name: '1.25 LTR', code: 'VOL-125L-001', is_active: 'Y' },
-  { name: '1.5LTR', code: 'VOL-15L-001', is_active: 'Y' },
-  { name: '12 Ltr', code: 'VOL-12L-001', is_active: 'Y' },
-  { name: '1250ML', code: 'VOL-1250ML-001', is_active: 'Y' },
-  { name: '18.9 Ltr', code: 'VOL-189L-001', is_active: 'Y' },
-  { name: '250ML', code: 'VOL-250ML-001', is_active: 'Y' },
-  { name: '300ML', code: 'VOL-300ML-001', is_active: 'Y' },
   { name: '350ML', code: 'VOL-350ML-001', is_active: 'Y' },
-  { name: '400ml', code: 'VOL-400ML-001', is_active: 'Y' },
-  { name: '500ML', code: 'VOL-500ML-001', is_active: 'Y' },
+  { name: '300ML', code: 'VOL-300ML-001', is_active: 'Y' },
+  { name: '250ML', code: 'VOL-250ML-001', is_active: 'Y' },
+  { name: '0.5LTR', code: 'VOL-05L-001', is_active: 'Y' },
+  { name: '1.5LTR', code: 'VOL-15L-001', is_active: 'Y' },
   { name: '6 Ltr', code: 'VOL-6L-001', is_active: 'Y' },
+  { name: '12 Ltr', code: 'VOL-12L-001', is_active: 'Y' },
+  { name: '18.9 Ltr', code: 'VOL-189L-001', is_active: 'Y' },
+  { name: '1.0LTR', code: 'VOL-1L-001', is_active: 'Y' },
+  { name: '500ML', code: 'VOL-500ML-001', is_active: 'Y' },
+  { name: '1250ML', code: 'VOL-1250ML-001', is_active: 'Y' },
 ];
 
 export async function seedProductVolumes(): Promise<void> {
@@ -50,8 +48,17 @@ export async function seedProductVolumes(): Promise<void> {
 export async function clearProductVolumes(): Promise<void> {
   try {
     await prisma.product_volumes.deleteMany({});
-  } catch (error) {
-    throw error;
+  } catch (error: any) {
+    if (
+      error?.code === 'P2003' ||
+      error?.message?.includes('Foreign key constraint')
+    ) {
+      console.warn(
+        '⚠️  Could not clear all product volumes due to foreign key constraints. Some records may be in use by products.'
+      );
+    } else {
+      throw error;
+    }
   }
 }
 

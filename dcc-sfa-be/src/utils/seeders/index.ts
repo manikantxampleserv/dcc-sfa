@@ -5,6 +5,9 @@
  * @version 1.0.0
  */
 
+import dotenv from 'dotenv';
+dotenv.config({ quiet: true });
+
 import logger from '../../configs/logger';
 import prisma from '../../configs/prisma.client';
 
@@ -15,6 +18,15 @@ import { clearBrands, seedBrands } from './brands.seeder';
 import { clearCompanies, seedCompanies } from './companies.seeder';
 import { clearCurrencies, seedCurrencies } from './currencies.seeder';
 import { clearCustomers, seedCustomers } from './customers.seeder';
+import { clearCustomerType, seedCustomerType } from './customerType.seeder';
+import {
+  clearCustomerChannel,
+  seedCustomerChannel,
+} from './customerChannel.seeder';
+import {
+  clearCustomerCategory,
+  seedCustomerCategory,
+} from './customerCategory.seeder';
 import { clearDepots, seedDepots } from './depots.seeder';
 import { clearOrders, seedOrders } from './orders.seeder';
 import {
@@ -32,6 +44,27 @@ import {
   clearProductSubCategories,
   seedProductSubCategories,
 } from './productSubCategories.seeder';
+import {
+  clearProductFlavours,
+  seedProductFlavours,
+} from './productFlavours.seeder';
+import {
+  clearProductVolumes,
+  seedProductVolumes,
+} from './productVolumes.seeder';
+import { clearProductTypes, seedProductTypes } from './productTypes.seeder';
+import {
+  clearProductTargetGroups,
+  seedProductTargetGroups,
+} from './productTargetGroups.seeder';
+import {
+  clearProductWebOrders,
+  seedProductWebOrders,
+} from './productWebOrders.seeder';
+import {
+  clearProductShelfLife,
+  seedProductShelfLife,
+} from './productShelfLife.seeder';
 import { clearRoles, seedRoles } from './roles.seeder';
 import { clearRoutes, seedRoutes } from './routes.seeder';
 import {
@@ -103,6 +136,21 @@ const seeders = {
     name: 'Currencies',
   },
   customers: { seed: seedCustomers, clear: clearCustomers, name: 'Customers' },
+  'customer-type': {
+    seed: seedCustomerType,
+    clear: clearCustomerType,
+    name: 'Customer Type (Outlet Type)',
+  },
+  'customer-channel': {
+    seed: seedCustomerChannel,
+    clear: clearCustomerChannel,
+    name: 'Customer Channel (Outlet Channel)',
+  },
+  'customer-category': {
+    seed: seedCustomerCategory,
+    clear: clearCustomerCategory,
+    name: 'Customer Category',
+  },
   products: { seed: seedProducts, clear: clearProducts, name: 'Products' },
   orders: { seed: seedOrders, clear: clearOrders, name: 'Orders' },
   routes: { seed: seedRoutes, clear: clearRoutes, name: 'Routes' },
@@ -121,6 +169,36 @@ const seeders = {
     seed: seedBrands,
     clear: clearBrands,
     name: 'Brands',
+  },
+  'product-types': {
+    seed: seedProductTypes,
+    clear: clearProductTypes,
+    name: 'Product Types',
+  },
+  'product-target-groups': {
+    seed: seedProductTargetGroups,
+    clear: clearProductTargetGroups,
+    name: 'Product Target Groups',
+  },
+  'product-web-orders': {
+    seed: seedProductWebOrders,
+    clear: clearProductWebOrders,
+    name: 'Product Web Orders',
+  },
+  'product-volumes': {
+    seed: seedProductVolumes,
+    clear: clearProductVolumes,
+    name: 'Product Volumes',
+  },
+  'product-flavours': {
+    seed: seedProductFlavours,
+    clear: clearProductFlavours,
+    name: 'Product Flavours',
+  },
+  'product-shelf-life': {
+    seed: seedProductShelfLife,
+    clear: clearProductShelfLife,
+    name: 'Product Shelf Life',
   },
   'sales-target-groups': {
     seed: seedSalesTargetGroups,
@@ -240,6 +318,12 @@ export async function seedAll(): Promise<void> {
     await seedSection('brands');
     await seedSection('product-categories');
     await seedSection('product-sub-categories');
+    await seedSection('product-types');
+    await seedSection('product-target-groups');
+    await seedSection('product-web-orders');
+    await seedSection('product-volumes');
+    await seedSection('product-flavours');
+    await seedSection('product-shelf-life');
     await seedSection('products');
 
     // 5. Asset management
@@ -249,6 +333,9 @@ export async function seedAll(): Promise<void> {
     await seedSection('asset-master');
 
     // 6. Customer management (depends on zones)
+    await seedSection('customer-type');
+    await seedSection('customer-channel');
+    await seedSection('customer-category');
     await seedSection('customers');
 
     // 7. Operations (depends on customers, products)
@@ -297,6 +384,9 @@ export async function clearAll(): Promise<void> {
 
     // 6. Customer management (clear before routes due to foreign key)
     await clearSection('customers');
+    await clearSection('customer-category');
+    await clearSection('customer-channel');
+    await clearSection('customer-type');
     await clearSection('routes');
 
     // 5. Asset management
@@ -307,6 +397,12 @@ export async function clearAll(): Promise<void> {
 
     // 4. Product hierarchy
     await clearSection('products');
+    await clearSection('product-shelf-life');
+    await clearSection('product-flavours');
+    await clearSection('product-volumes');
+    await clearSection('product-web-orders');
+    await clearSection('product-target-groups');
+    await clearSection('product-types');
     await clearSection('product-sub-categories');
     await clearSection('product-categories');
     await clearSection('brands');
@@ -374,6 +470,78 @@ export function listSections(): void {
   });
 }
 
+/**
+ * Reset all product-related seeders
+ */
+export async function resetProductSeeders(): Promise<void> {
+  try {
+    logger.info('Starting product seeders reset...');
+
+    logger.info('Clearing all dependent data (orders, invoices, etc.)...');
+    try {
+      await prisma.$executeRawUnsafe('DELETE FROM order_items');
+      await prisma.$executeRawUnsafe('DELETE FROM invoice_items');
+      await prisma.$executeRawUnsafe('DELETE FROM credit_note_items');
+      await prisma.$executeRawUnsafe('DELETE FROM batch_lots');
+      await prisma.$executeRawUnsafe('DELETE FROM inventory_stock');
+      await prisma.$executeRawUnsafe('DELETE FROM price_history');
+      await prisma.$executeRawUnsafe('DELETE FROM pricelist_items');
+      await prisma.$executeRawUnsafe('DELETE FROM product_facing');
+      await prisma.$executeRawUnsafe('DELETE FROM product_warranty_policy');
+      await prisma.$executeRawUnsafe('DELETE FROM promotion_products');
+      await prisma.$executeRawUnsafe('DELETE FROM return_requests');
+      await prisma.$executeRawUnsafe('DELETE FROM serial_numbers');
+      await prisma.$executeRawUnsafe('DELETE FROM stock_movements');
+      await prisma.$executeRawUnsafe('DELETE FROM stock_transfer_lines');
+      await prisma.$executeRawUnsafe('DELETE FROM van_inventory_items');
+      await prisma.$executeRawUnsafe('DELETE FROM warranty_claims');
+      await prisma.$executeRawUnsafe(
+        'DELETE FROM promotion_condition_products'
+      );
+      await prisma.$executeRawUnsafe('DELETE FROM promotion_benefit');
+      await prisma.$executeRawUnsafe('DELETE FROM depot_price_overrides');
+      await prisma.$executeRawUnsafe('DELETE FROM orders');
+      await prisma.$executeRawUnsafe('DELETE FROM invoices');
+      await prisma.$executeRawUnsafe('DELETE FROM credit_notes');
+      logger.info('Dependent data cleared successfully!');
+    } catch (error: any) {
+      logger.warn(
+        'Some dependent tables could not be cleared:',
+        error?.message
+      );
+    }
+
+    logger.info('Clearing product-related data...');
+    await clearSection('products');
+    await clearSection('product-shelf-life');
+    await clearSection('product-flavours');
+    await clearSection('product-volumes');
+    await clearSection('product-web-orders');
+    await clearSection('product-target-groups');
+    await clearSection('product-types');
+    await clearSection('product-sub-categories');
+    await clearSection('product-categories');
+    await clearSection('brands');
+
+    logger.info('Seeding product-related data...');
+    await seedSection('brands');
+    await seedSection('product-categories');
+    await seedSection('product-sub-categories');
+    await seedSection('product-types');
+    await seedSection('product-target-groups');
+    await seedSection('product-web-orders');
+    await seedSection('product-volumes');
+    await seedSection('product-flavours');
+    await seedSection('product-shelf-life');
+    await seedSection('products');
+
+    logger.success('Product seeders reset completed successfully!');
+  } catch (error) {
+    logger.error('Product seeders reset failed:', error);
+    throw error;
+  }
+}
+
 // Export individual seeders for direct access
 export { clearAssetMaster, seedAssetMaster } from './assetMaster.seeder';
 export { clearAssetTypes, seedAssetTypes } from './assetTypes.seeder';
@@ -385,6 +553,7 @@ export {
 export { clearCompanies, seedCompanies } from './companies.seeder';
 export { clearCurrencies, seedCurrencies } from './currencies.seeder';
 export { clearCustomers, seedCustomers } from './customers.seeder';
+export { clearCustomerType, seedCustomerType } from './customerType.seeder';
 export { clearDepots, seedDepots } from './depots.seeder';
 export { clearOrders, seedOrders } from './orders.seeder';
 export {
@@ -411,6 +580,27 @@ export {
   clearProductSubCategories,
   seedProductSubCategories,
 } from './productSubCategories.seeder';
+export {
+  clearProductFlavours,
+  seedProductFlavours,
+} from './productFlavours.seeder';
+export {
+  clearProductVolumes,
+  seedProductVolumes,
+} from './productVolumes.seeder';
+export { clearProductTypes, seedProductTypes } from './productTypes.seeder';
+export {
+  clearProductTargetGroups,
+  seedProductTargetGroups,
+} from './productTargetGroups.seeder';
+export {
+  clearProductWebOrders,
+  seedProductWebOrders,
+} from './productWebOrders.seeder';
+export {
+  clearProductShelfLife,
+  seedProductShelfLife,
+} from './productShelfLife.seeder';
 export { clearRoles, seedRoles } from './roles.seeder';
 export { clearRoutes, seedRoutes } from './routes.seeder';
 export { clearUsers, seedUsers } from './users.seeder';
@@ -514,6 +704,12 @@ async function main() {
         listSections();
         break;
 
+      case 'reset-products':
+        logger.info('Resetting all product-related seeders...');
+        await resetProductSeeders();
+        await prisma.$disconnect();
+        break;
+
       default:
         logger.info(`
 Mock Data Seeder CLI
@@ -524,6 +720,7 @@ Commands:
   seed [section]                    - Seed specific section or all sections
   clear [section]                   - Clear specific section or all sections
   reset [section]                   - Reset (clear + seed) specific section or all sections
+  reset-products                    - Reset all product-related seeders (brands, categories, sub-categories, types, target-groups, web-orders, volumes, flavours, shelf-life, products)
   add-permission <module> [action]  - Add all CRUD permissions for a module, or a single permission
   list                              - List all available sections
 

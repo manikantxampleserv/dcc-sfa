@@ -50,8 +50,17 @@ export async function seedProductTargetGroups(): Promise<void> {
 export async function clearProductTargetGroups(): Promise<void> {
   try {
     await prisma.product_target_group.deleteMany({});
-  } catch (error) {
-    throw error;
+  } catch (error: any) {
+    if (
+      error?.code === 'P2003' ||
+      error?.message?.includes('Foreign key constraint')
+    ) {
+      console.warn(
+        '⚠️  Could not clear all product target groups due to foreign key constraints. Some records may be in use by products.'
+      );
+    } else {
+      throw error;
+    }
   }
 }
 

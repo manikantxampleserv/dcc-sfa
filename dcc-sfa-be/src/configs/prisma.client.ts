@@ -62,7 +62,13 @@ const parseConnectionString = (connectionString: string): config => {
 
 export const getPrisma = (): PrismaClient => {
   if (!prisma) {
-    const connectionConfig = parseConnectionString(process.env.DATABASE_URL!);
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error(
+        'DATABASE_URL environment variable is not set. Please create a .env file with DATABASE_URL configured.'
+      );
+    }
+    const connectionConfig = parseConnectionString(databaseUrl);
     const adapter = new PrismaMssql(connectionConfig);
     prisma = new PrismaClient({
       adapter,

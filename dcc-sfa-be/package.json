@@ -18,6 +18,7 @@
     "seed:section": "ts-node src/utils/seeders/index.ts seed",
     "seed:clear": "ts-node src/utils/seeders/index.ts clear",
     "seed:reset": "ts-node src/utils/seeders/index.ts reset",
+    "seed:reset-products": "ts-node src/utils/seeders/index.ts reset-products",
     "permission:add": "ts-node src/utils/seeders/index.ts add-permission",
     "lint": "echo \"No linting configured for backend yet\""
   },
