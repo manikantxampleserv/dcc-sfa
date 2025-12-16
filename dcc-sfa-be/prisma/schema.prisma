@@ -2191,7 +2191,7 @@ model customer_category {
   is_active                                     String                        @db.Char(1)
   createdate                                    DateTime?                     @db.DateTime
   createdby                                     Int
-  level                                         Int                           @default(autoincrement())
+  level                                         Int                           @default(1)
   updatedate                                    DateTime?                     @db.DateTime
   updatedby                                     Int?
   log_inst                                      Int?

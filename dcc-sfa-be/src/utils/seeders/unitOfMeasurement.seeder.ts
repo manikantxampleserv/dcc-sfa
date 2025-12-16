@@ -18,6 +18,13 @@ interface MockUnitOfMeasurement {
 // Mock Unit of Measurement Data (11 units)
 const mockUnitOfMeasurements: MockUnitOfMeasurement[] = [
   {
+    name: 'Case',
+    description: 'Case of products',
+    category: 'Container',
+    symbol: 'case',
+    is_active: 'Y',
+  },
+  {
     name: 'Bottle',
     description: 'Container for liquids',
     category: 'Container',

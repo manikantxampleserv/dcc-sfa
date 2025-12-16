@@ -961,7 +961,11 @@ export async function seedProducts(): Promise<void> {
 
     const defaultCategoryId = categoryMap.get('OTHER');
     const defaultBrandId = brandMap.get('COKE');
-    const defaultUnitId = unitMap.get('Case');
+    const defaultUnitId =
+      unitMap.get('Case') ||
+      unitMap.get('Bottle') ||
+      unitMap.get('Liter') ||
+      (units.length > 0 ? units[0].id : null);
 
     const otherCategoryId = categoryMap.get('OTHER');
     const otherSubCategories = otherCategoryId
@@ -1004,8 +1008,13 @@ export async function seedProducts(): Promise<void> {
         : defaultBrandId;
 
       if (!categoryId || !subCategoryId || !brandId || !defaultUnitId) {
+        const missingFields = [];
+        if (!categoryId) missingFields.push('category');
+        if (!subCategoryId) missingFields.push('sub_category');
+        if (!brandId) missingFields.push('brand');
+        if (!defaultUnitId) missingFields.push('unit_of_measurement');
         console.warn(
-          `⚠️  Missing required fields for product: ${product.code} - ${product.name}`
+          `⚠️  Missing required fields for product: ${product.code} - ${product.name} (missing: ${missingFields.join(', ')})`
         );
         continue;
       }
