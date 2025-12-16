@@ -462,6 +462,7 @@ export class ApiErrorClass extends Error {
   public statusCode: number;
   public errorType: NetworkErrorTypeType;
   public originalError?: any;
+  public response?: any;
 
   constructor(
     message: string,
@@ -474,5 +475,6 @@ export class ApiErrorClass extends Error {
     this.statusCode = statusCode;
     this.errorType = errorType;
     this.originalError = originalError;
+    this.response = originalError?.response;
   }
 }

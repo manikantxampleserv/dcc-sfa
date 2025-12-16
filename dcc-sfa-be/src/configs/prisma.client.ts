@@ -4,74 +4,60 @@ import { config } from 'mssql';
 
 let prisma: PrismaClient | null = null;
 
-const parseParams = (paramsString: string): Record<string, string> => {
-  const parts: Record<string, string> = {};
-  paramsString.split(';').forEach(part => {
-    const trimmed = part.trim();
-    if (!trimmed) return;
-    const equalIndex = trimmed.indexOf('=');
-    if (equalIndex === -1) return;
-    const key = trimmed.substring(0, equalIndex).trim().toLowerCase();
-    const value = trimmed.substring(equalIndex + 1).trim();
-    if (key && value) {
-      parts[key] = value;
-    }
-  });
-  return parts;
-};
-
 const parseConnectionString = (connectionString: string): config => {
-  const parts: Record<string, string> = {};
+  const params = Object.fromEntries(
+    connectionString
+      .split(';')
+      .map(p => p.trim())
+      .filter(Boolean)
+      .map(p => {
+        const [key, ...valueParts] = p.split('=');
+        return [key.trim().toLowerCase(), valueParts.join('=').trim()];
+      })
+      .filter(([k, v]) => k && v)
+  );
+
+  let server = params.server || params['data source'] || '';
+  let port = params.port || '1433';
 
   if (
     connectionString.startsWith('sqlserver://') ||
     connectionString.startsWith('mssql://')
   ) {
-    const urlEndIndex = connectionString.indexOf(';');
-    const urlPart =
-      urlEndIndex > 0
-        ? connectionString.substring(0, urlEndIndex)
-        : connectionString;
-    const paramsPart =
-      urlEndIndex > 0 ? connectionString.substring(urlEndIndex + 1) : '';
-
-    const url = new URL(urlPart);
-    parts.server = url.hostname;
-    parts.port = url.port || '1433';
-
-    Object.assign(parts, parseParams(paramsPart));
-  } else {
-    Object.assign(parts, parseParams(connectionString));
+    const url = new URL(connectionString.split(';')[0]);
+    server = url.hostname;
+    port = url.port || port;
   }
 
-  const server = parts.server || parts['data source'] || '';
-  const isIpAddress = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(server);
-
-  const configObj: config = {
-    server,
-    port: parts.port ? parseInt(parts.port, 10) : 1433,
-    database: parts.database || parts['initial catalog'] || '',
-    user: parts['user id'] || parts.user || '',
-    password: parts.password || parts.pwd || '',
-    options: {
-      encrypt: parts.encrypt?.toLowerCase() !== 'false',
-      trustServerCertificate: true,
-      ...(isIpAddress && {
-        enableArithAbort: true,
-      }),
-    },
-    ...(isIpAddress && {
-      requestTimeout: 30000,
-    }),
-  };
-
-  if (!configObj.server || !configObj.database) {
+  if (!server || !(params.database || params['initial catalog'])) {
     throw new Error(
       'Invalid connection string: server and database are required'
     );
   }
 
-  return configObj;
+  return {
+    server,
+    port: parseInt(port, 10),
+    database: params.database || params['initial catalog'] || '',
+    user: params['user id'] || params.user || '',
+    password: params.password || params.pwd || '',
+    options: {
+      encrypt: params.encrypt?.toLowerCase() !== 'false',
+      trustServerCertificate: true,
+      enableArithAbort: true,
+    },
+    connectionTimeout: 30000,
+    requestTimeout: 60000,
+    pool: {
+      max: 10,
+      min: 0,
+      idleTimeoutMillis: 30000,
+      acquireTimeoutMillis: 30000,
+      createTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+      createRetryIntervalMillis: 200,
+    },
+  };
 };
 
 export const getPrisma = (): PrismaClient => {
@@ -82,6 +68,26 @@ export const getPrisma = (): PrismaClient => {
       adapter,
       log:
         process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    });
+
+    process.on('beforeExit', async () => {
+      if (prisma) {
+        await prisma.$disconnect();
+      }
+    });
+
+    process.on('SIGINT', async () => {
+      if (prisma) {
+        await prisma.$disconnect();
+        process.exit(0);
+      }
+    });
+
+    process.on('SIGTERM', async () => {
+      if (prisma) {
+        await prisma.$disconnect();
+        process.exit(0);
+      }
     });
   }
   return prisma;

@@ -36,6 +36,8 @@ import ProductShelfLifeManagement from 'pages/masters/ProductShelfLife';
 import ProductTypesManagement from 'pages/masters/ProductTypes';
 import ProductTargetGroupsManagement from 'pages/masters/ProductTargetGroups';
 import ProductWebOrdersManagement from 'pages/masters/ProductWebOrders';
+import CoolerTypesManagement from 'pages/masters/CoolerTypes';
+import CoolerSubTypesManagement from 'pages/masters/CoolerSubTypes';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
 import RouteDetail from 'pages/masters/Routes/RouteDetail';
@@ -376,6 +378,22 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="product-web-order" action="read">
               <ProductWebOrdersManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/cooler-types',
+          element: (
+            <PermissionGuard module="cooler-type" action="read">
+              <CoolerTypesManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/cooler-sub-types',
+          element: (
+            <PermissionGuard module="cooler-sub-type" action="read">
+              <CoolerSubTypesManagement />
             </PermissionGuard>
           ),
         },

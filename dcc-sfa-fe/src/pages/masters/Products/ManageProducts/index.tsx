@@ -143,6 +143,9 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       volume_id: selectedProduct?.volume_id || '',
       flavour_id: selectedProduct?.flavour_id || '',
       shelf_life_id: selectedProduct?.shelf_life_id || '',
+      vat_percentage: selectedProduct?.vat_percentage || '',
+      weight_in_grams: selectedProduct?.weight_in_grams || '',
+      volume_in_liters: selectedProduct?.volume_in_liters || '',
       is_active: selectedProduct?.is_active || 'Y',
     },
     validationSchema: productValidationSchema,
@@ -181,6 +184,15 @@ const ManageProduct: React.FC<ManageProductProps> = ({
           flavour_id: values.flavour_id ? Number(values.flavour_id) : undefined,
           shelf_life_id: values.shelf_life_id
             ? Number(values.shelf_life_id)
+            : undefined,
+          vat_percentage: values.vat_percentage
+            ? Number(values.vat_percentage)
+            : undefined,
+          weight_in_grams: values.weight_in_grams
+            ? Number(values.weight_in_grams)
+            : undefined,
+          volume_in_liters: values.volume_in_liters
+            ? Number(values.volume_in_liters)
             : undefined,
           is_active: values.is_active,
         };
@@ -354,6 +366,30 @@ const ManageProduct: React.FC<ManageProductProps> = ({
                 </MenuItem>
               ))}
             </Select>
+
+            <Input
+              name="vat_percentage"
+              label="VAT Percentage (%)"
+              type="number"
+              placeholder="Enter VAT percentage"
+              formik={formik}
+            />
+
+            <Input
+              name="weight_in_grams"
+              label="Weight (grams)"
+              type="number"
+              placeholder="Enter weight in grams"
+              formik={formik}
+            />
+
+            <Input
+              name="volume_in_liters"
+              label="Volume (liters)"
+              type="number"
+              placeholder="Enter volume in liters"
+              formik={formik}
+            />
 
             <Select name="is_active" label="Status" formik={formik} required>
               <MenuItem value="Y">Active</MenuItem>

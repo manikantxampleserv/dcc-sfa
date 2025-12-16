@@ -247,14 +247,14 @@ async function handleUnauthorizedError(
   error: AxiosError
 ): Promise<never> {
   if (isSessionExpiredHandled) {
-    return Promise.reject(
-      new ApiErrorClass(
-        'Authentication required',
-        HttpStatusCode.UNAUTHORIZED,
-        NetworkErrorType.AUTHENTICATION_ERROR,
-        error
-      )
+    const apiError = new ApiErrorClass(
+      'Authentication required',
+      HttpStatusCode.UNAUTHORIZED,
+      NetworkErrorType.AUTHENTICATION_ERROR,
+      error
     );
+    apiError.response = error.response;
+    return Promise.reject(apiError);
   }
 
   isSessionExpiredHandled = true;
@@ -288,14 +288,14 @@ async function handleUnauthorizedError(
     }, 3000);
   }
 
-  return Promise.reject(
-    new ApiErrorClass(
-      'Authentication required',
-      HttpStatusCode.UNAUTHORIZED,
-      NetworkErrorType.AUTHENTICATION_ERROR,
-      error
-    )
+  const apiError = new ApiErrorClass(
+    'Authentication required',
+    HttpStatusCode.UNAUTHORIZED,
+    NetworkErrorType.AUTHENTICATION_ERROR,
+    error
   );
+  apiError.response = error.response;
+  return Promise.reject(apiError);
 }
 
 /**
@@ -316,7 +316,7 @@ function handleForbiddenError(error: AxiosError): Promise<never> {
     error
   );
 
-  (apiError as any).response = error.response;
+  apiError.response = error.response;
 
   return Promise.reject(apiError);
 }
@@ -333,20 +333,24 @@ function handleClientError(error: AxiosError): Promise<never> {
   const message =
     data?.error || data?.message || error.message || 'Request failed';
 
-  if (status === HttpStatusCode.UNPROCESSABLE_ENTITY) {
-    return Promise.reject(
-      new ApiErrorClass(
-        message,
-        status,
-        NetworkErrorType.VALIDATION_ERROR,
-        error
-      )
-    );
-  }
+  const apiError =
+    status === HttpStatusCode.UNPROCESSABLE_ENTITY
+      ? new ApiErrorClass(
+          message,
+          status,
+          NetworkErrorType.VALIDATION_ERROR,
+          error
+        )
+      : new ApiErrorClass(
+          message,
+          status,
+          NetworkErrorType.CLIENT_ERROR,
+          error
+        );
 
-  return Promise.reject(
-    new ApiErrorClass(message, status, NetworkErrorType.CLIENT_ERROR, error)
-  );
+  apiError.response = error.response;
+
+  return Promise.reject(apiError);
 }
 
 /**
@@ -412,7 +416,9 @@ function createApiError(error: AxiosError): ApiErrorClass {
     errorType = NetworkErrorType.NETWORK_ERROR;
   }
 
-  return new ApiErrorClass(message, status, errorType, error);
+  const apiError = new ApiErrorClass(message, status, errorType, error);
+  apiError.response = error.response;
+  return apiError;
 }
 
 /**

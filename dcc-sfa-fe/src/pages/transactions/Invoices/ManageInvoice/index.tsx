@@ -7,7 +7,6 @@ import {
   useUpdateInvoice,
 } from 'hooks/useInvoices';
 import { useOrders } from 'hooks/useOrders';
-import { useProducts } from 'hooks/useProducts';
 import { Package, Plus } from 'lucide-react';
 import React, { useState } from 'react';
 import { invoiceValidationSchema } from 'schemas/invoice.schema';
@@ -44,12 +43,10 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const isEdit = !!invoice;
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItemFormData[]>([]);
 
-  const { data: productsResponse } = useProducts({ limit: 1000 });
   const { data: ordersResponse } = useOrders({ limit: 1000 });
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: invoiceResponse } = useInvoice(invoice?.id || 0);
 
-  const products = productsResponse?.data || [];
   const orders = ordersResponse?.data || [];
   const currencies = currenciesResponse?.data || [];
 
@@ -198,7 +195,11 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
         <ProductSelect
           value={row.product_id}
           onChange={(_event, product) =>
-            updateInvoiceItem(row._index, 'product_id', product ? product.id : '')
+            updateInvoiceItem(
+              row._index,
+              'product_id',
+              product ? String(product.id) : ''
+            )
           }
           size="small"
           className="!min-w-60"

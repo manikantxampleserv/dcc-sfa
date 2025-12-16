@@ -293,11 +293,12 @@ const Sidebar: React.FC = () => {
                                           grandchild.href as string
                                         );
                                       }}
-                                      className={`group !justify-between !cursor-pointer !flex !items-center hover:!bg-transparent !rounded !p-0 !pl-6 !transition-colors !duration-300`}
+                                      className={`group !justify-between !cursor-pointer !flex !items-center hover:!bg-transparent !rounded !p-0 !pl-10 !transition-colors !duration-300`}
                                     >
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex relative items-center gap-2">
+                                        <div className="absolute z-0 left-1 top-0 h-full border-l-2 border-dotted border-gray-300"></div>
                                         <span
-                                          className={`text-2xl transition-colors duration-300 ${
+                                          className={`text-2xl z-10 transition-colors duration-300 ${
                                             isGrandchildActive
                                               ? 'text-blue-600'
                                               : 'text-gray-600 group-hover:text-blue-600'

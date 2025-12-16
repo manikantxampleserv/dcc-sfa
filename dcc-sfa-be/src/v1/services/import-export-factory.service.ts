@@ -47,7 +47,8 @@ import { ProductShelfLifeImportExportService } from './implementations/productSh
 import { ProductTypesImportExportService } from './implementations/productTypes-import-export.service';
 import { ProductTargetGroupsImportExportService } from './implementations/productTargetGroups-import-export.service';
 import { ProductWebOrdersImportExportService } from './implementations/productWebOrders-import-export.service';
-//In future I will add more, reminder me, dont remove this commet
+import { CoolerTypesImportExportService } from './implementations/coolerTypes-import-export.service';
+import { CoolerSubTypesImportExportService } from './implementations/coolerSubTypes-import-export.service';
 
 type ServiceConstructor = new () => ImportExportService<any>;
 
@@ -105,6 +106,8 @@ export class ImportExportFactory {
     ['product_type', ProductTypesImportExportService],
     ['product_target_group', ProductTargetGroupsImportExportService],
     ['product_web_order', ProductWebOrdersImportExportService],
+    ['cooler_types', CoolerTypesImportExportService],
+    ['cooler_sub_types', CoolerSubTypesImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

@@ -75,10 +75,7 @@ interface CustomSelectProps
   > {
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
-  onChange?:
-    | ((event: any, value: any) => void)
-    | ((event: any) => void)
-    | ((value: any) => void);
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   name?: string;
   label?: string;
@@ -197,14 +194,7 @@ const Select: React.FC<CustomSelectProps> = ({
           value: newValueToSet,
         },
       } as React.ChangeEvent<HTMLInputElement>;
-      if (onChange.length === 1) {
-        (onChange as (event: any) => void)(syntheticEvent);
-      } else {
-        (onChange as (event: any, value: any) => void)(
-          syntheticEvent,
-          newValueToSet
-        );
-      }
+      onChange(syntheticEvent);
     }
   };
 

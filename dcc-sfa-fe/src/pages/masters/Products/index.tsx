@@ -1,5 +1,6 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { usePermission } from 'hooks/usePermission';
 import { DollarSign, Package, Percent, Tag, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -9,16 +10,15 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { formatDate } from 'utils/dateUtils';
+import { useExportToExcel } from '../../../hooks/useImportExport';
 import {
   useDeleteProduct,
   useProducts,
   type Product,
 } from '../../../hooks/useProducts';
-import { useExportToExcel } from '../../../hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import ManageProduct from './ManageProducts';
 import ImportProduct from './ImportProduct';
-import { formatDate } from 'utils/dateUtils';
+import ManageProduct from './ManageProducts';
 
 const ProductsManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -32,7 +32,7 @@ const ProductsManagement: React.FC = () => {
 
   const {
     data: productsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useProducts(
     {
@@ -260,6 +260,39 @@ const ProductsManagement: React.FC = () => {
       ),
     },
     {
+      id: 'vat_percentage',
+      label: 'VAT %',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.vat_percentage !== null && row.vat_percentage !== undefined
+            ? `${Number(row.vat_percentage).toFixed(2)}%`
+            : 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'weight_in_grams',
+      label: 'Weight (g)',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.weight_in_grams !== null && row.weight_in_grams !== undefined
+            ? `${Number(row.weight_in_grams).toLocaleString()} g`
+            : 'N/A'}
+        </Typography>
+      ),
+    },
+    {
+      id: 'volume_in_liters',
+      label: 'Volume (L)',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.volume_in_liters !== null && row.volume_in_liters !== undefined
+            ? `${Number(row.volume_in_liters).toFixed(2)} L`
+            : 'N/A'}
+        </Typography>
+      ),
+    },
+    {
       id: 'description',
       label: 'Description',
       render: (_value, row) => (
@@ -341,28 +374,28 @@ const ProductsManagement: React.FC = () => {
           value={totalProducts}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Products"
           value={activeProducts}
           icon={<Package className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Products"
           value={inactiveProducts}
           icon={<Package className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newProductsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -457,7 +490,7 @@ const ProductsManagement: React.FC = () => {
         }
         getRowId={product => product.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

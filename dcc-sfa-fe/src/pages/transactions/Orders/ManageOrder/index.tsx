@@ -2,7 +2,6 @@ import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
 import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
-import { useProducts } from 'hooks/useProducts';
 import { Package, Plus } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { orderValidationSchema } from 'schemas/order.schema';
@@ -38,11 +37,9 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const initializedRef = useRef<number | null>(null);
   const syncedRef = useRef<string>('');
 
-  const { data: productsResponse } = useProducts({ limit: 1000 });
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: orderResponse } = useOrder(order?.id || 0);
 
-  const products = productsResponse?.data || [];
   const currencies = currenciesResponse?.data || [];
 
   const createOrderMutation = useCreateOrder();
@@ -239,7 +236,11 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         <ProductSelect
           value={row.product_id}
           onChange={(_event, product) =>
-            updateOrderItem(row._index, 'product_id', product ? product.id : '')
+            updateOrderItem(
+              row._index,
+              'product_id',
+              product ? String(product.id) : ''
+            )
           }
           size="small"
           className="!min-w-60"

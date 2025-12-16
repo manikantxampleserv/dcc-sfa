@@ -6,7 +6,6 @@ export const coolerInstallationValidationSchema = Yup.object({
     .positive('Customer must be selected'),
 
   code: Yup.string()
-    .required('Cooler code is required')
     .min(2, 'Cooler code must be at least 2 characters')
     .max(50, 'Cooler code must be less than 50 characters'),
 

@@ -41,8 +41,7 @@ const DeliveryScheduling: React.FC = () => {
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('delivery-schedule');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('delivery');
 
   const {
     data: deliverySchedulesResponse,

@@ -77,6 +77,8 @@ const MODULE_MAPPING: Record<string, string> = {
   'product-type': 'Product Type',
   'product-target-group': 'Product Target Group',
   'product-web-order': 'Product Web Order',
+  'cooler-type': 'Cooler Type',
+  'cooler-sub-type': 'Cooler Sub Type',
   location: 'GPS Tracking',
   'route-effectiveness': 'Route Effectiveness',
   'erp-sync': 'ERP Sync',

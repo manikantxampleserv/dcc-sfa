@@ -31,11 +31,15 @@ export const orderKeys = {
 /**
  * Hook to fetch orders with pagination and filters
  */
-export const useOrders = (params?: GetOrdersParams) => {
+export const useOrders = (
+  params?: GetOrdersParams,
+  options?: { enabled?: boolean }
+) => {
   return useQuery({
     queryKey: orderKeys.list(params || {}),
     queryFn: () => fetchOrders(params),
     staleTime: 5 * 60 * 1000,
+    enabled: options?.enabled ?? true,
   });
 };
 

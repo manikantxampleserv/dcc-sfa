@@ -163,6 +163,8 @@ export type Modules =
   | 'customer-complaint'
   | 'customer-category'
   | 'customer-type'
+  | 'cooler-type'
+  | 'cooler-sub-type'
   | 'location'
   | 'route-effectiveness'
   | 'erp-sync'

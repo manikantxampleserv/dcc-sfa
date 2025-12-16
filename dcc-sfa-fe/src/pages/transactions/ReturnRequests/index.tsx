@@ -47,8 +47,7 @@ const ReturnRequests: React.FC = () => {
   const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('return-request');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('return');
 
   const {
     data: returnRequestsResponse,

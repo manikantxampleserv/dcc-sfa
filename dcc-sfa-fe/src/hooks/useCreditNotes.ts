@@ -32,11 +32,15 @@ export const creditNoteKeys = {
 /**
  * Hook to fetch credit notes with pagination and filters
  */
-export const useCreditNotes = (params?: GetCreditNotesParams) => {
+export const useCreditNotes = (
+  params?: GetCreditNotesParams,
+  options?: { enabled?: boolean }
+) => {
   return useQuery({
     queryKey: creditNoteKeys.list(params || {}),
     queryFn: () => fetchCreditNotes(params),
     staleTime: 5 * 60 * 1000,
+    enabled: options?.enabled ?? true,
   });
 };
 

@@ -27,6 +27,9 @@ interface Product {
   volume_id?: number | null;
   flavour_id?: number | null;
   shelf_life_id?: number | null;
+  vat_percentage?: number | null;
+  weight_in_grams?: number | null;
+  volume_in_liters?: number | null;
   batch_lots?: { id: number; batch_number: string; quantity: number }[];
   inventory_stock?: {
     id: number;
@@ -72,6 +75,9 @@ interface ManageProductPayload {
   volume_id?: number;
   flavour_id?: number;
   shelf_life_id?: number;
+  vat_percentage?: number;
+  weight_in_grams?: number;
+  volume_in_liters?: number;
   is_active?: string;
 }
 
@@ -93,6 +99,9 @@ interface UpdateProductPayload {
   volume_id?: number;
   flavour_id?: number;
   shelf_life_id?: number;
+  vat_percentage?: number;
+  weight_in_grams?: number;
+  volume_in_liters?: number;
   is_active?: string;
 }
 

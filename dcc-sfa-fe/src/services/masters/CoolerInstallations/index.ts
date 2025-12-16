@@ -12,6 +12,8 @@ export interface CoolerInstallation {
   install_date?: string | null;
   last_service_date?: string | null;
   next_service_due?: string | null;
+  cooler_type_id?: number | null;
+  cooler_sub_type_id?: number | null;
   status?: string | null;
   temperature?: number | null;
   energy_rating?: string | null;
@@ -35,6 +37,16 @@ export interface CoolerInstallation {
     email: string;
     profile_image?: string | null;
   } | null;
+  cooler_type?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  cooler_sub_type?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
 }
 
 export interface CreateCoolerInstallationPayload {
@@ -47,6 +59,8 @@ export interface CreateCoolerInstallationPayload {
   install_date?: string;
   last_service_date?: string;
   next_service_due?: string;
+  cooler_type_id?: number;
+  cooler_sub_type_id?: number;
   status?: string;
   temperature?: number;
   energy_rating?: string;
@@ -67,6 +81,8 @@ export interface UpdateCoolerInstallationPayload {
   install_date?: string;
   last_service_date?: string;
   next_service_due?: string;
+  cooler_type_id?: number;
+  cooler_sub_type_id?: number;
   status?: string;
   temperature?: number;
   energy_rating?: string;
@@ -132,44 +148,20 @@ export const fetchCoolerInstallationById = async (
 export const createCoolerInstallation = async (
   data: CreateCoolerInstallationPayload
 ): Promise<CoolerInstallation> => {
-  try {
-    const response = await axiosInstance.post('/cooler-installations', data);
-    return response.data.data;
-  } catch (error: any) {
-    console.error('Error creating cooler installation:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to create cooler installation'
-    );
-  }
+  const response = await axiosInstance.post('/cooler-installations', data);
+  return response.data.data;
 };
 
 export const updateCoolerInstallation = async (
   id: number,
   data: UpdateCoolerInstallationPayload
 ): Promise<CoolerInstallation> => {
-  try {
-    const response = await axiosInstance.put(
-      `/cooler-installations/${id}`,
-      data
-    );
-    return response.data.data;
-  } catch (error: any) {
-    console.error('Error updating cooler installation:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to update cooler installation'
-    );
-  }
+  const response = await axiosInstance.put(`/cooler-installations/${id}`, data);
+  return response.data.data;
 };
 
 export const deleteCoolerInstallation = async (id: number): Promise<void> => {
-  try {
-    await axiosInstance.delete(`/cooler-installations/${id}`);
-  } catch (error: any) {
-    console.error('Error deleting cooler installation:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to delete cooler installation'
-    );
-  }
+  await axiosInstance.delete(`/cooler-installations/${id}`);
 };
 
 export interface StatusOption {

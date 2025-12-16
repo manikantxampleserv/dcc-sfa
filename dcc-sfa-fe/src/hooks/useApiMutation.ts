@@ -7,6 +7,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toastService from '../utils/toast';
+import type { ApiErrorClass } from 'types/api.types';
 
 /**
  * Configuration for API mutation with toast messages
@@ -102,12 +103,16 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
          */
         let errorMessage: string = 'Operation failed';
 
-        if ((error as any)?.response?.data) {
-          const responseData = (error as any).response.data;
+        const errorResponse =
+          (error as ApiErrorClass)?.response ||
+          (error as ApiErrorClass)?.originalError?.response;
+
+        if (errorResponse?.data) {
+          const responseData = errorResponse.data;
           errorMessage =
             responseData.error || responseData.message || errorMessage;
-        } else if ((error as any)?.message) {
-          errorMessage = (error as any).message;
+        } else if ((error as ApiErrorClass)?.message) {
+          errorMessage = (error as ApiErrorClass).message;
         }
 
         toastService.update(context.toastId, errorMessage, 'error');

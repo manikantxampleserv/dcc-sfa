@@ -3,6 +3,7 @@ import { createApp } from './app';
 import logger from './configs/logger';
 import { killPort, isPortInUse } from './utils/killPort';
 import { AttendanceCronService } from './v1/services/attendance.cron.service';
+import { getPrisma } from './configs/prisma.client';
 dotenv.config({ quiet: true });
 
 const port = process.env.PORT || 4000;
@@ -24,18 +25,6 @@ export const startServer = async () => {
       AttendanceCronService.startMidnightStatusReset();
       logger.info('Attendance cron jobs started');
       logger.success(`Server running at http://localhost:${port}`);
-    });
-
-    server.on('error', error => {
-      logger.error('Server error:', error);
-    });
-
-    process.on('SIGINT', async () => {
-      logger.info('Shutting down gracefully...');
-      server.close(() => {
-        logger.info('HTTP server closed');
-      });
-      process.exit(0);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

@@ -13,6 +13,8 @@ interface CoolerInstallationSerialized {
   install_date?: string | null;
   last_service_date?: string | null;
   next_service_due?: string | null;
+  cooler_type_id?: number | null;
+  cooler_sub_type_id?: number | null;
   status?: string | null;
   temperature?: number | null;
   energy_rating?: string | null;
@@ -36,6 +38,16 @@ interface CoolerInstallationSerialized {
     email: string;
     profile_image?: string | null;
   } | null;
+  cooler_type?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  cooler_sub_type?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
 }
 
 const serializeCoolerInstallation = (
@@ -51,6 +63,8 @@ const serializeCoolerInstallation = (
   install_date: cooler.install_date?.toISOString(),
   last_service_date: cooler.last_service_date?.toISOString(),
   next_service_due: cooler.next_service_due?.toISOString(),
+  cooler_type_id: cooler.cooler_type_id,
+  cooler_sub_type_id: cooler.cooler_sub_type_id,
   status: cooler.status,
   temperature: cooler.temperature ? Number(cooler.temperature) : null,
   energy_rating: cooler.energy_rating,
@@ -78,6 +92,20 @@ const serializeCoolerInstallation = (
         profile_image: cooler.users.profile_image,
       }
     : null,
+  cooler_type: cooler.cooler_types
+    ? {
+        id: cooler.cooler_types.id,
+        name: cooler.cooler_types.name,
+        code: cooler.cooler_types.code,
+      }
+    : null,
+  cooler_sub_type: cooler.cooler_sub_types
+    ? {
+        id: cooler.cooler_sub_types.id,
+        name: cooler.cooler_sub_types.name,
+        code: cooler.cooler_sub_types.code,
+      }
+    : null,
 });
 
 export const coolerInstallationsController = {
@@ -87,21 +115,43 @@ export const coolerInstallationsController = {
       if (!data.customer_id) {
         return res.status(400).json({ message: 'Customer ID is required' });
       }
-      if (!data.code) {
-        return res.status(400).json({ message: 'Cooler code is required' });
-      }
 
-      const existingCooler = await prisma.coolers.findUnique({
-        where: { code: data.code },
-      });
+      const generateCode = async (): Promise<string> => {
+        const prefix = 'COOL';
+        const count = await prisma.coolers.count();
+        const timestamp = Date.now().toString().slice(-6);
+        return `${prefix}-${String(count + 1).padStart(4, '0')}-${timestamp}`;
+      };
 
-      if (existingCooler) {
-        return res.status(400).json({ message: 'Cooler code already exists' });
+      let coolerCode = data.code && data.code.trim() !== '' ? data.code : null;
+
+      if (!coolerCode) {
+        coolerCode = await generateCode();
+        let attempts = 0;
+        while (attempts < 10) {
+          const existing = await prisma.coolers.findUnique({
+            where: { code: coolerCode },
+          });
+          if (!existing) break;
+          coolerCode = await generateCode();
+          attempts++;
+        }
+      } else {
+        const existingCooler = await prisma.coolers.findUnique({
+          where: { code: coolerCode },
+        });
+
+        if (existingCooler) {
+          return res
+            .status(400)
+            .json({ message: 'Cooler code already exists' });
+        }
       }
 
       const cooler = await prisma.coolers.create({
         data: {
           ...data,
+          code: coolerCode,
           createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
@@ -135,6 +185,20 @@ export const coolerInstallationsController = {
               name: true,
               email: true,
               profile_image: true,
+            },
+          },
+          cooler_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          cooler_sub_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
             },
           },
         },
@@ -218,6 +282,20 @@ export const coolerInstallationsController = {
               name: true,
               email: true,
               profile_image: true,
+            },
+          },
+          cooler_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          cooler_sub_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
             },
           },
         },
@@ -307,6 +385,20 @@ export const coolerInstallationsController = {
               profile_image: true,
             },
           },
+          cooler_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          cooler_sub_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
         },
       });
 
@@ -339,10 +431,12 @@ export const coolerInstallationsController = {
           .json({ message: 'Cooler installation not found' });
       }
 
+      const { code, ...restData } = req.body;
+
       const data = {
-        ...req.body,
+        ...restData,
+        ...(code && code.trim() !== '' && { code }),
         updatedate: new Date(),
-        // Convert date strings to Date objects
         install_date: req.body.install_date
           ? new Date(req.body.install_date)
           : undefined,
@@ -360,7 +454,6 @@ export const coolerInstallationsController = {
           : undefined,
       };
 
-      // Check if cooler code already exists (excluding current record)
       if (data.code && data.code !== existingCooler.code) {
         const existingCode = await prisma.coolers.findFirst({
           where: {
@@ -395,6 +488,20 @@ export const coolerInstallationsController = {
               profile_image: true,
             },
           },
+          cooler_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          cooler_sub_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
         },
       });
 
@@ -421,11 +528,27 @@ export const coolerInstallationsController = {
           .json({ message: 'Cooler installation not found' });
       }
 
+      const relatedInspections = await prisma.cooler_inspections.count({
+        where: { cooler_id: Number(id) },
+      });
+
+      if (relatedInspections > 0) {
+        return res.status(400).json({
+          message: `Cannot delete cooler installation. It has ${relatedInspections} related inspection(s). Please delete the inspections first or contact support.`,
+        });
+      }
+
       await prisma.coolers.delete({ where: { id: Number(id) } });
 
       res.json({ message: 'Cooler installation deleted successfully' });
     } catch (error: any) {
       console.error('Delete Cooler Installation Error:', error);
+      if (error.code === 'P2003') {
+        return res.status(400).json({
+          message:
+            'Cannot delete cooler installation. It has related records that must be deleted first.',
+        });
+      }
       res.status(500).json({ message: error.message });
     }
   },
@@ -507,6 +630,20 @@ export const coolerInstallationsController = {
               name: true,
               email: true,
               profile_image: true,
+            },
+          },
+          cooler_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          cooler_sub_types: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
             },
           },
         },

@@ -27,6 +27,9 @@ interface ProductSerialized {
   volume_id?: number | null;
   flavour_id?: number | null;
   shelf_life_id?: number | null;
+  vat_percentage?: number | null;
+  weight_in_grams?: number | null;
+  volume_in_liters?: number | null;
   batch_lots?: { id: number; batch_number: string; quantity: number }[];
   inventory_stock?: {
     id: number;
@@ -104,6 +107,15 @@ const serializeProduct = (product: any): ProductSerialized => ({
   volume_id: product.volume_id,
   flavour_id: product.flavour_id,
   shelf_life_id: product.shelf_life_id,
+  vat_percentage: product.vat_percentage
+    ? Number(product.vat_percentage)
+    : null,
+  weight_in_grams: product.weight_in_grams
+    ? Number(product.weight_in_grams)
+    : null,
+  volume_in_liters: product.volume_in_liters
+    ? Number(product.volume_in_liters)
+    : null,
 
   batch_lots: normalizeToArray(product.batch_lots_products).map((b: any) => ({
     id: b.id,
@@ -216,12 +228,36 @@ export const productsController = {
   async createProduct(req: Request, res: Response) {
     try {
       const data = req.body;
-      const newCode = await generateProductsCode(data.name);
+      let productCode =
+        data.code && data.code.trim() !== '' ? data.code.trim() : null;
+
+      if (!productCode) {
+        productCode = await generateProductsCode(data.name);
+        let attempts = 0;
+        while (attempts < 10) {
+          const existing = await prisma.products.findUnique({
+            where: { code: productCode },
+          });
+          if (!existing) break;
+          productCode = await generateProductsCode(data.name);
+          attempts++;
+        }
+      } else {
+        const existingProduct = await prisma.products.findUnique({
+          where: { code: productCode },
+        });
+
+        if (existingProduct) {
+          return res
+            .status(400)
+            .json({ message: 'Product code already exists' });
+        }
+      }
 
       const product = await prisma.products.create({
         data: {
           name: data.name,
-          code: newCode,
+          code: productCode,
           description: data.description,
           category_id: data.category_id,
           sub_category_id: data.sub_category_id,
@@ -239,6 +275,9 @@ export const productsController = {
           volume_id: data.volume_id || null,
           flavour_id: data.flavour_id || null,
           shelf_life_id: data.shelf_life_id || null,
+          vat_percentage: data.vat_percentage || null,
+          weight_in_grams: data.weight_in_grams || null,
+          volume_in_liters: data.volume_in_liters || null,
           createdate: new Date(),
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
@@ -403,11 +442,29 @@ export const productsController = {
       if (!existingProduct)
         return res.status(404).json({ message: 'Product not found' });
 
+      const { code, ...restData } = req.body;
+
       const data = {
-        ...req.body,
+        ...restData,
+        ...(code && code.trim() !== '' && { code }),
         updatedate: new Date(),
         updatedby: req.user?.id,
       };
+
+      if (data.code && data.code !== existingProduct.code) {
+        const existingCode = await prisma.products.findFirst({
+          where: {
+            code: data.code,
+            id: { not: Number(id) },
+          },
+        });
+
+        if (existingCode) {
+          return res
+            .status(400)
+            .json({ message: 'Product code already exists' });
+        }
+      }
 
       const product = await prisma.products.update({
         where: { id: Number(id) },

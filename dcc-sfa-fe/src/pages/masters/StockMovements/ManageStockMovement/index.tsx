@@ -1,9 +1,8 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
-import { useProducts } from 'hooks/useProducts';
 import { useUpsertStockMovement } from 'hooks/useStockMovements';
-import { useWarehouses } from 'hooks/useWarehouses';
 import { useVanInventory } from 'hooks/useVanInventory';
+import { useWarehouses } from 'hooks/useWarehouses';
 import React from 'react';
 import { stockMovementValidationSchema } from 'schemas/stockMovement.schema';
 import type { StockMovement } from 'services/masters/StockMovements';
@@ -27,11 +26,9 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
   const isEdit = !!movement;
 
   const { data: warehousesResponse } = useWarehouses({ limit: 1000 });
-  const { data: productsResponse } = useProducts({ limit: 1000 });
   const { data: vanInventoryResponse } = useVanInventory({ limit: 1000 });
 
   const warehouses = warehousesResponse?.data || [];
-  const products = productsResponse?.data || [];
   const vanInventory = vanInventoryResponse?.data || [];
 
   const upsertMovementMutation = useUpsertStockMovement();
@@ -137,7 +134,12 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
       <Box className="!p-4">
         <form onSubmit={formik.handleSubmit} className="!space-y-4">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
-            <ProductSelect name="product_id" label="Product" formik={formik} required />
+            <ProductSelect
+              name="product_id"
+              label="Product"
+              formik={formik}
+              required
+            />
 
             <Select
               name="movement_type"

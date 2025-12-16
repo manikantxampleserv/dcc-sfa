@@ -1,4 +1,4 @@
-import { Box, MenuItem, Skeleton, Typography } from '@mui/material';
+import { Box, Skeleton, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useInvoice } from 'hooks/useInvoices';
 import { useProducts } from 'hooks/useProducts';
@@ -15,7 +15,6 @@ import { PopConfirm } from 'shared/DeleteConfirmation';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import ProductSelect from 'shared/ProductSelect';
-import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import * as Yup from 'yup';
 import { toast } from 'react-toastify';

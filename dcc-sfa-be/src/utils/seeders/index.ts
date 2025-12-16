@@ -43,6 +43,11 @@ import { clearUsers, seedUsers } from './users.seeder';
 import { clearVisits, seedVisits } from './visits.seeder';
 import { clearWarehouses, seedWarehouses } from './warehouses.seeder';
 import { clearZones, seedZones } from './zones.seeder';
+import { clearCoolerTypes, seedCoolerTypes } from './coolerTypes.seeder';
+import {
+  clearCoolerSubTypes,
+  seedCoolerSubTypes,
+} from './coolerSubTypes.seeder';
 import {
   clearSalesTargetGroups,
   seedSalesTargetGroups,
@@ -151,6 +156,16 @@ const seeders = {
     seed: seedPricelists,
     clear: clearPricelists,
     name: 'Pricelists',
+  },
+  'cooler-types': {
+    seed: seedCoolerTypes,
+    clear: clearCoolerTypes,
+    name: 'Cooler Types',
+  },
+  'cooler-sub-types': {
+    seed: seedCoolerSubTypes,
+    clear: clearCoolerSubTypes,
+    name: 'Cooler Sub Types',
   },
   users: { seed: seedUsers, clear: clearUsers, name: 'Users' },
 };
@@ -362,6 +377,11 @@ export function listSections(): void {
 // Export individual seeders for direct access
 export { clearAssetMaster, seedAssetMaster } from './assetMaster.seeder';
 export { clearAssetTypes, seedAssetTypes } from './assetTypes.seeder';
+export { clearCoolerTypes, seedCoolerTypes } from './coolerTypes.seeder';
+export {
+  clearCoolerSubTypes,
+  seedCoolerSubTypes,
+} from './coolerSubTypes.seeder';
 export { clearCompanies, seedCompanies } from './companies.seeder';
 export { clearCurrencies, seedCurrencies } from './currencies.seeder';
 export { clearCustomers, seedCustomers } from './customers.seeder';
