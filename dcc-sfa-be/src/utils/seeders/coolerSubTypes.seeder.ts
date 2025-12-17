@@ -45,6 +45,12 @@ const mockCoolerSubTypes: MockCoolerSubType[] = [
     is_active: 'Y',
   },
   {
+    name: 'CDM-1000',
+    code: 'CST-CDM1000',
+    cooler_type_name: 'COOLER',
+    is_active: 'Y',
+  },
+  {
     name: 'CVC-0409',
     code: 'CST-CVC0409',
     cooler_type_name: 'COOLER',
@@ -143,6 +149,24 @@ const mockCoolerSubTypes: MockCoolerSubType[] = [
   {
     name: 'CPE0300',
     code: 'CST-CPE0300',
+    cooler_type_name: 'COOLER',
+    is_active: 'Y',
+  },
+  {
+    name: 'CPE1005',
+    code: 'CST-CPE1005',
+    cooler_type_name: 'COOLER',
+    is_active: 'Y',
+  },
+  {
+    name: 'PIGMY',
+    code: 'CST-PIGMY',
+    cooler_type_name: 'COOLER',
+    is_active: 'Y',
+  },
+  {
+    name: 'SANYO',
+    code: 'CST-SANYO',
     cooler_type_name: 'COOLER',
     is_active: 'Y',
   },

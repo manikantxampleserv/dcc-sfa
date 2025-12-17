@@ -65,6 +65,12 @@ export async function seedCustomers(): Promise<void> {
     customerChannels.map(channel => [channel.channel_name, channel.id])
   );
 
+  const customerCategories = await prisma.customer_category.findMany({
+    select: { id: true },
+    where: { is_active: 'Y' },
+  });
+  const categoryIds = customerCategories.map(category => category.id);
+
   const availableZones = await prisma.zones.findMany({
     select: { id: true },
     where: { is_active: 'Y' },
@@ -101,6 +107,11 @@ export async function seedCustomers(): Promise<void> {
         const randomZoneId =
           zoneIds.length > 0
             ? zoneIds[Math.floor(Math.random() * zoneIds.length)]
+            : undefined;
+
+        const randomCategoryId =
+          categoryIds.length > 0
+            ? categoryIds[Math.floor(Math.random() * categoryIds.length)]
             : undefined;
 
         const customerData: {
@@ -170,6 +181,9 @@ export async function seedCustomers(): Promise<void> {
         }
         if (randomZoneId) {
           customerData.zones_id = randomZoneId;
+        }
+        if (randomCategoryId) {
+          customerData.customer_category_id = randomCategoryId;
         }
 
         return customerData;

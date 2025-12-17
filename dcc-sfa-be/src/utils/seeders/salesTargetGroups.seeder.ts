@@ -1,3 +1,4 @@
+import logger from '../../configs/logger';
 import prisma from '../../configs/prisma.client';
 
 interface MockSalesTargetGroup {
@@ -60,35 +61,81 @@ const mockSalesTargetGroups: MockSalesTargetGroup[] = [
 ];
 
 export async function seedSalesTargetGroups(): Promise<void> {
-  for (const group of mockSalesTargetGroups) {
-    const existingGroup = await prisma.sales_target_groups.findFirst({
-      where: { group_name: group.group_name },
+  try {
+    const salesPersonRole = await prisma.roles.findFirst({
+      where: { name: 'Sales Person' },
     });
 
-    if (!existingGroup) {
-      await prisma.sales_target_groups.create({
-        data: {
-          group_name: group.group_name,
-          description: group.description || null,
-          is_active: group.is_active,
-          createdate: new Date(),
-          createdby: 1,
-          log_inst: 1,
-        },
+    const salespersons = await prisma.users.findMany({
+      select: { id: true, name: true },
+      where: {
+        role_id: salesPersonRole?.id,
+        is_active: 'Y',
+      },
+    });
+
+    if (salespersons.length === 0) {
+      const adminUser = await prisma.users.findFirst({
+        where: { email: 'admin@dcc.com' },
+        select: { id: true, name: true },
       });
+      if (adminUser) {
+        salespersons.push(adminUser);
+      }
     }
+
+    const defaultSalesperson = salespersons.length > 0 ? salespersons[0] : null;
+
+    let groupsCreated = 0;
+    let groupsSkipped = 0;
+
+    for (let i = 0; i < mockSalesTargetGroups.length; i++) {
+      const group = mockSalesTargetGroups[i];
+      const salesperson =
+        salespersons.length > 0
+          ? salespersons[i % salespersons.length]
+          : defaultSalesperson;
+
+      const existingGroup = await prisma.sales_target_groups.findFirst({
+        where: { group_name: group.group_name },
+      });
+
+      if (!existingGroup) {
+        await prisma.sales_target_groups.create({
+          data: {
+            group_name: group.group_name,
+            description: group.description || null,
+            is_active: group.is_active,
+            createdate: new Date(),
+            createdby: salesperson?.id || 1,
+            log_inst: 1,
+          },
+        });
+
+        groupsCreated++;
+      } else {
+        groupsSkipped++;
+      }
+    }
+
+    logger.info(
+      `Sales target groups seeding completed: ${groupsCreated} created, ${groupsSkipped} skipped`
+    );
+  } catch (error) {
+    logger.error('Error seeding sales target groups:', error);
+    throw error;
   }
 }
 
 export async function clearSalesTargetGroups(): Promise<void> {
-  // Delete sales bonus rules first (they depend on sales targets)
-  await prisma.sales_bonus_rules.deleteMany({});
-  // Delete sales targets (they depend on sales target groups)
-  await prisma.sales_targets.deleteMany({});
-  // Delete sales target group members (they depend on sales target groups)
-  await prisma.sales_target_group_members.deleteMany({});
-  // Finally delete sales target groups
-  await prisma.sales_target_groups.deleteMany({});
+  try {
+    await prisma.sales_bonus_rules.deleteMany({});
+    await prisma.sales_targets.deleteMany({});
+    await prisma.sales_target_group_members.deleteMany({});
+    await prisma.sales_target_groups.deleteMany({});
+  } catch (error) {
+    throw error;
+  }
 }
 
 export { mockSalesTargetGroups };

@@ -1,13 +1,7 @@
 import { Add, Block, CheckCircle } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import {
-  CreditCard,
-  DollarSign,
-  MapPin,
-  Phone,
-  Store,
-  UserCheck,
-} from 'lucide-react';
+import { usePermission } from 'hooks/usePermission';
+import { CreditCard, DollarSign, MapPin, Store, UserCheck } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -21,7 +15,6 @@ import {
   useDeleteCustomer,
   type Customer,
 } from '../../../hooks/useCustomers';
-import { usePermission } from 'hooks/usePermission';
 import { useRoutes } from '../../../hooks/useRoutes';
 import { useZones } from '../../../hooks/useZones';
 import ManageOutlet from './ManageOutlet';
@@ -158,52 +151,27 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'type',
-      label: 'Type',
+      id: 'customer_type',
+      label: 'Outlet Type',
       render: (_value, row) => (
         <Chip
-          icon={getBusinessTypeIcon(row.type || '')}
-          label={row.type || 'N/A'}
+          icon={getBusinessTypeIcon(row.customer_type?.type_name || '')}
+          label={row.customer_type?.type_name || 'N/A'}
           size="small"
           variant="outlined"
           className="!capitalize !px-1"
-          color={getBusinessTypeChipColor(row.type || '')}
+          color={getBusinessTypeChipColor(row.customer_type?.type_name || '')}
         />
       ),
     },
-    {
-      id: 'customer_type',
-      label: 'Customer Type',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.customer_type?.type_name || 'N/A'}
-        </Typography>
-      ),
-    },
+
     {
       id: 'customer_channel',
-      label: 'Customer Channel',
+      label: 'Outlet Channel',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
           {row.customer_channel?.channel_name || 'N/A'}
         </Typography>
-      ),
-    },
-    {
-      id: 'contact',
-      label: 'Contact Person',
-      render: (_value, row) => (
-        <Box>
-          <Typography variant="body2" className="!font-medium !text-gray-900">
-            {row.contact_person || 'No Contact'}
-          </Typography>
-          {row.phone_number && (
-            <Box className="flex items-center text-sm text-gray-500 mt-1">
-              <Phone className="w-3 h-3 mr-1" />
-              {row.phone_number}
-            </Box>
-          )}
-        </Box>
       ),
     },
     {
@@ -258,7 +226,7 @@ const OutletsManagement: React.FC = () => {
       label: 'Credit Limit',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900 !font-medium">
-          {formatCurrency(row.credit_limit ?? null)}
+          {formatCurrency(row.credit_limit ?? '0')}
         </Typography>
       ),
     },

@@ -1,10 +1,7 @@
+import logger from '../../configs/logger';
 import prisma from '../../configs/prisma.client';
 
 interface MockSalesBonusRule {
-  group_name: string;
-  category_name: string;
-  start_date: Date;
-  end_date: Date;
   achievement_min_percent: number;
   achievement_max_percent: number;
   bonus_amount?: number;
@@ -14,10 +11,6 @@ interface MockSalesBonusRule {
 
 const mockSalesBonusRules: MockSalesBonusRule[] = [
   {
-    group_name: 'North Region Sales Team',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 80.0,
     achievement_max_percent: 99.9,
     bonus_amount: 500.0,
@@ -25,10 +18,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'North Region Sales Team',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 100.0,
     achievement_max_percent: 120.0,
     bonus_amount: 1000.0,
@@ -36,10 +25,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'North Region Sales Team',
-    category_name: 'Electronics',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 90.0,
     achievement_max_percent: 110.0,
     bonus_amount: undefined,
@@ -47,10 +32,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'North Region Sales Team',
-    category_name: 'Electronics',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 110.1,
     achievement_max_percent: 150.0,
     bonus_amount: 1500.0,
@@ -58,10 +39,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'South Region Sales Team',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 85.0,
     achievement_max_percent: 99.9,
     bonus_amount: 600.0,
@@ -69,10 +46,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'South Region Sales Team',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 100.0,
     achievement_max_percent: 130.0,
     bonus_amount: 1200.0,
@@ -80,10 +53,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'South Region Sales Team',
-    category_name: 'Clothing & Apparel',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 80.0,
     achievement_max_percent: 100.0,
     bonus_amount: undefined,
@@ -91,10 +60,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'South Region Sales Team',
-    category_name: 'Clothing & Apparel',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 100.1,
     achievement_max_percent: 140.0,
     bonus_amount: 800.0,
@@ -102,10 +67,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'East Region Sales Team',
-    category_name: 'Electronics',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 90.0,
     achievement_max_percent: 110.0,
     bonus_amount: 750.0,
@@ -113,10 +74,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'East Region Sales Team',
-    category_name: 'Electronics',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 110.1,
     achievement_max_percent: 160.0,
     bonus_amount: 1800.0,
@@ -124,10 +81,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'East Region Sales Team',
-    category_name: 'Home & Garden',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 80.0,
     achievement_max_percent: 100.0,
     bonus_amount: undefined,
@@ -135,10 +88,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'East Region Sales Team',
-    category_name: 'Home & Garden',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 100.1,
     achievement_max_percent: 130.0,
     bonus_amount: 400.0,
@@ -146,10 +95,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'West Region Sales Team',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 85.0,
     achievement_max_percent: 99.9,
     bonus_amount: 450.0,
@@ -157,10 +102,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'West Region Sales Team',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 100.0,
     achievement_max_percent: 125.0,
     bonus_amount: 900.0,
@@ -168,10 +109,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'West Region Sales Team',
-    category_name: 'Clothing & Apparel',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 80.0,
     achievement_max_percent: 100.0,
     bonus_amount: undefined,
@@ -179,10 +116,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'West Region Sales Team',
-    category_name: 'Clothing & Apparel',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 100.1,
     achievement_max_percent: 135.0,
     bonus_amount: 600.0,
@@ -190,10 +123,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Premium Account Managers',
-    category_name: 'Electronics',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 95.0,
     achievement_max_percent: 110.0,
     bonus_amount: 2000.0,
@@ -201,10 +130,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Premium Account Managers',
-    category_name: 'Electronics',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 110.1,
     achievement_max_percent: 200.0,
     bonus_amount: 5000.0,
@@ -212,10 +137,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Premium Account Managers',
-    category_name: 'Home & Garden',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 90.0,
     achievement_max_percent: 110.0,
     bonus_amount: undefined,
@@ -223,10 +144,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Premium Account Managers',
-    category_name: 'Home & Garden',
-    start_date: new Date('2024-01-01'),
-    end_date: new Date('2024-03-31'),
     achievement_min_percent: 110.1,
     achievement_max_percent: 150.0,
     bonus_amount: 1500.0,
@@ -234,10 +151,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Corporate Sales Division',
-    category_name: 'Electronics',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 100.0,
     achievement_max_percent: 120.0,
     bonus_amount: 3000.0,
@@ -245,10 +158,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Corporate Sales Division',
-    category_name: 'Electronics',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 120.1,
     achievement_max_percent: 200.0,
     bonus_amount: 8000.0,
@@ -256,10 +165,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Corporate Sales Division',
-    category_name: 'Home & Garden',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 95.0,
     achievement_max_percent: 115.0,
     bonus_amount: undefined,
@@ -267,10 +172,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Corporate Sales Division',
-    category_name: 'Home & Garden',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 115.1,
     achievement_max_percent: 180.0,
     bonus_amount: 2000.0,
@@ -278,10 +179,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Retail Sales Force',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 80.0,
     achievement_max_percent: 100.0,
     bonus_amount: 300.0,
@@ -289,10 +186,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Retail Sales Force',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 100.1,
     achievement_max_percent: 130.0,
     bonus_amount: 600.0,
@@ -300,10 +193,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Retail Sales Force',
-    category_name: 'Clothing & Apparel',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 85.0,
     achievement_max_percent: 105.0,
     bonus_amount: undefined,
@@ -311,10 +200,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Retail Sales Force',
-    category_name: 'Clothing & Apparel',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 105.1,
     achievement_max_percent: 140.0,
     bonus_amount: 500.0,
@@ -322,10 +207,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Wholesale Distribution Team',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 90.0,
     achievement_max_percent: 110.0,
     bonus_amount: 1000.0,
@@ -333,10 +214,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Wholesale Distribution Team',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 110.1,
     achievement_max_percent: 150.0,
     bonus_amount: 2500.0,
@@ -344,10 +221,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Wholesale Distribution Team',
-    category_name: 'Electronics',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 95.0,
     achievement_max_percent: 115.0,
     bonus_amount: undefined,
@@ -355,10 +228,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'Wholesale Distribution Team',
-    category_name: 'Electronics',
-    start_date: new Date('2024-04-01'),
-    end_date: new Date('2024-06-30'),
     achievement_min_percent: 115.1,
     achievement_max_percent: 170.0,
     bonus_amount: 3000.0,
@@ -366,10 +235,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'Y',
   },
   {
-    group_name: 'New Market Expansion',
-    category_name: 'Food & Beverages',
-    start_date: new Date('2023-01-01'),
-    end_date: new Date('2023-12-31'),
     achievement_min_percent: 70.0,
     achievement_max_percent: 90.0,
     bonus_amount: 200.0,
@@ -377,10 +242,6 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
     is_active: 'N',
   },
   {
-    group_name: 'Seasonal Sales Team',
-    category_name: 'Clothing & Apparel',
-    start_date: new Date('2023-11-01'),
-    end_date: new Date('2023-12-31'),
     achievement_min_percent: 80.0,
     achievement_max_percent: 100.0,
     bonus_amount: undefined,
@@ -390,33 +251,67 @@ const mockSalesBonusRules: MockSalesBonusRule[] = [
 ];
 
 export async function seedSalesBonusRules(): Promise<void> {
-  const salesTargets = await prisma.sales_targets.findMany({
-    select: {
-      id: true,
-      sales_target_group_id: true,
-      product_category_id: true,
-      start_date: true,
-      end_date: true,
-      sales_targets_groups: {
-        select: { group_name: true },
-      },
-      sales_targets_product_categories: {
-        select: { category_name: true },
-      },
-    },
-  });
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(today);
+    endDate.setMonth(today.getMonth() + 3);
 
-  for (const rule of mockSalesBonusRules) {
-    const target = salesTargets.find(
-      t =>
-        t.sales_targets_groups?.group_name === rule.group_name &&
-        t.sales_targets_product_categories?.category_name ===
-          rule.category_name &&
-        t.start_date.getTime() === rule.start_date.getTime() &&
-        t.end_date.getTime() === rule.end_date.getTime()
-    );
+    const salesTargets = await prisma.sales_targets.findMany({
+      select: {
+        id: true,
+        start_date: true,
+        end_date: true,
+      },
+      where: {
+        start_date: today,
+        end_date: endDate,
+      },
+    });
 
-    if (target) {
+    if (salesTargets.length === 0) {
+      logger.warn(
+        'No sales targets found with matching date range. Please run sales targets seeder first.'
+      );
+      return;
+    }
+
+    const salesPersonRole = await prisma.roles.findFirst({
+      where: { name: 'Sales Person' },
+    });
+
+    const salespersons = await prisma.users.findMany({
+      select: { id: true, name: true },
+      where: {
+        role_id: salesPersonRole?.id,
+        is_active: 'Y',
+      },
+    });
+
+    if (salespersons.length === 0) {
+      const adminUser = await prisma.users.findFirst({
+        where: { email: 'admin@dcc.com' },
+        select: { id: true, name: true },
+      });
+      if (adminUser) {
+        salespersons.push(adminUser);
+      }
+    }
+
+    const defaultSalesperson = salespersons.length > 0 ? salespersons[0] : null;
+
+    let rulesCreated = 0;
+    let rulesSkipped = 0;
+
+    for (let i = 0; i < mockSalesBonusRules.length; i++) {
+      const rule = mockSalesBonusRules[i];
+      const salesperson =
+        salespersons.length > 0
+          ? salespersons[i % salespersons.length]
+          : defaultSalesperson;
+
+      const target = salesTargets[i % salesTargets.length];
+
       const existingRule = await prisma.sales_bonus_rules.findFirst({
         where: {
           sales_target_id: target.id,
@@ -435,17 +330,32 @@ export async function seedSalesBonusRules(): Promise<void> {
             bonus_percent: rule.bonus_percent || null,
             is_active: rule.is_active,
             createdate: new Date(),
-            createdby: 1,
+            createdby: salesperson?.id || 1,
             log_inst: 1,
           },
         });
+
+        rulesCreated++;
+      } else {
+        rulesSkipped++;
       }
     }
+
+    logger.info(
+      `Sales bonus rules seeding completed: ${rulesCreated} created, ${rulesSkipped} skipped`
+    );
+  } catch (error) {
+    logger.error('Error seeding sales bonus rules:', error);
+    throw error;
   }
 }
 
 export async function clearSalesBonusRules(): Promise<void> {
-  await prisma.sales_bonus_rules.deleteMany({});
+  try {
+    await prisma.sales_bonus_rules.deleteMany({});
+  } catch (error) {
+    throw error;
+  }
 }
 
 export { mockSalesBonusRules };
