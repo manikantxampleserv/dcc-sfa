@@ -1,8 +1,6 @@
 /**
- * @fileoverview Customer React Query Hooks
- * @description Custom hooks for customer data management with React Query
- * @author DCC-SFA Team
- * @version 1.0.0
+ * Customer React Query Hooks
+ * Custom hooks for customer data management with React Query
  */
 
 import {
@@ -16,6 +14,7 @@ import {
   fetchCustomerById,
   fetchCustomers,
   fetchCustomersDropdown,
+  fetchCustomerRelations,
   updateCustomer,
   type GetCustomersParams,
   type ManageCustomerPayload,
@@ -26,7 +25,9 @@ import {
 import type { ApiResponse } from '../types/api.types';
 import { useApiMutation } from './useApiMutation';
 
-// Query Keys
+/**
+ * Query keys factory for customer-related queries
+ */
 export const customerKeys = {
   all: ['customers'] as const,
   lists: () => [...customerKeys.all, 'list'] as const,
@@ -38,6 +39,9 @@ export const customerKeys = {
 
 /**
  * Hook to fetch customers with pagination and filters
+ * @param params - Query parameters for filtering and pagination
+ * @param options - Additional React Query options
+ * @returns Query result with customers data
  */
 export const useCustomers = (
   params?: GetCustomersParams,
@@ -56,11 +60,27 @@ export const useCustomers = (
 
 /**
  * Hook to fetch a single customer by ID
+ * @param id - Customer ID
+ * @returns Query result with customer data
  */
 export const useCustomer = (id: number) => {
   return useQuery({
     queryKey: customerKeys.detail(id),
     queryFn: () => fetchCustomerById(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Hook to fetch customer relations (route_id, zones_id, etc.)
+ * @param id - Customer ID
+ * @returns Query result with customer relations data
+ */
+export const useCustomerRelations = (id: number) => {
+  return useQuery({
+    queryKey: [...customerKeys.detail(id), 'relations'],
+    queryFn: () => fetchCustomerRelations(id),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
   });
@@ -91,6 +111,8 @@ export const useCustomersDropdown = (
 
 /**
  * Hook to create a new customer
+ * @param options - Callback options for success and error handling
+ * @returns Mutation hook for creating customers
  */
 export const useCreateCustomer = (options?: {
   onSuccess?: (data: any, variables: ManageCustomerPayload) => void;
@@ -111,6 +133,8 @@ export const useCreateCustomer = (options?: {
 
 /**
  * Hook to update an existing customer
+ * @param options - Callback options for success and error handling
+ * @returns Mutation hook for updating customers
  */
 export const useUpdateCustomer = (options?: {
   onSuccess?: (
@@ -144,6 +168,8 @@ export const useUpdateCustomer = (options?: {
 
 /**
  * Hook to delete a customer
+ * @param options - Callback options for success and error handling
+ * @returns Mutation hook for deleting customers
  */
 export const useDeleteCustomer = (options?: {
   onSuccess?: (data: any, variables: number) => void;
@@ -162,6 +188,9 @@ export const useDeleteCustomer = (options?: {
   });
 };
 
+/**
+ * Type exports for customer-related interfaces
+ */
 export type {
   GetCustomersParams,
   ManageCustomerPayload,

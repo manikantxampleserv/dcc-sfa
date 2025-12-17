@@ -3,7 +3,8 @@ import { useFormik } from 'formik';
 import { useCreateVisit, useUpdateVisit, type Visit } from 'hooks/useVisits';
 import { useRoutes } from 'hooks/useRoutes';
 import { useZones } from 'hooks/useZones';
-import React from 'react';
+import { useCustomerRelations } from 'hooks/useCustomers';
+import React, { useEffect } from 'react';
 import { visitValidationSchema } from 'schemas/visit.schema';
 import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
@@ -107,6 +108,25 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
     },
   });
 
+  const customerId = formik.values.customer_id
+    ? Number(formik.values.customer_id)
+    : null;
+  const { data: customerRelationsData } = useCustomerRelations(customerId || 0);
+
+  const isRouteZoneReadOnly = !!customerId && !isEdit;
+
+  useEffect(() => {
+    if (customerRelationsData?.data && !isEdit && customerId) {
+      const relations = customerRelationsData.data;
+      if (relations.route_id) {
+        formik.setFieldValue('route_id', relations.route_id.toString());
+      }
+      if (relations.zones_id) {
+        formik.setFieldValue('zones_id', relations.zones_id.toString());
+      }
+    }
+  }, [customerRelationsData, isEdit, customerId]);
+
   return (
     <CustomDrawer
       open={drawerOpen}
@@ -131,7 +151,12 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
               required
             />
 
-            <Select name="route_id" label="Route" formik={formik}>
+            <Select
+              name="route_id"
+              label="Route"
+              formik={formik}
+              disabled={isRouteZoneReadOnly}
+            >
               <MenuItem value="">Select Route</MenuItem>
               {routes.map(route => (
                 <MenuItem key={route.id} value={route.id.toString()}>
@@ -140,7 +165,12 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
               ))}
             </Select>
 
-            <Select name="zones_id" label="Zone" formik={formik}>
+            <Select
+              name="zones_id"
+              label="Zone"
+              formik={formik}
+              disabled={isRouteZoneReadOnly}
+            >
               <MenuItem value="">Select Zone</MenuItem>
               {zones.map(zone => (
                 <MenuItem key={zone.id} value={zone.id.toString()}>

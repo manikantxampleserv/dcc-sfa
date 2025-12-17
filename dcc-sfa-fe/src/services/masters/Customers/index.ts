@@ -1,6 +1,9 @@
 import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
+/**
+ * Customer entity interface
+ */
 interface Customer {
   id: number;
   name: string;
@@ -60,6 +63,9 @@ interface Customer {
   } | null;
 }
 
+/**
+ * Payload for creating a new customer
+ */
 interface ManageCustomerPayload {
   name: string;
   short_name?: string;
@@ -87,6 +93,9 @@ interface ManageCustomerPayload {
   is_active?: string;
 }
 
+/**
+ * Payload for updating an existing customer
+ */
 interface UpdateCustomerPayload {
   name?: string;
   short_name?: string;
@@ -114,6 +123,9 @@ interface UpdateCustomerPayload {
   is_active?: string;
 }
 
+/**
+ * Query parameters for fetching customers with filters and pagination
+ */
 interface GetCustomersParams {
   page?: number;
   limit?: number;
@@ -125,6 +137,9 @@ interface GetCustomersParams {
   salesperson_id?: number;
 }
 
+/**
+ * Pagination metadata interface
+ */
 interface PaginationMeta {
   requestDuration: number;
   timestamp: string;
@@ -139,6 +154,9 @@ interface PaginationMeta {
   totalPages: number;
 }
 
+/**
+ * Customer statistics interface
+ */
 interface CustomerStats {
   new_customers_this_month: number;
   total_customers: number;
@@ -221,17 +239,28 @@ export const deleteCustomer = async (
   return response.data;
 };
 
+/**
+ * Customer dropdown option interface
+ */
 export interface CustomerDropdown {
   id: number;
   name: string;
   code: string;
 }
 
+/**
+ * Parameters for fetching customers dropdown
+ */
 export interface GetCustomersDropdownParams {
   search?: string;
   customer_id?: number;
 }
 
+/**
+ * Fetch customers for dropdown selection
+ * @param params - Query parameters for filtering dropdown results
+ * @returns Promise<ApiResponse<CustomerDropdown[]>>
+ */
 export const fetchCustomersDropdown = async (
   params?: GetCustomersDropdownParams
 ): Promise<ApiResponse<CustomerDropdown[]>> => {
@@ -243,14 +272,49 @@ export const fetchCustomersDropdown = async (
   }
 };
 
+/**
+ * Customer relations interface containing related entity IDs
+ */
+interface CustomerRelations {
+  customer_id: number;
+  zones_id?: number | null;
+  route_id?: number | null;
+  salesperson_id?: number | null;
+  customer_type_id?: number | null;
+  visit_ids: number[];
+}
+
+/**
+ * Fetch customer relations (zones, routes, salespersons, types, visits)
+ * @param id - Customer ID
+ * @returns Promise<ApiResponse<CustomerRelations>>
+ */
+export const fetchCustomerRelations = async (
+  id: number
+): Promise<ApiResponse<CustomerRelations>> => {
+  try {
+    const response = await axiosInstance.get(`/customers/${id}/relations`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Default export object containing all customer service functions
+ */
 export default {
   fetchCustomers,
   fetchCustomerById,
   createCustomer,
   updateCustomer,
   deleteCustomer,
+  fetchCustomerRelations,
 };
 
+/**
+ * Type exports for customer-related interfaces
+ */
 export type {
   GetCustomersParams,
   ManageCustomerPayload,
@@ -258,4 +322,5 @@ export type {
   PaginationMeta,
   CustomerStats,
   Customer,
+  CustomerRelations,
 };
