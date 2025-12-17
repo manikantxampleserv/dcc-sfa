@@ -1987,9 +1987,9 @@ model visits {
   start_time          DateTime?
   end_time            DateTime?
   duration            Int?
-  customer_images     String?               @db.NVarChar(500)
-  cooler_images       String?               @db.NVarChar(500)
-  self_images         String?               @db.NVarChar(500)
+  customer_image      String?               @db.NVarChar(255)
+  cooler_image        String?               @db.NVarChar(255)
+  self_image          String?               @db.NVarChar(255)
   start_latitude      Decimal?              @db.Decimal(10, 8)
   start_longitude     Decimal?              @db.Decimal(11, 8)
   end_latitude        Decimal?              @db.Decimal(10, 8)
