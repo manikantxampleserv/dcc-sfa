@@ -2,7 +2,6 @@ import prisma from '../../configs/prisma.client';
 
 interface MockOrder {
   order_number: string;
-  customer_name: string;
   order_date?: Date;
   delivery_date?: Date;
   status?: string;
@@ -25,7 +24,6 @@ interface MockOrder {
 const mockOrders: MockOrder[] = [
   {
     order_number: 'ORD-001',
-    customer_name: 'Retail Store 1',
     order_date: new Date('2024-01-15'),
     delivery_date: new Date('2024-01-20'),
     status: 'delivered',
@@ -46,7 +44,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-002',
-    customer_name: 'Wholesale Hub 2',
     order_date: new Date('2024-01-16'),
     delivery_date: new Date('2024-01-22'),
     status: 'pending',
@@ -67,7 +64,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-003',
-    customer_name: 'Corporate Center 3',
     order_date: new Date('2024-01-17'),
     delivery_date: new Date('2024-01-25'),
     status: 'shipped',
@@ -88,7 +84,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-004',
-    customer_name: 'Industrial Supplies Co 5',
     order_date: new Date('2024-01-18'),
     delivery_date: new Date('2024-01-26'),
     status: 'processing',
@@ -109,7 +104,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-005',
-    customer_name: 'Healthcare Solutions 6',
     order_date: new Date('2024-01-19'),
     delivery_date: new Date('2024-01-28'),
     status: 'delivered',
@@ -130,7 +124,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-006',
-    customer_name: 'Automotive Parts 7',
     order_date: new Date('2024-01-20'),
     delivery_date: new Date('2024-01-30'),
     status: 'cancelled',
@@ -151,7 +144,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-007',
-    customer_name: 'Restaurant Chain 8',
     order_date: new Date('2024-01-21'),
     delivery_date: new Date('2024-02-01'),
     status: 'pending',
@@ -172,7 +164,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-008',
-    customer_name: 'Service Providers 9',
     order_date: new Date('2024-01-22'),
     delivery_date: new Date('2024-02-02'),
     status: 'shipped',
@@ -193,7 +184,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-009',
-    customer_name: 'Manufacturing Co 10',
     order_date: new Date('2024-01-23'),
     delivery_date: new Date('2024-02-05'),
     status: 'processing',
@@ -214,7 +204,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-010',
-    customer_name: 'Distribution Hub 11',
     order_date: new Date('2024-01-24'),
     delivery_date: new Date('2024-02-08'),
     status: 'delivered',
@@ -235,7 +224,6 @@ const mockOrders: MockOrder[] = [
   },
   {
     order_number: 'ORD-011',
-    customer_name: 'Closed Business',
     order_date: new Date('2020-01-01'),
     delivery_date: new Date('2020-01-10'),
     status: 'cancelled',
@@ -259,11 +247,50 @@ const mockOrders: MockOrder[] = [
 export async function seedOrders(): Promise<void> {
   const customers = await prisma.customers.findMany({
     select: { id: true, name: true },
-    take: 11, // Only get first 11 customers
+    where: { is_active: 'Y' },
+    take: 11,
   });
 
   if (customers.length === 0) {
     console.log('No customers found. Please run customers seeder first.');
+    return;
+  }
+
+  const products = await prisma.products.findMany({
+    select: { id: true, name: true },
+    where: { is_active: 'Y' },
+    take: 50,
+  });
+
+  if (products.length === 0) {
+    console.log('No products found. Please run products seeder first.');
+    return;
+  }
+
+  const salesPersonRole = await prisma.roles.findFirst({
+    where: { name: 'Sales Person' },
+  });
+
+  const salespersons = await prisma.users.findMany({
+    select: { id: true, name: true },
+    where: {
+      role_id: salesPersonRole?.id,
+      is_active: 'Y',
+    },
+  });
+
+  if (salespersons.length === 0) {
+    const adminUser = await prisma.users.findFirst({
+      where: { email: 'admin@dcc.com' },
+      select: { id: true, name: true },
+    });
+    if (adminUser) {
+      salespersons.push(adminUser);
+    }
+  }
+
+  if (salespersons.length === 0) {
+    console.log('No salespersons found. Please run users seeder first.');
     return;
   }
 
@@ -274,14 +301,14 @@ export async function seedOrders(): Promise<void> {
     });
 
     if (!existingOrder) {
-      // Use the customer at the same index, or cycle through if we have fewer customers
       const customer = customers[i % customers.length];
+      const salesperson = salespersons[i % salespersons.length];
 
-      await prisma.orders.create({
+      const createdOrder = await prisma.orders.create({
         data: {
           order_number: order.order_number,
           parent_id: customer.id,
-          salesperson_id: 1,
+          salesperson_id: salesperson.id,
           order_date: order.order_date,
           delivery_date: order.delivery_date,
           status: order.status,
@@ -297,22 +324,86 @@ export async function seedOrders(): Promise<void> {
           notes: order.notes,
           shipping_address: order.shipping_address,
           approval_status: order.approval_status,
-          approved_by: order.approval_status === 'approved' ? 1 : null,
+          approved_by:
+            order.approval_status === 'approved' ? salesperson.id : null,
           approved_at: order.approved_at,
           is_active: order.is_active,
           createdate: new Date(),
-          createdby: 1,
+          createdby: salesperson.id,
           log_inst: 1,
         },
       });
+
+      const itemsPerOrder = Math.min(2 + (i % 3), products.length);
+      const orderSubtotal = Number(order.subtotal) || 0;
+      const orderDiscount = Number(order.discount_amount) || 0;
+      const orderTax = Number(order.tax_amount) || 0;
+
+      if (orderSubtotal > 0) {
+        const selectedProducts = products
+          .sort(() => Math.random() - 0.5)
+          .slice(0, itemsPerOrder);
+
+        const itemSubtotals: number[] = [];
+        let remainingSubtotal = orderSubtotal;
+
+        for (let j = 0; j < selectedProducts.length; j++) {
+          if (j === selectedProducts.length - 1) {
+            itemSubtotals.push(remainingSubtotal);
+          } else {
+            const itemAmount = Math.max(
+              10,
+              Math.floor(
+                (remainingSubtotal / (selectedProducts.length - j)) *
+                  (0.5 + Math.random())
+              )
+            );
+            itemSubtotals.push(itemAmount);
+            remainingSubtotal -= itemAmount;
+          }
+        }
+
+        const orderItemsData = selectedProducts.map((product, idx) => {
+          const itemSubtotal = itemSubtotals[idx] || 10;
+          const quantity = 1 + Math.floor(Math.random() * 10);
+          const unitPrice = Number((itemSubtotal / quantity).toFixed(2));
+          const itemDiscount =
+            orderDiscount > 0
+              ? Number((orderDiscount / selectedProducts.length).toFixed(2))
+              : 0;
+          const itemTax =
+            orderTax > 0
+              ? Number((orderTax / selectedProducts.length).toFixed(2))
+              : Number((itemSubtotal * 0.08).toFixed(2));
+          const totalAmount = Number(
+            (itemSubtotal - itemDiscount + itemTax).toFixed(2)
+          );
+
+          return {
+            parent_id: createdOrder.id,
+            product_id: product.id,
+            product_name: product.name,
+            unit: 'PCS',
+            quantity: quantity,
+            unit_price: unitPrice,
+            discount_amount: itemDiscount,
+            tax_amount: itemTax,
+            total_amount: totalAmount,
+            notes: null,
+            is_free_gift: false,
+          };
+        });
+
+        await prisma.order_items.createMany({
+          data: orderItemsData,
+        });
+      }
     }
   }
 }
 
 export async function clearOrders(): Promise<void> {
-  // Delete order items first due to foreign key constraints
   await prisma.order_items.deleteMany({});
-  // Then delete orders
   await prisma.orders.deleteMany({});
 }
 

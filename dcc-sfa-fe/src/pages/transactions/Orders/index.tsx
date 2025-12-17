@@ -477,48 +477,50 @@ const OrdersManagement: React.FC = () => {
                   </>
                 )}
               </div>
-              {isRead && (
-                <div className="flex gap-2 items-center">
-                  <PopConfirm
-                    title="Export Orders"
-                    description="Are you sure you want to export the current orders data to Excel? This will include all filtered results."
-                    onConfirm={handleExportToExcel}
-                    confirmText="Export"
-                    cancelText="Cancel"
-                    placement="top"
-                  >
+              <div className="flex gap-2 items-center">
+                {isRead && (
+                  <div className="flex gap-2 items-center">
+                    <PopConfirm
+                      title="Export Orders"
+                      description="Are you sure you want to export the current orders data to Excel? This will include all filtered results."
+                      onConfirm={handleExportToExcel}
+                      confirmText="Export"
+                      cancelText="Cancel"
+                      placement="top"
+                    >
+                      <Button
+                        variant="outlined"
+                        className="!capitalize"
+                        startIcon={<Download />}
+                        disabled={exportToExcelMutation.isPending}
+                      >
+                        {exportToExcelMutation.isPending
+                          ? 'Exporting...'
+                          : 'Export'}
+                      </Button>
+                    </PopConfirm>
                     <Button
                       variant="outlined"
                       className="!capitalize"
-                      startIcon={<Download />}
-                      disabled={exportToExcelMutation.isPending}
+                      startIcon={<Upload />}
+                      onClick={() => setImportModalOpen(true)}
                     >
-                      {exportToExcelMutation.isPending
-                        ? 'Exporting...'
-                        : 'Export'}
+                      Import
                     </Button>
-                  </PopConfirm>
+                  </div>
+                )}
+                {isCreate && (
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     className="!capitalize"
-                    startIcon={<Upload />}
-                    onClick={() => setImportModalOpen(true)}
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateOrder}
                   >
-                    Import
+                    Create
                   </Button>
-                </div>
-              )}
-              {isCreate && (
-                <Button
-                  variant="contained"
-                  className="!capitalize"
-                  disableElevation
-                  startIcon={<Add />}
-                  onClick={handleCreateOrder}
-                >
-                  Create
-                </Button>
-              )}
+                )}
+              </div>
             </div>
           ) : (
             false

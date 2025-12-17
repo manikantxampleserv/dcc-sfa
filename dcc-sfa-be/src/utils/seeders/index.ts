@@ -81,6 +81,11 @@ import {
   clearCoolerSubTypes,
   seedCoolerSubTypes,
 } from './coolerSubTypes.seeder';
+import { clearCoolers, seedCoolers } from './coolers.seeder';
+import {
+  clearCoolerInspections,
+  seedCoolerInspections,
+} from './coolerInspections.seeder';
 import {
   clearSalesTargetGroups,
   seedSalesTargetGroups,
@@ -245,6 +250,12 @@ const seeders = {
     clear: clearCoolerSubTypes,
     name: 'Cooler Sub Types',
   },
+  coolers: { seed: seedCoolers, clear: clearCoolers, name: 'Coolers' },
+  'cooler-inspections': {
+    seed: seedCoolerInspections,
+    clear: clearCoolerInspections,
+    name: 'Cooler Inspections',
+  },
   users: { seed: seedUsers, clear: clearUsers, name: 'Users' },
 };
 
@@ -337,6 +348,12 @@ export async function seedAll(): Promise<void> {
     await seedSection('customer-channel');
     await seedSection('customer-category');
     await seedSection('customers');
+
+    // 6.5. Cooler management (depends on customers, cooler-types, cooler-sub-types)
+    await seedSection('cooler-types');
+    await seedSection('cooler-sub-types');
+    await seedSection('coolers');
+    await seedSection('cooler-inspections');
 
     // 7. Operations (depends on customers, products)
     await seedSection('routes');

@@ -1,17 +1,7 @@
-/**
- * @fileoverview Visits Seeder
- * @description Creates 11 sample visits for testing and development
- * @author DCC-SFA Team
- * @version 1.0.0
- */
-
 import logger from '../../configs/logger';
 import prisma from '../../configs/prisma.client';
 
 interface MockVisit {
-  customer_name: string;
-  route_name: string;
-  zone_name: string;
   visit_date?: Date;
   visit_time?: string;
   purpose?: string;
@@ -33,12 +23,8 @@ interface MockVisit {
   is_active: string;
 }
 
-// Mock Visits Data (11 visits)
 const mockVisits: MockVisit[] = [
   {
-    customer_name: 'TechCorp Solutions',
-    route_name: 'North Downtown Route',
-    zone_name: 'North Zone',
     visit_date: new Date('2024-01-15'),
     visit_time: '09:00',
     purpose: 'sales',
@@ -60,9 +46,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'Y',
   },
   {
-    customer_name: 'Global Industries',
-    route_name: 'South Business District',
-    zone_name: 'South Zone',
     visit_date: new Date('2024-01-16'),
     visit_time: '10:00',
     purpose: 'delivery',
@@ -84,9 +67,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'Y',
   },
   {
-    customer_name: 'Metro Logistics',
-    route_name: 'West Industrial Zone',
-    zone_name: 'West Zone',
     visit_date: new Date('2024-01-17'),
     visit_time: '14:00',
     purpose: 'collection',
@@ -108,9 +88,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'Y',
   },
   {
-    customer_name: 'Coastal Enterprises',
-    route_name: 'East Residential Area',
-    zone_name: 'East Zone',
     visit_date: new Date('2024-01-18'),
     visit_time: '11:00',
     purpose: 'survey',
@@ -132,9 +109,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'Y',
   },
   {
-    customer_name: 'Mountain Supply Co',
-    route_name: 'Central Mall Circuit',
-    zone_name: 'Central Zone',
     visit_date: new Date('2024-01-19'),
     visit_time: '13:00',
     purpose: 'maintenance',
@@ -156,9 +130,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'Y',
   },
   {
-    customer_name: 'TechCorp Solutions',
-    route_name: 'Suburban Express',
-    zone_name: 'Suburban Zone',
     visit_date: new Date('2024-01-20'),
     visit_time: '15:00',
     purpose: 'sales',
@@ -180,9 +151,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'Y',
   },
   {
-    customer_name: 'Global Industries',
-    route_name: 'University District',
-    zone_name: 'University Zone',
     visit_date: new Date('2024-01-21'),
     visit_time: '16:00',
     purpose: 'delivery',
@@ -204,9 +172,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'Y',
   },
   {
-    customer_name: 'Metro Logistics',
-    route_name: 'Coastal Highway',
-    zone_name: 'Coastal Zone',
     visit_date: new Date('2024-01-22'),
     visit_time: '08:00',
     purpose: 'collection',
@@ -228,9 +193,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'N',
   },
   {
-    customer_name: 'Coastal Enterprises',
-    route_name: 'Port Authority Route',
-    zone_name: 'Port Zone',
     visit_date: new Date('2024-01-23'),
     visit_time: '12:00',
     purpose: 'survey',
@@ -252,9 +214,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'Y',
   },
   {
-    customer_name: 'Mountain Supply Co',
-    route_name: 'Mountain Pass Route',
-    zone_name: 'Mountain Zone',
     visit_date: new Date('2024-01-24'),
     visit_time: '07:00',
     purpose: 'maintenance',
@@ -276,9 +235,6 @@ const mockVisits: MockVisit[] = [
     is_active: 'Y',
   },
   {
-    customer_name: 'Defunct Industries',
-    route_name: 'Discontinued Route',
-    zone_name: 'Closed Zone',
     visit_date: new Date('2020-01-01'),
     visit_time: '00:00',
     purpose: 'closure',
@@ -301,12 +257,8 @@ const mockVisits: MockVisit[] = [
   },
 ];
 
-/**
- * Seed Visits with mock data
- */
 export async function seedVisits(): Promise<void> {
   try {
-    // Get all customers, routes, and zones for lookup
     const customers = await prisma.customers.findMany({
       select: { id: true, name: true },
       where: { is_active: 'Y' },
@@ -337,18 +289,43 @@ export async function seedVisits(): Promise<void> {
       return;
     }
 
+    const salesPersonRole = await prisma.roles.findFirst({
+      where: { name: 'Sales Person' },
+    });
+
+    const salespersons = await prisma.users.findMany({
+      select: { id: true, name: true },
+      where: {
+        role_id: salesPersonRole?.id,
+        is_active: 'Y',
+      },
+    });
+
+    if (salespersons.length === 0) {
+      const adminUser = await prisma.users.findFirst({
+        where: { email: 'admin@dcc.com' },
+        select: { id: true, name: true },
+      });
+      if (adminUser) {
+        salespersons.push(adminUser);
+      }
+    }
+
+    if (salespersons.length === 0) {
+      logger.warn('No salespersons found. Please run users seeder first.');
+      return;
+    }
+
     let visitsCreated = 0;
     let visitsSkipped = 0;
 
     for (let i = 0; i < mockVisits.length; i++) {
       const visit = mockVisits[i];
 
-      // Use actual customers, routes, and zones by cycling through them
       const customer = customers[i % customers.length];
-      const route =
-        routes.find(r => r.name === visit.route_name) ||
-        routes[i % routes.length];
+      const route = routes[i % routes.length];
       const zone = zones[i % zones.length];
+      const salesperson = salespersons[i % salespersons.length];
 
       const existingVisit = await prisma.visits.findFirst({
         where: {
@@ -360,7 +337,7 @@ export async function seedVisits(): Promise<void> {
         await prisma.visits.create({
           data: {
             customer_id: customer.id,
-            sales_person_id: 1, // Use admin user ID
+            sales_person_id: salesperson.id,
             route_id: route.id,
             zones_id: zone.id,
             visit_date: visit.visit_date,
@@ -383,7 +360,7 @@ export async function seedVisits(): Promise<void> {
             next_visit_date: visit.next_visit_date,
             is_active: visit.is_active,
             createdate: new Date(),
-            createdby: 1,
+            createdby: salesperson.id,
             log_inst: 1,
           },
         });
@@ -403,9 +380,6 @@ export async function seedVisits(): Promise<void> {
   }
 }
 
-/**
- * Clear Visits data
- */
 export async function clearVisits(): Promise<void> {
   try {
     await prisma.visits.deleteMany({});
