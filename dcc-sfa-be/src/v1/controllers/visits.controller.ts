@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { parse } from 'path';
 
 interface VisitSerialized {
   id: number;
@@ -141,6 +142,7 @@ interface VisitSerialized {
     }>;
   }>;
 }
+
 interface BulkVisitInput {
   visit: {
     visit_id?: number;
@@ -272,6 +274,7 @@ interface BulkVisitInput {
     };
   };
 }
+
 const serializeVisit = (visit: any): VisitSerialized => ({
   id: visit.id,
   customer_id: visit.customer_id,
@@ -477,6 +480,7 @@ const serializeVisit = (visit: any): VisitSerialized => ({
 // };
 
 // Add this function at the top of your file or in a separate utils file
+
 const generatePaymentNumberInTransaction = async (tx: any) => {
   const prefix = 'PAY';
   const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
@@ -519,6 +523,7 @@ const generatePaymentNumberInTransaction = async (tx: any) => {
 
   return paymentNumber;
 };
+
 export const visitsController = {
   async createVisits(req: Request, res: Response) {
     try {
@@ -2084,6 +2089,228 @@ export const visitsController = {
       });
     }
   },
+
+  // async getAllVisits(req: any, res: any) {
+  //   try {
+  //     console.log('Request Query:', req.query);
+  //     console.log('Request User:', req.user);
+
+  //     const {
+  //       page,
+  //       limit,
+  //       search,
+  //       sales_person_id,
+  //       status,
+  //       isActive,
+  //       startDate,
+  //     } = req.query;
+
+  //     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+  //     const limitNum = Math.min(
+  //       100,
+  //       Math.max(1, parseInt(limit as string, 10) || 10)
+  //     );
+  //     const searchLower = search ? (search as string).toLowerCase().trim() : '';
+
+  //     console.log('Parsed Pagination:', { pageNum, limitNum });
+  //     console.log('Search Term:', searchLower);
+
+  //     const allowedStatuses = [
+  //       'pending',
+  //       'completed',
+  //       'cancelled',
+  //       'in_progress',
+  //     ];
+  //     if (status && !allowedStatuses.includes(status as string)) {
+  //       console.log('Invalid status:', status);
+  //       return res.status(400).json({ message: 'Invalid status value' });
+  //     }
+
+  //     if (isActive && !['Y', 'N'].includes(isActive as string)) {
+  //       console.log('Invalid isActive:', isActive);
+  //       return res.status(400).json({ message: 'Invalid isActive value' });
+  //     }
+
+  //     const filters: any = {};
+  //     const userRole = req.user?.role?.toLowerCase();
+  //     const userId = req.user?.id;
+
+  //     console.log('User Role:', userRole, 'User ID:', userId);
+
+  //     if (userRole === 'technician') {
+  //       console.log('Applying Technician filters - inspection visits only');
+  //       filters.sales_person_id = userId;
+  //       filters.cooler_inspections = {
+  //         some: {},
+  //       };
+  //       console.log('Technician filters:', filters);
+  //     } else if (userRole === 'salesman' || userRole === 'salesperson') {
+  //       console.log(
+  //         'Applying Salesman/Salesperson filters - sales visits only'
+  //       );
+  //       filters.sales_person_id = userId;
+  //       filters.OR = [
+  //         { purpose: { contains: 'sales' } },
+  //         { purpose: { contains: 'order' } },
+  //         { purpose: { contains: 'follow_up' } },
+  //         { purpose: { contains: 'new_customer' } },
+  //       ];
+  //       console.log('Salesman filters:', filters);
+  //     } else if (userRole === 'merchandiser') {
+  //       console.log(
+  //         'Applying Merchandiser filters - merchandising visits only'
+  //       );
+  //       filters.sales_person_id = userId;
+  //       filters.OR = [
+  //         { purpose: { contains: 'merchandising' } },
+  //         { purpose: { contains: 'shelf_arrangement' } },
+  //         { purpose: { contains: 'stock_check' } },
+  //         { purpose: { contains: 'display_setup' } },
+  //       ];
+  //       console.log('Merchandiser filters:', filters);
+  //     } else if (userRole === 'supervisor') {
+  //       console.log('Applying Supervisor filters - own visits only');
+  //       filters.sales_person_id = userId;
+  //       console.log('Supervisor filters:', filters);
+  //     } else if (userRole === 'admin' || userRole === 'manager') {
+  //       console.log(
+  //         'Admin/Manager role - can see all visits or filter by sales_person_id'
+  //       );
+  //       if (sales_person_id) {
+  //         const salesPersonIdNum = parseInt(sales_person_id as string, 10);
+  //         if (isNaN(salesPersonIdNum)) {
+  //           console.log('Invalid sales_person_id (NaN):', sales_person_id);
+  //           return res.status(400).json({ message: 'Invalid sales_person_id' });
+  //         }
+  //         filters.sales_person_id = salesPersonIdNum;
+  //         console.log('Filtered by sales_person_id:', salesPersonIdNum);
+  //       } else {
+  //         console.log('No sales_person_id filter - showing all visits');
+  //       }
+  //     } else {
+  //       console.log('Unknown role, restricting to own data');
+  //       filters.sales_person_id = parseInt(userId as string, 10);
+  //     }
+
+  //     if (startDate) {
+  //       console.log('Processing startDate:', startDate);
+  //       const start = new Date(startDate as string);
+  //       if (isNaN(start.getTime())) {
+  //         console.log('Invalid date format:', startDate);
+  //         return res.status(400).json({
+  //           message: 'Invalid date format. Please use YYYY-MM-DD',
+  //         });
+  //       }
+
+  //       start.setHours(0, 0, 0, 0);
+  //       const end = new Date(start);
+  //       end.setDate(start.getDate() + 7);
+  //       end.setHours(23, 59, 59, 999);
+
+  //       filters.visit_date = { gte: start, lte: end };
+  //       console.log('Date range filter:', { start, end });
+  //     }
+
+  //     if (searchLower) {
+  //       console.log('Applying search filter for term:', searchLower);
+  //       const searchOr = [
+  //         { purpose: { contains: searchLower } },
+  //         { status: { contains: searchLower } },
+  //         { visit_notes: { contains: searchLower } },
+  //       ];
+
+  //       console.log('Search OR conditions:', searchOr);
+
+  //       if (filters.OR) {
+  //         console.log('Combining search with existing OR filters');
+  //         console.log('Existing OR:', filters.OR);
+  //         filters.AND = [{ OR: filters.OR }, { OR: searchOr }];
+  //         delete filters.OR;
+  //         console.log('Combined AND filters:', filters.AND);
+  //       } else {
+  //         filters.OR = searchOr;
+  //         console.log('Applied search OR filters');
+  //       }
+  //     }
+
+  //     if (status) {
+  //       console.log('Applying status filter:', status);
+  //       filters.status = status as string;
+  //     }
+
+  //     if (isActive) {
+  //       console.log('Applying isActive filter:', isActive);
+  //       filters.is_active = isActive as string;
+  //     }
+
+  //     console.log(JSON.stringify(filters, null, 2));
+
+  //     const { data, pagination } = await paginate({
+  //       model: prisma.visits,
+  //       filters,
+  //       page: pageNum,
+  //       limit: limitNum,
+  //       orderBy: { createdate: 'desc' },
+  //       include: {
+  //         visit_customers: true,
+  //         visits_salesperson: true,
+  //         visit_routes: true,
+  //         visit_zones: true,
+  //         cooler_inspections: true,
+  //       },
+  //     });
+
+  //     const now = new Date();
+  //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  //     const endOfMonth = new Date(
+  //       now.getFullYear(),
+  //       now.getMonth() + 1,
+  //       0,
+  //       23,
+  //       59,
+  //       59,
+  //       999
+  //     );
+
+  //     const [totalVisits, activeVisits, inactiveVisits, newVisitsThisMonth] =
+  //       await Promise.all([
+  //         prisma.visits.count({ where: filters }),
+  //         prisma.visits.count({ where: { ...filters, is_active: 'Y' } }),
+  //         prisma.visits.count({ where: { ...filters, is_active: 'N' } }),
+  //         prisma.visits.count({
+  //           where: {
+  //             ...filters,
+  //             createdate: { gte: startOfMonth, lte: endOfMonth },
+  //           },
+  //         }),
+  //       ]);
+
+  //     console.log('Statistics:', {
+  //       totalVisits,
+  //       activeVisits,
+  //       inactiveVisits,
+  //       newVisitsThisMonth,
+  //     });
+
+  //     const serializedData = data.map((visit: any) => serializeVisit(visit));
+
+  //     res.success(
+  //       'Visits retrieved successfully',
+  //       serializedData,
+  //       200,
+  //       pagination,
+  //       {
+  //         total_visits: totalVisits,
+  //         active_visits: activeVisits,
+  //         inactive_visits: inactiveVisits,
+  //         new_visits: newVisitsThisMonth,
+  //       }
+  //     );
+  //   } catch (error: any) {
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async getAllVisits(req: any, res: any) {
     try {
       console.log('Request Query:', req.query);
@@ -2131,59 +2358,55 @@ export const visitsController = {
 
       console.log('User Role:', userRole, 'User ID:', userId);
 
-      if (userRole === 'technician') {
-        console.log('Applying Technician filters - inspection visits only');
-        filters.sales_person_id = userId;
-        filters.cooler_inspections = {
-          some: {},
-        };
-        console.log('Technician filters:', filters);
-      } else if (userRole === 'salesman' || userRole === 'salesperson') {
-        console.log(
-          'Applying Salesman/Salesperson filters - sales visits only'
-        );
-        filters.sales_person_id = userId;
-        filters.OR = [
-          { purpose: { contains: 'sales' } },
-          { purpose: { contains: 'order' } },
-          { purpose: { contains: 'follow_up' } },
-          { purpose: { contains: 'new_customer' } },
-        ];
-        console.log('Salesman filters:', filters);
-      } else if (userRole === 'merchandiser') {
-        console.log(
-          'Applying Merchandiser filters - merchandising visits only'
-        );
-        filters.sales_person_id = userId;
-        filters.OR = [
-          { purpose: { contains: 'merchandising' } },
-          { purpose: { contains: 'shelf_arrangement' } },
-          { purpose: { contains: 'stock_check' } },
-          { purpose: { contains: 'display_setup' } },
-        ];
-        console.log('Merchandiser filters:', filters);
-      } else if (userRole === 'supervisor') {
-        console.log('Applying Supervisor filters - own visits only');
-        filters.sales_person_id = userId;
-        console.log('Supervisor filters:', filters);
-      } else if (userRole === 'admin' || userRole === 'manager') {
-        console.log(
-          'Admin/Manager role - can see all visits or filter by sales_person_id'
-        );
-        if (sales_person_id) {
-          const salesPersonIdNum = parseInt(sales_person_id as string, 10);
-          if (isNaN(salesPersonIdNum)) {
-            console.log('Invalid sales_person_id (NaN):', sales_person_id);
-            return res.status(400).json({ message: 'Invalid sales_person_id' });
-          }
-          filters.sales_person_id = salesPersonIdNum;
-          console.log('Filtered by sales_person_id:', salesPersonIdNum);
-        } else {
-          console.log('No sales_person_id filter - showing all visits');
+      if (sales_person_id) {
+        const salesPersonIdNum = parseInt(sales_person_id as string, 10);
+        if (isNaN(salesPersonIdNum)) {
+          return res.status(400).json({ message: 'Invalid sales_person_id' });
         }
+        filters.sales_person_id = salesPersonIdNum;
+        console.log('Filtering by sales_person_id:', salesPersonIdNum);
       } else {
-        console.log('Unknown role, restricting to own data');
-        filters.sales_person_id = parseInt(userId as string, 10);
+        if (userRole === 'technician') {
+          console.log('Applying Technician filters - inspection visits only');
+          filters.sales_person_id = userId;
+          filters.cooler_inspections = {
+            some: {},
+          };
+          console.log('Technician filters:', filters);
+        } else if (userRole === 'salesman' || userRole === 'salesperson') {
+          console.log(
+            'Applying Salesman/Salesperson filters - sales visits only'
+          );
+          filters.sales_person_id = userId;
+          filters.OR = [
+            { purpose: { contains: 'sales' } },
+            { purpose: { contains: 'order' } },
+            { purpose: { contains: 'follow_up' } },
+            { purpose: { contains: 'new_customer' } },
+          ];
+          console.log('Salesman filters:', filters);
+        } else if (userRole === 'merchandiser') {
+          console.log(
+            'Applying Merchandiser filters - merchandising visits only'
+          );
+          filters.sales_person_id = userId;
+          filters.OR = [
+            { purpose: { contains: 'merchandising' } },
+            { purpose: { contains: 'shelf_arrangement' } },
+            { purpose: { contains: 'stock_check' } },
+            { purpose: { contains: 'display_setup' } },
+          ];
+          console.log('Merchandiser filters:', filters);
+        } else if (userRole === 'supervisor') {
+          console.log('Applying Supervisor filters - own visits only');
+          filters.sales_person_id = userId;
+          console.log('Supervisor filters:', filters);
+        } else if (userRole === 'admin' || userRole === 'manager') {
+          console.log('Admin/Manager role - showing all visits');
+        } else {
+          console.log('Unknown role, restricting to own data');
+          filters.sales_person_id = parseInt(userId as string, 10);
+        }
       }
 
       if (startDate) {
@@ -2211,6 +2434,15 @@ export const visitsController = {
           { purpose: { contains: searchLower } },
           { status: { contains: searchLower } },
           { visit_notes: { contains: searchLower } },
+          {
+            visit_customers: {
+              OR: [
+                { name: { contains: searchLower } },
+                { code: { contains: searchLower } },
+                { phone_number: { contains: searchLower } },
+              ],
+            },
+          },
         ];
 
         console.log('Search OR conditions:', searchOr);
@@ -2237,7 +2469,7 @@ export const visitsController = {
         filters.is_active = isActive as string;
       }
 
-      console.log(JSON.stringify(filters, null, 2));
+      console.log('Final Filters:', JSON.stringify(filters, null, 2));
 
       const { data, pagination } = await paginate({
         model: prisma.visits,
@@ -2250,8 +2482,50 @@ export const visitsController = {
           visits_salesperson: true,
           visit_routes: true,
           visit_zones: true,
-          cooler_inspections: true,
+          cooler_inspections: {
+            include: {
+              coolers: true,
+            },
+          },
+          competitor_activity: true,
+          product_facing: true,
+          route_exceptions: true,
+          visit_attachments: true,
+          visit_tasks_visits: true,
         },
+      });
+
+      const customerIds = data
+        .filter((visit: any) => visit.customer_id)
+        .map((visit: any) => visit.customer_id);
+
+      const customerCoolers = await prisma.coolers.findMany({
+        where: {
+          customer_id: { in: customerIds },
+          is_active: 'Y',
+        },
+        select: {
+          id: true,
+          code: true,
+          brand: true,
+          model: true,
+          serial_number: true,
+          status: true,
+          capacity: true,
+          install_date: true,
+          last_service_date: true,
+          next_service_due: true,
+          temperature: true,
+          customer_id: true,
+        },
+      });
+
+      const coolersByCustomer = new Map();
+      customerCoolers.forEach(cooler => {
+        if (!coolersByCustomer.has(cooler.customer_id)) {
+          coolersByCustomer.set(cooler.customer_id, []);
+        }
+        coolersByCustomer.get(cooler.customer_id).push(cooler);
       });
 
       const now = new Date();
@@ -2286,7 +2560,29 @@ export const visitsController = {
         newVisitsThisMonth,
       });
 
-      const serializedData = data.map((visit: any) => serializeVisit(visit));
+      const serializedData = data
+        .filter((visit: any) => visit.visit_customers)
+        .map((visit: any) => {
+          const serialized = serializeVisit(visit);
+
+          if (serialized.customer) {
+            const customerCoolerList =
+              coolersByCustomer.get(visit.customer_id) || [];
+
+            const customerWithCoolers = {
+              ...serialized.customer,
+              coolers: customerCoolerList,
+              total_coolers: customerCoolerList.length,
+            };
+
+            return {
+              ...serialized,
+              customer: customerWithCoolers,
+            } as VisitSerialized;
+          }
+
+          return serialized;
+        });
 
       res.success(
         'Visits retrieved successfully',
@@ -2301,7 +2597,11 @@ export const visitsController = {
         }
       );
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('Get All Visits Error:', error);
+      res.status(500).json({
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
     }
   },
   async getVisitsById(req: Request, res: Response) {
@@ -2394,6 +2694,1339 @@ export const visitsController = {
     } catch (error: any) {
       console.log('Delete Visit Error:', error);
       res.status(500).json({ message: error.message });
+    }
+  },
+
+  // async getCustomerVisitsBySalesperson(req: any, res: any) {
+  //   try {
+  //     console.log('Request Query:', req.query);
+
+  //     const {
+  //       page,
+  //       limit,
+  //       search,
+  //       sales_person_id,
+  //       customer_name,
+  //       salesperson_name,
+  //       status,
+  //       isActive,
+  //       startDate,
+  //       endDate,
+  //       sortBy,
+  //       sortOrder,
+  //     } = req.query;
+
+  //     if (!sales_person_id) {
+  //       return res.status(400).json({
+  //         message: 'sales_person_id is required',
+  //       });
+  //     }
+
+  //     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+  //     const limitNum = Math.min(
+  //       100,
+  //       Math.max(1, parseInt(limit as string, 10) || 10)
+  //     );
+  //     const searchLower = search ? (search as string).toLowerCase().trim() : '';
+
+  //     const salesPersonIdNum = parseInt(sales_person_id as string, 10);
+  //     if (isNaN(salesPersonIdNum)) {
+  //       return res.status(400).json({
+  //         message: 'Invalid sales_person_id. Must be a number.',
+  //       });
+  //     }
+
+  //     const allowedStatuses = [
+  //       'pending',
+  //       'completed',
+  //       'cancelled',
+  //       'in_progress',
+  //       'scheduled',
+  //     ];
+  //     if (status && !allowedStatuses.includes(status as string)) {
+  //       return res.status(400).json({ message: 'Invalid status value' });
+  //     }
+
+  //     if (isActive && !['Y', 'N'].includes(isActive as string)) {
+  //       return res.status(400).json({ message: 'Invalid isActive value' });
+  //     }
+
+  //     const allowedSortFields = [
+  //       'visit_date',
+  //       'customer_name',
+  //       'salesperson_name',
+  //       'status',
+  //       'purpose',
+  //       'createdate',
+  //     ];
+
+  //     const sortByField = (sortBy as string) || 'createdate';
+  //     const sortOrderValue =
+  //       (sortOrder as string)?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+  //     const filters: any = {
+  //       sales_person_id: salesPersonIdNum,
+  //     };
+
+  //     if (customer_name) {
+  //       const customerNameTrim = (customer_name as string).trim();
+  //       filters.visit_customers = {
+  //         name: {
+  //           contains: customerNameTrim,
+  //         },
+  //       };
+  //     }
+
+  //     if (salesperson_name) {
+  //       const salespersonNameTrim = (salesperson_name as string).trim();
+  //       if (!filters.visits_salesperson) {
+  //         filters.visits_salesperson = {};
+  //       }
+  //       filters.visits_salesperson.name = {
+  //         contains: salespersonNameTrim,
+  //       };
+  //     }
+
+  //     if (startDate) {
+  //       const start = new Date(startDate as string);
+  //       if (isNaN(start.getTime())) {
+  //         return res.status(400).json({
+  //           message: 'Invalid startDate format. Please use YYYY-MM-DD',
+  //         });
+  //       }
+  //       start.setHours(0, 0, 0, 0);
+
+  //       if (endDate) {
+  //         const end = new Date(endDate as string);
+  //         if (isNaN(end.getTime())) {
+  //           return res.status(400).json({
+  //             message: 'Invalid endDate format. Please use YYYY-MM-DD',
+  //           });
+  //         }
+  //         end.setHours(23, 59, 59, 999);
+  //         filters.visit_date = { gte: start, lte: end };
+  //       } else {
+  //         const end = new Date(start);
+  //         end.setDate(start.getDate() + 7);
+  //         end.setHours(23, 59, 59, 999);
+  //         filters.visit_date = { gte: start, lte: end };
+  //       }
+  //     }
+  //     if (searchLower) {
+  //       filters.OR = [
+  //         { purpose: { contains: searchLower } },
+  //         { status: { contains: searchLower } },
+  //         { visit_notes: { contains: searchLower } },
+  //         { customer_name: { contains: searchLower } },
+  //         { salesperson_name: { contains: searchLower } },
+  //         {
+  //           visit_customers: {
+  //             OR: [
+  //               { name: { contains: searchLower } },
+  //               { code: { contains: searchLower } },
+  //               { phone_number: { contains: searchLower } },
+  //             ],
+  //           },
+  //         },
+  //       ];
+  //     }
+
+  //     if (status) {
+  //       filters.status = status as string;
+  //     }
+
+  //     if (isActive) {
+  //       filters.is_active = isActive as string;
+  //     }
+
+  //     let orderBy: any = { createdate: 'desc' };
+
+  //     if (sortByField === 'customer_name') {
+  //       orderBy = {
+  //         visit_customers: {
+  //           name: sortOrderValue,
+  //         },
+  //       };
+  //     } else if (sortByField === 'salesperson_name') {
+  //       orderBy = {
+  //         visits_salesperson: {
+  //           name: sortOrderValue,
+  //         },
+  //       };
+  //     } else {
+  //       orderBy = { [sortByField]: sortOrderValue };
+  //     }
+
+  //     console.log('Final Filters:', JSON.stringify(filters, null, 2));
+  //     console.log('OrderBy:', JSON.stringify(orderBy, null, 2));
+
+  //     const { data, pagination } = await paginate({
+  //       model: prisma.visits,
+  //       filters,
+  //       page: pageNum,
+  //       limit: limitNum,
+  //       orderBy: orderBy,
+  //       include: {
+  //         // visit_customers: {
+  //         //   select: {
+  //         //     id: true,
+  //         //     name: true,
+  //         //     code: true,
+  //         //     contact_person: true,
+  //         //     phone_number: true,
+  //         //     email: true,
+  //         //     address: true,
+  //         //     city: true,
+  //         //     state: true,
+  //         //     outstanding_amount: true,
+  //         //     credit_limit: true,
+  //         //     is_active: true,
+  //         //   },
+  //         // },
+  //         visit_customers: true,
+  //         // visits_salesperson: {
+  //         //   select: {
+  //         //     id: true,
+  //         //     name: true,
+  //         //     email: true,
+  //         //     phone_number: true,
+  //         //   },
+  //         // },
+  //         // visit_routes: {
+  //         //   select: {
+  //         //     id: true,
+  //         //     name: true,
+  //         //     code: true,
+  //         //   },
+  //         // },
+  //         // visit_zones: {
+  //         //   select: {
+  //         //     id: true,
+  //         //     name: true,
+  //         //     code: true,
+  //         //   },
+  //         // },
+  //       },
+  //     });
+
+  //     if (data.length === 0) {
+  //       return res.success(
+  //         'No visits found for this salesperson',
+  //         [],
+  //         200,
+  //         {
+  //           current_page: pageNum,
+  //           per_page: limitNum,
+  //           total: 0,
+  //           total_pages: 0,
+  //         },
+  //         {
+  //           sales_person_id: salesPersonIdNum,
+  //           customer_name_filter: customer_name || null,
+  //           salesperson_name_filter: salesperson_name || null,
+  //           total_visits: 0,
+  //           active_visits: 0,
+  //           inactive_visits: 0,
+  //           unique_customers: 0,
+  //           sort_order: sortOrderValue,
+  //         }
+  //       );
+  //     }
+
+  //     const now = new Date();
+  //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  //     const endOfMonth = new Date(
+  //       now.getFullYear(),
+  //       now.getMonth() + 1,
+  //       0,
+  //       23,
+  //       59,
+  //       59,
+  //       999
+  //     );
+
+  //     const [
+  //       totalVisits,
+  //       activeVisits,
+  //       inactiveVisits,
+  //       newVisitsThisMonth,
+  //       completedVisits,
+  //       pendingVisits,
+  //     ] = await Promise.all([
+  //       prisma.visits.count({ where: filters }),
+  //       prisma.visits.count({ where: { ...filters, is_active: 'Y' } }),
+  //       prisma.visits.count({ where: { ...filters, is_active: 'N' } }),
+  //       prisma.visits.count({
+  //         where: {
+  //           ...filters,
+  //           createdate: { gte: startOfMonth, lte: endOfMonth },
+  //         },
+  //       }),
+  //       prisma.visits.count({
+  //         where: { ...filters, status: 'completed' },
+  //       }),
+  //       prisma.visits.count({
+  //         where: { ...filters, status: 'pending' },
+  //       }),
+  //     ]);
+
+  //     const uniqueCustomers = await prisma.visits.findMany({
+  //       where: filters,
+  //       select: {
+  //         customer_id: true,
+  //       },
+  //       distinct: ['customer_id'],
+  //     });
+
+  //     let salespersonName = 'Unknown';
+  //     if (data.length > 0) {
+  //       const firstVisit = data[0] as any;
+  //       if (
+  //         firstVisit.visits_salesperson &&
+  //         firstVisit.visits_salesperson.name
+  //       ) {
+  //         salespersonName = firstVisit.visits_salesperson.name;
+  //       }
+  //     }
+
+  //     const serializedData = data
+  //       .filter((visit: any) => visit.visit_customers)
+  //       .map((visit: any) => ({
+  //         // id: visit.id,
+  //         // visit_date: visit.visit_date,
+  //         // visit_time: visit.visit_time,
+  //         // purpose: visit.purpose,
+  //         // status: visit.status,
+  //         // duration: visit.duration,
+  //         // check_in_time: visit.check_in_time,
+  //         // check_out_time: visit.check_out_time,
+  //         // visit_notes: visit.visit_notes,
+  //         // is_active: visit.is_active,
+  //         customer: visit.visit_customers,
+
+  //         // salesperson: visit.visits_salesperson
+  //         //   ? {
+  //         //       id: visit.visits_salesperson.id,
+  //         //       name: visit.visits_salesperson.name,
+  //         //       email: visit.visits_salesperson.email,
+  //         //       phone_number: visit.visits_salesperson.phone_number,
+  //         //     }
+  //         //   : null,
+  //         // route: visit.visit_routes
+  //         //   ? {
+  //         //       id: visit.visit_routes.id,
+  //         //       name: visit.visit_routes.name,
+  //         //       code: visit.visit_routes.code,
+  //         //     }
+  //         //   : null,
+  //         // zone: visit.visit_zones
+  //         //   ? {
+  //         //       id: visit.visit_zones.id,
+  //         //       name: visit.visit_zones.name,
+  //         //       code: visit.visit_zones.code,
+  //         //     }
+  //         //   : null,
+  //       }));
+
+  //     res.success(
+  //       `Visits retrieved successfully for salesperson ID: ${salesPersonIdNum}`,
+  //       serializedData,
+  //       200,
+  //       pagination,
+  //       {
+  //         sales_person_id: salesPersonIdNum,
+  //         salesperson_name: salespersonName,
+  //         customer_name_filter: customer_name || null,
+  //         salesperson_name_filter: salesperson_name || null,
+  //         total_visits: totalVisits,
+  //         active_visits: activeVisits,
+  //         inactive_visits: inactiveVisits,
+  //         new_visits_this_month: newVisitsThisMonth,
+  //         completed_visits: completedVisits,
+  //         pending_visits: pendingVisits,
+  //         unique_customers_visited: uniqueCustomers.length,
+  //         date_range: startDate
+  //           ? {
+  //               start: startDate,
+  //               end: endDate || 'Current + 7 days',
+  //             }
+  //           : 'All time',
+  //       }
+  //     );
+  //   } catch (error: any) {
+  //     console.error('Get Customer Visits By Salesperson Error:', error);
+  //     res.status(500).json({
+  //       message: error.message,
+  //       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+  //     });
+  //   }
+  // },
+
+  async getCustomerVisitsBySalesperson(req: any, res: any) {
+    try {
+      console.log('Request Query:', req.query);
+
+      const {
+        page,
+        limit,
+        search,
+        sales_person_id,
+        customer_name,
+        salesperson_name,
+        status,
+        isActive,
+        startDate,
+        endDate,
+        sortBy,
+        sortOrder,
+      } = req.query;
+
+      if (!sales_person_id) {
+        return res.status(400).json({
+          message: 'sales_person_id is required',
+        });
+      }
+
+      const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+      const limitNum = Math.min(
+        100,
+        Math.max(1, parseInt(limit as string, 10) || 10)
+      );
+      const searchLower = search ? (search as string).toLowerCase().trim() : '';
+
+      const salesPersonIdNum = parseInt(sales_person_id as string, 10);
+      if (isNaN(salesPersonIdNum)) {
+        return res.status(400).json({
+          message: 'Invalid sales_person_id. Must be a number.',
+        });
+      }
+
+      const allowedStatuses = [
+        'pending',
+        'completed',
+        'cancelled',
+        'in_progress',
+        'scheduled',
+        'planned',
+      ];
+      if (status && !allowedStatuses.includes(status as string)) {
+        return res.status(400).json({ message: 'Invalid status value' });
+      }
+
+      if (isActive && !['Y', 'N'].includes(isActive as string)) {
+        return res.status(400).json({ message: 'Invalid isActive value' });
+      }
+
+      const allowedSortFields = [
+        'visit_date',
+        'customer_name',
+        'salesperson_name',
+        'status',
+        'purpose',
+        'createdate',
+      ];
+
+      const sortByField = (sortBy as string) || 'createdate';
+      const sortOrderValue =
+        (sortOrder as string)?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+      const filters: any = {
+        sales_person_id: salesPersonIdNum,
+      };
+
+      if (customer_name) {
+        const customerNameTrim = (customer_name as string).trim();
+        filters.visit_customers = {
+          name: {
+            contains: customerNameTrim,
+            mode: 'insensitive',
+          },
+        };
+      }
+
+      if (salesperson_name) {
+        const salespersonNameTrim = (salesperson_name as string).trim();
+        if (!filters.visits_salesperson) {
+          filters.visits_salesperson = {};
+        }
+        filters.visits_salesperson.name = {
+          contains: salespersonNameTrim,
+          mode: 'insensitive',
+        };
+      }
+
+      if (startDate) {
+        const start = new Date(startDate as string);
+        if (isNaN(start.getTime())) {
+          return res.status(400).json({
+            message: 'Invalid startDate format. Please use YYYY-MM-DD',
+          });
+        }
+        start.setHours(0, 0, 0, 0);
+
+        if (endDate) {
+          const end = new Date(endDate as string);
+          if (isNaN(end.getTime())) {
+            return res.status(400).json({
+              message: 'Invalid endDate format. Please use YYYY-MM-DD',
+            });
+          }
+          end.setHours(23, 59, 59, 999);
+          filters.visit_date = { gte: start, lte: end };
+        } else {
+          const end = new Date(start);
+          end.setDate(start.getDate() + 7);
+          end.setHours(23, 59, 59, 999);
+          filters.visit_date = { gte: start, lte: end };
+        }
+      }
+
+      if (searchLower) {
+        filters.OR = [
+          { purpose: { contains: searchLower, mode: 'insensitive' } },
+          { status: { contains: searchLower, mode: 'insensitive' } },
+          { visit_notes: { contains: searchLower, mode: 'insensitive' } },
+          {
+            visit_customers: {
+              OR: [
+                { name: { contains: searchLower, mode: 'insensitive' } },
+                { code: { contains: searchLower, mode: 'insensitive' } },
+                {
+                  phone_number: { contains: searchLower, mode: 'insensitive' },
+                },
+                {
+                  contact_person: {
+                    contains: searchLower,
+                    mode: 'insensitive',
+                  },
+                },
+              ],
+            },
+          },
+        ];
+      }
+
+      if (status) {
+        filters.status = status as string;
+      }
+
+      if (isActive) {
+        filters.is_active = isActive as string;
+      }
+
+      let orderBy: any = { createdate: 'desc' };
+
+      if (sortByField === 'customer_name') {
+        orderBy = {
+          visit_customers: {
+            name: sortOrderValue,
+          },
+        };
+      } else if (sortByField === 'salesperson_name') {
+        orderBy = {
+          visits_salesperson: {
+            name: sortOrderValue,
+          },
+        };
+      } else {
+        orderBy = { [sortByField]: sortOrderValue };
+      }
+
+      console.log('Final Filters:', JSON.stringify(filters, null, 2));
+      console.log('OrderBy:', JSON.stringify(orderBy, null, 2));
+
+      const { data, pagination } = await paginate({
+        model: prisma.visits,
+        filters,
+        page: pageNum,
+        limit: limitNum,
+        orderBy: orderBy,
+        include: {
+          visit_customers: true,
+        },
+      });
+
+      if (data.length === 0) {
+        return res.success(
+          'No visits found for this salesperson',
+          [],
+          200,
+          {
+            current_page: pageNum,
+            per_page: limitNum,
+            total: 0,
+            total_pages: 0,
+          },
+          {
+            sales_person_id: salesPersonIdNum,
+            customer_name_filter: customer_name || null,
+            salesperson_name_filter: salesperson_name || null,
+            total_visits: 0,
+            active_visits: 0,
+            inactive_visits: 0,
+            unique_customers: 0,
+            sort_by: sortByField,
+            sort_order: sortOrderValue,
+          }
+        );
+      }
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+
+      const [
+        totalVisits,
+        activeVisits,
+        inactiveVisits,
+        newVisitsThisMonth,
+        completedVisits,
+        pendingVisits,
+      ] = await Promise.all([
+        prisma.visits.count({ where: filters }),
+        prisma.visits.count({ where: { ...filters, is_active: 'Y' } }),
+        prisma.visits.count({ where: { ...filters, is_active: 'N' } }),
+        prisma.visits.count({
+          where: {
+            ...filters,
+            createdate: { gte: startOfMonth, lte: endOfMonth },
+          },
+        }),
+        prisma.visits.count({
+          where: { ...filters, status: 'completed' },
+        }),
+        prisma.visits.count({
+          where: { ...filters, status: 'pending' },
+        }),
+      ]);
+
+      const uniqueCustomers = await prisma.visits.findMany({
+        where: filters,
+        select: {
+          customer_id: true,
+        },
+        distinct: ['customer_id'],
+      });
+
+      // CHANGED: Serialize data to return customer object directly (flattened)
+      const serializedData = data
+        .filter((visit: any) => visit.visit_customers)
+        .map((visit: any) => visit.visit_customers); // Return only customer data
+
+      res.success(
+        `Customer visits retrieved successfully for salesperson ID: ${salesPersonIdNum}`,
+        serializedData,
+        200,
+        pagination,
+        {
+          sales_person_id: salesPersonIdNum,
+          customer_name_filter: customer_name || null,
+          salesperson_name_filter: salesperson_name || null,
+          total_visits: totalVisits,
+          active_visits: activeVisits,
+          inactive_visits: inactiveVisits,
+          new_visits_this_month: newVisitsThisMonth,
+          completed_visits: completedVisits,
+          pending_visits: pendingVisits,
+          unique_customers_visited: uniqueCustomers.length,
+          sort_by: sortByField,
+          sort_order: sortOrderValue,
+          date_range: startDate
+            ? {
+                start: startDate,
+                end: endDate || 'Current + 7 days',
+              }
+            : 'All time',
+        }
+      );
+    } catch (error: any) {
+      console.error('Get Customer Visits By Salesperson Error:', error);
+      res.status(500).json({
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
+    }
+  },
+  // async getCoolerInspectionsForVisitedCustomers(req: any, res: any) {
+  //   try {
+  //     console.log('Request Query:', req.query);
+
+  //     const {
+  //       page,
+  //       limit,
+  //       search,
+  //       sales_person_id,
+  //       customer_id,
+  //       visit_id,
+  //       startDate,
+  //       endDate,
+  //       isActive,
+  //       requires_service,
+  //     } = req.query;
+
+  //     if (!sales_person_id && !customer_id && !visit_id) {
+  //       return res.status(400).json({
+  //         message:
+  //           'Either sales_person_id, customer_id, or visit_id is required',
+  //       });
+  //     }
+
+  //     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+  //     const limitNum = Math.min(
+  //       100,
+  //       Math.max(1, parseInt(limit as string, 10) || 10)
+  //     );
+  //     const searchLower = search ? (search as string).toLowerCase().trim() : '';
+
+  //     let salesPersonIdNum: number | null = null;
+  //     let customerIdNum: number | null = null;
+  //     let visitIdNum: number | null = null;
+
+  //     if (sales_person_id) {
+  //       salesPersonIdNum = parseInt(sales_person_id as string, 10);
+  //       if (isNaN(salesPersonIdNum)) {
+  //         return res.status(400).json({
+  //           message: 'Invalid sales_person_id. Must be a number.',
+  //         });
+  //       }
+  //     }
+
+  //     if (customer_id) {
+  //       customerIdNum = parseInt(customer_id as string, 10);
+  //       if (isNaN(customerIdNum)) {
+  //         return res.status(400).json({
+  //           message: 'Invalid customer_id. Must be a number.',
+  //         });
+  //       }
+  //     }
+
+  //     if (visit_id) {
+  //       visitIdNum = parseInt(visit_id as string, 10);
+  //       if (isNaN(visitIdNum)) {
+  //         return res.status(400).json({
+  //           message: 'Invalid visit_id. Must be a number.',
+  //         });
+  //       }
+  //     }
+
+  //     if (isActive && !['Y', 'N'].includes(isActive as string)) {
+  //       return res.status(400).json({ message: 'Invalid isActive value' });
+  //     }
+
+  //     const filters: any = {};
+
+  //     if (visitIdNum) {
+  //       filters.visit_id = visitIdNum;
+  //     }
+
+  //     const visitFilters: any = {};
+
+  //     if (salesPersonIdNum) {
+  //       visitFilters.sales_person_id = salesPersonIdNum;
+  //     }
+
+  //     if (customerIdNum) {
+  //       visitFilters.customer_id = customerIdNum;
+  //     }
+
+  //     if (startDate) {
+  //       const start = new Date(startDate as string);
+  //       if (isNaN(start.getTime())) {
+  //         return res.status(400).json({
+  //           message: 'Invalid startDate format. Please use YYYY-MM-DD',
+  //         });
+  //       }
+  //       start.setHours(0, 0, 0, 0);
+
+  //       if (endDate) {
+  //         const end = new Date(endDate as string);
+  //         if (isNaN(end.getTime())) {
+  //           return res.status(400).json({
+  //             message: 'Invalid endDate format. Please use YYYY-MM-DD',
+  //           });
+  //         }
+  //         end.setHours(23, 59, 59, 999);
+  //         visitFilters.visit_date = { gte: start, lte: end };
+  //       } else {
+  //         const end = new Date(start);
+  //         end.setDate(start.getDate() + 7);
+  //         end.setHours(23, 59, 59, 999);
+  //         visitFilters.visit_date = { gte: start, lte: end };
+  //       }
+  //     }
+
+  //     if (Object.keys(visitFilters).length > 0) {
+  //       filters.visits = visitFilters;
+  //     }
+
+  //     if (isActive) {
+  //       filters.is_active = isActive as string;
+  //     }
+
+  //     if (requires_service) {
+  //       filters.action_required = requires_service as string;
+  //     }
+
+  //     if (searchLower) {
+  //       filters.OR = [
+  //         { issues: { contains: searchLower } },
+  //         { action_taken: { contains: searchLower } },
+  //         { action_required: { contains: searchLower } },
+  //         { customer_name: { contains: searchLower } },
+  //         { salesperson_name: { contains: searchLower } },
+  //         {
+  //           coolers: {
+  //             OR: [
+  //               { code: { contains: searchLower } },
+  //               { brand: { contains: searchLower } },
+  //               { model: { contains: searchLower } },
+  //               { serial_number: { contains: searchLower } },
+  //             ],
+  //           },
+  //         },
+  //       ];
+  //     }
+
+  //     console.log('Final Filters:', JSON.stringify(filters, null, 2));
+
+  //     const { data, pagination } = await paginate({
+  //       model: prisma.cooler_inspections,
+  //       filters,
+  //       page: pageNum,
+  //       limit: limitNum,
+  //       orderBy: { createdate: 'desc' },
+  //       include: {
+  //         coolers: {
+  //           select: {
+  //             id: true,
+  //             code: true,
+  //             brand: true,
+  //             model: true,
+  //             serial_number: true,
+  //             status: true,
+  //             capacity: true,
+  //             temperature: true,
+  //             install_date: true,
+  //             last_service_date: true,
+  //             next_service_due: true,
+  //             customer_id: true,
+  //             is_active: true,
+  //           },
+  //         },
+  //         visits: {
+  //           select: {
+  //             id: true,
+  //             visit_date: true,
+  //             visit_time: true,
+  //             purpose: true,
+  //             status: true,
+  //             duration: true,
+  //             check_in_time: true,
+  //             check_out_time: true,
+  //             customer_id: true,
+  //             sales_person_id: true,
+  //             visit_customers: {
+  //               select: {
+  //                 id: true,
+  //                 name: true,
+  //                 code: true,
+  //                 contact_person: true,
+  //                 phone_number: true,
+  //                 email: true,
+  //                 city: true,
+  //                 state: true,
+  //               },
+  //             },
+  //             visits_salesperson: {
+  //               select: {
+  //                 id: true,
+  //                 name: true,
+  //                 email: true,
+  //                 phone_number: true,
+  //               },
+  //             },
+  //           },
+  //         },
+  //       },
+  //     });
+
+  //     if (data.length === 0) {
+  //       return res.success(
+  //         'No cooler inspections found',
+  //         [],
+  //         200,
+  //         {
+  //           current_page: pageNum,
+  //           per_page: limitNum,
+  //           total: 0,
+  //           total_pages: 0,
+  //         },
+  //         {
+  //           sales_person_id: salesPersonIdNum,
+  //           customer_id: customerIdNum,
+  //           visit_id: visitIdNum,
+  //           total_inspections: 0,
+  //           unique_coolers: 0,
+  //           unique_customers: 0,
+  //         }
+  //       );
+  //     }
+
+  //     const [
+  //       totalInspections,
+  //       activeInspections,
+  //       inactiveInspections,
+  //       inspectionsRequiringService,
+  //       inspectionsWithIssues,
+  //       coolersNotWorking,
+  //     ] = await Promise.all([
+  //       prisma.cooler_inspections.count({ where: filters }),
+  //       prisma.cooler_inspections.count({
+  //         where: { ...filters, is_active: 'Y' },
+  //       }),
+  //       prisma.cooler_inspections.count({
+  //         where: { ...filters, is_active: 'N' },
+  //       }),
+  //       prisma.cooler_inspections.count({
+  //         where: { ...filters, action_required: 'Y' },
+  //       }),
+  //       prisma.cooler_inspections.count({
+  //         where: { ...filters, issues: { not: null } },
+  //       }),
+  //       prisma.cooler_inspections.count({
+  //         where: { ...filters, is_working: 'N' },
+  //       }),
+  //     ]);
+
+  //     const uniqueCoolers = await prisma.cooler_inspections.findMany({
+  //       where: filters,
+  //       select: {
+  //         cooler_id: true,
+  //       },
+  //       distinct: ['cooler_id'],
+  //     });
+
+  //     const uniqueCustomers = [
+  //       ...new Set(
+  //         data
+  //           .map((inspection: any) => inspection.visits?.customer_id)
+  //           .filter(Boolean)
+  //       ),
+  //     ];
+
+  //     const uniqueVisits = [
+  //       ...new Set(data.map((inspection: any) => inspection.visit_id)),
+  //     ];
+
+  //     const serializedData = data.map((inspection: any) => ({
+  //       id: inspection.id,
+  //       visit_id: inspection.visit_id,
+  //       cooler_id: inspection.cooler_id,
+  //       inspection_date: inspection.inspection_date,
+  //       inspected_by: inspection.inspected_by,
+  //       temperature: inspection.temperature,
+  //       is_working: inspection.is_working,
+  //       issues: inspection.issues,
+  //       images: inspection.images,
+  //       action_required: inspection.action_required,
+  //       action_taken: inspection.action_taken,
+  //       next_inspection_due: inspection.next_inspection_due,
+  //       is_active: inspection.is_active,
+  //       created_date: inspection.createdate,
+
+  //       cooler: inspection.coolers
+  //         ? {
+  //             id: inspection.coolers.id,
+  //             code: inspection.coolers.code,
+  //             brand: inspection.coolers.brand,
+  //             model: inspection.coolers.model,
+  //             serial_number: inspection.coolers.serial_number,
+  //             status: inspection.coolers.status,
+  //             capacity: inspection.coolers.capacity,
+  //             temperature: inspection.coolers.temperature,
+  //             install_date: inspection.coolers.install_date,
+  //             last_service_date: inspection.coolers.last_service_date,
+  //             next_service_due: inspection.coolers.next_service_due,
+  //             is_active: inspection.coolers.is_active,
+  //           }
+  //         : null,
+
+  //       visit: inspection.visits
+  //         ? {
+  //             id: inspection.visits.id,
+  //             visit_date: inspection.visits.visit_date,
+  //             visit_time: inspection.visits.visit_time,
+  //             purpose: inspection.visits.purpose,
+  //             status: inspection.visits.status,
+  //             duration: inspection.visits.duration,
+  //             check_in_time: inspection.visits.check_in_time,
+  //             check_out_time: inspection.visits.check_out_time,
+
+  //             customer: inspection.visits.visit_customers
+  //               ? {
+  //                   id: inspection.visits.visit_customers.id,
+  //                   name: inspection.visits.visit_customers.name,
+  //                   code: inspection.visits.visit_customers.code,
+  //                   contact_person:
+  //                     inspection.visits.visit_customers.contact_person,
+  //                   phone_number:
+  //                     inspection.visits.visit_customers.phone_number,
+  //                   email: inspection.visits.visit_customers.email,
+  //                   city: inspection.visits.visit_customers.city,
+  //                   state: inspection.visits.visit_customers.state,
+  //                 }
+  //               : null,
+
+  //             salesperson: inspection.visits.visits_salesperson
+  //               ? {
+  //                   id: inspection.visits.visits_salesperson.id,
+  //                   name: inspection.visits.visits_salesperson.name,
+  //                   email: inspection.visits.visits_salesperson.email,
+  //                   phone_number:
+  //                     inspection.visits.visits_salesperson.phone_number,
+  //                 }
+  //               : null,
+  //           }
+  //         : null,
+  //     }));
+
+  //     res.success(
+  //       'Cooler inspections retrieved successfully',
+  //       serializedData,
+  //       200,
+  //       pagination,
+  //       {
+  //         filter_criteria: {
+  //           sales_person_id: salesPersonIdNum,
+  //           customer_id: customerIdNum,
+  //           visit_id: visitIdNum,
+  //         },
+  //         total_inspections: totalInspections,
+  //         active_inspections: activeInspections,
+  //         inactive_inspections: inactiveInspections,
+  //         inspections_requiring_service: inspectionsRequiringService,
+  //         inspections_with_issues: inspectionsWithIssues,
+  //         coolers_not_working: coolersNotWorking,
+  //         unique_coolers_inspected: uniqueCoolers.length,
+  //         unique_customers: uniqueCustomers.length,
+  //         unique_visits: uniqueVisits.length,
+  //       }
+  //     );
+  //   } catch (error: any) {
+  //     console.error('Get Cooler Inspections Error:', error);
+  //     res.status(500).json({
+  //       message: error.message,
+  //       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+  //     });
+  //   }
+  // },
+
+  async getCoolerInspectionsForVisitedCustomers(req: any, res: any) {
+    try {
+      console.log('Request Query:', req.query);
+
+      const {
+        page,
+        limit,
+        search,
+        sales_person_id,
+        customer_id,
+        visit_id,
+        startDate,
+        endDate,
+        isActive,
+        requires_service,
+        sortBy,
+        sortOrder,
+      } = req.query;
+
+      if (!sales_person_id && !customer_id && !visit_id) {
+        return res.status(400).json({
+          message:
+            'Either sales_person_id, customer_id, or visit_id is required',
+        });
+      }
+
+      const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+      const limitNum = Math.min(
+        100,
+        Math.max(1, parseInt(limit as string, 10) || 10)
+      );
+      const searchLower = search ? (search as string).toLowerCase().trim() : '';
+
+      let salesPersonIdNum: number | null = null;
+      let customerIdNum: number | null = null;
+      let visitIdNum: number | null = null;
+
+      if (sales_person_id) {
+        salesPersonIdNum = parseInt(sales_person_id as string, 10);
+        if (isNaN(salesPersonIdNum)) {
+          return res.status(400).json({
+            message: 'Invalid sales_person_id. Must be a number.',
+          });
+        }
+      }
+
+      if (customer_id) {
+        customerIdNum = parseInt(customer_id as string, 10);
+        if (isNaN(customerIdNum)) {
+          return res.status(400).json({
+            message: 'Invalid customer_id. Must be a number.',
+          });
+        }
+      }
+
+      if (visit_id) {
+        visitIdNum = parseInt(visit_id as string, 10);
+        if (isNaN(visitIdNum)) {
+          return res.status(400).json({
+            message: 'Invalid visit_id. Must be a number.',
+          });
+        }
+      }
+
+      if (isActive && !['Y', 'N'].includes(isActive as string)) {
+        return res.status(400).json({ message: 'Invalid isActive value' });
+      }
+
+      // Sorting validation
+      const allowedSortFields = [
+        'inspection_date',
+        'temperature',
+        'createdate',
+        'cooler_code',
+        'cooler_brand',
+      ];
+
+      const sortByField = (sortBy as string) || 'createdate';
+      const sortOrderValue =
+        (sortOrder as string)?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+      if (sortBy && !allowedSortFields.includes(sortBy as string)) {
+        return res.status(400).json({
+          message: `Invalid sortBy value. Allowed values: ${allowedSortFields.join(', ')}`,
+        });
+      }
+
+      const filters: any = {};
+
+      if (visitIdNum) {
+        filters.visit_id = visitIdNum;
+      }
+
+      const visitFilters: any = {};
+
+      if (salesPersonIdNum) {
+        visitFilters.sales_person_id = salesPersonIdNum;
+      }
+
+      if (customerIdNum) {
+        visitFilters.customer_id = customerIdNum;
+      }
+
+      if (startDate) {
+        const start = new Date(startDate as string);
+        if (isNaN(start.getTime())) {
+          return res.status(400).json({
+            message: 'Invalid startDate format. Please use YYYY-MM-DD',
+          });
+        }
+        start.setHours(0, 0, 0, 0);
+
+        if (endDate) {
+          const end = new Date(endDate as string);
+          if (isNaN(end.getTime())) {
+            return res.status(400).json({
+              message: 'Invalid endDate format. Please use YYYY-MM-DD',
+            });
+          }
+          end.setHours(23, 59, 59, 999);
+          visitFilters.visit_date = { gte: start, lte: end };
+        } else {
+          const end = new Date(start);
+          end.setDate(start.getDate() + 7);
+          end.setHours(23, 59, 59, 999);
+          visitFilters.visit_date = { gte: start, lte: end };
+        }
+      }
+
+      if (Object.keys(visitFilters).length > 0) {
+        filters.visits = visitFilters;
+      }
+
+      if (isActive) {
+        filters.is_active = isActive as string;
+      }
+
+      if (requires_service) {
+        filters.action_required = requires_service as string;
+      }
+
+      if (searchLower) {
+        filters.OR = [
+          { issues: { contains: searchLower } },
+          { action_taken: { contains: searchLower } },
+          { action_required: { contains: searchLower } },
+          {
+            coolers: {
+              OR: [
+                { code: { contains: searchLower } },
+                { brand: { contains: searchLower } },
+                { model: { contains: searchLower } },
+                {
+                  serial_number: { contains: searchLower },
+                },
+              ],
+            },
+          },
+        ];
+      }
+
+      // Build orderBy
+      let orderBy: any = { createdate: 'desc' };
+
+      if (sortByField === 'cooler_code') {
+        orderBy = {
+          coolers: {
+            code: sortOrderValue,
+          },
+        };
+      } else if (sortByField === 'cooler_brand') {
+        orderBy = {
+          coolers: {
+            brand: sortOrderValue,
+          },
+        };
+      } else {
+        orderBy = { [sortByField]: sortOrderValue };
+      }
+
+      console.log('Final Filters:', JSON.stringify(filters, null, 2));
+      console.log('OrderBy:', JSON.stringify(orderBy, null, 2));
+
+      const { data, pagination } = await paginate({
+        model: prisma.cooler_inspections,
+        filters,
+        page: pageNum,
+        limit: limitNum,
+        orderBy: orderBy,
+        include: {
+          coolers: true,
+        },
+      });
+
+      if (data.length === 0) {
+        return res.success(
+          'No cooler inspections found',
+          [],
+          200,
+          {
+            current_page: pageNum,
+            per_page: limitNum,
+            total: 0,
+            total_pages: 0,
+          },
+          {
+            sales_person_id: salesPersonIdNum,
+            customer_id: customerIdNum,
+            visit_id: visitIdNum,
+            total_inspections: 0,
+            unique_coolers: 0,
+            unique_customers: 0,
+            sort_by: sortByField,
+            sort_order: sortOrderValue,
+          }
+        );
+      }
+
+      const [
+        totalInspections,
+        activeInspections,
+        inactiveInspections,
+        inspectionsRequiringService,
+        inspectionsWithIssues,
+        coolersNotWorking,
+      ] = await Promise.all([
+        prisma.cooler_inspections.count({ where: filters }),
+        prisma.cooler_inspections.count({
+          where: { ...filters, is_active: 'Y' },
+        }),
+        prisma.cooler_inspections.count({
+          where: { ...filters, is_active: 'N' },
+        }),
+        prisma.cooler_inspections.count({
+          where: { ...filters, action_required: 'Y' },
+        }),
+        prisma.cooler_inspections.count({
+          where: { ...filters, issues: { not: null } },
+        }),
+        prisma.cooler_inspections.count({
+          where: { ...filters, is_working: 'N' },
+        }),
+      ]);
+
+      const uniqueCoolers = await prisma.cooler_inspections.findMany({
+        where: filters,
+        select: {
+          cooler_id: true,
+        },
+        distinct: ['cooler_id'],
+      });
+
+      const uniqueCustomers = [
+        ...new Set(
+          data
+            .map((inspection: any) => inspection.visits?.customer_id)
+            .filter(Boolean)
+        ),
+      ];
+
+      const uniqueVisits = [
+        ...new Set(data.map((inspection: any) => inspection.visit_id)),
+      ];
+
+      const serializedData = data
+        .filter((inspection: any) => inspection.coolers)
+        .map((inspection: any) => inspection.coolers);
+
+      res.success(
+        'Coolers from inspections retrieved successfully',
+        serializedData,
+        200,
+        pagination,
+        {
+          filter_criteria: {
+            sales_person_id: salesPersonIdNum,
+            customer_id: customerIdNum,
+            visit_id: visitIdNum,
+          },
+          total_inspections: totalInspections,
+          active_inspections: activeInspections,
+          inactive_inspections: inactiveInspections,
+          inspections_requiring_service: inspectionsRequiringService,
+          inspections_with_issues: inspectionsWithIssues,
+          coolers_not_working: coolersNotWorking,
+          unique_coolers_inspected: uniqueCoolers.length,
+          unique_customers: uniqueCustomers.length,
+          unique_visits: uniqueVisits.length,
+          sort_by: sortByField,
+          sort_order: sortOrderValue,
+        }
+      );
+    } catch (error: any) {
+      console.error('Get Cooler Inspections Error:', error);
+      res.status(500).json({
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
     }
   },
 };

@@ -54,4 +54,21 @@ router.delete(
   visitsController.deleteVisits
 );
 
+// router.get(
+//   '/reports/customer-visits',
+//   authenticateToken,
+//   visitsController.getVisitsBySalesperson
+// );
+
+router.get(
+  '/reports/customer-visits',
+  authenticateToken,
+  visitsController.getCustomerVisitsBySalesperson
+);
+
+router.get(
+  '/reports/cooler-visits',
+  authenticateToken,
+  visitsController.getCoolerInspectionsForVisitedCustomers
+);
 export default router;

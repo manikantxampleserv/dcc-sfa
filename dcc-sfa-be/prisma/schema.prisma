@@ -502,37 +502,37 @@ model cooler_inspections {
 }
 
 model coolers {
-  id                   Int                  @id(map: "PK__coolers__3213E83F0B07C525") @default(autoincrement())
+  id                   Int       @id(map: "PK__coolers__3213E83F0B07C525") @default(autoincrement())
   customer_id          Int
-  code                 String               @unique(map: "UQ__coolers__357D4CF99C89ACE1") @db.NVarChar(50)
-  brand                String?              @db.NVarChar(100)
-  model                String?              @db.NVarChar(100)
-  serial_number        String?              @db.NVarChar(100)
+  code                 String    @unique(map: "UQ__coolers__357D4CF99C89ACE1") @db.NVarChar(50)
+  brand                String?   @db.NVarChar(100)
+  model                String?   @db.NVarChar(100)
+  serial_number        String?   @db.NVarChar(100)
   capacity             Int?
   install_date         DateTime?
   last_service_date    DateTime?
   next_service_due     DateTime?
   cooler_type_id       Int?
   cooler_sub_type_id   Int?
-  status               String?              @default("working", map: "DF__coolers__status__2E70E1FD") @db.NVarChar(20)
-  temperature          Decimal?             @db.Decimal(5, 2)
-  energy_rating        String?              @db.NVarChar(10)
+  status               String?   @default("working", map: "DF__coolers__status__2E70E1FD") @db.NVarChar(20)
+  temperature          Decimal?  @db.Decimal(5, 2)
+  energy_rating        String?   @db.NVarChar(10)
   warranty_expiry      DateTime?
-  maintenance_contract String?              @db.NVarChar(100)
+  maintenance_contract String?   @db.NVarChar(100)
   technician_id        Int?
   last_scanned_date    DateTime?
-  is_active            String               @default("Y", map: "DF__coolers__is_acti__2F650636") @db.Char(1)
-  createdate           DateTime?            @default(now(), map: "DF__coolers__created__30592A6F") @db.DateTime
+  is_active            String    @default("Y", map: "DF__coolers__is_acti__2F650636") @db.Char(1)
+  createdate           DateTime? @default(now(), map: "DF__coolers__created__30592A6F") @db.DateTime
   createdby            Int
-  updatedate           DateTime?            @db.DateTime
+  updatedate           DateTime? @db.DateTime
   updatedby            Int?
   log_inst             Int?
 
-  cooler_inspections   cooler_inspections[]
-  coolers_customers    customers            @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users                users?               @relation(fields: [technician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__coolers__technic__324172E1")
-  cooler_types         cooler_types?        @relation(fields: [cooler_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cooler_sub_types     cooler_sub_types?    @relation(fields: [cooler_sub_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cooler_inspections cooler_inspections[]
+  coolers_customers  customers            @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users              users?               @relation(fields: [technician_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__coolers__technic__324172E1")
+  cooler_types       cooler_types?        @relation(fields: [cooler_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cooler_sub_types   cooler_sub_types?    @relation(fields: [cooler_sub_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model credit_note_items {
@@ -1968,6 +1968,9 @@ model visits {
   start_time          DateTime?
   end_time            DateTime?
   duration            Int?
+  customer_images     String?               @db.NVarChar(500)
+  cooler_images       String?               @db.NVarChar(500)
+  self_images         String?               @db.NVarChar(500)
   start_latitude      Decimal?              @db.Decimal(10, 8)
   start_longitude     Decimal?              @db.Decimal(11, 8)
   end_latitude        Decimal?              @db.Decimal(10, 8)
@@ -2197,7 +2200,7 @@ model customer_category {
   log_inst                                      Int?
   customer_category_condition_customer_category customer_category_condition[]
   promotion_customer_categorys                  promotion_customer_category[]
-  customers_customer_category                    customers[]
+  customers_customer_category                   customers[]
 }
 
 model customer_category_condition {
