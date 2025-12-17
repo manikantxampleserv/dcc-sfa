@@ -12,6 +12,7 @@ interface Product {
   unit_of_measurement: number;
   base_price?: number | null;
   tax_rate?: number | null;
+  tax_id?: number | null;
   is_active: string;
   createdate?: Date | null;
   createdby: number;
@@ -49,6 +50,12 @@ interface Product {
   product_sub_category: { id: number; sub_category_name: string };
   route_type?: { id: number; name: string } | null;
   outlet_group?: { id: number; name: string; code: string } | null;
+  tax_master?: {
+    id: number;
+    name: string;
+    code: string;
+    tax_rate: number;
+  } | null;
   product_type?: { id: number; name: string; code: string } | null;
   product_target_group?: { id: number; name: string; code: string } | null;
   product_web_order?: { id: number; name: string; code: string } | null;
@@ -66,6 +73,7 @@ interface ManageProductPayload {
   unit_of_measurement: number;
   base_price?: number;
   tax_rate?: number;
+  tax_id?: number;
   route_type_id?: number;
   outlet_group_id?: number;
   tracking_type?: 'Batch' | 'Serial';
@@ -90,6 +98,7 @@ interface UpdateProductPayload {
   unit_of_measurement?: number;
   base_price?: number;
   tax_rate?: number;
+  tax_id?: number;
   route_type_id?: number;
   outlet_group_id?: number;
   tracking_type?: string;

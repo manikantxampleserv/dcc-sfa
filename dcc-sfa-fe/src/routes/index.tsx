@@ -38,6 +38,7 @@ import ProductTargetGroupsManagement from 'pages/masters/ProductTargetGroups';
 import ProductWebOrdersManagement from 'pages/masters/ProductWebOrders';
 import CoolerTypesManagement from 'pages/masters/CoolerTypes';
 import CoolerSubTypesManagement from 'pages/masters/CoolerSubTypes';
+import TaxMasterPage from 'pages/masters/TaxMaster';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
 import RouteDetail from 'pages/masters/Routes/RouteDetail';
@@ -378,6 +379,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="product-web-order" action="read">
               <ProductWebOrdersManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/tax-master',
+          element: (
+            <PermissionGuard module="tax-master" action="read">
+              <TaxMasterPage />
             </PermissionGuard>
           ),
         },

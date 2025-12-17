@@ -16,6 +16,7 @@ import {
 } from 'hooks/useUnitOfMeasurement';
 import { useRouteTypes, type RouteType } from 'hooks/useRouteTypes';
 import { useOutletGroups, type OutletGroup } from 'hooks/useOutletGroups';
+import { useTaxMasters, type TaxMaster } from 'hooks/useTaxMaster';
 import React from 'react';
 import { productValidationSchema } from 'schemas/product.schema';
 import Button from 'shared/Button';
@@ -80,12 +81,17 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const { data: unitsResponse } = useUnitOfMeasurement({ limit: 1000 });
   const { data: routeTypesResponse } = useRouteTypes();
   const { data: outletGroupsResponse } = useOutletGroups({ limit: 1000 });
+  const { data: taxMastersResponse } = useTaxMasters({
+    limit: 1000,
+    is_active: 'Y',
+  });
 
   const subCategories = subCategoriesResponse?.data || [];
   const brands = brandsResponse?.data || [];
   const units = unitsResponse?.data || [];
   const routeTypes = routeTypesResponse?.data || [];
   const outletGroups = outletGroupsResponse?.data || [];
+  const taxMasters = taxMastersResponse?.data || [];
 
   const { data: productTypesResponse } = useQuery({
     queryKey: ['product-types-dropdown'],
@@ -133,7 +139,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       brand_id: selectedProduct?.brand_id || '',
       unit_of_measurement: selectedProduct?.unit_of_measurement || '',
       base_price: selectedProduct?.base_price || '',
-      tax_rate: selectedProduct?.tax_rate || '',
+      tax_id: selectedProduct?.tax_id || '',
       route_type_id: selectedProduct?.route_type_id || '',
       outlet_group_id: selectedProduct?.outlet_group_id || '',
       tracking_type: selectedProduct?.tracking_type || '',
@@ -143,7 +149,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       volume_id: selectedProduct?.volume_id || '',
       flavour_id: selectedProduct?.flavour_id || '',
       shelf_life_id: selectedProduct?.shelf_life_id || '',
-      vat_percentage: selectedProduct?.vat_percentage || '',
       weight_in_grams: selectedProduct?.weight_in_grams || '',
       volume_in_liters: selectedProduct?.volume_in_liters || '',
       is_active: selectedProduct?.is_active || 'Y',
@@ -160,7 +165,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
           brand_id: Number(values.brand_id),
           unit_of_measurement: Number(values.unit_of_measurement),
           base_price: values.base_price ? Number(values.base_price) : undefined,
-          tax_rate: values.tax_rate ? Number(values.tax_rate) : undefined,
+          tax_id: values.tax_id ? Number(values.tax_id) : undefined,
           route_type_id: values.route_type_id
             ? Number(values.route_type_id)
             : undefined,
@@ -184,9 +189,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
           flavour_id: values.flavour_id ? Number(values.flavour_id) : undefined,
           shelf_life_id: values.shelf_life_id
             ? Number(values.shelf_life_id)
-            : undefined,
-          vat_percentage: values.vat_percentage
-            ? Number(values.vat_percentage)
             : undefined,
           weight_in_grams: values.weight_in_grams
             ? Number(values.weight_in_grams)
@@ -280,13 +282,14 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               formik={formik}
             />
 
-            <Input
-              name="tax_rate"
-              label="Tax Rate (%)"
-              type="number"
-              placeholder="Enter tax rate percentage"
-              formik={formik}
-            />
+            <Select name="tax_id" label="Tax Rate" formik={formik}>
+              {taxMasters.map((tax: TaxMaster) => (
+                <MenuItem key={tax.id} value={tax.id}>
+                  {tax.name} ({tax.code}) -{' '}
+                  {tax.tax_rate ? `${tax.tax_rate}%` : '0%'}
+                </MenuItem>
+              ))}
+            </Select>
 
             <Select name="route_type_id" label="Route Type" formik={formik}>
               {routeTypes.map((routeType: RouteType) => (
@@ -366,14 +369,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
                 </MenuItem>
               ))}
             </Select>
-
-            <Input
-              name="vat_percentage"
-              label="VAT Percentage (%)"
-              type="number"
-              placeholder="Enter VAT percentage"
-              formik={formik}
-            />
 
             <Input
               name="weight_in_grams"

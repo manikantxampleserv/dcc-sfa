@@ -214,6 +214,7 @@ model depots {
   depot_companies              companies               @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   depots_supervisior           users?                  @relation("DeportsSupervisior", fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   inventory_stock_depots       inventory_stock[]
+  van_inventory_depot          van_inventory[]        @relation("VanInventoryDepot")
   promotion_depot              promotion_depot[]
   routes_depots                routes[]
   serial_numbers               serial_numbers[]
@@ -1283,6 +1284,7 @@ model products {
   unit_of_measurement              Int
   base_price                       Decimal?                       @db.Decimal(18, 2)
   tax_rate                         Decimal?                       @db.Decimal(5, 2)
+  tax_id                           Int?
   is_active                        String                         @default("Y") @db.Char(1)
   createdate                       DateTime?                      @default(now()) @db.DateTime
   createdby                        Int
@@ -1323,6 +1325,7 @@ model products {
   product_volumes_products         product_volumes?               @relation(fields: [volume_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   product_flavours_products        product_flavours?              @relation(fields: [flavour_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   product_shelf_life_products      product_shelf_life?            @relation(fields: [shelf_life_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_tax_master               tax_master?                    @relation(fields: [tax_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotion_products_products      promotion_products[]
   return_requests_products         return_requests[]
   serial_numbers_products          serial_numbers[]
@@ -1333,6 +1336,21 @@ model products {
   promotion_condition_productId    promotion_condition_products[]
   promotion_benefit_products       promotion_benefit[]
   depot_price_overrides            depot_price_overrides[]
+}
+
+model tax_master {
+  id                  Int        @id @default(autoincrement())
+  name                String     @db.NVarChar(255)
+  code                String     @unique @db.NVarChar(100)
+  tax_rate            Decimal    @db.Decimal(5, 2)
+  description         String?    @db.NVarChar(500)
+  is_active           String     @default("Y") @db.Char(1)
+  createdate          DateTime?  @default(now()) @db.DateTime
+  createdby           Int
+  updatedate          DateTime?  @db.DateTime
+  updatedby           Int?
+  log_inst            Int?
+  product_tax_master  products[]
 }
 
 model brands {
@@ -1863,6 +1881,7 @@ model van_inventory {
   loading_type                  String                @default("L") @db.Char(1)
   status                        String                @default("A") @db.Char(1)
   document_date                 DateTime?             @db.DateTime
+  van_inventory_depot           depots?               @relation("VanInventoryDepot", fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   van_inventory_stock_movements stock_movements[]     @relation("VanInventoryStockMovements")
   van_inventory_users           users                 @relation("VanInventoryUsers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   vehicle                       vehicles?             @relation("VehiclesVanInventory", fields: [vehicle_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

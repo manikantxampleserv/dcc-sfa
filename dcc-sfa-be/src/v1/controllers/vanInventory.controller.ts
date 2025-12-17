@@ -30,9 +30,11 @@ interface VanInventorySerialized {
   updatedby?: number | null;
   log_inst?: number | null;
   vehicle_id?: number | null;
+  location_id?: number | null;
   location_type?: string | null;
   user?: { id: number; name: string; email: string } | null;
   vehicle?: { id: number; vehicle_number: string; type: string } | null;
+  depot?: { id: number; name: string; code: string } | null;
   items?: VanInventoryItemSerialized[] | null;
 }
 
@@ -50,6 +52,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => ({
   updatedby: item.updatedby,
   log_inst: item.log_inst,
   vehicle_id: item.vehicle_id,
+  location_id: item.location_id,
   location_type: item.location_type,
   user: item.van_inventory_users
     ? {
@@ -63,6 +66,13 @@ const serializeVanInventory = (item: any): VanInventorySerialized => ({
         id: item.vehicle.id,
         vehicle_number: item.vehicle.vehicle_number,
         type: item.vehicle.type,
+      }
+    : null,
+  depot: item.van_inventory_depot
+    ? {
+        id: item.van_inventory_depot.id,
+        name: item.van_inventory_depot.name,
+        code: item.van_inventory_depot.code,
       }
     : null,
   items:
@@ -151,6 +161,9 @@ export const vanInventoryController = {
                 : new Date(),
             vehicle_id: inventoryData.vehicle_id || null,
             location_type: inventoryData.location_type || 'van',
+            location_id: inventoryData.location_id
+              ? Number(inventoryData.location_id)
+              : null,
             is_active: inventoryData.is_active || 'Y',
           };
 
@@ -257,6 +270,7 @@ export const vanInventoryController = {
             include: {
               van_inventory_users: true,
               vehicle: true,
+              van_inventory_depot: true,
               van_inventory_items_inventory: true,
               van_inventory_stock_movements: true,
             },
@@ -324,6 +338,7 @@ export const vanInventoryController = {
         include: {
           van_inventory_users: true,
           vehicle: true,
+          van_inventory_depot: true,
           van_inventory_items_inventory: true,
           van_inventory_stock_movements: true,
         },
@@ -379,6 +394,7 @@ export const vanInventoryController = {
         where: { id: Number(id) },
         include: {
           van_inventory_users: true,
+          van_inventory_depot: true,
           van_inventory_stock_movements: true,
           van_inventory_items_inventory: true,
           vehicle: true,
@@ -401,6 +417,9 @@ export const vanInventoryController = {
   async updateVanInventory(req: any, res: any) {
     try {
       const { id } = req.params;
+      const { van_inventory_items, ...inventoryData } = req.body;
+      const userId = (req as any).user?.id || 1;
+
       const existing = await prisma.van_inventory.findUnique({
         where: { id: Number(id) },
       });
@@ -408,16 +427,53 @@ export const vanInventoryController = {
       if (!existing)
         return res.status(404).json({ message: 'Van inventory not found' });
 
+      const payload: any = {
+        updatedby: userId,
+        updatedate: new Date(),
+        log_inst: { increment: 1 },
+      };
+
+      if (inventoryData.user_id !== undefined) {
+        payload.user_id = Number(inventoryData.user_id);
+      }
+      if (inventoryData.status !== undefined) {
+        payload.status = inventoryData.status;
+      }
+      if (inventoryData.loading_type !== undefined) {
+        payload.loading_type = inventoryData.loading_type;
+      }
+      if (inventoryData.document_date !== undefined) {
+        payload.document_date =
+          inventoryData.document_date &&
+          inventoryData.document_date.trim() !== ''
+            ? new Date(inventoryData.document_date)
+            : new Date();
+      }
+      if (inventoryData.vehicle_id !== undefined) {
+        payload.vehicle_id = inventoryData.vehicle_id
+          ? Number(inventoryData.vehicle_id)
+          : null;
+      }
+      if (inventoryData.location_type !== undefined) {
+        payload.location_type = inventoryData.location_type;
+      }
+      if (inventoryData.location_id !== undefined) {
+        payload.location_id = inventoryData.location_id
+          ? Number(inventoryData.location_id)
+          : null;
+      }
+      if (inventoryData.is_active !== undefined) {
+        payload.is_active = inventoryData.is_active;
+      }
+
       const updated = await prisma.van_inventory.update({
         where: { id: Number(id) },
-        data: {
-          ...req.body,
-          updatedby: (req as any).user?.id || 1,
-          updatedate: new Date(),
-        },
+        data: payload,
         include: {
           van_inventory_users: true,
           vehicle: true,
+          van_inventory_depot: true,
+          van_inventory_items_inventory: true,
         },
       });
 

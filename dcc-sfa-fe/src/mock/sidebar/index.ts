@@ -198,6 +198,11 @@ const menuItems: MenuItem[] = [
             href: '/masters/products',
           },
           {
+            id: 'tax-master',
+            label: 'Tax Master',
+            href: '/masters/tax-master',
+          },
+          {
             id: 'pricelists',
             label: 'Pricelists',
             href: '/masters/pricelists',

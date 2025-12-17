@@ -49,6 +49,7 @@ import { ProductTargetGroupsImportExportService } from './implementations/produc
 import { ProductWebOrdersImportExportService } from './implementations/productWebOrders-import-export.service';
 import { CoolerTypesImportExportService } from './implementations/coolerTypes-import-export.service';
 import { CoolerSubTypesImportExportService } from './implementations/coolerSubTypes-import-export.service';
+import { TaxMasterImportExportService } from './implementations/taxMaster-import-export.service';
 
 type ServiceConstructor = new () => ImportExportService<any>;
 
@@ -108,6 +109,7 @@ export class ImportExportFactory {
     ['product_web_order', ProductWebOrdersImportExportService],
     ['cooler_types', CoolerTypesImportExportService],
     ['cooler_sub_types', CoolerSubTypesImportExportService],
+    ['tax_master', TaxMasterImportExportService],
     //In future I will add more, reminder me, dont remove this commet
   ]);
 

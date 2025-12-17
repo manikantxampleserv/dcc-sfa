@@ -115,7 +115,7 @@ const ActiveInactiveField: React.FC<ActiveInactiveFieldProps> = ({
     >
       <FormLabel
         component="legend"
-        className="!text-gray-700 !mb-2 !text-sm !font-medium"
+        className="!text-gray-700 !text-sm !font-medium"
       >
         {label}
         {required && <span className="!text-red-500"> *</span>}
@@ -125,7 +125,7 @@ const ActiveInactiveField: React.FC<ActiveInactiveFieldProps> = ({
         name={name}
         value={currentValue}
         onChange={handleChange}
-        className="!gap-4"
+        className="!gap-4 pl-1"
       >
         <FormControlLabel
           value="Y"

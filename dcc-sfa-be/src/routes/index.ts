@@ -86,6 +86,7 @@ import productTargetGroups from '../v1/routes/productTargetGroups.routes';
 import productWebOrders from '../v1/routes/productWebOrders.routes';
 import coolerTypes from '../v1/routes/coolerTypes.routes';
 import coolerSubTypes from '../v1/routes/coolerSubTypes.routes';
+import taxMaster from '../v1/routes/taxMaster.routes';
 
 const routes = Router();
 
@@ -175,6 +176,7 @@ routes.use('/v1', productTargetGroups);
 routes.use('/v1', productWebOrders);
 routes.use('/v1', coolerTypes);
 routes.use('/v1', coolerSubTypes);
+routes.use('/v1', taxMaster);
 routes.get('/', (_: any, res: any) => {
   res.json({
     name: 'DCC-SFA API',

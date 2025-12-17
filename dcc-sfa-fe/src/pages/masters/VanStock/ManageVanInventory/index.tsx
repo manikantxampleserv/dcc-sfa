@@ -11,7 +11,7 @@ import {
   type VanInventory,
 } from 'hooks/useVanInventory';
 import { Package, Plus } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { vanInventoryValidationSchema } from 'schemas/vanInventory.schema';
 import { DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -33,10 +33,6 @@ interface VanInventoryItemFormData {
   product_name?: string | null;
   unit?: string | null;
   quantity: number | '';
-  unit_price: number | '';
-  discount_amount?: number | '';
-  tax_amount?: number | '';
-  total_amount?: number | '';
   notes?: string | null;
   id?: number | null;
 }
@@ -51,6 +47,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   const [inventoryItems, setInventoryItems] = useState<
     VanInventoryItemFormData[]
   >([]);
+  const hasLoadedItemsRef = useRef(false);
 
   const handleCancel = () => {
     setSelectedVanInventory(null);
@@ -74,33 +71,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   const products = productsResponse?.data || [];
   const vehicles = vehiclesResponse?.data || [];
   const depots = depotsResponse?.data || [];
-
-  // Load items when editing
-  React.useEffect(() => {
-    if (isEdit && vanInventoryResponse?.data) {
-      const items =
-        vanInventoryResponse.data.items?.map(item => ({
-          product_id: item.product_id,
-          product_name: item.product_name || null,
-          unit: item.unit || null,
-          quantity: item.quantity || 0,
-          unit_price: item.unit_price ? Number(item.unit_price) : 0,
-          discount_amount: item.discount_amount
-            ? Number(item.discount_amount)
-            : 0,
-          tax_amount: item.tax_amount ? Number(item.tax_amount) : 0,
-          total_amount: item.total_amount ? Number(item.total_amount) : 0,
-          notes: item.notes || null,
-          id: item.id,
-        })) || [];
-      setInventoryItems(items as VanInventoryItemFormData[]);
-      formik.setFieldValue('van_inventory_items', items);
-    } else {
-      setInventoryItems([]);
-      formik.setFieldValue('van_inventory_items', []);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, vanInventoryResponse]);
 
   const formik = useFormik({
     initialValues: {
@@ -138,12 +108,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               product_name: item.product_name || null,
               unit: item.unit || null,
               quantity: Number(item.quantity),
-              unit_price: item.unit_price ? Number(item.unit_price) : 0,
-              discount_amount: item.discount_amount
-                ? Number(item.discount_amount)
-                : 0,
-              tax_amount: item.tax_amount ? Number(item.tax_amount) : 0,
-              total_amount: item.total_amount ? Number(item.total_amount) : 0,
               notes: item.notes || null,
               id: item.id || undefined,
             })),
@@ -165,14 +129,45 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     },
   });
 
+  const vanInventoryData = vanInventoryResponse?.data;
+  const vanInventoryId = vanInventoryData?.id;
+
+  React.useEffect(() => {
+    if (
+      isEdit &&
+      vanInventoryData &&
+      vanInventoryId &&
+      !hasLoadedItemsRef.current
+    ) {
+      const items =
+        vanInventoryData.items?.map(item => ({
+          product_id: item.product_id,
+          product_name: item.product_name || null,
+          unit: item.unit || null,
+          quantity: item.quantity || 0,
+          notes: item.notes || null,
+          id: item.id,
+        })) || [];
+      setInventoryItems(items as VanInventoryItemFormData[]);
+      formik.setFieldValue('van_inventory_items', items);
+      hasLoadedItemsRef.current = true;
+    } else if (!isEdit) {
+      setInventoryItems([]);
+      formik.setFieldValue('van_inventory_items', []);
+      hasLoadedItemsRef.current = false;
+    }
+  }, [isEdit, vanInventoryId]);
+
+  React.useEffect(() => {
+    if (!drawerOpen) {
+      hasLoadedItemsRef.current = false;
+    }
+  }, [drawerOpen]);
+
   const addInventoryItem = () => {
     const newItem: VanInventoryItemFormData = {
       product_id: '',
       quantity: 0,
-      unit_price: 0,
-      discount_amount: 0,
-      tax_amount: 0,
-      total_amount: 0,
       id: null,
     };
     const updatedItems = [...inventoryItems, newItem];
@@ -200,32 +195,14 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         ...item,
         product_id: Number(value),
         product_name: product?.name || null,
-        unit: null, // Unit can be set manually if needed
+        unit: null,
       };
-    } else if (
-      field === 'quantity' ||
-      field === 'unit_price' ||
-      field === 'discount_amount' ||
-      field === 'tax_amount'
-    ) {
+    } else if (field === 'quantity') {
       const numValue = value === '' ? 0 : Number(value);
       updatedItems[index] = {
         ...item,
         [field]: numValue,
       };
-
-      // Calculate total_amount
-      const qty = field === 'quantity' ? numValue : Number(item.quantity) || 0;
-      const price =
-        field === 'unit_price' ? numValue : Number(item.unit_price) || 0;
-      const discount =
-        field === 'discount_amount'
-          ? numValue
-          : Number(item.discount_amount) || 0;
-      const tax =
-        field === 'tax_amount' ? numValue : Number(item.tax_amount) || 0;
-      const total = qty * price - discount + tax;
-      updatedItems[index].total_amount = total;
     } else {
       updatedItems[index] = { ...item, [field]: value };
     }
@@ -250,7 +227,11 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         <ProductSelect
           value={row.product_id}
           onChange={(_event, product) =>
-            updateInventoryItem(row._index, 'product_id', product ? product.id : '')
+            updateInventoryItem(
+              row._index,
+              'product_id',
+              product ? product.id : ''
+            )
           }
           size="small"
           fullWidth
@@ -273,67 +254,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           placeholder="Qty"
           required
         />
-      ),
-    },
-    {
-      id: 'unit_price',
-      label: 'Unit Price',
-      width: 110,
-      render: (_value, row) => (
-        <Input
-          value={row.unit_price || 0}
-          onChange={e =>
-            updateInventoryItem(row._index, 'unit_price', e.target.value)
-          }
-          size="small"
-          fullWidth
-          type="number"
-          placeholder="Price"
-        />
-      ),
-    },
-    {
-      id: 'discount_amount',
-      label: 'Discount',
-      width: 100,
-      render: (_value, row) => (
-        <Input
-          value={row.discount_amount || 0}
-          onChange={e =>
-            updateInventoryItem(row._index, 'discount_amount', e.target.value)
-          }
-          size="small"
-          fullWidth
-          type="number"
-          placeholder="Discount"
-        />
-      ),
-    },
-    {
-      id: 'tax_amount',
-      label: 'Tax',
-      width: 90,
-      render: (_value, row) => (
-        <Input
-          value={row.tax_amount || 0}
-          onChange={e =>
-            updateInventoryItem(row._index, 'tax_amount', e.target.value)
-          }
-          size="small"
-          fullWidth
-          type="number"
-          placeholder="Tax"
-        />
-      ),
-    },
-    {
-      id: 'total_amount',
-      label: 'Total',
-      width: 110,
-      render: (_value, row) => (
-        <Typography variant="body2" className="!font-medium !text-gray-900">
-          {Number(row.total_amount || 0).toFixed(2)}
-        </Typography>
       ),
     },
     {
@@ -362,7 +282,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           onClick={() => removeInventoryItem(row._index)}
           tooltip="Remove item"
           confirmDelete={true}
-          size="small"
           itemName="inventory item"
         />
       ),
@@ -374,7 +293,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Van Stock' : 'Load/Unload Stock to Van'}
-      size="larger"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -473,6 +391,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             {inventoryItems.length > 0 && (
               <Box className="!overflow-x-auto">
                 <Table
+                  compact
                   data={itemsWithIndex}
                   columns={inventoryItemColumns}
                   getRowId={row => row._index.toString()}

@@ -1,7 +1,7 @@
 /**
  * @fileoverview Auto-Generated Menu Permissions Hook
  * @description Generated automatically from menu items and backend modules
- * @generated-at 2025-12-16T05:58:58.590Z
+ * @generated-at 2025-12-17T09:58:57.011Z
  */
 
 import { useCallback, useMemo } from 'react';
@@ -67,6 +67,7 @@ export const useMenuPermissions = () => {
   const productWebOrderPerms = usePermission('product-web-order' as BackendModule);
   const coolerTypePerms = usePermission('cooler-type' as BackendModule);
   const coolerSubTypePerms = usePermission('cooler-sub-type' as BackendModule);
+  const taxMasterPerms = usePermission('tax-master' as BackendModule);
   const locationPerms = usePermission('location' as BackendModule);
   const routeEffectivenessPerms = usePermission('route-effectiveness' as BackendModule);
   const erpSyncPerms = usePermission('erp-sync' as BackendModule);
@@ -134,6 +135,7 @@ export const useMenuPermissions = () => {
     'product-web-order': productWebOrderPerms,
     'cooler-type': coolerTypePerms,
     'cooler-sub-type': coolerSubTypePerms,
+    'tax-master': taxMasterPerms,
     'location': locationPerms,
     'route-effectiveness': routeEffectivenessPerms,
     'erp-sync': erpSyncPerms,
@@ -200,6 +202,7 @@ export const useMenuPermissions = () => {
     productWebOrderPerms,
     coolerTypePerms,
     coolerSubTypePerms,
+    taxMasterPerms,
     locationPerms,
     routeEffectivenessPerms,
     erpSyncPerms,

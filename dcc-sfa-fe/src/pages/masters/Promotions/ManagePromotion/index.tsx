@@ -1,3 +1,4 @@
+import { Close } from '@mui/icons-material';
 import {
   Alert,
   Autocomplete,
@@ -15,14 +16,13 @@ import {
   Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
-import { useCustomers } from 'hooks/useCustomers';
-import { useCustomerTypes } from 'hooks/useCustomerType';
 import { useCustomerCategories } from 'hooks/useCustomerCategory';
 import { useCustomerChannels } from 'hooks/useCustomerChannel';
+import { useCustomers } from 'hooks/useCustomers';
+import { useCustomerTypes } from 'hooks/useCustomerType';
 import { useDepots } from 'hooks/useDepots';
 import { useProductCategories } from 'hooks/useProductCategories';
 import { useProducts } from 'hooks/useProducts';
-import { useUsers } from 'hooks/useUsers';
 import {
   useCreatePromotion,
   usePromotion,
@@ -31,9 +31,9 @@ import {
 } from 'hooks/usePromotions';
 import { useRoutes } from 'hooks/useRoutes';
 import { useUnitOfMeasurement } from 'hooks/useUnitOfMeasurement';
+import { useUsers } from 'hooks/useUsers';
 import { useZones } from 'hooks/useZones';
 import React, { useEffect, useRef, useState } from 'react';
-import { Close } from '@mui/icons-material';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -1638,14 +1638,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               (locationTab === 5 && selectedCustomerTypes.length > 0) ||
               (locationTab === 6 && selectedCustomerCategories.length > 0) ||
               (locationTab === 7 && selectedCustomerChannels.length > 0)) && (
-              <Box className="!mt-3 !border !border-gray-200 !rounded !p-3">
-                <Typography
-                  variant="subtitle2"
-                  className="!font-semibold !text-gray-700 !mb-2"
-                >
-                  Selected Items
-                </Typography>
-                <Box className="!max-h-48 !overflow-y-auto !space-y-2">
+              <Box className="!mt-3 !border !border-gray-200 !rounded">
+                <Box className="!max-h-52 !overflow-y-auto !space-y-2">
                   {locationTab === 0 &&
                     selectedDepots.map(depotId => {
                       const depot = depots.find((d: any) => d.id === depotId);

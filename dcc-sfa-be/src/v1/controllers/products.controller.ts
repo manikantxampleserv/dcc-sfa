@@ -12,6 +12,7 @@ interface ProductSerialized {
   unit_of_measurement: number;
   base_price?: number | null;
   tax_rate?: number | null;
+  tax_id?: number | null;
   is_active: string;
   createdate?: Date | null;
   createdby: number;
@@ -49,6 +50,12 @@ interface ProductSerialized {
   product_sub_category: { id: number; sub_category_name: string };
   route_type?: { id: number; name: string } | null;
   outlet_group?: { id: number; name: string; code: string } | null;
+  tax_master?: {
+    id: number;
+    name: string;
+    code: string;
+    tax_rate: number;
+  } | null;
   product_type?: { id: number; name: string; code: string } | null;
   product_target_group?: { id: number; name: string; code: string } | null;
   product_web_order?: { id: number; name: string; code: string } | null;
@@ -92,6 +99,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
   unit_of_measurement: product.unit_of_measurement,
   base_price: product.base_price,
   tax_rate: product.tax_rate,
+  tax_id: product.tax_id,
   is_active: product.is_active,
   createdate: product.createdate,
   createdby: product.createdby,
@@ -180,6 +188,14 @@ const serializeProduct = (product: any): ProductSerialized => ({
         code: product.products_outlet_group.code,
       }
     : null,
+  tax_master: product.product_tax_master
+    ? {
+        id: product.product_tax_master.id,
+        name: product.product_tax_master.name,
+        code: product.product_tax_master.code,
+        tax_rate: Number(product.product_tax_master.tax_rate),
+      }
+    : null,
   product_type: product.product_types_products
     ? {
         id: product.product_types_products.id,
@@ -264,7 +280,8 @@ export const productsController = {
           brand_id: data.brand_id,
           unit_of_measurement: data.unit_of_measurement,
           base_price: data.base_price,
-          tax_rate: data.tax_rate,
+          tax_rate: data.tax_rate || null,
+          tax_id: data.tax_id || null,
           is_active: data.is_active || 'Y',
           route_type_id: data.route_type_id || null,
           outlet_group_id: data.outlet_group_id || null,
@@ -293,6 +310,7 @@ export const productsController = {
           product_sub_categories_products: true,
           products_route_type: true,
           products_outlet_group: true,
+          product_tax_master: true,
           product_types_products: true,
           product_target_groups_products: true,
           product_web_orders_products: true,
@@ -349,6 +367,7 @@ export const productsController = {
           product_sub_categories_products: true,
           products_route_type: true,
           products_outlet_group: true,
+          product_tax_master: true,
           product_types_products: true,
           product_target_groups_products: true,
           product_web_orders_products: true,
@@ -410,6 +429,7 @@ export const productsController = {
           product_sub_categories_products: true,
           products_route_type: true,
           products_outlet_group: true,
+          product_tax_master: true,
           product_types_products: true,
           product_target_groups_products: true,
           product_web_orders_products: true,
@@ -480,6 +500,7 @@ export const productsController = {
           product_sub_categories_products: true,
           products_route_type: true,
           products_outlet_group: true,
+          product_tax_master: true,
           product_types_products: true,
           product_target_groups_products: true,
           product_web_orders_products: true,

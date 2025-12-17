@@ -1,12 +1,9 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Home, RefreshCw } from 'lucide-react';
+import React from 'react';
 import Button from 'shared/Button';
 import { NoConnectionIcon } from '../../resources';
 
 const NoConnection: React.FC = () => {
-  const navigate = useNavigate();
-
   const handleRetry = () => {
     window.location.reload();
   };
@@ -27,7 +24,7 @@ const NoConnection: React.FC = () => {
         <div className="flex gap-4 justify-center">
           <Button
             variant="outlined"
-            onClick={() => navigate(-1)}
+            onClick={() => window.history.back()}
             className="!capitalize"
           >
             Go Back
@@ -42,7 +39,7 @@ const NoConnection: React.FC = () => {
           </Button>
           <Button
             variant="contained"
-            onClick={() => navigate('/')}
+            onClick={() => (window.location.href = '/')}
             startIcon={<Home className="w-4 h-4" />}
             className="!capitalize"
           >

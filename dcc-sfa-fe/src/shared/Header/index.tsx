@@ -16,6 +16,7 @@ import {
   MenuItem,
   Skeleton,
   Typography,
+  styled,
 } from '@mui/material';
 import React, { useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
@@ -24,6 +25,38 @@ import { useAuth } from '../../context/AuthContext';
 import { useRequestsByUsersWithoutPermission } from '../../hooks/useRequests';
 import ApprovalsSidebar from '../ApprovalsSidebar';
 import Notifications from '../Notifications';
+
+const StyledBadge = styled(Badge)(({ theme }) => ({
+  '& .MuiBadge-badge': {
+    backgroundColor: '#44b700',
+    color: '#44b700',
+    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+    borderRadius: '50%',
+    minWidth: '10px',
+    height: '10px',
+    '&::after': {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      borderRadius: '50%',
+      animation: 'ripple 1.2s infinite ease-in-out',
+      border: '1px solid currentColor',
+      content: '""',
+    },
+  },
+  '@keyframes ripple': {
+    '0%': {
+      transform: 'scale(.8)',
+      opacity: 1,
+    },
+    '100%': {
+      transform: 'scale(2.4)',
+      opacity: 0,
+    },
+  },
+}));
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -156,19 +189,23 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                   sx={{ bgcolor: 'grey.200' }}
                 />
               ) : (
-                <Avatar
-                  alt={getUserDisplayName()}
-                  src={currentUser?.profile_image || undefined}
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    bgcolor: 'primary.main',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                  }}
+                <StyledBadge
+                  overlap="rectangular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                  variant="dot"
                 >
-                  {getUserInitials()}
-                </Avatar>
+                  <Avatar
+                    alt={getUserDisplayName()}
+                    src={currentUser?.profile_image || undefined}
+                    className="!w-9 !h-9 !text-sm !font-medium"
+                    sx={{
+                      bgcolor: 'primary.main',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    {getUserInitials()}
+                  </Avatar>
+                </StyledBadge>
               )}
             </IconButton>
 
@@ -195,7 +232,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                   },
                 },
                 list: {
-                  className: '!p-0 !relative',
+                  className: '!px-0 !py-1 !relative',
                 },
               }}
             >

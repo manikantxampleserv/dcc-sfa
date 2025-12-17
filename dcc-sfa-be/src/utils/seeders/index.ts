@@ -67,6 +67,7 @@ import {
 } from './productShelfLife.seeder';
 import { clearRoles, seedRoles } from './roles.seeder';
 import { clearRoutes, seedRoutes } from './routes.seeder';
+import { clearRouteType, seedRouteType } from './routeType.seeder';
 import {
   clearUnitOfMeasurement,
   seedUnitOfMeasurement,
@@ -102,6 +103,7 @@ import {
 import { clearKPITargets, seedKPITargets } from './kpi-targets.seeder';
 import { clearOutletGroups, seedOutletGroups } from './outlet-groups.seeder';
 import { clearPricelists, seedPricelists } from './pricelists.seeder';
+import { clearTaxMaster, seedTaxMaster } from './taxMaster.seeder';
 
 // Seeder configuration
 const seeders = {
@@ -158,6 +160,11 @@ const seeders = {
   },
   products: { seed: seedProducts, clear: clearProducts, name: 'Products' },
   orders: { seed: seedOrders, clear: clearOrders, name: 'Orders' },
+  'route-type': {
+    seed: seedRouteType,
+    clear: clearRouteType,
+    name: 'Route Type',
+  },
   routes: { seed: seedRoutes, clear: clearRoutes, name: 'Routes' },
   visits: { seed: seedVisits, clear: clearVisits, name: 'Visits' },
   'asset-master': {
@@ -239,6 +246,11 @@ const seeders = {
     seed: seedPricelists,
     clear: clearPricelists,
     name: 'Pricelists',
+  },
+  'tax-master': {
+    seed: seedTaxMaster,
+    clear: clearTaxMaster,
+    name: 'Tax Master',
   },
   'cooler-types': {
     seed: seedCoolerTypes,
@@ -335,6 +347,7 @@ export async function seedAll(): Promise<void> {
     await seedSection('product-volumes');
     await seedSection('product-flavours');
     await seedSection('product-shelf-life');
+    await seedSection('tax-master');
     await seedSection('products');
 
     // 5. Asset management
@@ -356,6 +369,7 @@ export async function seedAll(): Promise<void> {
     await seedSection('cooler-inspections');
 
     // 7. Operations (depends on customers, products)
+    await seedSection('route-type');
     await seedSection('routes');
     await seedSection('orders');
     await seedSection('visits');
