@@ -22,6 +22,7 @@ interface ProductSerialized {
   route_type_id?: number | null;
   outlet_group_id?: number | null;
   tracking_type?: string | null;
+  batch_lots_id?: number | null;
   product_type_id?: number | null;
   product_target_group_id?: number | null;
   product_web_order_id?: number | null;
@@ -109,6 +110,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
   route_type_id: product.route_type_id,
   outlet_group_id: product.outlet_group_id,
   tracking_type: product.tracking_type,
+  batch_lots_id: product.batch_lots_id,
   product_type_id: product.product_type_id,
   product_target_group_id: product.product_target_group_id,
   product_web_order_id: product.product_web_order_id,
@@ -125,11 +127,16 @@ const serializeProduct = (product: any): ProductSerialized => ({
     ? Number(product.volume_in_liters)
     : null,
 
-  batch_lots: normalizeToArray(product.batch_lots_products).map((b: any) => ({
-    id: b.id,
-    batch_number: b.batch_number,
-    quantity: b.quantity,
-  })),
+  batch_lots: normalizeToArray(product.product_product_batches).map(
+    (pb: any) => ({
+      id: pb.batch_lot_product_batches?.id,
+      batch_number: pb.batch_lot_product_batches?.batch_number,
+      lot_number: pb.batch_lot_product_batches?.lot_number,
+      quantity: pb.quantity,
+      expiry_date: pb.batch_lot_product_batches?.expiry_date,
+      quality_grade: pb.batch_lot_product_batches?.quality_grade,
+    })
+  ),
 
   inventory_stock: normalizeToArray(product.inventory_stock_products).map(
     (s: any) => ({
@@ -300,7 +307,11 @@ export const productsController = {
           log_inst: data.log_inst || 1,
         } as any,
         include: {
-          batch_lots_products: true,
+          product_product_batches: {
+            include: {
+              batch_lot_product_batches: true,
+            },
+          },
           inventory_stock_products: true,
           price_history_products: true,
           order_items: true,
@@ -357,7 +368,11 @@ export const productsController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          batch_lots_products: true,
+          product_product_batches: {
+            include: {
+              batch_lot_product_batches: true,
+            },
+          },
           inventory_stock_products: true,
           price_history_products: true,
           order_items: true,
@@ -419,7 +434,7 @@ export const productsController = {
       const product = await prisma.products.findUnique({
         where: { id: Number(id) },
         include: {
-          batch_lots_products: true,
+          batchLots: true,
           inventory_stock_products: true,
           price_history_products: true,
           order_items: true,
@@ -490,7 +505,7 @@ export const productsController = {
         where: { id: Number(id) },
         data,
         include: {
-          batch_lots_products: true,
+          batchLots: true,
           inventory_stock_products: true,
           price_history_products: true,
           order_items: true,
@@ -572,6 +587,15 @@ export const productsController = {
           id: true,
           name: true,
           code: true,
+          batchLots: {
+            select: {
+              id: true,
+              batch_number: true,
+              lot_number: true,
+              remaining_quantity: true,
+              expiry_date: true,
+            },
+          },
         },
         orderBy: {
           name: 'asc',

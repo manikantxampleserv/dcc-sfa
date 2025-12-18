@@ -50,6 +50,7 @@ import { ProductWebOrdersImportExportService } from './implementations/productWe
 import { CoolerTypesImportExportService } from './implementations/coolerTypes-import-export.service';
 import { CoolerSubTypesImportExportService } from './implementations/coolerSubTypes-import-export.service';
 import { TaxMasterImportExportService } from './implementations/taxMaster-import-export.service';
+import { BatchLotsImportExportService } from './implementations/batchLots-import-export.service';
 
 type ServiceConstructor = new () => ImportExportService<any>;
 
@@ -110,7 +111,7 @@ export class ImportExportFactory {
     ['cooler_types', CoolerTypesImportExportService],
     ['cooler_sub_types', CoolerSubTypesImportExportService],
     ['tax_master', TaxMasterImportExportService],
-    //In future I will add more, reminder me, dont remove this commet
+    ['batch_lots', BatchLotsImportExportService],
   ]);
 
   static getService(tableName: string): ImportExportService<any> | null {

@@ -214,7 +214,7 @@ model depots {
   depot_companies              companies               @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   depots_supervisior           users?                  @relation("DeportsSupervisior", fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   inventory_stock_depots       inventory_stock[]
-  van_inventory_depot          van_inventory[]        @relation("VanInventoryDepot")
+  van_inventory_depot          van_inventory[]         @relation("VanInventoryDepot")
   promotion_depot              promotion_depot[]
   routes_depots                routes[]
   serial_numbers               serial_numbers[]
@@ -402,28 +402,32 @@ model audit_logs {
 }
 
 model batch_lots {
-  id                   Int                    @id(map: "PK__batch_lo__3213E83F5DCCF459") @default(autoincrement())
-  product_id           Int
-  batch_number         String                 @db.NVarChar(50)
-  lot_number           String?                @db.NVarChar(50)
-  manufacturing_date   DateTime
-  expiry_date          DateTime
-  quantity             Int
-  remaining_quantity   Int
-  supplier_name        String?                @db.NVarChar(255)
-  purchase_price       Decimal?               @db.Decimal(18, 2)
-  quality_grade        String?                @default("A", map: "DF__batch_lot__quali__09746778") @db.NVarChar(10)
-  storage_location     String?                @db.NVarChar(100)
-  is_active            String                 @default("Y", map: "DF__batch_lot__is_ac__0A688BB1") @db.Char(1)
-  createdate           DateTime?              @default(now(), map: "DF__batch_lot__creat__0B5CAFEA") @db.DateTime
-  createdby            Int
-  updatedate           DateTime?              @db.DateTime
-  updatedby            Int?
-  log_inst             Int?
-  batch_lots_products  products               @relation(fields: [product_id], references: [id], onUpdate: NoAction)
-  serial_numbers       serial_numbers[]
-  stock_movements      stock_movements[]
-  stock_transfer_lines stock_transfer_lines[]
+  id                        Int                    @id(map: "PK__batch_lo__3213E83F5DCCF459") @default(autoincrement())
+  batch_number              String                 @db.NVarChar(50)
+  lot_number                String?                @db.NVarChar(50)
+  manufacturing_date        DateTime
+  expiry_date               DateTime
+  quantity                  Int
+  remaining_quantity        Int
+  supplier_name             String?                @db.NVarChar(255)
+  purchase_price            Decimal?               @db.Decimal(18, 2)
+  quality_grade             String?                @default("A", map: "DF__batch_lot__quali__09746778") @db.NVarChar(10)
+  storage_location          String?                @db.NVarChar(100)
+  is_active                 String                 @default("Y", map: "DF__batch_lot__is_ac__0A688BB1") @db.Char(1)
+  createdate                DateTime?              @default(now(), map: "DF__batch_lot__creat__0B5CAFEA") @db.DateTime
+  createdby                 Int
+  updatedate                DateTime?              @db.DateTime
+  updatedby                 Int?
+  log_inst                  Int?
+  batch_lot_product_batches product_batches[]
+  serial_numbers            serial_numbers[]
+  stock_movements           stock_movements[]
+  stock_transfer_lines      stock_transfer_lines[]
+  products                  products?              @relation(fields: [productsId], references: [id])
+  productsId                Int?
+
+  @@index([batch_number])
+  @@index([expiry_date])
 }
 
 model companies {
@@ -936,6 +940,10 @@ model inventory_stock {
   log_inst                 Int?
   inventory_stock_depots   depots    @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   inventory_stock_products products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([product_id, location_id])
+  @@index([stock_status])
+  @@index([location_type])
 }
 
 model invoice_items {
@@ -1166,6 +1174,9 @@ model price_history {
   users_price_history_approved_byTousers users?    @relation("price_history_approved_byTousers", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__price_his__appro__45DE573A")
   users_price_history_changed_byTousers  users     @relation("price_history_changed_byTousers", fields: [changed_by], references: [id], onUpdate: NoAction, map: "FK__price_his__chang__44EA3301")
   price_history_products                 products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([product_id, effective_from])
+  @@index([effective_from, effective_to])
 }
 
 model pricelist_items {
@@ -1185,6 +1196,10 @@ model pricelist_items {
   log_inst                 Int?
   pricelist_item           pricelists @relation(fields: [pricelist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   pricelist_items_products products   @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([pricelist_id, product_id])
+  @@index([effective_from, effective_to])
+  @@index([product_id])
 }
 
 model pricelists {
@@ -1303,7 +1318,6 @@ model products {
   vat_percentage                   Decimal?                       @db.Decimal(5, 2)
   weight_in_grams                  Decimal?                       @db.Decimal(18, 2)
   volume_in_liters                 Decimal?                       @db.Decimal(18, 2)
-  batch_lots_products              batch_lots[]
   credit_notes_items_products      credit_note_items[]
   credit_notes_products            credit_notes[]
   inventory_stock_products         inventory_stock[]
@@ -1336,21 +1350,23 @@ model products {
   promotion_condition_productId    promotion_condition_products[]
   promotion_benefit_products       promotion_benefit[]
   depot_price_overrides            depot_price_overrides[]
+  product_product_batches          product_batches[]
+  batchLots                        batch_lots[]
 }
 
 model tax_master {
-  id                  Int        @id @default(autoincrement())
-  name                String     @db.NVarChar(255)
-  code                String     @unique @db.NVarChar(100)
-  tax_rate            Decimal    @db.Decimal(5, 2)
-  description         String?    @db.NVarChar(500)
-  is_active           String     @default("Y") @db.Char(1)
-  createdate          DateTime?  @default(now()) @db.DateTime
-  createdby           Int
-  updatedate          DateTime?  @db.DateTime
-  updatedby           Int?
-  log_inst            Int?
-  product_tax_master  products[]
+  id                 Int        @id @default(autoincrement())
+  name               String     @db.NVarChar(255)
+  code               String     @unique @db.NVarChar(100)
+  tax_rate           Decimal    @db.Decimal(5, 2)
+  description        String?    @db.NVarChar(500)
+  is_active          String     @default("Y") @db.Char(1)
+  createdate         DateTime?  @default(now()) @db.DateTime
+  createdby          Int
+  updatedate         DateTime?  @db.DateTime
+  updatedby          Int?
+  log_inst           Int?
+  product_tax_master products[]
 }
 
 model brands {
@@ -1753,7 +1769,7 @@ model stock_movements {
   updatedby                     Int?
   log_inst                      Int?
   van_inventory_id              Int?
-  batch_lots                    batch_lots?     @relation(fields: [batch_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  batch_lots                    batch_lots?     @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   stock_movements_from_location warehouses?     @relation("StockMovementsFromLocationToWarehouses", fields: [from_location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   stock_movements_products      products        @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   serial_numbers                serial_numbers? @relation(fields: [serial_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -2576,4 +2592,23 @@ model cooler_sub_types {
   log_inst                      Int?
   cooler_sub_types_coolers      coolers[]
   cooler_sub_types_cooler_types cooler_types @relation(fields: [cooler_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model product_batches {
+  id                        Int        @id @default(autoincrement())
+  product_id                Int
+  batch_lot_id              Int
+  quantity                  Int        @default(0)
+  is_active                 String     @default("Y") @db.Char(1)
+  createdate                DateTime?  @default(now()) @db.DateTime
+  createdby                 Int
+  updatedate                DateTime?  @db.DateTime
+  updatedby                 Int?
+  log_inst                  Int?
+  product_product_batches   products   @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  batch_lot_product_batches batch_lots @relation(fields: [batch_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([product_id, batch_lot_id])
+  @@index([product_id])
+  @@index([batch_lot_id])
 }

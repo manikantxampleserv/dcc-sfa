@@ -1,9 +1,17 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  Upload,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import { DollarSign, Package, Percent, Tag, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
@@ -21,6 +29,7 @@ import ImportProduct from './ImportProduct';
 import ManageProduct from './ManageProducts';
 
 const ProductsManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -68,6 +77,13 @@ const ProductsManagement: React.FC = () => {
     setSelectedProduct(null);
     setDrawerOpen(true);
   }, []);
+
+  const handleViewProduct = useCallback(
+    (productId: number) => {
+      navigate(`/masters/products/${productId}`);
+    },
+    [navigate]
+  );
 
   const handleEditProduct = useCallback((product: Product) => {
     setSelectedProduct(product);
@@ -133,7 +149,10 @@ const ProductsManagement: React.FC = () => {
       id: 'name',
       label: 'Product Info',
       render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
+        <Box
+          className="!flex !gap-2 !items-center !cursor-pointer hover:!opacity-80 !transition-opacity"
+          onClick={() => handleViewProduct(row.id)}
+        >
           <Avatar
             alt={row.name}
             className="!rounded !bg-primary-100 !text-primary-600"
@@ -143,7 +162,7 @@ const ProductsManagement: React.FC = () => {
           <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight !font-medium"
+              className="!text-gray-900 !leading-tight !font-medium hover:!text-primary-600 !transition-colors"
             >
               {row.name}
             </Typography>
@@ -219,7 +238,9 @@ const ProductsManagement: React.FC = () => {
       label: 'Target Group',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.product_target_group?.name || 'N/A'}
+          {row.product_target_group?.name || (
+            <span className="!text-gray-500 italic">no target group</span>
+          )}
         </Typography>
       ),
     },
@@ -228,7 +249,9 @@ const ProductsManagement: React.FC = () => {
       label: 'Web Order',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.product_web_order?.name || 'N/A'}
+          {row.product_web_order?.name || (
+            <span className="!text-gray-500 italic">no web order</span>
+          )}
         </Typography>
       ),
     },
@@ -237,7 +260,9 @@ const ProductsManagement: React.FC = () => {
       label: 'Volume',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.volume?.name || 'N/A'}
+          {row.volume?.name || (
+            <span className="!text-gray-500 italic">no volume</span>
+          )}
         </Typography>
       ),
     },
@@ -246,7 +271,9 @@ const ProductsManagement: React.FC = () => {
       label: 'Flavour',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.flavour?.name || 'N/A'}
+          {row.flavour?.name || (
+            <span className="!text-gray-500 italic">no flavour</span>
+          )}
         </Typography>
       ),
     },
@@ -255,29 +282,23 @@ const ProductsManagement: React.FC = () => {
       label: 'Shelf Life',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.shelf_life?.name || 'N/A'}
+          {row.shelf_life?.name || (
+            <span className="!text-gray-500 italic">no shelf life</span>
+          )}
         </Typography>
       ),
     },
-    {
-      id: 'vat_percentage',
-      label: 'VAT %',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.vat_percentage !== null && row.vat_percentage !== undefined
-            ? `${Number(row.vat_percentage).toFixed(2)}%`
-            : 'N/A'}
-        </Typography>
-      ),
-    },
+
     {
       id: 'weight_in_grams',
       label: 'Weight (g)',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.weight_in_grams !== null && row.weight_in_grams !== undefined
-            ? `${Number(row.weight_in_grams).toLocaleString()} g`
-            : 'N/A'}
+          {row.weight_in_grams !== null && row.weight_in_grams !== undefined ? (
+            `${Number(row.weight_in_grams).toLocaleString()} g`
+          ) : (
+            <span className="!text-gray-500 italic">no weight</span>
+          )}
         </Typography>
       ),
     },
@@ -286,9 +307,12 @@ const ProductsManagement: React.FC = () => {
       label: 'Volume (L)',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.volume_in_liters !== null && row.volume_in_liters !== undefined
-            ? `${Number(row.volume_in_liters).toFixed(2)} L`
-            : 'N/A'}
+          {row.volume_in_liters !== null &&
+          row.volume_in_liters !== undefined ? (
+            `${Number(row.volume_in_liters).toFixed(2)} L`
+          ) : (
+            <span className="!text-gray-500 italic">no volume</span>
+          )}
         </Typography>
       ),
     },
@@ -300,7 +324,9 @@ const ProductsManagement: React.FC = () => {
           variant="body2"
           className="!text-gray-700 !max-w-xs !truncate"
         >
-          {row.description || 'N/A'}
+          {row.description || (
+            <span className="!text-gray-500 italic">no description</span>
+          )}
         </Typography>
       ),
     },
@@ -334,6 +360,14 @@ const ProductsManagement: React.FC = () => {
             sortable: false,
             render: (_value: any, row: Product) => (
               <div className="!flex !gap-2 !items-center">
+                {isRead && (
+                  <ActionButton
+                    onClick={() => handleViewProduct(row.id)}
+                    tooltip={`View ${row.name}`}
+                    icon={<Visibility fontSize="small" />}
+                    color="info"
+                  />
+                )}
                 {isUpdate && (
                   <EditButton
                     onClick={() => handleEditProduct(row)}

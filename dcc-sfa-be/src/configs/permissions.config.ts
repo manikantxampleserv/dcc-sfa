@@ -159,6 +159,8 @@ export type Modules =
   | 'van-stock'
   | 'stock-movement'
   | 'stock-transfer'
+  | 'batch-lots'
+  | 'inventory-management'
   | 'competitor'
   | 'customer-complaint'
   | 'customer-category'
@@ -237,6 +239,8 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'van-stock': 'Van Stock',
   'stock-movement': 'Stock Movement',
   'stock-transfer': 'Stock Transfer',
+  'batch-lots': 'Batch & Lot Management',
+  'inventory-management': 'Inventory Management',
   competitor: 'Competitor',
   'customer-complaint': 'Customer Complaint',
   'customer-category': 'Customer Category',

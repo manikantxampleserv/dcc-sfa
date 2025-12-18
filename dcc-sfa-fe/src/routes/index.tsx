@@ -9,6 +9,8 @@ import AssetMaintenanceManagement from 'pages/masters/AssetMaintenance';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
 import AssetMovementManagement from 'pages/masters/AssetMovement';
 import AssetTypesManagement from 'pages/masters/AssetTypes';
+import BatchLotsManagement from 'pages/masters/BatchLots';
+import BatchLotDetail from 'pages/masters/BatchLots/BatchLotDetail';
 import BrandsManagement from 'pages/masters/Brands';
 import CompaniesManagement from 'pages/masters/Companies';
 import CompetitorActivityManagement from 'pages/masters/CompetitorActivity';
@@ -27,6 +29,7 @@ import OutletGroupsManagement from 'pages/masters/OutletGroups';
 import PriceListsManagement from 'pages/masters/PriceLists';
 import ProductCategoriesManagement from 'pages/masters/ProductCategories';
 import ProductsManagement from 'pages/masters/Products';
+import ProductDetail from 'pages/masters/Products/ProductDetail';
 import PromotionsManagement from 'pages/masters/Promotions';
 import PromotionDetail from 'pages/masters/Promotions/PromotionDetail';
 import ProductSubCategoriesManagement from 'pages/masters/ProductSubCategories';
@@ -307,6 +310,30 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="product" action="read">
               <ProductsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/products/:id',
+          element: (
+            <PermissionGuard module="product" action="read">
+              <ProductDetail />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/batch-lots',
+          element: (
+            <PermissionGuard module="batch-lots" action="read">
+              <BatchLotsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/batch-lots/:id',
+          element: (
+            <PermissionGuard module="batch-lots" action="read">
+              <BatchLotDetail />
             </PermissionGuard>
           ),
         },

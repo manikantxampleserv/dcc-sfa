@@ -1,6 +1,12 @@
 import { Box, MenuItem } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import { useFormik } from 'formik';
+import {
+  useBatchLotsDropdown,
+  type BatchLotDropdown,
+} from 'hooks/useBatchLots';
 import { useBrands, type Brand } from 'hooks/useBrands';
+import { useOutletGroups, type OutletGroup } from 'hooks/useOutletGroups';
 import {
   useProductSubCategories,
   type ProductSubCategory,
@@ -10,37 +16,14 @@ import {
   useUpdateProduct,
   type Product,
 } from 'hooks/useProducts';
+import { useRouteTypes, type RouteType } from 'hooks/useRouteTypes';
+import { useTaxMasters, type TaxMaster } from 'hooks/useTaxMaster';
 import {
   useUnitOfMeasurement,
   type UnitOfMeasurement,
 } from 'hooks/useUnitOfMeasurement';
-import { useRouteTypes, type RouteType } from 'hooks/useRouteTypes';
-import { useOutletGroups, type OutletGroup } from 'hooks/useOutletGroups';
-import { useTaxMasters, type TaxMaster } from 'hooks/useTaxMaster';
 import React from 'react';
 import { productValidationSchema } from 'schemas/product.schema';
-import Button from 'shared/Button';
-import CustomDrawer from 'shared/Drawer';
-import Input from 'shared/Input';
-import ProductCategorySelect from 'shared/ProductCategorySelect';
-import Select from 'shared/Select';
-import { useQuery } from '@tanstack/react-query';
-import {
-  fetchProductTypesDropdown,
-  type ProductTypeDropdown,
-} from 'services/masters/ProductTypes';
-import {
-  fetchProductTargetGroupsDropdown,
-  type ProductTargetGroupDropdown,
-} from 'services/masters/ProductTargetGroups';
-import {
-  fetchProductWebOrdersDropdown,
-  type ProductWebOrderDropdown,
-} from 'services/masters/ProductWebOrders';
-import {
-  fetchProductVolumesDropdown,
-  type ProductVolumeDropdown,
-} from 'services/masters/ProductVolumes';
 import {
   fetchProductFlavoursDropdown,
   type ProductFlavourDropdown,
@@ -49,6 +32,27 @@ import {
   fetchProductShelfLifeDropdown,
   type ProductShelfLifeDropdown,
 } from 'services/masters/ProductShelfLife';
+import {
+  fetchProductTargetGroupsDropdown,
+  type ProductTargetGroupDropdown,
+} from 'services/masters/ProductTargetGroups';
+import {
+  fetchProductTypesDropdown,
+  type ProductTypeDropdown,
+} from 'services/masters/ProductTypes';
+import {
+  fetchProductVolumesDropdown,
+  type ProductVolumeDropdown,
+} from 'services/masters/ProductVolumes';
+import {
+  fetchProductWebOrdersDropdown,
+  type ProductWebOrderDropdown,
+} from 'services/masters/ProductWebOrders';
+import Button from 'shared/Button';
+import CustomDrawer from 'shared/Drawer';
+import Input from 'shared/Input';
+import ProductCategorySelect from 'shared/ProductCategorySelect';
+import Select from 'shared/Select';
 
 interface ManageProductProps {
   selectedProduct?: Product | null;
@@ -73,7 +77,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
 
-  // Fetch dropdown data
   const { data: subCategoriesResponse } = useProductSubCategories({
     limit: 1000,
   });
@@ -85,6 +88,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
     limit: 1000,
     is_active: 'Y',
   });
+  const { data: batchLotsResponse } = useBatchLotsDropdown();
 
   const subCategories = subCategoriesResponse?.data || [];
   const brands = brandsResponse?.data || [];
@@ -92,6 +96,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const routeTypes = routeTypesResponse?.data || [];
   const outletGroups = outletGroupsResponse?.data || [];
   const taxMasters = taxMastersResponse?.data || [];
+  const batchLots = (batchLotsResponse as any)?.data || [];
 
   const { data: productTypesResponse } = useQuery({
     queryKey: ['product-types-dropdown'],
@@ -143,6 +148,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       route_type_id: selectedProduct?.route_type_id || '',
       outlet_group_id: selectedProduct?.outlet_group_id || '',
       tracking_type: selectedProduct?.tracking_type || '',
+      batch_lots_id: selectedProduct?.batch_lots_id || '',
       product_type_id: selectedProduct?.product_type_id || '',
       product_target_group_id: selectedProduct?.product_target_group_id || '',
       product_web_order_id: selectedProduct?.product_web_order_id || '',
@@ -176,6 +182,9 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             values.tracking_type && values.tracking_type !== ''
               ? (values.tracking_type as 'Batch' | 'Serial')
               : undefined,
+          batch_lots_id: values.batch_lots_id
+            ? Number(values.batch_lots_id)
+            : undefined,
           product_type_id: values.product_type_id
             ? Number(values.product_type_id)
             : undefined,
@@ -310,6 +319,16 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             <Select name="tracking_type" label="Batch/Serial" formik={formik}>
               <MenuItem value="Batch">Batch</MenuItem>
               <MenuItem value="Serial">Serial</MenuItem>
+            </Select>
+
+            <Select name="batch_lots_id" label="Batch Lot" formik={formik}>
+              {batchLots.map((batchLot: BatchLotDropdown) => (
+                <MenuItem key={batchLot.id} value={batchLot.id}>
+                  {batchLot.batch_number}
+                  {batchLot.lot_number && ` (${batchLot.lot_number})`} - Qty:{' '}
+                  {batchLot.remaining_quantity.toLocaleString()}
+                </MenuItem>
+              ))}
             </Select>
 
             <Select name="product_type_id" label="Product Type" formik={formik}>

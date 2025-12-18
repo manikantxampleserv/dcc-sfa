@@ -22,6 +22,7 @@ interface Product {
   route_type_id?: number | null;
   outlet_group_id?: number | null;
   tracking_type?: string | null;
+  batch_lots_id?: number | null;
   product_type_id?: number | null;
   product_target_group_id?: number | null;
   product_web_order_id?: number | null;
@@ -77,6 +78,7 @@ interface ManageProductPayload {
   route_type_id?: number;
   outlet_group_id?: number;
   tracking_type?: 'Batch' | 'Serial';
+  batch_lots_id?: number;
   product_type_id?: number;
   product_target_group_id?: number;
   product_web_order_id?: number;
@@ -102,6 +104,7 @@ interface UpdateProductPayload {
   route_type_id?: number;
   outlet_group_id?: number;
   tracking_type?: string;
+  batch_lots_id?: number;
   product_type_id?: number;
   product_target_group_id?: number;
   product_web_order_id?: number;

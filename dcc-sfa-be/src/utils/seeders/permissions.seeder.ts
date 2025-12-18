@@ -66,6 +66,8 @@ const MODULE_MAPPING: Record<string, string> = {
   'van-stock': 'Van Inventory',
   'stock-movement': 'Stock Movement',
   'stock-transfer': 'Stock Transfer Request',
+  'batch-lots': 'Batch & Lot Management',
+  'inventory-management': 'Inventory Management',
   competitor: 'Competitor Activity',
   'customer-complaint': 'Customer Complaint',
   'customer-category': 'Customer Category',

@@ -11,9 +11,9 @@ dotenv.config({ quiet: true });
 import logger from '../../configs/logger';
 import prisma from '../../configs/prisma.client';
 
-// Import all seeders
 import { clearAssetMaster, seedAssetMaster } from './assetMaster.seeder';
 import { clearAssetTypes, seedAssetTypes } from './assetTypes.seeder';
+import { clearBatchLots, seedBatchLots } from './batchLots.seeder';
 import { clearBrands, seedBrands } from './brands.seeder';
 import { clearCompanies, seedCompanies } from './companies.seeder';
 import { clearCurrencies, seedCurrencies } from './currencies.seeder';
@@ -130,6 +130,11 @@ const seeders = {
     seed: seedAssetTypes,
     clear: clearAssetTypes,
     name: 'Asset Types',
+  },
+  'batch-lots': {
+    seed: seedBatchLots,
+    clear: clearBatchLots,
+    name: 'Batch Lots',
   },
   warehouses: {
     seed: seedWarehouses,
@@ -349,6 +354,7 @@ export async function seedAll(): Promise<void> {
     await seedSection('product-shelf-life');
     await seedSection('tax-master');
     await seedSection('products');
+    await seedSection('batch-lots');
 
     // 5. Asset management
     await seedSection('asset-types');
@@ -427,6 +433,7 @@ export async function clearAll(): Promise<void> {
     await clearSection('asset-types');
 
     // 4. Product hierarchy
+    await clearSection('batch-lots');
     await clearSection('products');
     await clearSection('product-shelf-life');
     await clearSection('product-flavours');
@@ -573,9 +580,9 @@ export async function resetProductSeeders(): Promise<void> {
   }
 }
 
-// Export individual seeders for direct access
 export { clearAssetMaster, seedAssetMaster } from './assetMaster.seeder';
 export { clearAssetTypes, seedAssetTypes } from './assetTypes.seeder';
+export { clearBatchLots, seedBatchLots } from './batchLots.seeder';
 export { clearCoolerTypes, seedCoolerTypes } from './coolerTypes.seeder';
 export {
   clearCoolerSubTypes,
@@ -640,7 +647,6 @@ export { clearVisits, seedVisits } from './visits.seeder';
 export { clearWarehouses, seedWarehouses } from './warehouses.seeder';
 export { clearZones, seedZones } from './zones.seeder';
 
-// CLI Script functionality
 async function main() {
   const command = process.argv[2];
   const arg1 = process.argv[3];
@@ -802,7 +808,6 @@ Examples:
   }
 }
 
-// Run CLI if this file is executed directly
 if (require.main === module) {
   main();
 }

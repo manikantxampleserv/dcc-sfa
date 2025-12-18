@@ -1,4 +1,4 @@
-import { Delete, Edit } from '@mui/icons-material';
+import { Delete, Edit, Visibility } from '@mui/icons-material';
 import { IconButton, Tooltip } from '@mui/material';
 import React from 'react';
 import { DeleteConfirmation } from '../DeleteConfirmation';
@@ -12,12 +12,43 @@ interface ActionButtonProps {
   color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
 }
 
+interface ViewButtonProps extends ActionButtonProps {}
+
 interface EditButtonProps extends ActionButtonProps {}
 
 interface DeleteButtonProps extends ActionButtonProps {
   confirmDelete?: boolean;
   itemName?: string;
 }
+
+const ViewButton: React.FC<ViewButtonProps> = ({
+  onClick,
+  disabled = false,
+  tooltip = 'View',
+  size = 'medium',
+}) => {
+  const button = (
+    <IconButton
+      size={size}
+      onClick={e => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      disabled={disabled}
+      className="!bg-green-100 !rounded hover:!bg-green-200 !text-green-600"
+    >
+      <Visibility fontSize="small" />
+    </IconButton>
+  );
+
+  return tooltip ? (
+    <Tooltip placement="top" title={tooltip} arrow>
+      {button}
+    </Tooltip>
+  ) : (
+    button
+  );
+};
 
 const EditButton: React.FC<EditButtonProps> = ({
   onClick,
@@ -126,5 +157,10 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   );
 };
 
-export { DeleteButton, EditButton, ActionButton };
-export type { ActionButtonProps, DeleteButtonProps, EditButtonProps };
+export { DeleteButton, EditButton, ViewButton, ActionButton };
+export type {
+  ActionButtonProps,
+  DeleteButtonProps,
+  EditButtonProps,
+  ViewButtonProps,
+};

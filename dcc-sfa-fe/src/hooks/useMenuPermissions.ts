@@ -1,7 +1,7 @@
 /**
  * @fileoverview Auto-Generated Menu Permissions Hook
  * @description Generated automatically from menu items and backend modules
- * @generated-at 2025-12-17T09:58:57.011Z
+ * @generated-at 2025-12-17T12:26:29.173Z
  */
 
 import { useCallback, useMemo } from 'react';
@@ -54,6 +54,8 @@ export const useMenuPermissions = () => {
   const vanStockPerms = usePermission('van-stock' as BackendModule);
   const stockMovementPerms = usePermission('stock-movement' as BackendModule);
   const stockTransferPerms = usePermission('stock-transfer' as BackendModule);
+  const batchLotsPerms = usePermission('batch-lots' as BackendModule);
+  const inventoryManagementPerms = usePermission('inventory-management' as BackendModule);
   const competitorPerms = usePermission('competitor' as BackendModule);
   const customerComplaintPerms = usePermission('customer-complaint' as BackendModule);
   const customerCategoryPerms = usePermission('customer-category' as BackendModule);
@@ -122,6 +124,8 @@ export const useMenuPermissions = () => {
     'van-stock': vanStockPerms,
     'stock-movement': stockMovementPerms,
     'stock-transfer': stockTransferPerms,
+    'batch-lots': batchLotsPerms,
+    'inventory-management': inventoryManagementPerms,
     'competitor': competitorPerms,
     'customer-complaint': customerComplaintPerms,
     'customer-category': customerCategoryPerms,
@@ -189,6 +193,8 @@ export const useMenuPermissions = () => {
     vanStockPerms,
     stockMovementPerms,
     stockTransferPerms,
+    batchLotsPerms,
+    inventoryManagementPerms,
     competitorPerms,
     customerComplaintPerms,
     customerCategoryPerms,

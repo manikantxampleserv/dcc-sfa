@@ -47,6 +47,10 @@ export const productValidationSchema = yup.object().shape({
       'Tracking type must be None, Batch, or Serial'
     )
     .nullable(),
+  batch_lots_id: yup
+    .number()
+    .min(1, 'Please select a valid batch lot')
+    .nullable(),
   is_active: yup
     .string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')
