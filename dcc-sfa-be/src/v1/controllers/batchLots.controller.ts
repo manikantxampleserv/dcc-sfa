@@ -804,7 +804,7 @@ export const batchLotsController = {
               take: 10,
             },
           },
-          orderBy: { expiry_date: 'asc' },
+          orderBy: { createdate: 'desc' }, // Changed from expiry_date: 'asc'
           skip,
           take: limit,
         }),
