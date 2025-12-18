@@ -7,15 +7,7 @@ import {
   Visibility,
   Warning,
 } from '@mui/icons-material';
-import {
-  Alert,
-  Avatar,
-  Box,
-  Chip,
-  MenuItem,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import {
   useBatchLots,
   useDeleteBatchLot,
@@ -23,7 +15,7 @@ import {
 } from 'hooks/useBatchLots';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
-import { AlertTriangle, Archive, Package } from 'lucide-react';
+import { AlertTriangle, Archive, Calendar, Package } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
@@ -164,57 +156,69 @@ const BatchLotsPage: React.FC = () => {
     };
   };
 
-  const getQualityGradeColor = (grade?: string | null) => {
-    switch (grade) {
-      case 'A':
-        return 'success';
-      case 'B':
-        return 'info';
-      case 'C':
-        return 'warning';
-      case 'D':
-      case 'F':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
   const batchLotColumns: TableColumn<BatchLot>[] = [
     {
       id: 'batch_number',
-      label: 'Batch Information',
+      label: 'Batch Info',
       render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
+        <Box
+          className="!flex !gap-2 !items-center !cursor-pointer hover:!opacity-80 !transition-opacity"
+          onClick={() => handleViewBatchLot(row.id)}
+        >
           <Avatar
             alt={row.batch_number}
-            className="!rounded !bg-primary-100 !text-primary-500"
+            className="!rounded !bg-primary-100 !text-primary-600"
           >
             <Package className="w-5 h-5" />
           </Avatar>
-          <Box className="!max-w-xs">
+          <Box>
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight !font-medium"
+              className="!text-gray-900 !leading-tight !font-medium hover:!text-primary-600 !transition-colors"
             >
               {row.batch_number}
             </Typography>
-            {row.lot_number && (
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !block !mt-0.5"
-              >
-                Lot: {row.lot_number}
-              </Typography>
-            )}
-            {row.products && row.products.length > 0 && (
-              <Typography
-                variant="caption"
-                className="!text-gray-600 !text-xs !block !mt-0.5"
-              >
-                {row.products.length} product(s)
-              </Typography>
-            )}
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.lot_number ? `Lot: ${row.lot_number}` : 'No lot number'}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'products',
+      label: 'Products',
+      render: (_value, row) => (
+        <Box>
+          <Box className="flex items-center text-sm text-gray-900">
+            <Package className="w-4 h-4 text-gray-400 mr-2" />
+            {row.products?.length || 0} product(s)
+          </Box>
+          {row.products && row.products.length > 0 && (
+            <Box className="flex items-center text-xs text-gray-500 mt-1">
+              <Archive className="w-4 h-4 text-gray-400 mr-2" />
+              {row.products[0]?.name || 'Unknown'}
+              {row.products.length > 1 && ` +${row.products.length - 1} more`}
+            </Box>
+          )}
+        </Box>
+      ),
+    },
+    {
+      id: 'dates',
+      label: 'Dates',
+      render: (_value, row) => (
+        <Box>
+          <Box className="flex items-center text-sm text-gray-900">
+            <AlertTriangle className="w-4 h-4 text-gray-400 mr-2" />
+            {formatDate(row.expiry_date?.toString())}
+          </Box>
+          <Box className="flex items-center text-xs text-gray-500 mt-1">
+            <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+            Mfg: {formatDate(row.manufacturing_date?.toString())}
           </Box>
         </Box>
       ),
@@ -224,70 +228,70 @@ const BatchLotsPage: React.FC = () => {
       label: 'Quantity',
       render: (_value, row) => (
         <Box>
-          <Typography variant="body2" className="!text-gray-900 !font-medium">
-            {row.remaining_quantity} / {row.quantity}
-          </Typography>
-          <Typography variant="caption" className="!text-gray-500">
-            Available / Total
-          </Typography>
+          <Box className="flex items-center text-sm text-gray-900">
+            <Package className="w-4 h-4 text-gray-400 mr-2" />
+            {Number(row.quantity).toLocaleString()} total
+          </Box>
+          <Box className="flex items-center text-sm text-gray-500 mt-1">
+            <Archive className="w-4 h-4 text-gray-400 mr-2" />
+            {Number(row.remaining_quantity).toLocaleString()} remaining
+          </Box>
         </Box>
       ),
     },
     {
-      id: 'expiry_date',
+      id: 'supplier',
+      label: 'Supplier',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.supplier_name || (
+            <span className="!text-gray-500 italic">no supplier</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'storage',
+      label: 'Storage',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.storage_location || (
+            <span className="!text-gray-500 italic">no location</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'purchase_price',
+      label: 'Purchase Price',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.purchase_price ? (
+            new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+            }).format(row.purchase_price)
+          ) : (
+            <span className="!text-gray-500 italic">no price</span>
+          )}
+        </Typography>
+      ),
+    },
+    {
+      id: 'expiry_status',
       label: 'Expiry Status',
       render: (_value, row) => {
-        const expiryStatus = getExpiryStatus(row.expiry_date);
+        const status = getExpiryStatus(row.expiry_date || '');
         return (
-          <Tooltip
-            title={`Expires: ${formatDate(row.expiry_date)}`}
-            placement="top"
-            arrow
-          >
-            <Chip
-              icon={expiryStatus.icon}
-              label={expiryStatus.label}
-              size="small"
-              variant="outlined"
-              color={expiryStatus.color as any}
-            />
-          </Tooltip>
+          <Chip
+            icon={status.icon}
+            label={status.label}
+            size="small"
+            variant="outlined"
+            color={status.color as any}
+          />
         );
       },
-    },
-    {
-      id: 'quality_grade',
-      label: 'Quality',
-      render: (quality_grade, _row) => (
-        <Chip
-          label={`Grade ${quality_grade || 'N/A'}`}
-          size="small"
-          variant="filled"
-          color={getQualityGradeColor(quality_grade) as any}
-        />
-      ),
-    },
-    {
-      id: 'supplier_name',
-      label: 'Supplier',
-      render: (supplier_name, _row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {supplier_name || (
-            <span className="italic text-gray-400">No Supplier</span>
-          )}
-        </Typography>
-      ),
-    },
-    {
-      id: 'storage_location',
-      label: 'Storage Location',
-      render: (storage_location, _row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {storage_location || (
-            <span className="italic text-gray-400">Not Specified</span>
-          )}
-        </Typography>
-      ),
     },
     {
       id: 'is_active',
@@ -300,6 +304,15 @@ const BatchLotsPage: React.FC = () => {
           variant="outlined"
           color={is_active === 'Y' ? 'success' : 'error'}
         />
+      ),
+    },
+    {
+      id: 'createdate',
+      label: 'Created',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-500">
+          {formatDate(row.createdate?.toString())}
+        </Typography>
       ),
     },
     ...(isUpdate || isDelete || isRead

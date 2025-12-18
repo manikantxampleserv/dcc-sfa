@@ -209,7 +209,7 @@ const Notifications: React.FC<NotificationsProps> = ({
             },
           },
           list: {
-            className: '!p-0 !relative',
+            className: '!py-2 !relative',
           },
         }}
       >

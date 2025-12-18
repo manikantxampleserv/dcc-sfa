@@ -1,16 +1,21 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateBatchLot,
   useUpdateBatchLot,
   type BatchLot,
 } from 'hooks/useBatchLots';
-import React from 'react';
+import { useProductsDropdown, type ProductDropdown } from 'hooks/useProducts';
+import { Plus } from 'lucide-react';
+import React, { useRef, useState } from 'react';
 import { batchLotValidationSchema } from 'schemas/batchLot.schema';
+import { DeleteButton } from 'shared/ActionButton';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import Table, { type TableColumn } from 'shared/Table';
 
 interface ManageBatchLotProps {
   selectedBatchLot?: BatchLot | null;
@@ -25,15 +30,174 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
+  const [selectedProducts, setSelectedProducts] = useState<
+    Array<{
+      product_id: number;
+      product_name: string;
+      product_code: string;
+      quantity: number;
+    }>
+  >([]);
+  const hasLoadedProductsRef = useRef(false);
   const isEdit = !!selectedBatchLot;
 
   const handleCancel = () => {
     setSelectedBatchLot(null);
     setDrawerOpen(false);
+    setSelectedProducts([]);
+    hasLoadedProductsRef.current = false;
   };
 
   const createBatchLotMutation = useCreateBatchLot();
   const updateBatchLotMutation = useUpdateBatchLot();
+  const { data: productsResponse } = useProductsDropdown();
+  const products = productsResponse?.data || [];
+
+  React.useEffect(() => {
+    if (products.length > 0) {
+      // Products are loaded, no need to transform as they're already in the right format
+    }
+  }, [products]);
+
+  React.useEffect(() => {
+    if (isEdit && selectedBatchLot?.products && !hasLoadedProductsRef.current) {
+      const existingProducts = selectedBatchLot.products.map(
+        (product: any) => ({
+          product_id: product.id,
+          product_name: product.name,
+          product_code: product.code,
+          quantity: product.quantity || 0,
+        })
+      );
+      setSelectedProducts(existingProducts);
+      hasLoadedProductsRef.current = true;
+    } else if (!isEdit) {
+      setSelectedProducts([]);
+      hasLoadedProductsRef.current = false;
+    }
+  }, [isEdit, selectedBatchLot]);
+
+  React.useEffect(() => {
+    if (!drawerOpen) {
+      hasLoadedProductsRef.current = false;
+    }
+  }, [drawerOpen]);
+
+  const addProduct = () => {
+    const newProduct = {
+      product_id: 0,
+      product_name: '',
+      product_code: '',
+      quantity: 0,
+    };
+    setSelectedProducts([...selectedProducts, newProduct]);
+  };
+
+  const removeProduct = (index: number) => {
+    setSelectedProducts(selectedProducts.filter((_, i) => i !== index));
+  };
+
+  const updateProduct = (index: number, productId: number | null) => {
+    const updatedProducts = [...selectedProducts];
+
+    if (productId === null || productId === 0) {
+      updatedProducts[index] = {
+        product_id: 0,
+        product_name: '',
+        product_code: '',
+        quantity: 0,
+      };
+    } else {
+      const product = products.find((p: ProductDropdown) => p.id === productId);
+      if (product) {
+        updatedProducts[index] = {
+          product_id: product.id,
+          product_name: product.name,
+          product_code: product.code,
+          quantity: updatedProducts[index].quantity || 0,
+        };
+      }
+    }
+
+    setSelectedProducts(updatedProducts);
+  };
+
+  const updateProductQuantity = (index: number, quantity: number) => {
+    const updatedProducts = [...selectedProducts];
+    const validatedQuantity = Math.max(0, quantity);
+
+    updatedProducts[index] = {
+      ...updatedProducts[index],
+      quantity: validatedQuantity,
+    };
+    setSelectedProducts(updatedProducts);
+  };
+
+  const productsWithIndex = selectedProducts.map((item, index) => ({
+    ...item,
+    _index: index,
+  }));
+
+  const productColumns: TableColumn<(typeof productsWithIndex)[0]>[] = [
+    {
+      id: 'product_id',
+      label: 'Product',
+      width: 450,
+      render: (_, row) => (
+        <Select
+          name={`product_${row._index}`}
+          value={row.product_id || ''}
+          onChange={e => {
+            const value = e.target.value;
+            updateProduct(
+              row._index,
+              value === '' || value === null ? null : Number(value)
+            );
+          }}
+          fullWidth
+          size="small"
+          placeholder="Select product"
+          disableClearable={false}
+        >
+          {products.map((product: ProductDropdown) => (
+            <MenuItem key={product.id} value={product.id}>
+              {product.name}
+              {product.code && ` (${product.code})`}
+            </MenuItem>
+          ))}
+        </Select>
+      ),
+    },
+
+    {
+      id: 'quantity',
+      label: 'Quantity',
+      render: (_, row) => (
+        <Input
+          name={`quantity_${row._index}`}
+          type="number"
+          value={row.quantity || ''}
+          onChange={e =>
+            updateProductQuantity(row._index, Number(e.target.value))
+          }
+          size="small"
+          fullWidth
+        />
+      ),
+    },
+    {
+      id: 'action' as any,
+      label: 'Actions',
+      sortable: false,
+      render: (_, row) => (
+        <DeleteButton
+          onClick={() => removeProduct(row._index)}
+          tooltip="Remove product"
+          size="small"
+        />
+      ),
+    },
+  ];
 
   const formik = useFormik({
     initialValues: {
@@ -75,6 +239,12 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
           quality_grade: values.quality_grade || undefined,
           storage_location: values.storage_location || undefined,
           is_active: values.is_active,
+          products: selectedProducts
+            .filter(p => p.product_id > 0 && p.quantity > 0)
+            .map(p => ({
+              product_id: p.product_id,
+              quantity: p.quantity,
+            })),
         };
 
         if (isEdit && selectedBatchLot) {
@@ -152,27 +322,12 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
             />
 
             <Input
-              name="supplier_name"
-              label="Supplier Name"
-              placeholder="Enter supplier name"
-              formik={formik}
-            />
-
-            <Input
               name="purchase_price"
               label="Purchase Price"
               placeholder="Enter purchase price"
               formik={formik}
               type="number"
             />
-
-            <Select name="quality_grade" label="Quality Grade" formik={formik}>
-              <MenuItem value="A">Grade A - Excellent</MenuItem>
-              <MenuItem value="B">Grade B - Good</MenuItem>
-              <MenuItem value="C">Grade C - Average</MenuItem>
-              <MenuItem value="D">Grade D - Below Average</MenuItem>
-              <MenuItem value="F">Grade F - Poor</MenuItem>
-            </Select>
 
             <Input
               name="storage_location"
@@ -181,18 +336,53 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
               formik={formik}
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <Input
+              name="supplier_name"
+              label="Supplier Name"
+              placeholder="Enter supplier name"
+              formik={formik}
+              className="md:!col-span-2"
+            />
+
+            <ActiveInactiveField
+              name="is_active"
+              label="Status"
+              formik={formik}
+            />
           </Box>
 
-          <Box className="!flex !justify-end">
+          {/* Products Section */}
+          <Table
+            data={productsWithIndex}
+            compact={true}
+            actions={
+              <Box className="!flex !justify-between !items-center">
+                <Typography variant="body1" className="!font-semibold">
+                  Products
+                </Typography>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={addProduct}
+                  startIcon={<Plus size={16} />}
+                >
+                  Add Product
+                </Button>
+              </Box>
+            }
+            columns={productColumns}
+            getRowId={product => product._index}
+            pagination={false}
+            emptyMessage="No products added. Click 'Add Product' to add products"
+          />
+
+          {/* Action Buttons */}
+          <Box className="!flex !justify-end !gap-3 !pt-4">
             <Button
               type="button"
               variant="outlined"
               onClick={handleCancel}
-              className="!mr-3"
               disabled={
                 createBatchLotMutation.isPending ||
                 updateBatchLotMutation.isPending
@@ -215,7 +405,7 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
                   : 'Creating...'
                 : isEdit
                   ? 'Update'
-                  : 'Create'}{' '}
+                  : 'Create'}
             </Button>
           </Box>
         </form>

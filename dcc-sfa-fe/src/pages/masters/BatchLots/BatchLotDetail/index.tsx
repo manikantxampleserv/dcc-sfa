@@ -1,75 +1,29 @@
+import { Block, CheckCircle, Warning } from '@mui/icons-material';
+import { Alert, Avatar, Box, Chip, Skeleton, Typography } from '@mui/material';
+import { useBatchLot } from 'hooks/useBatchLots';
 import {
-  Block,
-  CheckCircle,
-  Inventory2,
-  LocalOffer,
-  Warning,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Avatar,
-  Box,
-  Chip,
-  Skeleton,
-  Tab,
-  Tabs,
-  Typography,
-} from '@mui/material';
-import {
-  Archive,
   Calendar,
   DollarSign,
   MapPin,
   Package,
   Package2,
-  TrendingUp,
   Truck,
   User,
+  AlertTriangle,
+  Archive,
 } from 'lucide-react';
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import Button from 'shared/Button';
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import { useBatchLot } from 'hooks/useBatchLots';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`batchlot-tabpanel-${index}`}
-      aria-labelledby={`batchlot-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box>{children}</Box>}
-    </div>
-  );
-}
 
 const BatchLotDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [tabValue, setTabValue] = useState(0);
 
   const { data: batchLotData, isLoading, error } = useBatchLot(Number(id));
 
   const batchLot = batchLotData?.data;
   const products = batchLot?.products || [];
-  const serialNumbers = batchLot?.serial_numbers || [];
-  const stockMovements = batchLot?.stock_movements || [];
-
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
 
   const formatPrice = (price: number | null | undefined) => {
     if (price === null || price === undefined) return 'N/A';
@@ -109,22 +63,6 @@ const BatchLotDetail: React.FC = () => {
     };
   };
 
-  const getQualityGradeColor = (grade?: string | null) => {
-    switch (grade) {
-      case 'A':
-        return 'success';
-      case 'B':
-        return 'info';
-      case 'C':
-        return 'warning';
-      case 'D':
-      case 'F':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
   if (isLoading) {
     return (
       <>
@@ -146,7 +84,6 @@ const BatchLotDetail: React.FC = () => {
               className="!mt-1"
             />
           </Box>
-          <Skeleton variant="rectangular" width={150} height={40} />
         </Box>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -166,9 +103,11 @@ const BatchLotDetail: React.FC = () => {
           ))}
         </div>
 
-        <div className="bg-white rounded-lg shadow border border-gray-200">
-          <Skeleton variant="rectangular" height={400} />
-        </div>
+        <Skeleton
+          variant="rectangular"
+          height={400}
+          className="!rounded-lg !shadow !border !border-gray-200"
+        />
       </>
     );
   }
@@ -225,70 +164,6 @@ const BatchLotDetail: React.FC = () => {
     },
   ];
 
-  const serialNumberColumns: TableColumn<any>[] = [
-    {
-      id: 'serial_number',
-      label: 'Serial Number',
-      render: value => (
-        <Typography variant="body2" className="!font-medium">
-          {value}
-        </Typography>
-      ),
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      render: value => (
-        <Chip
-          label={value || 'Available'}
-          size="small"
-          color={value === 'Sold' ? 'error' : 'success'}
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      id: 'sold_date',
-      label: 'Sold Date',
-      render: value => (
-        <Typography variant="body2">
-          {value ? formatDate(value?.toString()) : 'N/A'}
-        </Typography>
-      ),
-    },
-  ];
-
-  const stockMovementColumns: TableColumn<any>[] = [
-    {
-      id: 'movement_type',
-      label: 'Type',
-      render: value => (
-        <Chip
-          label={value}
-          size="small"
-          color={value === 'IN' ? 'success' : 'error'}
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      id: 'quantity',
-      label: 'Quantity',
-      render: value => (
-        <Typography variant="body2" className="!font-medium">
-          {Number(value).toLocaleString()}
-        </Typography>
-      ),
-    },
-    {
-      id: 'movement_date',
-      label: 'Date',
-      render: value => (
-        <Typography variant="body2">{formatDate(value?.toString())}</Typography>
-      ),
-    },
-  ];
-
   return (
     <>
       <Box className="!mb-3 !flex !items-center !gap-3">
@@ -315,12 +190,6 @@ const BatchLotDetail: React.FC = () => {
             {batchLot.lot_number && `Lot Number: ${batchLot.lot_number}`}
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          onClick={() => navigate('/masters/batch-lots')}
-        >
-          Back to Batch Lots
-        </Button>
       </Box>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -351,7 +220,7 @@ const BatchLotDetail: React.FC = () => {
               </Typography>
             </div>
             <Avatar className="!bg-green-100">
-              <Inventory2 className="text-green-600" />
+              <Archive className="text-green-600" />
             </Avatar>
           </div>
         </div>
@@ -376,14 +245,18 @@ const BatchLotDetail: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <Typography variant="body2" className="!text-gray-500 !mb-2">
-                Quality Grade
+                Expiry Status
               </Typography>
               <Typography variant="h6" className="!font-bold !text-gray-900">
-                Grade {batchLot.quality_grade || 'N/A'}
+                {expiryStatus.label}
               </Typography>
             </div>
-            <Avatar className="!bg-orange-100">
-              <TrendingUp className="text-orange-600" />
+            <Avatar
+              className={`!bg-${expiryStatus.color === 'error' ? 'red' : expiryStatus.color === 'warning' ? 'orange' : 'green'}-100`}
+            >
+              <AlertTriangle
+                className={`text-${expiryStatus.color === 'error' ? 'red' : expiryStatus.color === 'warning' ? 'orange' : 'green'}-600`}
+              />
             </Avatar>
           </div>
         </div>
@@ -463,21 +336,6 @@ const BatchLotDetail: React.FC = () => {
 
           <Box>
             <Box className="flex items-center gap-2 mb-1">
-              <LocalOffer className="w-4 h-4 text-gray-400" />
-              <Typography variant="body2" className="!text-gray-500">
-                Quality Grade
-              </Typography>
-            </Box>
-            <Chip
-              label={`Grade ${batchLot.quality_grade || 'N/A'}`}
-              size="small"
-              color={getQualityGradeColor(batchLot.quality_grade) as any}
-              variant="filled"
-            />
-          </Box>
-
-          <Box>
-            <Box className="flex items-center gap-2 mb-1">
               <User className="w-4 h-4 text-gray-400" />
               <Typography variant="body2" className="!text-gray-500">
                 Created Date
@@ -490,68 +348,14 @@ const BatchLotDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow border border-gray-200">
-        <Box className="!border-b !border-gray-200">
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            aria-label="batch lot tabs"
-            className="!px-6"
-          >
-            <Tab
-              icon={<Package />}
-              label={`Products (${products.length})`}
-              iconPosition="start"
-              className="!py-0"
-            />
-            <Tab
-              icon={<Archive />}
-              label={`Serial Numbers (${serialNumbers.length})`}
-              iconPosition="start"
-              className="!py-0"
-            />
-            <Tab
-              icon={<TrendingUp />}
-              label={`Stock Movements (${stockMovements.length})`}
-              iconPosition="start"
-              className="!py-0"
-            />
-          </Tabs>
-        </Box>
-
-        <TabPanel value={tabValue} index={0}>
-          <Table
-            data={products}
-            columns={productColumns}
-            getRowId={product => product.id}
-            initialOrderBy="name"
-            emptyMessage="No products found for this batch lot"
-            pagination={false}
-          />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
-          <Table
-            data={serialNumbers}
-            columns={serialNumberColumns}
-            getRowId={serial => serial.id}
-            initialOrderBy="serial_number"
-            emptyMessage="No serial numbers found for this batch lot"
-            pagination={false}
-          />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={2}>
-          <Table
-            data={stockMovements}
-            columns={stockMovementColumns}
-            getRowId={movement => movement.id}
-            initialOrderBy="movement_date"
-            emptyMessage="No stock movements found for this batch lot"
-            pagination={false}
-          />
-        </TabPanel>
-      </div>
+      <Table
+        data={products}
+        columns={productColumns}
+        getRowId={product => product.id}
+        initialOrderBy="name"
+        emptyMessage="No products found for this batch lot"
+        pagination={false}
+      />
     </>
   );
 };

@@ -204,14 +204,13 @@ const ProductsManagement: React.FC = () => {
         <Box>
           <Box className="flex items-center text-sm text-gray-900">
             <DollarSign className="w-4 h-4 text-gray-400 mr-2" />
-            {formatPrice(row.base_price)}
+            {formatPrice(row.base_price || 0)}
           </Box>
-          {row.tax_rate && (
-            <Box className="flex items-center text-sm text-gray-500 mt-1">
-              <Percent className="w-4 h-4 text-gray-400 mr-2" />
-              {formatPercentage(row.tax_rate)} tax
-            </Box>
-          )}
+
+          <Box className="flex items-center text-sm text-gray-500 mt-1">
+            <Percent className="w-4 h-4 text-gray-400 mr-2" />
+            {formatPercentage(row.tax_rate || 0)}
+          </Box>
         </Box>
       ),
     },
@@ -465,8 +464,9 @@ const ProductsManagement: React.FC = () => {
                       }}
                       className="!min-w-32"
                       size="small"
+                      placeholder="Select Status"
+                      label="Status"
                     >
-                      <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
@@ -513,7 +513,7 @@ const ProductsManagement: React.FC = () => {
                     startIcon={<Add />}
                     onClick={handleCreateProduct}
                   >
-                    Add Product
+                    Create
                   </Button>
                 )}
               </div>
