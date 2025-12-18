@@ -1,77 +1,32 @@
+import { Alert, Avatar, Box, Chip, Skeleton, Typography } from '@mui/material';
+import { useProduct } from 'hooks/useProducts';
 import {
-  Cancel,
+  Calendar,
   CheckCircle,
-  Inventory2,
-  LocalOffer,
-  QrCode,
-  Receipt,
-} from '@mui/icons-material';
-import {
-  Alert,
-  Avatar,
-  Box,
-  Chip,
-  Skeleton,
-  Tab,
-  Tabs,
-  Typography,
-} from '@mui/material';
-import {
+  DollarSign,
+  Droplet,
   Package,
+  Package2,
+  Percent,
+  QrCode,
   Tag,
   TrendingUp,
-  DollarSign,
-  Percent,
-  Weight,
-  Droplet,
-  Calendar,
   User,
+  Weight,
+  XCircle,
 } from 'lucide-react';
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Button from 'shared/Button';
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-import { useProduct } from 'hooks/useProducts';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`product-tabpanel-${index}`}
-      aria-labelledby={`product-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box>{children}</Box>}
-    </div>
-  );
-}
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [tabValue, setTabValue] = useState(0);
 
   const { data: productData, isLoading, error } = useProduct(Number(id));
 
   const product = productData?.data;
   const batchLots = product?.batch_lots || [];
-  const inventoryStock = product?.inventory_stock || [];
-  const priceHistory = product?.price_history || [];
-  const orderItems = product?.order_items || [];
-
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
 
   const formatPrice = (price: number | null | undefined) => {
     if (price === null || price === undefined) return 'N/A';
@@ -107,7 +62,6 @@ const ProductDetail: React.FC = () => {
               className="!mt-1"
             />
           </Box>
-          <Skeleton variant="rectangular" width={100} height={40} />
         </Box>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -127,9 +81,11 @@ const ProductDetail: React.FC = () => {
           ))}
         </div>
 
-        <div className="bg-white rounded-lg shadow border border-gray-200">
-          <Skeleton variant="rectangular" height={400} />
-        </div>
+        <Skeleton
+          variant="rectangular"
+          height={400}
+          className="!rounded-lg !shadow !border !border-gray-200"
+        />
       </>
     );
   }
@@ -203,83 +159,6 @@ const ProductDetail: React.FC = () => {
     },
   ];
 
-  const inventoryColumns: TableColumn<any>[] = [
-    {
-      id: 'location_id',
-      label: 'Location ID',
-      render: value => <Typography variant="body2">{value}</Typography>,
-    },
-    {
-      id: 'current_stock',
-      label: 'Current Stock',
-      render: value => (
-        <Chip
-          label={Number(value).toLocaleString()}
-          size="small"
-          color={Number(value) > 0 ? 'success' : 'warning'}
-        />
-      ),
-    },
-    {
-      id: 'reorder_point',
-      label: 'Reorder Point',
-      render: value => (
-        <Typography variant="body2">
-          {value !== null && value !== undefined
-            ? Number(value).toLocaleString()
-            : 'N/A'}
-        </Typography>
-      ),
-    },
-  ];
-
-  const priceHistoryColumns: TableColumn<any>[] = [
-    {
-      id: 'price',
-      label: 'Price',
-      render: value => (
-        <Typography variant="body2" className="!font-medium">
-          {formatPrice(Number(value))}
-        </Typography>
-      ),
-    },
-    {
-      id: 'effective_date',
-      label: 'Effective Date',
-      render: value => (
-        <Typography variant="body2">{formatDate(value?.toString())}</Typography>
-      ),
-    },
-  ];
-
-  const orderItemsColumns: TableColumn<any>[] = [
-    {
-      id: 'order_id',
-      label: 'Order ID',
-      render: value => (
-        <Typography variant="body2" className="!font-medium">
-          #{value}
-        </Typography>
-      ),
-    },
-    {
-      id: 'quantity',
-      label: 'Quantity',
-      render: value => (
-        <Typography variant="body2">
-          {Number(value).toLocaleString()}
-        </Typography>
-      ),
-    },
-    {
-      id: 'price',
-      label: 'Price',
-      render: value => (
-        <Typography variant="body2">{formatPrice(Number(value))}</Typography>
-      ),
-    },
-  ];
-
   return (
     <>
       <Box className="!mb-3 !flex !items-center !gap-3">
@@ -289,7 +168,13 @@ const ProductDetail: React.FC = () => {
               {product.name}
             </Typography>
             <Chip
-              icon={product.is_active === 'Y' ? <CheckCircle /> : <Cancel />}
+              icon={
+                product.is_active === 'Y' ? (
+                  <CheckCircle className="w-4 h-4" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )
+              }
               label={product.is_active === 'Y' ? 'Active' : 'Inactive'}
               size="small"
               color={product.is_active === 'Y' ? 'success' : 'error'}
@@ -299,12 +184,6 @@ const ProductDetail: React.FC = () => {
             Product Code: {product.code}
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          onClick={() => navigate('/masters/products')}
-        >
-          Back to Products
-        </Button>
       </Box>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -315,7 +194,7 @@ const ProductDetail: React.FC = () => {
                 Base Price
               </Typography>
               <Typography variant="h6" className="!font-bold !text-gray-900">
-                {formatPrice(product.base_price)}
+                {formatPrice(product.base_price || 0)}
               </Typography>
             </div>
             <Avatar className="!bg-green-100">
@@ -328,14 +207,17 @@ const ProductDetail: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <Typography variant="body2" className="!text-gray-500 !mb-2">
-                Tax Rate
+                Volume
               </Typography>
               <Typography variant="h6" className="!font-bold !text-gray-900">
-                {formatPercentage(product.tax_rate)}
+                {product.volume_in_liters !== null &&
+                product.volume_in_liters !== undefined
+                  ? `${Number(product.volume_in_liters).toFixed(2)} L`
+                  : 'N/A'}
               </Typography>
             </div>
             <Avatar className="!bg-blue-100">
-              <Percent className="text-blue-600" />
+              <Droplet className="text-blue-600" />
             </Avatar>
           </div>
         </div>
@@ -351,7 +233,7 @@ const ProductDetail: React.FC = () => {
               </Typography>
             </div>
             <Avatar className="!bg-purple-100">
-              <QrCode className="text-purple-600" />
+              <Package2 className="text-purple-600" />
             </Avatar>
           </div>
         </div>
@@ -360,14 +242,14 @@ const ProductDetail: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <Typography variant="body2" className="!text-gray-500 !mb-2">
-                Stock Locations
+                Shelf Life
               </Typography>
               <Typography variant="h6" className="!font-bold !text-gray-900">
-                {inventoryStock.length}
+                {product.shelf_life?.name || 'N/A'}
               </Typography>
             </div>
             <Avatar className="!bg-orange-100">
-              <Inventory2 className="text-orange-600" />
+              <Calendar className="text-orange-600" />
             </Avatar>
           </div>
         </div>
@@ -486,7 +368,7 @@ const ProductDetail: React.FC = () => {
           {product.flavour && (
             <Box>
               <Box className="flex items-center gap-2 mb-1">
-                <LocalOffer className="w-4 h-4 text-gray-400" />
+                <Tag className="w-4 h-4 text-gray-400" />
                 <Typography variant="body2" className="!text-gray-500">
                   Flavour
                 </Typography>
@@ -555,18 +437,6 @@ const ProductDetail: React.FC = () => {
                 </Typography>
               </Box>
             )}
-
-          <Box>
-            <Box className="flex items-center gap-2 mb-1">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              <Typography variant="body2" className="!text-gray-500">
-                Created Date
-              </Typography>
-            </Box>
-            <Typography variant="body1" className="!font-medium">
-              {formatDate(product.createdate?.toString())}
-            </Typography>
-          </Box>
         </div>
 
         {product.description && (
@@ -580,86 +450,21 @@ const ProductDetail: React.FC = () => {
           </Box>
         )}
       </div>
-
-      <div className="bg-white rounded-lg shadow border border-gray-200">
-        <Box className="!border-b !border-gray-200">
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            aria-label="product tabs"
-            className="!px-6"
-          >
-            <Tab
-              icon={<QrCode />}
-              label={`Batch Lots (${batchLots.length})`}
-              iconPosition="start"
-              className="!py-0"
-            />
-            <Tab
-              icon={<Inventory2 />}
-              label={`Inventory (${inventoryStock.length})`}
-              iconPosition="start"
-              className="!py-0"
-            />
-            <Tab
-              icon={<LocalOffer />}
-              label={`Price History (${priceHistory.length})`}
-              iconPosition="start"
-              className="!py-0"
-            />
-            <Tab
-              icon={<Receipt />}
-              label={`Order Items (${orderItems.length})`}
-              iconPosition="start"
-              className="!py-0"
-            />
-          </Tabs>
-        </Box>
-
-        <TabPanel value={tabValue} index={0}>
-          <Table
-            data={batchLots}
-            columns={batchLotColumns}
-            getRowId={batch => batch.id}
-            initialOrderBy="batch_number"
-            emptyMessage="No batch lots found for this product"
-            pagination={false}
-          />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={1}>
-          <Table
-            data={inventoryStock}
-            columns={inventoryColumns}
-            getRowId={stock => stock.id}
-            initialOrderBy="location_id"
-            emptyMessage="No inventory stock found for this product"
-            pagination={false}
-          />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={2}>
-          <Table
-            data={priceHistory}
-            columns={priceHistoryColumns}
-            getRowId={price => price.id}
-            initialOrderBy="effective_date"
-            emptyMessage="No price history found for this product"
-            pagination={false}
-          />
-        </TabPanel>
-
-        <TabPanel value={tabValue} index={3}>
-          <Table
-            data={orderItems}
-            columns={orderItemsColumns}
-            getRowId={item => item.id}
-            initialOrderBy="order_id"
-            emptyMessage="No order items found for this product"
-            pagination={false}
-          />
-        </TabPanel>
-      </div>
+      <Table
+        data={batchLots}
+        actions={
+          <Box>
+            <Typography variant="body1" className="!font-semibold">
+              Batch Lots ({batchLots.length})
+            </Typography>
+          </Box>
+        }
+        columns={batchLotColumns}
+        getRowId={batch => batch.id}
+        initialOrderBy="batch_number"
+        emptyMessage="No batch lots found for this product"
+        pagination={false}
+      />
     </>
   );
 };

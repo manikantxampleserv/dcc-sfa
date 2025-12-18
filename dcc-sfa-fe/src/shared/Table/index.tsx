@@ -445,7 +445,7 @@ export default function Table<T extends Record<string, any>>(
               <MuiTableCell
                 colSpan={columns.length}
                 align="center"
-                className="!py-4 !text-gray-500 !italic"
+                className="!py-4 !border-none !text-gray-500 !italic"
               >
                 {emptyMessage}
               </MuiTableCell>

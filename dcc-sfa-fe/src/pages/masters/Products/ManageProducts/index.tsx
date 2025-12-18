@@ -137,7 +137,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       !hasLoadedBatchLotsRef.current
     ) {
       const existingBatchLots = selectedProduct.batch_lots.map((bl: any) => ({
-        batch_lot_id: bl.id,
+        batch_lot_id: bl.batch_lot_id,
         batch_number: bl.batch_number,
         lot_number: bl.lot_number || null,
         remaining_quantity: bl.remaining_quantity || 0,
@@ -255,7 +255,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
 
     {
       id: 'remaining_quantity',
-      label: 'Available Qty',
+      label: 'Available',
       width: 100,
       render: remaining_quantity => remaining_quantity?.toLocaleString() || '0',
     },
@@ -423,6 +423,8 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       }
     },
   });
+
+  console.log({ ...formik.values, batchLots: selectedBatchLots });
 
   return (
     <CustomDrawer
