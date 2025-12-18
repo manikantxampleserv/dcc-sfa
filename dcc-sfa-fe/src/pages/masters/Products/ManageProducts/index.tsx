@@ -1,4 +1,4 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box, MenuItem, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useFormik } from 'formik';
 import {
@@ -22,7 +22,7 @@ import {
   useUnitOfMeasurement,
   type UnitOfMeasurement,
 } from 'hooks/useUnitOfMeasurement';
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { productValidationSchema } from 'schemas/product.schema';
 import {
   fetchProductFlavoursDropdown,
@@ -53,6 +53,10 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import ProductCategorySelect from 'shared/ProductCategorySelect';
 import Select from 'shared/Select';
+import Table, { type TableColumn } from 'shared/Table';
+import { DeleteButton } from 'shared/ActionButton';
+import { Plus } from 'lucide-react';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageProductProps {
   selectedProduct?: Product | null;
@@ -67,11 +71,25 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
+  const [batchLots, setBatchLots] = useState<BatchLotDropdown[]>([]);
+  const [selectedBatchLots, setSelectedBatchLots] = useState<
+    Array<{
+      batch_lot_id: number;
+      batch_number: string;
+      lot_number?: string | null;
+      remaining_quantity: number;
+      expiry_date: string;
+      quantity: number;
+    }>
+  >([]);
+  const hasLoadedBatchLotsRef = useRef(false);
   const isEdit = !!selectedProduct;
 
   const handleCancel = () => {
     setSelectedProduct(null);
     setDrawerOpen(false);
+    setSelectedBatchLots([]);
+    hasLoadedBatchLotsRef.current = false;
   };
 
   const createProductMutation = useCreateProduct();
@@ -96,7 +114,187 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const routeTypes = routeTypesResponse?.data || [];
   const outletGroups = outletGroupsResponse?.data || [];
   const taxMasters = taxMastersResponse?.data || [];
-  const batchLots = (batchLotsResponse as any)?.data || [];
+  const batchLotsDropdown = (batchLotsResponse as any)?.data || [];
+
+  React.useEffect(() => {
+    if (batchLotsDropdown.length > 0) {
+      setBatchLots(
+        batchLotsDropdown.map((batchLot: BatchLotDropdown) => ({
+          id: batchLot.id,
+          batch_number: batchLot.batch_number,
+          lot_number: batchLot.lot_number,
+          remaining_quantity: batchLot.remaining_quantity,
+          expiry_date: batchLot.expiry_date,
+        })) as BatchLotDropdown[]
+      );
+    }
+  }, [batchLotsDropdown]);
+
+  React.useEffect(() => {
+    if (
+      isEdit &&
+      selectedProduct?.batch_lots &&
+      !hasLoadedBatchLotsRef.current
+    ) {
+      const existingBatchLots = selectedProduct.batch_lots.map((bl: any) => ({
+        batch_lot_id: bl.id,
+        batch_number: bl.batch_number,
+        lot_number: bl.lot_number || null,
+        remaining_quantity: bl.remaining_quantity || 0,
+        expiry_date: bl.expiry_date || '',
+        quantity: bl.quantity || 0,
+      }));
+      setSelectedBatchLots(existingBatchLots);
+      hasLoadedBatchLotsRef.current = true;
+    } else if (!isEdit) {
+      setSelectedBatchLots([]);
+      hasLoadedBatchLotsRef.current = false;
+    }
+  }, [isEdit, selectedProduct]);
+
+  React.useEffect(() => {
+    if (!drawerOpen) {
+      hasLoadedBatchLotsRef.current = false;
+    }
+  }, [drawerOpen]);
+
+  const addBatchLot = () => {
+    const newBatchLot = {
+      batch_lot_id: 0,
+      batch_number: '',
+      lot_number: null,
+      remaining_quantity: 0,
+      expiry_date: '',
+      quantity: 0,
+    };
+    setSelectedBatchLots([...selectedBatchLots, newBatchLot]);
+  };
+
+  const removeBatchLot = (index: number) => {
+    setSelectedBatchLots(selectedBatchLots.filter((_, i) => i !== index));
+  };
+
+  const updateBatchLot = (index: number, batchLotId: number | null) => {
+    const updatedBatchLots = [...selectedBatchLots];
+
+    if (batchLotId === null || batchLotId === 0) {
+      updatedBatchLots[index] = {
+        batch_lot_id: 0,
+        batch_number: '',
+        lot_number: null,
+        remaining_quantity: 0,
+        expiry_date: '',
+        quantity: 0,
+      };
+    } else {
+      const batchLot = batchLots.find(bl => bl.id === batchLotId);
+      if (batchLot) {
+        updatedBatchLots[index] = {
+          batch_lot_id: batchLot.id,
+          batch_number: batchLot.batch_number,
+          lot_number: batchLot.lot_number || null,
+          remaining_quantity: batchLot.remaining_quantity,
+          expiry_date: batchLot.expiry_date,
+          quantity: updatedBatchLots[index].quantity || 0,
+        };
+      }
+    }
+
+    setSelectedBatchLots(updatedBatchLots);
+  };
+
+  const updateBatchLotQuantity = (index: number, quantity: number) => {
+    const updatedBatchLots = [...selectedBatchLots];
+    const currentBatchLot = updatedBatchLots[index];
+    const maxQuantity = currentBatchLot.remaining_quantity;
+
+    const validatedQuantity = Math.min(Math.max(0, quantity), maxQuantity);
+
+    updatedBatchLots[index] = {
+      ...updatedBatchLots[index],
+      quantity: validatedQuantity,
+    };
+    setSelectedBatchLots(updatedBatchLots);
+  };
+
+  const batchLotsWithIndex = selectedBatchLots.map((item, index) => ({
+    ...item,
+    _index: index,
+  }));
+
+  const batchLotColumns: TableColumn<(typeof batchLotsWithIndex)[0]>[] = [
+    {
+      id: 'batch_lot_id',
+      label: 'Batch Lot',
+      width: 350,
+      render: (_, row) => (
+        <Select
+          name={`batch_lot_${row._index}`}
+          value={row.batch_lot_id || ''}
+          onChange={e => {
+            const value = e.target.value;
+            updateBatchLot(
+              row._index,
+              value === '' || value === null ? null : Number(value)
+            );
+          }}
+          fullWidth
+          size="small"
+          placeholder="Select batch lot"
+          disableClearable={false}
+        >
+          {batchLots.map((batchLot: BatchLotDropdown) => (
+            <MenuItem key={batchLot.id} value={batchLot.id}>
+              {batchLot.batch_number}
+              {batchLot.lot_number && ` (${batchLot.lot_number})`}
+            </MenuItem>
+          ))}
+        </Select>
+      ),
+    },
+
+    {
+      id: 'remaining_quantity',
+      label: 'Available Qty',
+      width: 100,
+      render: remaining_quantity => remaining_quantity?.toLocaleString() || '0',
+    },
+    {
+      id: 'quantity',
+      label: 'Quantity',
+      width: 150,
+      render: (_, row) => (
+        <Input
+          name={`quantity_${row._index}`}
+          type="number"
+          value={row.quantity || ''}
+          onChange={e =>
+            updateBatchLotQuantity(row._index, Number(e.target.value))
+          }
+          size="small"
+          fullWidth
+        />
+      ),
+    },
+    {
+      id: 'expiry_date',
+      label: 'Expiry Date',
+      render: expiry_date =>
+        expiry_date ? new Date(expiry_date).toLocaleDateString() : '-',
+    },
+    {
+      id: 'action' as any,
+      label: 'Actions',
+      sortable: false,
+      render: (_, row) => (
+        <DeleteButton
+          onClick={() => removeBatchLot(row._index)}
+          tooltip="Remove batch lot"
+          size="small"
+        />
+      ),
+    },
+  ];
 
   const { data: productTypesResponse } = useQuery({
     queryKey: ['product-types-dropdown'],
@@ -148,7 +346,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       route_type_id: selectedProduct?.route_type_id || '',
       outlet_group_id: selectedProduct?.outlet_group_id || '',
       tracking_type: selectedProduct?.tracking_type || '',
-      batch_lots_id: selectedProduct?.batch_lots_id || '',
       product_type_id: selectedProduct?.product_type_id || '',
       product_target_group_id: selectedProduct?.product_target_group_id || '',
       product_web_order_id: selectedProduct?.product_web_order_id || '',
@@ -182,9 +379,12 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             values.tracking_type && values.tracking_type !== ''
               ? (values.tracking_type as 'Batch' | 'Serial')
               : undefined,
-          batch_lots_id: values.batch_lots_id
-            ? Number(values.batch_lots_id)
-            : undefined,
+          batch_lots: selectedBatchLots
+            .filter(bl => bl.batch_lot_id > 0)
+            .map(bl => ({
+              batch_lot_id: bl.batch_lot_id,
+              quantity: bl.quantity || 0,
+            })),
           product_type_id: values.product_type_id
             ? Number(values.product_type_id)
             : undefined,
@@ -321,16 +521,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               <MenuItem value="Serial">Serial</MenuItem>
             </Select>
 
-            <Select name="batch_lots_id" label="Batch Lot" formik={formik}>
-              {batchLots.map((batchLot: BatchLotDropdown) => (
-                <MenuItem key={batchLot.id} value={batchLot.id}>
-                  {batchLot.batch_number}
-                  {batchLot.lot_number && ` (${batchLot.lot_number})`} - Qty:{' '}
-                  {batchLot.remaining_quantity.toLocaleString()}
-                </MenuItem>
-              ))}
-            </Select>
-
             <Select name="product_type_id" label="Product Type" formik={formik}>
               {productTypes.map((productType: ProductTypeDropdown) => (
                 <MenuItem key={productType.id} value={productType.id}>
@@ -405,10 +595,11 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               formik={formik}
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              label="Status"
+              formik={formik}
+            />
 
             <Box className="md:!col-span-2">
               <Input
@@ -420,6 +611,35 @@ const ManageProduct: React.FC<ManageProductProps> = ({
                 rows={3}
               />
             </Box>
+          </Box>
+
+          {/* Batch Lots Section */}
+          <Box className="!mt-6">
+            <Table
+              actions={
+                <Box className="!flex !justify-between !items-center">
+                  <Typography variant="body1" className="!font-semibold">
+                    Batch Lots
+                  </Typography>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    size="small"
+                    onClick={addBatchLot}
+                    startIcon={<Plus size={16} />}
+                  >
+                    Add Batch Lot
+                  </Button>
+                </Box>
+              }
+              columns={batchLotColumns}
+              data={batchLotsWithIndex}
+              pagination={false}
+              sortable={false}
+              compact={true}
+              getRowId={row => row._index.toString()}
+              emptyMessage="No batch lots added. Click 'Add Batch Lot' to add batch lots"
+            />
           </Box>
 
           <Box className="!flex !justify-end items-center gap-2">
@@ -447,8 +667,8 @@ const ManageProduct: React.FC<ManageProductProps> = ({
                 : updateProductMutation.isPending
                   ? 'Updating...'
                   : isEdit
-                    ? 'Update Product'
-                    : 'Create Product'}
+                    ? 'Update'
+                    : 'Create'}
             </Button>
           </Box>
         </form>
