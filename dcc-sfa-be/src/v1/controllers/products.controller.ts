@@ -811,13 +811,56 @@ export const productsController = {
     }
   },
 
+  // async getProductById(req: Request, res: Response) {
+  //   try {
+  //     const { id } = req.params;
+  //     const product = await prisma.products.findUnique({
+  //       where: { id: Number(id) },
+  //       include: {
+  //         batchLots: true,
+  //         inventory_stock_products: true,
+  //         price_history_products: true,
+  //         order_items: true,
+  //         product_brands: true,
+  //         product_unit_of_measurement: true,
+  //         product_categories_products: true,
+  //         product_sub_categories_products: true,
+  //         products_route_type: true,
+  //         products_outlet_group: true,
+  //         product_tax_master: true,
+  //         product_types_products: true,
+  //         product_target_groups_products: true,
+  //         product_web_orders_products: true,
+  //         product_volumes_products: true,
+  //         product_flavours_products: true,
+  //         product_shelf_life_products: true,
+  //       },
+  //     });
+
+  //     if (!product)
+  //       return res.status(404).json({ message: 'Product not found' });
+
+  //     res.json({
+  //       message: 'Product fetched successfully',
+  //       data: serializeProduct(product),
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Get Product Error:', error);
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async getProductById(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const product = await prisma.products.findUnique({
         where: { id: Number(id) },
         include: {
-          batchLots: true,
+          product_product_batches: {
+            include: {
+              batch_lot_product_batches: true,
+            },
+          },
           inventory_stock_products: true,
           price_history_products: true,
           order_items: true,
@@ -837,8 +880,9 @@ export const productsController = {
         },
       });
 
-      if (!product)
+      if (!product) {
         return res.status(404).json({ message: 'Product not found' });
+      }
 
       res.json({
         message: 'Product fetched successfully',
@@ -849,7 +893,6 @@ export const productsController = {
       res.status(500).json({ message: error.message });
     }
   },
-
   async updateProduct(req: any, res: any) {
     try {
       const { id } = req.params;
