@@ -94,14 +94,12 @@ const serializeCustomer = async (customer: any) => {
           channel_code: customer.customer_channel_customer.channel_code,
         }
       : null,
-    customer_images: (customer.outlet_images_customers || []).map(
-      (img: any) => ({
-        id: img.id,
-        image_url: img.image_url,
-        createdate: img.createdate,
-        createdby: img.createdby,
-      })
-    ),
+    outlet_images: (customer.outlet_images_customers || []).map((img: any) => ({
+      id: img.id,
+      image_url: img.image_url,
+      createdate: img.createdate,
+      createdby: img.createdby,
+    })),
   };
 };
 
@@ -318,7 +316,7 @@ export const customerController = {
         }) || {};
 
       const customerImages =
-        uploadedFiles.outlet_images || uploadedFiles.customer_images || [];
+        uploadedFiles.outlet_images || uploadedFiles.outlet_images || [];
       const profilePics =
         uploadedFiles.profile_picture || uploadedFiles.profile_pics || [];
 
