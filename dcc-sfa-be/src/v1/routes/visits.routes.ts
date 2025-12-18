@@ -149,33 +149,4 @@ router.get(
   visitsController.getCoolerInspectionsForVisitedCustomers
 );
 
-// Add to your routes
-router.get('/debug/env-check', (req, res) => {
-  const keyId = process.env.BACKBLAZE_B2_KEY_ID;
-  const appKey = process.env.BACKBLAZE_B2_APPLICATION_KEY;
-
-  res.json({
-    keyId: {
-      exists: !!keyId,
-      length: keyId?.length || 0,
-      value: keyId,
-      expected: '005bd4eb5f41c01000000000d',
-      matches: keyId === '005bd4eb5f41c01000000000d',
-    },
-    appKey: {
-      exists: !!appKey,
-      length: appKey?.length || 0,
-      firstChars: appKey?.substring(0, 10),
-      lastChars: appKey?.substring(appKey.length - 5),
-      expected: 'K005lV2sH9HGTzI2h+575V2gtYQu5hk',
-      matches: appKey === 'K005lV2sH9HGTzI2h+575V2gtYQu5hk',
-      hasQuotes: appKey?.startsWith('"') || appKey?.endsWith('"'),
-      actualValue: appKey, // Remove this in production!
-    },
-    bucket: {
-      name: process.env.BACKBLAZE_B2_BUCKET_NAME,
-      id: process.env.BACKBLAZE_B2_BUCKET_ID,
-    },
-  });
-});
 export default router;
