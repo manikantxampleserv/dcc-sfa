@@ -769,7 +769,41 @@ export const batchLotsController = {
       const [batchLots, totalCount] = await Promise.all([
         prisma.batch_lots.findMany({
           where,
-          include: batchLotInclude,
+          include: {
+            batch_lot_product_batches: {
+              include: {
+                product_product_batches: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    base_price: true,
+                  },
+                },
+              },
+            },
+            serial_numbers: {
+              select: {
+                id: true,
+                serial_number: true,
+                status: true,
+                customer_id: true,
+                sold_date: true,
+              },
+            },
+            stock_movements: {
+              select: {
+                id: true,
+                movement_type: true,
+                quantity: true,
+                movement_date: true,
+              },
+              orderBy: {
+                movement_date: 'desc',
+              },
+              take: 10,
+            },
+          },
           orderBy: { expiry_date: 'asc' },
           skip,
           take: limit,
@@ -974,10 +1008,11 @@ export const batchLotsController = {
   async updateBatchLot(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const data: BatchLotInput & {
-        products?: Array<{ product_id: number; quantity: number }>;
-      } = req.body;
+      const data: BatchLotInput = req.body;
       const userId = req.user?.id || 1;
+      const products:
+        | Array<{ product_id: number; quantity: number }>
+        | undefined = data.products;
 
       const existingBatch = await prisma.batch_lots.findUnique({
         where: { id: Number(id) },
@@ -987,7 +1022,6 @@ export const batchLotsController = {
         return res.status(404).json({ message: 'Batch lot not found' });
       }
 
-      // Check for duplicate batch number
       if (
         data.batch_number &&
         data.batch_number !== existingBatch.batch_number
@@ -1006,19 +1040,24 @@ export const batchLotsController = {
         }
       }
 
-      // Validate products if provided
-      if (data.products && data.products.length > 0) {
-        const productIds = data.products.map(p => p.product_id);
+      if (products !== undefined && products.length > 0) {
+        const productIds = products.map(p => p.product_id);
+
+        const uniqueProductIds = new Set(productIds);
+        if (uniqueProductIds.size !== productIds.length) {
+          return res.status(400).json({
+            message: 'Duplicate product_id found in the request',
+          });
+        }
+
         const existingProducts = await prisma.products.findMany({
-          where: {
-            id: { in: productIds },
-          },
+          where: { id: { in: productIds } },
           select: { id: true },
         });
 
         const existingProductIds = existingProducts.map(p => p.id);
         const missingProducts = productIds.filter(
-          id => !existingProductIds.includes(id)
+          pid => !existingProductIds.includes(pid)
         );
 
         if (missingProducts.length > 0) {
@@ -1028,47 +1067,46 @@ export const batchLotsController = {
         }
       }
 
-      const updatedBatchLot = await prisma.$transaction(async tx => {
-        // Update the batch lot
-        const updateData: any = {
-          updatedate: new Date(),
-          updatedby: userId,
-        };
+      const updateData: any = {
+        updatedate: new Date(),
+        updatedby: userId,
+      };
 
-        if (data.batch_number !== undefined)
-          updateData.batch_number = data.batch_number;
-        if (data.lot_number !== undefined)
-          updateData.lot_number = data.lot_number;
-        if (data.manufacturing_date !== undefined)
-          updateData.manufacturing_date = new Date(data.manufacturing_date);
-        if (data.expiry_date !== undefined)
-          updateData.expiry_date = new Date(data.expiry_date);
-        if (data.quantity !== undefined) updateData.quantity = data.quantity;
-        if (data.remaining_quantity !== undefined)
-          updateData.remaining_quantity = data.remaining_quantity;
-        if (data.supplier_name !== undefined)
-          updateData.supplier_name = data.supplier_name;
-        if (data.purchase_price !== undefined)
-          updateData.purchase_price = data.purchase_price;
-        if (data.quality_grade !== undefined)
-          updateData.quality_grade = data.quality_grade;
-        if (data.storage_location !== undefined)
-          updateData.storage_location = data.storage_location;
-        if (data.is_active !== undefined) updateData.is_active = data.is_active;
+      if (data.batch_number !== undefined)
+        updateData.batch_number = data.batch_number;
+      if (data.lot_number !== undefined)
+        updateData.lot_number = data.lot_number;
+      if (data.manufacturing_date !== undefined)
+        updateData.manufacturing_date = new Date(data.manufacturing_date);
+      if (data.expiry_date !== undefined)
+        updateData.expiry_date = new Date(data.expiry_date);
+      if (data.quantity !== undefined) updateData.quantity = data.quantity;
+      if (data.remaining_quantity !== undefined)
+        updateData.remaining_quantity = data.remaining_quantity;
+      if (data.supplier_name !== undefined)
+        updateData.supplier_name = data.supplier_name;
+      if (data.purchase_price !== undefined)
+        updateData.purchase_price = data.purchase_price;
+      if (data.quality_grade !== undefined)
+        updateData.quality_grade = data.quality_grade;
+      if (data.storage_location !== undefined)
+        updateData.storage_location = data.storage_location;
+      if (data.is_active !== undefined) updateData.is_active = data.is_active;
 
-        await tx.batch_lots.update({
-          where: { id: Number(id) },
-          data: updateData,
+      await prisma.batch_lots.update({
+        where: { id: Number(id) },
+        data: updateData,
+      });
+
+      if (products !== undefined) {
+        await prisma.product_batches.deleteMany({
+          where: { batch_lot_id: Number(id) },
         });
 
-        if (data.products !== undefined) {
-          await tx.product_batches.deleteMany({
-            where: { batch_lot_id: Number(id) },
-          });
-
-          if (data.products.length > 0) {
-            await tx.product_batches.createMany({
-              data: data.products.map(product => ({
+        if (products.length > 0) {
+          for (const product of products) {
+            await prisma.product_batches.create({
+              data: {
                 product_id: product.product_id,
                 batch_lot_id: Number(id),
                 quantity: product.quantity,
@@ -1076,28 +1114,49 @@ export const batchLotsController = {
                 createdate: new Date(),
                 createdby: userId,
                 log_inst: 1,
-              })),
+              },
             });
           }
         }
+      }
 
-        return tx.batch_lots.findUnique({
-          where: { id: Number(id) },
-          include: {
-            batch_lot_product_batches: {
-              include: {
-                product_product_batches: {
-                  select: {
-                    id: true,
-                    name: true,
-                    code: true,
-                    base_price: true,
-                  },
+      const updatedBatchLot = await prisma.batch_lots.findUnique({
+        where: { id: Number(id) },
+        include: {
+          batch_lot_product_batches: {
+            include: {
+              product_product_batches: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  base_price: true,
                 },
               },
             },
           },
-        });
+          serial_numbers: {
+            select: {
+              id: true,
+              serial_number: true,
+              status: true,
+              customer_id: true,
+              sold_date: true,
+            },
+          },
+          stock_movements: {
+            select: {
+              id: true,
+              movement_type: true,
+              quantity: true,
+              movement_date: true,
+            },
+            orderBy: {
+              movement_date: 'desc',
+            },
+            take: 10,
+          },
+        },
       });
 
       return res.status(200).json({
@@ -1111,7 +1170,6 @@ export const batchLotsController = {
       });
     }
   },
-
   async deleteBatchLot(req: Request, res: Response) {
     try {
       const { id } = req.params;

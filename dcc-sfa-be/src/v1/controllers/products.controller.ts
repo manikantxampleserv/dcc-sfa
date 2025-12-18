@@ -2,69 +2,6 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 
-// interface ProductSerialized {
-//   id: number;
-//   name: string;
-//   code: string;
-//   description?: string | null;
-//   category_id: number;
-//   brand_id: number;
-//   unit_of_measurement: number;
-//   base_price?: number | null;
-//   tax_rate?: number | null;
-//   tax_id?: number | null;
-//   is_active: string;
-//   createdate?: Date | null;
-//   createdby: number;
-//   updatedate?: Date | null;
-//   updatedby?: number | null;
-//   log_inst?: number | null;
-//   route_type_id?: number | null;
-//   outlet_group_id?: number | null;
-//   tracking_type?: string | null;
-//   batch_lots_id?: number | null;
-//   product_type_id?: number | null;
-//   product_target_group_id?: number | null;
-//   product_web_order_id?: number | null;
-//   volume_id?: number | null;
-//   flavour_id?: number | null;
-//   shelf_life_id?: number | null;
-//   vat_percentage?: number | null;
-//   weight_in_grams?: number | null;
-//   volume_in_liters?: number | null;
-//   batch_lots?: { id: number; batch_number: string; quantity: number }[];
-//   inventory_stock?: {
-//     id: number;
-//     location_id: number;
-//     current_stock: number;
-//   }[];
-//   price_history?: { id: number; price: number; effective_date: Date }[];
-//   order_items?: {
-//     id: number;
-//     order_id: number;
-//     quantity: number;
-//     price: number;
-//   }[];
-//   product_brand: { id: number; name: string; code: string; logo: string };
-//   product_unit: { id: number; name: string };
-//   product_category: { id: number; category_name: string };
-//   product_sub_category: { id: number; sub_category_name: string };
-//   route_type?: { id: number; name: string } | null;
-//   outlet_group?: { id: number; name: string; code: string } | null;
-//   tax_master?: {
-//     id: number;
-//     name: string;
-//     code: string;
-//     tax_rate: number;
-//   } | null;
-//   product_type?: { id: number; name: string; code: string } | null;
-//   product_target_group?: { id: number; name: string; code: string } | null;
-//   product_web_order?: { id: number; name: string; code: string } | null;
-//   volume?: { id: number; name: string; code: string } | null;
-//   flavour?: { id: number; name: string; code: string } | null;
-//   shelf_life?: { id: number; name: string; code: string } | null;
-// }
-
 interface BatchLotInput {
   batch_lot_id: number;
   quantity: number;
@@ -76,6 +13,7 @@ interface ProductSerialized {
   code: string;
   description?: string | null;
   category_id: number;
+  sub_category_id: number;
   brand_id: number;
   unit_of_measurement: number;
   base_price?: number | null;
@@ -192,169 +130,13 @@ const normalizeToArray = (value: any) => {
   return Array.isArray(value) ? value : [value];
 };
 
-// const serializeProduct = (product: any): ProductSerialized => ({
-//   id: product.id,
-//   name: product.name,
-//   code: product.code,
-//   description: product.description,
-//   category_id: product.category_id,
-//   brand_id: product.brand_id,
-//   unit_of_measurement: product.unit_of_measurement,
-//   base_price: product.base_price,
-//   tax_rate: product.tax_rate,
-//   tax_id: product.tax_id,
-//   is_active: product.is_active,
-//   createdate: product.createdate,
-//   createdby: product.createdby,
-//   updatedate: product.updatedate,
-//   updatedby: product.updatedby,
-//   log_inst: product.log_inst,
-//   route_type_id: product.route_type_id,
-//   outlet_group_id: product.outlet_group_id,
-//   tracking_type: product.tracking_type,
-//   batch_lots_ids: product.batch_lots_id,
-//   product_type_id: product.product_type_id,
-//   product_target_group_id: product.product_target_group_id,
-//   product_web_order_id: product.product_web_order_id,
-//   volume_id: product.volume_id,
-//   flavour_id: product.flavour_id,
-//   shelf_life_id: product.shelf_life_id,
-//   vat_percentage: product.vat_percentage
-//     ? Number(product.vat_percentage)
-//     : null,
-//   weight_in_grams: product.weight_in_grams
-//     ? Number(product.weight_in_grams)
-//     : null,
-//   volume_in_liters: product.volume_in_liters
-//     ? Number(product.volume_in_liters)
-//     : null,
-
-//   batch_lots: normalizeToArray(product.product_product_batches).map(
-//     (pb: any) => ({
-//       id: pb.batch_lot_product_batches?.id,
-//       batch_number: pb.batch_lot_product_batches?.batch_number,
-//       lot_number: pb.batch_lot_product_batches?.lot_number,
-//       quantity: pb.quantity,
-//       expiry_date: pb.batch_lot_product_batches?.expiry_date,
-//       quality_grade: pb.batch_lot_product_batches?.quality_grade,
-//     })
-//   ),
-
-//   inventory_stock: normalizeToArray(product.inventory_stock_products).map(
-//     (s: any) => ({
-//       id: s.id,
-//       location_id: s.location_id,
-//       current_stock: s.current_stock,
-//     })
-//   ),
-
-//   price_history: normalizeToArray(product.price_history_products).map(
-//     (p: any) => ({
-//       id: p.id,
-//       price: p.price,
-//       effective_date: p.effective_date,
-//     })
-//   ),
-
-//   order_items: normalizeToArray(product.order_items).map((oi: any) => ({
-//     id: oi.id,
-//     order_id: oi.order_id,
-//     quantity: oi.quantity,
-//     price: oi.price,
-//   })),
-
-//   product_brand: {
-//     id: product.product_brands?.id,
-//     name: product.product_brands?.name,
-//     code: product.product_brands?.code,
-//     logo: product.product_brands?.logo,
-//   },
-
-//   product_unit: {
-//     id: product.product_unit_of_measurement?.id,
-//     name: product.product_unit_of_measurement?.name,
-//   },
-
-//   product_category: {
-//     id: product.product_categories_products?.id,
-//     category_name: product.product_categories_products?.category_name,
-//   },
-//   product_sub_category: {
-//     id: product.product_sub_categories_products?.id,
-//     sub_category_name:
-//       product.product_sub_categories_products?.sub_category_name,
-//   },
-//   route_type: product.products_route_type
-//     ? {
-//         id: product.products_route_type.id,
-//         name: product.products_route_type.name,
-//       }
-//     : null,
-//   outlet_group: product.products_outlet_group
-//     ? {
-//         id: product.products_outlet_group.id,
-//         name: product.products_outlet_group.name,
-//         code: product.products_outlet_group.code,
-//       }
-//     : null,
-//   tax_master: product.product_tax_master
-//     ? {
-//         id: product.product_tax_master.id,
-//         name: product.product_tax_master.name,
-//         code: product.product_tax_master.code,
-//         tax_rate: Number(product.product_tax_master.tax_rate),
-//       }
-//     : null,
-//   product_type: product.product_types_products
-//     ? {
-//         id: product.product_types_products.id,
-//         name: product.product_types_products.name,
-//         code: product.product_types_products.code,
-//       }
-//     : null,
-//   product_target_group: product.product_target_groups_products
-//     ? {
-//         id: product.product_target_groups_products.id,
-//         name: product.product_target_groups_products.name,
-//         code: product.product_target_groups_products.code,
-//       }
-//     : null,
-//   product_web_order: product.product_web_orders_products
-//     ? {
-//         id: product.product_web_orders_products.id,
-//         name: product.product_web_orders_products.name,
-//         code: product.product_web_orders_products.code,
-//       }
-//     : null,
-//   volume: product.product_volumes_products
-//     ? {
-//         id: product.product_volumes_products.id,
-//         name: product.product_volumes_products.name,
-//         code: product.product_volumes_products.code,
-//       }
-//     : null,
-//   flavour: product.product_flavours_products
-//     ? {
-//         id: product.product_flavours_products.id,
-//         name: product.product_flavours_products.name,
-//         code: product.product_flavours_products.code,
-//       }
-//     : null,
-//   shelf_life: product.product_shelf_life_products
-//     ? {
-//         id: product.product_shelf_life_products.id,
-//         name: product.product_shelf_life_products.name,
-//         code: product.product_shelf_life_products.code,
-//       }
-//     : null,
-// });
-
 const serializeProduct = (product: any): ProductSerialized => ({
   id: product.id,
   name: product.name,
   code: product.code,
   description: product.description,
   category_id: product.category_id,
+  sub_category_id: product.sub_category_id,
   brand_id: product.brand_id,
   unit_of_measurement: product.unit_of_measurement,
   base_price: product.base_price ? Number(product.base_price) : null,
