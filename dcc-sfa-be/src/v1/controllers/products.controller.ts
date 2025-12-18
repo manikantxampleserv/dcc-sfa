@@ -2,6 +2,74 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 
+// interface ProductSerialized {
+//   id: number;
+//   name: string;
+//   code: string;
+//   description?: string | null;
+//   category_id: number;
+//   brand_id: number;
+//   unit_of_measurement: number;
+//   base_price?: number | null;
+//   tax_rate?: number | null;
+//   tax_id?: number | null;
+//   is_active: string;
+//   createdate?: Date | null;
+//   createdby: number;
+//   updatedate?: Date | null;
+//   updatedby?: number | null;
+//   log_inst?: number | null;
+//   route_type_id?: number | null;
+//   outlet_group_id?: number | null;
+//   tracking_type?: string | null;
+//   batch_lots_id?: number | null;
+//   product_type_id?: number | null;
+//   product_target_group_id?: number | null;
+//   product_web_order_id?: number | null;
+//   volume_id?: number | null;
+//   flavour_id?: number | null;
+//   shelf_life_id?: number | null;
+//   vat_percentage?: number | null;
+//   weight_in_grams?: number | null;
+//   volume_in_liters?: number | null;
+//   batch_lots?: { id: number; batch_number: string; quantity: number }[];
+//   inventory_stock?: {
+//     id: number;
+//     location_id: number;
+//     current_stock: number;
+//   }[];
+//   price_history?: { id: number; price: number; effective_date: Date }[];
+//   order_items?: {
+//     id: number;
+//     order_id: number;
+//     quantity: number;
+//     price: number;
+//   }[];
+//   product_brand: { id: number; name: string; code: string; logo: string };
+//   product_unit: { id: number; name: string };
+//   product_category: { id: number; category_name: string };
+//   product_sub_category: { id: number; sub_category_name: string };
+//   route_type?: { id: number; name: string } | null;
+//   outlet_group?: { id: number; name: string; code: string } | null;
+//   tax_master?: {
+//     id: number;
+//     name: string;
+//     code: string;
+//     tax_rate: number;
+//   } | null;
+//   product_type?: { id: number; name: string; code: string } | null;
+//   product_target_group?: { id: number; name: string; code: string } | null;
+//   product_web_order?: { id: number; name: string; code: string } | null;
+//   volume?: { id: number; name: string; code: string } | null;
+//   flavour?: { id: number; name: string; code: string } | null;
+//   shelf_life?: { id: number; name: string; code: string } | null;
+// }
+
+interface BatchLotInput {
+  batch_lot_id: number;
+  quantity: number;
+}
+
 interface ProductSerialized {
   id: number;
   name: string;
@@ -22,7 +90,6 @@ interface ProductSerialized {
   route_type_id?: number | null;
   outlet_group_id?: number | null;
   tracking_type?: string | null;
-  batch_lots_id?: number | null;
   product_type_id?: number | null;
   product_target_group_id?: number | null;
   product_web_order_id?: number | null;
@@ -32,7 +99,14 @@ interface ProductSerialized {
   vat_percentage?: number | null;
   weight_in_grams?: number | null;
   volume_in_liters?: number | null;
-  batch_lots?: { id: number; batch_number: string; quantity: number }[];
+  batch_lots?: {
+    id: number;
+    batch_lot_id: number;
+    batch_number: string;
+    lot_number?: string | null;
+    quantity: number;
+    remaining_quantity?: number;
+  }[];
   inventory_stock?: {
     id: number;
     location_id: number;
@@ -65,6 +139,30 @@ interface ProductSerialized {
   shelf_life?: { id: number; name: string; code: string } | null;
 }
 
+const productInclude = {
+  product_product_batches: {
+    include: {
+      batch_lot_product_batches: true, // This gets batch_number, lot_number etc.
+    },
+  },
+  inventory_stock_products: true,
+  price_history_products: true,
+  order_items: true,
+  product_brands: true,
+  product_unit_of_measurement: true,
+  product_categories_products: true,
+  product_sub_categories_products: true,
+  products_route_type: true,
+  products_outlet_group: true,
+  product_tax_master: true,
+  product_types_products: true,
+  product_target_groups_products: true,
+  product_web_orders_products: true,
+  product_volumes_products: true,
+  product_flavours_products: true,
+  product_shelf_life_products: true,
+};
+
 const generateProductsCode = async (name: string) => {
   const prefix = name.slice(0, 3).toUpperCase();
 
@@ -90,6 +188,163 @@ const normalizeToArray = (value: any) => {
   return Array.isArray(value) ? value : [value];
 };
 
+// const serializeProduct = (product: any): ProductSerialized => ({
+//   id: product.id,
+//   name: product.name,
+//   code: product.code,
+//   description: product.description,
+//   category_id: product.category_id,
+//   brand_id: product.brand_id,
+//   unit_of_measurement: product.unit_of_measurement,
+//   base_price: product.base_price,
+//   tax_rate: product.tax_rate,
+//   tax_id: product.tax_id,
+//   is_active: product.is_active,
+//   createdate: product.createdate,
+//   createdby: product.createdby,
+//   updatedate: product.updatedate,
+//   updatedby: product.updatedby,
+//   log_inst: product.log_inst,
+//   route_type_id: product.route_type_id,
+//   outlet_group_id: product.outlet_group_id,
+//   tracking_type: product.tracking_type,
+//   batch_lots_ids: product.batch_lots_id,
+//   product_type_id: product.product_type_id,
+//   product_target_group_id: product.product_target_group_id,
+//   product_web_order_id: product.product_web_order_id,
+//   volume_id: product.volume_id,
+//   flavour_id: product.flavour_id,
+//   shelf_life_id: product.shelf_life_id,
+//   vat_percentage: product.vat_percentage
+//     ? Number(product.vat_percentage)
+//     : null,
+//   weight_in_grams: product.weight_in_grams
+//     ? Number(product.weight_in_grams)
+//     : null,
+//   volume_in_liters: product.volume_in_liters
+//     ? Number(product.volume_in_liters)
+//     : null,
+
+//   batch_lots: normalizeToArray(product.product_product_batches).map(
+//     (pb: any) => ({
+//       id: pb.batch_lot_product_batches?.id,
+//       batch_number: pb.batch_lot_product_batches?.batch_number,
+//       lot_number: pb.batch_lot_product_batches?.lot_number,
+//       quantity: pb.quantity,
+//       expiry_date: pb.batch_lot_product_batches?.expiry_date,
+//       quality_grade: pb.batch_lot_product_batches?.quality_grade,
+//     })
+//   ),
+
+//   inventory_stock: normalizeToArray(product.inventory_stock_products).map(
+//     (s: any) => ({
+//       id: s.id,
+//       location_id: s.location_id,
+//       current_stock: s.current_stock,
+//     })
+//   ),
+
+//   price_history: normalizeToArray(product.price_history_products).map(
+//     (p: any) => ({
+//       id: p.id,
+//       price: p.price,
+//       effective_date: p.effective_date,
+//     })
+//   ),
+
+//   order_items: normalizeToArray(product.order_items).map((oi: any) => ({
+//     id: oi.id,
+//     order_id: oi.order_id,
+//     quantity: oi.quantity,
+//     price: oi.price,
+//   })),
+
+//   product_brand: {
+//     id: product.product_brands?.id,
+//     name: product.product_brands?.name,
+//     code: product.product_brands?.code,
+//     logo: product.product_brands?.logo,
+//   },
+
+//   product_unit: {
+//     id: product.product_unit_of_measurement?.id,
+//     name: product.product_unit_of_measurement?.name,
+//   },
+
+//   product_category: {
+//     id: product.product_categories_products?.id,
+//     category_name: product.product_categories_products?.category_name,
+//   },
+//   product_sub_category: {
+//     id: product.product_sub_categories_products?.id,
+//     sub_category_name:
+//       product.product_sub_categories_products?.sub_category_name,
+//   },
+//   route_type: product.products_route_type
+//     ? {
+//         id: product.products_route_type.id,
+//         name: product.products_route_type.name,
+//       }
+//     : null,
+//   outlet_group: product.products_outlet_group
+//     ? {
+//         id: product.products_outlet_group.id,
+//         name: product.products_outlet_group.name,
+//         code: product.products_outlet_group.code,
+//       }
+//     : null,
+//   tax_master: product.product_tax_master
+//     ? {
+//         id: product.product_tax_master.id,
+//         name: product.product_tax_master.name,
+//         code: product.product_tax_master.code,
+//         tax_rate: Number(product.product_tax_master.tax_rate),
+//       }
+//     : null,
+//   product_type: product.product_types_products
+//     ? {
+//         id: product.product_types_products.id,
+//         name: product.product_types_products.name,
+//         code: product.product_types_products.code,
+//       }
+//     : null,
+//   product_target_group: product.product_target_groups_products
+//     ? {
+//         id: product.product_target_groups_products.id,
+//         name: product.product_target_groups_products.name,
+//         code: product.product_target_groups_products.code,
+//       }
+//     : null,
+//   product_web_order: product.product_web_orders_products
+//     ? {
+//         id: product.product_web_orders_products.id,
+//         name: product.product_web_orders_products.name,
+//         code: product.product_web_orders_products.code,
+//       }
+//     : null,
+//   volume: product.product_volumes_products
+//     ? {
+//         id: product.product_volumes_products.id,
+//         name: product.product_volumes_products.name,
+//         code: product.product_volumes_products.code,
+//       }
+//     : null,
+//   flavour: product.product_flavours_products
+//     ? {
+//         id: product.product_flavours_products.id,
+//         name: product.product_flavours_products.name,
+//         code: product.product_flavours_products.code,
+//       }
+//     : null,
+//   shelf_life: product.product_shelf_life_products
+//     ? {
+//         id: product.product_shelf_life_products.id,
+//         name: product.product_shelf_life_products.name,
+//         code: product.product_shelf_life_products.code,
+//       }
+//     : null,
+// });
+
 const serializeProduct = (product: any): ProductSerialized => ({
   id: product.id,
   name: product.name,
@@ -98,8 +353,8 @@ const serializeProduct = (product: any): ProductSerialized => ({
   category_id: product.category_id,
   brand_id: product.brand_id,
   unit_of_measurement: product.unit_of_measurement,
-  base_price: product.base_price,
-  tax_rate: product.tax_rate,
+  base_price: product.base_price ? Number(product.base_price) : null,
+  tax_rate: product.tax_rate ? Number(product.tax_rate) : null,
   tax_id: product.tax_id,
   is_active: product.is_active,
   createdate: product.createdate,
@@ -110,7 +365,6 @@ const serializeProduct = (product: any): ProductSerialized => ({
   route_type_id: product.route_type_id,
   outlet_group_id: product.outlet_group_id,
   tracking_type: product.tracking_type,
-  batch_lots_id: product.batch_lots_id,
   product_type_id: product.product_type_id,
   product_target_group_id: product.product_target_group_id,
   product_web_order_id: product.product_web_order_id,
@@ -129,12 +383,12 @@ const serializeProduct = (product: any): ProductSerialized => ({
 
   batch_lots: normalizeToArray(product.product_product_batches).map(
     (pb: any) => ({
-      id: pb.batch_lot_product_batches?.id,
+      id: pb.id,
+      batch_lot_id: pb.batch_lot_id,
       batch_number: pb.batch_lot_product_batches?.batch_number,
       lot_number: pb.batch_lot_product_batches?.lot_number,
       quantity: pb.quantity,
-      expiry_date: pb.batch_lot_product_batches?.expiry_date,
-      quality_grade: pb.batch_lot_product_batches?.quality_grade,
+      remaining_quantity: pb.batch_lot_product_batches?.remaining_quantity,
     })
   ),
 
@@ -177,17 +431,20 @@ const serializeProduct = (product: any): ProductSerialized => ({
     id: product.product_categories_products?.id,
     category_name: product.product_categories_products?.category_name,
   },
+
   product_sub_category: {
     id: product.product_sub_categories_products?.id,
     sub_category_name:
       product.product_sub_categories_products?.sub_category_name,
   },
+
   route_type: product.products_route_type
     ? {
         id: product.products_route_type.id,
         name: product.products_route_type.name,
       }
     : null,
+
   outlet_group: product.products_outlet_group
     ? {
         id: product.products_outlet_group.id,
@@ -195,6 +452,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
         code: product.products_outlet_group.code,
       }
     : null,
+
   tax_master: product.product_tax_master
     ? {
         id: product.product_tax_master.id,
@@ -203,6 +461,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
         tax_rate: Number(product.product_tax_master.tax_rate),
       }
     : null,
+
   product_type: product.product_types_products
     ? {
         id: product.product_types_products.id,
@@ -210,6 +469,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
         code: product.product_types_products.code,
       }
     : null,
+
   product_target_group: product.product_target_groups_products
     ? {
         id: product.product_target_groups_products.id,
@@ -217,6 +477,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
         code: product.product_target_groups_products.code,
       }
     : null,
+
   product_web_order: product.product_web_orders_products
     ? {
         id: product.product_web_orders_products.id,
@@ -224,6 +485,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
         code: product.product_web_orders_products.code,
       }
     : null,
+
   volume: product.product_volumes_products
     ? {
         id: product.product_volumes_products.id,
@@ -231,6 +493,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
         code: product.product_volumes_products.code,
       }
     : null,
+
   flavour: product.product_flavours_products
     ? {
         id: product.product_flavours_products.id,
@@ -238,6 +501,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
         code: product.product_flavours_products.code,
       }
     : null,
+
   shelf_life: product.product_shelf_life_products
     ? {
         id: product.product_shelf_life_products.id,
@@ -248,9 +512,105 @@ const serializeProduct = (product: any): ProductSerialized => ({
 });
 
 export const productsController = {
+  // async createProduct(req: Request, res: Response) {
+  //   try {
+  //     const data = req.body;
+  //     let productCode =
+  //       data.code && data.code.trim() !== '' ? data.code.trim() : null;
+
+  //     if (!productCode) {
+  //       productCode = await generateProductsCode(data.name);
+  //       let attempts = 0;
+  //       while (attempts < 10) {
+  //         const existing = await prisma.products.findUnique({
+  //           where: { code: productCode },
+  //         });
+  //         if (!existing) break;
+  //         productCode = await generateProductsCode(data.name);
+  //         attempts++;
+  //       }
+  //     } else {
+  //       const existingProduct = await prisma.products.findUnique({
+  //         where: { code: productCode },
+  //       });
+
+  //       if (existingProduct) {
+  //         return res
+  //           .status(400)
+  //           .json({ message: 'Product code already exists' });
+  //       }
+  //     }
+
+  //     const product = await prisma.products.create({
+  //       data: {
+  //         name: data.name,
+  //         code: productCode,
+  //         description: data.description,
+  //         category_id: data.category_id,
+  //         sub_category_id: data.sub_category_id,
+  //         brand_id: data.brand_id,
+  //         unit_of_measurement: data.unit_of_measurement,
+  //         base_price: data.base_price,
+  //         tax_rate: data.tax_rate || null,
+  //         tax_id: data.tax_id || null,
+  //         is_active: data.is_active || 'Y',
+  //         route_type_id: data.route_type_id || null,
+  //         outlet_group_id: data.outlet_group_id || null,
+  //         tracking_type: data.tracking_type || null,
+  //         product_type_id: data.product_type_id || null,
+  //         product_target_group_id: data.product_target_group_id || null,
+  //         product_web_order_id: data.product_web_order_id || null,
+  //         volume_id: data.volume_id || null,
+  //         flavour_id: data.flavour_id || null,
+  //         shelf_life_id: data.shelf_life_id || null,
+  //         vat_percentage: data.vat_percentage || null,
+  //         weight_in_grams: data.weight_in_grams || null,
+  //         volume_in_liters: data.volume_in_liters || null,
+  //         createdate: new Date(),
+  //         createdby: req.user?.id || 1,
+  //         log_inst: data.log_inst || 1,
+  //       } as any,
+  //       include: {
+  //         product_product_batches: {
+  //           include: {
+  //             batch_lot_product_batches: true,
+  //           },
+  //         },
+  //         inventory_stock_products: true,
+  //         price_history_products: true,
+  //         order_items: true,
+  //         product_brands: true,
+  //         product_unit_of_measurement: true,
+  //         product_categories_products: true,
+  //         product_sub_categories_products: true,
+  //         products_route_type: true,
+  //         products_outlet_group: true,
+  //         product_tax_master: true,
+  //         product_types_products: true,
+  //         product_target_groups_products: true,
+  //         product_web_orders_products: true,
+  //         product_volumes_products: true,
+  //         product_flavours_products: true,
+  //         product_shelf_life_products: true,
+  //       },
+  //     });
+
+  //     res.status(201).json({
+  //       message: 'Product created successfully',
+  //       data: serializeProduct(product),
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Create Product Error:', error);
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async createProduct(req: Request, res: Response) {
     try {
       const data = req.body;
+      const userId = req.user?.id || 1;
+      const batchLots: BatchLotInput[] = data.batch_lots || [];
+
       let productCode =
         data.code && data.code.trim() !== '' ? data.code.trim() : null;
 
@@ -277,16 +637,41 @@ export const productsController = {
         }
       }
 
+      if (batchLots.length > 0) {
+        const batchLotIds = batchLots.map(b => b.batch_lot_id);
+
+        const uniqueIds = new Set(batchLotIds);
+        if (uniqueIds.size !== batchLotIds.length) {
+          return res.status(400).json({
+            message: 'Duplicate batch_lot_id found in the request',
+          });
+        }
+
+        const existingBatchLots = await prisma.batch_lots.findMany({
+          where: { id: { in: batchLotIds } },
+          select: { id: true, batch_number: true, lot_number: true },
+        });
+
+        const foundIds = existingBatchLots.map(b => b.id);
+        const missingIds = batchLotIds.filter(id => !foundIds.includes(id));
+
+        if (missingIds.length > 0) {
+          return res.status(400).json({
+            message: `Batch lots with IDs ${missingIds.join(', ')} not found`,
+          });
+        }
+      }
+
       const product = await prisma.products.create({
         data: {
           name: data.name,
           code: productCode,
-          description: data.description,
+          description: data.description || null,
           category_id: data.category_id,
           sub_category_id: data.sub_category_id,
           brand_id: data.brand_id,
           unit_of_measurement: data.unit_of_measurement,
-          base_price: data.base_price,
+          base_price: data.base_price || null,
           tax_rate: data.tax_rate || null,
           tax_id: data.tax_id || null,
           is_active: data.is_active || 'Y',
@@ -303,37 +688,35 @@ export const productsController = {
           weight_in_grams: data.weight_in_grams || null,
           volume_in_liters: data.volume_in_liters || null,
           createdate: new Date(),
-          createdby: req.user?.id || 1,
+          createdby: userId,
           log_inst: data.log_inst || 1,
-        } as any,
-        include: {
-          product_product_batches: {
-            include: {
-              batch_lot_product_batches: true,
-            },
-          },
-          inventory_stock_products: true,
-          price_history_products: true,
-          order_items: true,
-          product_brands: true,
-          product_unit_of_measurement: true,
-          product_categories_products: true,
-          product_sub_categories_products: true,
-          products_route_type: true,
-          products_outlet_group: true,
-          product_tax_master: true,
-          product_types_products: true,
-          product_target_groups_products: true,
-          product_web_orders_products: true,
-          product_volumes_products: true,
-          product_flavours_products: true,
-          product_shelf_life_products: true,
         },
+      });
+
+      if (batchLots.length > 0) {
+        for (const batchLot of batchLots) {
+          await prisma.product_batches.create({
+            data: {
+              product_id: product.id,
+              batch_lot_id: batchLot.batch_lot_id,
+              quantity: batchLot.quantity,
+              is_active: 'Y',
+              createdate: new Date(),
+              createdby: userId,
+              log_inst: 1,
+            },
+          });
+        }
+      }
+
+      const completeProduct = await prisma.products.findUnique({
+        where: { id: product.id },
+        include: productInclude,
       });
 
       res.status(201).json({
         message: 'Product created successfully',
-        data: serializeProduct(product),
+        data: serializeProduct(completeProduct),
       });
     } catch (error: any) {
       console.error('Create Product Error:', error);
@@ -593,7 +976,6 @@ export const productsController = {
               batch_number: true,
               lot_number: true,
               remaining_quantity: true,
-              expiry_date: true,
             },
           },
         },

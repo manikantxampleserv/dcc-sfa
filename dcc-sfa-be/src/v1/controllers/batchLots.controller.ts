@@ -1,6 +1,23 @@
 import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
 
+interface BatchLotInput {
+  batch_number: string;
+  lot_number?: string;
+  manufacturing_date: string | Date;
+  expiry_date: string | Date;
+  quantity: number;
+  remaining_quantity?: number;
+  supplier_name?: string;
+  purchase_price?: number;
+  quality_grade?: string;
+  storage_location?: string;
+  is_active?: string;
+  products?: Array<{
+    product_id: number;
+    quantity: number;
+  }>;
+}
 interface BatchLotSerialized {
   id: number;
   batch_number: string;
@@ -58,12 +75,24 @@ const serializeBatchLot = (batch: any): BatchLotSerialized => ({
   updatedate: batch.updatedate,
   updatedby: batch.updatedby,
   log_inst: batch.log_inst,
-  products: batch.batch_lots_products
-    ? batch.batch_lots_products.map((product: any) => ({
-        id: product.id,
-        name: product.name,
-        code: product.code,
-        base_price: product.base_price ? Number(product.base_price) : null,
+  // products: batch.batch_lots_products
+  //   ? batch.batch_lots_products.map((product: any) => ({
+  //       id: product.id,
+  //       name: product.name,
+  //       code: product.code,
+  //       base_price: product.base_price ? Number(product.base_price) : null,
+  //     }))
+  //   : [],
+
+  products: batch.batch_lot_product_batches
+    ? batch.batch_lot_product_batches.map((pb: any) => ({
+        id: pb.product_product_batches?.id,
+        name: pb.product_product_batches?.name,
+        code: pb.product_product_batches?.code,
+        base_price: pb.product_product_batches?.base_price
+          ? Number(pb.product_product_batches.base_price)
+          : null,
+        quantity: pb.quantity,
       }))
     : [],
   serial_numbers: batch.serial_numbers
@@ -86,9 +115,200 @@ const serializeBatchLot = (batch: any): BatchLotSerialized => ({
 });
 
 export const batchLotsController = {
+  async createMultipleBatchLotsForProduct(req: Request, res: Response) {
+    try {
+      const { product_id, batch_lots } = req.body;
+      const userId = req.user?.id || 1;
+
+      if (!product_id) {
+        return res.status(400).json({
+          message: 'product_id is required',
+        });
+      }
+
+      if (
+        !batch_lots ||
+        !Array.isArray(batch_lots) ||
+        batch_lots.length === 0
+      ) {
+        return res.status(400).json({
+          message: 'batch_lots array is required and must not be empty',
+        });
+      }
+
+      const product = await prisma.products.findUnique({
+        where: { id: product_id },
+        select: { id: true, name: true, code: true },
+      });
+
+      if (!product) {
+        return res.status(404).json({
+          message: `Product with ID ${product_id} not found`,
+        });
+      }
+
+      const batchNumbers = batch_lots.map((b: any) => b.batch_number);
+      const uniqueBatchNumbers = new Set(batchNumbers);
+      if (uniqueBatchNumbers.size !== batchNumbers.length) {
+        return res.status(400).json({
+          message: 'Duplicate batch numbers found in the request',
+        });
+      }
+
+      const existingBatches = await prisma.batch_lots.findMany({
+        where: {
+          batch_number: { in: batchNumbers },
+        },
+        select: { batch_number: true },
+      });
+
+      if (existingBatches.length > 0) {
+        return res.status(400).json({
+          message: `Batch numbers already exist: ${existingBatches.map(b => b.batch_number).join(', ')}`,
+        });
+      }
+
+      const createdBatchLotIds: number[] = [];
+      const batchLotDataMap: Map<string, any> = new Map();
+
+      for (const batchData of batch_lots) {
+        const newBatchLot = await prisma.batch_lots.create({
+          data: {
+            batch_number: batchData.batch_number,
+            lot_number: batchData.lot_number || null,
+            manufacturing_date: new Date(batchData.manufacturing_date),
+            expiry_date: new Date(batchData.expiry_date),
+            quantity: batchData.quantity,
+            remaining_quantity:
+              batchData.remaining_quantity || batchData.quantity,
+            supplier_name: batchData.supplier_name || null,
+            purchase_price: batchData.purchase_price || null,
+            quality_grade: batchData.quality_grade || 'A',
+            storage_location: batchData.storage_location || null,
+            is_active: batchData.is_active || 'Y',
+            createdate: new Date(),
+            createdby: userId,
+            log_inst: 1,
+          },
+        });
+
+        createdBatchLotIds.push(newBatchLot.id);
+        batchLotDataMap.set(batchData.batch_number, {
+          batchLotId: newBatchLot.id,
+          quantity: batchData.quantity,
+        });
+      }
+
+      const productBatchesData = createdBatchLotIds.map(
+        (batchLotId, index) => ({
+          product_id: product_id,
+          batch_lot_id: batchLotId,
+          quantity: batch_lots[index].quantity,
+          is_active: 'Y',
+          createdate: new Date(),
+          createdby: userId,
+          log_inst: 1,
+        })
+      );
+
+      await prisma.product_batches.createMany({
+        data: productBatchesData,
+      });
+
+      const createdBatchLots = await prisma.batch_lots.findMany({
+        where: {
+          id: { in: createdBatchLotIds },
+        },
+        include: {
+          batch_lot_product_batches: {
+            include: {
+              product_product_batches: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  base_price: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          id: 'asc',
+        },
+      });
+
+      return res.status(201).json({
+        message: `${createdBatchLots.length} batch lot(s) created successfully for product "${product.name}"`,
+        product: {
+          id: product.id,
+          name: product.name,
+          code: product.code,
+        },
+        data: createdBatchLots.map(serializeBatchLot),
+      });
+    } catch (error: any) {
+      console.error('Create Multiple Batch Lots For Product Error:', error);
+      return res.status(500).json({
+        message: error.message || 'Failed to create batch lots',
+      });
+    }
+  },
+
+  // async createBatchLot(req: Request, res: Response) {
+  //   try {
+  //     const data = req.body;
+  //     const userId = req.user?.id || 1;
+
+  //     const existingBatch = await prisma.batch_lots.findFirst({
+  //       where: {
+  //         batch_number: data.batch_number,
+  //       },
+  //     });
+
+  //     if (existingBatch) {
+  //       return res.status(400).json({
+  //         message: 'Batch number already exists',
+  //       });
+  //     }
+
+  //     const batchLot = await prisma.batch_lots.create({
+  //       data: {
+  //         batch_number: data.batch_number,
+  //         lot_number: data.lot_number,
+  //         manufacturing_date: new Date(data.manufacturing_date),
+  //         expiry_date: new Date(data.expiry_date),
+  //         quantity: data.quantity,
+  //         remaining_quantity: data.remaining_quantity || data.quantity,
+  //         supplier_name: data.supplier_name,
+  //         purchase_price: data.purchase_price,
+  //         quality_grade: data.quality_grade || 'A',
+  //         storage_location: data.storage_location,
+  //         is_active: data.is_active || 'Y',
+  //         createdate: new Date(),
+  //         createdby: userId,
+  //         log_inst: 1,
+  //       },
+  //       include: {
+  //         batch_lot_product_batches: true,
+  //       },
+  //     });
+
+  //     return res.status(201).json({
+  //       message: 'Batch lot created successfully',
+  //       data: serializeBatchLot(batchLot),
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Create Batch Lot Error:', error);
+  //     return res.status(500).json({
+  //       message: error.message || 'Failed to create batch lot',
+  //     });
+  //   }
+  // },
+
   async createBatchLot(req: Request, res: Response) {
     try {
-      const data = req.body;
+      const data: BatchLotInput = req.body;
       const userId = req.user?.id || 1;
 
       const existingBatch = await prisma.batch_lots.findFirst({
@@ -103,26 +323,78 @@ export const batchLotsController = {
         });
       }
 
-      const batchLot = await prisma.batch_lots.create({
-        data: {
-          batch_number: data.batch_number,
-          lot_number: data.lot_number,
-          manufacturing_date: new Date(data.manufacturing_date),
-          expiry_date: new Date(data.expiry_date),
-          quantity: data.quantity,
-          remaining_quantity: data.remaining_quantity || data.quantity,
-          supplier_name: data.supplier_name,
-          purchase_price: data.purchase_price,
-          quality_grade: data.quality_grade || 'A',
-          storage_location: data.storage_location,
-          is_active: data.is_active || 'Y',
-          createdate: new Date(),
-          createdby: userId,
-          log_inst: 1,
-        },
-        include: {
-          batch_lot_product_batches: true,
-        },
+      if (data.products && data.products.length > 0) {
+        const productIds = data.products.map(p => p.product_id);
+        const existingProducts = await prisma.products.findMany({
+          where: {
+            id: { in: productIds },
+          },
+          select: { id: true },
+        });
+
+        const existingProductIds = existingProducts.map(p => p.id);
+        const missingProducts = productIds.filter(
+          id => !existingProductIds.includes(id)
+        );
+
+        if (missingProducts.length > 0) {
+          return res.status(400).json({
+            message: `Products with IDs ${missingProducts.join(', ')} not found`,
+          });
+        }
+      }
+
+      const batchLot = await prisma.$transaction(async tx => {
+        const newBatchLot = await tx.batch_lots.create({
+          data: {
+            batch_number: data.batch_number,
+            lot_number: data.lot_number,
+            manufacturing_date: new Date(data.manufacturing_date),
+            expiry_date: new Date(data.expiry_date),
+            quantity: data.quantity,
+            remaining_quantity: data.remaining_quantity || data.quantity,
+            supplier_name: data.supplier_name,
+            purchase_price: data.purchase_price,
+            quality_grade: data.quality_grade || 'A',
+            storage_location: data.storage_location,
+            is_active: data.is_active || 'Y',
+            createdate: new Date(),
+            createdby: userId,
+            log_inst: 1,
+          },
+        });
+
+        if (data.products && data.products.length > 0) {
+          await tx.product_batches.createMany({
+            data: data.products.map(product => ({
+              product_id: product.product_id,
+              batch_lot_id: newBatchLot.id,
+              quantity: product.quantity,
+              is_active: 'Y',
+              createdate: new Date(),
+              createdby: userId,
+              log_inst: 1,
+            })),
+          });
+        }
+
+        return tx.batch_lots.findUnique({
+          where: { id: newBatchLot.id },
+          include: {
+            batch_lot_product_batches: {
+              include: {
+                product_product_batches: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    base_price: true,
+                  },
+                },
+              },
+            },
+          },
+        });
       });
 
       return res.status(201).json({
@@ -136,6 +408,119 @@ export const batchLotsController = {
       });
     }
   },
+
+  // async getAllBatchLots(req: Request, res: Response) {
+  //   try {
+  //     const { search, status, expiring_soon, expired, quality_grade } =
+  //       req.query;
+  //     const page = Number(req.query.page) || 1;
+  //     const limit = Number(req.query.limit) || 10;
+
+  //     const where: any = {};
+
+  //     if (search) {
+  //       where.OR = [
+  //         { batch_number: { contains: String(search) } },
+  //         { lot_number: { contains: String(search) } },
+  //         { supplier_name: { contains: String(search) } },
+  //       ];
+  //     }
+
+  //     if (status === 'active') {
+  //       where.is_active = 'Y';
+  //     } else if (status === 'inactive') {
+  //       where.is_active = 'N';
+  //     }
+
+  //     if (quality_grade) {
+  //       where.quality_grade = String(quality_grade);
+  //     }
+
+  //     if (expiring_soon === 'true') {
+  //       const thirtyDaysFromNow = new Date();
+  //       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  //       where.expiry_date = {
+  //         gte: new Date(),
+  //         lte: thirtyDaysFromNow,
+  //       };
+  //     }
+
+  //     if (expired === 'true') {
+  //       where.expiry_date = {
+  //         lt: new Date(),
+  //       };
+  //     }
+
+  //     const skip = (page - 1) * limit;
+
+  //     const [batchLots, totalCount] = await Promise.all([
+  //       prisma.batch_lots.findMany({
+  //         where,
+  //         include: {
+  //           batch_lot_product_batches: true,
+  //           serial_numbers: {
+  //             select: {
+  //               id: true,
+  //               serial_number: true,
+  //               status: true,
+  //             },
+  //           },
+  //         },
+  //         orderBy: { expiry_date: 'asc' },
+  //         skip,
+  //         take: limit,
+  //       }),
+  //       prisma.batch_lots.count({ where }),
+  //     ]);
+
+  //     const [totalBatchLots, activeBatchLots] = await Promise.all([
+  //       prisma.batch_lots.count(),
+  //       prisma.batch_lots.count({ where: { is_active: 'Y' } }),
+  //     ]);
+
+  //     const thirtyDaysFromNow = new Date();
+  //     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  //     const expiringBatchLots = await prisma.batch_lots.count({
+  //       where: {
+  //         expiry_date: {
+  //           gte: new Date(),
+  //           lte: thirtyDaysFromNow,
+  //         },
+  //         is_active: 'Y',
+  //       },
+  //     });
+
+  //     const expiredBatchLots = await prisma.batch_lots.count({
+  //       where: {
+  //         expiry_date: {
+  //           lt: new Date(),
+  //         },
+  //       },
+  //     });
+
+  //     return res.status(200).json({
+  //       message: 'Batch lots retrieved successfully',
+  //       data: batchLots.map(serializeBatchLot),
+  //       meta: {
+  //         current_page: page,
+  //         per_page: limit,
+  //         total_count: totalCount,
+  //         total_pages: Math.ceil(totalCount / limit),
+  //       },
+  //       stats: {
+  //         total_batch_lots: totalBatchLots,
+  //         active_batch_lots: activeBatchLots,
+  //         expiring_batch_lots: expiringBatchLots,
+  //         expired_batch_lots: expiredBatchLots,
+  //       },
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Get All Batch Lots Error:', error);
+  //     return res.status(500).json({
+  //       message: error.message || 'Failed to retrieve batch lots',
+  //     });
+  //   }
+  // },
 
   async getAllBatchLots(req: Request, res: Response) {
     try {
@@ -185,7 +570,18 @@ export const batchLotsController = {
         prisma.batch_lots.findMany({
           where,
           include: {
-            batch_lot_product_batches: true,
+            batch_lot_product_batches: {
+              include: {
+                product_product_batches: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    base_price: true,
+                  },
+                },
+              },
+            },
             serial_numbers: {
               select: {
                 id: true,
@@ -298,10 +694,90 @@ export const batchLotsController = {
     }
   },
 
+  // async updateBatchLot(req: Request, res: Response) {
+  //   try {
+  //     const { id } = req.params;
+  //     const data = req.body;
+  //     const userId = req.user?.id || 1;
+
+  //     const existingBatch = await prisma.batch_lots.findUnique({
+  //       where: { id: Number(id) },
+  //     });
+
+  //     if (!existingBatch) {
+  //       return res.status(404).json({ message: 'Batch lot not found' });
+  //     }
+
+  //     if (
+  //       data.batch_number &&
+  //       data.batch_number !== existingBatch.batch_number
+  //     ) {
+  //       const duplicateBatch = await prisma.batch_lots.findFirst({
+  //         where: {
+  //           batch_number: data.batch_number,
+  //           id: { not: Number(id) },
+  //         },
+  //       });
+
+  //       if (duplicateBatch) {
+  //         return res.status(400).json({
+  //           message: 'Batch number already exists',
+  //         });
+  //       }
+  //     }
+
+  //     const updateData: any = {
+  //       updatedate: new Date(),
+  //       updatedby: userId,
+  //     };
+
+  //     if (data.batch_number !== undefined)
+  //       updateData.batch_number = data.batch_number;
+  //     if (data.lot_number !== undefined)
+  //       updateData.lot_number = data.lot_number;
+  //     if (data.manufacturing_date !== undefined)
+  //       updateData.manufacturing_date = new Date(data.manufacturing_date);
+  //     if (data.expiry_date !== undefined)
+  //       updateData.expiry_date = new Date(data.expiry_date);
+  //     if (data.quantity !== undefined) updateData.quantity = data.quantity;
+  //     if (data.remaining_quantity !== undefined)
+  //       updateData.remaining_quantity = data.remaining_quantity;
+  //     if (data.supplier_name !== undefined)
+  //       updateData.supplier_name = data.supplier_name;
+  //     if (data.purchase_price !== undefined)
+  //       updateData.purchase_price = data.purchase_price;
+  //     if (data.quality_grade !== undefined)
+  //       updateData.quality_grade = data.quality_grade;
+  //     if (data.storage_location !== undefined)
+  //       updateData.storage_location = data.storage_location;
+  //     if (data.is_active !== undefined) updateData.is_active = data.is_active;
+
+  //     const updatedBatchLot = await prisma.batch_lots.update({
+  //       where: { id: Number(id) },
+  //       data: updateData,
+  //       include: {
+  //         batch_lot_product_batches: true,
+  //       },
+  //     });
+
+  //     return res.status(200).json({
+  //       message: 'Batch lot updated successfully',
+  //       data: serializeBatchLot(updatedBatchLot),
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Update Batch Lot Error:', error);
+  //     return res.status(500).json({
+  //       message: error.message || 'Failed to update batch lot',
+  //     });
+  //   }
+  // },
+
   async updateBatchLot(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const data = req.body;
+      const data: BatchLotInput & {
+        products?: Array<{ product_id: number; quantity: number }>;
+      } = req.body;
       const userId = req.user?.id || 1;
 
       const existingBatch = await prisma.batch_lots.findUnique({
@@ -312,6 +788,7 @@ export const batchLotsController = {
         return res.status(404).json({ message: 'Batch lot not found' });
       }
 
+      // Check for duplicate batch number
       if (
         data.batch_number &&
         data.batch_number !== existingBatch.batch_number
@@ -330,38 +807,98 @@ export const batchLotsController = {
         }
       }
 
-      const updateData: any = {
-        updatedate: new Date(),
-        updatedby: userId,
-      };
+      // Validate products if provided
+      if (data.products && data.products.length > 0) {
+        const productIds = data.products.map(p => p.product_id);
+        const existingProducts = await prisma.products.findMany({
+          where: {
+            id: { in: productIds },
+          },
+          select: { id: true },
+        });
 
-      if (data.batch_number !== undefined)
-        updateData.batch_number = data.batch_number;
-      if (data.lot_number !== undefined)
-        updateData.lot_number = data.lot_number;
-      if (data.manufacturing_date !== undefined)
-        updateData.manufacturing_date = new Date(data.manufacturing_date);
-      if (data.expiry_date !== undefined)
-        updateData.expiry_date = new Date(data.expiry_date);
-      if (data.quantity !== undefined) updateData.quantity = data.quantity;
-      if (data.remaining_quantity !== undefined)
-        updateData.remaining_quantity = data.remaining_quantity;
-      if (data.supplier_name !== undefined)
-        updateData.supplier_name = data.supplier_name;
-      if (data.purchase_price !== undefined)
-        updateData.purchase_price = data.purchase_price;
-      if (data.quality_grade !== undefined)
-        updateData.quality_grade = data.quality_grade;
-      if (data.storage_location !== undefined)
-        updateData.storage_location = data.storage_location;
-      if (data.is_active !== undefined) updateData.is_active = data.is_active;
+        const existingProductIds = existingProducts.map(p => p.id);
+        const missingProducts = productIds.filter(
+          id => !existingProductIds.includes(id)
+        );
 
-      const updatedBatchLot = await prisma.batch_lots.update({
-        where: { id: Number(id) },
-        data: updateData,
-        include: {
-          batch_lot_product_batches: true,
-        },
+        if (missingProducts.length > 0) {
+          return res.status(400).json({
+            message: `Products with IDs ${missingProducts.join(', ')} not found`,
+          });
+        }
+      }
+
+      const updatedBatchLot = await prisma.$transaction(async tx => {
+        // Update the batch lot
+        const updateData: any = {
+          updatedate: new Date(),
+          updatedby: userId,
+        };
+
+        if (data.batch_number !== undefined)
+          updateData.batch_number = data.batch_number;
+        if (data.lot_number !== undefined)
+          updateData.lot_number = data.lot_number;
+        if (data.manufacturing_date !== undefined)
+          updateData.manufacturing_date = new Date(data.manufacturing_date);
+        if (data.expiry_date !== undefined)
+          updateData.expiry_date = new Date(data.expiry_date);
+        if (data.quantity !== undefined) updateData.quantity = data.quantity;
+        if (data.remaining_quantity !== undefined)
+          updateData.remaining_quantity = data.remaining_quantity;
+        if (data.supplier_name !== undefined)
+          updateData.supplier_name = data.supplier_name;
+        if (data.purchase_price !== undefined)
+          updateData.purchase_price = data.purchase_price;
+        if (data.quality_grade !== undefined)
+          updateData.quality_grade = data.quality_grade;
+        if (data.storage_location !== undefined)
+          updateData.storage_location = data.storage_location;
+        if (data.is_active !== undefined) updateData.is_active = data.is_active;
+
+        await tx.batch_lots.update({
+          where: { id: Number(id) },
+          data: updateData,
+        });
+
+        if (data.products !== undefined) {
+          await tx.product_batches.deleteMany({
+            where: { batch_lot_id: Number(id) },
+          });
+
+          if (data.products.length > 0) {
+            await tx.product_batches.createMany({
+              data: data.products.map(product => ({
+                product_id: product.product_id,
+                batch_lot_id: Number(id),
+                quantity: product.quantity,
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby: userId,
+                log_inst: 1,
+              })),
+            });
+          }
+        }
+
+        return tx.batch_lots.findUnique({
+          where: { id: Number(id) },
+          include: {
+            batch_lot_product_batches: {
+              include: {
+                product_product_batches: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    base_price: true,
+                  },
+                },
+              },
+            },
+          },
+        });
       });
 
       return res.status(200).json({

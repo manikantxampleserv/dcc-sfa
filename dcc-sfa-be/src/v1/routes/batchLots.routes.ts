@@ -16,13 +16,31 @@ import {
 
 const router = Router();
 
+// router.post(
+//   '/batch-lots',
+//   authenticateToken,
+//   auditCreate('batch_lots'),
+//   requirePermission([{ module: 'batch-lots', action: 'create' }]),
+//   createBatchLotValidation,
+//   batchLotsController.createBatchLot
+// );
+
 router.post(
   '/batch-lots',
   authenticateToken,
   auditCreate('batch_lots'),
   requirePermission([{ module: 'batch-lots', action: 'create' }]),
-  createBatchLotValidation,
+  // createBatchLotValidation,
   batchLotsController.createBatchLot
+);
+
+router.post(
+  '/product-batch-lots',
+  authenticateToken,
+  auditCreate('batch_lots'),
+  requirePermission([{ module: 'batch-lots', action: 'create' }]),
+  // createBatchLotValidation,
+  batchLotsController.createMultipleBatchLotsForProduct
 );
 
 router.get(
