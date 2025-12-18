@@ -148,3 +148,5 @@ router.get(
   authenticateToken,
   visitsController.getCoolerInspectionsForVisitedCustomers
 );
+
+export default router;
