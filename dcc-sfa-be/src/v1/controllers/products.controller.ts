@@ -99,14 +99,18 @@ interface ProductSerialized {
   vat_percentage?: number | null;
   weight_in_grams?: number | null;
   volume_in_liters?: number | null;
+
   batch_lots?: {
     id: number;
     batch_lot_id: number;
     batch_number: string;
     lot_number?: string | null;
     quantity: number;
-    remaining_quantity?: number;
+    manufacturing_date?: Date | null;
+    expiry_date?: Date | null;
+    remaining_quantity?: number | null;
   }[];
+
   inventory_stock?: {
     id: number;
     location_id: number;
@@ -142,7 +146,7 @@ interface ProductSerialized {
 const productInclude = {
   product_product_batches: {
     include: {
-      batch_lot_product_batches: true, // This gets batch_number, lot_number etc.
+      batch_lot_product_batches: true,
     },
   },
   inventory_stock_products: true,
@@ -388,6 +392,9 @@ const serializeProduct = (product: any): ProductSerialized => ({
       batch_number: pb.batch_lot_product_batches?.batch_number,
       lot_number: pb.batch_lot_product_batches?.lot_number,
       quantity: pb.quantity,
+
+      manufacturing_date: pb.batch_lot_product_batches?.manufacturing_date,
+      expiry_date: pb.batch_lot_product_batches?.expiry_date,
       remaining_quantity: pb.batch_lot_product_batches?.remaining_quantity,
     })
   ),
