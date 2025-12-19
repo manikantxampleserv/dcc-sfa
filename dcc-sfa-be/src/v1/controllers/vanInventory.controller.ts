@@ -2,308 +2,6 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 
-// interface VanInventoryItemSerialized {
-//   id: number;
-//   parent_id: number;
-//   product_id: number;
-//   product_name?: string | null;
-//   unit?: string | null;
-//   quantity?: number | null;
-//   unit_price?: string | null;
-//   discount_amount?: string | null;
-//   tax_amount?: string | null;
-//   total_amount?: string | null;
-//   notes?: string | null;
-//   batch_lot_id?: number | null;
-//   batch_number?: string | null;
-//   lot_number?: string | null;
-//   expiry_date?: Date | null;
-//   remaining_quantity?: number | null;
-// }
-
-// interface VanInventorySerialized {
-//   id: number;
-//   user_id: number;
-//   status: string;
-//   loading_type: string;
-//   document_date?: Date | null;
-//   last_updated?: Date | null;
-//   is_active: string;
-//   createdate?: Date | null;
-//   createdby: number;
-//   updatedate?: Date | null;
-//   updatedby?: number | null;
-//   log_inst?: number | null;
-//   vehicle_id?: number | null;
-//   location_id?: number | null;
-//   location_type?: string | null;
-//   user?: { id: number; name: string; email: string } | null;
-//   vehicle?: { id: number; vehicle_number: string; type: string } | null;
-//   depot?: { id: number; name: string; code: string } | null;
-//   items?: VanInventoryItemSerialized[] | null;
-// }
-
-// const serializeVanInventory = (item: any): VanInventorySerialized => ({
-//   id: item.id,
-//   user_id: item.user_id,
-//   status: item.status,
-//   loading_type: item.loading_type,
-//   document_date: item.document_date,
-//   last_updated: item.last_updated,
-//   is_active: item.is_active,
-//   createdate: item.createdate,
-//   createdby: item.createdby,
-//   updatedate: item.updatedate,
-//   updatedby: item.updatedby,
-//   log_inst: item.log_inst,
-//   vehicle_id: item.vehicle_id,
-//   location_id: item.location_id,
-//   location_type: item.location_type,
-//   user: item.van_inventory_users
-//     ? {
-//         id: item.van_inventory_users.id,
-//         name: item.van_inventory_users.name,
-//         email: item.van_inventory_users.email,
-//       }
-//     : null,
-//   vehicle: item.vehicle
-//     ? {
-//         id: item.vehicle.id,
-//         vehicle_number: item.vehicle.vehicle_number,
-//         type: item.vehicle.type,
-//       }
-//     : null,
-//   depot: item.van_inventory_depot
-//     ? {
-//         id: item.van_inventory_depot.id,
-//         name: item.van_inventory_depot.name,
-//         code: item.van_inventory_depot.code,
-//       }
-//     : null,
-//   items:
-//     item.van_inventory_items_inventory?.map((it: any) => {
-//       // Find batch lot info directly from the relationship
-//       const batchLot = it.batch_lot_id
-//         ? it.van_inventory_items_products?.product_product_batches?.find(
-//             (pb: any) => pb.batch_lot_id === it.batch_lot_id
-//           )?.batch_lot_product_batches
-//         : null;
-
-//       return {
-//         id: it.id,
-//         parent_id: it.parent_id,
-//         product_id: it.product_id,
-//         product_name: it.product_name,
-//         unit: it.unit,
-//         quantity: it.quantity,
-//         unit_price: it.unit_price ? String(it.unit_price) : undefined,
-//         discount_amount: it.discount_amount
-//           ? String(it.discount_amount)
-//           : undefined,
-//         tax_amount: it.tax_amount ? String(it.tax_amount) : undefined,
-//         total_amount: it.total_amount ? String(it.total_amount) : undefined,
-//         notes: it.notes,
-//         batch_lot_id: it.batch_lot_id,
-//         batch_number: batchLot?.batch_number || null,
-//         lot_number: batchLot?.lot_number || null,
-//         expiry_date: batchLot?.expiry_date || null,
-//         remaining_quantity: batchLot?.remaining_quantity || null,
-//       };
-//     }) || [],
-// });
-
-// async function getBatchLotFromProduct(
-//   tx: any,
-//   productId: number,
-//   requiredQuantity: number,
-//   loadingType: string
-// ): Promise<any | null> {
-//   const productBatches = await tx.product_batches.findMany({
-//     where: {
-//       product_id: productId,
-//       is_active: 'Y',
-//     },
-//     include: {
-//       batch_lot_product_batches: true,
-//     },
-//     orderBy: { id: 'asc' },
-//   });
-
-//   const sortedBatches = productBatches.sort((a: any, b: any) => {
-//     const expiryA = a.batch_lot_product_batches?.expiry_date;
-//     const expiryB = b.batch_lot_product_batches?.expiry_date;
-
-//     if (!expiryA && !expiryB) return 0;
-//     if (!expiryA) return 1;
-//     if (!expiryB) return -1;
-
-//     return new Date(expiryA).getTime() - new Date(expiryB).getTime();
-//   });
-
-//   for (const pb of sortedBatches) {
-//     const batchLot = pb.batch_lot_product_batches;
-
-//     if (!batchLot) continue;
-//     if (batchLot.is_active !== 'Y') continue;
-//     if (new Date(batchLot.expiry_date) <= new Date()) continue;
-
-//     if (loadingType === 'L') {
-//       if (batchLot.remaining_quantity >= requiredQuantity) {
-//         return batchLot;
-//       }
-//     } else {
-//       return batchLot;
-//     }
-//   }
-
-//   return null;
-// }
-
-// async function getAllBatchLotsForProduct(
-//   tx: any,
-//   productId: number
-// ): Promise<any[]> {
-//   const productBatches = await tx.product_batches.findMany({
-//     where: {
-//       product_id: productId,
-//       is_active: 'Y',
-//     },
-//     include: {
-//       batch_lot_product_batches: true,
-//     },
-//     orderBy: { id: 'asc' },
-//   });
-
-//   return productBatches
-//     .filter((pb: any) => {
-//       const bl = pb.batch_lot_product_batches;
-//       return (
-//         bl &&
-//         bl.is_active === 'Y' &&
-//         new Date(bl.expiry_date) > new Date() &&
-//         bl.remaining_quantity > 0
-//       );
-//     })
-//     .sort((a: any, b: any) => {
-//       const expiryA = a.batch_lot_product_batches?.expiry_date;
-//       const expiryB = b.batch_lot_product_batches?.expiry_date;
-
-//       if (!expiryA && !expiryB) return 0;
-//       if (!expiryA) return 1;
-//       if (!expiryB) return -1;
-
-//       return new Date(expiryA).getTime() - new Date(expiryB).getTime();
-//     })
-//     .map((pb: any) => pb.batch_lot_product_batches);
-// }
-
-// async function updateBatchLotQuantity(
-//   tx: any,
-//   batchLotId: number,
-//   quantity: number,
-//   loadingType: string
-// ): Promise<void> {
-//   const batchLot = await tx.batch_lots.findUnique({
-//     where: { id: batchLotId },
-//   });
-
-//   if (!batchLot) {
-//     throw new Error(`Batch lot with ID ${batchLotId} not found`);
-//   }
-
-//   if (batchLot.is_active !== 'Y') {
-//     throw new Error(`Batch lot ${batchLot.batch_number} is not active`);
-//   }
-
-//   if (new Date(batchLot.expiry_date) < new Date()) {
-//     throw new Error(`Batch lot ${batchLot.batch_number} has expired`);
-//   }
-
-//   let newRemainingQuantity: number;
-
-//   if (loadingType === 'L') {
-//     newRemainingQuantity = batchLot.remaining_quantity - quantity;
-//     if (newRemainingQuantity < 0) {
-//       throw new Error(
-//         `Insufficient quantity in batch ${batchLot.batch_number}. Available: ${batchLot.remaining_quantity}, Requested: ${quantity}`
-//       );
-//     }
-//   } else if (loadingType === 'U') {
-//     newRemainingQuantity = batchLot.remaining_quantity + quantity;
-//     if (newRemainingQuantity > batchLot.quantity) {
-//       throw new Error(
-//         `Cannot return more than original quantity. Original: ${batchLot.quantity}`
-//       );
-//     }
-//   } else {
-//     throw new Error(`Invalid loading type: ${loadingType}`);
-//   }
-
-//   await tx.batch_lots.update({
-//     where: { id: batchLotId },
-//     data: {
-//       remaining_quantity: newRemainingQuantity,
-//       updatedate: new Date(),
-//     },
-//   });
-// }
-
-// async function reverseBatchLotQuantity(
-//   tx: any,
-//   batchLotId: number,
-//   quantity: number,
-//   loadingType: string
-// ): Promise<void> {
-//   const batchLot = await tx.batch_lots.findUnique({
-//     where: { id: batchLotId },
-//   });
-
-//   if (!batchLot) {
-//     console.warn(`Batch lot ${batchLotId} not found, skipping reversal`);
-//     return;
-//   }
-
-//   let newRemainingQuantity: number;
-
-//   if (loadingType === 'L') {
-//     newRemainingQuantity = Math.min(
-//       batchLot.remaining_quantity + quantity,
-//       batchLot.quantity
-//     );
-//   } else if (loadingType === 'U') {
-//     newRemainingQuantity = Math.max(batchLot.remaining_quantity - quantity, 0);
-//   } else {
-//     return;
-//   }
-
-//   await tx.batch_lots.update({
-//     where: { id: batchLotId },
-//     data: {
-//       remaining_quantity: newRemainingQuantity,
-//       updatedate: new Date(),
-//     },
-//   });
-// }
-
-// interface VanInventoryItemSerialized {
-//   id: number;
-//   parent_id: number;
-//   product_id: number;
-//   product_name?: string | null;
-//   unit?: string | null;
-//   quantity?: number | null;
-//   unit_price?: string | null;
-//   discount_amount?: string | null;
-//   tax_amount?: string | null;
-//   total_amount?: string | null;
-//   notes?: string | null;
-//   batch_lot_id?: number | null;
-//   batch_number?: string | null;
-//   lot_number?: string | null;
-//   expiry_date?: Date | null;
-//   remaining_quantity?: number | null;
-// }
-
 interface VanInventoryItemSerialized {
   id: number;
   parent_id: number;
@@ -484,40 +182,93 @@ const serializeVanInventory = (item: any): VanInventorySerialized => ({
     }) || [],
 });
 
-async function getAvailableBatchesForProduct(
-  tx: any,
-  productId: number,
-  loadingType: string
-): Promise<any[]> {
-  const productBatches = await tx.product_batches.findMany({
-    where: {
-      product_id: productId,
-      is_active: 'Y',
-    },
-    include: {
-      batch_lot_product_batches: true,
-    },
-  });
+// async function updateBatchLotQuantity(
+//   tx: any,
+//   batchLotId: number,
+//   quantity: number,
+//   loadingType: string
+// ): Promise<void> {
+//   const batchLot = await tx.batch_lots.findUnique({
+//     where: { id: batchLotId },
+//   });
 
-  const batches = productBatches
-    .filter((pb: any) => {
-      const bl = pb.batch_lot_product_batches;
-      if (!bl || bl.is_active !== 'Y') return false;
-      if (new Date(bl.expiry_date) <= new Date()) return false;
+//   if (!batchLot) {
+//     throw new Error(`Batch lot with ID ${batchLotId} not found`);
+//   }
 
-      if (loadingType === 'L' && bl.remaining_quantity <= 0) return false;
+//   if (batchLot.is_active !== 'Y') {
+//     throw new Error(`Batch lot ${batchLot.batch_number} is not active`);
+//   }
 
-      return true;
-    })
-    .map((pb: any) => pb.batch_lot_product_batches)
-    .sort((a: any, b: any) => {
-      return (
-        new Date(a.expiry_date).getTime() - new Date(b.expiry_date).getTime()
-      );
-    });
+//   if (new Date(batchLot.expiry_date) < new Date()) {
+//     throw new Error(`Batch lot ${batchLot.batch_number} has expired`);
+//   }
 
-  return batches;
-}
+//   let newRemainingQuantity: number;
+
+//   if (loadingType === 'L') {
+//     newRemainingQuantity = batchLot.remaining_quantity - quantity;
+//     if (newRemainingQuantity < 0) {
+//       throw new Error(
+//         `Insufficient quantity in batch ${batchLot.batch_number}. Available: ${batchLot.remaining_quantity}, Requested: ${quantity}`
+//       );
+//     }
+//   } else if (loadingType === 'U') {
+//     newRemainingQuantity = batchLot.remaining_quantity + quantity;
+//     if (newRemainingQuantity > batchLot.quantity) {
+//       throw new Error(
+//         `Cannot return more than original quantity. Original: ${batchLot.quantity}, Attempted: ${newRemainingQuantity}`
+//       );
+//     }
+//   } else {
+//     throw new Error(`Invalid loading type: ${loadingType}`);
+//   }
+
+//   await tx.batch_lots.update({
+//     where: { id: batchLotId },
+//     data: {
+//       remaining_quantity: newRemainingQuantity,
+//       updatedate: new Date(),
+//     },
+//   });
+// }
+
+// async function reverseBatchLotQuantity(
+//   tx: any,
+//   batchLotId: number,
+//   quantity: number,
+//   loadingType: string
+// ): Promise<void> {
+//   const batchLot = await tx.batch_lots.findUnique({
+//     where: { id: batchLotId },
+//   });
+
+//   if (!batchLot) {
+//     console.warn(`Batch lot ${batchLotId} not found, skipping reversal`);
+//     return;
+//   }
+
+//   let newRemainingQuantity: number;
+
+//   if (loadingType === 'L') {
+//     newRemainingQuantity = Math.min(
+//       batchLot.remaining_quantity + quantity,
+//       batchLot.quantity
+//     );
+//   } else if (loadingType === 'U') {
+//     newRemainingQuantity = Math.max(batchLot.remaining_quantity - quantity, 0);
+//   } else {
+//     return;
+//   }
+
+//   await tx.batch_lots.update({
+//     where: { id: batchLotId },
+//     data: {
+//       remaining_quantity: newRemainingQuantity,
+//       updatedate: new Date(),
+//     },
+//   });
+// }
 
 async function updateBatchLotQuantity(
   tx: any,
@@ -606,6 +357,128 @@ async function reverseBatchLotQuantity(
     },
   });
 }
+
+async function updateProductBatchQuantity(
+  tx: any,
+  productId: number,
+  batchLotId: number,
+  quantity: number,
+  loadingType: string
+): Promise<void> {
+  const productBatch = await tx.product_batches.findFirst({
+    where: {
+      product_id: productId,
+      batch_lot_id: batchLotId,
+      is_active: 'Y',
+    },
+  });
+
+  if (!productBatch) {
+    throw new Error(
+      `Product batch not found for product ${productId} and batch ${batchLotId}`
+    );
+  }
+
+  let newQuantity: number;
+
+  if (loadingType === 'L') {
+    newQuantity = productBatch.quantity - quantity;
+    if (newQuantity < 0) {
+      throw new Error(
+        `Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${quantity}`
+      );
+    }
+  } else if (loadingType === 'U') {
+    newQuantity = productBatch.quantity + quantity;
+  } else {
+    throw new Error(`Invalid loading type: ${loadingType}`);
+  }
+
+  await tx.product_batches.update({
+    where: { id: productBatch.id },
+    data: {
+      quantity: newQuantity,
+      updatedate: new Date(),
+    },
+  });
+}
+
+async function reverseProductBatchQuantity(
+  tx: any,
+  productId: number,
+  batchLotId: number,
+  quantity: number,
+  loadingType: string
+): Promise<void> {
+  const productBatch = await tx.product_batches.findFirst({
+    where: {
+      product_id: productId,
+      batch_lot_id: batchLotId,
+      is_active: 'Y',
+    },
+  });
+
+  if (!productBatch) {
+    console.warn(
+      `Product batch not found for product ${productId} and batch ${batchLotId}, skipping reversal`
+    );
+    return;
+  }
+
+  let newQuantity: number;
+
+  if (loadingType === 'L') {
+    newQuantity = productBatch.quantity + quantity;
+  } else if (loadingType === 'U') {
+    newQuantity = Math.max(productBatch.quantity - quantity, 0);
+  } else {
+    return;
+  }
+
+  await tx.product_batches.update({
+    where: { id: productBatch.id },
+    data: {
+      quantity: newQuantity,
+      updatedate: new Date(),
+    },
+  });
+}
+
+async function getAvailableBatchesForProduct(
+  tx: any,
+  productId: number,
+  loadingType: string
+): Promise<any[]> {
+  const productBatches = await tx.product_batches.findMany({
+    where: {
+      product_id: productId,
+      is_active: 'Y',
+    },
+    include: {
+      batch_lot_product_batches: true,
+    },
+  });
+
+  const batches = productBatches
+    .filter((pb: any) => {
+      const bl = pb.batch_lot_product_batches;
+      if (!bl || bl.is_active !== 'Y') return false;
+      if (new Date(bl.expiry_date) <= new Date()) return false;
+
+      if (loadingType === 'L' && bl.remaining_quantity <= 0) return false;
+
+      return true;
+    })
+    .map((pb: any) => pb.batch_lot_product_batches)
+    .sort((a: any, b: any) => {
+      return (
+        new Date(a.expiry_date).getTime() - new Date(b.expiry_date).getTime()
+      );
+    });
+
+  return batches;
+}
+
 export const vanInventoryController = {
   // async createOrUpdateVanInventory(req: Request, res: Response) {
   //   const data = req.body;
@@ -1235,6 +1108,14 @@ export const vanInventoryController = {
                   prevItem.quantity,
                   previousLoadingType
                 );
+
+                await reverseProductBatchQuantity(
+                  tx,
+                  prevItem.product_id,
+                  prevItem.batch_lot_id,
+                  prevItem.quantity,
+                  previousLoadingType
+                );
               }
             }
           }
@@ -1322,10 +1203,18 @@ export const vanInventoryController = {
                 );
               }
 
-              if (loadingType === 'L' && batchLot.remaining_quantity < qty) {
-                throw new Error(
-                  `Insufficient quantity in batch ${batchLot.batch_number}. Available: ${batchLot.remaining_quantity}, Requested: ${qty}`
-                );
+              if (loadingType === 'L') {
+                if (productBatch.quantity < qty) {
+                  throw new Error(
+                    `Insufficient quantity in product batch ${batchLot.batch_number}. Available: ${productBatch.quantity}, Requested: ${qty}`
+                  );
+                }
+
+                if (batchLot.remaining_quantity < qty) {
+                  throw new Error(
+                    `Insufficient quantity in batch lot ${batchLot.batch_number}. Available: ${batchLot.remaining_quantity}, Requested: ${qty}`
+                  );
+                }
               }
 
               const itemData = {
@@ -1370,11 +1259,28 @@ export const vanInventoryController = {
                 loadingType
               );
 
-              const updatedBatch = await tx.batch_lots.findUnique({
+              await updateProductBatchQuantity(
+                tx,
+                Number(item.product_id),
+                Number(item.batch_lot_id),
+                qty,
+                loadingType
+              );
+
+              const updatedProductBatch = await tx.product_batches.findFirst({
+                where: {
+                  product_id: Number(item.product_id),
+                  batch_lot_id: Number(item.batch_lot_id),
+                },
+              });
+              const updatedBatchLot = await tx.batch_lots.findUnique({
                 where: { id: Number(item.batch_lot_id) },
               });
+
               console.log(
-                `After processing product ${item.product_id}: batch_lot ${item.batch_lot_id} remaining = ${updatedBatch?.remaining_quantity}`
+                `After processing product ${item.product_id}:\n` +
+                  `product_batch (${updatedProductBatch?.id}) quantity = ${updatedProductBatch?.quantity}\n` +
+                  `batch_lot (${item.batch_lot_id}) remaining = ${updatedBatchLot?.remaining_quantity}`
               );
             }
 
@@ -1471,7 +1377,6 @@ export const vanInventoryController = {
       });
     }
   },
-
   async getAllVanInventory(req: any, res: any) {
     try {
       const { page, limit, search, status, user_id } = req.query;
@@ -1922,6 +1827,171 @@ export const vanInventoryController = {
     }
   },
 
+  // async getProductBatches(req: Request, res: Response) {
+  //   try {
+  //     const { productId } = req.params;
+  //     const { loading_type, include_expired, sort_by } = req.query;
+
+  //     if (!productId) {
+  //       return res.status(400).json({ message: 'Product ID is required' });
+  //     }
+
+  //     const product = await prisma.products.findUnique({
+  //       where: { id: Number(productId) },
+  //       select: {
+  //         id: true,
+  //         name: true,
+  //         code: true,
+  //       },
+  //     });
+
+  //     if (!product) {
+  //       return res.status(404).json({ message: 'Product not found' });
+  //     }
+
+  //     const productBatches = await prisma.product_batches.findMany({
+  //       where: {
+  //         product_id: Number(productId),
+  //         is_active: 'Y',
+  //       },
+
+  //       include: {
+  //         batch_lot_product_batches: true,
+  //       },
+  //       orderBy: {
+  //         id: 'asc',
+  //       },
+  //     });
+
+  //     let batches = productBatches
+  //       .filter((pb: any) => {
+  //         const batchLot = pb.batch_lot_product_batches;
+
+  //         if (!batchLot) return false;
+  //         if (batchLot.is_active !== 'Y') return false;
+
+  //         const isExpired = new Date(batchLot.expiry_date) <= new Date();
+  //         if (!include_expired && isExpired) return false;
+
+  //         if (loading_type === 'L' && batchLot.remaining_quantity <= 0) {
+  //           return false;
+  //         }
+
+  //         return true;
+  //       })
+  //       .map((pb: any) => {
+  //         const batchLot = pb.batch_lot_product_batches;
+  //         const isExpired = new Date(batchLot.expiry_date) <= new Date();
+  //         const isExpiringSoon =
+  //           !isExpired &&
+  //           new Date(batchLot.expiry_date) <=
+  //             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  //         return {
+  //           batch_id: batchLot.id,
+  //           batch_number: batchLot.batch_number,
+  //           lot_number: batchLot.lot_number,
+  //           manufacturing_date: batchLot.manufacturing_date,
+  //           expiry_date: batchLot.expiry_date,
+  //           days_until_expiry: Math.floor(
+  //             (new Date(batchLot.expiry_date).getTime() - Date.now()) /
+  //               (1000 * 60 * 60 * 24)
+  //           ),
+  //           is_expired: isExpired,
+  //           is_expiring_soon: isExpiringSoon,
+  //           product_batch_id: pb.id,
+  //           product_batch_quantity: pb.quantity,
+  //           product_batch_remaining: pb.quantity,
+  //           batch_total_quantity: batchLot.quantity,
+  //           batch_total_remaining: batchLot.remaining_quantity,
+  //           supplier_name: batchLot.supplier_name,
+  //           purchase_price: batchLot.purchase_price
+  //             ? Number(batchLot.purchase_price)
+  //             : null,
+  //           quality_grade: batchLot.quality_grade,
+  //           storage_location: batchLot.storage_location,
+  //           availability_status: isExpired
+  //             ? 'expired'
+  //             : batchLot.remaining_quantity <= 0
+  //               ? 'out_of_stock'
+  //               : isExpiringSoon
+  //                 ? 'expiring_soon'
+  //                 : 'available',
+  //         };
+  //       });
+
+  //     const sortBy = (sort_by as string) || 'expiry_date';
+
+  //     batches.sort((a: any, b: any) => {
+  //       switch (sortBy) {
+  //         case 'expiry_date':
+  //           return (
+  //             new Date(a.expiry_date).getTime() -
+  //             new Date(b.expiry_date).getTime()
+  //           );
+
+  //         case 'remaining_quantity':
+  //           return b.batch_total_remaining - a.batch_total_remaining;
+
+  //         case 'batch_number':
+  //           return a.batch_number.localeCompare(b.batch_number);
+
+  //         case 'manufacturing_date':
+  //           return (
+  //             new Date(b.manufacturing_date).getTime() -
+  //             new Date(a.manufacturing_date).getTime()
+  //           );
+
+  //         default:
+  //           return (
+  //             new Date(a.expiry_date).getTime() -
+  //             new Date(b.expiry_date).getTime()
+  //           );
+  //       }
+  //     });
+
+  //     const stats = {
+  //       total_batches: batches.length,
+  //       available_batches: batches.filter(
+  //         (b: any) => b.availability_status === 'available'
+  //       ).length,
+  //       expiring_soon_batches: batches.filter((b: any) => b.is_expiring_soon)
+  //         .length,
+  //       expired_batches: batches.filter((b: any) => b.is_expired).length,
+  //       out_of_stock_batches: batches.filter(
+  //         (b: any) => b.availability_status === 'out_of_stock'
+  //       ).length,
+  //       total_available_quantity: batches.reduce((sum: number, b: any) => {
+  //         return sum + (b.is_expired ? 0 : b.batch_total_remaining);
+  //       }, 0),
+  //       total_product_batch_quantity: batches.reduce((sum: number, b: any) => {
+  //         return sum + b.product_batch_remaining;
+  //       }, 0),
+  //     };
+
+  //     res.json({
+  //       success: true,
+  //       message: 'Product batches retrieved successfully',
+  //       data: {
+  //         product: {
+  //           id: product.id,
+  //           name: product.name,
+  //           code: product.code,
+  //         },
+  //         batches,
+  //         stats,
+  //       },
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Get Product Batches Error:', error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to retrieve product batches',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
   async getProductBatches(req: Request, res: Response) {
     try {
       const { productId } = req.params;
@@ -1975,42 +2045,53 @@ export const vanInventoryController = {
         })
         .map((pb: any) => {
           const batchLot = pb.batch_lot_product_batches;
-          const isExpired = new Date(batchLot.expiry_date) <= new Date();
-          const isExpiringSoon =
-            !isExpired &&
-            new Date(batchLot.expiry_date) <=
-              new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+          const now = new Date();
+          const expiryDate = new Date(batchLot.expiry_date);
+          const isExpired = expiryDate <= now;
+          const daysUntilExpiry = Math.floor(
+            (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          const isExpiringSoon = !isExpired && daysUntilExpiry <= 30;
+
+          let availabilityStatus: string;
+          if (isExpired) {
+            availabilityStatus = 'expired';
+          } else if (batchLot.remaining_quantity <= 0) {
+            availabilityStatus = 'out_of_stock';
+          } else if (isExpiringSoon) {
+            availabilityStatus = 'expiring_soon';
+          } else {
+            availabilityStatus = 'available';
+          }
 
           return {
-            batch_id: batchLot.id,
+            product_batch_id: pb.id,
+            product_batch_quantity: pb.quantity,
+            product_batch_created_date: pb.createdate,
+            product_batch_created_by: pb.createdby,
+            product_batch_updated_date: pb.updatedate,
+            product_batch_updated_by: pb.updatedby,
+            product_batch_is_active: pb.is_active,
+
+            batch_lot_id: batchLot.id,
             batch_number: batchLot.batch_number,
             lot_number: batchLot.lot_number,
             manufacturing_date: batchLot.manufacturing_date,
             expiry_date: batchLot.expiry_date,
-            days_until_expiry: Math.floor(
-              (new Date(batchLot.expiry_date).getTime() - Date.now()) /
-                (1000 * 60 * 60 * 24)
-            ),
-            is_expired: isExpired,
-            is_expiring_soon: isExpiringSoon,
-            product_batch_id: pb.id,
-            product_batch_quantity: pb.quantity,
-            product_batch_remaining: pb.quantity,
             batch_total_quantity: batchLot.quantity,
-            batch_total_remaining: batchLot.remaining_quantity,
+            batch_remaining_quantity: batchLot.remaining_quantity,
+
             supplier_name: batchLot.supplier_name,
             purchase_price: batchLot.purchase_price
               ? Number(batchLot.purchase_price)
               : null,
             quality_grade: batchLot.quality_grade,
             storage_location: batchLot.storage_location,
-            availability_status: isExpired
-              ? 'expired'
-              : batchLot.remaining_quantity <= 0
-                ? 'out_of_stock'
-                : isExpiringSoon
-                  ? 'expiring_soon'
-                  : 'available',
+
+            days_until_expiry: daysUntilExpiry,
+            is_expired: isExpired,
+            is_expiring_soon: isExpiringSoon,
+            availability_status: availabilityStatus,
           };
         });
 
@@ -2025,7 +2106,7 @@ export const vanInventoryController = {
             );
 
           case 'remaining_quantity':
-            return b.batch_total_remaining - a.batch_total_remaining;
+            return b.batch_remaining_quantity - a.batch_remaining_quantity;
 
           case 'batch_number':
             return a.batch_number.localeCompare(b.batch_number);
@@ -2034,6 +2115,12 @@ export const vanInventoryController = {
             return (
               new Date(b.manufacturing_date).getTime() -
               new Date(a.manufacturing_date).getTime()
+            );
+
+          case 'product_batch_created_date':
+            return (
+              new Date(b.product_batch_created_date).getTime() -
+              new Date(a.product_batch_created_date).getTime()
             );
 
           default:
@@ -2056,10 +2143,10 @@ export const vanInventoryController = {
           (b: any) => b.availability_status === 'out_of_stock'
         ).length,
         total_available_quantity: batches.reduce((sum: number, b: any) => {
-          return sum + (b.is_expired ? 0 : b.batch_total_remaining);
+          return sum + (b.is_expired ? 0 : b.batch_remaining_quantity);
         }, 0),
         total_product_batch_quantity: batches.reduce((sum: number, b: any) => {
-          return sum + b.product_batch_remaining;
+          return sum + b.product_batch_quantity;
         }, 0),
       };
 
@@ -2085,7 +2172,6 @@ export const vanInventoryController = {
       });
     }
   },
-
   async getProductBatchDetails(req: Request, res: Response) {
     try {
       const { productId, batchId } = req.params;
