@@ -19,7 +19,7 @@ router.post(
   authenticateToken,
   auditCreate('van_inventory'),
   requirePermission([{ module: 'van-stock', action: 'create' }]),
-  createVanInventoryValidation,
+  // createVanInventoryValidation,
   validate,
   vanInventoryController.createOrUpdateVanInventory
 );
