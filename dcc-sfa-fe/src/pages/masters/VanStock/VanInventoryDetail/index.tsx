@@ -556,17 +556,6 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
             )}
           </div>
         </InfoCard>
-
-        {/* Back Button */}
-        <div className="!flex !justify-end">
-          <Button
-            variant="outlined"
-            startIcon={<ArrowLeft />}
-            onClick={handleBack}
-          >
-            Back to Van Inventory
-          </Button>
-        </div>
       </div>
     </CustomDrawer>
   );
