@@ -50,7 +50,6 @@ router.delete(
   vanInventoryController.deleteVanInventory
 );
 
-// Van Inventory Items Routes
 router.post(
   '/van-inventory/:vanInventoryId/items',
   authenticateToken,
@@ -84,6 +83,21 @@ router.put(
   auditUpdate('van_inventory_items'),
   requirePermission([{ module: 'van-stock', action: 'update' }]),
   vanInventoryController.bulkUpdateVanInventoryItems
+);
+
+router.get(
+  '/products/:productId/batches',
+  vanInventoryController.getProductBatches
+);
+
+router.get(
+  '/products/:productId/batches/:batchId',
+  vanInventoryController.getProductBatchDetails
+);
+
+router.post(
+  '/products/batches/bulk',
+  vanInventoryController.getBulkProductBatches
 );
 
 export default router;
