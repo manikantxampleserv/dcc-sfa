@@ -1754,6 +1754,7 @@ export const vanInventoryController = {
       });
     }
   },
+
   async getAllVanInventory(req: any, res: any) {
     try {
       const { page, limit, search, status, user_id } = req.query;
@@ -1784,7 +1785,23 @@ export const vanInventoryController = {
           van_inventory_users: true,
           vehicle: true,
           van_inventory_depot: true,
-          van_inventory_items_inventory: true,
+          van_inventory_items_inventory: {
+            include: {
+              van_inventory_items_products: {
+                include: {
+                  product_unit_of_measurement: true,
+                  product_product_batches: {
+                    where: {
+                      is_active: 'Y',
+                    },
+                    include: {
+                      batch_lot_product_batches: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           van_inventory_stock_movements: true,
         },
       });
@@ -1841,7 +1858,23 @@ export const vanInventoryController = {
           van_inventory_users: true,
           van_inventory_depot: true,
           van_inventory_stock_movements: true,
-          van_inventory_items_inventory: true,
+          van_inventory_items_inventory: {
+            include: {
+              van_inventory_items_products: {
+                include: {
+                  product_unit_of_measurement: true,
+                  product_product_batches: {
+                    where: {
+                      is_active: 'Y',
+                    },
+                    include: {
+                      batch_lot_product_batches: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           vehicle: true,
         },
       });
