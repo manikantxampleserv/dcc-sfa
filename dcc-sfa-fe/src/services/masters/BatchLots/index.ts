@@ -93,7 +93,9 @@ export interface BatchLotDropdown {
   batch_number: string;
   lot_number?: string | null;
   remaining_quantity: number;
+  quantity?: number;
   expiry_date: string;
+  product_id: number;
 }
 
 export const batchLotsService = {

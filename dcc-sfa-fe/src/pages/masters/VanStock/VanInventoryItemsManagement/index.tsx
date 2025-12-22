@@ -603,9 +603,21 @@ const VanInventoryItemsManagement: React.FC<
 
             {isLoading ? (
               <Box className="!space-y-2">
-                <Skeleton variant="rectangular" height={40} />
-                <Skeleton variant="rectangular" height={40} />
-                <Skeleton variant="rectangular" height={40} />
+                <Skeleton
+                  variant="rectangular"
+                  height={40}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={40}
+                  className="!rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  height={40}
+                  className="!rounded"
+                />
               </Box>
             ) : vanInventoryItems.length > 0 ? (
               <Table

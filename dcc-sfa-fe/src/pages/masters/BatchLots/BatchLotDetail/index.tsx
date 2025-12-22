@@ -11,6 +11,7 @@ import {
   User,
   AlertTriangle,
   Archive,
+  Tag,
 } from 'lucide-react';
 import React from 'react';
 import { useParams } from 'react-router-dom';
@@ -130,6 +131,31 @@ const BatchLotDetail: React.FC = () => {
 
   const expiryStatus = getExpiryStatus(batchLot.expiry_date);
 
+  //  {
+  //               "id": 22,
+  //               "name": "BULK WATER 12 Ltr",
+  //               "code": "KD005",
+  //               "base_price": null,
+  //               "quantity": 100,
+  //               "volume": {
+  //                   "id": 7,
+  //                   "name": "12 Ltr",
+  //                   "code": "VOL-12L-001"
+  //               },
+  //               "brand": {
+  //                   "id": 8,
+  //                   "name": "KILIMANJARO"
+  //               },
+  //               "category": {
+  //                   "id": 2,
+  //                   "name": "KDW"
+  //               },
+  //               "sub_category": {
+  //                   "id": 7,
+  //                   "name": "BULK WATER 12 LTR"
+  //               }
+  //           },
+
   const productColumns: TableColumn<any>[] = [
     {
       id: 'name',
@@ -151,6 +177,55 @@ const BatchLotDetail: React.FC = () => {
             </Typography>
           </Box>
         </Box>
+      ),
+    },
+    {
+      id: 'category',
+      label: 'Category',
+      render: (_, row) => (
+        <Box className="!flex !gap-2 !items-center">
+          <Avatar
+            alt={row.category?.name}
+            className="!rounded !bg-primary-100 !text-primary-600"
+          >
+            <Tag className="w-5 h-5" />
+          </Avatar>
+          <Box>
+            <Typography variant="body2" className="!font-medium">
+              {row.category?.name}
+            </Typography>
+            <Typography variant="caption" className="!text-gray-500">
+              {row.sub_category?.name}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'volume',
+      label: 'Volume',
+      render: value => (
+        <Typography variant="body2" className="!font-medium">
+          {value?.name}
+        </Typography>
+      ),
+    },
+    {
+      id: 'brand',
+      label: 'Brand',
+      render: value => (
+        <Typography variant="body2" className="!font-medium">
+          {value?.name}
+        </Typography>
+      ),
+    },
+    {
+      id: 'quantity',
+      label: 'Quantity',
+      render: value => (
+        <Typography variant="body2" className="!font-medium">
+          {Number(value).toLocaleString()}
+        </Typography>
       ),
     },
     {

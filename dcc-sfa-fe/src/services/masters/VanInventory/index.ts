@@ -20,6 +20,11 @@ interface VanInventoryItem {
   tax_amount?: string | null;
   total_amount?: string | null;
   notes?: string | null;
+  batch_lot_id?: number | null;
+  batch_number?: string | null;
+  lot_number?: string | null;
+  remaining_quantity?: number | null;
+  total_quantity?: number | null;
 }
 
 interface VanInventory {
@@ -205,6 +210,91 @@ export const deleteVanInventory = async (
     console.error('Error deleting van inventory:', error);
     throw new Error(
       error.response?.data?.message || 'Failed to delete van inventory'
+    );
+  }
+};
+
+// Product Batches Interface
+export interface ProductBatch {
+  product_batch_id: number;
+  product_batch_quantity: number;
+  product_batch_created_date: string;
+  product_batch_created_by: string;
+  product_batch_updated_date: string;
+  product_batch_updated_by: string;
+  product_batch_is_active: string;
+
+  batch_lot_id: number;
+  batch_number: string;
+  lot_number?: string | null;
+  manufacturing_date: string;
+  expiry_date: string;
+  batch_total_quantity: number;
+  batch_remaining_quantity: number;
+
+  supplier_name?: string | null;
+  purchase_price?: number | null;
+  quality_grade?: string | null;
+  storage_location?: string | null;
+
+  days_until_expiry: number;
+  is_expired: boolean;
+  is_expiring_soon: boolean;
+  availability_status: string;
+}
+
+export interface ProductBatchesResponse {
+  product: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  batches: ProductBatch[];
+  stats: {
+    total_batches: number;
+    available_batches: number;
+    expiring_soon_batches: number;
+    expired_batches: number;
+    out_of_stock_batches: number;
+    total_available_quantity: number;
+    total_product_batch_quantity: number;
+  };
+}
+
+// Get Product Batches Function
+export const getProductBatches = async (
+  productId: number,
+  options?: {
+    loading_type?: 'L' | 'U';
+    include_expired?: boolean;
+    sort_by?:
+      | 'expiry_date'
+      | 'remaining_quantity'
+      | 'batch_number'
+      | 'manufacturing_date';
+  }
+): Promise<ApiResponse<ProductBatchesResponse>> => {
+  try {
+    const params = new URLSearchParams();
+
+    if (options?.loading_type) {
+      params.append('loading_type', options.loading_type);
+    }
+    if (options?.include_expired) {
+      params.append('include_expired', 'true');
+    }
+    if (options?.sort_by) {
+      params.append('sort_by', options.sort_by);
+    }
+
+    const response = await api.get(
+      `/products/${productId}/batches?${params.toString()}`
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching product batches:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to fetch product batches'
     );
   }
 };

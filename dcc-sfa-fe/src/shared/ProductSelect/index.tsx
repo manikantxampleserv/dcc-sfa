@@ -13,6 +13,11 @@ interface Product {
   id: number;
   name: string;
   code: string;
+  batch_lot?: {
+    id: number;
+    batch_number: string;
+    lot_number: string;
+  };
 }
 
 interface ProductSelectProps {
@@ -47,7 +52,8 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isSelecting, setIsSelecting] = useState(false);
-  const [selectedProductData, setSelectedProductData] = useState<Product | null>(null);
+  const [selectedProductData, setSelectedProductData] =
+    useState<Product | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
 
   const currentValue = formik ? formik.values[name] : value;
@@ -94,11 +100,14 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
     product_id: productId && !effectiveSearch ? productId : undefined,
   });
 
-  const searchResults: Product[] = (dropdownResponse?.data || []).map(product => ({
-    id: product.id,
-    name: product.name,
-    code: product.code,
-  }));
+  const searchResults: Product[] = (dropdownResponse?.data || []).map(
+    product => ({
+      id: product.id,
+      name: product.name,
+      code: product.code,
+      batch_lot: product.batch_lot,
+    })
+  );
 
   useEffect(() => {
     if (
@@ -118,7 +127,13 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
         setHasInitialized(true);
       }
     }
-  }, [normalizedValue, selectedProductData, inputValue, searchResults, isLoading]);
+  }, [
+    normalizedValue,
+    selectedProductData,
+    inputValue,
+    searchResults,
+    isLoading,
+  ]);
 
   const selectedProduct = React.useMemo(() => {
     if (!normalizedValue) {
@@ -299,4 +314,3 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
 };
 
 export default ProductSelect;
-

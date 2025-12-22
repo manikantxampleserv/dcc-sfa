@@ -1,23 +1,25 @@
 import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
+import { useDepots } from 'hooks/useDepots';
 import { useProducts } from 'hooks/useProducts';
 import { useUsers } from 'hooks/useUsers';
-import { useVehicles } from 'hooks/useVehicles';
-import { useDepots } from 'hooks/useDepots';
 import {
   useCreateVanInventory,
+  useProductBatches,
   useUpdateVanInventory,
   useVanInventoryById,
+  type ProductBatch,
   type VanInventory,
 } from 'hooks/useVanInventory';
-import { Package, Plus } from 'lucide-react';
-import React, { useState, useRef } from 'react';
+import { useVehicles } from 'hooks/useVehicles';
+import { Plus } from 'lucide-react';
+import React, { useRef } from 'react';
 import { vanInventoryValidationSchema } from 'schemas/vanInventory.schema';
 import { DeleteButton } from 'shared/ActionButton';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 
@@ -29,13 +31,137 @@ interface ManageVanInventoryProps {
 }
 
 interface VanInventoryItemFormData {
-  product_id: number | '';
+  product_id: number | null;
   product_name?: string | null;
   unit?: string | null;
-  quantity: number | '';
+  quantity: number | null;
   notes?: string | null;
+  batch_lot_id: number | null;
+  batch_number?: string | null;
+  lot_number?: string | null;
+  remaining_quantity?: number | null;
+  total_quantity?: number | null;
+  product_batches?: ProductBatch[];
   id?: number | null;
 }
+
+interface BatchLotSelectorProps {
+  rowIndex: number;
+  row: VanInventoryItemFormData;
+  updateInventoryItem: (
+    index: number,
+    field: keyof VanInventoryItemFormData,
+    value: string | number | null
+  ) => void;
+}
+
+const BatchLotSelector: React.FC<BatchLotSelectorProps> = ({
+  rowIndex,
+  row,
+  updateInventoryItem,
+}) => {
+  if (!row.product_id) {
+    return (
+      <Select
+        value=""
+        disabled
+        size="small"
+        fullWidth
+        placeholder="Select product first"
+      />
+    );
+  }
+
+  const {
+    data: productBatchesResponse,
+    isFetching,
+    error,
+  } = useProductBatches(row.product_id, {});
+
+  const productBatches: ProductBatch[] =
+    productBatchesResponse?.data?.batches || [];
+
+  const handleBatchChange = (batchLotId: number | null) => {
+    updateInventoryItem(rowIndex, 'batch_lot_id', batchLotId);
+
+    if (!batchLotId) {
+      updateInventoryItem(rowIndex, 'batch_number', null);
+      updateInventoryItem(rowIndex, 'lot_number', null);
+      updateInventoryItem(rowIndex, 'remaining_quantity', null);
+      updateInventoryItem(rowIndex, 'total_quantity', null);
+      updateInventoryItem(rowIndex, 'quantity', null);
+      return;
+    }
+
+    const selectedBatch = productBatches.find(
+      (pb: ProductBatch) => pb.batch_lot_id === batchLotId
+    );
+
+    if (selectedBatch) {
+      updateInventoryItem(rowIndex, 'batch_number', selectedBatch.batch_number);
+      updateInventoryItem(
+        rowIndex,
+        'lot_number',
+        selectedBatch.lot_number || null
+      );
+      updateInventoryItem(
+        rowIndex,
+        'remaining_quantity',
+        selectedBatch.batch_remaining_quantity
+      );
+      updateInventoryItem(
+        rowIndex,
+        'total_quantity',
+        selectedBatch.batch_total_quantity
+      );
+      updateInventoryItem(rowIndex, 'quantity', null);
+    }
+  };
+
+  if (isFetching || (!productBatchesResponse && row.product_id)) {
+    return (
+      <Select
+        value=""
+        disabled
+        size="small"
+        fullWidth
+        placeholder="Loading batches..."
+      />
+    );
+  }
+
+  if (error || productBatches.length === 0) {
+    return (
+      <Select
+        value=""
+        disabled
+        size="small"
+        fullWidth
+        placeholder="No batches available"
+      />
+    );
+  }
+
+  return (
+    <Select
+      name={`van_inventory_items[${rowIndex}].batch_lot_id`}
+      value={row.batch_lot_id ?? ''}
+      onChange={e =>
+        handleBatchChange(e.target.value === '' ? null : Number(e.target.value))
+      }
+      size="small"
+      fullWidth
+      placeholder="Select batch"
+    >
+      {productBatches.map(batch => (
+        <MenuItem key={batch.batch_lot_id} value={batch.batch_lot_id}>
+          {batch.batch_number}
+          {batch.lot_number && ` (${batch.lot_number})`}
+        </MenuItem>
+      ))}
+    </Select>
+  );
+};
 
 const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   selectedVanInventory,
@@ -44,16 +170,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   setDrawerOpen,
 }) => {
   const isEdit = !!selectedVanInventory;
-  const [inventoryItems, setInventoryItems] = useState<
-    VanInventoryItemFormData[]
-  >([]);
   const hasLoadedItemsRef = useRef(false);
-
-  const handleCancel = () => {
-    setSelectedVanInventory(null);
-    setDrawerOpen(false);
-    setInventoryItems([]);
-  };
 
   const createVanInventoryMutation = useCreateVanInventory();
   const updateVanInventoryMutation = useUpdateVanInventory();
@@ -88,6 +205,21 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     enableReinitialize: true,
     onSubmit: async values => {
       try {
+        const invalidItems = values.van_inventory_items.filter(
+          item =>
+            item.batch_lot_id &&
+            item.quantity != null &&
+            item.remaining_quantity != null &&
+            Number(item.quantity) > item.remaining_quantity
+        );
+
+        if (invalidItems.length > 0) {
+          alert(
+            'Some items have quantities exceeding available stock. Please adjust before submitting.'
+          );
+          return;
+        }
+
         const submitData = {
           ...(isEdit && selectedVanInventory
             ? { id: selectedVanInventory.id }
@@ -99,16 +231,18 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             values.document_date || new Date().toISOString().split('T')[0],
           vehicle_id: values.vehicle_id ? Number(values.vehicle_id) : null,
           location_type: values.location_type,
-          location_id: values.location_id ? Number(values.location_id) : null,
           is_active: values.is_active,
-          van_inventory_items: inventoryItems
-            .filter(item => item.product_id !== '' && item.quantity !== '')
+          van_inventory_items: values.van_inventory_items
+            .filter(item => item.product_id && item.quantity != null)
             .map(item => ({
               product_id: Number(item.product_id),
               product_name: item.product_name || null,
               unit: item.unit || null,
               quantity: Number(item.quantity),
               notes: item.notes || null,
+              batch_lot_id: item.batch_lot_id
+                ? Number(item.batch_lot_id)
+                : null,
               id: item.id || undefined,
             })),
         };
@@ -132,6 +266,14 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   const vanInventoryData = vanInventoryResponse?.data;
   const vanInventoryId = vanInventoryData?.id;
 
+  const handleCancel = () => {
+    setSelectedVanInventory(null);
+    setDrawerOpen(false);
+    hasLoadedItemsRef.current = false;
+    formik.resetForm();
+  };
+
+  // Load items only once when editing, without infinite loop
   React.useEffect(() => {
     if (
       isEdit &&
@@ -139,25 +281,30 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       vanInventoryId &&
       !hasLoadedItemsRef.current
     ) {
-      const items =
+      const items: VanInventoryItemFormData[] =
         vanInventoryData.items?.map(item => ({
           product_id: item.product_id,
           product_name: item.product_name || null,
           unit: item.unit || null,
-          quantity: item.quantity || 0,
+          quantity: item.quantity ?? null,
           notes: item.notes || null,
+          batch_lot_id: item.batch_lot_id ?? null,
+          batch_number: item.batch_number || null,
+          lot_number: item.lot_number || null,
+          remaining_quantity: item.remaining_quantity ?? null,
+          total_quantity: item.total_quantity ?? null,
           id: item.id,
         })) || [];
-      setInventoryItems(items as VanInventoryItemFormData[]);
+
       formik.setFieldValue('van_inventory_items', items);
       hasLoadedItemsRef.current = true;
-    } else if (!isEdit) {
-      setInventoryItems([]);
+    } else if (!isEdit && !hasLoadedItemsRef.current) {
       formik.setFieldValue('van_inventory_items', []);
-      hasLoadedItemsRef.current = false;
+      hasLoadedItemsRef.current = true;
     }
-  }, [isEdit, vanInventoryId]);
+  }, [isEdit, vanInventoryId, vanInventoryData]);
 
+  // Reset flag when drawer closes
   React.useEffect(() => {
     if (!drawerOpen) {
       hasLoadedItemsRef.current = false;
@@ -166,123 +313,168 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
 
   const addInventoryItem = () => {
     const newItem: VanInventoryItemFormData = {
-      product_id: '',
-      quantity: 0,
+      product_id: null,
+      quantity: null,
       id: null,
+      batch_lot_id: null,
+      batch_number: null,
+      lot_number: null,
+      remaining_quantity: null,
+      total_quantity: null,
+      product_batches: [],
     };
-    const updatedItems = [...inventoryItems, newItem];
-    setInventoryItems(updatedItems);
-    formik.setFieldValue('van_inventory_items', updatedItems);
+    formik.setFieldValue('van_inventory_items', [
+      ...(formik.values.van_inventory_items || []),
+      newItem,
+    ]);
   };
 
   const removeInventoryItem = (index: number) => {
-    const updatedItems = inventoryItems.filter((_, i) => i !== index);
-    setInventoryItems(updatedItems);
+    const updatedItems = (formik.values.van_inventory_items || []).filter(
+      (_: VanInventoryItemFormData, i: number) => i !== index
+    );
     formik.setFieldValue('van_inventory_items', updatedItems);
   };
 
   const updateInventoryItem = (
     index: number,
     field: keyof VanInventoryItemFormData,
-    value: string | number
+    value: string | number | null
   ) => {
-    const updatedItems = [...inventoryItems];
+    const updatedItems = [...(formik.values.van_inventory_items || [])];
     const item = updatedItems[index];
 
+    if (!item) return;
+
     if (field === 'product_id') {
-      const product = products.find(p => p.id === Number(value));
+      const numericValue =
+        value === '' || value === null ? null : Number(value);
+      const product = products.find(p => p.id === numericValue);
       updatedItems[index] = {
         ...item,
-        product_id: Number(value),
+        product_id: numericValue,
         product_name: product?.name || null,
-        unit: null,
+        batch_lot_id: null,
+        batch_number: null,
+        lot_number: null,
+        remaining_quantity: null,
+        total_quantity: null,
+        quantity: null,
+        notes: '',
+        product_batches: [],
+      };
+    } else if (field === 'batch_lot_id') {
+      updatedItems[index] = {
+        ...item,
+        batch_lot_id: value === '' || value === null ? null : Number(value),
       };
     } else if (field === 'quantity') {
-      const numValue = value === '' ? 0 : Number(value);
       updatedItems[index] = {
         ...item,
-        [field]: numValue,
+        quantity: value === '' || value === null ? null : Number(value),
       };
     } else {
-      updatedItems[index] = { ...item, [field]: value };
+      updatedItems[index] = { ...item, [field]: value as any };
     }
 
-    setInventoryItems(updatedItems);
     formik.setFieldValue('van_inventory_items', updatedItems);
   };
 
-  const itemsWithIndex = inventoryItems.map((item, index) => ({
-    ...item,
-    _index: index,
-  }));
-
-  const inventoryItemColumns: TableColumn<
-    VanInventoryItemFormData & { _index: number }
-  >[] = [
+  const inventoryItemColumns: TableColumn<VanInventoryItemFormData>[] = [
     {
       id: 'product_id',
       label: 'Product',
-      width: 250,
-      render: (_value, row) => (
-        <ProductSelect
-          value={row.product_id}
-          onChange={(_event, product) =>
+      width: 300,
+      render: (_value, row, rowIndex) => (
+        <Select
+          name={`van_inventory_items[${rowIndex}].product_id`}
+          value={row.product_id ?? ''}
+          onChange={e => {
+            const value = e.target.value;
             updateInventoryItem(
-              row._index,
+              rowIndex,
               'product_id',
-              product ? product.id : ''
-            )
-          }
-          size="small"
+              value === '' || value === null ? null : Number(value)
+            );
+          }}
           fullWidth
+          size="small"
+          placeholder="Select product"
+          disableClearable={false}
+        >
+          {products.map(product => (
+            <MenuItem key={product.id} value={product.id}>
+              {product.name}
+              {product.code && ` (${product.code})`}
+            </MenuItem>
+          ))}
+        </Select>
+      ),
+    },
+    {
+      id: 'batch_lot_id',
+      label: 'Batch / Lot',
+      width: 300,
+      render: (_value, row, rowIndex) => (
+        <BatchLotSelector
+          rowIndex={rowIndex}
+          row={row}
+          updateInventoryItem={updateInventoryItem}
         />
+      ),
+    },
+    {
+      id: 'available_quantity',
+      label: 'Available Qty',
+      width: 150,
+      render: (_value, row) => (
+        <Box className="!px-3 !py-2 !bg-green-50 !rounded !border !border-green-200">
+          <Typography
+            variant="body2"
+            className="!font-semibold !text-green-700 !text-center"
+          >
+            {row.remaining_quantity != null
+              ? row.remaining_quantity.toLocaleString()
+              : '-'}
+            {row.unit && ` ${row.unit}`}
+          </Typography>
+        </Box>
       ),
     },
     {
       id: 'quantity',
-      label: 'Qty',
-      width: 100,
-      render: (_value, row) => (
-        <Input
-          value={row.quantity || 0}
-          onChange={e =>
-            updateInventoryItem(row._index, 'quantity', e.target.value)
-          }
-          size="small"
-          fullWidth
-          type="number"
-          placeholder="Qty"
-          required
-        />
-      ),
-    },
-    {
-      id: 'notes',
-      label: 'Notes',
+      label: formik.values.loading_type === 'L' ? 'Load Qty' : 'Unload Qty',
       width: 150,
-      render: (_value, row) => (
-        <Input
-          value={row.notes || ''}
-          onChange={e =>
-            updateInventoryItem(row._index, 'notes', e.target.value)
-          }
-          size="small"
-          fullWidth
-          placeholder="Notes"
-        />
+      render: (_value, row, rowIndex) => (
+        <Box className="!flex !flex-col !gap-1">
+          <Input
+            name={`van_inventory_items[${rowIndex}].quantity`}
+            type="number"
+            value={row.quantity ?? ''}
+            onChange={e =>
+              updateInventoryItem(
+                rowIndex,
+                'quantity',
+                e.target.value === '' ? null : Number(e.target.value)
+              )
+            }
+            size="small"
+            fullWidth
+            placeholder="Enter qty"
+          />
+        </Box>
       ),
     },
     {
-      id: 'actions',
-      label: '',
+      id: 'action' as any,
+      label: 'Actions',
+      width: 80,
       sortable: false,
-      width: 60,
-      render: (_value, row) => (
+      render: (_value, _row, rowIndex) => (
         <DeleteButton
-          onClick={() => removeInventoryItem(row._index)}
+          onClick={() => removeInventoryItem(rowIndex)}
           tooltip="Remove item"
-          confirmDelete={true}
-          itemName="inventory item"
+          size="small"
         />
       ),
     },
@@ -293,9 +485,10 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Van Stock' : 'Load/Unload Stock to Van'}
+      fullWidth
     >
       <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
+        <form onSubmit={formik.handleSubmit} className="!space-y-3">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             <Select
               name="user_id"
@@ -329,10 +522,12 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               required
             />
 
-            <Select name="vehicle_id" label="Vehicle" formik={formik}>
-              <MenuItem value="">
-                <em>No Vehicle</em>
-              </MenuItem>
+            <Select
+              name="vehicle_id"
+              label="Vehicle"
+              formik={formik}
+              placeholder="Select Vehicle"
+            >
               {vehicles.map((vehicle: any) => (
                 <MenuItem key={vehicle.id} value={vehicle.id}>
                   {vehicle.vehicle_number} ({vehicle.type})
@@ -340,79 +535,53 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               ))}
             </Select>
 
-            <Select name="location_type" label="Location Type" formik={formik}>
-              <MenuItem value="van">Van</MenuItem>
-              <MenuItem value="warehouse">Warehouse</MenuItem>
-              <MenuItem value="depot">Depot</MenuItem>
-              <MenuItem value="store">Store</MenuItem>
-            </Select>
-
-            <Select name="location_id" label="Location/Depot" formik={formik}>
-              <MenuItem value="">
-                <em>No Location</em>
-              </MenuItem>
+            <Select
+              name="location_id"
+              label="Location/Depot"
+              formik={formik}
+              placeholder="Select Location/Depot"
+            >
               {depots.map((depot: any) => (
                 <MenuItem key={depot.id} value={depot.id}>
                   {depot.name} ({depot.code})
                 </MenuItem>
               ))}
             </Select>
-
-            <Select
-              name="is_active"
-              label="Active Status"
-              formik={formik}
-              required
-            >
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
           </Box>
 
-          <Box className="!space-y-3">
-            <Box className="!flex !justify-between !items-center">
-              <Typography
-                variant="body1"
-                className="!font-semibold !text-gray-900"
-              >
-                Inventory Items
-              </Typography>
-              <Button
-                type="button"
-                variant="outlined"
-                startIcon={<Plus />}
-                onClick={addInventoryItem}
-                size="small"
-              >
-                Add Item
-              </Button>
-            </Box>
+          <ActiveInactiveField
+            name="is_active"
+            label="Active Status"
+            formik={formik}
+            required
+          />
 
-            {inventoryItems.length > 0 && (
-              <Box className="!overflow-x-auto">
-                <Table
-                  compact
-                  data={itemsWithIndex}
-                  columns={inventoryItemColumns}
-                  getRowId={row => row._index.toString()}
-                  pagination={false}
-                  sortable={false}
-                  emptyMessage="No items added yet."
-                />
-              </Box>
-            )}
-
-            {inventoryItems.length === 0 && (
-              <Box className="!text-center !py-8 !text-gray-500">
-                <Package className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                <Typography variant="body2">
-                  No items added yet. Click "Add Item" to get started.
+          <Table
+            data={formik.values.van_inventory_items}
+            compact
+            actions={
+              <Box className="!flex !justify-between !items-center">
+                <Typography variant="body1" className="!font-semibold">
+                  Inventory Items
                 </Typography>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  onClick={addInventoryItem}
+                  startIcon={<Plus size={16} />}
+                >
+                  Add Item
+                </Button>
               </Box>
-            )}
-          </Box>
+            }
+            columns={inventoryItemColumns}
+            getRowId={item => item.id ?? `${item.product_id}-${Math.random()}`}
+            pagination={false}
+            emptyMessage="No items added. Click 'Add Item' to add inventory items"
+          />
 
-          <Box className="!flex !justify-end !gap-2">
+          <Box className="!flex !justify-end !gap-3">
             <Button
               type="button"
               variant="outlined"

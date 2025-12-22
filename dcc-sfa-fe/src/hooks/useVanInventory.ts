@@ -15,6 +15,8 @@ export type {
   ManageVanInventoryPayload,
   UpdateVanInventoryPayload,
   GetVanInventoryParams,
+  ProductBatch,
+  ProductBatchesResponse,
 } from '../services/masters/VanInventory';
 
 /**
@@ -96,6 +98,35 @@ export const useUpdateVanInventory = () => {
       vanInventoryService.updateVanInventory(id, data),
     invalidateQueries: ['van-inventory'],
     loadingMessage: 'Updating van inventory...',
+  });
+};
+
+/**
+ * Hook to fetch product batches for a specific product
+ * @param productId - Product ID to fetch batches for
+ * @param options - Query options for filtering and sorting
+ * @returns Query object with product batches data
+ */
+export const useProductBatches = (
+  productId: number,
+  options?: {
+    loading_type?: 'L' | 'U';
+    include_expired?: boolean;
+    sort_by?:
+      | 'expiry_date'
+      | 'remaining_quantity'
+      | 'batch_number'
+      | 'manufacturing_date';
+  },
+  queryOptions?: UseQueryOptions<
+    ApiResponse<vanInventoryService.ProductBatchesResponse>
+  >
+) => {
+  return useQuery({
+    queryKey: ['product-batches', productId, options],
+    queryFn: () => vanInventoryService.getProductBatches(productId, options),
+    enabled: !!productId,
+    ...queryOptions,
   });
 };
 
