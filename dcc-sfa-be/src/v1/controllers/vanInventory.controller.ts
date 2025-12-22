@@ -1854,7 +1854,6 @@ export const vanInventoryController = {
   //         product_id: Number(productId),
   //         is_active: 'Y',
   //       },
-
   //       include: {
   //         batch_lot_product_batches: true,
   //       },
@@ -1881,42 +1880,53 @@ export const vanInventoryController = {
   //       })
   //       .map((pb: any) => {
   //         const batchLot = pb.batch_lot_product_batches;
-  //         const isExpired = new Date(batchLot.expiry_date) <= new Date();
-  //         const isExpiringSoon =
-  //           !isExpired &&
-  //           new Date(batchLot.expiry_date) <=
-  //             new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  //         const now = new Date();
+  //         const expiryDate = new Date(batchLot.expiry_date);
+  //         const isExpired = expiryDate <= now;
+  //         const daysUntilExpiry = Math.floor(
+  //           (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  //         );
+  //         const isExpiringSoon = !isExpired && daysUntilExpiry <= 30;
+
+  //         let availabilityStatus: string;
+  //         if (isExpired) {
+  //           availabilityStatus = 'expired';
+  //         } else if (batchLot.remaining_quantity <= 0) {
+  //           availabilityStatus = 'out_of_stock';
+  //         } else if (isExpiringSoon) {
+  //           availabilityStatus = 'expiring_soon';
+  //         } else {
+  //           availabilityStatus = 'available';
+  //         }
 
   //         return {
-  //           batch_id: batchLot.id,
+  //           product_batch_id: pb.id,
+  //           product_batch_quantity: pb.quantity,
+  //           product_batch_created_date: pb.createdate,
+  //           product_batch_created_by: pb.createdby,
+  //           product_batch_updated_date: pb.updatedate,
+  //           product_batch_updated_by: pb.updatedby,
+  //           product_batch_is_active: pb.is_active,
+
+  //           batch_lot_id: batchLot.id,
   //           batch_number: batchLot.batch_number,
   //           lot_number: batchLot.lot_number,
   //           manufacturing_date: batchLot.manufacturing_date,
   //           expiry_date: batchLot.expiry_date,
-  //           days_until_expiry: Math.floor(
-  //             (new Date(batchLot.expiry_date).getTime() - Date.now()) /
-  //               (1000 * 60 * 60 * 24)
-  //           ),
-  //           is_expired: isExpired,
-  //           is_expiring_soon: isExpiringSoon,
-  //           product_batch_id: pb.id,
-  //           product_batch_quantity: pb.quantity,
-  //           product_batch_remaining: pb.quantity,
   //           batch_total_quantity: batchLot.quantity,
-  //           batch_total_remaining: batchLot.remaining_quantity,
+  //           batch_remaining_quantity: batchLot.remaining_quantity,
+
   //           supplier_name: batchLot.supplier_name,
   //           purchase_price: batchLot.purchase_price
   //             ? Number(batchLot.purchase_price)
   //             : null,
   //           quality_grade: batchLot.quality_grade,
   //           storage_location: batchLot.storage_location,
-  //           availability_status: isExpired
-  //             ? 'expired'
-  //             : batchLot.remaining_quantity <= 0
-  //               ? 'out_of_stock'
-  //               : isExpiringSoon
-  //                 ? 'expiring_soon'
-  //                 : 'available',
+
+  //           days_until_expiry: daysUntilExpiry,
+  //           is_expired: isExpired,
+  //           is_expiring_soon: isExpiringSoon,
+  //           availability_status: availabilityStatus,
   //         };
   //       });
 
@@ -1931,7 +1941,7 @@ export const vanInventoryController = {
   //           );
 
   //         case 'remaining_quantity':
-  //           return b.batch_total_remaining - a.batch_total_remaining;
+  //           return b.batch_remaining_quantity - a.batch_remaining_quantity;
 
   //         case 'batch_number':
   //           return a.batch_number.localeCompare(b.batch_number);
@@ -1940,6 +1950,12 @@ export const vanInventoryController = {
   //           return (
   //             new Date(b.manufacturing_date).getTime() -
   //             new Date(a.manufacturing_date).getTime()
+  //           );
+
+  //         case 'product_batch_created_date':
+  //           return (
+  //             new Date(b.product_batch_created_date).getTime() -
+  //             new Date(a.product_batch_created_date).getTime()
   //           );
 
   //         default:
@@ -1962,10 +1978,135 @@ export const vanInventoryController = {
   //         (b: any) => b.availability_status === 'out_of_stock'
   //       ).length,
   //       total_available_quantity: batches.reduce((sum: number, b: any) => {
-  //         return sum + (b.is_expired ? 0 : b.batch_total_remaining);
+  //         return sum + (b.is_expired ? 0 : b.batch_remaining_quantity);
   //       }, 0),
   //       total_product_batch_quantity: batches.reduce((sum: number, b: any) => {
-  //         return sum + b.product_batch_remaining;
+  //         return sum + b.product_batch_quantity;
+  //       }, 0),
+  //     };
+
+  //     res.json({
+  //       success: true,
+  //       message: 'Product batches retrieved successfully',
+  //       data: {
+  //         product: {
+  //           id: product.id,
+  //           name: product.name,
+  //           code: product.code,
+  //         },
+  //         batches,
+  //         stats,
+  //       },
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Get Product Batches Error:', error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to retrieve product batches',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
+  //II
+  // async getProductBatches(req: Request, res: Response) {
+  //   try {
+  //     const { productId } = req.params;
+  //     const { loading_type, include_expired, sort_by } = req.query;
+
+  //     if (!productId) {
+  //       return res.status(400).json({ message: 'Product ID is required' });
+  //     }
+
+  //     const product = await prisma.products.findUnique({
+  //       where: { id: Number(productId) },
+  //       select: {
+  //         id: true,
+  //         name: true,
+  //         code: true,
+  //       },
+  //     });
+
+  //     if (!product) {
+  //       return res.status(404).json({ message: 'Product not found' });
+  //     }
+
+  //     const productBatches = await prisma.product_batches.findMany({
+  //       where: {
+  //         product_id: Number(productId),
+  //         is_active: 'Y',
+  //       },
+  //       include: {
+  //         batch_lot_product_batches: true,
+  //       },
+  //       orderBy: {
+  //         id: 'asc',
+  //       },
+  //     });
+
+  //     let batches = productBatches
+  //       .filter((pb: any) => {
+  //         const batchLot = pb.batch_lot_product_batches;
+
+  //         if (!batchLot) return false;
+  //         if (batchLot.is_active !== 'Y') return false;
+
+  //         const isExpired = new Date(batchLot.expiry_date) <= new Date();
+  //         if (!include_expired && isExpired) return false;
+
+  //         if (loading_type === 'L' && batchLot.remaining_quantity <= 0) {
+  //           return false;
+  //         }
+
+  //         return true;
+  //       })
+  //       .map((pb: any) => {
+  //         const batchLot = pb.batch_lot_product_batches;
+
+  //         return {
+  //           product_batch_id: pb.id,
+  //           product_batch_quantity: pb.quantity,
+  //           product_batch_created_date: pb.createdate,
+  //           product_batch_created_by: pb.createdby,
+  //           product_batch_updated_date: pb.updatedate,
+  //           product_batch_updated_by: pb.updatedby,
+  //           product_batch_is_active: pb.is_active,
+
+  //           batch_lot_id: batchLot.id,
+  //           batch_number: batchLot.batch_number,
+  //           lot_number: batchLot.lot_number,
+  //           manufacturing_date: batchLot.manufacturing_date,
+  //         };
+  //       });
+
+  //     const sortBy = (sort_by as string) || 'batch_number';
+
+  //     batches.sort((a: any, b: any) => {
+  //       switch (sortBy) {
+  //         case 'batch_number':
+  //           return a.batch_number.localeCompare(b.batch_number);
+
+  //         case 'manufacturing_date':
+  //           return (
+  //             new Date(b.manufacturing_date).getTime() -
+  //             new Date(a.manufacturing_date).getTime()
+  //           );
+
+  //         case 'product_batch_created_date':
+  //           return (
+  //             new Date(b.product_batch_created_date).getTime() -
+  //             new Date(a.product_batch_created_date).getTime()
+  //           );
+
+  //         default:
+  //           return a.batch_number.localeCompare(b.batch_number);
+  //       }
+  //     });
+
+  //     const stats = {
+  //       total_batches: batches.length,
+  //       total_product_batch_quantity: batches.reduce((sum: number, b: any) => {
+  //         return sum + b.product_batch_quantity;
   //       }, 0),
   //     };
 
@@ -2045,24 +2186,6 @@ export const vanInventoryController = {
         })
         .map((pb: any) => {
           const batchLot = pb.batch_lot_product_batches;
-          const now = new Date();
-          const expiryDate = new Date(batchLot.expiry_date);
-          const isExpired = expiryDate <= now;
-          const daysUntilExpiry = Math.floor(
-            (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-          );
-          const isExpiringSoon = !isExpired && daysUntilExpiry <= 30;
-
-          let availabilityStatus: string;
-          if (isExpired) {
-            availabilityStatus = 'expired';
-          } else if (batchLot.remaining_quantity <= 0) {
-            availabilityStatus = 'out_of_stock';
-          } else if (isExpiringSoon) {
-            availabilityStatus = 'expiring_soon';
-          } else {
-            availabilityStatus = 'available';
-          }
 
           return {
             product_batch_id: pb.id,
@@ -2077,37 +2200,15 @@ export const vanInventoryController = {
             batch_number: batchLot.batch_number,
             lot_number: batchLot.lot_number,
             manufacturing_date: batchLot.manufacturing_date,
-            expiry_date: batchLot.expiry_date,
-            batch_total_quantity: batchLot.quantity,
+
             batch_remaining_quantity: batchLot.remaining_quantity,
-
-            supplier_name: batchLot.supplier_name,
-            purchase_price: batchLot.purchase_price
-              ? Number(batchLot.purchase_price)
-              : null,
-            quality_grade: batchLot.quality_grade,
-            storage_location: batchLot.storage_location,
-
-            days_until_expiry: daysUntilExpiry,
-            is_expired: isExpired,
-            is_expiring_soon: isExpiringSoon,
-            availability_status: availabilityStatus,
           };
         });
 
-      const sortBy = (sort_by as string) || 'expiry_date';
+      const sortBy = (sort_by as string) || 'batch_number';
 
       batches.sort((a: any, b: any) => {
         switch (sortBy) {
-          case 'expiry_date':
-            return (
-              new Date(a.expiry_date).getTime() -
-              new Date(b.expiry_date).getTime()
-            );
-
-          case 'remaining_quantity':
-            return b.batch_remaining_quantity - a.batch_remaining_quantity;
-
           case 'batch_number':
             return a.batch_number.localeCompare(b.batch_number);
 
@@ -2123,30 +2224,21 @@ export const vanInventoryController = {
               new Date(a.product_batch_created_date).getTime()
             );
 
+          case 'remaining_quantity':
+            return b.batch_remaining_quantity - a.batch_remaining_quantity;
+
           default:
-            return (
-              new Date(a.expiry_date).getTime() -
-              new Date(b.expiry_date).getTime()
-            );
+            return a.batch_number.localeCompare(b.batch_number);
         }
       });
 
       const stats = {
         total_batches: batches.length,
-        available_batches: batches.filter(
-          (b: any) => b.availability_status === 'available'
-        ).length,
-        expiring_soon_batches: batches.filter((b: any) => b.is_expiring_soon)
-          .length,
-        expired_batches: batches.filter((b: any) => b.is_expired).length,
-        out_of_stock_batches: batches.filter(
-          (b: any) => b.availability_status === 'out_of_stock'
-        ).length,
-        total_available_quantity: batches.reduce((sum: number, b: any) => {
-          return sum + (b.is_expired ? 0 : b.batch_remaining_quantity);
-        }, 0),
         total_product_batch_quantity: batches.reduce((sum: number, b: any) => {
           return sum + b.product_batch_quantity;
+        }, 0),
+        total_remaining_quantity: batches.reduce((sum: number, b: any) => {
+          return sum + (b.batch_remaining_quantity || 0);
         }, 0),
       };
 
