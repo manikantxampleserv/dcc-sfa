@@ -114,7 +114,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const routeTypes = routeTypesResponse?.data || [];
   const outletGroups = outletGroupsResponse?.data || [];
   const taxMasters = taxMastersResponse?.data || [];
-  const batchLotsDropdown = (batchLotsResponse as any)?.data || [];
+  const batchLotsDropdown = batchLotsResponse?.data || [];
 
   React.useEffect(() => {
     if (batchLotsDropdown.length > 0) {
@@ -376,7 +376,9 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             ? Number(values.outlet_group_id)
             : undefined,
           tracking_type:
-            values.tracking_type && values.tracking_type !== ''
+            values.tracking_type &&
+            values.tracking_type !== '' &&
+            values.tracking_type !== 'None'
               ? (values.tracking_type as 'Batch' | 'Serial')
               : undefined,
           batch_lots: selectedBatchLots
@@ -416,15 +418,12 @@ const ManageProduct: React.FC<ManageProductProps> = ({
         } else {
           await createProductMutation.mutateAsync(productData);
         }
-
         handleCancel();
       } catch (error) {
         console.error('Error saving product:', error);
       }
     },
   });
-
-  console.log({ ...formik.values, batchLots: selectedBatchLots });
 
   return (
     <CustomDrawer
@@ -519,6 +518,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             </Select>
 
             <Select name="tracking_type" label="Batch/Serial" formik={formik}>
+              <MenuItem value="None">None</MenuItem>
               <MenuItem value="Batch">Batch</MenuItem>
               <MenuItem value="Serial">Serial</MenuItem>
             </Select>
@@ -616,34 +616,35 @@ const ManageProduct: React.FC<ManageProductProps> = ({
           </Box>
 
           {/* Batch Lots Section */}
-          <Box className="!mt-6">
-            <Table
-              actions={
-                <Box className="!flex !justify-between !items-center">
-                  <Typography variant="body1" className="!font-semibold">
-                    Batch Lots
-                  </Typography>
-                  <Button
-                    type="button"
-                    variant="outlined"
-                    size="small"
-                    onClick={addBatchLot}
-                    startIcon={<Plus size={16} />}
-                  >
-                    Add Batch Lot
-                  </Button>
-                </Box>
-              }
-              columns={batchLotColumns}
-              data={batchLotsWithIndex}
-              pagination={false}
-              sortable={false}
-              compact={true}
-              getRowId={row => row._index.toString()}
-              emptyMessage="No batch lots added. Click 'Add Batch Lot' to add batch lots"
-            />
-          </Box>
-
+          {formik.values.tracking_type === 'Batch' && (
+            <Box className="!mt-6">
+              <Table
+                actions={
+                  <Box className="!flex !justify-between !items-center">
+                    <Typography variant="body1" className="!font-semibold">
+                      Batch Lots
+                    </Typography>
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      size="small"
+                      onClick={addBatchLot}
+                      startIcon={<Plus size={16} />}
+                    >
+                      Add Batch Lot
+                    </Button>
+                  </Box>
+                }
+                columns={batchLotColumns}
+                data={batchLotsWithIndex}
+                pagination={false}
+                sortable={false}
+                compact={true}
+                getRowId={row => row._index.toString()}
+                emptyMessage="No batch lots added. Click 'Add Batch Lot' to add batch lots"
+              />
+            </Box>
+          )}
           <Box className="!flex !justify-end items-center gap-2">
             <Button
               type="button"

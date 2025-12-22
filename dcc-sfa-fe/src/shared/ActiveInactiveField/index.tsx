@@ -109,7 +109,7 @@ const ActiveInactiveField: React.FC<ActiveInactiveFieldProps> = ({
   return (
     <FormControl
       component="fieldset"
-      className={`!mt-2 ${className}`}
+      className={`${className}`}
       error={!!error}
       disabled={disabled}
     >

@@ -13,7 +13,6 @@ interface VanInventoryItem {
   parent_id: number;
   product_id: number;
   product_name?: string | null;
-  unit?: string | null;
   quantity: number;
   unit_price: string;
   discount_amount?: string | null;
@@ -25,6 +24,10 @@ interface VanInventoryItem {
   lot_number?: string | null;
   remaining_quantity?: number | null;
   total_quantity?: number | null;
+  product_remaining_quantity?: number | null;
+  batch_total_remaining_quantity?: number | null;
+  unit?: string | null;
+  expiry_date?: string | null;
 }
 
 interface VanInventory {
@@ -59,7 +62,6 @@ interface VanInventory {
 interface VanInventoryItemPayload {
   product_id: number;
   product_name?: string | null;
-  unit?: string | null;
   quantity: number;
   unit_price?: number;
   discount_amount?: number;
@@ -185,7 +187,10 @@ export const updateVanInventory = async (
   vanInventoryData: UpdateVanInventoryPayload
 ): Promise<ApiResponse<VanInventory>> => {
   try {
-    const response = await api.put(`/van-inventory/${id}`, vanInventoryData);
+    const response = await api.post(`/van-inventory`, {
+      id,
+      ...vanInventoryData,
+    });
     return response.data;
   } catch (error: any) {
     console.error('Error updating van inventory:', error);

@@ -14,7 +14,7 @@ export const useNotifications = (filters?: NotificationFilters) => {
   return useQuery({
     queryKey: ['notifications', filters],
     queryFn: () => notificationsService.getNotifications(filters),
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+    // refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
   });
 };
 

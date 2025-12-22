@@ -12,7 +12,6 @@ export interface VanInventoryItem {
   parent_id: number;
   product_id: number;
   product_name?: string;
-  unit?: string;
   quantity: number;
   unit_price: number;
   discount_amount?: number;
