@@ -1,6 +1,13 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  Upload,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { FileText, Package, Truck, TrendingUp } from 'lucide-react';
+import { TrendingUp, Truck } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -9,19 +16,18 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import {
-  useVanInventory,
-  useDeleteVanInventory,
-  type VanInventory,
-} from '../../../hooks/useVanInventory';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import { usePermission } from '../../../hooks/usePermission';
-import { formatDate } from '../../../utils/dateUtils';
+import {
+  useDeleteVanInventory,
+  useVanInventory,
+  type VanInventory,
+} from '../../../hooks/useVanInventory';
 import UserSelect from '../../../shared/UserSelect';
+import { formatDate } from '../../../utils/dateUtils';
 import ImportVanInventory from './ImportVanInventory';
 import ManageVanInventory from './ManageVanInventory';
 import VanInventoryDetail from './VanInventoryDetail';
-import VanInventoryItemsManagement from './VanInventoryItemsManagement';
 
 const VanStockPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -31,7 +37,6 @@ const VanStockPage: React.FC = () => {
     useState<VanInventory | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
-  const [itemsDrawerOpen, setItemsDrawerOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -84,14 +89,9 @@ const VanStockPage: React.FC = () => {
     setDrawerOpen(true);
   }, []);
 
-  const handleViewVanInventory = useCallback((vanInventory: VanInventory) => {
-    setSelectedVanInventory(vanInventory);
-    setDetailDrawerOpen(true);
-  }, []);
-
   const handleManageItems = useCallback((vanInventory: VanInventory) => {
     setSelectedVanInventory(vanInventory);
-    setItemsDrawerOpen(true);
+    setDetailDrawerOpen(true);
   }, []);
 
   const handleDeleteVanInventory = useCallback(
@@ -302,15 +302,9 @@ const VanStockPage: React.FC = () => {
                 {isRead && (
                   <>
                     <ActionButton
-                      onClick={() => handleViewVanInventory(row)}
-                      tooltip="View van inventory details"
-                      icon={<FileText />}
-                      color="success"
-                    />
-                    <ActionButton
                       onClick={() => handleManageItems(row)}
                       tooltip="Manage van inventory items"
-                      icon={<Package />}
+                      icon={<Visibility fontSize="small" />}
                       color="info"
                     />
                   </>
@@ -498,16 +492,6 @@ const VanStockPage: React.FC = () => {
           setSelectedVanInventory(null);
         }}
         vanInventory={selectedVanInventory}
-      />
-
-      <VanInventoryItemsManagement
-        key={`items-management-${selectedVanInventory?.id || 0}`}
-        open={itemsDrawerOpen}
-        onClose={() => {
-          setItemsDrawerOpen(false);
-          setSelectedVanInventory(null);
-        }}
-        vanInventoryId={selectedVanInventory?.id || 0}
       />
 
       <ImportVanInventory
