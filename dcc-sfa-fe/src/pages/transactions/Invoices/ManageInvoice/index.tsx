@@ -8,7 +8,7 @@ import {
 } from 'hooks/useInvoices';
 import { useOrders } from 'hooks/useOrders';
 import { Package, Plus } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { invoiceValidationSchema } from 'schemas/invoice.schema';
 import type { Invoice } from 'services/masters/Invoices';
 import { DeleteButton } from 'shared/ActionButton';
@@ -43,6 +43,9 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const isEdit = !!invoice;
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItemFormData[]>([]);
 
+  // Track the last loaded invoice ID to prevent unnecessary updates
+  const lastLoadedInvoiceId = useRef<number | null>(null);
+
   const { data: ordersResponse } = useOrders({ limit: 1000 });
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: invoiceResponse } = useInvoice(invoice?.id || 0);
@@ -57,26 +60,36 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     onClose();
     setInvoiceItems([]);
     formik.resetForm();
+    (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
+      null;
   };
 
-  React.useEffect(() => {
-    if (invoice && invoiceResponse?.data) {
-      const items =
-        invoiceResponse.data.invoice_items?.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity.toString(),
-          unit_price: item.unit_price.toString(),
-          discount_amount: (item.discount_amount || 0).toString(),
-          tax_amount: (item.tax_amount || 0).toString(),
-          notes: item.notes || '',
-        })) || [];
-      setInvoiceItems(items);
-      formik.setFieldValue('invoice_items', items);
-    } else {
-      setInvoiceItems([]);
-      formik.setFieldValue('invoice_items', []);
+  // FIX: Simplified useEffect with proper tracking
+  useEffect(() => {
+    const currentInvoiceId = invoice?.id;
+
+    // Only update if the invoice ID has actually changed
+    if (currentInvoiceId !== lastLoadedInvoiceId.current) {
+      if (invoice && invoiceResponse?.data) {
+        const items =
+          invoiceResponse.data.invoice_items?.map(item => ({
+            product_id: item.product_id,
+            quantity: item.quantity.toString(),
+            unit_price: item.unit_price.toString(),
+            discount_amount: (item.discount_amount || 0).toString(),
+            tax_amount: (item.tax_amount || 0).toString(),
+            notes: item.notes || '',
+          })) || [];
+        setInvoiceItems(items);
+        (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
+          currentInvoiceId ?? null;
+      } else if (!invoice) {
+        setInvoiceItems([]);
+        (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
+          null;
+      }
     }
-  }, [invoice?.id, invoiceResponse?.data?.id]);
+  }, [invoice?.id, invoiceResponse?.data]); // Keep original dependencies but use ref for tracking
 
   const formik = useFormik({
     initialValues: {
@@ -122,6 +135,11 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             : undefined,
           notes: values.notes || undefined,
           billing_address: values.billing_address || undefined,
+          subtotal: totals.subtotal,
+          discount_amount: totals.discount_amount,
+          tax_amount: totals.tax_amount,
+          total_amount: totals.total_amount,
+          balance_due: totals.balance_due,
           invoiceItems: invoiceItems
             .filter(item => item.product_id !== '')
             .map(item => ({
@@ -160,13 +178,11 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     };
     const updatedItems = [...invoiceItems, newItem];
     setInvoiceItems(updatedItems);
-    formik.setFieldValue('invoice_items', updatedItems);
   };
 
   const removeInvoiceItem = (index: number) => {
     const updatedItems = invoiceItems.filter((_, i) => i !== index);
     setInvoiceItems(updatedItems);
-    formik.setFieldValue('invoice_items', updatedItems);
   };
 
   const updateInvoiceItem = (
@@ -174,16 +190,23 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     field: keyof InvoiceItemFormData,
     value: string
   ) => {
+    if (invoiceItems[index] && invoiceItems[index][field] === value) {
+      return;
+    }
+
     const updatedItems = [...invoiceItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     setInvoiceItems(updatedItems);
-    formik.setFieldValue('invoice_items', updatedItems);
   };
 
-  const invoiceItemsWithIndex = invoiceItems.map((item, index) => ({
-    ...item,
-    _index: index,
-  }));
+  const invoiceItemsWithIndex = React.useMemo(
+    () =>
+      invoiceItems.map((item, index) => ({
+        ...item,
+        _index: index,
+      })),
+    [invoiceItems]
+  );
 
   const invoiceItemsColumns: TableColumn<
     InvoiceItemFormData & { _index: number }
@@ -331,29 +354,14 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     };
   }, [invoiceItems, formik.values.shipping_amount, formik.values.amount_paid]);
 
-  // Update formik values when totals change
-  React.useEffect(() => {
-    formik.setFieldValue('subtotal', totals.subtotal);
-    formik.setFieldValue('discount_amount', totals.discount_amount);
-    formik.setFieldValue('tax_amount', totals.tax_amount);
-    formik.setFieldValue('shipping_amount', totals.shipping_amount);
-    formik.setFieldValue('total_amount', totals.total_amount);
-    formik.setFieldValue('balance_due', totals.balance_due);
-  }, [
-    totals.subtotal,
-    totals.discount_amount,
-    totals.tax_amount,
-    totals.shipping_amount,
-    totals.total_amount,
-    totals.balance_due,
-  ]);
+  console.log(formik.errors);
 
   return (
     <CustomDrawer
       open={open}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Invoice' : 'Create Invoice'}
-      size="larger"
+      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-5 mb-10">

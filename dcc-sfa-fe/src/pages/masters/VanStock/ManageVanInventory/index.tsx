@@ -1,8 +1,9 @@
+import { Tag } from '@mui/icons-material';
 import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
+import type { BatchLot } from 'hooks/useBatchLots';
 import { useDepots } from 'hooks/useDepots';
 import { useProducts } from 'hooks/useProducts';
-import { useUsers } from 'hooks/useUsers';
 import {
   useCreateVanInventory,
   useProductBatches,
@@ -13,7 +14,13 @@ import {
 } from 'hooks/useVanInventory';
 import { useVehicles } from 'hooks/useVehicles';
 import { Plus } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { vanInventoryValidationSchema } from 'schemas/vanInventory.schema';
 import { DeleteButton } from 'shared/ActionButton';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -22,6 +29,19 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
+import UserSelect from 'shared/UserSelect';
+import ManageBatch from '../ManageBatch';
+import type { VanInventoryItem } from 'hooks/useVanInventoryItems';
+
+export interface SelectedItem {
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  notes: string;
+  batch_lot_id: number;
+  batch_number: string;
+  tracking_type: string;
+}
 
 interface ManageVanInventoryProps {
   selectedVanInventory?: VanInventory | null;
@@ -37,10 +57,12 @@ interface VanInventoryItemFormData {
   notes?: string | null;
   batch_lot_id: number | null;
   batch_number?: string | null;
+  tracking_type?: string | null;
   lot_number?: string | null;
   remaining_quantity?: number | null;
   total_quantity?: number | null;
   product_batches?: ProductBatch[];
+  product_serials?: any;
   id?: number | null;
 }
 
@@ -158,6 +180,8 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
 }) => {
   const isEdit = !!selectedVanInventory;
   const hasLoadedItemsRef = useRef(false);
+  const [isBatchSelectorOpen, setIsBatchSelectorOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
 
   const createVanInventoryMutation = useCreateVanInventory();
   const updateVanInventoryMutation = useUpdateVanInventory();
@@ -165,12 +189,10 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     selectedVanInventory?.id || 0
   );
 
-  const { data: usersResponse } = useUsers({ limit: 1000 });
   const { data: productsResponse } = useProducts({ limit: 1000 });
   const { data: vehiclesResponse } = useVehicles({ limit: 1000 });
   const { data: depotsResponse } = useDepots({ limit: 1000 });
 
-  const users = useMemo(() => usersResponse?.data || [], [usersResponse]);
   const products = useMemo(
     () => productsResponse?.data || [],
     [productsResponse]
@@ -245,6 +267,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               product_name: item.product_name || null,
               quantity: Number(item.quantity),
               notes: item.notes || null,
+              tracking_type: item.tracking_type || null,
               batch_lot_id: item.batch_lot_id
                 ? Number(item.batch_lot_id)
                 : null,
@@ -366,12 +389,14 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           product_name: product?.name || null,
           batch_lot_id: null,
           batch_number: null,
+          tracking_type: product?.tracking_type || null,
           lot_number: null,
           remaining_quantity: null,
           total_quantity: null,
           quantity: null,
           notes: '',
           product_batches: [],
+          product_serials: [],
         };
       } else if (field === 'quantity') {
         updatedItems[index] = {
@@ -384,7 +409,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           [field]: value === '' || value === null ? null : value,
         };
       }
-
       formik.setFieldValue('van_inventory_items', updatedItems);
     },
     [formik, products]
@@ -411,6 +435,20 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       formik.setFieldValue('van_inventory_items', updatedItems);
     },
     [formik]
+  );
+
+  const handleSelectBatch = useCallback(
+    (rowIndex: number) => {
+      const inventoryItem = formik.values.van_inventory_items[rowIndex];
+      if (inventoryItem) {
+        setSelectedItem(inventoryItem as SelectedItem);
+        setIsBatchSelectorOpen(true);
+      } else {
+        setSelectedItem(null);
+        setIsBatchSelectorOpen(false);
+      }
+    },
+    [formik.values.van_inventory_items]
   );
 
   const inventoryItemColumns: TableColumn<VanInventoryItemFormData>[] = useMemo(
@@ -446,15 +484,29 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         ),
       },
       {
-        id: 'batch_lot_id',
-        label: 'Batch / Lot',
+        id: 'tracking_type',
+        label: 'Tracking Type',
         width: 300,
-        render: (_value, row, rowIndex) => (
-          <BatchLotSelector
-            rowIndex={rowIndex}
-            row={row}
-            onBatchChange={handleBatchChange}
-          />
+        render: (value, _row, rowIndex) => (
+          <Box className="flex justify-between items-center">
+            <Typography variant="body2" className="!text-gray-700 uppercase">
+              {value ?? '-- None --'}
+            </Typography>
+            {value === 'Batch' || value === 'Serial' ? (
+              <Button
+                startIcon={<Tag />}
+                variant="text"
+                onClick={() => handleSelectBatch(rowIndex)}
+              >
+                Select{' '}
+                {value === 'Batch'
+                  ? 'Batch'
+                  : value === 'Serial'
+                    ? 'Serial'
+                    : 'None'}
+              </Button>
+            ) : null}
+          </Box>
         ),
       },
       {
@@ -549,18 +601,12 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-3">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select
+            <UserSelect
               name="user_id"
               label="Van Inventory User"
               formik={formik}
               required
-            >
-              {users.map(user => (
-                <MenuItem key={user.id} value={user.id}>
-                  {user.name} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <Select name="loading_type" label="Type" formik={formik} required>
               <MenuItem value="L">Load</MenuItem>
@@ -674,6 +720,13 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           </Box>
         </form>
       </Box>
+      <ManageBatch
+        isOpen={isBatchSelectorOpen}
+        setIsOpen={setIsBatchSelectorOpen}
+        selectedItem={selectedItem as unknown as SelectedItem | null}
+        setSelectedItem={setSelectedItem as (item: SelectedItem | null) => void}
+        formik={formik}
+      />
     </CustomDrawer>
   );
 };

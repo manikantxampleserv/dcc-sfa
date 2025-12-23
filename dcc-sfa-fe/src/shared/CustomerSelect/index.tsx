@@ -1,85 +1,32 @@
 import {
   Autocomplete,
+  Avatar,
+  Box,
   CircularProgress,
   TextField,
-  Box,
-  Typography,
 } from '@mui/material';
 import type { FormikProps } from 'formik';
 import { useCustomersDropdown } from 'hooks/useCustomers';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 
-/**
- * Customer data structure
- */
 interface Customer {
   id: number;
   name: string;
   code: string;
 }
 
-/**
- * Props for CustomerSelect component
- */
 interface CustomerSelectProps {
-  /** Field name for form integration */
   name: string;
-  /** Label text displayed above the input */
   label: string;
-  /** Whether the field is required */
   required?: boolean;
-  /** Whether the input should take full width */
   fullWidth?: boolean;
-  /** Formik form instance for form integration */
   formik?: FormikProps<any>;
-  /** Callback to set value when not using Formik */
   setValue?: (value: any) => void;
-  /** Controlled value when not using Formik */
   value?: string | number;
-  /** Callback fired when selection changes */
   onChange?: (event: any, value: Customer | null) => void;
-  /** Customer Name to search */
   nameToSearch?: string;
 }
 
-/**
- * CustomerSelect Component
- *
- * A searchable autocomplete component for selecting customers with debounced search,
- * Formik integration, and persistent selection handling.
- *
- * Features:
- * - Debounced search (300ms delay) to reduce API calls
- * - Prevents API calls when selecting from existing options
- * - Maintains selected customer visibility even when not in search results
- * - Full Formik integration with error handling
- * - Server-side filtering only (no client-side filtering)
- *
- * @param {CustomerSelectProps} props - Component props
- * @returns {JSX.Element} CustomerSelect component
- *
- * @example
- * ```tsx
- * // With Formik
- * <CustomerSelect
- *   name="customer_id"
- *   label="Customer"
- *   required
- *   formik={formik}
- * />
- *
- * // Without Formik
- * <CustomerSelect
- *   name="customer_id"
- *   label="Customer"
- *   value={customerId}
- *   setValue={setCustomerId}
- *   onChange={(event, customer) => {
- *     // Handle customer selection
- *   }}
- * />
- * ```
- */
 const CustomerSelect: React.FC<CustomerSelectProps> = ({
   name,
   label,
@@ -98,14 +45,17 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
     useState<Customer | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  const currentValue = formik ? formik.values[name] : value;
+  // Track if we're in the process of initializing to avoid loops
+  const isInitializingRef = useRef(false);
 
+  const currentValue = formik ? formik.values[name] : value;
   const normalizedValue = currentValue
     ? typeof currentValue === 'number'
       ? currentValue.toString()
       : String(currentValue).trim()
     : '';
 
+  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isSelecting) {
@@ -137,12 +87,10 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
 
   const customerId = normalizedValue ? Number(normalizedValue) : undefined;
 
-  const { data: dropdownResponse, isLoading: isLoading } = useCustomersDropdown(
-    {
-      search: effectiveSearch,
-      customer_id: customerId && !effectiveSearch ? customerId : undefined,
-    }
-  );
+  const { data: dropdownResponse, isLoading } = useCustomersDropdown({
+    search: effectiveSearch,
+    customer_id: customerId && !effectiveSearch ? customerId : undefined,
+  });
 
   const searchResults: Customer[] = (dropdownResponse?.data || []).map(
     customer => ({
@@ -152,7 +100,10 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
     })
   );
 
+  // Initialize selected customer from search results - FIXED to prevent loops
   useEffect(() => {
+    if (isInitializingRef.current) return;
+
     if (
       normalizedValue &&
       !selectedCustomerData &&
@@ -163,34 +114,29 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
         customer => customer.id.toString() === normalizedValue
       );
       if (found) {
+        isInitializingRef.current = true;
         setSelectedCustomerData(found);
         if (!inputValue) {
           setInputValue(found.name);
         }
         setHasInitialized(true);
+        // Reset the flag after a short delay
+        setTimeout(() => {
+          isInitializingRef.current = false;
+        }, 100);
       }
     }
-  }, [
-    normalizedValue,
-    selectedCustomerData,
-    inputValue,
-    searchResults,
-    isLoading,
-  ]);
+  }, [normalizedValue, isLoading, searchResults.length]);
 
+  // Get selected customer from state or search results
   const selectedCustomer = React.useMemo(() => {
-    if (!normalizedValue) {
-      return null;
-    }
+    if (!normalizedValue) return null;
 
     const foundInResults = searchResults.find(
       customer => customer.id.toString() === normalizedValue
     );
 
-    if (foundInResults) {
-      return foundInResults;
-    }
-
+    if (foundInResults) return foundInResults;
     if (
       selectedCustomerData &&
       selectedCustomerData.id.toString() === normalizedValue
@@ -201,37 +147,16 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
     return null;
   }, [normalizedValue, searchResults, selectedCustomerData]);
 
+  // Reset when value is cleared - SIMPLIFIED to prevent loops
   useEffect(() => {
-    if (selectedCustomer && selectedCustomer !== selectedCustomerData) {
-      setSelectedCustomerData(selectedCustomer);
-      if (!inputValue && selectedCustomer.name) {
-        setInputValue(selectedCustomer.name);
-      }
-    } else if (!normalizedValue && selectedCustomerData) {
-      setSelectedCustomerData(null);
+    if (!normalizedValue && (selectedCustomerData || inputValue)) {
       setInputValue('');
-    } else if (selectedCustomerData && !inputValue && normalizedValue) {
-      setInputValue(selectedCustomerData.name);
-    }
-  }, [selectedCustomer, normalizedValue, selectedCustomerData, inputValue]);
-
-  useEffect(() => {
-    if (!normalizedValue) {
-      if (selectedCustomerData || inputValue) {
-        setInputValue('');
-        setSelectedCustomerData(null);
-        setHasInitialized(false);
-      }
-    } else if (
-      selectedCustomerData &&
-      selectedCustomerData.id.toString() !== normalizedValue
-    ) {
       setSelectedCustomerData(null);
-      setInputValue('');
       setHasInitialized(false);
     }
   }, [normalizedValue]);
 
+  // Combine selected customer with search results
   const customers: Customer[] = React.useMemo(() => {
     const allCustomers: Customer[] = [];
 
@@ -239,7 +164,6 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       const isSelectedInResults = searchResults.some(
         customer => customer.id === selectedCustomer.id
       );
-
       if (!isSelectedInResults) {
         allCustomers.push(selectedCustomer);
       }
@@ -258,7 +182,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
     });
 
     return allCustomers;
-  }, [searchResults, selectedCustomer, normalizedValue]);
+  }, [searchResults, selectedCustomer]);
 
   const error = formik?.touched?.[name] && formik?.errors?.[name];
   const helperText = typeof error === 'string' ? error : undefined;
@@ -283,6 +207,8 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       if (!newValue) {
         setInputValue('');
         setDebouncedSearch('');
+      } else {
+        setInputValue(newValue.name);
       }
 
       setTimeout(() => setIsSelecting(false), 100);
@@ -321,8 +247,23 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       fullWidth={fullWidth}
       filterOptions={options => options}
       renderOption={(props, option: Customer) => (
-        <Box component="li" {...props} key={option.id}>
-          <Typography>{option.name}</Typography>
+        <Box
+          component="li"
+          {...props}
+          key={option.id}
+          className="!flex !items-center !gap-2 cursor-pointer py-1 px-2 hover:!bg-gray-50"
+        >
+          <Avatar
+            src={option.name || 'mkx'}
+            alt={option.name}
+            className="!rounded !bg-primary-100 !text-primary-600"
+          />
+          <Box>
+            <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
+            {option.code && (
+              <p className="!text-gray-500 !text-xs">{option.code}</p>
+            )}
+          </Box>
         </Box>
       )}
       renderInput={(params: any) => (

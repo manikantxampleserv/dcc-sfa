@@ -1,9 +1,9 @@
 import {
   Autocomplete,
+  Avatar,
+  Box,
   CircularProgress,
   TextField,
-  Box,
-  Typography,
 } from '@mui/material';
 import type { FormikProps } from 'formik';
 import { useProductCategoriesDropdown } from 'hooks/useProductCategories';
@@ -46,7 +46,8 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isSelecting, setIsSelecting] = useState(false);
-  const [selectedCategoryData, setSelectedCategoryData] = useState<ProductCategory | null>(null);
+  const [selectedCategoryData, setSelectedCategoryData] =
+    useState<ProductCategory | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
 
   const currentValue = formik ? formik.values[name] : value;
@@ -88,15 +89,18 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
 
   const categoryId = normalizedValue ? Number(normalizedValue) : undefined;
 
-  const { data: dropdownResponse, isLoading: isLoading } = useProductCategoriesDropdown({
-    search: effectiveSearch,
-    category_id: categoryId && !effectiveSearch ? categoryId : undefined,
-  });
+  const { data: dropdownResponse, isLoading: isLoading } =
+    useProductCategoriesDropdown({
+      search: effectiveSearch,
+      category_id: categoryId && !effectiveSearch ? categoryId : undefined,
+    });
 
-  const searchResults: ProductCategory[] = (dropdownResponse?.data || []).map(category => ({
-    id: category.id,
-    category_name: category.category_name,
-  }));
+  const searchResults: ProductCategory[] = (dropdownResponse?.data || []).map(
+    category => ({
+      id: category.id,
+      category_name: category.category_name,
+    })
+  );
 
   useEffect(() => {
     if (
@@ -116,7 +120,13 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
         setHasInitialized(true);
       }
     }
-  }, [normalizedValue, selectedCategoryData, inputValue, searchResults, isLoading]);
+  }, [
+    normalizedValue,
+    selectedCategoryData,
+    inputValue,
+    searchResults,
+    isLoading,
+  ]);
 
   const selectedCategory = React.useMemo(() => {
     if (!normalizedValue) {
@@ -263,8 +273,22 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
       disabled={disabled}
       filterOptions={options => options}
       renderOption={(props, option: ProductCategory) => (
-        <Box component="li" {...props} key={option.id}>
-          <Typography>{option.category_name}</Typography>
+        <Box
+          component="li"
+          {...props}
+          key={option.id}
+          className="!flex !items-center !gap-2 cursor-pointer py-1 px-2 hover:!bg-gray-50"
+        >
+          <Avatar
+            src={option.category_name || 'mkx'}
+            alt={option.category_name}
+            className="!rounded !bg-primary-100 !text-primary-600"
+          />
+          <Box>
+            <p className="!text-gray-900 !text-sm">
+              {option.category_name || ''}
+            </p>
+          </Box>
         </Box>
       )}
       renderInput={(params: any) => (
@@ -297,4 +321,3 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
 };
 
 export default ProductCategorySelect;
-

@@ -61,17 +61,6 @@ export const invoiceValidationSchema = Yup.object({
     .optional()
     .min(0, 'Shipping amount must be greater than or equal to 0'),
 
-  total_amount: Yup.number()
-    .required('Total amount is required')
-    .min(0.01, 'Total amount must be greater than 0')
-    .test(
-      'is-positive',
-      'Total amount must be a positive number',
-      (value: number | undefined) => {
-        return value !== undefined && value > 0;
-      }
-    ),
-
   amount_paid: Yup.number()
     .optional()
     .min(0, 'Amount paid must be greater than or equal to 0'),
@@ -91,29 +80,4 @@ export const invoiceValidationSchema = Yup.object({
   is_active: Yup.string()
     .required('Status is required')
     .oneOf(['Y', 'N'], 'Status must be Active or Inactive'),
-
-  invoice_items: Yup.array()
-    .of(
-      Yup.object({
-        product_id: Yup.number()
-          .required('Product is required')
-          .positive('Product must be a positive number'),
-        quantity: Yup.number()
-          .required('Quantity is required')
-          .min(1, 'Quantity must be at least 1'),
-        unit_price: Yup.number()
-          .required('Unit price is required')
-          .min(0, 'Unit price must be greater than or equal to 0'),
-        discount_amount: Yup.number()
-          .optional()
-          .min(0, 'Discount amount must be greater than or equal to 0'),
-        tax_amount: Yup.number()
-          .optional()
-          .min(0, 'Tax amount must be greater than or equal to 0'),
-        notes: Yup.string()
-          .optional()
-          .max(500, 'Notes must not exceed 500 characters'),
-      })
-    )
-    .min(1, 'At least one invoice item is required'),
 });

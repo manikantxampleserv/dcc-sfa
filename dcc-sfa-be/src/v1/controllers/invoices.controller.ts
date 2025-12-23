@@ -31,6 +31,7 @@ interface InvoiceSerialized {
     id: number;
     name: string;
     code: string;
+    type: string;
   };
   currency?: {
     id: number;
@@ -87,6 +88,8 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
         id: invoice.invoices_customers.id,
         name: invoice.invoices_customers.name,
         code: invoice.invoices_customers.code,
+        type:
+          invoice.invoices_customers.customer_type_customer?.type_name || null,
       }
     : undefined,
   currency: invoice.currencies
@@ -166,7 +169,14 @@ export const invoicesController = {
             createdate: new Date(),
           },
           include: {
-            invoices_customers: true,
+            invoices_customers: {
+              select: {
+                customer_type_customer: true,
+                name: true,
+                code: true,
+                email: true,
+              },
+            },
             currencies: true,
             orders: true,
           },
@@ -216,7 +226,14 @@ export const invoicesController = {
       const completeInvoice = await prisma.invoices.findUnique({
         where: { id: invoice.id },
         include: {
-          invoices_customers: true,
+          invoices_customers: {
+            select: {
+              customer_type_customer: true,
+              name: true,
+              code: true,
+              email: true,
+            },
+          },
           currencies: true,
           orders: true,
           invoice_items: {
@@ -315,7 +332,14 @@ export const invoicesController = {
         limit: limit_num,
         orderBy: { createdate: 'desc' },
         include: {
-          invoices_customers: true,
+          invoices_customers: {
+            select: {
+              customer_type_customer: true,
+              name: true,
+              code: true,
+              email: true,
+            },
+          },
           currencies: true,
           orders: true,
           invoice_items: {
@@ -352,7 +376,14 @@ export const invoicesController = {
       const invoice = await prisma.invoices.findUnique({
         where: { id: Number(id) },
         include: {
-          invoices_customers: true,
+          invoices_customers: {
+            select: {
+              customer_type_customer: true,
+              name: true,
+              code: true,
+              email: true,
+            },
+          },
           currencies: true,
           orders: true,
           invoice_items: {
@@ -393,7 +424,14 @@ export const invoicesController = {
       const completeInvoice = await prisma.invoices.findUnique({
         where: { id: Number(id) },
         include: {
-          invoices_customers: true,
+          invoices_customers: {
+            select: {
+              customer_type_customer: true,
+              name: true,
+              code: true,
+              email: true,
+            },
+          },
           currencies: true,
           orders: true,
           invoice_items: {

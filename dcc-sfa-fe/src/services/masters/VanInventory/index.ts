@@ -228,7 +228,7 @@ export interface ProductBatch {
   product_batch_updated_date: string;
   product_batch_updated_by: string;
   product_batch_is_active: string;
-
+  quantity: number;
   batch_lot_id: number;
   batch_number: string;
   lot_number?: string | null;

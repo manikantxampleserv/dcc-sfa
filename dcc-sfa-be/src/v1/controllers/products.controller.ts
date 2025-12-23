@@ -37,7 +37,6 @@ interface ProductSerialized {
   vat_percentage?: number | null;
   weight_in_grams?: number | null;
   volume_in_liters?: number | null;
-
   batch_lots?: {
     id: number;
     batch_lot_id: number;
@@ -174,7 +173,6 @@ const serializeProduct = (product: any): ProductSerialized => ({
       batch_number: pb.batch_lot_product_batches?.batch_number,
       lot_number: pb.batch_lot_product_batches?.lot_number,
       quantity: pb.quantity,
-
       manufacturing_date: pb.batch_lot_product_batches?.manufacturing_date,
       expiry_date: pb.batch_lot_product_batches?.expiry_date,
       remaining_quantity: pb.batch_lot_product_batches?.remaining_quantity,
@@ -310,6 +308,13 @@ export const productsController = {
       let productCode =
         data.code && data.code.trim() !== '' ? data.code.trim() : null;
 
+      if (data.tracking_type === 'NONE' && batchLots.length > 0) {
+        return res.status(400).json({
+          message:
+            'Batch lots are not allowed for products with tracking_type NONE',
+        });
+      }
+
       if (!productCode) {
         productCode = await generateProductsCode(data.name);
         let attempts = 0;
@@ -399,6 +404,44 @@ export const productsController = {
               is_active: 'Y',
               createdate: new Date(),
               createdby: userId,
+              log_inst: 1,
+            },
+          });
+        }
+      }
+
+      // Create inventory_stock records for NONE tracking products for all depots
+      if (data.tracking_type === 'NONE') {
+        // Fetch all active depots
+        const depots = await prisma.depots.findMany({
+          where: { is_active: 'Y' },
+          select: { id: true },
+        });
+
+        // Get stock values from frontend or use defaults
+        const stockData = data || {};
+        const defaultStock = {
+          current_stock: 0,
+          reserved_stock: 0,
+          available_stock: 0,
+        };
+
+        for (const depot of depots) {
+          await prisma.inventory_stock.create({
+            data: {
+              product_id: product.id,
+              location_id: depot.id,
+              current_stock:
+                stockData.current_stock ?? defaultStock.current_stock,
+              reserved_stock:
+                stockData.reserved_stock ?? defaultStock.reserved_stock,
+              available_stock:
+                stockData.available_stock ?? defaultStock.available_stock,
+              is_active: 'Y',
+              createdate: new Date(),
+              createdby: userId,
+              updatedate: new Date(),
+              updatedby: userId,
               log_inst: 1,
             },
           });
@@ -565,6 +608,15 @@ export const productsController = {
       }
 
       const { code, batch_lots, ...restData } = req.body;
+      const batchLots: BatchLotInput[] = batch_lots || [];
+
+      // Validation for tracking_type === 'NONE'
+      if (restData.tracking_type === 'NONE' && batchLots.length > 0) {
+        return res.status(400).json({
+          message:
+            'Batch lots are not allowed for products with tracking_type NONE',
+        });
+      }
 
       const updateData: any = {
         ...restData,
@@ -630,6 +682,51 @@ export const productsController = {
                 is_active: 'Y',
                 createdate: new Date(),
                 createdby: userId,
+                log_inst: 1,
+              },
+            });
+          }
+        }
+      }
+
+      // Handle inventory_stock for NONE tracking products
+      if (updateData.tracking_type === 'NONE') {
+        // Check if inventory_stock already exists for this product
+        const existingInventoryStock = await prisma.inventory_stock.findFirst({
+          where: { product_id: Number(id) },
+        });
+
+        if (!existingInventoryStock) {
+          // Fetch all active depots
+          const depots = await prisma.depots.findMany({
+            where: { is_active: 'Y' },
+            select: { id: true },
+          });
+
+          // Get stock values from frontend or use defaults
+          const stockData = req.body.inventory_stock || {};
+          const defaultStock = {
+            current_stock: 0,
+            reserved_stock: 0,
+            available_stock: 0,
+          };
+
+          for (const depot of depots) {
+            await prisma.inventory_stock.create({
+              data: {
+                product_id: Number(id),
+                location_id: depot.id,
+                current_stock:
+                  stockData.current_stock ?? defaultStock.current_stock,
+                reserved_stock:
+                  stockData.reserved_stock ?? defaultStock.reserved_stock,
+                available_stock:
+                  stockData.available_stock ?? defaultStock.available_stock,
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby: userId,
+                updatedate: new Date(),
+                updatedby: userId,
                 log_inst: 1,
               },
             });
