@@ -16,6 +16,7 @@ export type {
   UpdateVanInventoryPayload,
   GetVanInventoryParams,
   ProductBatch,
+  ProductSerial,
   ProductBatchesResponse,
 } from '../services/masters/VanInventory';
 

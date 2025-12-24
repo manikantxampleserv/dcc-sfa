@@ -1,9 +1,9 @@
 import {
   Autocomplete,
+  Avatar,
+  Box,
   CircularProgress,
   TextField,
-  Box,
-  Typography,
 } from '@mui/material';
 import type { FormikProps } from 'formik';
 import { useUsersDropdown } from 'hooks/useUsers';
@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useState } from 'react';
  * User data structure
  */
 interface User {
+  profile_image: string;
   id: number;
   name: string;
   email: string;
@@ -155,6 +156,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
     id: user.id,
     name: user.name,
     email: user.email,
+    profile_image: user.profile_image,
   }));
 
   useEffect(() => {
@@ -321,8 +323,23 @@ const UserSelect: React.FC<UserSelectProps> = ({
       className={className}
       filterOptions={options => options}
       renderOption={(props, option: User) => (
-        <Box component="li" {...props} key={option.id}>
-          <Typography>{option.name}</Typography>
+        <Box
+          component="li"
+          {...props}
+          key={option.id}
+          className="!flex !items-center !gap-2 cursor-pointer py-1 px-2 hover:!bg-gray-50"
+        >
+          <Avatar
+            src={option.profile_image || 'mkx'}
+            alt={option.name}
+            className="!rounded !bg-primary-100 !text-primary-600"
+          />
+          <Box>
+            <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
+            {option.email && (
+              <p className="!text-gray-500 !text-xs">{option.email}</p>
+            )}
+          </Box>
         </Box>
       )}
       renderInput={(params: any) => (

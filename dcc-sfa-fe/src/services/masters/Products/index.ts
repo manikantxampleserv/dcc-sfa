@@ -77,7 +77,7 @@ interface ManageProductPayload {
   tax_id?: number;
   route_type_id?: number;
   outlet_group_id?: number;
-  tracking_type?: 'Batch' | 'Serial';
+  tracking_type?: 'Batch' | 'Serial' | null;
   batch_lots_id?: number;
   product_type_id?: number;
   product_target_group_id?: number;
@@ -103,7 +103,7 @@ interface UpdateProductPayload {
   tax_id?: number;
   route_type_id?: number;
   outlet_group_id?: number;
-  tracking_type?: string;
+  tracking_type?: 'Batch' | 'Serial' | null;
   batch_lots_id?: number;
   product_type_id?: number;
   product_target_group_id?: number;

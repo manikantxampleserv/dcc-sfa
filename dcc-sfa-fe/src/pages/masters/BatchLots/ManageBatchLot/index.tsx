@@ -1,21 +1,22 @@
-import { Box, MenuItem, Typography } from '@mui/material';
+import { Box } from '@mui/material';
+// import { Typography, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateBatchLot,
   useUpdateBatchLot,
   type BatchLot,
 } from 'hooks/useBatchLots';
-import { useProductsDropdown, type ProductDropdown } from 'hooks/useProducts';
-import { Plus } from 'lucide-react';
+// import { useProductsDropdown, type ProductDropdown } from 'hooks/useProducts';
+// import { Plus } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { batchLotValidationSchema } from 'schemas/batchLot.schema';
-import { DeleteButton } from 'shared/ActionButton';
+// import { DeleteButton } from 'shared/ActionButton';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
-import Table, { type TableColumn } from 'shared/Table';
+// import Select from 'shared/Select';
+// import Table, { type TableColumn } from 'shared/Table';
 
 interface ManageBatchLotProps {
   selectedBatchLot?: BatchLot | null;
@@ -50,32 +51,32 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
 
   const createBatchLotMutation = useCreateBatchLot();
   const updateBatchLotMutation = useUpdateBatchLot();
-  const { data: productsResponse } = useProductsDropdown();
-  const products = productsResponse?.data || [];
+  // const { data: productsResponse } = useProductsDropdown();
+  // const products = productsResponse?.data || [];
 
-  React.useEffect(() => {
-    if (products.length > 0) {
-      // Products are loaded, no need to transform as they're already in the right format
-    }
-  }, [products]);
+  // React.useEffect(() => {
+  //   if (products.length > 0) {
+  //     // Products are loaded, no need to transform as they're already in the right format
+  //   }
+  // }, [products]);
 
-  React.useEffect(() => {
-    if (isEdit && selectedBatchLot?.products && !hasLoadedProductsRef.current) {
-      const existingProducts = selectedBatchLot.products.map(
-        (product: any) => ({
-          product_id: product.id,
-          product_name: product.name,
-          product_code: product.code,
-          quantity: product.quantity || 0,
-        })
-      );
-      setSelectedProducts(existingProducts);
-      hasLoadedProductsRef.current = true;
-    } else if (!isEdit) {
-      setSelectedProducts([]);
-      hasLoadedProductsRef.current = false;
-    }
-  }, [isEdit, selectedBatchLot]);
+  // React.useEffect(() => {
+  //   if (isEdit && selectedBatchLot?.products && !hasLoadedProductsRef.current) {
+  //     const existingProducts = selectedBatchLot.products.map(
+  //       (product: any) => ({
+  //         product_id: product.id,
+  //         product_name: product.name,
+  //         product_code: product.code,
+  //         quantity: product.quantity || 0,
+  //       })
+  //     );
+  //     setSelectedProducts(existingProducts);
+  //     hasLoadedProductsRef.current = true;
+  //   } else if (!isEdit) {
+  //     setSelectedProducts([]);
+  //     hasLoadedProductsRef.current = false;
+  //   }
+  // }, [isEdit, selectedBatchLot]);
 
   React.useEffect(() => {
     if (!drawerOpen) {
@@ -83,121 +84,121 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
     }
   }, [drawerOpen]);
 
-  const addProduct = () => {
-    const newProduct = {
-      product_id: 0,
-      product_name: '',
-      product_code: '',
-      quantity: 0,
-    };
-    setSelectedProducts([...selectedProducts, newProduct]);
-  };
+  // const addProduct = () => {
+  //   const newProduct = {
+  //     product_id: 0,
+  //     product_name: '',
+  //     product_code: '',
+  //     quantity: 0,
+  //   };
+  //   setSelectedProducts([...selectedProducts, newProduct]);
+  // };
 
-  const removeProduct = (index: number) => {
-    setSelectedProducts(selectedProducts.filter((_, i) => i !== index));
-  };
+  // const removeProduct = (index: number) => {
+  //   setSelectedProducts(selectedProducts.filter((_, i) => i !== index));
+  // };
 
-  const updateProduct = (index: number, productId: number | null) => {
-    const updatedProducts = [...selectedProducts];
+  // const updateProduct = (index: number, productId: number | null) => {
+  //   const updatedProducts = [...selectedProducts];
 
-    if (productId === null || productId === 0) {
-      updatedProducts[index] = {
-        product_id: 0,
-        product_name: '',
-        product_code: '',
-        quantity: 0,
-      };
-    } else {
-      const product = products.find((p: ProductDropdown) => p.id === productId);
-      if (product) {
-        updatedProducts[index] = {
-          product_id: product.id,
-          product_name: product.name,
-          product_code: product.code,
-          quantity: updatedProducts[index].quantity || 0,
-        };
-      }
-    }
+  //   if (productId === null || productId === 0) {
+  //     updatedProducts[index] = {
+  //       product_id: 0,
+  //       product_name: '',
+  //       product_code: '',
+  //       quantity: 0,
+  //     };
+  //   } else {
+  //     const product = products.find((p: ProductDropdown) => p.id === productId);
+  //     if (product) {
+  //       updatedProducts[index] = {
+  //         product_id: product.id,
+  //         product_name: product.name,
+  //         product_code: product.code,
+  //         quantity: updatedProducts[index].quantity || 0,
+  //       };
+  //     }
+  //   }
 
-    setSelectedProducts(updatedProducts);
-  };
+  //   setSelectedProducts(updatedProducts);
+  // };
 
-  const updateProductQuantity = (index: number, quantity: number) => {
-    const updatedProducts = [...selectedProducts];
-    const validatedQuantity = Math.max(0, quantity);
+  // const updateProductQuantity = (index: number, quantity: number) => {
+  //   const updatedProducts = [...selectedProducts];
+  //   const validatedQuantity = Math.max(0, quantity);
 
-    updatedProducts[index] = {
-      ...updatedProducts[index],
-      quantity: validatedQuantity,
-    };
-    setSelectedProducts(updatedProducts);
-  };
+  //   updatedProducts[index] = {
+  //     ...updatedProducts[index],
+  //     quantity: validatedQuantity,
+  //   };
+  //   setSelectedProducts(updatedProducts);
+  // };
 
-  const productsWithIndex = selectedProducts.map((item, index) => ({
-    ...item,
-    _index: index,
-  }));
+  // const productsWithIndex = selectedProducts.map((item, index) => ({
+  //   ...item,
+  //   _index: index,
+  // }));
 
-  const productColumns: TableColumn<(typeof productsWithIndex)[0]>[] = [
-    {
-      id: 'product_id',
-      label: 'Product',
-      width: 450,
-      render: (_, row) => (
-        <Select
-          name={`product_${row._index}`}
-          value={row.product_id || ''}
-          onChange={e => {
-            const value = e.target.value;
-            updateProduct(
-              row._index,
-              value === '' || value === null ? null : Number(value)
-            );
-          }}
-          fullWidth
-          size="small"
-          placeholder="Select product"
-          disableClearable={false}
-        >
-          {products.map((product: ProductDropdown) => (
-            <MenuItem key={product.id} value={product.id}>
-              {product.name}
-              {product.code && ` (${product.code})`}
-            </MenuItem>
-          ))}
-        </Select>
-      ),
-    },
+  // const productColumns: TableColumn<(typeof productsWithIndex)[0]>[] = [
+  //   {
+  //     id: 'product_id',
+  //     label: 'Product',
+  //     width: 450,
+  //     render: (_, row) => (
+  //       <Select
+  //         name={`product_${row._index}`}
+  //         value={row.product_id || ''}
+  //         onChange={e => {
+  //           const value = e.target.value;
+  //           updateProduct(
+  //             row._index,
+  //             value === '' || value === null ? null : Number(value)
+  //           );
+  //         }}
+  //         fullWidth
+  //         size="small"
+  //         placeholder="Select product"
+  //         disableClearable={false}
+  //       >
+  //         {products.map((product: ProductDropdown) => (
+  //           <MenuItem key={product.id} value={product.id}>
+  //             {product.name}
+  //             {product.code && ` (${product.code})`}
+  //           </MenuItem>
+  //         ))}
+  //       </Select>
+  //     ),
+  //   },
 
-    {
-      id: 'quantity',
-      label: 'Quantity',
-      render: (_, row) => (
-        <Input
-          name={`quantity_${row._index}`}
-          type="number"
-          value={row.quantity || ''}
-          onChange={e =>
-            updateProductQuantity(row._index, Number(e.target.value))
-          }
-          size="small"
-          fullWidth
-        />
-      ),
-    },
-    {
-      id: 'action' as any,
-      label: 'Actions',
-      sortable: false,
-      render: (_, row) => (
-        <DeleteButton
-          onClick={() => removeProduct(row._index)}
-          tooltip="Remove product"
-          size="small"
-        />
-      ),
-    },
-  ];
+  //   {
+  //     id: 'quantity',
+  //     label: 'Quantity',
+  //     render: (_, row) => (
+  //       <Input
+  //         name={`quantity_${row._index}`}
+  //         type="number"
+  //         value={row.quantity || ''}
+  //         onChange={e =>
+  //           updateProductQuantity(row._index, Number(e.target.value))
+  //         }
+  //         size="small"
+  //         fullWidth
+  //       />
+  //     ),
+  //   },
+  //   {
+  //     id: 'action' as any,
+  //     label: 'Actions',
+  //     sortable: false,
+  //     render: (_, row) => (
+  //       <DeleteButton
+  //         onClick={() => removeProduct(row._index)}
+  //         tooltip="Remove product"
+  //         size="small"
+  //       />
+  //     ),
+  //   },
+  // ];
 
   const formik = useFormik({
     initialValues: {
@@ -268,7 +269,7 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Batch Lot' : 'Create Batch Lot'}
-      size="large"
+      // size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -352,7 +353,7 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
           </Box>
 
           {/* Products Section */}
-          <Table
+          {/* <Table
             data={productsWithIndex}
             compact={true}
             actions={
@@ -375,7 +376,7 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
             getRowId={product => product._index}
             pagination={false}
             emptyMessage="No products added. Click 'Add Product' to add products"
-          />
+          /> */}
 
           {/* Action Buttons */}
           <Box className="!flex !justify-end !gap-3 !pt-4">

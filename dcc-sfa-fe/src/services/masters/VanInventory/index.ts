@@ -219,33 +219,38 @@ export const deleteVanInventory = async (
   }
 };
 
-// Product Batches Interface
 export interface ProductBatch {
-  product_batch_id: number;
-  product_batch_quantity: number;
-  product_batch_created_date: string;
-  product_batch_created_by: string;
-  product_batch_updated_date: string;
-  product_batch_updated_by: string;
-  product_batch_is_active: string;
-
-  batch_lot_id: number;
-  batch_number: string;
+  product_batch_id?: number;
+  product_batch_quantity?: number;
+  product_batch_created_date?: string;
+  product_batch_created_by?: string;
+  product_batch_updated_date?: string;
+  product_batch_updated_by?: string;
+  product_batch_is_active?: string;
+  quantity?: number;
+  batch_lot_id?: number;
+  batch_number?: string;
   lot_number?: string | null;
-  manufacturing_date: string;
-  expiry_date: string;
-  batch_total_quantity: number;
-  batch_remaining_quantity: number;
-
+  manufacturing_date?: string;
+  expiry_date?: string;
+  batch_total_quantity?: number;
+  batch_remaining_quantity?: number;
   supplier_name?: string | null;
   purchase_price?: number | null;
   quality_grade?: string | null;
   storage_location?: string | null;
+  days_until_expiry?: number;
+  is_expired?: boolean;
+  is_expiring_soon?: boolean;
+  availability_status?: string;
+}
 
-  days_until_expiry: number;
-  is_expired: boolean;
-  is_expiring_soon: boolean;
-  availability_status: string;
+export interface ProductSerial {
+  id?: number;
+  product_id: number;
+  serial_number: string;
+  quantity: number; // Always 1 for serial numbers
+  is_active?: string;
 }
 
 export interface ProductBatchesResponse {
@@ -266,7 +271,6 @@ export interface ProductBatchesResponse {
   };
 }
 
-// Get Product Batches Function
 export const getProductBatches = async (
   productId: number,
   options?: {

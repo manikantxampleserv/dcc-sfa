@@ -375,7 +375,6 @@ const InvoicesManagement: React.FC = () => {
           </p>
         </Box>
       </Box>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatsCard
           title="Total Invoices"
@@ -406,13 +405,11 @@ const InvoicesManagement: React.FC = () => {
           isLoading={isLoading}
         />
       </div>
-
       {error && (
         <Alert severity="error" className="!mb-4">
           Failed to load invoices. Please try again.
         </Alert>
       )}
-
       <Table
         data={invoices}
         columns={invoiceColumns}
@@ -474,18 +471,18 @@ const InvoicesManagement: React.FC = () => {
                   >
                     Import
                   </Button>
+                  {isCreate && (
+                    <Button
+                      variant="contained"
+                      className="!capitalize"
+                      disableElevation
+                      startIcon={<Add />}
+                      onClick={handleCreateInvoice}
+                    >
+                      Create
+                    </Button>
+                  )}
                 </div>
-              )}
-              {isCreate && (
-                <Button
-                  variant="contained"
-                  className="!capitalize"
-                  disableElevation
-                  startIcon={<Add />}
-                  onClick={handleCreateInvoice}
-                >
-                  Create
-                </Button>
               )}
             </div>
           ) : (
@@ -506,37 +503,42 @@ const InvoicesManagement: React.FC = () => {
             : 'No invoices found in the system'
         }
       />
-
-      <ManageInvoice
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        invoice={selectedInvoice}
-      />
-
-      <InvoiceDetail
-        open={detailDrawerOpen}
-        onClose={() => setDetailDrawerOpen(false)}
-        invoice={selectedInvoice}
-      />
-
-      <InvoiceItemsManagement
-        key={`items-management-${selectedInvoice?.id || 0}`}
-        open={itemsDrawerOpen}
-        onClose={() => setItemsDrawerOpen(false)}
-        invoiceId={selectedInvoice?.id || 0}
-      />
-
-      <InvoicePaymentTracking
-        key={`payment-tracking-${selectedInvoice?.id || 0}`}
-        open={paymentTrackingDrawerOpen}
-        onClose={() => setPaymentTrackingDrawerOpen(false)}
-        invoiceId={selectedInvoice?.id || 0}
-      />
-
-      <ImportInvoice
-        drawerOpen={importModalOpen}
-        setDrawerOpen={setImportModalOpen}
-      />
+      {drawerOpen && (
+        <ManageInvoice
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          invoice={selectedInvoice}
+        />
+      )}
+      {detailDrawerOpen && (
+        <InvoiceDetail
+          open={detailDrawerOpen}
+          onClose={() => setDetailDrawerOpen(false)}
+          invoice={selectedInvoice}
+        />
+      )}
+      {itemsDrawerOpen && (
+        <InvoiceItemsManagement
+          key={`items-management-${selectedInvoice?.id || 0}`}
+          open={itemsDrawerOpen}
+          onClose={() => setItemsDrawerOpen(false)}
+          invoiceId={selectedInvoice?.id || 0}
+        />
+      )}
+      {paymentTrackingDrawerOpen && (
+        <InvoicePaymentTracking
+          key={`payment-tracking-${selectedInvoice?.id || 0}`}
+          open={paymentTrackingDrawerOpen}
+          onClose={() => setPaymentTrackingDrawerOpen(false)}
+          invoiceId={selectedInvoice?.id || 0}
+        />
+      )}
+      {importModalOpen && (
+        <ImportInvoice
+          drawerOpen={importModalOpen}
+          setDrawerOpen={setImportModalOpen}
+        />
+      )}
     </>
   );
 };

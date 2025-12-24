@@ -233,6 +233,15 @@ const ProductsManagement: React.FC = () => {
       ),
     },
     {
+      id: 'tracking_type',
+      label: 'Tracking Type',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700 uppercase">
+          {row.tracking_type || 'NONE'}
+        </Typography>
+      ),
+    },
+    {
       id: 'target_group',
       label: 'Target Group',
       render: (_value, row) => (

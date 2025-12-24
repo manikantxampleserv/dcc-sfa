@@ -501,7 +501,10 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                         variant="body2"
                         className="!font-semibold !text-gray-900"
                       >
-                        {formatCurrency(item.total_amount)}
+                        {formatCurrency(
+                          item.unit_price * item.quantity -
+                            (item.discount_amount || 0) || 0
+                        )}
                       </Typography>
                     </div>
                     <div className="!flex !justify-between !text-xs !text-gray-500">

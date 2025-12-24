@@ -237,6 +237,7 @@ export const updateUserProfile = async (
 };
 
 export interface UserDropdown {
+  profile_image: any;
   id: number;
   name: string;
   email: string;

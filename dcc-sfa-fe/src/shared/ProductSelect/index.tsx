@@ -1,13 +1,13 @@
 import {
   Autocomplete,
+  Avatar,
+  Box,
   CircularProgress,
   TextField,
-  Box,
-  Typography,
 } from '@mui/material';
 import type { FormikProps } from 'formik';
 import { useProductsDropdown } from 'hooks/useProducts';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 
 interface Product {
   id: number;
@@ -56,14 +56,17 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
     useState<Product | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  const currentValue = formik ? formik.values[name] : value;
+  // Track if we're in the process of initializing to avoid loops
+  const isInitializingRef = useRef(false);
 
+  const currentValue = formik ? formik.values[name] : value;
   const normalizedValue = currentValue
     ? typeof currentValue === 'number'
       ? currentValue.toString()
       : String(currentValue).trim()
     : '';
 
+  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isSelecting) {
@@ -95,7 +98,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
 
   const productId = normalizedValue ? Number(normalizedValue) : undefined;
 
-  const { data: dropdownResponse, isLoading: isLoading } = useProductsDropdown({
+  const { data: dropdownResponse, isLoading } = useProductsDropdown({
     search: effectiveSearch,
     product_id: productId && !effectiveSearch ? productId : undefined,
   });
@@ -109,7 +112,10 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
     })
   );
 
+  // Initialize selected product from search results - FIXED to prevent loops
   useEffect(() => {
+    if (isInitializingRef.current) return;
+
     if (
       normalizedValue &&
       !selectedProductData &&
@@ -120,34 +126,29 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
         product => product.id.toString() === normalizedValue
       );
       if (found) {
+        isInitializingRef.current = true;
         setSelectedProductData(found);
         if (!inputValue) {
           setInputValue(found.name);
         }
         setHasInitialized(true);
+        // Reset the flag after a short delay
+        setTimeout(() => {
+          isInitializingRef.current = false;
+        }, 100);
       }
     }
-  }, [
-    normalizedValue,
-    selectedProductData,
-    inputValue,
-    searchResults,
-    isLoading,
-  ]);
+  }, [normalizedValue, isLoading, searchResults.length]);
 
+  // Get selected product from state or search results
   const selectedProduct = React.useMemo(() => {
-    if (!normalizedValue) {
-      return null;
-    }
+    if (!normalizedValue) return null;
 
     const foundInResults = searchResults.find(
       product => product.id.toString() === normalizedValue
     );
 
-    if (foundInResults) {
-      return foundInResults;
-    }
-
+    if (foundInResults) return foundInResults;
     if (
       selectedProductData &&
       selectedProductData.id.toString() === normalizedValue
@@ -158,37 +159,16 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
     return null;
   }, [normalizedValue, searchResults, selectedProductData]);
 
+  // Reset when value is cleared - SIMPLIFIED to prevent loops
   useEffect(() => {
-    if (selectedProduct && selectedProduct !== selectedProductData) {
-      setSelectedProductData(selectedProduct);
-      if (!inputValue && selectedProduct.name) {
-        setInputValue(selectedProduct.name);
-      }
-    } else if (!normalizedValue && selectedProductData) {
-      setSelectedProductData(null);
+    if (!normalizedValue && (selectedProductData || inputValue)) {
       setInputValue('');
-    } else if (selectedProductData && !inputValue && normalizedValue) {
-      setInputValue(selectedProductData.name);
-    }
-  }, [selectedProduct, normalizedValue, selectedProductData, inputValue]);
-
-  useEffect(() => {
-    if (!normalizedValue) {
-      if (selectedProductData || inputValue) {
-        setInputValue('');
-        setSelectedProductData(null);
-        setHasInitialized(false);
-      }
-    } else if (
-      selectedProductData &&
-      selectedProductData.id.toString() !== normalizedValue
-    ) {
       setSelectedProductData(null);
-      setInputValue('');
       setHasInitialized(false);
     }
   }, [normalizedValue]);
 
+  // Combine selected product with search results
   const products: Product[] = React.useMemo(() => {
     const allProducts: Product[] = [];
 
@@ -196,7 +176,6 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
       const isSelectedInResults = searchResults.some(
         product => product.id === selectedProduct.id
       );
-
       if (!isSelectedInResults) {
         allProducts.push(selectedProduct);
       }
@@ -215,7 +194,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
     });
 
     return allProducts;
-  }, [searchResults, selectedProduct, normalizedValue]);
+  }, [searchResults, selectedProduct]);
 
   const error = formik?.touched?.[name] && formik?.errors?.[name];
   const helperText = typeof error === 'string' ? error : undefined;
@@ -240,6 +219,8 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
       if (!newValue) {
         setInputValue('');
         setDebouncedSearch('');
+      } else {
+        setInputValue(newValue.name);
       }
 
       setTimeout(() => setIsSelecting(false), 100);
@@ -280,8 +261,23 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
       disabled={disabled}
       filterOptions={options => options}
       renderOption={(props, option: Product) => (
-        <Box component="li" {...props} key={option.id}>
-          <Typography>{option.name}</Typography>
+        <Box
+          component="li"
+          {...props}
+          key={option.id}
+          className="!flex !items-center !gap-2 cursor-pointer py-1 px-2 hover:!bg-gray-50"
+        >
+          <Avatar
+            src={option.name || 'mkx'}
+            alt={option.name}
+            className="!rounded !bg-primary-100 !text-primary-600"
+          />
+          <Box>
+            <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
+            {option.code && (
+              <p className="!text-gray-500 !text-xs">{option.code}</p>
+            )}
+          </Box>
         </Box>
       )}
       renderInput={(params: any) => (
