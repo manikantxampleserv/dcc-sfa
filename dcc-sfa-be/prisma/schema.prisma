@@ -426,6 +426,7 @@ model batch_lots {
   products                      products?              @relation(fields: [productsId], references: [id])
   productsId                    Int?
   van_inventory_items_batch_lot van_inventory_items[]
+  inventory_stock_batch         inventory_stock[]      @relation("BatchToInventory")
 
   @@index([batch_number])
   @@index([expiry_date])
@@ -907,40 +908,44 @@ model gps_logs {
 }
 
 model inventory_stock {
-  id                       Int       @id @default(autoincrement())
+  id                       Int             @id @default(autoincrement())
   product_id               Int
   location_id              Int
-  location_type            String?   @default("warehouse") @db.NVarChar(20)
-  current_stock            Int?      @default(0)
-  reserved_stock           Int?      @default(0)
-  available_stock          Int?      @default(0)
-  minimum_stock            Int?      @default(0)
-  maximum_stock            Int?      @default(0)
-  reorder_level            Int?      @default(0)
-  reorder_quantity         Int?      @default(0)
-  average_daily_sales      Decimal?  @default(0) @db.Decimal(10, 2)
-  lead_time                Int?      @default(0)
-  safety_stock             Int?      @default(0)
-  stock_value              Decimal?  @default(0) @db.Decimal(18, 2)
-  last_stock_update        DateTime? @default(now())
-  stock_status             String?   @default("adequate") @db.NVarChar(20)
-  turnover_rate            Decimal?  @default(0) @db.Decimal(10, 2)
-  days_of_stock            Int?      @default(0)
+  location_type            String?         @default("warehouse") @db.NVarChar(20)
+  current_stock            Int?            @default(0)
+  reserved_stock           Int?            @default(0)
+  batch_id                 Int?
+  serial_number_id         Int?
+  available_stock          Int?            @default(0)
+  minimum_stock            Int?            @default(0)
+  maximum_stock            Int?            @default(0)
+  reorder_level            Int?            @default(0)
+  reorder_quantity         Int?            @default(0)
+  average_daily_sales      Decimal?        @default(0) @db.Decimal(10, 2)
+  lead_time                Int?            @default(0)
+  safety_stock             Int?            @default(0)
+  stock_value              Decimal?        @default(0) @db.Decimal(18, 2)
+  last_stock_update        DateTime?       @default(now())
+  stock_status             String?         @default("adequate") @db.NVarChar(20)
+  turnover_rate            Decimal?        @default(0) @db.Decimal(10, 2)
+  days_of_stock            Int?            @default(0)
   last_count_date          DateTime?
   next_count_due           DateTime?
-  variance                 Int?      @default(0)
-  variance_percentage      Decimal?  @default(0) @db.Decimal(5, 2)
-  cost_price               Decimal?  @default(0) @db.Decimal(18, 2)
-  selling_price            Decimal?  @default(0) @db.Decimal(18, 2)
-  margin                   Decimal?  @default(0) @db.Decimal(5, 2)
-  is_active                String    @default("Y") @db.Char(1)
-  createdate               DateTime? @default(now()) @db.DateTime
+  variance                 Int?            @default(0)
+  variance_percentage      Decimal?        @default(0) @db.Decimal(5, 2)
+  cost_price               Decimal?        @default(0) @db.Decimal(18, 2)
+  selling_price            Decimal?        @default(0) @db.Decimal(18, 2)
+  margin                   Decimal?        @default(0) @db.Decimal(5, 2)
+  is_active                String          @default("Y") @db.Char(1)
+  createdate               DateTime?       @default(now()) @db.DateTime
   createdby                Int
-  updatedate               DateTime? @db.DateTime
+  updatedate               DateTime?       @db.DateTime
   updatedby                Int?
   log_inst                 Int?
-  inventory_stock_depots   depots    @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  inventory_stock_products products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  inventory_stock_depots   depots          @relation(fields: [location_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  inventory_stock_products products        @relation("InventoryStockProducts", fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  inventory_stock_batch    batch_lots?     @relation("BatchToInventory", fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  inventory_stock_serial   serial_numbers? @relation("SerialToInventory", fields: [serial_number_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([product_id, location_id])
   @@index([stock_status])
@@ -1321,7 +1326,7 @@ model products {
   volume_in_liters                 Decimal?                       @db.Decimal(18, 2)
   credit_notes_items_products      credit_note_items[]
   credit_notes_products            credit_notes[]
-  inventory_stock_products         inventory_stock[]
+  inventory_stock_products         inventory_stock[]              @relation("InventoryStockProducts")
   invoice_items_products           invoice_items[]
   order_items                      order_items[]
   price_history_products           price_history[]
@@ -1748,6 +1753,7 @@ model serial_numbers {
   serial_numbers_products        products          @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   stock_movements                stock_movements[]
   warranty_claims                warranty_claims[]
+  inventory_stock_serial         inventory_stock[] @relation("SerialToInventory")
 }
 
 model stock_movements {

@@ -676,7 +676,6 @@ const uploadMultipleImages = async (
   }
 };
 
-// Helper function to delete old images
 const deleteOldImages = async (imageUrls: string | null): Promise<void> => {
   if (!imageUrls) return;
 
@@ -3801,6 +3800,7 @@ export const visitsController = {
       });
     }
   },
+
   async getVisitsById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -3855,6 +3855,7 @@ export const visitsController = {
           ? new Date(req.body.next_visit_date)
           : undefined,
       };
+
       const data = {
         ...processedData,
         updatedate: new Date(),

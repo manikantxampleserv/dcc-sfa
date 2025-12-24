@@ -298,7 +298,152 @@ const serializeProduct = (product: any): ProductSerialized => ({
     : null,
 });
 
+async function createDefaultInventoryStock(
+  tx: any,
+  productId: number,
+  locationId: number | null,
+  userId: number
+): Promise<void> {
+  const finalLocationId = locationId || 1;
+
+  await tx.inventory_stock.create({
+    data: {
+      product_id: productId,
+      location_id: finalLocationId,
+      current_stock: 0,
+      reserved_stock: 0,
+      available_stock: 0,
+      minimum_stock: 0,
+      maximum_stock: 0,
+      batch_id: null,
+      is_active: 'Y',
+      createdate: new Date(),
+      createdby: userId,
+      log_inst: 1,
+    },
+  });
+}
+
 export const productsController = {
+  // async createProduct(req: Request, res: Response) {
+  //   try {
+  //     const data = req.body;
+  //     const userId = req.user?.id || 1;
+  //     const batchLots: BatchLotInput[] = data.batch_lots || [];
+
+  //     let productCode =
+  //       data.code && data.code.trim() !== '' ? data.code.trim() : null;
+
+  //     if (!productCode) {
+  //       productCode = await generateProductsCode(data.name);
+  //       let attempts = 0;
+  //       while (attempts < 10) {
+  //         const existing = await prisma.products.findUnique({
+  //           where: { code: productCode },
+  //         });
+  //         if (!existing) break;
+  //         productCode = await generateProductsCode(data.name);
+  //         attempts++;
+  //       }
+  //     } else {
+  //       const existingProduct = await prisma.products.findUnique({
+  //         where: { code: productCode },
+  //       });
+
+  //       if (existingProduct) {
+  //         return res
+  //           .status(400)
+  //           .json({ message: 'Product code already exists' });
+  //       }
+  //     }
+
+  //     if (batchLots.length > 0) {
+  //       const batchLotIds = batchLots.map(b => b.batch_lot_id);
+
+  //       const uniqueIds = new Set(batchLotIds);
+  //       if (uniqueIds.size !== batchLotIds.length) {
+  //         return res.status(400).json({
+  //           message: 'Duplicate batch_lot_id found in the request',
+  //         });
+  //       }
+
+  //       const existingBatchLots = await prisma.batch_lots.findMany({
+  //         where: { id: { in: batchLotIds } },
+  //         select: { id: true, batch_number: true, lot_number: true },
+  //       });
+
+  //       const foundIds = existingBatchLots.map(b => b.id);
+  //       const missingIds = batchLotIds.filter(id => !foundIds.includes(id));
+
+  //       if (missingIds.length > 0) {
+  //         return res.status(400).json({
+  //           message: `Batch lots with IDs ${missingIds.join(', ')} not found`,
+  //         });
+  //       }
+  //     }
+
+  //     const product = await prisma.products.create({
+  //       data: {
+  //         name: data.name,
+  //         code: productCode,
+  //         description: data.description || null,
+  //         category_id: data.category_id,
+  //         sub_category_id: data.sub_category_id,
+  //         brand_id: data.brand_id,
+  //         unit_of_measurement: data.unit_of_measurement,
+  //         base_price: data.base_price || null,
+  //         tax_rate: data.tax_rate || null,
+  //         tax_id: data.tax_id || null,
+  //         is_active: data.is_active || 'Y',
+  //         route_type_id: data.route_type_id || null,
+  //         outlet_group_id: data.outlet_group_id || null,
+  //         tracking_type: data.tracking_type || null,
+  //         product_type_id: data.product_type_id || null,
+  //         product_target_group_id: data.product_target_group_id || null,
+  //         product_web_order_id: data.product_web_order_id || null,
+  //         volume_id: data.volume_id || null,
+  //         flavour_id: data.flavour_id || null,
+  //         shelf_life_id: data.shelf_life_id || null,
+  //         vat_percentage: data.vat_percentage || null,
+  //         weight_in_grams: data.weight_in_grams || null,
+  //         volume_in_liters: data.volume_in_liters || null,
+  //         createdate: new Date(),
+  //         createdby: userId,
+  //         log_inst: data.log_inst || 1,
+  //       },
+  //     });
+
+  //     if (batchLots.length > 0) {
+  //       for (const batchLot of batchLots) {
+  //         await prisma.product_batches.create({
+  //           data: {
+  //             product_id: product.id,
+  //             batch_lot_id: batchLot.batch_lot_id,
+  //             quantity: batchLot.quantity,
+  //             is_active: 'Y',
+  //             createdate: new Date(),
+  //             createdby: userId,
+  //             log_inst: 1,
+  //           },
+  //         });
+  //       }
+  //     }
+
+  //     const completeProduct = await prisma.products.findUnique({
+  //       where: { id: product.id },
+  //       include: productInclude,
+  //     });
+
+  //     res.status(201).json({
+  //       message: 'Product created successfully',
+  //       data: serializeProduct(completeProduct),
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Create Product Error:', error);
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async createProduct(req: Request, res: Response) {
     try {
       const data = req.body;
@@ -363,93 +508,69 @@ export const productsController = {
         }
       }
 
-      const product = await prisma.products.create({
-        data: {
-          name: data.name,
-          code: productCode,
-          description: data.description || null,
-          category_id: data.category_id,
-          sub_category_id: data.sub_category_id,
-          brand_id: data.brand_id,
-          unit_of_measurement: data.unit_of_measurement,
-          base_price: data.base_price || null,
-          tax_rate: data.tax_rate || null,
-          tax_id: data.tax_id || null,
-          is_active: data.is_active || 'Y',
-          route_type_id: data.route_type_id || null,
-          outlet_group_id: data.outlet_group_id || null,
-          tracking_type: data.tracking_type || null,
-          product_type_id: data.product_type_id || null,
-          product_target_group_id: data.product_target_group_id || null,
-          product_web_order_id: data.product_web_order_id || null,
-          volume_id: data.volume_id || null,
-          flavour_id: data.flavour_id || null,
-          shelf_life_id: data.shelf_life_id || null,
-          vat_percentage: data.vat_percentage || null,
-          weight_in_grams: data.weight_in_grams || null,
-          volume_in_liters: data.volume_in_liters || null,
-          createdate: new Date(),
-          createdby: userId,
-          log_inst: data.log_inst || 1,
-        },
-      });
-
-      if (batchLots.length > 0) {
-        for (const batchLot of batchLots) {
-          await prisma.product_batches.create({
-            data: {
-              product_id: product.id,
-              batch_lot_id: batchLot.batch_lot_id,
-              quantity: batchLot.quantity,
-              is_active: 'Y',
-              createdate: new Date(),
-              createdby: userId,
-              log_inst: 1,
-            },
-          });
-        }
-      }
-
-      // Create inventory_stock records for NONE tracking products for all depots
-      if (data.tracking_type === 'NONE') {
-        // Fetch all active depots
-        const depots = await prisma.depots.findMany({
-          where: { is_active: 'Y' },
-          select: { id: true },
+      const result = await prisma.$transaction(async tx => {
+        const product = await tx.products.create({
+          data: {
+            name: data.name,
+            code: productCode,
+            description: data.description || null,
+            category_id: data.category_id,
+            sub_category_id: data.sub_category_id,
+            brand_id: data.brand_id,
+            unit_of_measurement: data.unit_of_measurement,
+            base_price: data.base_price || null,
+            tax_rate: data.tax_rate || null,
+            tax_id: data.tax_id || null,
+            is_active: data.is_active || 'Y',
+            route_type_id: data.route_type_id || null,
+            outlet_group_id: data.outlet_group_id || null,
+            tracking_type: data.tracking_type || 'none',
+            product_type_id: data.product_type_id || null,
+            product_target_group_id: data.product_target_group_id || null,
+            product_web_order_id: data.product_web_order_id || null,
+            volume_id: data.volume_id || null,
+            flavour_id: data.flavour_id || null,
+            shelf_life_id: data.shelf_life_id || null,
+            vat_percentage: data.vat_percentage || null,
+            weight_in_grams: data.weight_in_grams || null,
+            volume_in_liters: data.volume_in_liters || null,
+            createdate: new Date(),
+            createdby: userId,
+            log_inst: data.log_inst || 1,
+          },
         });
 
-        // Get stock values from frontend or use defaults
-        const stockData = data || {};
-        const defaultStock = {
-          current_stock: 0,
-          reserved_stock: 0,
-          available_stock: 0,
-        };
-
-        for (const depot of depots) {
-          await prisma.inventory_stock.create({
-            data: {
-              product_id: product.id,
-              location_id: depot.id,
-              current_stock:
-                stockData.current_stock ?? defaultStock.current_stock,
-              reserved_stock:
-                stockData.reserved_stock ?? defaultStock.reserved_stock,
-              available_stock:
-                stockData.available_stock ?? defaultStock.available_stock,
-              is_active: 'Y',
-              createdate: new Date(),
-              createdby: userId,
-              updatedate: new Date(),
-              updatedby: userId,
-              log_inst: 1,
-            },
-          });
+        if (batchLots.length > 0) {
+          for (const batchLot of batchLots) {
+            await tx.product_batches.create({
+              data: {
+                product_id: product.id,
+                batch_lot_id: batchLot.batch_lot_id,
+                quantity: batchLot.quantity,
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby: userId,
+                log_inst: 1,
+              },
+            });
+          }
         }
-      }
+
+        // Create default inventory stock if tracking_type is 'none'
+        if (product.tracking_type === 'none') {
+          await createDefaultInventoryStock(
+            tx,
+            product.id,
+            data.location_id || null,
+            userId
+          );
+        }
+
+        return product;
+      });
 
       const completeProduct = await prisma.products.findUnique({
-        where: { id: product.id },
+        where: { id: result.id },
         include: productInclude,
       });
 
@@ -462,7 +583,6 @@ export const productsController = {
       res.status(500).json({ message: error.message });
     }
   },
-
   async getAllProducts(req: any, res: any) {
     try {
       const { page, limit, search, status } = req.query;
