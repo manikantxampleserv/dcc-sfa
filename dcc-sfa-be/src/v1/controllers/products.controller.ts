@@ -556,7 +556,6 @@ export const productsController = {
           }
         }
 
-        // Create default inventory stock if tracking_type is 'none'
         if (product.tracking_type === 'none') {
           await createDefaultInventoryStock(
             tx,
