@@ -32,16 +32,6 @@ import UserSelect from 'shared/UserSelect';
 import ManageBatch from '../ManageBatch';
 import ManageSerial from '../ManageSerial';
 
-export interface SelectedItem {
-  product_id: number;
-  product_name: string;
-  quantity: number;
-  notes: string;
-  batch_lot_id: number;
-  batch_number: string;
-  tracking_type: string;
-}
-
 interface ManageVanInventoryProps {
   selectedVanInventory?: VanInventory | null;
   setSelectedVanInventory: (vanInventory: VanInventory | null) => void;
@@ -52,7 +42,7 @@ interface ManageVanInventoryProps {
 interface VanInventoryItemFormData {
   product_id: number | null;
   product_name?: string | null;
-  quantity: number | null;
+  quantity: number | string | null;
   notes?: string | null;
   batch_lot_id: number | null;
   batch_number?: string | null;
@@ -88,6 +78,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   const [isBatchSelectorOpen, setIsBatchSelectorOpen] = useState(false);
   const [isSerialSelectorOpen, setIsSerialSelectorOpen] = useState(false);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
+  const [quantity, setQuantity] = useState<number | string | null>(null);
 
   const createVanInventoryMutation = useCreateVanInventory();
   const updateVanInventoryMutation = useUpdateVanInventory();
@@ -254,6 +245,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       remaining_quantity: null,
       total_quantity: null,
       product_batches: [],
+      product_serials: [],
     };
     formik.setFieldValue('van_inventory_items', [
       ...(formik.values.van_inventory_items || []),
@@ -324,9 +316,11 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       const inventoryItem = formik.values.van_inventory_items[rowIndex];
       if (inventoryItem) {
         setSelectedRowIndex(rowIndex);
+        setQuantity(inventoryItem.quantity);
         setIsBatchSelectorOpen(true);
       } else {
         setSelectedRowIndex(null);
+        setQuantity(null);
         setIsBatchSelectorOpen(false);
       }
     },
@@ -338,9 +332,11 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       const inventoryItem = formik.values.van_inventory_items[rowIndex];
       if (inventoryItem) {
         setSelectedRowIndex(rowIndex);
+        setQuantity(inventoryItem.quantity);
         setIsSerialSelectorOpen(true);
       } else {
         setSelectedRowIndex(null);
+        setQuantity(null);
         setIsSerialSelectorOpen(false);
       }
     },
@@ -352,7 +348,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       {
         id: 'product_id',
         label: 'Product',
-        width: 300,
+        width: 400,
         render: (_value, row, rowIndex) => (
           <Select
             name={`van_inventory_items[${rowIndex}].product_id`}
@@ -373,7 +369,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             {products.map(product => (
               <MenuItem key={product.id} value={product.id}>
                 {product.name}
-                {product.code && ` (${product.code})`}
+                {product.code && ` [${product.code}]`}
               </MenuItem>
             ))}
           </Select>
@@ -388,20 +384,34 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             <Typography variant="body2" className="!text-gray-700 uppercase">
               {value ?? 'None'}
             </Typography>
-            {value === 'Batch' || value === 'Serial' ? (
+            {(value && value.toLowerCase() === 'batch') ||
+            (value && value.toLowerCase() === 'serial') ? (
               <Button
                 startIcon={<Tag />}
                 variant="text"
-                onClick={() =>
-                  value === 'Batch'
+                onClick={() => {
+                  if (
+                    _row.quantity === null ||
+                    _row.quantity === undefined ||
+                    _row.quantity === ''
+                  ) {
+                    toast.error(
+                      'Please enter quantity first to select ' +
+                        (value && value.toLowerCase() === 'batch'
+                          ? 'batch'
+                          : 'serial')
+                    );
+                    return;
+                  }
+                  value && value.toLowerCase() === 'batch'
                     ? handleSelectBatch(rowIndex)
-                    : handleSelectSerial(rowIndex)
-                }
+                    : handleSelectSerial(rowIndex);
+                }}
               >
                 Select{' '}
-                {value === 'Batch'
+                {value && value.toLowerCase() === 'batch'
                   ? 'Batch'
-                  : value === 'Serial'
+                  : value && value.toLowerCase() === 'serial'
                     ? 'Serial'
                     : 'None'}
               </Button>
@@ -419,13 +429,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               name={`van_inventory_items[${rowIndex}].quantity`}
               type="number"
               value={row.quantity ?? ''}
-              onChange={e =>
-                updateInventoryItem(
-                  rowIndex,
-                  'quantity',
-                  e.target.value === '' ? null : Number(e)
-                )
-              }
+              formik={formik}
               size="small"
               fullWidth
               placeholder="Enter Quantity"
@@ -591,6 +595,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         selectedRowIndex={selectedRowIndex}
         setSelectedRowIndex={setSelectedRowIndex}
         formik={formik}
+        quantity={quantity}
       />
       <ManageSerial
         isOpen={isSerialSelectorOpen}
@@ -598,6 +603,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         selectedRowIndex={selectedRowIndex}
         setSelectedRowIndex={setSelectedRowIndex}
         formik={formik}
+        quantity={quantity}
       />
     </CustomDrawer>
   );

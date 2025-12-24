@@ -128,46 +128,83 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const isEdit = !!selectedPromotion;
 
   const { data: promotionDetailResponse, isLoading: isLoadingPromotion } =
-    usePromotion(selectedPromotion?.id || null);
+    usePromotion(selectedPromotion?.id || null, {
+      enabled: !!selectedPromotion?.id,
+    });
 
-  const { data: productsResponse } = useProducts({ limit: 1000 });
+  const { data: productsResponse } = useProducts(
+    {
+      limit: 1000,
+    },
+    { enabled: drawerOpen }
+  );
   const products = productsResponse?.data || [];
 
-  const { data: depotsResponse } = useDepots({ limit: 1000 });
+  const { data: depotsResponse } = useDepots(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const depots = depotsResponse?.data || [];
 
-  const { data: zonesResponse } = useZones({ limit: 1000 });
+  const { data: zonesResponse } = useZones(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const zones = zonesResponse?.data || [];
 
-  const { data: customersResponse } = useCustomers({ limit: 1000 });
+  const { data: customersResponse } = useCustomers(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const customers = customersResponse?.data || [];
 
-  const { data: customerTypesResponse } = useCustomerTypes({ limit: 1000 });
+  const { data: customerTypesResponse } = useCustomerTypes(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const customerTypes = customerTypesResponse?.data || [];
 
-  const { data: customerCategoriesResponse } = useCustomerCategories({
-    limit: 1000,
-  });
+  const { data: customerCategoriesResponse } = useCustomerCategories(
+    {
+      limit: 1000,
+    },
+    { enabled: drawerOpen }
+  );
   const customerCategories = customerCategoriesResponse?.data || [];
 
-  const { data: customerChannelsResponse } = useCustomerChannels({
-    limit: 1000,
-  });
+  const { data: customerChannelsResponse } = useCustomerChannels(
+    {
+      limit: 1000,
+    },
+    { enabled: drawerOpen }
+  );
   const customerChannels = customerChannelsResponse?.data || [];
 
-  const { data: routesResponse } = useRoutes({ limit: 1000 });
+  const { data: routesResponse } = useRoutes(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const routes = routesResponse?.data || [];
 
-  const { data: usersResponse } = useUsers({ limit: 1000 });
+  const { data: usersResponse } = useUsers(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const users = usersResponse?.data || [];
 
-  const { data: productCategoriesResponse } = useProductCategories({
-    limit: 1000,
-  });
+  const { data: productCategoriesResponse } = useProductCategories(
+    {
+      limit: 1000,
+    },
+    { enabled: drawerOpen }
+  );
 
   const productCategories = productCategoriesResponse?.data || [];
 
-  const { data: unitsResponse } = useUnitOfMeasurement({ limit: 1000 });
+  const { data: unitsResponse } = useUnitOfMeasurement(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const units = unitsResponse?.data || [];
 
   const createPromotionMutation = useCreatePromotion();
