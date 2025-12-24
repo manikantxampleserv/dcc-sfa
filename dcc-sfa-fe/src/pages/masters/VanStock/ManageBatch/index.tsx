@@ -1,205 +1,251 @@
 import { Close } from '@mui/icons-material';
-import { Box, Dialog, Divider, Typography } from '@mui/material';
+import { Box, Dialog, Divider } from '@mui/material';
 import type { FormikProps } from 'formik';
 import { Plus } from 'lucide-react';
-import React from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
 import Table, { type TableColumn } from 'shared/Table';
-import type { SelectedItem } from '../ManageVanInventory';
+import type { VanInventoryFormValues } from '../ManageVanInventory';
+import type { ProductBatch } from 'hooks/useVanInventory';
 
 interface ManageBatchProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  selectedItem: SelectedItem | null;
-  setSelectedItem: (item: SelectedItem | null) => void;
-  formik: FormikProps<any>;
+  selectedRowIndex: number | null;
+  setSelectedRowIndex: (rowIndex: number | null) => void;
+  formik: FormikProps<VanInventoryFormValues>;
 }
-interface ProductBatch {
-  batch_number: string;
-  lot_number: string;
-  manufacturing_date: string;
-  expiry_date: string;
-  quantity: number;
-}
+
+const INITIAL_BATCH: ProductBatch = {
+  batch_number: '',
+  lot_number: '',
+  manufacturing_date: '',
+  expiry_date: '',
+  quantity: 1,
+};
 
 const ManageBatch: React.FC<ManageBatchProps> = ({
   isOpen,
   setIsOpen,
-  selectedItem,
-  setSelectedItem,
+  selectedRowIndex,
+  setSelectedRowIndex,
   formik,
 }) => {
-  const [productBatches, setProductBatches] = React.useState<ProductBatch[]>(
+  const [productBatches, setProductBatches] = useState<ProductBatch[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (
+      selectedRowIndex !== null &&
+      formik.values.van_inventory_items[selectedRowIndex]
+    ) {
+      setProductBatches(
+        formik.values.van_inventory_items[selectedRowIndex]
+          .product_batches as ProductBatch[]
+      );
+    }
+  }, [selectedRowIndex, formik.values.van_inventory_items]);
+
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    setProductBatches([]);
+    setSelectedRowIndex(null);
+    setSearchQuery('');
+  }, [setIsOpen, setSelectedRowIndex]);
+
+  const handleDelete = useCallback((rowIndex: number) => {
+    setProductBatches(prev => prev.filter((_, index) => index !== rowIndex));
+  }, []);
+
+  const handleBatchChange = useCallback(
+    (field: keyof ProductBatch, rowIndex: number, value: string | number) => {
+      setProductBatches(prev => {
+        const updated = [...prev];
+        updated[rowIndex] = {
+          ...updated[rowIndex],
+          [field]: field === 'quantity' ? Number(value) || 0 : value,
+        };
+        return updated;
+      });
+    },
     []
   );
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-  const handleDelete = (rowIndex: number) => {
-    const updatedProductBatches = productBatches.filter(
-      (_, index) => index !== rowIndex
+
+  const handleAddBatch = useCallback(() => {
+    setProductBatches(prev => [...prev, { ...INITIAL_BATCH }]);
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    if (selectedRowIndex === null) return;
+
+    const updatedItems = [...formik.values.van_inventory_items];
+    updatedItems[selectedRowIndex] = {
+      ...updatedItems[selectedRowIndex],
+      product_batches: productBatches,
+    };
+    formik.setFieldValue('van_inventory_items', updatedItems);
+    handleClose();
+  }, [selectedRowIndex, productBatches, formik, handleClose]);
+
+  const filteredBatches = useMemo(() => {
+    if (!searchQuery.trim()) return productBatches;
+    const query = searchQuery.toLowerCase();
+    return productBatches?.filter(
+      batch =>
+        batch.batch_number?.toLowerCase().includes(query) ||
+        batch.lot_number?.toLowerCase().includes(query)
     );
-    setProductBatches(updatedProductBatches);
-  };
+  }, [productBatches, searchQuery]);
 
-  const handleBatchChange = (
-    field: string,
-    rowIndex: number,
-    value: string
-  ) => {
-    const updatedProductBatches = [...productBatches];
-    updatedProductBatches[rowIndex] = {
-      ...updatedProductBatches[rowIndex],
-      [field]: value,
-    };
-    setProductBatches(updatedProductBatches);
-  };
-  const handleAddBatch = () => {
-    const newBatch: ProductBatch = {
-      batch_number: '',
-      lot_number: '',
-      manufacturing_date: '',
-      expiry_date: '',
-      quantity: 1,
-    };
-    setProductBatches([...productBatches, newBatch]);
-  };
-
-  console.log(productBatches);
-  const columns: TableColumn<ProductBatch>[] = [
-    {
-      id: 'batch_number',
-      label: 'Batch Number',
-      render: (value, row, rowIndex) => (
-        <Input
-          value={row.batch_number}
-          onChange={e =>
-            handleBatchChange('batch_number', rowIndex, e.target.value)
-          }
-          size="small"
-          placeholder="Enter batch number"
-          fullWidth
-        />
-      ),
-    },
-
-    {
-      id: 'manufacturing_date',
-      label: 'MFG Date',
-      render: (value, row, rowIndex) => (
-        <Typography variant="body2" className="!text-gray-700">
+  const columns: TableColumn<ProductBatch>[] = useMemo(
+    () => [
+      {
+        id: 'batch_number',
+        label: 'Batch Number',
+        render: (_value, row, rowIndex) => (
+          <Input
+            value={row.batch_number}
+            onChange={e =>
+              handleBatchChange('batch_number', rowIndex, e.target.value)
+            }
+            size="small"
+            className="!w-52"
+            placeholder="Enter batch number"
+            fullWidth
+          />
+        ),
+      },
+      {
+        id: 'manufacturing_date',
+        label: 'MFG Date',
+        render: (_value, row, rowIndex) => (
           <Input
             type="date"
             value={row.manufacturing_date}
-            className="!w-42"
             onChange={e =>
               handleBatchChange('manufacturing_date', rowIndex, e.target.value)
             }
+            className="!w-52"
             size="small"
             placeholder="Enter manufacturing date"
           />
-        </Typography>
-      ),
-    },
-    {
-      id: 'expiry_date',
-      label: 'EXP Date',
-      render: (value, row, rowIndex) => (
-        <Typography variant="body2" className="!text-gray-700">
+        ),
+      },
+      {
+        id: 'expiry_date',
+        label: 'EXP Date',
+        render: (_value, row, rowIndex) => (
           <Input
             type="date"
             value={row.expiry_date}
             onChange={e =>
               handleBatchChange('expiry_date', rowIndex, e.target.value)
             }
+            className="!w-52"
             size="small"
             placeholder="Enter expiry date"
-            className="!w-42"
           />
-        </Typography>
-      ),
-    },
-    {
-      id: 'quantity',
-      label: 'Quantity',
-      render: (value, row, rowIndex) => (
-        <Input
-          type="number"
-          value={row.quantity}
-          onChange={e =>
-            handleBatchChange('quantity', rowIndex, e.target.value)
-          }
-          size="small"
-          placeholder="Enter quantity"
-          fullWidth
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
-      render: (value, row, rowIndex) => (
-        <DeleteButton
-          onClick={() => handleDelete(rowIndex)}
-          tooltip={`Delete ${row?.batch_number ?? ''}`}
-          itemName={row?.batch_number ?? ''}
-          confirmDelete={true}
-          size="small"
-        />
-      ),
-    },
-  ];
-  const data: ProductBatch[] = [
-    {
-      quantity: 100,
-      batch_number: '123456',
-      lot_number: '123456',
-      manufacturing_date: '2021-01-01',
-      expiry_date: '2021-01-01',
-    },
-  ];
+        ),
+      },
+      {
+        id: 'quantity',
+        label: 'Quantity',
+        render: (_value, row, rowIndex) => (
+          <Input
+            type="number"
+            value={row.quantity}
+            onChange={e =>
+              handleBatchChange('quantity', rowIndex, e.target.value)
+            }
+            size="small"
+            className="!w-32"
+            placeholder="Enter quantity"
+            fullWidth
+            inputProps={{ min: 0 }}
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        label: 'Actions',
+        render: (_value, row, rowIndex) => (
+          <DeleteButton
+            onClick={() => handleDelete(rowIndex)}
+            tooltip={`Delete ${row.batch_number || 'batch'}`}
+            itemName={row.batch_number || 'batch'}
+            confirmDelete
+          />
+        ),
+      },
+    ],
+    [handleBatchChange, handleDelete]
+  );
+
   return (
-    <>
-      <Dialog
-        open={isOpen}
-        onClose={handleClose}
-        slotProps={{
-          paper: {
-            className: '!min-w-[60%] !max-w-[60%] !h-[60%]',
-          },
-        }}
-      >
-        <div className="flex justify-between items-center !p-2">
-          <p className="!font-semibold text-lg !text-gray-900">Manage Batch</p>
-          <ActionButton icon={<Close />} onClick={handleClose} size="small" />
-        </div>
-        <Divider />
-        <Box className="!p-2">
-          <div className="flex justify-between items-center pb-2">
-            <SearchInput placeholder="Search Batch" />
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={<Plus size={16} />}
-              onClick={handleAddBatch}
-            >
-              Add Batch
-            </Button>
-          </div>
-          <Table
-            columns={columns}
-            data={productBatches}
-            compact
-            pagination={false}
-            sortable={false}
+    <Dialog
+      open={isOpen}
+      onClose={handleClose}
+      slotProps={{
+        paper: {
+          className: '!min-w-[60%] !max-w-[60%]',
+        },
+      }}
+    >
+      <div className="flex justify-between items-center !p-2">
+        <p className="!font-semibold text-lg !text-gray-900">
+          Batch Information
+        </p>
+        <ActionButton
+          icon={<Close />}
+          onClick={handleClose}
+          size="small"
+          aria-label="Close dialog"
+        />
+      </div>
+      <Divider />
+      <Box className="!p-2 min-h-[40vh]">
+        <div className="flex justify-between items-center pb-2">
+          <SearchInput
+            placeholder="Search Batch"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e)}
           />
-        </Box>
-      </Dialog>
-    </>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Plus size={16} />}
+            onClick={handleAddBatch}
+          >
+            Add Batch
+          </Button>
+        </div>
+        <Table
+          stickyHeader
+          maxHeight="50vh"
+          columns={columns}
+          data={filteredBatches}
+          compact
+          pagination={false}
+          sortable={false}
+        />
+      </Box>
+      <Box className="!p-2 !flex !justify-end !border-t gap-2 !border-gray-300">
+        <Button variant="outlined" color="info" onClick={handleClose}>
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={selectedRowIndex === null}
+        >
+          Update
+        </Button>
+      </Box>
+    </Dialog>
   );
 };
 
