@@ -1676,7 +1676,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               (locationTab === 6 && selectedCustomerCategories.length > 0) ||
               (locationTab === 7 && selectedCustomerChannels.length > 0)) && (
               <Box className="!mt-3 !border !border-gray-200 !rounded">
-                <Box className="!max-h-52 !overflow-y-auto !space-y-2">
+                <Box className="!max-h-52 !overflow-y-auto">
                   {locationTab === 0 &&
                     selectedDepots.map(depotId => {
                       const depot = depots.find((d: any) => d.id === depotId);
@@ -1684,7 +1684,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={depotId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {depot.name} ({depot.code})
@@ -1709,7 +1709,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={zoneId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">{zone.name}</Typography>
                           <IconButton
@@ -1732,7 +1732,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={routeId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {route.name || route.code || `Route ${route.id}`}{' '}
@@ -1758,7 +1758,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={userId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {user.name} {user.email ? `(${user.email})` : ''}
@@ -1785,7 +1785,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={outletId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {customer.name} ({customer.code})
@@ -1812,7 +1812,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={typeId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {customerType.type_name} ({customerType.type_code})
@@ -1841,7 +1841,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={categoryId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {category.category_name} ({category.category_code})
@@ -1870,9 +1870,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={channelId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
-                          <Typography variant="body2">
+                          <Typography variant="body2" className="!text-sm">
                             {channel.channel_name} ({channel.channel_code})
                           </Typography>
                           <IconButton

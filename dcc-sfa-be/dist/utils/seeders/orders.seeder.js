@@ -1,0 +1,368 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.mockOrders = void 0;
+exports.seedOrders = seedOrders;
+exports.clearOrders = clearOrders;
+const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const mockOrders = [
+    {
+        order_number: 'ORD-001',
+        order_date: new Date('2024-01-15'),
+        delivery_date: new Date('2024-01-20'),
+        status: 'delivered',
+        priority: 'high',
+        order_type: 'regular',
+        payment_method: 'credit',
+        payment_terms: 'Net 30',
+        subtotal: 925.0,
+        discount_amount: 0.0,
+        tax_amount: 74.99,
+        shipping_amount: 0.0,
+        total_amount: 999.99,
+        notes: 'Priority delivery requested',
+        shipping_address: '123 Main Street, New York, NY 10001',
+        approval_status: 'approved',
+        approved_at: new Date('2024-01-15'),
+        is_active: 'Y',
+    },
+    {
+        order_number: 'ORD-002',
+        order_date: new Date('2024-01-16'),
+        delivery_date: new Date('2024-01-22'),
+        status: 'pending',
+        priority: 'medium',
+        order_type: 'regular',
+        payment_method: 'cash',
+        payment_terms: 'COD',
+        subtotal: 1150.0,
+        discount_amount: 50.0,
+        tax_amount: 88.0,
+        shipping_amount: 12.0,
+        total_amount: 1200.0,
+        notes: 'Standard delivery',
+        shipping_address: '456 Oak Avenue, Los Angeles, CA 90210',
+        approval_status: 'pending',
+        approved_at: undefined,
+        is_active: 'Y',
+    },
+    {
+        order_number: 'ORD-003',
+        order_date: new Date('2024-01-17'),
+        delivery_date: new Date('2024-01-25'),
+        status: 'shipped',
+        priority: 'low',
+        order_type: 'bulk',
+        payment_method: 'check',
+        payment_terms: 'Net 15',
+        subtotal: 2400.0,
+        discount_amount: 100.0,
+        tax_amount: 184.0,
+        shipping_amount: 16.0,
+        total_amount: 2500.0,
+        notes: 'Bulk order discount applied',
+        shipping_address: '789 Pine Street, Chicago, IL 60601',
+        approval_status: 'approved',
+        approved_at: new Date('2024-01-17'),
+        is_active: 'Y',
+    },
+    {
+        order_number: 'ORD-004',
+        order_date: new Date('2024-01-18'),
+        delivery_date: new Date('2024-01-26'),
+        status: 'processing',
+        priority: 'high',
+        order_type: 'express',
+        payment_method: 'credit',
+        payment_terms: 'Net 30',
+        subtotal: 750.0,
+        discount_amount: 0.0,
+        tax_amount: 60.0,
+        shipping_amount: 40.0,
+        total_amount: 850.0,
+        notes: 'Express shipping required',
+        shipping_address: '321 Elm Drive, Houston, TX 77001',
+        approval_status: 'approved',
+        approved_at: new Date('2024-01-18'),
+        is_active: 'Y',
+    },
+    {
+        order_number: 'ORD-005',
+        order_date: new Date('2024-01-19'),
+        delivery_date: new Date('2024-01-28'),
+        status: 'delivered',
+        priority: 'medium',
+        order_type: 'regular',
+        payment_method: 'wire',
+        payment_terms: 'Prepaid',
+        subtotal: 1800.0,
+        discount_amount: 0.0,
+        tax_amount: 144.0,
+        shipping_amount: 6.0,
+        total_amount: 1950.0,
+        notes: 'Wire transfer payment',
+        shipping_address: '654 Maple Lane, Phoenix, AZ 85001',
+        approval_status: 'approved',
+        approved_at: new Date('2024-01-19'),
+        is_active: 'Y',
+    },
+    {
+        order_number: 'ORD-006',
+        order_date: new Date('2024-01-20'),
+        delivery_date: new Date('2024-01-30'),
+        status: 'cancelled',
+        priority: 'low',
+        order_type: 'regular',
+        payment_method: 'credit',
+        payment_terms: 'Net 30',
+        subtotal: 450.0,
+        discount_amount: 0.0,
+        tax_amount: 36.0,
+        shipping_amount: 14.0,
+        total_amount: 500.0,
+        notes: 'Customer requested cancellation',
+        shipping_address: '987 Cedar Court, Philadelphia, PA 19101',
+        approval_status: 'rejected',
+        approved_at: undefined,
+        is_active: 'N',
+    },
+    {
+        order_number: 'ORD-007',
+        order_date: new Date('2024-01-21'),
+        delivery_date: new Date('2024-02-01'),
+        status: 'pending',
+        priority: 'high',
+        order_type: 'special',
+        payment_method: 'cash',
+        payment_terms: 'COD',
+        subtotal: 3200.0,
+        discount_amount: 200.0,
+        tax_amount: 240.0,
+        shipping_amount: 60.0,
+        total_amount: 3300.0,
+        notes: 'Special handling required',
+        shipping_address: '147 Beach Road, Miami, FL 33101',
+        approval_status: 'pending',
+        approved_at: undefined,
+        is_active: 'Y',
+    },
+    {
+        order_number: 'ORD-008',
+        order_date: new Date('2024-01-22'),
+        delivery_date: new Date('2024-02-02'),
+        status: 'shipped',
+        priority: 'medium',
+        order_type: 'regular',
+        payment_method: 'check',
+        payment_terms: 'Net 15',
+        subtotal: 680.0,
+        discount_amount: 30.0,
+        tax_amount: 52.0,
+        shipping_amount: 8.0,
+        total_amount: 710.0,
+        notes: 'Standard processing',
+        shipping_address: '258 Ocean View, San Diego, CA 92101',
+        approval_status: 'approved',
+        approved_at: new Date('2024-01-22'),
+        is_active: 'Y',
+    },
+    {
+        order_number: 'ORD-009',
+        order_date: new Date('2024-01-23'),
+        delivery_date: new Date('2024-02-05'),
+        status: 'processing',
+        priority: 'low',
+        order_type: 'bulk',
+        payment_method: 'wire',
+        payment_terms: 'Prepaid',
+        subtotal: 5500.0,
+        discount_amount: 500.0,
+        tax_amount: 400.0,
+        shipping_amount: 100.0,
+        total_amount: 5500.0,
+        notes: 'Large bulk order',
+        shipping_address: '369 Mountain Pass, Denver, CO 80201',
+        approval_status: 'approved',
+        approved_at: new Date('2024-01-23'),
+        is_active: 'Y',
+    },
+    {
+        order_number: 'ORD-010',
+        order_date: new Date('2024-01-24'),
+        delivery_date: new Date('2024-02-08'),
+        status: 'delivered',
+        priority: 'medium',
+        order_type: 'regular',
+        payment_method: 'credit',
+        payment_terms: 'Net 30',
+        subtotal: 1350.0,
+        discount_amount: 0.0,
+        tax_amount: 108.0,
+        shipping_amount: 42.0,
+        total_amount: 1500.0,
+        notes: 'Regular delivery completed',
+        shipping_address: '741 Valley Road, Salt Lake City, UT 84101',
+        approval_status: 'approved',
+        approved_at: new Date('2024-01-24'),
+        is_active: 'Y',
+    },
+    {
+        order_number: 'ORD-011',
+        order_date: new Date('2020-01-01'),
+        delivery_date: new Date('2020-01-10'),
+        status: 'cancelled',
+        priority: 'low',
+        order_type: 'regular',
+        payment_method: 'credit',
+        payment_terms: 'Net 30',
+        subtotal: 0.0,
+        discount_amount: 0.0,
+        tax_amount: 0.0,
+        shipping_amount: 0.0,
+        total_amount: 0.0,
+        notes: 'Cancelled due to company closure',
+        shipping_address: 'N/A',
+        approval_status: 'rejected',
+        approved_at: undefined,
+        is_active: 'N',
+    },
+];
+exports.mockOrders = mockOrders;
+async function seedOrders() {
+    const customers = await prisma_client_1.default.customers.findMany({
+        select: { id: true, name: true },
+        where: { is_active: 'Y' },
+        take: 11,
+    });
+    if (customers.length === 0) {
+        console.log('No customers found. Please run customers seeder first.');
+        return;
+    }
+    const products = await prisma_client_1.default.products.findMany({
+        select: { id: true, name: true },
+        where: { is_active: 'Y' },
+        take: 50,
+    });
+    if (products.length === 0) {
+        console.log('No products found. Please run products seeder first.');
+        return;
+    }
+    const salesPersonRole = await prisma_client_1.default.roles.findFirst({
+        where: { name: 'Sales Person' },
+    });
+    const salespersons = await prisma_client_1.default.users.findMany({
+        select: { id: true, name: true },
+        where: {
+            role_id: salesPersonRole?.id,
+            is_active: 'Y',
+        },
+    });
+    if (salespersons.length === 0) {
+        const adminUser = await prisma_client_1.default.users.findFirst({
+            where: { email: 'admin@dcc.com' },
+            select: { id: true, name: true },
+        });
+        if (adminUser) {
+            salespersons.push(adminUser);
+        }
+    }
+    if (salespersons.length === 0) {
+        console.log('No salespersons found. Please run users seeder first.');
+        return;
+    }
+    for (let i = 0; i < mockOrders.length; i++) {
+        const order = mockOrders[i];
+        const existingOrder = await prisma_client_1.default.orders.findFirst({
+            where: { order_number: order.order_number },
+        });
+        if (!existingOrder) {
+            const customer = customers[i % customers.length];
+            const salesperson = salespersons[i % salespersons.length];
+            const createdOrder = await prisma_client_1.default.orders.create({
+                data: {
+                    order_number: order.order_number,
+                    parent_id: customer.id,
+                    salesperson_id: salesperson.id,
+                    order_date: order.order_date,
+                    delivery_date: order.delivery_date,
+                    status: order.status,
+                    priority: order.priority,
+                    order_type: order.order_type,
+                    payment_method: order.payment_method,
+                    payment_terms: order.payment_terms,
+                    subtotal: order.subtotal,
+                    discount_amount: order.discount_amount,
+                    tax_amount: order.tax_amount,
+                    shipping_amount: order.shipping_amount,
+                    total_amount: order.total_amount,
+                    notes: order.notes,
+                    shipping_address: order.shipping_address,
+                    approval_status: order.approval_status,
+                    approved_by: order.approval_status === 'approved' ? salesperson.id : null,
+                    approved_at: order.approved_at,
+                    is_active: order.is_active,
+                    createdate: new Date(),
+                    createdby: salesperson.id,
+                    log_inst: 1,
+                },
+            });
+            const itemsPerOrder = Math.min(2 + (i % 3), products.length);
+            const orderSubtotal = Number(order.subtotal) || 0;
+            const orderDiscount = Number(order.discount_amount) || 0;
+            const orderTax = Number(order.tax_amount) || 0;
+            if (orderSubtotal > 0) {
+                const selectedProducts = products
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, itemsPerOrder);
+                const itemSubtotals = [];
+                let remainingSubtotal = orderSubtotal;
+                for (let j = 0; j < selectedProducts.length; j++) {
+                    if (j === selectedProducts.length - 1) {
+                        itemSubtotals.push(remainingSubtotal);
+                    }
+                    else {
+                        const itemAmount = Math.max(10, Math.floor((remainingSubtotal / (selectedProducts.length - j)) *
+                            (0.5 + Math.random())));
+                        itemSubtotals.push(itemAmount);
+                        remainingSubtotal -= itemAmount;
+                    }
+                }
+                const orderItemsData = selectedProducts.map((product, idx) => {
+                    const itemSubtotal = itemSubtotals[idx] || 10;
+                    const quantity = 1 + Math.floor(Math.random() * 10);
+                    const unitPrice = Number((itemSubtotal / quantity).toFixed(2));
+                    const itemDiscount = orderDiscount > 0
+                        ? Number((orderDiscount / selectedProducts.length).toFixed(2))
+                        : 0;
+                    const itemTax = orderTax > 0
+                        ? Number((orderTax / selectedProducts.length).toFixed(2))
+                        : Number((itemSubtotal * 0.08).toFixed(2));
+                    const totalAmount = Number((itemSubtotal - itemDiscount + itemTax).toFixed(2));
+                    return {
+                        parent_id: createdOrder.id,
+                        product_id: product.id,
+                        product_name: product.name,
+                        unit: 'PCS',
+                        quantity: quantity,
+                        unit_price: unitPrice,
+                        discount_amount: itemDiscount,
+                        tax_amount: itemTax,
+                        total_amount: totalAmount,
+                        notes: null,
+                        is_free_gift: false,
+                    };
+                });
+                await prisma_client_1.default.order_items.createMany({
+                    data: orderItemsData,
+                });
+            }
+        }
+    }
+}
+async function clearOrders() {
+    await prisma_client_1.default.order_items.deleteMany({});
+    await prisma_client_1.default.orders.deleteMany({});
+}
+//# sourceMappingURL=orders.seeder.js.map

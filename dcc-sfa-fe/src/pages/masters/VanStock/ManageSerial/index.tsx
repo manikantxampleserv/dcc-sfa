@@ -83,6 +83,34 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
     []
   );
 
+  const isFormValid = useMemo(() => {
+    if (selectedRowIndex === null) return false;
+
+    const expectedCount = Number(quantity);
+    const hasExpectedCount =
+      Number.isFinite(expectedCount) && expectedCount > 0;
+
+    if (hasExpectedCount) {
+      if (productSerials.length !== expectedCount) return false;
+    } else {
+      if (productSerials.length === 0) return false;
+    }
+
+    const trimmedSerials = productSerials.map(s =>
+      (s.serial_number || '').trim()
+    );
+    if (trimmedSerials.some(s => s.length === 0)) return false;
+
+    const seen = new Set<string>();
+    for (const s of trimmedSerials) {
+      const key = s.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+    }
+
+    return true;
+  }, [selectedRowIndex, productSerials, quantity]);
+
   const handleSubmit = useCallback(() => {
     if (selectedRowIndex === null) return;
 
@@ -213,7 +241,7 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
           variant="contained"
           color="primary"
           onClick={handleSubmit}
-          disabled={selectedRowIndex === null}
+          disabled={!isFormValid}
         >
           Update
         </Button>

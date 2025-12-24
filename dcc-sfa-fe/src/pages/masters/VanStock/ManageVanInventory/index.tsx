@@ -1,5 +1,5 @@
-import { Tag } from '@mui/icons-material';
-import { Box, MenuItem, Typography } from '@mui/material';
+import { Tag, WarningAmberRounded } from '@mui/icons-material';
+import { Box, MenuItem, Tooltip, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useDepots } from 'hooks/useDepots';
 import { useProducts } from 'hooks/useProducts';
@@ -53,6 +53,7 @@ interface VanInventoryItemFormData {
   product_batches?: ProductBatch[];
   product_serials?: any;
   id?: number | null;
+  tempId?: string; // Added for stable row identification
 }
 
 export interface VanInventoryFormValues {
@@ -66,6 +67,10 @@ export interface VanInventoryFormValues {
   is_active: string;
   van_inventory_items: VanInventoryItemFormData[];
 }
+
+// Generate stable temporary ID
+let tempIdCounter = 0;
+const generateTempId = () => `temp-${Date.now()}-${tempIdCounter++}`;
 
 const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   selectedVanInventory,
@@ -113,6 +118,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       van_inventory_items: [],
     },
     validationSchema: vanInventoryValidationSchema,
+    validateOnMount: true,
     enableReinitialize: true,
     onSubmit: async values => {
       try {
@@ -131,10 +137,44 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           return false;
         }
 
-        const incompleteItems = values.van_inventory_items.filter(
-          item =>
-            !item.product_id || item.quantity == null || !item.batch_lot_id
-        );
+        const incompleteItems = values.van_inventory_items.filter(item => {
+          if (!item.product_id || item.quantity == null) return true;
+
+          const trackingType = (item.tracking_type || '').toLowerCase();
+          const qty = Number(item.quantity);
+          if (!Number.isFinite(qty) || qty <= 0) return true;
+
+          if (trackingType === 'serial') {
+            const serials = (item.product_serials || []) as any[];
+            if (!Array.isArray(serials) || serials.length !== qty) return true;
+            const trimmed = serials.map(s =>
+              String((s?.serial_number ?? s) || '').trim()
+            );
+            if (trimmed.some(s => !s)) return true;
+            const seen = new Set(trimmed.map(s => s.toLowerCase()));
+            if (seen.size !== trimmed.length) return true;
+            return false;
+          }
+
+          if (trackingType === 'batch') {
+            const batches = (item.product_batches || []) as any[];
+            const total = batches.reduce(
+              (acc, b) => acc + (Number(b?.quantity) || 0),
+              0
+            );
+            if (total !== qty) return true;
+
+            if (values.loading_type === 'U') {
+              const derivedBatchLotId =
+                item.batch_lot_id ??
+                (batches.length === 1 ? batches[0]?.batch_lot_id : null);
+              if (!derivedBatchLotId) return true;
+            }
+            return false;
+          }
+
+          return !item.batch_lot_id;
+        });
 
         if (incompleteItems.length > 0) {
           toast.error(
@@ -158,17 +198,52 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           is_active: values.is_active,
           van_inventory_items: values.van_inventory_items
             .filter(item => item.product_id && item.quantity != null)
-            .map(item => ({
-              product_id: Number(item.product_id),
-              product_name: item.product_name || null,
-              quantity: Number(item.quantity),
-              notes: item.notes || null,
-              tracking_type: item.tracking_type || null,
-              batch_lot_id: item.batch_lot_id
-                ? Number(item.batch_lot_id)
-                : null,
-              id: item.id || undefined,
-            })),
+            .map(item => {
+              const trackingType = (item.tracking_type || '').toLowerCase();
+              const qty = Number(item.quantity);
+              const batches = (item.product_batches || []) as any[];
+
+              const derivedBatchLotId =
+                item.batch_lot_id ??
+                (batches.length === 1 ? batches[0]?.batch_lot_id : null);
+
+              return {
+                product_id: Number(item.product_id),
+                product_name: item.product_name || null,
+                quantity: qty,
+                notes: item.notes || null,
+                tracking_type: item.tracking_type || null,
+                batch_lot_id: derivedBatchLotId
+                  ? Number(derivedBatchLotId)
+                  : null,
+                product_batches:
+                  trackingType === 'batch'
+                    ? batches.map(b => ({
+                        ...b,
+                        quantity:
+                          b?.quantity == null ? null : Number(b.quantity),
+                        batch_lot_id: b?.batch_lot_id
+                          ? Number(b.batch_lot_id)
+                          : undefined,
+                      }))
+                    : undefined,
+                product_serials:
+                  trackingType === 'serial'
+                    ? ((item.product_serials || []) as any[]).map(s => {
+                        const serial_number = String(
+                          (s?.serial_number ?? s) || ''
+                        ).trim();
+                        return {
+                          ...(typeof s === 'object' ? s : {}),
+                          serial_number,
+                          quantity: 1,
+                          product_id: Number(item.product_id),
+                        };
+                      })
+                    : undefined,
+                id: item.id || undefined,
+              };
+            }),
         };
 
         if (isEdit && selectedVanInventory) {
@@ -218,6 +293,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           remaining_quantity: item.product_remaining_quantity ?? null,
           total_quantity: item.batch_total_remaining_quantity ?? null,
           id: item.id,
+          tempId: item.id ? `edit-${item.id}` : generateTempId(), // Stable ID
         })) || [];
 
       formik.setFieldValue('van_inventory_items', items);
@@ -246,6 +322,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       total_quantity: null,
       product_batches: [],
       product_serials: [],
+      tempId: generateTempId(), // Stable ID for new items
     };
     formik.setFieldValue('van_inventory_items', [
       ...(formik.values.van_inventory_items || []),
@@ -348,7 +425,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       {
         id: 'product_id',
         label: 'Product',
-        width: 400,
+        width: 450,
         render: (_value, row, rowIndex) => (
           <Select
             name={`van_inventory_items[${rowIndex}].product_id`}
@@ -379,66 +456,114 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         id: 'tracking_type',
         label: 'Tracking Type',
         width: 300,
-        render: (value, _row, rowIndex) => (
+        render: (value, row, rowIndex) => (
           <Box className="flex justify-between items-center">
             <Typography variant="body2" className="!text-gray-700 uppercase">
               {value ?? 'None'}
             </Typography>
-            {(value && value.toLowerCase() === 'batch') ||
-            (value && value.toLowerCase() === 'serial') ? (
-              <Button
-                startIcon={<Tag />}
-                variant="text"
-                onClick={() => {
-                  if (
-                    _row.quantity === null ||
-                    _row.quantity === undefined ||
-                    _row.quantity === ''
-                  ) {
-                    toast.error(
-                      'Please enter quantity first to select ' +
-                        (value && value.toLowerCase() === 'batch'
-                          ? 'batch'
-                          : 'serial')
-                    );
-                    return;
+            <Box className="flex justify-end items-center gap-2">
+              {(value && value.toLowerCase() === 'batch') ||
+              (value && value.toLowerCase() === 'serial') ? (
+                <Button
+                  startIcon={<Tag />}
+                  variant="text"
+                  onClick={() => {
+                    if (
+                      row.quantity === null ||
+                      row.quantity === undefined ||
+                      row.quantity === ''
+                    ) {
+                      toast.error(
+                        'Please manage the quantity on Item with ' +
+                          (value && value.toLowerCase() === 'batch'
+                            ? 'batches'
+                            : 'serial numbers')
+                      );
+                      return;
+                    }
+                    value && value.toLowerCase() === 'batch'
+                      ? handleSelectBatch(rowIndex)
+                      : handleSelectSerial(rowIndex);
+                  }}
+                >
+                  Select{' '}
+                  {value && value.toLowerCase() === 'batch'
+                    ? 'Batch'
+                    : value && value.toLowerCase() === 'serial'
+                      ? 'Serial'
+                      : 'None'}
+                </Button>
+              ) : null}
+
+              {(() => {
+                const trackingType = String(
+                  row.tracking_type || value || ''
+                ).toLowerCase();
+                const qty = Number(row.quantity);
+                if (!Number.isFinite(qty) || qty <= 0) return false;
+
+                if (trackingType === 'serial') {
+                  return (row.product_serials?.length || 0) !== qty;
+                }
+
+                if (trackingType === 'batch') {
+                  const totalBatchQty = (row.product_batches || []).reduce(
+                    (acc, batch) => acc + (Number(batch.quantity) || 0),
+                    0
+                  );
+                  return totalBatchQty !== qty;
+                }
+
+                return false;
+              })() && (
+                <Tooltip
+                  placement="top"
+                  color="error"
+                  title={
+                    String(row.tracking_type || value || '').toLowerCase() ===
+                    'serial'
+                      ? `Mismatch: ${row.product_serials?.length || 0} serial number(s) assigned, but quantity is ${row.quantity}. Please select serials to match the quantity.`
+                      : `Mismatch: ${
+                          row.product_batches?.reduce(
+                            (acc, batch) => acc + (Number(batch.quantity) || 0),
+                            0
+                          ) || 0
+                        } units in batches, but quantity is ${row.quantity}. Please adjust batch quantities to match.`
                   }
-                  value && value.toLowerCase() === 'batch'
-                    ? handleSelectBatch(rowIndex)
-                    : handleSelectSerial(rowIndex);
-                }}
-              >
-                Select{' '}
-                {value && value.toLowerCase() === 'batch'
-                  ? 'Batch'
-                  : value && value.toLowerCase() === 'serial'
-                    ? 'Serial'
-                    : 'None'}
-              </Button>
-            ) : null}
+                  arrow
+                >
+                  <WarningAmberRounded color="error" fontSize="small" />
+                </Tooltip>
+              )}
+            </Box>
           </Box>
         ),
       },
       {
         id: 'quantity',
-        label: formik.values.loading_type === 'L' ? 'Load Qty' : 'Unload Qty',
-        width: 150,
-        render: (_value, row, rowIndex) => {
-          return (
-            <Input
-              name={`van_inventory_items[${rowIndex}].quantity`}
-              type="number"
-              value={row.quantity ?? ''}
-              formik={formik}
-              size="small"
-              fullWidth
-              placeholder="Enter Quantity"
-            />
-          );
-        },
+        label: `${formik.values.loading_type === 'L' ? 'Load' : 'Unload'} Quantity`,
+        width: 250,
+        render: (_value, row, rowIndex) => (
+          <Input
+            name={`van_inventory_items[${rowIndex}].quantity`}
+            type="number"
+            value={row.quantity ?? ''}
+            onChange={e => {
+              const value = e.target.value;
+              updateInventoryItem(
+                rowIndex,
+                'quantity',
+                value === '' ? null : value
+              );
+            }}
+            size="small"
+            fullWidth
+            placeholder="Enter Quantity"
+          />
+        ),
       },
       {
-        id: 'action' as any,
+        id: 'action',
         label: 'Actions',
         width: 80,
         sortable: false,
@@ -459,6 +584,93 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       handleSelectSerial,
     ]
   );
+
+  const hasInvalidStock = useMemo(
+    () =>
+      (formik.values.van_inventory_items || []).some(
+        item =>
+          item.batch_lot_id &&
+          item.quantity != null &&
+          item.remaining_quantity != null &&
+          Number(item.quantity) > item.remaining_quantity
+      ),
+    [formik.values.van_inventory_items]
+  );
+
+  const hasIncompleteItems = useMemo(
+    () =>
+      (formik.values.van_inventory_items || []).some(item => {
+        if (!item.product_id || item.quantity == null) return true;
+
+        const trackingType = (item.tracking_type || '').toLowerCase();
+        const qty = Number(item.quantity);
+        if (!Number.isFinite(qty) || qty <= 0) return true;
+
+        if (trackingType === 'serial') {
+          const serials = (item.product_serials || []) as any[];
+          if (!Array.isArray(serials) || serials.length !== qty) return true;
+          const trimmed = serials.map(s =>
+            String((s?.serial_number ?? s) || '').trim()
+          );
+          if (trimmed.some(s => !s)) return true;
+          const seen = new Set(trimmed.map(s => s.toLowerCase()));
+          return seen.size !== trimmed.length;
+        }
+
+        if (trackingType === 'batch') {
+          const batches = (item.product_batches || []) as any[];
+          const total = batches.reduce(
+            (acc, b) => acc + (Number(b?.quantity) || 0),
+            0
+          );
+          if (total !== qty) return true;
+
+          if (formik.values.loading_type === 'U') {
+            const derivedBatchLotId =
+              item.batch_lot_id ??
+              (batches.length === 1 ? batches[0]?.batch_lot_id : null);
+            if (!derivedBatchLotId) return true;
+          }
+
+          return false;
+        }
+
+        return !item.batch_lot_id;
+      }),
+    [formik.values.van_inventory_items, formik.values.loading_type]
+  );
+
+  const hasTrackingMismatch = useMemo(
+    () =>
+      (formik.values.van_inventory_items || []).some(item => {
+        const trackingType = (item.tracking_type || '').toLowerCase();
+        const qty = Number(item.quantity);
+        if (!Number.isFinite(qty) || qty <= 0) return false;
+
+        if (trackingType === 'serial') {
+          return (item.product_serials?.length || 0) !== qty;
+        }
+
+        if (trackingType === 'batch') {
+          const totalBatchQty = (item.product_batches || []).reduce(
+            (acc, batch) => acc + (Number(batch.quantity) || 0),
+            0
+          );
+          return totalBatchQty !== qty;
+        }
+
+        return false;
+      }),
+    [formik.values.van_inventory_items]
+  );
+
+  const isSubmitDisabled =
+    createVanInventoryMutation.isPending ||
+    updateVanInventoryMutation.isPending ||
+    !formik.isValid ||
+    hasInvalidStock ||
+    hasIncompleteItems ||
+    hasTrackingMismatch;
 
   return (
     <CustomDrawer
@@ -550,9 +762,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               </Box>
             }
             columns={inventoryItemColumns}
-            getRowId={item =>
-              item.id?.toString() ?? `temp-${item.product_id}-${Math.random()}`
-            }
+            getRowId={item => item.tempId || item.id?.toString() || 'unknown'}
             pagination={false}
             emptyMessage="No items added. Click 'Add Item' to add inventory items"
           />
@@ -572,10 +782,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             <Button
               type="submit"
               variant="contained"
-              disabled={
-                createVanInventoryMutation.isPending ||
-                updateVanInventoryMutation.isPending
-              }
+              disabled={isSubmitDisabled}
             >
               {createVanInventoryMutation.isPending ||
               updateVanInventoryMutation.isPending

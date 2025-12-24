@@ -26,7 +26,7 @@ const INITIAL_BATCH: ProductBatch = {
   lot_number: '',
   manufacturing_date: '',
   expiry_date: '',
-  quantity: 1,
+  quantity: null,
 };
 
 const ManageBatch: React.FC<ManageBatchProps> = ({
@@ -67,7 +67,6 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
     (field: keyof ProductBatch, rowIndex: number, value: string | number) => {
       setProductBatches(prev => {
         const updated = [...prev];
-
         if (field === 'quantity') {
           const mainItemQuantity = Number(quantity);
           const hasExpectedQty =
