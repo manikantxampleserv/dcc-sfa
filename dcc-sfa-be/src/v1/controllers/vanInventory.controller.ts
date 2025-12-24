@@ -20,7 +20,7 @@ interface VanInventoryItemSerialized {
   expiry_date?: Date | null;
   product_remaining_quantity?: number | null;
   batch_total_remaining_quantity?: number | null;
-  serial_numbers?: Array<{
+  product_serials?: Array<{
     id: number;
     serial_number: string;
     status: string;
@@ -1232,7 +1232,7 @@ export const vanInventoryController = {
                     tx,
                     product.id,
                     userId,
-                    item.batch_data
+                    item.product_batches
                   );
                   batchId = batch.id;
 
@@ -1306,21 +1306,21 @@ export const vanInventoryController = {
                 });
               } else if (trackingType === 'serial') {
                 if (
-                  !item.serial_numbers ||
-                  !Array.isArray(item.serial_numbers)
+                  !item.product_serials ||
+                  !Array.isArray(item.product_serials)
                 ) {
                   throw new Error(
                     `serial_numbers array is required for product ${product.name}`
                   );
                 }
 
-                if (item.serial_numbers.length !== qty) {
+                if (item.product_serials.length !== qty) {
                   throw new Error(
-                    `Number of serial numbers (${item.serial_numbers.length}) must match quantity ${qty}`
+                    `Number of serial numbers (${item.product_serials.length}) must match quantity ${qty}`
                   );
                 }
 
-                for (const serialData of item.serial_numbers) {
+                for (const serialData of item.product_serials) {
                   const serial = await createOrUpdateSerialNumber(
                     tx,
                     product.id,

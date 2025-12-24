@@ -569,63 +569,6 @@ export const productsController = {
         return product;
       });
 
-<<<<<<< HEAD
-=======
-      if (batchLots.length > 0) {
-        for (const batchLot of batchLots) {
-          await prisma.product_batches.create({
-            data: {
-              product_id: product.id,
-              batch_lot_id: batchLot.batch_lot_id,
-              quantity: batchLot.quantity,
-              is_active: 'Y',
-              createdate: new Date(),
-              createdby: userId,
-              log_inst: 1,
-            },
-          });
-        }
-      }
-
-      // Create inventory_stock records for NONE tracking products for all depots
-      if (data.tracking_type === 'NONE') {
-        // Fetch all active depots
-        const depots = await prisma.depots.findMany({
-          where: { is_active: 'Y' },
-          select: { id: true },
-        });
-
-        // Get stock values from frontend or use defaults
-        const stockData = data || {};
-        const defaultStock = {
-          current_stock: 0,
-          reserved_stock: 0,
-          available_stock: 0,
-        };
-
-        for (const depot of depots) {
-          await prisma.inventory_stock.create({
-            data: {
-              product_id: product.id,
-              location_id: depot.id,
-              current_stock:
-                stockData.current_stock ?? defaultStock.current_stock,
-              reserved_stock:
-                stockData.reserved_stock ?? defaultStock.reserved_stock,
-              available_stock:
-                stockData.available_stock ?? defaultStock.available_stock,
-              is_active: 'Y',
-              createdate: new Date(),
-              createdby: userId,
-              updatedate: new Date(),
-              updatedby: userId,
-              log_inst: 1,
-            },
-          });
-        }
-      }
-
->>>>>>> c341472559fccf7cd197514a3f613d52b5f0d553
       const completeProduct = await prisma.products.findUnique({
         where: { id: result.id },
         include: productInclude,
