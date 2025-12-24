@@ -152,7 +152,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
           expiry_date: batchLot?.expiry_date || null,
           product_remaining_quantity: productBatch?.quantity ?? null,
           batch_total_remaining_quantity: batchLot?.remaining_quantity ?? null,
-          serial_numbers:
+          product_serials:
             serialNumbers && serialNumbers.length > 0 ? serialNumbers : null,
         };
 
@@ -663,13 +663,12 @@ async function createOrUpdateSerialNumber(
         warranty_expiry?: Date;
         customer_id?: number;
         notes?: string;
-      }, // ✅ Accept object
+      },
   batchId: number | null,
   locationId: number | null,
   loadingType: string,
   userId: number
 ): Promise<any> {
-  // ✅ Handle both string and object formats
   const serialNumber =
     typeof serialData === 'string' ? serialData : serialData.serial_number;
   const warrantyExpiry =
@@ -682,7 +681,6 @@ async function createOrUpdateSerialNumber(
   });
 
   if (loadingType === 'L') {
-    // Load: Create new serial
     if (existingSerial) {
       throw new Error(`Serial number ${serialNumber} already exists`);
     }
@@ -694,8 +692,8 @@ async function createOrUpdateSerialNumber(
         batch_id: batchId,
         status: 'in_van',
         location_id: locationId || null,
-        warranty_expiry: warrantyExpiry ? new Date(warrantyExpiry) : null, // ✅ Add warranty
-        customer_id: customerId || null, // ✅ Add customer
+        warranty_expiry: warrantyExpiry ? new Date(warrantyExpiry) : null,
+        customer_id: customerId || null,
         is_active: 'Y',
         createdate: new Date(),
         createdby: userId,
@@ -703,7 +701,6 @@ async function createOrUpdateSerialNumber(
       },
     });
   } else if (loadingType === 'U') {
-    // Unload: Update existing serial
     if (!existingSerial) {
       throw new Error(`Serial number ${serialNumber} not found`);
     }
