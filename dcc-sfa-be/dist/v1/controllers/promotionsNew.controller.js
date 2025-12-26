@@ -1032,6 +1032,461 @@ exports.promotionsNewController = {
             });
         }
     },
+    async getPromotionsWithVisitsAndOutlets(req, res) {
+        try {
+            const { salesperson_id } = req.query;
+            if (!salesperson_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'salesperson_id is required',
+                });
+            }
+            const salespersonIdNum = parseInt(salesperson_id, 10);
+            // Get current date (start and end of day)
+            const currentDate = new Date();
+            currentDate.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(currentDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            // Fetch promotions for the salesperson
+            const promotions = await prisma_client_1.default.promotions.findMany({
+                where: {
+                    is_active: 'Y',
+                    promotion_salesperson_promotions: {
+                        some: {
+                            salesperson_id: salespersonIdNum,
+                            is_active: 'Y',
+                        },
+                    },
+                },
+                include: {
+                    promotion_channel_promotions: { where: { is_active: 'Y' } },
+                    promotion_depot_promotions: {
+                        where: { is_active: 'Y' },
+                        include: {
+                            depots: { select: { id: true, name: true, code: true } },
+                        },
+                    },
+                    promotion_condition_promotions: {
+                        where: { is_active: 'Y' },
+                        include: {
+                            promotion_condition_products: {
+                                where: { is_active: 'Y' },
+                                include: {
+                                    promotion_condition_productId: {
+                                        select: { id: true, name: true, code: true },
+                                    },
+                                    promotion_condition_categories: {
+                                        select: { id: true, category_name: true },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    promotion_level_promotions: {
+                        where: { is_active: 'Y' },
+                        include: {
+                            promotion_benefit_level: {
+                                where: { is_active: 'Y' },
+                                include: {
+                                    promotion_benefit_products: {
+                                        select: { id: true, name: true, code: true },
+                                    },
+                                },
+                            },
+                        },
+                        orderBy: { level_number: 'asc' },
+                    },
+                },
+            });
+            // Fetch visits for the current date for this salesperson
+            const visits = await prisma_client_1.default.visits.findMany({
+                where: {
+                    sales_person_id: salespersonIdNum,
+                    visit_date: {
+                        gte: currentDate,
+                        lte: endOfDay,
+                    },
+                    is_active: 'Y',
+                },
+                include: {
+                    visit_customers: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            short_name: true,
+                            contact_person: true,
+                            phone_number: true,
+                            email: true,
+                            address: true,
+                            city: true,
+                            state: true,
+                            latitude: true,
+                            longitude: true,
+                            customer_type_id: true,
+                            customer_channel_id: true,
+                            customer_category_id: true,
+                            route_id: true,
+                            zones_id: true,
+                        },
+                    },
+                    visit_routes: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    visit_zones: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    visit_date: 'asc',
+                },
+            });
+            // Structure the response
+            const response = {
+                salesperson_id: salespersonIdNum,
+                date: currentDate.toISOString().split('T')[0],
+                promotions: promotions.map(promo => serializePromotion(promo)),
+                visits: visits.map(visit => ({
+                    id: visit.id,
+                    visit_date: visit.visit_date,
+                    visit_time: visit.visit_time,
+                    purpose: visit.purpose,
+                    status: visit.status,
+                    start_time: visit.start_time,
+                    end_time: visit.end_time,
+                    duration: visit.duration,
+                    check_in_time: visit.check_in_time,
+                    check_out_time: visit.check_out_time,
+                    start_latitude: visit.start_latitude,
+                    start_longitude: visit.start_longitude,
+                    end_latitude: visit.end_latitude,
+                    end_longitude: visit.end_longitude,
+                    visit_notes: visit.visit_notes,
+                    customer_feedback: visit.customer_feedback,
+                    outlet: visit.visit_customers,
+                    route: visit.visit_routes,
+                    zone: visit.visit_zones,
+                })),
+                summary: {
+                    total_promotions: promotions.length,
+                    total_visits: visits.length,
+                    total_outlets: visits.length,
+                },
+            };
+            res.json({
+                success: true,
+                message: 'Promotions with visits and outlets retrieved successfully',
+                data: response,
+            });
+        }
+        catch (error) {
+            console.error('Get Promotions with Visits and Outlets Error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    },
+    async getActivePromotionsWithDetails(req, res) {
+        try {
+            const { page, limit, search, platform, depot_id, salesperson_id, route_id, zone_id, customer_type_id, customer_channel_id, customer_category_id, } = req.query;
+            const pageNum = parseInt(page, 10) || 1;
+            const limitNum = parseInt(limit, 10) || 10;
+            const searchLower = search ? search.toLowerCase().trim() : '';
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const endOfToday = new Date(today);
+            endOfToday.setHours(23, 59, 59, 999);
+            const filters = {
+                is_active: 'Y',
+                start_date: { lte: endOfToday },
+                end_date: { gte: today },
+            };
+            if (searchLower) {
+                filters.OR = [
+                    { name: { contains: searchLower } },
+                    { code: { contains: searchLower } },
+                    { description: { contains: searchLower } },
+                ];
+            }
+            if (platform) {
+                filters.promotion_channel_promotions = {
+                    some: {
+                        channel_type: platform,
+                        is_active: 'Y',
+                    },
+                };
+            }
+            if (depot_id) {
+                filters.promotion_depot_promotions = {
+                    some: {
+                        depot_id: parseInt(depot_id, 10),
+                        is_active: 'Y',
+                    },
+                };
+            }
+            if (salesperson_id) {
+                filters.promotion_salesperson_promotions = {
+                    some: {
+                        salesperson_id: parseInt(salesperson_id, 10),
+                        is_active: 'Y',
+                    },
+                };
+            }
+            if (route_id) {
+                filters.promotion_routes_promotions = {
+                    some: {
+                        route_id: parseInt(route_id, 10),
+                        is_active: 'Y',
+                    },
+                };
+            }
+            if (zone_id) {
+                filters.promotion_zones_promotions = {
+                    some: {
+                        zone_id: parseInt(zone_id, 10),
+                        is_active: 'Y',
+                    },
+                };
+            }
+            if (customer_type_id) {
+                filters.promotion_customer_types_promotions = {
+                    some: {
+                        customer_type_id: parseInt(customer_type_id, 10),
+                        is_active: 'Y',
+                    },
+                };
+            }
+            if (customer_channel_id) {
+                filters.promotion_customer_channel_promotions = {
+                    some: {
+                        customer_channel_id: parseInt(customer_channel_id, 10),
+                        is_active: 'Y',
+                    },
+                };
+            }
+            if (customer_category_id) {
+                filters.promotion_customer_category_promotions = {
+                    some: {
+                        customer_category_id: parseInt(customer_category_id, 10),
+                        is_active: 'Y',
+                    },
+                };
+            }
+            const { data, pagination } = await (0, paginate_1.paginate)({
+                model: prisma_client_1.default.promotions,
+                filters,
+                page: pageNum,
+                limit: limitNum,
+                orderBy: { start_date: 'desc' },
+                include: {
+                    promotion_routes_promotions: {
+                        where: { is_active: 'Y' },
+                        select: { route_id: true },
+                    },
+                    promotion_zones_promotions: {
+                        where: { is_active: 'Y' },
+                        select: { zone_id: true },
+                    },
+                    promotion_customer_types_promotions: {
+                        where: { is_active: 'Y' },
+                        select: { customer_type_id: true },
+                    },
+                    promotion_customer_channel_promotions: {
+                        where: { is_active: 'Y' },
+                        select: { customer_channel_id: true },
+                    },
+                    promotion_customer_category_promotions: {
+                        where: { is_active: 'Y' },
+                        select: { customer_category_id: true },
+                    },
+                    promotion_customer_exclusion_promotions: {
+                        select: { customer_id: true },
+                    },
+                    promotion_condition_promotions: {
+                        where: { is_active: 'Y' },
+                        include: {
+                            promotion_condition_products: {
+                                where: { is_active: 'Y' },
+                                include: {
+                                    promotion_condition_productId: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            code: true,
+                                            description: true,
+                                            base_price: true,
+                                            category_id: true,
+                                            sub_category_id: true,
+                                            brand_id: true,
+                                            unit_of_measurement: true,
+                                            tax_rate: true,
+                                            vat_percentage: true,
+                                            weight_in_grams: true,
+                                            volume_in_liters: true,
+                                            tracking_type: true,
+                                        },
+                                    },
+                                    promotion_condition_categories: {
+                                        select: {
+                                            id: true,
+                                            category_name: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    promotion_level_promotions: {
+                        where: { is_active: 'Y' },
+                        include: {
+                            promotion_benefit_level: {
+                                where: { is_active: 'Y' },
+                                include: {
+                                    promotion_benefit_products: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            code: true,
+                                            description: true,
+                                            base_price: true,
+                                            category_id: true,
+                                            sub_category_id: true,
+                                            brand_id: true,
+                                            unit_of_measurement: true,
+                                            tax_rate: true,
+                                            vat_percentage: true,
+                                            weight_in_grams: true,
+                                            volume_in_liters: true,
+                                            tracking_type: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        orderBy: { level_number: 'asc' },
+                    },
+                },
+            });
+            const promotionsWithDetails = await Promise.all(data.map(async (promo) => {
+                const outletFilters = {
+                    is_active: 'Y',
+                };
+                const routeIds = promo.promotion_routes_promotions?.map((r) => r.route_id);
+                if (routeIds && routeIds.length > 0) {
+                    outletFilters.route_id = { in: routeIds };
+                }
+                const zoneIds = promo.promotion_zones_promotions?.map((z) => z.zone_id);
+                if (zoneIds && zoneIds.length > 0) {
+                    outletFilters.zones_id = { in: zoneIds };
+                }
+                const customerTypeIds = promo.promotion_customer_types_promotions?.map((ct) => ct.customer_type_id);
+                if (customerTypeIds && customerTypeIds.length > 0) {
+                    outletFilters.customer_type_id = { in: customerTypeIds };
+                }
+                const customerChannelIds = promo.promotion_customer_channel_promotions?.map((cc) => cc.customer_channel_id);
+                if (customerChannelIds && customerChannelIds.length > 0) {
+                    outletFilters.customer_channel_id = { in: customerChannelIds };
+                }
+                const customerCategoryIds = promo.promotion_customer_category_promotions?.map((cat) => cat.customer_category_id);
+                if (customerCategoryIds && customerCategoryIds.length > 0) {
+                    outletFilters.customer_category_id = { in: customerCategoryIds };
+                }
+                const excludedCustomerIds = promo.promotion_customer_exclusion_promotions?.map((exc) => exc.customer_id);
+                if (excludedCustomerIds && excludedCustomerIds.length > 0) {
+                    outletFilters.id = { notIn: excludedCustomerIds };
+                }
+                const suitableOutlets = await prisma_client_1.default.customers.findMany({
+                    where: outletFilters,
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                    },
+                    take: 1000,
+                });
+                const productConditions = promo.promotion_condition_promotions?.map((condition) => ({
+                    id: condition.id,
+                    condition_type: condition.condition_type,
+                    applies_to_type: condition.applies_to_type,
+                    min_value: condition.min_value,
+                    max_value: condition.max_value,
+                    effective_start_date: condition.effective_start_date,
+                    effective_end_date: condition.effective_end_date,
+                    status: condition.status,
+                    products: condition.promotion_condition_products?.map((cp) => ({
+                        id: cp.id,
+                        product_id: cp.product_id,
+                        category_id: cp.category_id,
+                        product_group: cp.product_group,
+                        condition_quantity: cp.condition_quantity,
+                        product_details: cp.promotion_condition_productId,
+                        category_details: cp.promotion_condition_categories,
+                    })),
+                }));
+                const gifts = promo.promotion_level_promotions?.flatMap((level) => level.promotion_benefit_level?.map((benefit) => ({
+                    id: benefit.id,
+                    level_number: level.level_number,
+                    level_threshold: level.threshold_value,
+                    discount_type: level.discount_type,
+                    discount_value: level.discount_value,
+                    benefit_type: benefit.benefit_type,
+                    product_id: benefit.product_id,
+                    benefit_value: benefit.benefit_value,
+                    condition_type: benefit.condition_type,
+                    gift_limit: benefit.gift_limit,
+                    product_details: benefit.promotion_benefit_products,
+                })) || []);
+                return {
+                    id: promo.id,
+                    name: promo.name,
+                    code: promo.code,
+                    type: promo.type,
+                    start_date: promo.start_date,
+                    end_date: promo.end_date,
+                    description: promo.description,
+                    is_active: promo.is_active,
+                    createdate: promo.createdate,
+                    createdby: promo.createdby,
+                    updatedate: promo.updatedate,
+                    updatedby: promo.updatedby,
+                    product_conditions: productConditions || [],
+                    gifts: gifts || [],
+                    suitable_outlets: suitableOutlets || [],
+                    suitable_outlets_count: suitableOutlets?.length || 0,
+                };
+            }));
+            const totalActivePromotions = await prisma_client_1.default.promotions.count({
+                where: filters,
+            });
+            res.json({
+                success: true,
+                message: 'Active promotions with details retrieved successfully',
+                data: promotionsWithDetails,
+                pagination,
+                summary: {
+                    total_active_promotions: totalActivePromotions,
+                    current_date: today.toISOString().split('T')[0],
+                    filtered_count: promotionsWithDetails.length,
+                },
+            });
+        }
+        catch (error) {
+            console.error('Get Active Promotions With Details Error:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    },
     async deletePromotion(req, res) {
         try {
             const { id } = req.params;

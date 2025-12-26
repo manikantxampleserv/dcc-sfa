@@ -96,5 +96,7 @@ router.get('/promotions/reports/performance', auth_middleware_1.authenticateToke
 router.post('/promotions/bulk-activate', auth_middleware_1.authenticateToken, promotions_controller_1.promotionsController.bulkActivatePromotions);
 router.post('/promotions/bulk-deactivate', auth_middleware_1.authenticateToken, promotions_controller_1.promotionsController.bulkDeactivatePromotions);
 router.delete('/promotions/bulk-delete', auth_middleware_1.authenticateToken, promotions_controller_1.promotionsController.bulkDeletePromotions);
+router.get('/promotions/salesperson/visits-outlets', auth_middleware_1.authenticateToken, promotionsNew_controller_1.promotionsNewController.getPromotionsWithVisitsAndOutlets);
+router.get('promotions/active-with-details', promotionsNew_controller_1.promotionsNewController.getActivePromotionsWithDetails);
 exports.default = router;
 //# sourceMappingURL=promotions.routes.js.map
