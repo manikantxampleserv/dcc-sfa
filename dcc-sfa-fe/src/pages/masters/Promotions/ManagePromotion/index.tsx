@@ -128,46 +128,83 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const isEdit = !!selectedPromotion;
 
   const { data: promotionDetailResponse, isLoading: isLoadingPromotion } =
-    usePromotion(selectedPromotion?.id || null);
+    usePromotion(selectedPromotion?.id || null, {
+      enabled: !!selectedPromotion?.id,
+    });
 
-  const { data: productsResponse } = useProducts({ limit: 1000 });
+  const { data: productsResponse } = useProducts(
+    {
+      limit: 1000,
+    },
+    { enabled: drawerOpen }
+  );
   const products = productsResponse?.data || [];
 
-  const { data: depotsResponse } = useDepots({ limit: 1000 });
+  const { data: depotsResponse } = useDepots(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const depots = depotsResponse?.data || [];
 
-  const { data: zonesResponse } = useZones({ limit: 1000 });
+  const { data: zonesResponse } = useZones(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const zones = zonesResponse?.data || [];
 
-  const { data: customersResponse } = useCustomers({ limit: 1000 });
+  const { data: customersResponse } = useCustomers(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const customers = customersResponse?.data || [];
 
-  const { data: customerTypesResponse } = useCustomerTypes({ limit: 1000 });
+  const { data: customerTypesResponse } = useCustomerTypes(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const customerTypes = customerTypesResponse?.data || [];
 
-  const { data: customerCategoriesResponse } = useCustomerCategories({
-    limit: 1000,
-  });
+  const { data: customerCategoriesResponse } = useCustomerCategories(
+    {
+      limit: 1000,
+    },
+    { enabled: drawerOpen }
+  );
   const customerCategories = customerCategoriesResponse?.data || [];
 
-  const { data: customerChannelsResponse } = useCustomerChannels({
-    limit: 1000,
-  });
+  const { data: customerChannelsResponse } = useCustomerChannels(
+    {
+      limit: 1000,
+    },
+    { enabled: drawerOpen }
+  );
   const customerChannels = customerChannelsResponse?.data || [];
 
-  const { data: routesResponse } = useRoutes({ limit: 1000 });
+  const { data: routesResponse } = useRoutes(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const routes = routesResponse?.data || [];
 
-  const { data: usersResponse } = useUsers({ limit: 1000 });
+  const { data: usersResponse } = useUsers(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const users = usersResponse?.data || [];
 
-  const { data: productCategoriesResponse } = useProductCategories({
-    limit: 1000,
-  });
+  const { data: productCategoriesResponse } = useProductCategories(
+    {
+      limit: 1000,
+    },
+    { enabled: drawerOpen }
+  );
 
   const productCategories = productCategoriesResponse?.data || [];
 
-  const { data: unitsResponse } = useUnitOfMeasurement({ limit: 1000 });
+  const { data: unitsResponse } = useUnitOfMeasurement(
+    { limit: 1000 },
+    { enabled: drawerOpen }
+  );
   const units = unitsResponse?.data || [];
 
   const createPromotionMutation = useCreatePromotion();
@@ -1639,7 +1676,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               (locationTab === 6 && selectedCustomerCategories.length > 0) ||
               (locationTab === 7 && selectedCustomerChannels.length > 0)) && (
               <Box className="!mt-3 !border !border-gray-200 !rounded">
-                <Box className="!max-h-52 !overflow-y-auto !space-y-2">
+                <Box className="!max-h-52 !overflow-y-auto">
                   {locationTab === 0 &&
                     selectedDepots.map(depotId => {
                       const depot = depots.find((d: any) => d.id === depotId);
@@ -1647,7 +1684,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={depotId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {depot.name} ({depot.code})
@@ -1672,7 +1709,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={zoneId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">{zone.name}</Typography>
                           <IconButton
@@ -1695,7 +1732,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={routeId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {route.name || route.code || `Route ${route.id}`}{' '}
@@ -1721,7 +1758,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={userId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {user.name} {user.email ? `(${user.email})` : ''}
@@ -1748,7 +1785,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={outletId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {customer.name} ({customer.code})
@@ -1775,7 +1812,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={typeId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {customerType.type_name} ({customerType.type_code})
@@ -1804,7 +1841,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={categoryId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
                           <Typography variant="body2">
                             {category.category_name} ({category.category_code})
@@ -1833,9 +1870,9 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                       return (
                         <Box
                           key={channelId}
-                          className="!flex !items-center !justify-between !p-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+                          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                         >
-                          <Typography variant="body2">
+                          <Typography variant="body2" className="!text-sm">
                             {channel.channel_name} ({channel.channel_code})
                           </Typography>
                           <IconButton

@@ -11,19 +11,15 @@ node_modules/
 **/.cache/
 
 # Build output
-**/dist/
 **/build/
 **/out/
-dist/
 build/
 out/
 
 .cursor/
 
-# Package-specific build outputs
-dcc-sfa-be/dist/
-dcc-sfa-fe/dist/
-dcc-sfa-fe/build/
+
+
 
 # Environment variables
 **/.env
@@ -156,11 +152,9 @@ temp/
 
 # Frontend specific (Vite/React)
 dcc-sfa-fe/.vite/
-dcc-sfa-fe/dist/
 dcc-sfa-fe/build/
 
 # Backend specific (Node.js/Express)
-dcc-sfa-be/dist/
 dcc-sfa-be/uploads/
 dcc-sfa-be/logs/
 

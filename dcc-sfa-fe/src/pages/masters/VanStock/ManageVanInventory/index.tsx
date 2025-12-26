@@ -1,5 +1,5 @@
-import { Tag } from '@mui/icons-material';
-import { Box, MenuItem, Typography } from '@mui/material';
+import { Tag, WarningAmberRounded } from '@mui/icons-material';
+import { Box, MenuItem, Tooltip, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useDepots } from 'hooks/useDepots';
 import { useProducts } from 'hooks/useProducts';
@@ -32,16 +32,6 @@ import UserSelect from 'shared/UserSelect';
 import ManageBatch from '../ManageBatch';
 import ManageSerial from '../ManageSerial';
 
-export interface SelectedItem {
-  product_id: number;
-  product_name: string;
-  quantity: number;
-  notes: string;
-  batch_lot_id: number;
-  batch_number: string;
-  tracking_type: string;
-}
-
 interface ManageVanInventoryProps {
   selectedVanInventory?: VanInventory | null;
   setSelectedVanInventory: (vanInventory: VanInventory | null) => void;
@@ -52,7 +42,7 @@ interface ManageVanInventoryProps {
 interface VanInventoryItemFormData {
   product_id: number | null;
   product_name?: string | null;
-  quantity: number | null;
+  quantity: number | string | null;
   notes?: string | null;
   batch_lot_id: number | null;
   batch_number?: string | null;
@@ -63,6 +53,7 @@ interface VanInventoryItemFormData {
   product_batches?: ProductBatch[];
   product_serials?: any;
   id?: number | null;
+  tempId?: string; // Added for stable row identification
 }
 
 export interface VanInventoryFormValues {
@@ -77,6 +68,10 @@ export interface VanInventoryFormValues {
   van_inventory_items: VanInventoryItemFormData[];
 }
 
+// Generate stable temporary ID
+let tempIdCounter = 0;
+const generateTempId = () => `temp-${Date.now()}-${tempIdCounter++}`;
+
 const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   selectedVanInventory,
   setSelectedVanInventory,
@@ -88,6 +83,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   const [isBatchSelectorOpen, setIsBatchSelectorOpen] = useState(false);
   const [isSerialSelectorOpen, setIsSerialSelectorOpen] = useState(false);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
+  const [quantity, setQuantity] = useState<number | string | null>(null);
 
   const createVanInventoryMutation = useCreateVanInventory();
   const updateVanInventoryMutation = useUpdateVanInventory();
@@ -227,6 +223,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           remaining_quantity: item.product_remaining_quantity ?? null,
           total_quantity: item.batch_total_remaining_quantity ?? null,
           id: item.id,
+          tempId: item.id ? `edit-${item.id}` : generateTempId(), // Stable ID
         })) || [];
 
       formik.setFieldValue('van_inventory_items', items);
@@ -254,6 +251,8 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       remaining_quantity: null,
       total_quantity: null,
       product_batches: [],
+      product_serials: [],
+      tempId: generateTempId(), // Stable ID for new items
     };
     formik.setFieldValue('van_inventory_items', [
       ...(formik.values.van_inventory_items || []),
@@ -324,9 +323,11 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       const inventoryItem = formik.values.van_inventory_items[rowIndex];
       if (inventoryItem) {
         setSelectedRowIndex(rowIndex);
+        setQuantity(inventoryItem.quantity);
         setIsBatchSelectorOpen(true);
       } else {
         setSelectedRowIndex(null);
+        setQuantity(null);
         setIsBatchSelectorOpen(false);
       }
     },
@@ -338,9 +339,11 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       const inventoryItem = formik.values.van_inventory_items[rowIndex];
       if (inventoryItem) {
         setSelectedRowIndex(rowIndex);
+        setQuantity(inventoryItem.quantity);
         setIsSerialSelectorOpen(true);
       } else {
         setSelectedRowIndex(null);
+        setQuantity(null);
         setIsSerialSelectorOpen(false);
       }
     },
@@ -352,7 +355,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       {
         id: 'product_id',
         label: 'Product',
-        width: 300,
+        width: 450,
         render: (_value, row, rowIndex) => (
           <Select
             name={`van_inventory_items[${rowIndex}].product_id`}
@@ -373,7 +376,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             {products.map(product => (
               <MenuItem key={product.id} value={product.id}>
                 {product.name}
-                {product.code && ` (${product.code})`}
+                {product.code && ` [${product.code}]`}
               </MenuItem>
             ))}
           </Select>
@@ -383,58 +386,94 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         id: 'tracking_type',
         label: 'Tracking Type',
         width: 300,
-        render: (value, _row, rowIndex) => (
+        render: (value, row, rowIndex) => (
           <Box className="flex justify-between items-center">
             <Typography variant="body2" className="!text-gray-700 uppercase">
               {value ?? 'None'}
             </Typography>
-            {value === 'Batch' || value === 'Serial' ? (
-              <Button
-                startIcon={<Tag />}
-                variant="text"
-                onClick={() =>
-                  value === 'Batch'
-                    ? handleSelectBatch(rowIndex)
-                    : handleSelectSerial(rowIndex)
-                }
-              >
-                Select{' '}
-                {value === 'Batch'
-                  ? 'Batch'
-                  : value === 'Serial'
-                    ? 'Serial'
-                    : 'None'}
-              </Button>
-            ) : null}
+            <Box className="flex justify-end items-center gap-2">
+              {(value && value.toLowerCase() === 'batch') ||
+              (value && value.toLowerCase() === 'serial') ? (
+                <Button
+                  startIcon={<Tag />}
+                  variant="text"
+                  onClick={() => {
+                    if (
+                      row.quantity === null ||
+                      row.quantity === undefined ||
+                      row.quantity === ''
+                    ) {
+                      toast.error(
+                        'Please manage the quantity on Item with ' +
+                          (value && value.toLowerCase() === 'batch'
+                            ? 'batches'
+                            : 'serial numbers')
+                      );
+                      return;
+                    }
+                    value && value.toLowerCase() === 'batch'
+                      ? handleSelectBatch(rowIndex)
+                      : handleSelectSerial(rowIndex);
+                  }}
+                >
+                  Select{' '}
+                  {value && value.toLowerCase() === 'batch'
+                    ? 'Batch'
+                    : value && value.toLowerCase() === 'serial'
+                      ? 'Serial'
+                      : 'None'}
+                </Button>
+              ) : null}
+
+              {((row.tracking_type === 'serial' &&
+                row.product_serials?.length !== row.quantity) ||
+                (row.tracking_type === 'batch' &&
+                  row.product_batches?.reduce(
+                    (acc, batch) => acc + (batch.quantity ?? 0),
+                    0
+                  ) !== row.quantity)) && (
+                <Tooltip
+                  placement="top"
+                  color="error"
+                  title={
+                    row.tracking_type === 'serial'
+                      ? `Mismatch: ${row.product_serials?.length || 0} serial number(s) assigned, but quantity is ${row.quantity}. Please select serials to match the quantity.`
+                      : `Mismatch: ${row.product_batches?.reduce((acc, batch) => acc + (batch.quantity ?? 0), 0) || 0} units in batches, but quantity is ${row.quantity}. Please adjust batch quantities to match.`
+                  }
+                  arrow
+                >
+                  <WarningAmberRounded color="error" fontSize="small" />
+                </Tooltip>
+              )}
+            </Box>
           </Box>
         ),
       },
       {
         id: 'quantity',
-        label: formik.values.loading_type === 'L' ? 'Load Qty' : 'Unload Qty',
-        width: 150,
-        render: (_value, row, rowIndex) => {
-          return (
-            <Input
-              name={`van_inventory_items[${rowIndex}].quantity`}
-              type="number"
-              value={row.quantity ?? ''}
-              onChange={e =>
-                updateInventoryItem(
-                  rowIndex,
-                  'quantity',
-                  e.target.value === '' ? null : Number(e)
-                )
-              }
-              size="small"
-              fullWidth
-              placeholder="Enter Quantity"
-            />
-          );
-        },
+        label: `${formik.values.loading_type === 'L' ? 'Load' : 'Unload'} Quantity`,
+        width: 250,
+        render: (_value, row, rowIndex) => (
+          <Input
+            name={`van_inventory_items[${rowIndex}].quantity`}
+            type="number"
+            value={row.quantity ?? ''}
+            onChange={e => {
+              const value = e.target.value;
+              updateInventoryItem(
+                rowIndex,
+                'quantity',
+                value === '' ? null : value
+              );
+            }}
+            size="small"
+            fullWidth
+            placeholder="Enter Quantity"
+          />
+        ),
       },
       {
-        id: 'action' as any,
+        id: 'action',
         label: 'Actions',
         width: 80,
         sortable: false,
@@ -546,9 +585,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               </Box>
             }
             columns={inventoryItemColumns}
-            getRowId={item =>
-              item.id?.toString() ?? `temp-${item.product_id}-${Math.random()}`
-            }
+            getRowId={item => item.tempId || item.id?.toString() || 'unknown'}
             pagination={false}
             emptyMessage="No items added. Click 'Add Item' to add inventory items"
           />
@@ -591,6 +628,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         selectedRowIndex={selectedRowIndex}
         setSelectedRowIndex={setSelectedRowIndex}
         formik={formik}
+        quantity={quantity}
       />
       <ManageSerial
         isOpen={isSerialSelectorOpen}
@@ -598,6 +636,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         selectedRowIndex={selectedRowIndex}
         setSelectedRowIndex={setSelectedRowIndex}
         formik={formik}
+        quantity={quantity}
       />
     </CustomDrawer>
   );

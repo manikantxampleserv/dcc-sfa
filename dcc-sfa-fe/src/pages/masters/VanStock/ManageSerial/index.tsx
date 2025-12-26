@@ -1,15 +1,14 @@
 import { Close } from '@mui/icons-material';
 import { Box, Dialog, Divider } from '@mui/material';
 import type { FormikProps } from 'formik';
-import { Plus } from 'lucide-react';
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import type { ProductSerial } from 'hooks/useVanInventory';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
 import { ActionButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
-import SearchInput from 'shared/SearchInput';
 import Table, { type TableColumn } from 'shared/Table';
 import type { VanInventoryFormValues } from '../ManageVanInventory';
-import type { ProductSerial } from 'hooks/useVanInventory';
 
 interface ManageSerialProps {
   isOpen: boolean;
@@ -17,6 +16,7 @@ interface ManageSerialProps {
   selectedRowIndex: number | null;
   setSelectedRowIndex: (rowIndex: number | null) => void;
   formik: FormikProps<VanInventoryFormValues>;
+  quantity: number | string | null;
 }
 
 const INITIAL_SERIAL: ProductSerial = {
@@ -31,27 +31,42 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
   selectedRowIndex,
   setSelectedRowIndex,
   formik,
+  quantity = null,
 }) => {
   const [productSerials, setProductSerials] = useState<ProductSerial[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (
-      selectedRowIndex !== null &&
-      formik.values.van_inventory_items[selectedRowIndex]
-    ) {
-      setProductSerials(
-        formik.values.van_inventory_items[selectedRowIndex]
-          .product_serials as ProductSerial[]
-      );
-    }
-  }, [selectedRowIndex, formik.values.van_inventory_items]);
+    if (!isOpen || selectedRowIndex === null) return;
+
+    const inventoryItem = formik.values.van_inventory_items[selectedRowIndex];
+    if (!inventoryItem) return;
+
+    const rawSerials = (inventoryItem.product_serials || []) as ProductSerial[];
+    const qty = Number(quantity);
+    const desiredCount =
+      Number.isFinite(qty) && qty > 0 ? qty : rawSerials.length;
+
+    const normalizedSerials: ProductSerial[] = Array.from(
+      { length: desiredCount },
+      (_unused, index) => {
+        const existing = rawSerials[index];
+        return {
+          ...INITIAL_SERIAL,
+          ...(existing || {}),
+          product_id: Number(inventoryItem.product_id || 0),
+          quantity: 1,
+          serial_number: existing?.serial_number || '',
+        };
+      }
+    );
+
+    setProductSerials(normalizedSerials);
+  }, [isOpen, selectedRowIndex, formik.values.van_inventory_items, quantity]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
     setProductSerials([]);
     setSelectedRowIndex(null);
-    setSearchQuery('');
   }, [setIsOpen, setSelectedRowIndex]);
 
   const handleSerialChange = useCallback(
@@ -68,29 +83,82 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
     []
   );
 
-  const handleAddSerial = useCallback(() => {
-    setProductSerials(prev => [...prev, { ...INITIAL_SERIAL }]);
-  }, []);
+  const isFormValid = useMemo(() => {
+    if (selectedRowIndex === null) return false;
+
+    const expectedCount = Number(quantity);
+    const hasExpectedCount =
+      Number.isFinite(expectedCount) && expectedCount > 0;
+
+    if (hasExpectedCount) {
+      if (productSerials.length !== expectedCount) return false;
+    } else {
+      if (productSerials.length === 0) return false;
+    }
+
+    const trimmedSerials = productSerials.map(s =>
+      (s.serial_number || '').trim()
+    );
+    if (trimmedSerials.some(s => s.length === 0)) return false;
+
+    const seen = new Set<string>();
+    for (const s of trimmedSerials) {
+      const key = s.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+    }
+
+    return true;
+  }, [selectedRowIndex, productSerials, quantity]);
 
   const handleSubmit = useCallback(() => {
     if (selectedRowIndex === null) return;
 
+    const expectedCount = Number(quantity);
+    if (Number.isFinite(expectedCount) && expectedCount > 0) {
+      if (productSerials.length !== expectedCount) {
+        toast.error(
+          `Serial count (${productSerials.length}) must match item quantity (${expectedCount}).`
+        );
+        return;
+      }
+    }
+
+    const trimmedSerials = productSerials.map(s =>
+      (s.serial_number || '').trim()
+    );
+    const missingIndex = trimmedSerials.findIndex(s => s.length === 0);
+    if (missingIndex !== -1) {
+      toast.error(`Serial number is required for row ${missingIndex + 1}.`);
+      return;
+    }
+
+    const seen = new Set<string>();
+    const duplicateIndex = trimmedSerials.findIndex(s => {
+      const key = s.toLowerCase();
+      if (seen.has(key)) return true;
+      seen.add(key);
+      return false;
+    });
+    if (duplicateIndex !== -1) {
+      toast.error(
+        `Duplicate serial number found: ${trimmedSerials[duplicateIndex]}`
+      );
+      return;
+    }
+
     const updatedItems = [...formik.values.van_inventory_items];
     updatedItems[selectedRowIndex] = {
       ...updatedItems[selectedRowIndex],
-      product_serials: productSerials,
+      product_serials: productSerials.map(s => ({
+        ...s,
+        serial_number: (s.serial_number || '').trim(),
+        quantity: 1,
+      })),
     };
     formik.setFieldValue('van_inventory_items', updatedItems);
     handleClose();
-  }, [selectedRowIndex, productSerials, formik, handleClose]);
-
-  const filteredSerials = useMemo(() => {
-    if (!searchQuery.trim()) return productSerials;
-    const query = searchQuery.toLowerCase();
-    return productSerials?.filter(serial =>
-      serial.serial_number?.toLowerCase().includes(query)
-    );
-  }, [productSerials, searchQuery]);
+  }, [selectedRowIndex, productSerials, formik, handleClose, quantity]);
 
   const columns: TableColumn<ProductSerial>[] = useMemo(
     () => [
@@ -144,7 +212,7 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
     >
       <div className="flex justify-between items-center !p-2">
         <p className="!font-semibold text-lg !text-gray-900">
-          Serial Information
+          Serial Information ({quantity})
         </p>
         <ActionButton
           icon={<Close />}
@@ -155,26 +223,11 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
       </div>
       <Divider />
       <Box className="!p-2 min-h-[40vh]">
-        <div className="flex justify-between items-center pb-2">
-          <SearchInput
-            placeholder="Search Serial"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e)}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Plus size={16} />}
-            onClick={handleAddSerial}
-          >
-            Add Serial
-          </Button>
-        </div>
         <Table
           stickyHeader
           maxHeight="50vh"
           columns={columns}
-          data={filteredSerials}
+          data={productSerials}
           compact
           pagination={false}
           sortable={false}
@@ -188,7 +241,7 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
           variant="contained"
           color="primary"
           onClick={handleSubmit}
-          disabled={selectedRowIndex === null}
+          disabled={!isFormValid}
         >
           Update
         </Button>

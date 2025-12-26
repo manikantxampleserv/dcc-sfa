@@ -9,13 +9,13 @@ import * as Yup from 'yup';
 
 export const vanInventoryValidationSchema = Yup.object({
   user_id: Yup.number()
-    .required('User is required')
-    .positive('User ID must be a positive number')
-    .integer('User ID must be an integer'),
+    .required('Van Inventory User is required')
+    .positive('Van Inventory User ID must be a positive number')
+    .integer('Van Inventory User ID must be an integer'),
 
   loading_type: Yup.string()
-    .oneOf(['L', 'U'], 'Type must be Load (L) or Unload (U)')
-    .required('Type is required'),
+    .oneOf(['L', 'U'], 'Loading Type must be Load (L) or Unload (U)')
+    .required('Loading Type is required'),
 
   status: Yup.string()
     .oneOf(
@@ -47,28 +47,4 @@ export const vanInventoryValidationSchema = Yup.object({
     .oneOf(['Y', 'N'], 'Must be Y or N')
     .default('Y')
     .required('Active status is required'),
-
-  van_inventory_items: Yup.array()
-    .of(
-      Yup.object({
-        product_id: Yup.number()
-          .required('Product is required')
-          .positive('Product ID must be a positive number')
-          .integer('Product ID must be an integer'),
-        quantity: Yup.number()
-          .min(0, 'Quantity must be 0 or greater')
-          .integer('Quantity must be an integer')
-          .required('Quantity is required'),
-        unit_price: Yup.number()
-          .min(0, 'Unit price must be 0 or greater')
-          .optional(),
-        discount_amount: Yup.number()
-          .min(0, 'Discount amount must be 0 or greater')
-          .optional(),
-        tax_amount: Yup.number()
-          .min(0, 'Tax amount must be 0 or greater')
-          .optional(),
-      })
-    )
-    .min(1, 'At least one inventory item is required'),
 });
