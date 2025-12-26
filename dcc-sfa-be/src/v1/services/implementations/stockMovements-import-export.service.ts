@@ -277,20 +277,327 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
       movement_date:
         movement.movement_date instanceof Date
           ? movement.movement_date.toISOString().split('T')[0]
-          : (typeof movement.movement_date === 'string' ? movement.movement_date : ''),
+          : typeof movement.movement_date === 'string'
+            ? movement.movement_date
+            : '',
       remarks: movement.remarks ?? '',
       van_inventory_id: movement.van_inventory_id ?? '',
       is_active: movement.is_active ?? 'Y',
       created_date:
         movement.createdate instanceof Date
           ? movement.createdate.toISOString().split('T')[0]
-          : (typeof movement.createdate === 'string' ? movement.createdate : ''),
+          : typeof movement.createdate === 'string'
+            ? movement.createdate
+            : '',
       created_by: movement.createdby ?? '',
       updated_date:
         movement.updatedate instanceof Date
           ? movement.updatedate.toISOString().split('T')[0]
-          : (typeof movement.updatedate === 'string' ? movement.updatedate : ''),
+          : typeof movement.updatedate === 'string'
+            ? movement.updatedate
+            : '',
       updated_by: movement.updatedby ?? '',
     }));
   }
 
+  protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
+    // Stock movements don't have unique constraints beyond ID
+    // We'll check for potential duplicates based on business logic
+    return null;
+  }
+
+  protected async validateForeignKeys(
+    data: any,
+    tx?: any
+  ): Promise<string | null> {
+    const productModel = tx ? tx.products : prisma.products;
+    const product = await productModel.findFirst({
+      where: { id: data.product_id },
+      select: { id: true, name: true },
+    });
+
+    if (!product) {
+      return `Product with ID ${data.product_id} does not exist. Please check the product ID or create the product first.`;
+    }
+
+    // Validate batch_id if provided
+    if (data.batch_id) {
+      const batchModel = tx ? tx.batch_lots : prisma.batch_lots;
+      const batch = await batchModel.findFirst({
+        where: { id: data.batch_id },
+        select: { id: true, batch_number: true },
+      });
+
+      if (!batch) {
+        return `Batch with ID ${data.batch_id} does not exist. Please check the batch ID or create the batch first.`;
+      }
+    }
+
+    // Validate serial_id if provided
+    if (data.serial_id) {
+      const serialModel = tx ? tx.serial_numbers : prisma.serial_numbers;
+      const serial = await serialModel.findFirst({
+        where: { id: data.serial_id },
+        select: { id: true, serial_number: true },
+      });
+
+      if (!serial) {
+        return `Serial with ID ${data.serial_id} does not exist. Please check the serial ID or create the serial first.`;
+      }
+    }
+
+    if (data.from_location_id) {
+      const fromLocation = await prisma.warehouses.findFirst({
+        where: { id: data.from_location_id },
+        select: { id: true, name: true },
+      });
+
+      if (!fromLocation) {
+        return `From location with ID ${data.from_location_id} does not exist. Please check the location ID or create the location first.`;
+      }
+    }
+
+    if (data.to_location_id) {
+      const toLocation = await prisma.warehouses.findFirst({
+        where: { id: data.to_location_id },
+        select: { id: true, name: true },
+      });
+
+      if (!toLocation) {
+        return `To location with ID ${data.to_location_id} does not exist. Please check the location ID or create the location first.`;
+      }
+    }
+
+    // Validate van_inventory_id if provided
+    if (data.van_inventory_id) {
+      const vanInventory = await prisma.van_inventory.findFirst({
+        where: { id: data.van_inventory_id },
+        select: { id: true, user_id: true, status: true, loading_type: true },
+      });
+
+      if (!vanInventory) {
+        return `Van inventory with ID ${data.van_inventory_id} does not exist. Please check the van inventory ID or create the van inventory first.`;
+      }
+    }
+
+    return null;
+  }
+
+  protected async prepareDataForImport(
+    data: any,
+    userId: number
+  ): Promise<any> {
+    return {
+      ...data,
+      movement_date: data.movement_date
+        ? new Date(data.movement_date)
+        : undefined,
+      product_id: parseInt(data.product_id),
+      batch_id:
+        data.batch_id && data.batch_id !== '' ? parseInt(data.batch_id) : null,
+      serial_id:
+        data.serial_id && data.serial_id !== ''
+          ? parseInt(data.serial_id)
+          : null,
+      reference_id:
+        data.reference_id && data.reference_id !== ''
+          ? parseInt(data.reference_id)
+          : null,
+      from_location_id:
+        data.from_location_id && data.from_location_id !== ''
+          ? parseInt(data.from_location_id)
+          : null,
+      to_location_id:
+        data.to_location_id && data.to_location_id !== ''
+          ? parseInt(data.to_location_id)
+          : null,
+      quantity: parseInt(data.quantity),
+      van_inventory_id:
+        data.van_inventory_id && data.van_inventory_id !== ''
+          ? parseInt(data.van_inventory_id)
+          : null,
+      createdby: userId,
+      createdate: new Date(),
+      log_inst: 1,
+    };
+  }
+
+  protected async updateExisting(
+    data: any,
+    userId: number,
+    tx?: any
+  ): Promise<any> {
+    return null;
+  }
+
+  async getAvailableIds(): Promise<{
+    products: Array<{ id: number; name: string; code: string }>;
+    warehouses: Array<{ id: number; name: string }>;
+    batches: Array<{
+      id: number;
+      batch_number: string;
+      product_id: number | null;
+    }>;
+    serials: Array<{
+      id: number;
+      serial_number: string;
+      product_id: number | null;
+    }>;
+  }> {
+    console;
+    const [products, warehouses, batchesRaw, serialsRaw] = await Promise.all([
+      prisma.products.findMany({
+        select: { id: true, name: true, code: true },
+        orderBy: { id: 'asc' },
+        take: 10,
+      }),
+      prisma.warehouses.findMany({
+        select: { id: true, name: true },
+        orderBy: { id: 'asc' },
+        take: 10,
+      }),
+      prisma.batch_lots.findMany({
+        select: { id: true, batch_number: true, productsId: true },
+        orderBy: { id: 'asc' },
+        take: 10,
+      }),
+      prisma.serial_numbers.findMany({
+        select: { id: true, serial_number: true, product_id: true },
+        orderBy: { id: 'asc' },
+        take: 10,
+      }),
+    ]);
+
+    const batches = batchesRaw.map(b => ({
+      id: b.id,
+      batch_number: b.batch_number,
+      product_id: b.productsId,
+    }));
+
+    const serials = serialsRaw.map(s => ({
+      id: s.id,
+      serial_number: s.serial_number,
+      product_id: s.product_id,
+    }));
+
+    return { products, warehouses, batches, serials };
+  }
+
+  async exportToExcel(options: any = {}): Promise<Buffer> {
+    const query: any = {
+      where: options.filters,
+      orderBy: options.orderBy || { id: 'desc' },
+      include: {
+        stock_movements_products: true,
+        stock_movements_from_location: true,
+        stock_movements_to_location: true,
+        van_inventory: {
+          include: {
+            van_inventory_items: {
+              include: {
+                products: true,
+              },
+            },
+            van_inventory_users: true,
+          },
+        },
+      },
+    };
+
+    if (options.limit) query.take = options.limit;
+
+    const data = await this.getModel().findMany(query);
+
+    const workbook = new (await import('exceljs')).Workbook();
+    const worksheet = workbook.addWorksheet(this.displayName);
+
+    const exportColumns = [
+      ...this.columns,
+      { header: 'Product Name', key: 'product_name', width: 25 },
+      { header: 'Product Code', key: 'product_code', width: 15 },
+      { header: 'From Location Name', key: 'from_location_name', width: 25 },
+      { header: 'To Location Name', key: 'to_location_name', width: 25 },
+      { header: 'Van Inventory User', key: 'van_inventory_user', width: 20 },
+      {
+        header: 'Van Inventory Status',
+        key: 'van_inventory_status',
+        width: 20,
+      },
+      {
+        header: 'Van Inventory Items Count',
+        key: 'van_inventory_items_count',
+        width: 25,
+      },
+      { header: 'Created Date', key: 'created_date', width: 15 },
+      { header: 'Created By', key: 'created_by', width: 15 },
+      { header: 'Updated Date', key: 'updated_date', width: 15 },
+      { header: 'Updated By', key: 'updated_by', width: 15 },
+    ];
+
+    worksheet.columns = exportColumns.map(col => ({
+      header: col.header,
+      key: col.key,
+      width: col.width || 20,
+    }));
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 25;
+
+    const exportData = await this.transformDataForExport(data);
+    exportData.forEach((row: any, index: number) => {
+      const excelRow = worksheet.addRow({
+        ...row,
+        product_name: data[index]?.stock_movements_products?.name || '',
+        product_code: data[index]?.stock_movements_products?.code || '',
+        from_location_name:
+          data[index]?.stock_movements_from_location?.name || '',
+        to_location_name: data[index]?.stock_movements_to_location?.name || '',
+        van_inventory_user:
+          data[index]?.van_inventory?.van_inventory_users?.name || '',
+        van_inventory_status: data[index]?.van_inventory?.status || '',
+        van_inventory_items_count:
+          data[index]?.van_inventory?.van_inventory_items?.length || 0,
+      });
+
+      if (index % 2 === 0) {
+        excelRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF2F2F2' },
+        };
+      }
+
+      excelRow.eachCell((cell: any) => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' },
+        };
+      });
+    });
+
+    if (data.length > 0) {
+      worksheet.autoFilter = {
+        from: 'A1',
+        to: `${String.fromCharCode(64 + exportColumns.length)}${data.length + 1}`,
+      };
+    }
+
+    const summaryRow = worksheet.addRow([]);
+    summaryRow.getCell(1).value = `Total Stock Movements: ${data.length}`;
+    summaryRow.getCell(1).font = { bold: true };
+
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+  }
+}
