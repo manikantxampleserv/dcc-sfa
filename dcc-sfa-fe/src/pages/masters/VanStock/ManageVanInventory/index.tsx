@@ -53,7 +53,7 @@ interface VanInventoryItemFormData {
   product_batches?: ProductBatch[];
   product_serials?: any;
   id?: number | null;
-  tempId?: string; // Added for stable row identification
+  tempId?: string;
 }
 
 export interface VanInventoryFormValues {
@@ -68,7 +68,6 @@ export interface VanInventoryFormValues {
   van_inventory_items: VanInventoryItemFormData[];
 }
 
-// Generate stable temporary ID
 let tempIdCounter = 0;
 const generateTempId = () => `temp-${Date.now()}-${tempIdCounter++}`;
 
@@ -137,8 +136,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         }
 
         const incompleteItems = values.van_inventory_items.filter(
-          item =>
-            !item.product_id || item.quantity == null || !item.batch_lot_id
+          item => !item.product_id || item.quantity == null
         );
 
         if (incompleteItems.length > 0) {
@@ -147,7 +145,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           );
           return false;
         }
-
         const submitData = {
           ...(isEdit && selectedVanInventory
             ? { id: selectedVanInventory.id }
@@ -166,6 +163,10 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             .map(item => ({
               product_id: Number(item.product_id),
               product_name: item.product_name || null,
+              product_serials:
+                item.tracking_type === 'serial' ? item.product_serials : null,
+              product_batches:
+                item.tracking_type === 'batch' ? item.product_batches : null,
               quantity: Number(item.quantity),
               notes: item.notes || null,
               tracking_type: item.tracking_type || null,
@@ -223,7 +224,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           remaining_quantity: item.product_remaining_quantity ?? null,
           total_quantity: item.batch_total_remaining_quantity ?? null,
           id: item.id,
-          tempId: item.id ? `edit-${item.id}` : generateTempId(), // Stable ID
+          tempId: item.id ? `edit-${item.id}` : generateTempId(),
         })) || [];
 
       formik.setFieldValue('van_inventory_items', items);
@@ -252,7 +253,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       total_quantity: null,
       product_batches: [],
       product_serials: [],
-      tempId: generateTempId(), // Stable ID for new items
+      tempId: generateTempId(),
     };
     formik.setFieldValue('van_inventory_items', [
       ...(formik.values.van_inventory_items || []),

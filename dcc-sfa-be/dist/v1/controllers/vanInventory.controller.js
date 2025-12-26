@@ -98,7 +98,7 @@ const serializeVanInventory = (item) => {
                 expiry_date: batchLot?.expiry_date || null,
                 product_remaining_quantity: productBatch?.quantity ?? null,
                 batch_total_remaining_quantity: batchLot?.remaining_quantity ?? null,
-                serial_numbers: serialNumbers && serialNumbers.length > 0 ? serialNumbers : null,
+                product_serials: serialNumbers && serialNumbers.length > 0 ? serialNumbers : null,
             };
             return result;
         }) || [],
@@ -476,9 +476,7 @@ async function createStockMovement(tx, data) {
         },
     });
 }
-async function createOrUpdateSerialNumber(tx, productId, serialData, // ✅ Accept object
-batchId, locationId, loadingType, userId) {
-    // ✅ Handle both string and object formats
+async function createOrUpdateSerialNumber(tx, productId, serialData, batchId, locationId, loadingType, userId) {
     const serialNumber = typeof serialData === 'string' ? serialData : serialData.serial_number;
     const warrantyExpiry = typeof serialData === 'object' ? serialData.warranty_expiry : null;
     const customerId = typeof serialData === 'object' ? serialData.customer_id : null;
@@ -486,7 +484,6 @@ batchId, locationId, loadingType, userId) {
         where: { serial_number: serialNumber },
     });
     if (loadingType === 'L') {
-        // Load: Create new serial
         if (existingSerial) {
             throw new Error(`Serial number ${serialNumber} already exists`);
         }
@@ -497,8 +494,8 @@ batchId, locationId, loadingType, userId) {
                 batch_id: batchId,
                 status: 'in_van',
                 location_id: locationId || null,
-                warranty_expiry: warrantyExpiry ? new Date(warrantyExpiry) : null, // ✅ Add warranty
-                customer_id: customerId || null, // ✅ Add customer
+                warranty_expiry: warrantyExpiry ? new Date(warrantyExpiry) : null,
+                customer_id: customerId || null,
                 is_active: 'Y',
                 createdate: new Date(),
                 createdby: userId,
@@ -507,7 +504,6 @@ batchId, locationId, loadingType, userId) {
         });
     }
     else if (loadingType === 'U') {
-        // Unload: Update existing serial
         if (!existingSerial) {
             throw new Error(`Serial number ${serialNumber} not found`);
         }

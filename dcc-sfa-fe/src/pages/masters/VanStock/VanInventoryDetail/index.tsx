@@ -1,4 +1,5 @@
-import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
+import { WarningAmberRounded } from '@mui/icons-material';
+import { Avatar, Chip, Skeleton, Tooltip, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useVanInventoryById, type VanInventory } from 'hooks/useVanInventory';
 import {
@@ -226,60 +227,65 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
       ),
     },
     {
+      id: 'tracking_type',
+      label: 'Tracking Type',
+      render: (_value, row) => {
+        const trackingType = (row.tracking_type || '').toString().toLowerCase();
+        const normalizedTrackingType = trackingType
+          ? trackingType
+          : Array.isArray(row.product_serials)
+            ? 'serial'
+            : Array.isArray(row.product_batches)
+              ? 'batch'
+              : row.batch_number || row.batch_lot_id
+                ? 'batch'
+                : '';
+
+        const serialCount = Array.isArray(row.product_serials)
+          ? row.product_serials.length
+          : 0;
+        const batchQty = Array.isArray(row.product_batches)
+          ? row.product_batches.reduce(
+              (acc: number, b: any) => acc + Number(b?.quantity || 0),
+              0
+            )
+          : 0;
+        const qty = Number(row.quantity);
+
+        const isMismatch =
+          normalizedTrackingType === 'serial'
+            ? Number.isFinite(qty) && serialCount !== qty
+            : normalizedTrackingType === 'batch'
+              ? Number.isFinite(qty) &&
+                Array.isArray(row.product_batches) &&
+                batchQty !== qty
+              : false;
+
+        const mismatchTitle =
+          normalizedTrackingType === 'serial'
+            ? `Mismatch: ${serialCount} serial number(s) assigned, but quantity is ${row.quantity}.`
+            : `Mismatch: ${batchQty} units in batches, but quantity is ${row.quantity}.`;
+
+        return (
+          <div className="flex items-center gap-2">
+            <Typography variant="body2" className="!text-gray-700 uppercase">
+              {normalizedTrackingType || 'None'}
+            </Typography>
+            {isMismatch && (
+              <Tooltip placement="top" title={mismatchTitle} arrow>
+                <WarningAmberRounded color="error" fontSize="small" />
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       id: 'quantity',
       label: 'Quantity',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
           {row.quantity}
-        </Typography>
-      ),
-    },
-    {
-      id: 'unit_price',
-      label: 'Unit Price',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {Number(row.unit_price || 0).toFixed(2)}
-        </Typography>
-      ),
-    },
-    {
-      id: 'discount_amount',
-      label: 'Discount',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-green-600">
-          {Number(row.discount_amount || 0).toFixed(2)}
-        </Typography>
-      ),
-    },
-    {
-      id: 'tax_amount',
-      label: 'Tax',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {Number(row.tax_amount || 0).toFixed(2)}
-        </Typography>
-      ),
-    },
-    {
-      id: 'total_amount',
-      label: 'Total',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!font-semibold !text-gray-900">
-          {Number(row.total_amount || 0).toFixed(2)}
-        </Typography>
-      ),
-    },
-    {
-      id: 'notes',
-      label: 'Notes',
-      render: (_value, row) => (
-        <Typography
-          variant="body2"
-          className="!text-gray-600 !text-sm !max-w-xs !truncate"
-          title={row.notes || ''}
-        >
-          {row.notes || '-'}
         </Typography>
       ),
     },
@@ -540,7 +546,10 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
               <Table
                 data={vanInventoryData.items}
                 columns={itemColumns}
-                getRowId={row => row.id?.toString() || Math.random().toString()}
+                getRowId={row =>
+                  row.id?.toString() ||
+                  `${row.product_id}-${row.batch_lot_id || ''}-${row.batch_number || ''}`
+                }
                 pagination={false}
                 compact={true}
                 sortable={false}

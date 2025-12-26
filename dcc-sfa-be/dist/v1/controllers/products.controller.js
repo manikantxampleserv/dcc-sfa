@@ -420,7 +420,6 @@ exports.productsController = {
                         });
                     }
                 }
-                // Create default inventory stock if tracking_type is 'none'
                 if (product.tracking_type === 'none') {
                     await createDefaultInventoryStock(tx, product.id, data.location_id || null, userId);
                 }
