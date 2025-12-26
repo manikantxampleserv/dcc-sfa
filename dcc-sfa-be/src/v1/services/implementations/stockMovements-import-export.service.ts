@@ -413,21 +413,25 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
     userId: number,
     tx?: any
   ): Promise<any> {
-    // Stock movements are typically not updated after creation
-    // This method is kept for consistency but returns null
     return null;
   }
 
-  /**
-   * Get available IDs for reference during import.
-   */
   async getAvailableIds(): Promise<{
     products: Array<{ id: number; name: string; code: string }>;
     warehouses: Array<{ id: number; name: string }>;
-    batches: Array<{ id: number; batch_number: string; product_id: number }>;
-    serials: Array<{ id: number; serial_number: string; product_id: number }>;
+    batches: Array<{
+      id: number;
+      batch_number: string;
+      product_id: number | null;
+    }>;
+    serials: Array<{
+      id: number;
+      serial_number: string;
+      product_id: number | null;
+    }>;
   }> {
-    const [products, warehouses, batches, serials] = await Promise.all([
+    console;
+    const [products, warehouses, batchesRaw, serialsRaw] = await Promise.all([
       prisma.products.findMany({
         select: { id: true, name: true, code: true },
         orderBy: { id: 'asc' },
@@ -439,7 +443,7 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
         take: 10,
       }),
       prisma.batch_lots.findMany({
-        select: { id: true, batch_number: true, product_id: true },
+        select: { id: true, batch_number: true, productsId: true },
         orderBy: { id: 'asc' },
         take: 10,
       }),
@@ -449,6 +453,18 @@ export class StockMovementsImportExportService extends ImportExportService<any> 
         take: 10,
       }),
     ]);
+
+    const batches = batchesRaw.map(b => ({
+      id: b.id,
+      batch_number: b.batch_number,
+      product_id: b.productsId,
+    }));
+
+    const serials = serialsRaw.map(s => ({
+      id: s.id,
+      serial_number: s.serial_number,
+      product_id: s.product_id,
+    }));
 
     return { products, warehouses, batches, serials };
   }

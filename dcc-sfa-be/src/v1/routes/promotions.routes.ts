@@ -282,4 +282,13 @@ router.delete(
   promotionsController.bulkDeletePromotions
 );
 
+router.get(
+  '/promotions/salesperson/visits-outlets',
+  authenticateToken,
+  promotionsNewController.getPromotionsWithVisitsAndOutlets
+);
+router.get(
+  'promotions/active-with-details',
+  promotionsNewController.getActivePromotionsWithDetails
+);
 export default router;
