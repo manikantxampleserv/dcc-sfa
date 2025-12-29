@@ -48,6 +48,135 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+const StatsCardsSkeleton = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
+    {[...Array(4)].map((_, idx) => (
+      <div
+        key={idx}
+        className="bg-white shadow-sm rounded-lg border border-gray-100 p-6 flex flex-col gap-4"
+      >
+        <div className="flex items-center gap-4">
+          <Skeleton variant="circular" width={40} height={40} />
+          <Skeleton variant="rectangular" width={100} height={24} />
+        </div>
+        <Skeleton variant="rectangular" width={60} height={28} />
+      </div>
+    ))}
+  </div>
+);
+
+const SalespersonCardSkeleton = () => (
+  <div className="bg-white mb-5 shadow-sm rounded-lg border border-gray-100 p-6">
+    <div className="flex items-start gap-6">
+      <Skeleton variant="circular" width={80} height={80} />
+      <div className="flex-1">
+        <div className="flex items-start gap-4 mb-4 justify-between">
+          <div>
+            <Skeleton variant="text" width={180} height={28} />
+            <Skeleton variant="text" width={120} height={20} />
+          </div>
+          <Skeleton variant="rectangular" width={64} height={28} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex items-center gap-2">
+              <Skeleton variant="circular" width={20} height={20} />
+              <Skeleton variant="text" width={90} height={18} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const TabsSkeleton = () => (
+  <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+    <div className="flex gap-2">
+      {[1, 2, 3].map(i => (
+        <Skeleton
+          key={i}
+          variant="rectangular"
+          width={120}
+          height={40}
+          sx={{ borderRadius: 2 }}
+        />
+      ))}
+    </div>
+  </Box>
+);
+
+const ProductsTabSkeleton = () => (
+  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+    {[...Array(6)].map((_, idx) => (
+      <div
+        key={idx}
+        className="bg-white shadow-sm rounded-lg border border-gray-100 p-4 flex flex-col"
+      >
+        <div className="flex items-start justify-between mb-4 pb-0">
+          <div className="flex items-center gap-3">
+            <Skeleton variant="circular" width={40} height={40} />
+            <div>
+              <Skeleton variant="text" width={90} height={18} />
+              <Skeleton variant="text" width={54} height={14} />
+            </div>
+          </div>
+          <Skeleton
+            variant="rectangular"
+            width={64}
+            height={24}
+            sx={{ borderRadius: 16 }}
+          />
+        </div>
+        <div className="space-y-1 pb-3 px-2">
+          {[...Array(5)].map((_, j) => (
+            <div className="flex items-center justify-between my-1" key={j}>
+              <Skeleton variant="text" width={100} height={17} />
+              <Skeleton variant="text" width={32} height={17} />
+            </div>
+          ))}
+        </div>
+        <Skeleton
+          variant="rectangular"
+          width="90%"
+          height={18}
+          sx={{ mx: 2, my: 1, borderRadius: 2 }}
+        />
+      </div>
+    ))}
+  </div>
+);
+
+const TableSkeleton = ({
+  columns = 6,
+  rows = 5,
+}: {
+  columns?: number;
+  rows?: number;
+}) => (
+  <div className="bg-white rounded-lg border border-gray-100 shadow-sm px-1 py-3 w-full mb-3">
+    <div className="flex gap-2 mb-2">
+      {[...Array(columns)].map((_, ci) => (
+        <Skeleton key={ci} width={90} height={18} sx={{ borderRadius: 2 }} />
+      ))}
+    </div>
+    <div className="flex flex-col gap-2">
+      {[...Array(rows)].map((_, ri) => (
+        <div key={ri} className="flex gap-2">
+          {[...Array(columns)].map((_, ci) => (
+            <Skeleton
+              key={ci}
+              width={90}
+              height={18}
+              sx={{ borderRadius: 2 }}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 const InventoryDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -72,13 +201,31 @@ const InventoryDetail: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center gap-4">
-          <Skeleton variant="circular" width={40} height={40} />
-          <Skeleton variant="text" width={200} height={32} />
+      <div className="flex flex-col animate-pulse">
+        <div className="flex items-center mb-5 justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <Skeleton variant="text" width={220} height={32} />
+              <Skeleton variant="text" width={160} height={20} sx={{ mt: 1 }} />
+            </div>
+          </div>
+          <Skeleton
+            variant="rectangular"
+            width={210}
+            height={34}
+            sx={{ borderRadius: 26 }}
+          />
         </div>
-        <Skeleton variant="rectangular" width="100%" height={200} />
-        <Skeleton variant="rectangular" width="100%" height={400} />
+
+        <SalespersonCardSkeleton />
+
+        <StatsCardsSkeleton />
+
+        <TabsSkeleton />
+
+        {tabValue === 0 && <ProductsTabSkeleton />}
+        {tabValue === 1 && <TableSkeleton columns={7} rows={7} />}
+        {tabValue === 2 && <TableSkeleton columns={5} rows={7} />}
       </div>
     );
   }
@@ -141,7 +288,6 @@ const InventoryDetail: React.FC = () => {
 
   return (
     <div className="flex flex-col">
-      {/* Header */}
       <div className="flex items-center mb-5 justify-between">
         <div className="flex items-center gap-4">
           <div>
@@ -161,7 +307,6 @@ const InventoryDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Salesperson Info Card */}
       <div className="bg-white mb-5 shadow-sm rounded-lg border border-gray-100 p-6">
         <div className="flex items-start gap-6">
           <Avatar
@@ -208,7 +353,6 @@ const InventoryDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
         <StatsCard
           title="Total Products"
@@ -236,7 +380,6 @@ const InventoryDetail: React.FC = () => {
         />
       </div>
 
-      {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label={`Products (${products.length})`} />
@@ -245,7 +388,6 @@ const InventoryDetail: React.FC = () => {
         </Tabs>
       </Box>
 
-      {/* Products Tab */}
       <TabPanel value={tabValue} index={0}>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
           {products.map((product: any) => {
@@ -331,7 +473,6 @@ const InventoryDetail: React.FC = () => {
         </div>
       </TabPanel>
 
-      {/* Batches Tab */}
       <TabPanel value={tabValue} index={1}>
         <Table
           data={batchRows}
@@ -391,7 +532,6 @@ const InventoryDetail: React.FC = () => {
         />
       </TabPanel>
 
-      {/* Serial Numbers Tab */}
       <TabPanel value={tabValue} index={2}>
         <Table
           data={serialRows}
@@ -413,7 +553,7 @@ const InventoryDetail: React.FC = () => {
                 sortable: true,
                 render: value => (
                   <Chip
-                    label={value ? String(value) : 'N/A'}
+                    label={value ? String(value)?.replace('_', ' ') : 'N/A'}
                     size="small"
                     variant="outlined"
                     className="!capitalize"

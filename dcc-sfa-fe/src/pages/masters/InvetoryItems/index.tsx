@@ -1,7 +1,6 @@
 import { Avatar, Chip, MenuItem, Skeleton } from '@mui/material';
 import { useInventoryItems } from 'hooks/useInventoryItems';
 import { usePermission } from 'hooks/usePermission';
-import { useUsers } from 'hooks/useUsers';
 import {
   AlertTriangle,
   Clock,
@@ -19,9 +18,6 @@ import StatsCard from 'shared/StatsCard';
 import { formatDate } from 'utils/dateUtils';
 
 const InventoryItems: React.FC = () => {
-  const [selectedUserId, setSelectedUserId] = useState<number | undefined>(
-    undefined
-  );
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const navigate = useNavigate();
@@ -30,21 +26,12 @@ const InventoryItems: React.FC = () => {
 
   const { data: inventoryResponse, isLoading: isLoadingInventory } =
     useInventoryItems(
-      {
-        salesperson_id: selectedUserId,
-        page: 1,
-        limit: 50,
-      },
-      {
-        enabled: isRead,
-      }
+      { page: 1, limit: 50, }, {
+      enabled: isRead,
+    }
     );
 
-  const { data: usersData } = useUsers();
-  const users = usersData?.data || [];
-
   const isLoading = isLoadingInventory;
-  const isSummaryView = !selectedUserId;
 
   const isSummaryResponse =
     inventoryResponse && 'statistics' in inventoryResponse;
@@ -56,25 +43,25 @@ const InventoryItems: React.FC = () => {
 
   const summary = isSummaryResponse
     ? {
-        total_items:
-          (inventoryResponse as any).statistics?.total_van_inventories || 0,
-        low_stock_items: 0,
-        total_value:
-          (inventoryResponse as any).statistics?.total_quantity * 100 || 0,
-        active_users:
-          (inventoryResponse as any).statistics?.total_salespersons || 0,
-        last_updated: new Date().toISOString(),
-      }
+      total_items:
+        (inventoryResponse as any).statistics?.total_van_inventories || 0,
+      low_stock_items: 0,
+      total_value:
+        (inventoryResponse as any).statistics?.total_quantity * 100 || 0,
+      active_users:
+        (inventoryResponse as any).statistics?.total_salespersons || 0,
+      last_updated: new Date().toISOString(),
+    }
     : {
-        total_items: detailedData?.total_van_inventories || 0,
-        low_stock_items: 0,
-        total_value: (detailedData?.total_quantity || 0) * 100,
-        active_users: 1,
-        last_updated: new Date().toISOString(),
-      };
+      total_items: detailedData?.total_van_inventories || 0,
+      low_stock_items: 0,
+      total_value: (detailedData?.total_quantity || 0) * 100,
+      active_users: 1,
+      last_updated: new Date().toISOString(),
+    };
 
   const handleItemClick = (item: any) => {
-    if (isSummaryView && item.salesperson_id) {
+    if (item.salesperson_id) {
       navigate(`/masters/inventory-items/${item.salesperson_id}`);
     } else {
       console.log('Item clicked:', item);
@@ -125,6 +112,8 @@ const InventoryItems: React.FC = () => {
     return 'in_stock';
   };
 
+  const isSummaryView = isSummaryResponse;
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex justify-between items-center flex-wrap gap-4">
@@ -159,25 +148,7 @@ const InventoryItems: React.FC = () => {
                 className="!w-80"
               />
             </div>
-            <Select
-              placeholder="Select Sales Person"
-              value={selectedUserId?.toString() || 'all'}
-              onChange={e =>
-                setSelectedUserId(
-                  e.target.value && e.target.value !== 'all'
-                    ? parseInt(e.target.value)
-                    : undefined
-                )
-              }
-              className="!min-w-[200px]"
-            >
-              <MenuItem value="all">All Sales Persons</MenuItem>
-              {users.map((user: any) => (
-                <MenuItem key={user.id} value={user.id.toString()}>
-                  {user.name}
-                </MenuItem>
-              ))}
-            </Select>
+
             <Select
               placeholder="Select Status"
               value={statusFilter}
@@ -269,7 +240,6 @@ const InventoryItems: React.FC = () => {
                     return true;
                   })
                   .map((person: any) => {
-                    const status = getSalespersonStatus(person.total_quantity);
                     return (
                       <div
                         key={person.salesperson_id}
@@ -286,7 +256,7 @@ const InventoryItems: React.FC = () => {
                               {person.salesperson_name?.charAt(0)}
                             </Avatar>
                             <div className="flex flex-col">
-                              <span className="text-gray-700 text-lg font-semibold">
+                              <span className="text-gray-700 text font-semibold">
                                 {person.salesperson_name}
                               </span>
                               <span className="text-gray-500 text-xs">
@@ -294,23 +264,8 @@ const InventoryItems: React.FC = () => {
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center justify-between mb-2">
-                            <Chip
-                              label={status.replace('_', ' ')}
-                              size="small"
-                              variant="outlined"
-                              className="!capitalize !rounded"
-                              color={
-                                status === 'in_stock'
-                                  ? 'success'
-                                  : status === 'low_stock'
-                                    ? 'warning'
-                                    : 'error'
-                              }
-                            />
-                          </div>
                         </div>
-                        <div className="px-4 py-2">
+                        <div className="px-4 pb-2">
                           <div className="flex flex-col gap-3 pt-1">
                             <div className="flex items-center gap-1.5 text-sm">
                               <Package className="!w-4 !h-4 text-blue-500" />
