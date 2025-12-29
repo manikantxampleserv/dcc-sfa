@@ -2701,6 +2701,7 @@ export const vanInventoryController = {
             name: true,
             email: true,
             phone_number: true,
+            profile_image: true,
           },
         });
 
@@ -2846,6 +2847,7 @@ export const vanInventoryController = {
             salesperson_name: salesperson.name,
             salesperson_email: salesperson.email,
             salesperson_phone: salesperson.phone_number,
+            salesperson_profile_image: salesperson.profile_image,
 
             total_van_inventories: uniqueVanInventories.size,
             total_products: products.length,
@@ -2898,6 +2900,7 @@ export const vanInventoryController = {
           name: true,
           email: true,
           phone_number: true,
+          profile_image: true,
         },
       });
 
@@ -2990,6 +2993,7 @@ export const vanInventoryController = {
             salesperson_name: salesperson.name,
             salesperson_email: salesperson.email,
             salesperson_phone: salesperson.phone_number,
+            salesperson_profile_image: salesperson.profile_image,
             total_van_inventories: 0,
             total_products: 0,
             total_quantity: 0,
@@ -3056,6 +3060,7 @@ export const vanInventoryController = {
           salesperson_name: salesperson.name,
           salesperson_email: salesperson.email,
           salesperson_phone: salesperson.phone_number,
+          salesperson_profile_image: salesperson.profile_image,
 
           total_van_inventories: uniqueVanInventories.size,
           total_products: products.length,
