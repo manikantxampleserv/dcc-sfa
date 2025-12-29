@@ -88,6 +88,7 @@ import coolerTypes from '../v1/routes/coolerTypes.routes';
 import coolerSubTypes from '../v1/routes/coolerSubTypes.routes';
 import taxMaster from '../v1/routes/taxMaster.routes';
 import batchLots from '../v1/routes/batchLots.routes';
+import inventoryItemRoutes from '../v1/routes/inventoryItem.routes';
 
 const routes = Router();
 
@@ -179,6 +180,8 @@ routes.use('/v1', coolerTypes);
 routes.use('/v1', coolerSubTypes);
 routes.use('/v1', taxMaster);
 routes.use('/v1', batchLots);
+routes.use('/v1', inventoryItemRoutes);
+
 routes.get('/', (_: any, res: any) => {
   res.json({
     name: 'DCC-SFA API',

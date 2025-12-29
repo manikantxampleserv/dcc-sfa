@@ -1731,29 +1731,30 @@ model sales_targets {
 }
 
 model serial_numbers {
-  id                             Int               @id(map: "PK__serial_n__3213E83FF27AFA1D") @default(autoincrement())
+  id                             Int                   @id(map: "PK__serial_n__3213E83FF27AFA1D") @default(autoincrement())
   product_id                     Int
-  serial_number                  String            @unique(map: "UQ__serial_n__BED14FEECBB93DDA") @db.NVarChar(100)
+  serial_number                  String                @unique(map: "UQ__serial_n__BED14FEECBB93DDA") @db.NVarChar(100)
   batch_id                       Int?
-  status                         String?           @default("available", map: "DF__serial_nu__statu__12FDD1B2") @db.NVarChar(20)
+  status                         String?               @default("available", map: "DF__serial_nu__statu__12FDD1B2") @db.NVarChar(20)
   customer_id                    Int?
   sold_date                      DateTime?
   warranty_expiry                DateTime?
   location_id                    Int?
-  is_active                      String            @default("Y", map: "DF__serial_nu__is_ac__13F1F5EB") @db.Char(1)
-  createdate                     DateTime?         @default(now(), map: "DF__serial_nu__creat__14E61A24") @db.DateTime
+  is_active                      String                @default("Y", map: "DF__serial_nu__is_ac__13F1F5EB") @db.Char(1)
+  createdate                     DateTime?             @default(now(), map: "DF__serial_nu__creat__14E61A24") @db.DateTime
   createdby                      Int
-  updatedate                     DateTime?         @db.DateTime
+  updatedate                     DateTime?             @db.DateTime
   updatedby                      Int?
   log_inst                       Int?
   return_requests_serial_numbers return_requests[]
-  batch_lots                     batch_lots?       @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__batch__16CE6296")
-  depots                         depots?           @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__locat__18B6AB08")
-  serial_numbers_customers       customers?        @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  serial_numbers_products        products          @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  batch_lots                     batch_lots?           @relation(fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__batch__16CE6296")
+  depots                         depots?               @relation(fields: [location_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__serial_nu__locat__18B6AB08")
+  serial_numbers_customers       customers?            @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  serial_numbers_products        products              @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   stock_movements                stock_movements[]
   warranty_claims                warranty_claims[]
-  inventory_stock_serial         inventory_stock[] @relation("SerialToInventory")
+  inventory_stock_serial         inventory_stock[]     @relation("SerialToInventory")
+  van_inventory_serial           van_inventory_items[]
 }
 
 model stock_movements {
@@ -1912,21 +1913,23 @@ model van_inventory {
 }
 
 model van_inventory_items {
-  id                            Int           @id @default(autoincrement())
+  id                            Int             @id @default(autoincrement())
   parent_id                     Int
   product_id                    Int
-  product_name                  String?       @db.NVarChar(255)
-  unit                          String?       @db.NVarChar(50)
+  product_name                  String?         @db.NVarChar(255)
+  unit                          String?         @db.NVarChar(50)
   batch_lot_id                  Int?
-  quantity                      Int           @default(1)
-  unit_price                    Decimal       @default(0) @db.Decimal(18, 2)
-  discount_amount               Decimal?      @default(0) @db.Decimal(18, 2)
-  tax_amount                    Decimal?      @default(0) @db.Decimal(18, 2)
-  total_amount                  Decimal?      @default(0) @db.Decimal(18, 2)
-  notes                         String?       @db.NVarChar(500)
-  van_inventory_items_inventory van_inventory @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  van_inventory_items_products  products      @relation(fields: [product_id], references: [id], onUpdate: NoAction)
-  van_inventory_items_batch_lot batch_lots?   @relation(fields: [batch_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  serial_id                     Int?
+  quantity                      Int             @default(1)
+  unit_price                    Decimal         @default(0) @db.Decimal(18, 2)
+  discount_amount               Decimal?        @default(0) @db.Decimal(18, 2)
+  tax_amount                    Decimal?        @default(0) @db.Decimal(18, 2)
+  total_amount                  Decimal?        @default(0) @db.Decimal(18, 2)
+  notes                         String?         @db.NVarChar(500)
+  van_inventory_items_inventory van_inventory   @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  van_inventory_items_products  products        @relation(fields: [product_id], references: [id], onUpdate: NoAction)
+  van_inventory_serial          serial_numbers? @relation(fields: [serial_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  van_inventory_items_batch_lot batch_lots?     @relation(fields: [batch_lot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model vehicles {

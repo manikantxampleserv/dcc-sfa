@@ -100,10 +100,4 @@ router.post(
   vanInventoryController.getBulkProductBatches
 );
 
-router.get(
-  '/van-inventory-salesperson/:salesperson_id',
-  authenticateToken,
-  vanInventoryController.getSalespersonInventory
-);
-
 export default router;
