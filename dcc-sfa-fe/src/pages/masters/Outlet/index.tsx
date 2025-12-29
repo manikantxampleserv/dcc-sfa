@@ -179,7 +179,9 @@ const OutletsManagement: React.FC = () => {
       label: 'Email',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.email || 'No Email'}
+          {row.email || (
+            <span className="!text-gray-500 !text-xs italic">No Email</span>
+          )}
         </Typography>
       ),
     },
@@ -208,7 +210,9 @@ const OutletsManagement: React.FC = () => {
       label: 'Route',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.customer_routes?.name || 'No Route'}
+          {row.customer_routes?.name || (
+            <span className="!text-gray-500 !text-xs italic">No Route</span>
+          )}
         </Typography>
       ),
     },
@@ -217,7 +221,11 @@ const OutletsManagement: React.FC = () => {
       label: 'Salesperson',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.customer_users?.name || 'No Salesperson'}
+          {row.customer_users?.name || (
+            <span className="!text-gray-500 !text-xs italic">
+              No Salesperson
+            </span>
+          )}
         </Typography>
       ),
     },

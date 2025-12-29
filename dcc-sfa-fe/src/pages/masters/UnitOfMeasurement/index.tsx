@@ -302,8 +302,8 @@ const UnitOfMeasurementPage: React.FC = () => {
                       setPage(1);
                     }}
                     className="!w-32"
+                    placeholder="Select Status"
                   >
-                    <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
                   </Select>

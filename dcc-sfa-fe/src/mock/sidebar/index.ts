@@ -198,6 +198,11 @@ const menuItems: MenuItem[] = [
             href: '/masters/products',
           },
           {
+            id: 'inventory-items',
+            label: 'Inventory Items',
+            href: '/masters/inventory-items',
+          },
+          {
             id: 'batch-lots',
             label: 'Batch & Lot Management',
             href: '/masters/batch-lots',

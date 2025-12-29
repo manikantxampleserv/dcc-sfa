@@ -21,15 +21,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useCustomer } from 'hooks/useCustomers';
-import {
-  CreditCard,
-  FileText,
-  Mail,
-  MapPin,
-  Package,
-  Phone,
-  User,
-} from 'lucide-react';
+import { FileText, Package } from 'lucide-react';
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Table, { type TableColumn } from 'shared/Table';
@@ -143,42 +135,42 @@ const OutletDetail: React.FC = () => {
                 icon={<Inventory />}
                 label="Assets (0)"
                 iconPosition="start"
-                className="!py-0"
+                className="!py-0 !min-h-14"
                 disabled
               />
               <Tab
                 icon={<History />}
                 label="Asset History (0)"
                 iconPosition="start"
-                className="!py-0"
+                className="!py-0 !min-h-14"
                 disabled
               />
               <Tab
                 icon={<Receipt />}
                 label="Transactions (0)"
                 iconPosition="start"
-                className="!py-0"
+                className="!py-0 !min-h-14"
                 disabled
               />
               <Tab
                 icon={<Feedback />}
                 label="Feedbacks (0)"
                 iconPosition="start"
-                className="!py-0"
+                className="!py-0 !min-h-14"
                 disabled
               />
               <Tab
                 icon={<ErrorIcon />}
                 label="Complaints (0)"
                 iconPosition="start"
-                className="!py-0"
+                className="!py-0 !min-h-14"
                 disabled
               />
               <Tab
                 icon={<Description />}
                 label="Attachments (0)"
                 iconPosition="start"
-                className="!py-0"
+                className="!py-0 !min-h-14"
                 disabled
               />
             </Tabs>
@@ -723,85 +715,19 @@ const OutletDetail: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Customer Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Contact Person
-              </p>
-              <p className="text-lg font-bold text-gray-900 mt-1">
-                {customer.contact_person || 'N/A'}
-              </p>
-              <div className="flex items-center text-sm text-gray-500 mt-2">
-                <Phone className="w-3 h-3 mr-1" />
-                {customer.phone_number || 'N/A'}
-              </div>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Location</p>
-              <p className="text-lg font-bold text-gray-900 mt-1">
-                {customer.city || 'N/A'}
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                {customer.state} {customer.zipcode}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Credit Limit</p>
-              <p className="text-lg font-bold text-purple-600 mt-1">
-                {formatCurrency(customer.credit_limit)}
-              </p>
-              <p className="text-sm text-gray-500 mt-2">Available Credit</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <CreditCard className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Outstanding</p>
-              <p className="text-lg font-bold text-red-600 mt-1">
-                {formatCurrency(customer.outstanding_amount)}
-              </p>
-              <p className="text-sm text-gray-500 mt-2">Amount Due</p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <Mail className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-sm border !border-b-none border-gray-200">
         <Box>
-          <Tabs value={tabValue} onChange={handleTabChange}>
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            className="!min-h-14"
+          >
             <Tab
               icon={<Inventory />}
               label={`Assets (${assets.length})`}
               iconPosition="start"
-              className="!py-0"
+              className="!py-0 !min-h-14"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -812,7 +738,7 @@ const OutletDetail: React.FC = () => {
               icon={<History />}
               label={`Asset History (${allAssetHistory.length})`}
               iconPosition="start"
-              className="!py-0"
+              className="!py-0 !min-h-14"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -823,7 +749,7 @@ const OutletDetail: React.FC = () => {
               icon={<Receipt />}
               label={`Transactions (${transactions.length})`}
               iconPosition="start"
-              className="!py-0"
+              className="!py-0 !min-h-14"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -834,7 +760,7 @@ const OutletDetail: React.FC = () => {
               icon={<Feedback />}
               label={`Feedbacks (${feedbacks.length})`}
               iconPosition="start"
-              className="!py-0"
+              className="!py-0 !min-h-14"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -845,7 +771,7 @@ const OutletDetail: React.FC = () => {
               icon={<ErrorIcon />}
               label={`Complaints (${complaints.length})`}
               iconPosition="start"
-              className="!py-0"
+              className="!py-0 !min-h-14"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -856,7 +782,7 @@ const OutletDetail: React.FC = () => {
               icon={<Description />}
               label={`Attachments (${documents.length})`}
               iconPosition="start"
-              className="!py-0"
+              className="!py-0 !min-h-14"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,

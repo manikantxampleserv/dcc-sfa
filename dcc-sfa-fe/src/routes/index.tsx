@@ -101,6 +101,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import SystemSettings from 'pages/settings/SystemSettings';
 import UpdatedPromotionsManagement from 'pages/masters/UpdatedPromotions';
 import UpdatedPromotionDetail from 'pages/masters/UpdatedPromotions/UpdatedPromotionDetail';
+import InventoryItems from 'pages/masters/InvetoryItems';
+import InventoryDetail from 'pages/masters/InvetoryItems/InventoryDetail';
 
 const router = createBrowserRouter(
   [
@@ -408,6 +410,14 @@ const router = createBrowserRouter(
               <ProductWebOrdersManagement />
             </PermissionGuard>
           ),
+        },
+        {
+          path: '/masters/inventory-items',
+          element: <InventoryItems />,
+        },
+        {
+          path: '/masters/inventory-items/:id',
+          element: <InventoryDetail />,
         },
         {
           path: '/masters/tax-master',
