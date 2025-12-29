@@ -2723,7 +2723,7 @@ export const vanInventoryController = {
             where: {
               user_id: salesperson.id,
               is_active: 'Y',
-              status: 'A',
+              // status: 'A',
             },
             select: {
               id: true,
@@ -2877,7 +2877,7 @@ export const vanInventoryController = {
           success: true,
           message: 'All salesperson inventory data retrieved successfully',
           data: paginatedData,
-          overall_summary: {
+          statistics: {
             total_salespersons: consolidatedSalespersons.length,
             total_van_inventories: overallTotalVanInventories.size,
             total_unique_products: overallTotalProducts.size,
@@ -2885,8 +2885,8 @@ export const vanInventoryController = {
             total_batches: overallTotalBatches,
             total_serials: overallTotalSerials,
           },
-          batch_status_breakdown: overallBatchStatusBreakdown,
-          serial_status_breakdown: overallSerialStatusBreakdown,
+          // batch_status_breakdown: overallBatchStatusBreakdown,
+          // serial_status_breakdown: overallSerialStatusBreakdown,
           pagination,
         });
       }
