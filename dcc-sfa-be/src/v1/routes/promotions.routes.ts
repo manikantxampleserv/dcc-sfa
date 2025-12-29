@@ -288,7 +288,7 @@ router.get(
   promotionsNewController.getPromotionsWithVisitsAndOutlets
 );
 router.get(
-  'promotions/active-with-details',
+  '/active-promotions-details',
   promotionsNewController.getActivePromotionsWithDetails
 );
 export default router;
