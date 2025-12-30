@@ -103,6 +103,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
   className,
 }) => {
   const [inputValue, setInputValue] = useState('');
+  const [searchValue, setSearchValue] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedUserData, setSelectedUserData] = useState<User | null>(null);
@@ -119,15 +120,15 @@ const UserSelect: React.FC<UserSelectProps> = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isSelecting) {
-        setDebouncedSearch(inputValue);
-        if (inputValue) {
+        setDebouncedSearch(searchValue);
+        if (searchValue) {
           setHasInitialized(true);
         }
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [inputValue, isSelecting]);
+  }, [searchValue, isSelecting]);
 
   const effectiveSearch = React.useMemo(() => {
     if (hasInitialized || inputValue) {
@@ -293,17 +294,23 @@ const UserSelect: React.FC<UserSelectProps> = ({
 
   const handleInputChange = useCallback(
     (_event: any, newInputValue: string, reason: string) => {
-      if (reason === 'reset' || reason === 'clear') {
-        setIsSelecting(true);
-        setInputValue('');
-        setDebouncedSearch('');
-        setTimeout(() => setIsSelecting(false), 100);
+      if (reason === 'input') {
+        if (!isSelecting) {
+          setInputValue(newInputValue);
+          setSearchValue(newInputValue);
+        } else {
+          setInputValue(newInputValue);
+        }
         return;
       }
 
-      setInputValue(newInputValue);
+      if (reason === 'clear') {
+        setInputValue('');
+        setSearchValue('');
+        setDebouncedSearch('');
+      }
     },
-    []
+    [isSelecting]
   );
 
   return (

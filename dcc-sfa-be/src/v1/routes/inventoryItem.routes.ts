@@ -16,4 +16,15 @@ router.get(
   vanInventoryController.getSalespersonInventory
 );
 
+router.get(
+  '/inventory-items-dropdown/:salesperson_id',
+  authenticateToken,
+  vanInventoryController.getSalespersonInventoryItemsDropdown
+);
+
+router.get(
+  '/inventory-item-salesperson-items/:salesperson_id',
+  authenticateToken,
+  vanInventoryController.getSalespersonInventoryItems
+);
 export default router;

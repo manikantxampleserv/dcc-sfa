@@ -7,7 +7,7 @@ import {
   MdBusiness,
   MdCategory,
   MdDashboard,
-  MdDeliveryDining,
+  // MdDeliveryDining,
   MdFolder,
   MdLocalShipping,
   MdLocationOn,
@@ -289,11 +289,11 @@ const menuItems: MenuItem[] = [
             label: 'Invoice Management',
             href: '/transactions/invoices',
           },
-          {
-            id: 'credit-notes',
-            label: 'Credit Notes',
-            href: '/transactions/credit-notes',
-          },
+          // {
+          //   id: 'credit-notes',
+          //   label: 'Credit Notes',
+          //   href: '/transactions/credit-notes',
+          // },
           {
             id: 'payment-collection',
             label: 'Payment Collection',
@@ -301,23 +301,23 @@ const menuItems: MenuItem[] = [
           },
         ],
       },
-      {
-        id: 'delivery-returns',
-        label: 'Delivery & Returns',
-        icon: MdDeliveryDining,
-        children: [
-          {
-            id: 'delivery-scheduling',
-            label: 'Delivery Scheduling',
-            href: '/transactions/delivery',
-          },
-          {
-            id: 'return-requests',
-            label: 'Return Requests',
-            href: '/transactions/returns',
-          },
-        ],
-      },
+      // {
+      //   id: 'delivery-returns',
+      //   label: 'Delivery & Returns',
+      //   icon: MdDeliveryDining,
+      //   children: [
+      //     {
+      //       id: 'delivery-scheduling',
+      //       label: 'Delivery Scheduling',
+      //       href: '/transactions/delivery',
+      //     },
+      //     {
+      //       id: 'return-requests',
+      //       label: 'Return Requests',
+      //       href: '/transactions/returns',
+      //     },
+      //   ],
+      // },
       {
         id: 'asset-cooler-management',
         label: 'Asset & Cooler Management',

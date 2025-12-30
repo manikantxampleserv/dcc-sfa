@@ -138,7 +138,6 @@ const ManageDeliverySchedule: React.FC<ManageDeliveryScheduleProps> = ({
     }
   };
 
-  // Show all users as potential drivers
   const drivers = users;
 
   return (

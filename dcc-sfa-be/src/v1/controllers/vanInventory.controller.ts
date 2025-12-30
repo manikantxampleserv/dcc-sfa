@@ -628,6 +628,202 @@ async function createOrUpdateSerialNumber(
 }
 
 export const vanInventoryController = {
+  async getSalespersonInventoryItems(req: Request, res: Response) {
+    try {
+      const { salesperson_id } = req.params;
+      const { page, limit, product_id } = req.query;
+      if (!salesperson_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Salesperson ID is required',
+        });
+      }
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 50;
+      const salespersonIdNum = parseInt(salesperson_id as string, 10);
+      const user = await prisma.users.findUnique({
+        where: { id: salespersonIdNum },
+        select: { id: true, name: true, email: true },
+      });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Salesperson not found',
+        });
+      }
+      const vans = await prisma.van_inventory.findMany({
+        where: { user_id: salespersonIdNum, is_active: 'Y' },
+        select: { id: true },
+      });
+      const vanIds = vans.map(v => v.id);
+      if (vanIds.length === 0) {
+        return res.json({
+          success: true,
+          message: 'No inventory items found for salesperson',
+          data: [],
+          pagination: {
+            current_page: pageNum,
+            per_page: limitNum,
+            total_pages: 0,
+            total_count: 0,
+            has_next: false,
+            has_prev: false,
+          },
+        });
+      }
+      const itemsRaw = await prisma.van_inventory_items.findMany({
+        where: {
+          parent_id: { in: vanIds },
+          ...(product_id
+            ? { product_id: parseInt(product_id as string, 10) }
+            : {}),
+        },
+        include: {
+          van_inventory_items_products: {
+            select: { id: true, name: true, code: true, tracking_type: true },
+          },
+          van_inventory_items_batch_lot: {
+            select: {
+              id: true,
+              batch_number: true,
+              lot_number: true,
+              expiry_date: true,
+            },
+          },
+        },
+        orderBy: { id: 'desc' },
+      });
+      const totalCount = itemsRaw.length;
+      const startIndex = (pageNum - 1) * limitNum;
+      const paginated = itemsRaw.slice(startIndex, startIndex + limitNum);
+      const data = paginated.map(it => ({
+        item_id: it.id,
+        van_inventory_id: it.parent_id,
+        product_id: it.product_id,
+        product_name:
+          it.van_inventory_items_products?.name || it.product_name || null,
+        product_code: it.van_inventory_items_products?.code || null,
+        tracking_type: it.van_inventory_items_products?.tracking_type || null,
+        unit: it.unit || null,
+        quantity: it.quantity,
+        unit_price: Number(it.unit_price || 0),
+        discount_amount: Number(it.discount_amount || 0),
+        tax_amount: Number(it.tax_amount || 0),
+        total_amount: Number(it.total_amount || 0),
+        notes: it.notes || null,
+        batch_lot_id: it.batch_lot_id || null,
+        batch: it.van_inventory_items_batch_lot
+          ? {
+              id: it.van_inventory_items_batch_lot.id,
+              batch_number: it.van_inventory_items_batch_lot.batch_number,
+              lot_number: it.van_inventory_items_batch_lot.lot_number,
+              expiry_date: it.van_inventory_items_batch_lot.expiry_date,
+            }
+          : null,
+      }));
+      return res.json({
+        success: true,
+        message: 'Salesperson inventory items fetched successfully',
+        data,
+        pagination: {
+          current_page: pageNum,
+          per_page: limitNum,
+          total_pages: Math.ceil(totalCount / limitNum),
+          total_count: totalCount,
+          has_next: startIndex + limitNum < totalCount,
+          has_prev: startIndex > 0,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Salesperson Inventory Items Error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve salesperson inventory items',
+        error: error.message,
+      });
+    }
+  },
+  async getSalespersonInventoryItemsDropdown(req: Request, res: Response) {
+    try {
+      const { salesperson_id } = req.params;
+      const { search } = req.query;
+      if (!salesperson_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Salesperson ID is required',
+        });
+      }
+      const salespersonIdNum = parseInt(salesperson_id as string, 10);
+      const vans = await prisma.van_inventory.findMany({
+        where: { user_id: salespersonIdNum, is_active: 'Y' },
+        select: { id: true },
+      });
+      const vanIds = vans.map(v => v.id);
+      if (vanIds.length === 0) {
+        return res.json({
+          success: true,
+          message: 'No items found',
+          data: [],
+        });
+      }
+      const items = await prisma.van_inventory_items.findMany({
+        where: { parent_id: { in: vanIds } },
+        include: {
+          van_inventory_items_products: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              base_price: true,
+              tracking_type: true,
+            },
+          },
+        },
+      });
+      const map = new Map<
+        number,
+        {
+          id: number;
+          name: string;
+          code: string;
+          unit_price: number;
+          product_id: number;
+          tracking_type: string | null;
+        }
+      >();
+      items.forEach(it => {
+        const p = it.van_inventory_items_products;
+        if (p) {
+          if (
+            !search ||
+            (p.name &&
+              p.name.toLowerCase().includes((search as string).toLowerCase()))
+          ) {
+            map.set(p.id, {
+              id: it.id,
+              name: p.name || 'N/A',
+              code: p.code || '',
+              unit_price: Number(p.base_price || 0),
+              product_id: p.id,
+              tracking_type: p.tracking_type || null,
+            });
+          }
+        }
+      });
+      return res.json({
+        success: true,
+        message: 'Dropdown items fetched successfully',
+        data: Array.from(map.values()),
+      });
+    } catch (error: any) {
+      console.error('Get Salesperson Inventory Items Dropdown Error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve dropdown items',
+        error: error.message,
+      });
+    }
+  },
   async getAvailableBatches(req: Request, res: Response) {
     try {
       const { productId } = req.params;

@@ -16,6 +16,8 @@ import {
   type CreateVanInventoryItemPayload,
   type UpdateVanInventoryItemPayload,
   type BulkUpdateVanInventoryItemsPayload,
+  fetchSalespersonInventoryItemsDropdown,
+  type SalespersonInventoryItemDropdown,
 } from '../services/masters/VanInventoryItems';
 import { useApiMutation } from './useApiMutation';
 
@@ -24,6 +26,12 @@ export const vanInventoryItemKeys = {
   lists: () => [...vanInventoryItemKeys.all, 'list'] as const,
   list: (vanInventoryId: number) =>
     [...vanInventoryItemKeys.lists(), vanInventoryId] as const,
+};
+
+export const salespersonInventoryItemKeys = {
+  all: ['salesperson-inventory-items-dropdown'] as const,
+  list: (salespersonId: number, search?: string) =>
+    [...salespersonInventoryItemKeys.all, salespersonId, search] as const,
 };
 
 /**
@@ -197,9 +205,27 @@ export const useBulkUpdateVanInventoryItems = (options?: {
   });
 };
 
+/**
+ * Hook to fetch salesperson inventory items dropdown
+ */
+export const useSalespersonInventoryItemsDropdown = (
+  salespersonId: number,
+  search?: string,
+  options?: { enabled?: boolean }
+) => {
+  return useQuery({
+    queryKey: salespersonInventoryItemKeys.list(salespersonId, search),
+    queryFn: () =>
+      fetchSalespersonInventoryItemsDropdown(salespersonId, search),
+    enabled: options?.enabled !== undefined ? options.enabled : !!salespersonId,
+    staleTime: 60 * 1000, // 1 minute
+  });
+};
+
 export type {
   VanInventoryItem,
   CreateVanInventoryItemPayload,
   UpdateVanInventoryItemPayload,
   BulkUpdateVanInventoryItemsPayload,
+  SalespersonInventoryItemDropdown,
 };

@@ -92,6 +92,7 @@ const coolerTypes_routes_1 = __importDefault(require("../v1/routes/coolerTypes.r
 const coolerSubTypes_routes_1 = __importDefault(require("../v1/routes/coolerSubTypes.routes"));
 const taxMaster_routes_1 = __importDefault(require("../v1/routes/taxMaster.routes"));
 const batchLots_routes_1 = __importDefault(require("../v1/routes/batchLots.routes"));
+const inventoryItem_routes_1 = __importDefault(require("../v1/routes/inventoryItem.routes"));
 const routes = (0, express_1.Router)();
 routes.use('/v1', auth_routes_1.default);
 routes.use('/v1', user_routes_1.default);
@@ -181,6 +182,7 @@ routes.use('/v1', coolerTypes_routes_1.default);
 routes.use('/v1', coolerSubTypes_routes_1.default);
 routes.use('/v1', taxMaster_routes_1.default);
 routes.use('/v1', batchLots_routes_1.default);
+routes.use('/v1', inventoryItem_routes_1.default);
 routes.get('/', (_, res) => {
     res.json({
         name: 'DCC-SFA API',

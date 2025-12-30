@@ -1,13 +1,5 @@
-/**
- * @fileoverview Van Inventory Items Service
- * @description API service for managing salesperson inventory items
- * @author DCC-SFA Team
- * @version 1.2.0
- */
-
 import api from 'configs/axio.config';
 
-// Batch information in van entries
 export interface BatchInfo {
   batch_lot_id: number;
   batch_number: string;
@@ -24,7 +16,6 @@ export interface BatchInfo {
   status: 'active' | 'expiring_soon' | 'expired';
 }
 
-// Serial information
 export interface SerialInfo {
   serial_id: number;
   serial_number: string;
@@ -48,7 +39,6 @@ export interface SerialInfo {
   sold_date: string | null;
 }
 
-// Van entry structure
 export interface VanEntry {
   van_inventory_id: number;
   van_inventory_status: string;
@@ -58,7 +48,6 @@ export interface VanEntry {
   batch: BatchInfo | null;
 }
 
-// Product structure for detailed view
 export interface ProductInventory {
   product_id: number;
   product_name: string | null;
@@ -70,7 +59,6 @@ export interface ProductInventory {
   serials: SerialInfo[];
 }
 
-// Salesperson summary (for "all" view)
 export interface SalespersonSummary {
   salesperson_id: number;
   salesperson_name: string;
@@ -84,7 +72,6 @@ export interface SalespersonSummary {
   total_serials: number;
 }
 
-// Detailed salesperson inventory
 export interface SalespersonInventoryData {
   salesperson_id: number;
   salesperson_name: string;
@@ -99,7 +86,6 @@ export interface SalespersonInventoryData {
   products: ProductInventory[];
 }
 
-// Response for all salespersons
 export interface AllSalespersonsResponse {
   success: boolean;
   message: string;
@@ -122,7 +108,6 @@ export interface AllSalespersonsResponse {
   };
 }
 
-// Response for single salesperson
 export interface SingleSalespersonResponse {
   success: boolean;
   message: string;
@@ -146,10 +131,6 @@ export interface GetSalespersonInventoryParams {
   serial_status?: string;
 }
 
-/**
- * Fetch all salespersons inventory summary
- * GET /inventory-item-salesperson
- */
 export const fetchAllSalespersonsInventory = async (
   params?: GetSalespersonInventoryParams
 ): Promise<AllSalespersonsResponse> => {
@@ -178,10 +159,6 @@ export const fetchAllSalespersonsInventory = async (
   return response.data;
 };
 
-/**
- * Fetch single salesperson inventory details
- * GET /inventory-item-salesperson/:salesperson_id
- */
 export const fetchSalespersonInventory = async (
   salespersonId: number,
   params?: GetSalespersonInventoryParams
@@ -206,6 +183,132 @@ export const fetchSalespersonInventory = async (
 
   const qs = queryParams.toString();
   const url = `/inventory-item-salesperson/${salespersonId}${qs ? `?${qs}` : ''}`;
+
+  const response = await api.get(url);
+  return response.data;
+};
+
+import type { ApiResponse } from 'types/api.types';
+
+export interface VanInventoryItem {
+  id: number;
+  parent_id: number;
+  product_id: number;
+  product_name?: string | null;
+  quantity: number;
+  unit_price?: number | string | null;
+  discount_amount?: number | string | null;
+  tax_amount?: number | string | null;
+  total_amount?: number | string | null;
+  notes?: string | null;
+  batch_lot_id?: number | null;
+  batch_number?: string | null;
+  lot_number?: string | null;
+  remaining_quantity?: number | null;
+  total_quantity?: number | null;
+  product_remaining_quantity?: number | null;
+  batch_total_remaining_quantity?: number | null;
+  unit?: string | null;
+  expiry_date?: string | null;
+}
+
+export interface CreateVanInventoryItemPayload {
+  product_id: number;
+  quantity: number;
+  unit_price?: number;
+  discount_amount?: number;
+  tax_amount?: number;
+  total_amount?: number;
+  notes?: string | null;
+  batch_lot_id?: number | null;
+  product_serials?: Array<string | { serial_number: string }>;
+}
+
+export interface UpdateVanInventoryItemPayload {
+  product_id?: number;
+  quantity?: number;
+  unit_price?: number;
+  discount_amount?: number;
+  tax_amount?: number;
+  total_amount?: number;
+  notes?: string | null;
+  batch_lot_id?: number | null;
+  product_serials?: Array<string | { serial_number: string }>;
+}
+
+export interface BulkUpdateVanInventoryItemsPayload {
+  vanInventoryItems: CreateVanInventoryItemPayload[];
+}
+
+export const getVanInventoryItems = async (
+  vanInventoryId: number
+): Promise<ApiResponse<VanInventoryItem[]>> => {
+  const response = await api.get(`/van-inventory/${vanInventoryId}/items`);
+  return response.data;
+};
+
+export const createVanInventoryItem = async (
+  vanInventoryId: number,
+  payload: CreateVanInventoryItemPayload
+): Promise<ApiResponse<VanInventoryItem>> => {
+  const response = await api.post(
+    `/van-inventory/${vanInventoryId}/items`,
+    payload
+  );
+  return response.data;
+};
+
+export const updateVanInventoryItem = async (
+  vanInventoryId: number,
+  itemId: number,
+  payload: UpdateVanInventoryItemPayload
+): Promise<ApiResponse<VanInventoryItem>> => {
+  const response = await api.put(
+    `/van-inventory/${vanInventoryId}/items/${itemId}`,
+    payload
+  );
+  return response.data;
+};
+
+export const deleteVanInventoryItem = async (
+  vanInventoryId: number,
+  itemId: number
+): Promise<ApiResponse<void>> => {
+  const response = await api.delete(
+    `/van-inventory/${vanInventoryId}/items/${itemId}`
+  );
+  return response.data;
+};
+
+export const bulkUpdateVanInventoryItems = async (
+  vanInventoryId: number,
+  payload: BulkUpdateVanInventoryItemsPayload
+): Promise<ApiResponse<VanInventoryItem[]>> => {
+  const response = await api.put(
+    `/van-inventory/${vanInventoryId}/items`,
+    payload
+  );
+  return response.data;
+};
+
+export interface SalespersonInventoryItemDropdown {
+  id: number;
+  product_id: number;
+  name: string;
+  code: string;
+  unit_price: number;
+  tracking_type?: string | null;
+}
+
+export const fetchSalespersonInventoryItemsDropdown = async (
+  salespersonId: number,
+  search?: string
+): Promise<ApiResponse<SalespersonInventoryItemDropdown[]>> => {
+  const queryParams = new URLSearchParams();
+  if (search) queryParams.append('search', search);
+
+  const qs = queryParams.toString();
+  const url = `/inventory-items-dropdown/${salespersonId}${qs ? `?${qs}` : ''}`;
 
   const response = await api.get(url);
   return response.data;

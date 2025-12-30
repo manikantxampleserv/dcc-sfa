@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 export declare const vanInventoryController: {
+    getSalespersonInventoryItems(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
+    getSalespersonInventoryItemsDropdown(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     getAvailableBatches(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     createOrUpdateVanInventory(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getAllVanInventory(req: any, res: any): Promise<void>;
@@ -14,5 +16,6 @@ export declare const vanInventoryController: {
     getProductBatches(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getProductBatchDetails(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getBulkProductBatches(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
+    getSalespersonInventory(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
 };
 //# sourceMappingURL=vanInventory.controller.d.ts.map

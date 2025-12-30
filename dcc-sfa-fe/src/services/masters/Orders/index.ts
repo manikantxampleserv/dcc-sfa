@@ -44,7 +44,6 @@ interface Order {
   updatedby?: number | null;
   log_inst?: number | null;
   currency_id?: number | null;
-  // Related data
   currency?: {
     id: number;
     code: string;

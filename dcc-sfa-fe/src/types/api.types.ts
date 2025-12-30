@@ -38,6 +38,14 @@ export interface ApiResponse<T = any> {
     has_previous: boolean;
   };
   stats?: {
+    // Order statistics
+    total_orders: number;
+    active_orders: number;
+    inactive_orders: number;
+    orders_this_month: number;
+    pending_approval: number;
+    total_value: number;
+    average_order_value: number;
     // Company statistics
     total_companies?: number;
     active_companies?: number;

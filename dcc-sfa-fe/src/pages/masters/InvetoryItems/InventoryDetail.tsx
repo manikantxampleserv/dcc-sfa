@@ -6,6 +6,7 @@ import {
   Tab,
   Tabs,
   Typography,
+  type ChipProps,
 } from '@mui/material';
 import { useInventoryItemById } from 'hooks/useInventoryItems';
 import {
@@ -19,38 +20,22 @@ import {
   Phone,
   TrendingUp,
 } from 'lucide-react';
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from 'shared/Button';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`inventory-tabpanel-${index}`}
-      aria-labelledby={`inventory-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ py: 3, px: 0 }}>{children}</Box>}
-    </div>
-  );
-}
+import type {
+  BatchInfo,
+  ProductInventory,
+  SalespersonInventoryData,
+  SerialInfo,
+} from 'services/masters/VanInventoryItems';
 
 const StatsCardsSkeleton = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
-    {[...Array(4)].map((_, idx) => (
+    {Array.from({ length: 4 }).map((_, idx) => (
       <div
         key={idx}
         className="bg-white shadow-sm rounded-lg border border-gray-100 p-6 flex flex-col gap-4"
@@ -78,7 +63,7 @@ const SalespersonCardSkeleton = () => (
           <Skeleton variant="rectangular" width={64} height={28} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex items-center gap-2">
               <Skeleton variant="circular" width={20} height={20} />
               <Skeleton variant="text" width={90} height={18} />
@@ -93,7 +78,7 @@ const SalespersonCardSkeleton = () => (
 const TabsSkeleton = () => (
   <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
     <div className="flex gap-2">
-      {[1, 2, 3].map(i => (
+      {Array.from({ length: 3 }).map((_, i) => (
         <Skeleton
           key={i}
           variant="rectangular"
@@ -108,7 +93,7 @@ const TabsSkeleton = () => (
 
 const ProductsTabSkeleton = () => (
   <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-    {[...Array(6)].map((_, idx) => (
+    {Array.from({ length: 6 }).map((_, idx) => (
       <div
         key={idx}
         className="bg-white shadow-sm rounded-lg border border-gray-100 p-4 flex flex-col"
@@ -129,7 +114,7 @@ const ProductsTabSkeleton = () => (
           />
         </div>
         <div className="space-y-1 pb-3 px-2">
-          {[...Array(5)].map((_, j) => (
+          {Array.from({ length: 5 }).map((_, j) => (
             <div className="flex items-center justify-between my-1" key={j}>
               <Skeleton variant="text" width={100} height={17} />
               <Skeleton variant="text" width={32} height={17} />
@@ -156,14 +141,14 @@ const TableSkeleton = ({
 }) => (
   <div className="bg-white rounded-lg border border-gray-100 shadow-sm px-1 py-3 w-full mb-3">
     <div className="flex gap-2 mb-2">
-      {[...Array(columns)].map((_, ci) => (
+      {Array.from({ length: columns }).map((_, ci) => (
         <Skeleton key={ci} width={90} height={18} sx={{ borderRadius: 2 }} />
       ))}
     </div>
     <div className="flex flex-col gap-2">
-      {[...Array(rows)].map((_, ri) => (
+      {Array.from({ length: rows }).map((_, ri) => (
         <div key={ri} className="flex gap-2">
-          {[...Array(columns)].map((_, ci) => (
+          {Array.from({ length: columns }).map((_, ci) => (
             <Skeleton
               key={ci}
               width={90}
@@ -177,27 +162,69 @@ const TableSkeleton = ({
   </div>
 );
 
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+function TabPanel({ children, value, index, ...other }: TabPanelProps) {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`inventory-tabpanel-${index}`}
+      aria-labelledby={`inventory-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ py: 3, px: 0 }}>{children}</Box>}
+    </div>
+  );
+}
+
+const getStatusColor = (status: string): ChipProps['color'] => {
+  switch (status) {
+    case 'active':
+      return 'success';
+    case 'expiring_soon':
+      return 'warning';
+    case 'expired':
+      return 'error';
+    default:
+      return 'default';
+  }
+};
+
+const getStockStatus = (quantity: number) => {
+  if (quantity === 0)
+    return { status: 'out_of_stock', color: 'error', label: 'Out of Stock' };
+  if (quantity <= 10)
+    return { status: 'low_stock', color: 'warning', label: 'Low Stock' };
+  return { status: 'in_stock', color: 'success', label: 'In Stock' };
+};
+
 const InventoryDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [tabValue, setTabValue] = React.useState(0);
+  const [tabValue, setTabValue] = useState(0);
 
-  const salespersonId = id ? parseInt(id) : undefined;
+  const inventoryId = id ? Number(id) : undefined;
   const {
     data: inventoryData,
     isLoading,
     error,
-  } = useInventoryItemById(salespersonId!, {
-    enabled: !!salespersonId,
+  } = useInventoryItemById(inventoryId as number, {
+    enabled: inventoryId !== undefined,
   });
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
+  const handleTabChange = useCallback(
+    (_: React.SyntheticEvent, newValue: number) => setTabValue(newValue),
+    []
+  );
 
-  const handleBack = () => {
-    navigate('/masters/inventory-items');
-  };
+  const handleBack = useCallback(
+    () => navigate('/masters/inventory-items'),
+    [navigate]
+  );
 
   if (isLoading) {
     return (
@@ -216,13 +243,9 @@ const InventoryDetail: React.FC = () => {
             sx={{ borderRadius: 26 }}
           />
         </div>
-
         <SalespersonCardSkeleton />
-
         <StatsCardsSkeleton />
-
         <TabsSkeleton />
-
         {tabValue === 0 && <ProductsTabSkeleton />}
         {tabValue === 1 && <TableSkeleton columns={7} rows={7} />}
         {tabValue === 2 && <TableSkeleton columns={5} rows={7} />}
@@ -246,45 +269,37 @@ const InventoryDetail: React.FC = () => {
     );
   }
 
-  const salespersonData = inventoryData.data;
-  const products = salespersonData.products || [];
+  const salespersonData = inventoryData.data as SalespersonInventoryData;
+  const products: ProductInventory[] = useMemo(() => {
+    return (
+      salespersonData.products?.map(product => ({
+        ...product,
+        product_name: product.product_name ?? '',
+      })) ?? []
+    );
+  }, [salespersonData.products]);
 
-  const batchRows = products.flatMap(
-    (product: any) =>
-      product.batches?.map((batch: any) => ({
-        ...batch,
-        product_id: product.product_id,
-      })) || []
-  );
+  const batchRows: Array<BatchInfo & { product_id: number | string }> =
+    useMemo(() => {
+      return products.flatMap(product =>
+        (product.batches ?? []).map(batch => ({
+          ...batch,
+          product_id: product.product_id,
+        }))
+      );
+    }, [products]);
 
-  const serialRows = products.flatMap(
-    (product: any) =>
-      product.serials?.map((serial: any) => ({
-        ...serial,
-        product_id: product.product_id,
-      })) || []
-  );
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'success';
-      case 'expiring_soon':
-        return 'warning';
-      case 'expired':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStockStatus = (quantity: number) => {
-    if (quantity === 0)
-      return { status: 'out_of_stock', color: 'error', label: 'Out of Stock' };
-    if (quantity <= 10)
-      return { status: 'low_stock', color: 'warning', label: 'Low Stock' };
-    return { status: 'in_stock', color: 'success', label: 'In Stock' };
-  };
+  const serialRows: Array<SerialInfo & { product_id: number | string }> =
+    useMemo(() => {
+      return products.flatMap(product =>
+        (product.serials ?? []).map(serial => ({
+          ...serial,
+          product_id: product.product_id,
+          warranty_expiry: serial.warranty_expiry ?? null,
+          customer: serial.customer,
+        }))
+      );
+    }, [products]);
 
   return (
     <div className="flex flex-col">
@@ -292,7 +307,7 @@ const InventoryDetail: React.FC = () => {
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">
-              {salespersonData.salesperson_name}'s Inventory
+              {salespersonData.salesperson_name}&apos;s Inventory
             </h1>
             <p className="text-gray-500 text-sm">
               Detailed view of all inventory items and stock levels
@@ -317,12 +332,12 @@ const InventoryDetail: React.FC = () => {
             {salespersonData.salesperson_name?.charAt(0)}
           </Avatar>
           <div className="flex-1">
-            <div className="flex items-start gap-4 mb-4 justify-between ">
+            <div className="flex items-start gap-4 mb-2 justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">
                   {salespersonData.salesperson_name}
                 </h2>
-                <p className="text-gray-500">Sales Representative</p>
+                <p className="text-gray-500 text-sm">Sales Representative</p>
               </div>
               <Chip
                 label="Active"
@@ -390,7 +405,7 @@ const InventoryDetail: React.FC = () => {
 
       <TabPanel value={tabValue} index={0}>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-          {products.map((product: any) => {
+          {products.map(product => {
             const stockStatus = getStockStatus(product.total_quantity);
             return (
               <div
@@ -406,7 +421,7 @@ const InventoryDetail: React.FC = () => {
                       {product.product_name?.charAt(0) || 'P'}
                     </Avatar>
                     <div>
-                      <h3 className="font-semibold text-gray-900 text-sm truncate w-full text-ellipsis max-w-[90%]">
+                      <h3 className="font-semibold text-gray-900 text-sm">
                         {product.product_name || 'Unknown Product'}
                       </h3>
                       <p className="text-xs text-gray-500 truncate text-ellipsis w-[90%]">
@@ -417,11 +432,10 @@ const InventoryDetail: React.FC = () => {
                   <Chip
                     label={stockStatus.label}
                     size="small"
-                    color={stockStatus.color as any}
+                    color={stockStatus.color as ChipProps['color']}
                     variant="outlined"
                   />
                 </div>
-
                 <div className="space-y-1 pb-3 px-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">
@@ -458,7 +472,6 @@ const InventoryDetail: React.FC = () => {
                     </span>
                   </div>
                 </div>
-
                 {product.total_quantity > 0 && product.total_quantity <= 10 && (
                   <div className="border-t border-gray-100 p-3">
                     <div className="flex items-center gap-2 text-orange-600 text-sm">
@@ -474,7 +487,7 @@ const InventoryDetail: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <Table
+        <Table<BatchInfo & { product_id: number | string }>
           data={batchRows}
           columns={
             [
@@ -492,7 +505,8 @@ const InventoryDetail: React.FC = () => {
                 id: 'supplier_name',
                 label: 'Supplier',
                 sortable: true,
-                render: value => (value ? String(value) : 'N/A'),
+                render: (value: string | undefined) =>
+                  value ? String(value) : 'N/A',
               },
               {
                 id: 'total_quantity',
@@ -508,32 +522,35 @@ const InventoryDetail: React.FC = () => {
                 id: 'expiry_date',
                 label: 'Expiry Date',
                 sortable: true,
-                render: value => (value ? formatDate(value) : 'N/A'),
+                render: (value: string | undefined) =>
+                  value ? formatDate(value) : 'N/A',
               },
               {
                 id: 'status',
                 label: 'Status',
                 sortable: true,
-                render: value => (
+                render: (value: string) => (
                   <Chip
                     label={String(value || '').replace('_', ' ')}
                     size="small"
-                    color={getStatusColor(String(value)) as any}
+                    color={getStatusColor(String(value)) as ChipProps['color']}
                     variant="outlined"
                     className="!capitalize"
                   />
                 ),
               },
-            ] as TableColumn<any>[]
+            ] as TableColumn<BatchInfo & { product_id: number | string }>[]
           }
-          getRowId={(row: any) => `${row.batch_lot_id}-${row.product_id}`}
+          getRowId={(row: BatchInfo & { product_id: number | string }) =>
+            `${row.batch_lot_id}-${row.product_id}`
+          }
           pagination={false}
           emptyMessage="No batches found"
         />
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>
-        <Table
+        <Table<SerialInfo & { product_id: number | string }>
           data={serialRows}
           columns={
             [
@@ -541,7 +558,7 @@ const InventoryDetail: React.FC = () => {
                 id: 'serial_number',
                 label: 'Serial Number',
                 sortable: true,
-                render: value => (
+                render: (value: string) => (
                   <span className="font-mono text-sm">
                     {value ? String(value) : 'N/A'}
                   </span>
@@ -551,7 +568,7 @@ const InventoryDetail: React.FC = () => {
                 id: 'status',
                 label: 'Status',
                 sortable: true,
-                render: value => (
+                render: (value: string) => (
                   <Chip
                     label={value ? String(value)?.replace('_', ' ') : 'N/A'}
                     size="small"
@@ -564,13 +581,14 @@ const InventoryDetail: React.FC = () => {
                 id: 'warranty_expiry',
                 label: 'Warranty Expiry',
                 sortable: true,
-                render: value => (value ? formatDate(value) : 'N/A'),
+                render: (value: string | undefined) =>
+                  value ? formatDate(value) : 'N/A',
               },
               {
                 id: 'customer',
                 label: 'Customer',
                 sortable: false,
-                render: (_value, row) =>
+                render: (_value: SerialInfo['customer'] | null, row) =>
                   row.customer
                     ? `${row.customer.name} (${row.customer.code})`
                     : 'N/A',
@@ -579,11 +597,12 @@ const InventoryDetail: React.FC = () => {
                 id: 'sold_date',
                 label: 'Sold Date',
                 sortable: true,
-                render: value => (value ? formatDate(value) : 'Not Sold'),
+                render: (value: string | undefined) =>
+                  value ? formatDate(value) : 'Not Sold',
               },
-            ] as TableColumn<any>[]
+            ] as TableColumn<SerialInfo & { product_id: number | string }>[]
           }
-          getRowId={(row: any) => row.serial_id}
+          getRowId={(row: SerialInfo) => row.serial_id}
           pagination={false}
           emptyMessage="No serial numbers found"
         />

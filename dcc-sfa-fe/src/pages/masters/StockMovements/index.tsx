@@ -1,12 +1,12 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import {
   useDeleteStockMovement,
   useStockMovements,
   type StockMovement,
 } from 'hooks/useStockMovements';
-import { usePermission } from 'hooks/usePermission';
 import { ArrowDown, ArrowRightLeft, ArrowUp, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -17,6 +17,7 @@ import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
+import { formatLabel } from 'utils/stringUtils';
 import ImportStockMovement from './ImportStockMovement';
 import ManageStockMovement from './ManageStockMovement';
 
@@ -137,20 +138,6 @@ const StockMovementsManagement: React.FC = () => {
     }
   };
 
-  const getMovementTypeLabel = (type: string) => {
-    switch (type?.toUpperCase()) {
-      case 'IN':
-        return 'Stock In';
-      case 'OUT':
-        return 'Stock Out';
-      case 'TRANSFER':
-        return 'Transfer';
-      default:
-        return type || 'Unknown';
-    }
-  };
-
-  // Define table columns
   const movementColumns: TableColumn<StockMovement>[] = [
     {
       id: 'movement_type',
@@ -169,14 +156,14 @@ const StockMovementsManagement: React.FC = () => {
               variant="body1"
               className="!text-gray-900 !leading-tight !font-medium"
             >
-              {getMovementTypeLabel(row.movement_type)}
+              {formatLabel(row.movement_type)}
             </Typography>
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
               {row.reference_type
-                ? `${row.reference_type} #${row.reference_id}`
+                ? `${formatLabel(row.reference_type)} #${String(row.reference_id)}`
                 : 'Direct Movement'}
             </Typography>
           </Box>
@@ -240,29 +227,6 @@ const StockMovementsManagement: React.FC = () => {
           {!row.from_location && !row.to_location && (
             <Typography variant="caption" className="!text-gray-400 !italic">
               No location specified
-            </Typography>
-          )}
-        </Box>
-      ),
-    },
-    {
-      id: 'batch_serial',
-      label: 'Batch/Serial',
-      render: (_value, row) => (
-        <Box>
-          {row.batch_id && (
-            <Typography variant="caption" className="!text-gray-600 !block">
-              Batch: {row.batch_id}
-            </Typography>
-          )}
-          {row.serial_id && (
-            <Typography variant="caption" className="!text-gray-600 !block">
-              Serial: {row.serial_id}
-            </Typography>
-          )}
-          {!row.batch_id && !row.serial_id && (
-            <Typography variant="caption" className="!text-gray-400 !italic">
-              No batch/serial
             </Typography>
           )}
         </Box>

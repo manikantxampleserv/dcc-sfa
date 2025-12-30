@@ -1,17 +1,25 @@
-import { Box, MenuItem, Typography } from '@mui/material';
+import { Close, Tag } from '@mui/icons-material';
+import { Box, Dialog, Divider, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
 import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
+import {
+  useInventoryItemById,
+  type SalespersonInventoryData,
+} from 'hooks/useInventoryItems';
+import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
 import { Package, Plus } from 'lucide-react';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
 import { orderValidationSchema } from 'schemas/order.schema';
 import type { Order } from 'services/masters/Orders';
-import { DeleteButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import ProductSelect from 'shared/ProductSelect';
+import SalesItemsSelect from 'shared/SalesItemsSelect';
+import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
@@ -24,18 +32,692 @@ interface ManageOrderProps {
 
 interface OrderItemFormData {
   product_id: number | '';
+  tracking_type?: string | null;
   quantity: string;
   unit_price: string;
-  discount_amount: string;
-  tax_amount: string;
   notes: string;
+  product_batches?: ProductBatch[];
+  product_serials?: ProductSerial[];
 }
+
+interface ManageOrderBatchProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  selectedRowIndex: number | null;
+  setSelectedRowIndex: (rowIndex: number | null) => void;
+  orderItems: OrderItemFormData[];
+  setOrderItems: (items: OrderItemFormData[]) => void;
+  quantity: number | string | null;
+  inventoryByProductId?: Record<
+    number,
+    { batches: ProductBatch[]; serials: ProductSerial[] }
+  >;
+}
+
+const INITIAL_BATCH: ProductBatch = {
+  batch_number: '',
+  lot_number: '',
+  manufacturing_date: '',
+  expiry_date: '',
+  quantity: null,
+};
+
+const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
+  isOpen,
+  setIsOpen,
+  selectedRowIndex,
+  setSelectedRowIndex,
+  orderItems,
+  setOrderItems,
+  quantity = null,
+  inventoryByProductId,
+}) => {
+  const [productBatches, setProductBatches] = React.useState<ProductBatch[]>(
+    []
+  );
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  React.useEffect(() => {
+    if (selectedRowIndex === null) {
+      return;
+    }
+
+    const item = orderItems[selectedRowIndex];
+
+    if (!item) {
+      setProductBatches([]);
+      return;
+    }
+
+    const existing = (item.product_batches as ProductBatch[] | undefined) || [];
+
+    if (existing.length > 0) {
+      setProductBatches(existing);
+      return;
+    }
+
+    const productId =
+      typeof item.product_id === 'number' ? item.product_id : null;
+
+    if (
+      productId &&
+      inventoryByProductId &&
+      inventoryByProductId[productId] &&
+      inventoryByProductId[productId].batches.length > 0
+    ) {
+      const initialBatches = inventoryByProductId[productId].batches.map(
+        batch => ({
+          ...batch,
+          quantity:
+            batch.quantity !== null && batch.quantity !== undefined
+              ? batch.quantity
+              : 0,
+        })
+      );
+      setProductBatches(initialBatches);
+      return;
+    }
+
+    setProductBatches([]);
+  }, [selectedRowIndex, orderItems, inventoryByProductId]);
+
+  const handleClose = React.useCallback(() => {
+    setIsOpen(false);
+    setProductBatches([]);
+    setSelectedRowIndex(null);
+    setSearchQuery('');
+  }, [setIsOpen, setSelectedRowIndex]);
+
+  const handleDelete = React.useCallback((rowIndex: number) => {
+    setProductBatches(prev => prev.filter((_, index) => index !== rowIndex));
+  }, []);
+
+  const handleBatchChange = React.useCallback(
+    (field: keyof ProductBatch, rowIndex: number, value: string | number) => {
+      setProductBatches(prev => {
+        const updated = [...prev];
+        if (field === 'quantity') {
+          const mainItemQuantity = Number(quantity);
+          const hasExpectedQty =
+            Number.isFinite(mainItemQuantity) && mainItemQuantity > 0;
+          const otherQty = updated.reduce((sum, batch, index) => {
+            if (index === rowIndex) return sum;
+            return sum + (Number(batch.quantity) || 0);
+          }, 0);
+          const maxAllowed = hasExpectedQty
+            ? Math.max(0, mainItemQuantity - otherQty)
+            : Number.POSITIVE_INFINITY;
+          const raw = Number(value);
+          const normalized = Number.isFinite(raw) ? raw : 0;
+          const nextQty = Math.min(Math.max(0, normalized), maxAllowed);
+          updated[rowIndex] = {
+            ...updated[rowIndex],
+            quantity: nextQty,
+          };
+
+          return updated;
+        }
+
+        updated[rowIndex] = {
+          ...updated[rowIndex],
+          [field]: value,
+        };
+        return updated;
+      });
+    },
+    [quantity]
+  );
+
+  const handleAddBatch = React.useCallback(() => {
+    setProductBatches(prev => [...prev, { ...INITIAL_BATCH }]);
+  }, []);
+
+  const handleSubmit = React.useCallback(() => {
+    if (selectedRowIndex === null) return;
+
+    const item = orderItems[selectedRowIndex];
+    const mainItemQuantity = Number(item?.quantity);
+    const expectedQty =
+      Number.isFinite(mainItemQuantity) && mainItemQuantity > 0;
+    const totalQty = productBatches.reduce(
+      (sum, b) => sum + (Number(b.quantity) || 0),
+      0
+    );
+
+    if (expectedQty && totalQty > mainItemQuantity) {
+      toast.error(
+        `Total batch quantity (${totalQty}) cannot exceed item quantity (${mainItemQuantity})`
+      );
+      return;
+    }
+
+    const missingIndex = productBatches.findIndex(b => {
+      const batchNumber = (b.batch_number || '').trim();
+      const mfg = (b.manufacturing_date || '').trim();
+      const exp = (b.expiry_date || '').trim();
+      const qty = Number(b.quantity);
+      return !batchNumber || !mfg || !exp || !Number.isFinite(qty) || qty <= 0;
+    });
+
+    if (missingIndex !== -1) {
+      toast.error(
+        `Please fill Batch Number, MFG Date, EXP Date and Quantity (> 0) for row ${missingIndex + 1}.`
+      );
+      return;
+    }
+
+    const seen = new Set<string>();
+    const duplicateIndex = productBatches.findIndex(b => {
+      const key = `${(b.batch_number || '')
+        .trim()
+        .toLowerCase()}|${(b.lot_number || '').trim().toLowerCase()}`;
+      if (seen.has(key)) return true;
+      seen.add(key);
+      return false;
+    });
+
+    if (duplicateIndex !== -1) {
+      toast.error(`Duplicate batch entry found at row ${duplicateIndex + 1}.`);
+      return;
+    }
+
+    const updatedItems = [...orderItems];
+    updatedItems[selectedRowIndex] = {
+      ...updatedItems[selectedRowIndex],
+      product_batches: productBatches.map(b => ({
+        ...b,
+        batch_number: (b.batch_number || '').trim(),
+        lot_number: (b.lot_number || '').trim(),
+        quantity: Number(b.quantity) || 0,
+        manufacturing_date: (b.manufacturing_date || '').trim(),
+        expiry_date: (b.expiry_date || '').trim(),
+      })),
+    };
+    setOrderItems(updatedItems);
+    handleClose();
+  }, [
+    selectedRowIndex,
+    productBatches,
+    orderItems,
+    setOrderItems,
+    handleClose,
+  ]);
+
+  const filteredBatches = React.useMemo(() => {
+    if (!searchQuery.trim()) return productBatches;
+    const query = searchQuery.toLowerCase();
+    return productBatches?.filter(
+      batch =>
+        batch.batch_number?.toLowerCase().includes(query) ||
+        batch.lot_number?.toLowerCase().includes(query)
+    );
+  }, [productBatches, searchQuery]);
+
+  const isFormValid = React.useMemo(() => {
+    if (selectedRowIndex === null) return false;
+
+    const item = orderItems[selectedRowIndex];
+    const mainItemQuantity = Number(item?.quantity);
+    const hasExpectedQty =
+      Number.isFinite(mainItemQuantity) && mainItemQuantity > 0;
+
+    const totalQty = productBatches.reduce(
+      (sum, b) => sum + (Number(b.quantity) || 0),
+      0
+    );
+
+    if (hasExpectedQty) {
+      if (totalQty !== mainItemQuantity) return false;
+    } else {
+      if (productBatches.length === 0) return false;
+    }
+
+    const hasMissing = productBatches.some(b => {
+      const batchNumber = (b.batch_number || '').trim();
+      const mfg = (b.manufacturing_date || '').trim();
+      const exp = (b.expiry_date || '').trim();
+      const qty = Number(b.quantity);
+      return !batchNumber || !mfg || !exp || !Number.isFinite(qty) || qty <= 0;
+    });
+    if (hasMissing) return false;
+
+    const seen = new Set<string>();
+    for (const b of productBatches) {
+      const key = `${(b.batch_number || '')
+        .trim()
+        .toLowerCase()}|${(b.lot_number || '').trim().toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+    }
+
+    return true;
+  }, [selectedRowIndex, productBatches, orderItems]);
+
+  const columns: TableColumn<ProductBatch>[] = React.useMemo(
+    () => [
+      {
+        id: 'batch_number',
+        label: 'Batch Number',
+        render: (_value, row, rowIndex) => (
+          <Input
+            value={row.batch_number}
+            onChange={e =>
+              handleBatchChange('batch_number', rowIndex, e.target.value)
+            }
+            size="small"
+            className="!w-52"
+            placeholder="Enter batch number"
+            fullWidth
+          />
+        ),
+      },
+      {
+        id: 'manufacturing_date',
+        label: 'MFG Date',
+        render: (_value, row, rowIndex) => (
+          <Input
+            type="date"
+            value={row.manufacturing_date}
+            onChange={e =>
+              handleBatchChange('manufacturing_date', rowIndex, e.target.value)
+            }
+            className="!w-52"
+            size="small"
+            placeholder="Enter manufacturing date"
+          />
+        ),
+      },
+      {
+        id: 'expiry_date',
+        label: 'EXP Date',
+        render: (_value, row, rowIndex) => (
+          <Input
+            type="date"
+            value={row.expiry_date}
+            onChange={e =>
+              handleBatchChange('expiry_date', rowIndex, e.target.value)
+            }
+            className="!w-52"
+            size="small"
+            placeholder="Enter expiry date"
+          />
+        ),
+      },
+      {
+        id: 'quantity',
+        label: 'Quantity',
+        render: (_value, row, rowIndex) => (
+          <Input
+            type="number"
+            value={row.quantity}
+            onChange={e =>
+              handleBatchChange('quantity', rowIndex, e.target.value)
+            }
+            size="small"
+            className="!w-32"
+            placeholder="Enter quantity"
+            fullWidth
+            inputProps={{ min: 0 }}
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        label: 'Actions',
+        render: (_value, row, rowIndex) => (
+          <DeleteButton
+            onClick={() => handleDelete(rowIndex)}
+            tooltip={`Delete ${row.batch_number || 'batch'}`}
+            itemName={row.batch_number || 'batch'}
+            confirmDelete
+          />
+        ),
+      },
+    ],
+    [handleBatchChange, handleDelete]
+  );
+
+  return (
+    <Dialog
+      open={isOpen}
+      onClose={handleClose}
+      slotProps={{
+        paper: {
+          className: '!min-w-[60%] !max-w-[60%]',
+        },
+      }}
+    >
+      <div className="flex justify-between items-center !p-2">
+        <p className="!font-semibold text-lg !text-gray-900">
+          Batch Information ({quantity})
+        </p>
+        <ActionButton
+          icon={<Close />}
+          onClick={handleClose}
+          size="small"
+          aria-label="Close dialog"
+        />
+      </div>
+      <Divider />
+      <Box className="!p-2 min-h-[40vh]">
+        <div className="flex justify-between items-center pb-2">
+          <SearchInput
+            placeholder="Search Batch"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e)}
+          />
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Plus size={16} />}
+            onClick={handleAddBatch}
+          >
+            Add Batch
+          </Button>
+        </div>
+        <Table
+          stickyHeader
+          maxHeight="50vh"
+          columns={columns}
+          data={filteredBatches}
+          compact
+          pagination={false}
+          sortable={false}
+        />
+      </Box>
+      <Box className="!p-2 !flex !justify-end !border-t gap-2 !border-gray-300">
+        <Button variant="outlined" color="info" onClick={handleClose}>
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={!isFormValid}
+        >
+          Update
+        </Button>
+      </Box>
+    </Dialog>
+  );
+};
+
+interface ManageOrderSerialProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  selectedRowIndex: number | null;
+  setSelectedRowIndex: (rowIndex: number | null) => void;
+  orderItems: OrderItemFormData[];
+  setOrderItems: (items: OrderItemFormData[]) => void;
+  quantity: number | string | null;
+  inventoryByProductId?: Record<
+    number,
+    { batches: ProductBatch[]; serials: ProductSerial[] }
+  >;
+}
+
+const INITIAL_SERIAL: ProductSerial = {
+  serial_number: '',
+  quantity: 1,
+  product_id: 0,
+};
+
+const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
+  isOpen,
+  setIsOpen,
+  selectedRowIndex,
+  setSelectedRowIndex,
+  orderItems,
+  setOrderItems,
+  quantity = null,
+  inventoryByProductId,
+}) => {
+  const [productSerials, setProductSerials] = React.useState<ProductSerial[]>(
+    []
+  );
+
+  React.useEffect(() => {
+    if (!isOpen || selectedRowIndex === null) return;
+
+    const item = orderItems[selectedRowIndex];
+    if (!item) return;
+
+    let rawSerials = (item.product_serials || []) as ProductSerial[];
+
+    if (
+      rawSerials.length === 0 &&
+      inventoryByProductId &&
+      typeof item.product_id === 'number'
+    ) {
+      const inventoryEntry = inventoryByProductId[item.product_id];
+      if (inventoryEntry && inventoryEntry.serials.length > 0) {
+        rawSerials = inventoryEntry.serials;
+      }
+    }
+
+    const qty = Number(quantity);
+    const desiredCount =
+      Number.isFinite(qty) && qty > 0 ? qty : rawSerials.length;
+
+    const normalizedSerials: ProductSerial[] = Array.from(
+      { length: desiredCount },
+      (_unused, index) => {
+        const existing = rawSerials[index];
+        return {
+          ...INITIAL_SERIAL,
+          ...(existing || {}),
+          product_id: Number(item.product_id || 0),
+          quantity: 1,
+          serial_number: existing?.serial_number || '',
+        };
+      }
+    );
+
+    setProductSerials(normalizedSerials);
+  }, [isOpen, selectedRowIndex, orderItems, quantity, inventoryByProductId]);
+
+  const handleClose = React.useCallback(() => {
+    setIsOpen(false);
+    setProductSerials([]);
+    setSelectedRowIndex(null);
+  }, [setIsOpen, setSelectedRowIndex]);
+
+  const handleSerialChange = React.useCallback(
+    (field: keyof ProductSerial, rowIndex: number, value: string | number) => {
+      setProductSerials(prev => {
+        const updated = [...prev];
+        updated[rowIndex] = {
+          ...updated[rowIndex],
+          [field]: field === 'quantity' ? Number(value) || 0 : value,
+        };
+        return updated;
+      });
+    },
+    []
+  );
+
+  const isFormValid = React.useMemo(() => {
+    if (selectedRowIndex === null) return false;
+
+    const expectedCount = Number(quantity);
+    const hasExpectedCount =
+      Number.isFinite(expectedCount) && expectedCount > 0;
+
+    if (hasExpectedCount) {
+      if (productSerials.length !== expectedCount) return false;
+    } else {
+      if (productSerials.length === 0) return false;
+    }
+
+    const trimmedSerials = productSerials.map(s =>
+      (s.serial_number || '').trim()
+    );
+    if (trimmedSerials.some(s => s.length === 0)) return false;
+
+    const seen = new Set<string>();
+    for (const s of trimmedSerials) {
+      const key = s.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+    }
+
+    return true;
+  }, [selectedRowIndex, productSerials, quantity]);
+
+  const handleSubmit = React.useCallback(() => {
+    if (selectedRowIndex === null) return;
+
+    const expectedCount = Number(quantity);
+    if (Number.isFinite(expectedCount) && expectedCount > 0) {
+      if (productSerials.length !== expectedCount) {
+        toast.error(
+          `Serial count (${productSerials.length}) must match item quantity (${expectedCount}).`
+        );
+        return;
+      }
+    }
+
+    const trimmedSerials = productSerials.map(s =>
+      (s.serial_number || '').trim()
+    );
+    const missingIndex = trimmedSerials.findIndex(s => s.length === 0);
+    if (missingIndex !== -1) {
+      toast.error(`Serial number is required for row ${missingIndex + 1}.`);
+      return;
+    }
+
+    const seen = new Set<string>();
+    const duplicateIndex = trimmedSerials.findIndex(s => {
+      const key = s.toLowerCase();
+      if (seen.has(key)) return true;
+      seen.add(key);
+      return false;
+    });
+    if (duplicateIndex !== -1) {
+      toast.error(
+        `Duplicate serial number found: ${trimmedSerials[duplicateIndex]}`
+      );
+      return;
+    }
+
+    const updatedItems = [...orderItems];
+    updatedItems[selectedRowIndex] = {
+      ...updatedItems[selectedRowIndex],
+      product_serials: productSerials.map(s => ({
+        ...s,
+        serial_number: (s.serial_number || '').trim(),
+        quantity: 1,
+      })),
+    };
+    setOrderItems(updatedItems);
+    handleClose();
+  }, [
+    selectedRowIndex,
+    productSerials,
+    orderItems,
+    setOrderItems,
+    handleClose,
+    quantity,
+  ]);
+
+  const columns: TableColumn<ProductSerial>[] = React.useMemo(
+    () => [
+      {
+        id: 'serial_number',
+        label: 'Serial Number',
+        render: (_value, row, rowIndex) => (
+          <Input
+            value={row.serial_number}
+            onChange={e =>
+              handleSerialChange('serial_number', rowIndex, e.target.value)
+            }
+            size="small"
+            placeholder="Enter serial number"
+            fullWidth
+          />
+        ),
+      },
+      {
+        id: 'quantity',
+        label: 'Quantity',
+        render: (_value, _row, _rowIndex) => (
+          <Input
+            type="number"
+            value={_row.quantity}
+            disabled
+            size="small"
+            placeholder="1"
+            fullWidth
+            slotProps={{
+              input: {
+                inputProps: { min: 1, max: 1 },
+              },
+            }}
+          />
+        ),
+      },
+    ],
+    [handleSerialChange]
+  );
+
+  return (
+    <Dialog
+      open={isOpen}
+      onClose={handleClose}
+      slotProps={{
+        paper: {
+          className: '!min-w-[60%] !max-w-[60%]',
+        },
+      }}
+    >
+      <div className="flex justify-between items-center !p-2">
+        <p className="!font-semibold text-lg !text-gray-900">
+          Serial Information ({quantity})
+        </p>
+        <ActionButton
+          icon={<Close />}
+          onClick={handleClose}
+          size="small"
+          aria-label="Close dialog"
+        />
+      </div>
+      <Divider />
+      <Box className="!p-2 min-h-[40vh]">
+        <Table
+          stickyHeader
+          maxHeight="50vh"
+          columns={columns}
+          data={productSerials}
+          compact
+          pagination={false}
+          sortable={false}
+        />
+      </Box>
+      <Box className="!p-2 !flex !justify-end !border-t gap-2 !border-gray-300">
+        <Button variant="outlined" color="info" onClick={handleClose}>
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={!isFormValid}
+        >
+          Update
+        </Button>
+      </Box>
+    </Dialog>
+  );
+};
 
 const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const isEdit = !!order;
   const [orderItems, setOrderItems] = useState<OrderItemFormData[]>([]);
   const initializedRef = useRef<number | null>(null);
   const syncedRef = useRef<string>('');
+  const [isBatchSelectorOpen, setIsBatchSelectorOpen] = useState(false);
+  const [isSerialSelectorOpen, setIsSerialSelectorOpen] = useState(false);
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: orderResponse } = useOrder(order?.id || 0);
@@ -44,12 +726,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
 
   const createOrderMutation = useCreateOrder();
   const updateOrderMutation = useUpdateOrder();
-
-  const handleCancel = () => {
-    onClose();
-    setOrderItems([]);
-    formik.resetForm();
-  };
 
   const formik = useFormik({
     initialValues: {
@@ -65,13 +741,11 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       payment_method: order?.payment_method || 'credit',
       payment_terms: order?.payment_terms || 'Net 30',
       subtotal: order?.subtotal || 0,
-      discount_amount: order?.discount_amount || 0,
-      tax_amount: order?.tax_amount || 0,
       shipping_amount: order?.shipping_amount || 0,
       total_amount: order?.total_amount || 0,
       notes: order?.notes || '',
       shipping_address: order?.shipping_address || '',
-      approval_status: order?.approval_status || 'pending',
+      approval_status: order?.approval_status || 'P',
       approved_by: order?.approved_by || '',
       is_active: order?.is_active || 'Y',
       order_items: [],
@@ -80,6 +754,66 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     enableReinitialize: true,
     onSubmit: async values => {
       try {
+        for (let i = 0; i < orderItems.length; i += 1) {
+          const item = orderItems[i];
+          if (!item.product_id || !item.quantity) continue;
+          const quantity = Number(item.quantity) || 0;
+          const trackingType = (item.tracking_type || '').toLowerCase();
+          if (trackingType === 'batch' && quantity > 0) {
+            const batches = item.product_batches || [];
+            const totalBatchQty = batches.reduce(
+              (sum, b) => sum + (Number(b.quantity) || 0),
+              0
+            );
+            if (batches.length === 0 || totalBatchQty === 0) {
+              toast.error(
+                `Please allocate batch quantities for item ${i + 1} to match the ordered quantity.`
+              );
+              return;
+            }
+            if (totalBatchQty !== quantity) {
+              toast.error(
+                `Batch quantity mismatch for item ${i + 1}. Total batch quantity (${totalBatchQty}) must match item quantity (${quantity}).`
+              );
+              return;
+            }
+          }
+          if (trackingType === 'serial' && quantity > 0) {
+            const serials = item.product_serials || [];
+            if (serials.length === 0) {
+              toast.error(
+                `Please assign serial numbers for item ${i + 1} to match the ordered quantity.`
+              );
+              return;
+            }
+            if (serials.length !== quantity) {
+              toast.error(
+                `Serial count mismatch for item ${i + 1}. You have ${serials.length} serial(s) but quantity is ${quantity}.`
+              );
+              return;
+            }
+            const trimmedSerials = serials.map(s =>
+              (s.serial_number || '').trim().toLowerCase()
+            );
+            if (trimmedSerials.some(s => !s)) {
+              toast.error(
+                `Serial number is required for all rows in item ${i + 1}.`
+              );
+              return;
+            }
+            const seen = new Set<string>();
+            for (const s of trimmedSerials) {
+              if (seen.has(s)) {
+                toast.error(
+                  `Duplicate serial number "${s}" found in item ${i + 1}.`
+                );
+                return;
+              }
+              seen.add(s);
+            }
+          }
+        }
+
         const submitData = {
           ...values,
           order_date: new Date(values.order_date).toISOString() || undefined,
@@ -95,14 +829,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           approved_by: values.approved_by
             ? Number(values.approved_by)
             : undefined,
-          orderItems: orderItems
+          order_items: orderItems
             .filter(item => item.product_id !== '')
             .map(item => ({
               product_id: Number(item.product_id),
               quantity: Number(item.quantity),
               unit_price: Number(item.unit_price),
-              discount_amount: Number(item.discount_amount) || 0,
-              tax_amount: Number(item.tax_amount) || 0,
               notes: item.notes || undefined,
             })),
         };
@@ -121,6 +853,62 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       }
     },
   });
+
+  const salespersonId = formik.values.salesperson_id
+    ? Number(formik.values.salesperson_id)
+    : 0;
+
+  const { data: inventoryData } = useInventoryItemById(salespersonId, {
+    enabled: !!salespersonId && open,
+  });
+
+  const inventoryByProductId = React.useMemo(() => {
+    const map: Record<
+      number,
+      { batches: ProductBatch[]; serials: ProductSerial[] }
+    > = {};
+
+    if (!inventoryData?.data) {
+      return map;
+    }
+
+    const salespersonData = inventoryData.data as SalespersonInventoryData;
+
+    (salespersonData.products || []).forEach(product => {
+      const batches: ProductBatch[] = (product.batches || []).map(batch => ({
+        batch_lot_id: batch.batch_lot_id,
+        batch_number: batch.batch_number,
+        lot_number: batch.lot_number,
+        manufacturing_date: batch.manufacturing_date,
+        expiry_date: batch.expiry_date,
+        batch_total_quantity: batch.total_quantity,
+        batch_remaining_quantity: batch.remaining_quantity,
+        supplier_name: batch.supplier_name,
+        quality_grade: batch.quality_grade,
+        days_until_expiry: batch.days_until_expiry,
+        is_expired: batch.is_expired,
+        is_expiring_soon: batch.is_expiring_soon,
+        quantity: null,
+      }));
+
+      const serials: ProductSerial[] = (product.serials || []).map(serial => ({
+        id: serial.serial_id,
+        product_id: product.product_id,
+        serial_number: serial.serial_number,
+        quantity: 1,
+      }));
+
+      map[product.product_id] = { batches, serials };
+    });
+
+    return map;
+  }, [inventoryData]);
+
+  const handleCancel = () => {
+    onClose();
+    setOrderItems([]);
+    formik.resetForm();
+  };
 
   const orderKey = React.useMemo(
     () =>
@@ -149,11 +937,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       const items =
         orderResponse.data.order_items?.map(item => ({
           product_id: item.product_id,
+          tracking_type: null,
           quantity: item.quantity.toString(),
           unit_price: item.unit_price.toString(),
-          discount_amount: (item.discount_amount || 0).toString(),
-          tax_amount: (item.tax_amount || 0).toString(),
           notes: item.notes || '',
+          product_batches: [],
+          product_serials: [],
         })) || [];
 
       const itemsStr = JSON.stringify(items);
@@ -191,13 +980,18 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   }, [open, orderItemsStr]);
 
   const addOrderItem = () => {
+    if (!formik.values.salesperson_id) {
+      toast.error('Please select a Sales Person');
+      return;
+    }
     const newItem: OrderItemFormData = {
       product_id: '',
+      tracking_type: null,
       quantity: '1',
       unit_price: '0',
-      discount_amount: '0',
-      tax_amount: '0',
       notes: '',
+      product_batches: [],
+      product_serials: [],
     };
     const updatedItems = [...orderItems, newItem];
     setOrderItems(updatedItems);
@@ -233,19 +1027,83 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       id: 'product_id',
       label: 'Product',
       render: (_value, row) => (
-        <ProductSelect
-          value={row.product_id}
-          onChange={(_event, product) =>
-            updateOrderItem(
-              row._index,
-              'product_id',
-              product ? String(product.id) : ''
-            )
+        <SalesItemsSelect
+          salespersonId={
+            formik.values.salesperson_id
+              ? Number(formik.values.salesperson_id)
+              : 0
           }
+          value={row.product_id}
+          onChange={(_event, product) => {
+            const updatedItems = [...orderItems];
+            updatedItems[row._index] = {
+              ...updatedItems[row._index],
+              product_id: product ? product.product_id : '',
+              tracking_type: product?.tracking_type || null,
+              unit_price: product ? String(product.unit_price) : '0',
+              product_batches: [],
+              product_serials: [],
+            };
+            setOrderItems(updatedItems);
+            formik.setFieldValue('order_items', updatedItems);
+          }}
           size="small"
-          className="!min-w-60"
+          placeholder="Search for a product"
+          label=""
+          disabled={!formik.values.salesperson_id}
+          className="!min-w-72"
         />
       ),
+    },
+    {
+      id: 'tracking_type',
+      label: 'Tracking',
+      render: (_value, row) => {
+        const tracking = (row.tracking_type || '').toString().toLowerCase();
+        const canManage =
+          tracking === 'batch' || tracking === 'serial' ? tracking : null;
+        return (
+          <Box className="!flex !justify-between !items-center !min-w-52">
+            <Typography
+              variant="body2"
+              className="!text-gray-700 !uppercase !text-xs"
+            >
+              {tracking || 'none'}
+            </Typography>
+            {canManage && (
+              <Button
+                type="button"
+                startIcon={<Tag />}
+                variant="text"
+                size="small"
+                onClick={() => {
+                  const index = row._index;
+                  const item = orderItems[index];
+                  if (!item || !item.product_id) {
+                    toast.error('Please select a product first');
+                    return;
+                  }
+                  const qty = Number(item.quantity) || 0;
+                  if (!qty || qty <= 0) {
+                    toast.error(
+                      'Please enter a valid quantity before managing tracking details'
+                    );
+                    return;
+                  }
+                  setSelectedRowIndex(index);
+                  if (canManage === 'batch') {
+                    setIsBatchSelectorOpen(true);
+                  } else {
+                    setIsSerialSelectorOpen(true);
+                  }
+                }}
+              >
+                {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
+              </Button>
+            )}
+          </Box>
+        );
+      },
     },
     {
       id: 'quantity',
@@ -279,39 +1137,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         />
       ),
     },
-    {
-      id: 'discount_amount',
-      label: 'Discount Amount',
-      render: (_value, row) => (
-        <Input
-          value={row.discount_amount}
-          onChange={e =>
-            updateOrderItem(row._index, 'discount_amount', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
-      id: 'tax_amount',
-      label: 'Tax Amount',
-      render: (_value, row) => (
-        <Input
-          value={row.tax_amount}
-          onChange={e =>
-            updateOrderItem(row._index, 'tax_amount', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-
     {
       id: 'actions',
       label: 'Actions',
@@ -350,21 +1175,11 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
       0
     );
-    const discountAmount = orderItems.reduce(
-      (sum, item) => sum + Number(item.discount_amount),
-      0
-    );
-    const taxAmount = orderItems.reduce(
-      (sum, item) => sum + Number(item.tax_amount),
-      0
-    );
     const shippingAmount = 0;
-    const totalAmount = subtotal - discountAmount + taxAmount + shippingAmount;
+    const totalAmount = subtotal + shippingAmount;
 
     return {
       subtotal,
-      discount_amount: discountAmount,
-      tax_amount: taxAmount,
       shipping_amount: shippingAmount,
       total_amount: totalAmount,
     };
@@ -377,19 +1192,11 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       open={open}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Order' : 'Create Order'}
-      size="larger"
+      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-5">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
-            <Box className="md:!col-span-2">
-              <Typography
-                variant="h6"
-                className="!font-semibold !text-gray-900"
-              >
-                Order Information
-              </Typography>
-            </Box>
             <CustomerSelect
               name="parent_id"
               label="Customer"
@@ -547,25 +1354,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                     </Typography>
                   </Box>
                   <Box className="!flex !justify-between">
-                    <Typography variant="body2">Discount:</Typography>
-                    <Typography variant="body2">
-                      -
-                      {formatCurrency(
-                        totals.discount_amount,
-                        getCurrencyCode(formik.values.currency_id)
-                      )}
-                    </Typography>
-                  </Box>
-                  <Box className="!flex !justify-between">
-                    <Typography variant="body2">Tax:</Typography>
-                    <Typography variant="body2">
-                      {formatCurrency(
-                        totals.tax_amount,
-                        getCurrencyCode(formik.values.currency_id)
-                      )}
-                    </Typography>
-                  </Box>
-                  <Box className="!flex !justify-between">
                     <Typography variant="body2">Shipping:</Typography>
                     <Typography variant="body2">
                       {formatCurrency(
@@ -621,6 +1409,34 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           </Box>
         </form>
       </Box>
+      <ManageOrderBatch
+        isOpen={isBatchSelectorOpen}
+        setIsOpen={setIsBatchSelectorOpen}
+        selectedRowIndex={selectedRowIndex}
+        setSelectedRowIndex={setSelectedRowIndex}
+        orderItems={orderItems}
+        setOrderItems={setOrderItems}
+        quantity={
+          selectedRowIndex !== null && orderItems[selectedRowIndex]
+            ? orderItems[selectedRowIndex].quantity
+            : null
+        }
+        inventoryByProductId={inventoryByProductId}
+      />
+      <ManageOrderSerial
+        isOpen={isSerialSelectorOpen}
+        setIsOpen={setIsSerialSelectorOpen}
+        selectedRowIndex={selectedRowIndex}
+        setSelectedRowIndex={setSelectedRowIndex}
+        orderItems={orderItems}
+        setOrderItems={setOrderItems}
+        quantity={
+          selectedRowIndex !== null && orderItems[selectedRowIndex]
+            ? orderItems[selectedRowIndex].quantity
+            : null
+        }
+        inventoryByProductId={inventoryByProductId}
+      />
     </CustomDrawer>
   );
 };

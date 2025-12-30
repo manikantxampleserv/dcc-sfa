@@ -1,12 +1,12 @@
-import { Add, Download, Upload } from '@mui/icons-material';
+import { Add, Block, Download, Pending, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { useDeleteOrder, useOrders, type Order } from 'hooks/useOrders';
+import { usePermission } from 'hooks/usePermission';
 import {
-  AlertTriangle,
   Calendar,
   CheckCircle as CheckCircleIcon,
   Clock,
-  DollarSign,
   FileText,
   Package,
   ShoppingCart,
@@ -22,8 +22,6 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { usePermission } from 'hooks/usePermission';
-import { useDeleteOrder, useOrders, type Order } from 'hooks/useOrders';
 import ImportOrder from './ImportOrder';
 import ManageOrder from './ManageOrder';
 
@@ -61,12 +59,10 @@ const OrdersManagement: React.FC = () => {
   const deleteOrderMutation = useDeleteOrder();
   const exportToExcelMutation = useExportToExcel();
 
-  const totalOrders = orders.length;
-  const totalValue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
-  const avgOrderValue = totalOrders > 0 ? totalValue / totalOrders : 0;
-  const pendingApproval = orders.filter(
-    o => o.approval_status === 'pending'
-  ).length;
+  const totalOrders = ordersResponse?.stats?.total_orders || 0;
+  const activeOrders = ordersResponse?.stats?.active_orders || 0;
+  const ordersThisMonth = ordersResponse?.stats?.orders_this_month || 0;
+  const inactiveOrders = ordersResponse?.stats?.inactive_orders || 0;
 
   const handleCreateOrder = useCallback(() => {
     setSelectedOrder(null);
@@ -124,55 +120,35 @@ const OrdersManagement: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     const colors = {
-      draft: '!bg-gray-100 !text-gray-800',
-      pending: '!bg-yellow-100 !text-yellow-800',
-      confirmed: '!bg-blue-100 !text-blue-800',
-      processing: '!bg-purple-100 !text-purple-800',
-      shipped: '!bg-indigo-100 !text-indigo-800',
-      delivered: '!bg-green-100 !text-green-800',
-      cancelled: '!bg-red-100 !text-red-800',
+      draft: 'info',
+      pending: 'warning',
+      confirmed: 'info',
+      processing: 'warning',
+      shipped: 'info',
+      delivered: 'success',
+      cancelled: 'error',
     };
-    return (
-      colors[status as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
-    );
+    return colors[status as keyof typeof colors] || 'default';
   };
 
   const getPriorityColor = (priority: string) => {
     const colors = {
-      low: '!bg-green-100 !text-green-800',
-      medium: '!bg-yellow-100 !text-yellow-800',
-      high: '!bg-orange-100 !text-orange-800',
-      urgent: '!bg-red-100 !text-red-800',
+      low: 'info',
+      medium: 'warning',
+      high: 'success',
+      urgent: 'error',
     };
-    return (
-      colors[priority as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
-    );
+    return colors[priority as keyof typeof colors] || 'default';
   };
 
   const getApprovalColor = (status: string) => {
+    const normalizedStatus = status?.slice(0, 1)?.toUpperCase();
     const colors = {
-      pending: '!bg-yellow-100 !text-yellow-800',
-      approved: '!bg-green-100 !text-green-800',
-      rejected: '!bg-red-100 !text-red-800',
-      submitted: '!bg-blue-100 !text-blue-800',
+      P: 'warning',
+      A: 'success',
+      R: 'error',
     };
-    return (
-      colors[status as keyof typeof colors] || '!bg-gray-100 !text-gray-800'
-    );
-  };
-
-  const getApprovalIcon = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <CheckCircleIcon className="w-4 h-4" />;
-      case 'rejected':
-        return <XCircle className="w-4 h-4" />;
-      case 'pending':
-      case 'submitted':
-        return <Clock className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
-    }
+    return colors[normalizedStatus as keyof typeof colors] || 'default';
   };
 
   const getStatusIcon = (status: string) => {
@@ -280,12 +256,30 @@ const OrdersManagement: React.FC = () => {
             icon={getStatusIcon(row.status || 'draft')}
             label={row.status || 'draft'}
             size="small"
-            className={`!text-xs !capitalize !pl-1 !justify-start ${getStatusColor(row.status || 'draft')} !min-w-20`}
+            variant="outlined"
+            className={`!text-xs !capitalize !pl-1 !justify-start`}
+            color={
+              getStatusColor(row.status || 'draft') as
+                | 'default'
+                | 'info'
+                | 'success'
+                | 'warning'
+                | 'error'
+            }
           />
           <Chip
             label={(row.priority || 'medium').toUpperCase()}
             size="small"
-            className={`!text-xs !capitalize ${getPriorityColor(row.priority || 'medium')} !min-w-20`}
+            variant="outlined"
+            className={`!text-xs !capitalize`}
+            color={
+              getPriorityColor(row.priority || 'medium') as
+                | 'default'
+                | 'info'
+                | 'error'
+                | 'success'
+                | 'warning'
+            }
           />
         </Box>
       ),
@@ -325,14 +319,6 @@ const OrdersManagement: React.FC = () => {
           >
             Subtotal: {formatCurrency(row.subtotal)}
           </Typography>
-          {row.discount_amount && row.discount_amount > 0 && (
-            <Typography
-              variant="caption"
-              className="!text-green-600 !text-xs !block !mt-0.5"
-            >
-              Discount: -{formatCurrency(row.discount_amount)}
-            </Typography>
-          )}
         </Box>
       ),
     },
@@ -342,10 +328,29 @@ const OrdersManagement: React.FC = () => {
       render: (_value, row) => (
         <Box>
           <Chip
-            icon={getApprovalIcon(row.approval_status || 'pending')}
-            label={(row.approval_status || 'pending').toUpperCase()}
+            label={(row.approval_status || 'P').toUpperCase()}
+            variant="outlined"
             size="small"
-            className={`!text-xs !pl-1 !capitalize ${getApprovalColor(row.approval_status || 'pending')} !min-w-20`}
+            icon={
+              row.approval_status === 'A' ? (
+                <CheckCircleIcon className="w-4 h-4" />
+              ) : row.approval_status === 'R' ? (
+                <XCircle className="w-4 h-4" />
+              ) : row.approval_status === 'P' ? (
+                <Pending className="w-4 h-4" />
+              ) : (
+                <Clock className="w-4 h-4" />
+              )
+            }
+            className={`!capitalize !pl-0.5`}
+            color={
+              getApprovalColor(row.approval_status || 'P') as
+                | 'default'
+                | 'success'
+                | 'error'
+                | 'warning'
+                | 'info'
+            }
           />
           {row.approved_at && (
             <Typography
@@ -415,24 +420,24 @@ const OrdersManagement: React.FC = () => {
           isLoading={isLoading}
         />
         <StatsCard
-          title="Total Value"
-          value={formatCurrency(totalValue)}
-          icon={<DollarSign className="w-6 h-6" />}
+          title="Active Orders"
+          value={activeOrders}
+          icon={<ShoppingCart className="w-6 h-6" />}
           color="green"
           isLoading={isLoading}
         />
         <StatsCard
-          title="Avg Order Value"
-          value={formatCurrency(avgOrderValue)}
-          icon={<DollarSign className="w-6 h-6" />}
-          color="purple"
+          title="Inactive Orders"
+          value={inactiveOrders}
+          icon={<Block className="w-6 h-6" />}
+          color="red"
           isLoading={isLoading}
         />
         <StatsCard
-          title="Pending Approval"
-          value={pendingApproval}
-          icon={<AlertTriangle className="w-6 h-6" />}
-          color="orange"
+          title="Orders This Month"
+          value={ordersThisMonth}
+          icon={<Calendar className="w-6 h-6" />}
+          color="purple"
           isLoading={isLoading}
         />
       </div>

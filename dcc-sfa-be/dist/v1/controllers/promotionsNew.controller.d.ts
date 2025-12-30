@@ -5,7 +5,7 @@ export declare const promotionsNewController: {
     getPromotionById(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     updatePromotion(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getPromotionsWithVisitsAndOutlets(req: any, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
-    getActivePromotionsWithDetails(req: any, res: Response): Promise<void>;
+    getActivePromotionsWithDetails(req: any, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     deletePromotion(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
 };
 //# sourceMappingURL=promotionsNew.controller.d.ts.map
