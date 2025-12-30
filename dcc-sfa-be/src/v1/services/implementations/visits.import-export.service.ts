@@ -579,7 +579,6 @@ export class VisitsImportExportService extends ImportExportService<any> {
   ): Promise<string | null> {
     const prismaClient = tx || prisma;
 
-    // Validate customer exists
     if (data.customer_id) {
       try {
         const customer = await prismaClient.customers.findUnique({
@@ -593,7 +592,6 @@ export class VisitsImportExportService extends ImportExportService<any> {
       }
     }
 
-    // Validate salesperson exists
     if (data.sales_person_id) {
       try {
         const salesperson = await prismaClient.users.findUnique({
@@ -607,7 +605,6 @@ export class VisitsImportExportService extends ImportExportService<any> {
       }
     }
 
-    // Validate route exists
     if (data.route_id) {
       try {
         const route = await prismaClient.routes.findUnique({
@@ -708,7 +705,6 @@ export class VisitsImportExportService extends ImportExportService<any> {
       const rowNum = index + 2;
 
       try {
-        // Validate outside transaction
         const duplicateCheck = await this.checkDuplicate(row);
 
         if (duplicateCheck) {
@@ -717,7 +713,7 @@ export class VisitsImportExportService extends ImportExportService<any> {
             errors.push(`Row ${rowNum}: Skipped - ${duplicateCheck}`);
             continue;
           } else if (options.updateExisting) {
-            const updated = await this.updateExisting(row, userId); // ✅ CHANGED from updateExistingDirect
+            const updated = await this.updateExisting(row, userId);
             if (updated) {
               importedData.push(updated);
               success++;
