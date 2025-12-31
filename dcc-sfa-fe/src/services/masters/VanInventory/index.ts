@@ -220,6 +220,7 @@ export const deleteVanInventory = async (
 };
 
 export interface ProductBatch {
+  remaining_quantity: number;
   product_batch_id?: number;
   product_batch_quantity?: number;
   product_batch_created_date?: string;

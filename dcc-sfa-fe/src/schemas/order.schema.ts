@@ -96,7 +96,7 @@ export const orderValidationSchema = yup.object().shape({
     .nullable(),
   approval_status: yup
     .string()
-    .oneOf(['pending', 'approved', 'rejected'], 'Invalid approval status')
+    .oneOf(['P', 'A', 'R'], 'Invalid approval status')
     .nullable(),
   approved_by: yup
     .number()

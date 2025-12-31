@@ -1,12 +1,13 @@
 import { Close } from '@mui/icons-material';
-import { Box, Dialog, Divider } from '@mui/material';
+import { Box, Dialog, Divider, Typography } from '@mui/material';
 import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
 import React from 'react';
 import { toast } from 'react-toastify';
-import { ActionButton, DeleteButton } from 'shared/ActionButton';
+import { ActionButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
 import Table, { type TableColumn } from 'shared/Table';
+import { formatDate } from '../../../../utils/dateUtils';
 import type { OrderItemFormData } from './index';
 
 interface ManageOrderBatchProps {
@@ -65,10 +66,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       const initialBatches = inventoryByProductId[productId].batches.map(
         batch => ({
           ...batch,
-          quantity:
-            batch.quantity !== null && batch.quantity !== undefined
-              ? batch.quantity
-              : 0,
+          quantity: 0,
         })
       );
       setProductBatches(initialBatches);
@@ -116,17 +114,22 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
   const handleSubmit = React.useCallback(() => {
     if (selectedRowIndex === null) return;
 
-    const totalQty = productBatches.reduce(
+    const activeBatches = productBatches.filter(b => {
+      const qty = Number(b.quantity);
+      return Number.isFinite(qty) && qty > 0;
+    });
+
+    const totalQty = activeBatches.reduce(
       (sum, b) => sum + (Number(b.quantity) || 0),
       0
     );
 
-    if (totalQty <= 0) {
+    if (activeBatches.length === 0 || totalQty <= 0) {
       toast.error('Total batch quantity must be greater than 0.');
       return;
     }
 
-    const missingIndex = productBatches.findIndex(b => {
+    const missingIndex = activeBatches.findIndex(b => {
       const batchNumber = (b.batch_number || '').trim();
       const mfg = (b.manufacturing_date || '').trim();
       const exp = (b.expiry_date || '').trim();
@@ -142,7 +145,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
     }
 
     const seen = new Set<string>();
-    const duplicateIndex = productBatches.findIndex(b => {
+    const duplicateIndex = activeBatches.findIndex(b => {
       const key = `${(b.batch_number || '')
         .trim()
         .toLowerCase()}|${(b.lot_number || '').trim().toLowerCase()}`;
@@ -182,15 +185,20 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
   const isFormValid = React.useMemo(() => {
     if (selectedRowIndex === null) return false;
 
-    const totalQty = productBatches.reduce(
+    const activeBatches = productBatches.filter(b => {
+      const qty = Number(b.quantity);
+      return Number.isFinite(qty) && qty > 0;
+    });
+
+    const totalQty = activeBatches.reduce(
       (sum, b) => sum + (Number(b.quantity) || 0),
       0
     );
 
-    if (productBatches.length === 0) return false;
+    if (activeBatches.length === 0) return false;
     if (totalQty <= 0) return false;
 
-    const hasMissing = productBatches.some(b => {
+    const hasMissing = activeBatches.some(b => {
       const batchNumber = (b.batch_number || '').trim();
       const mfg = (b.manufacturing_date || '').trim();
       const exp = (b.expiry_date || '').trim();
@@ -200,7 +208,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
     if (hasMissing) return false;
 
     const seen = new Set<string>();
-    for (const b of productBatches) {
+    for (const b of activeBatches) {
       const key = `${(b.batch_number || '')
         .trim()
         .toLowerCase()}|${(b.lot_number || '').trim().toLowerCase()}`;
@@ -221,49 +229,37 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       {
         id: 'batch_number',
         label: 'Batch Number',
-        render: (_value, row, rowIndex) => (
-          <Input
-            value={row.batch_number}
-            onChange={e =>
-              handleBatchChange('batch_number', rowIndex, e.target.value)
-            }
-            size="small"
-            className="!w-52"
-            placeholder="Enter batch number"
-            fullWidth
-          />
+        render: (_value, row) => (
+          <Typography variant="body2" className="!text-gray-900">
+            {row.batch_number}
+          </Typography>
         ),
       },
       {
         id: 'manufacturing_date',
         label: 'MFG Date',
-        render: (_value, row, rowIndex) => (
-          <Input
-            type="date"
-            value={row.manufacturing_date}
-            onChange={e =>
-              handleBatchChange('manufacturing_date', rowIndex, e.target.value)
-            }
-            className="!w-52"
-            size="small"
-            placeholder="Enter manufacturing date"
-          />
+        render: (_value, row) => (
+          <Typography variant="body2" className="!text-gray-900">
+            {formatDate(row.manufacturing_date)}
+          </Typography>
         ),
       },
       {
         id: 'expiry_date',
         label: 'EXP Date',
-        render: (_value, row, rowIndex) => (
-          <Input
-            type="date"
-            value={row.expiry_date}
-            onChange={e =>
-              handleBatchChange('expiry_date', rowIndex, e.target.value)
-            }
-            className="!w-52"
-            size="small"
-            placeholder="Enter expiry date"
-          />
+        render: (_value, row) => (
+          <Typography variant="body2" className="!text-gray-900">
+            {formatDate(row.expiry_date)}
+          </Typography>
+        ),
+      },
+      {
+        id: 'total_quantity',
+        label: 'Total Quantity',
+        render: (_value, row) => (
+          <Typography variant="body2" className="!text-gray-600">
+            {row.batch_remaining_quantity}
+          </Typography>
         ),
       },
       {
@@ -274,28 +270,26 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
             type="number"
             value={row.quantity}
             onChange={e => {
-              if (Number(e.target.value) >= 0) {
-                handleBatchChange('quantity', rowIndex, Number(e.target.value));
-              } else {
+              const raw = Number(e.target.value);
+              const max = Number(
+                row.batch_remaining_quantity ?? row.quantity ?? 0
+              );
+              if (!Number.isFinite(raw)) {
                 handleBatchChange('quantity', rowIndex, 0);
+                return;
               }
+              const nonNegative = raw >= 0 ? raw : 0;
+              const limited =
+                Number.isFinite(max) && max > 0
+                  ? Math.min(nonNegative, max)
+                  : nonNegative;
+
+              handleBatchChange('quantity', rowIndex, limited);
             }}
             size="small"
-            className="!w-32"
+            className="!w-40"
             placeholder="Enter quantity"
             fullWidth
-          />
-        ),
-      },
-      {
-        id: 'actions',
-        label: 'Actions',
-        render: (_value, row, rowIndex) => (
-          <DeleteButton
-            onClick={() => handleDelete(rowIndex)}
-            tooltip={`Delete ${row.batch_number || 'batch'}`}
-            itemName={row.batch_number || 'batch'}
-            confirmDelete
           />
         ),
       },

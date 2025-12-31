@@ -90,12 +90,16 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           const quantity = Number(item.quantity) || 0;
           const trackingType = (item.tracking_type || '').toLowerCase();
           if (trackingType === 'batch' && quantity > 0) {
-            const batches = item.product_batches || [];
-            const totalBatchQty = batches.reduce(
+            const rawBatches = item.product_batches || [];
+            const nonZeroBatches = rawBatches.filter(b => {
+              const qty = Number(b.quantity);
+              return Number.isFinite(qty) && qty > 0;
+            });
+            const totalBatchQty = nonZeroBatches.reduce(
               (sum, b) => sum + (Number(b.quantity) || 0),
               0
             );
-            if (batches.length === 0 || totalBatchQty === 0) {
+            if (nonZeroBatches.length === 0 || totalBatchQty === 0) {
               toast.error(
                 `Please allocate batch quantities for item ${i + 1} to match the ordered quantity.`
               );
@@ -109,20 +113,24 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             }
           }
           if (trackingType === 'serial' && quantity > 0) {
-            const serials = item.product_serials || [];
-            if (serials.length === 0) {
+            const allSerials = (item.product_serials ||
+              []) as (ProductSerial & { selected?: boolean })[];
+            const selectedSerials = allSerials.filter(
+              s => s.selected !== false
+            );
+            if (selectedSerials.length === 0) {
               toast.error(
                 `Please assign serial numbers for item ${i + 1} to match the ordered quantity.`
               );
               return;
             }
-            if (serials.length !== quantity) {
+            if (selectedSerials.length !== quantity) {
               toast.error(
-                `Serial count mismatch for item ${i + 1}. You have ${serials.length} serial(s) but quantity is ${quantity}.`
+                `Serial count mismatch for item ${i + 1}. You have ${selectedSerials.length} selected serial(s) but quantity is ${quantity}.`
               );
               return;
             }
-            const trimmedSerials = serials.map(s =>
+            const trimmedSerials = selectedSerials.map(s =>
               (s.serial_number || '').trim().toLowerCase()
             );
             if (trimmedSerials.some(s => !s)) {
@@ -166,6 +174,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               quantity: Number(item.quantity),
               unit_price: Number(item.unit_price),
               notes: item.notes || undefined,
+              product_batches: item.product_batches || undefined,
+              product_serials: item.product_serials || undefined,
             })),
         };
 
@@ -183,6 +193,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       }
     },
   });
+
+  console.log('formik.errors', formik.errors);
 
   const salespersonId = formik.values.salesperson_id
     ? Number(formik.values.salesperson_id)
@@ -209,6 +221,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         batch_lot_id: batch.batch_lot_id,
         batch_number: batch.batch_number,
         lot_number: batch.lot_number,
+        remaining_quantity: batch.remaining_quantity || 0,
         manufacturing_date: batch.manufacturing_date,
         expiry_date: batch.expiry_date,
         batch_total_quantity: batch.total_quantity,
@@ -675,14 +688,14 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
 
             {orderItems.length > 0 && (
               <Box className="!bg-gray-50 !rounded-lg !mt-4">
-                <Typography
+                {/* <Typography
                   variant="h6"
                   className="!font-semibold !text-gray-900 !mb-2"
                 >
                   Order Summary
-                </Typography>
+                </Typography> */}
                 <Box className="!space-y-2">
-                  <Box className="!flex !justify-between">
+                  {/* <Box className="!flex !justify-between">
                     <Typography variant="body2">Subtotal:</Typography>
                     <Typography variant="body2">
                       {formatCurrency(
@@ -699,8 +712,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                         getCurrencyCode(formik.values.currency_id)
                       )}
                     </Typography>
-                  </Box>
-                  <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
+                  </Box> */}
+                  <Box className="!pt-2 !mt-2">
                     <Box className="!flex !justify-between">
                       <Typography variant="subtitle2" className="!font-bold">
                         Total:

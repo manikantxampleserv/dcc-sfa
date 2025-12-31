@@ -22,6 +22,7 @@ interface ManageBatchProps {
 }
 
 const INITIAL_BATCH: ProductBatch = {
+  remaining_quantity: 0,
   batch_number: '',
   lot_number: '',
   manufacturing_date: '',

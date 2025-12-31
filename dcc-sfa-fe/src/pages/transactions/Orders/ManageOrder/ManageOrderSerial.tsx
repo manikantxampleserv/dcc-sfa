@@ -1,12 +1,10 @@
 import { Close } from '@mui/icons-material';
-import { Box, Dialog, Divider } from '@mui/material';
+import { Box, Dialog, Divider, Checkbox } from '@mui/material';
 import React from 'react';
 import { toast } from 'react-toastify';
 import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
-import { ActionButton, DeleteButton } from 'shared/ActionButton';
-import Input from 'shared/Input';
+import { ActionButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
-import Table, { type TableColumn } from 'shared/Table';
 import type { OrderItemFormData } from './index';
 
 interface ManageOrderSerialProps {
@@ -44,12 +42,9 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
 
   React.useEffect(() => {
     if (!isOpen || selectedRowIndex === null) return;
-
     const item = orderItems[selectedRowIndex];
     if (!item) return;
-
     let rawSerials = (item.product_serials || []) as ProductSerial[];
-
     if (
       rawSerials.length === 0 &&
       inventoryByProductId &&
@@ -60,23 +55,27 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
         rawSerials = inventoryEntry.serials;
       }
     }
-
     const normalizedSerials: ProductSerial[] =
       rawSerials.length > 0
-        ? rawSerials.map(existing => ({
-            ...INITIAL_SERIAL,
-            ...(existing || {}),
-            product_id: Number(item.product_id || 0),
-            quantity: 1,
-            serial_number: existing?.serial_number || '',
-          }))
+        ? rawSerials.map(existing => {
+            const serial = existing as ProductSerial & { selected?: boolean };
+            const isSelected = serial.selected === false ? false : true;
+            return {
+              ...INITIAL_SERIAL,
+              ...(existing || {}),
+              product_id: Number(item.product_id || 0),
+              quantity: 1,
+              serial_number: existing?.serial_number || '',
+              selected: isSelected,
+            };
+          })
         : [
             {
               ...INITIAL_SERIAL,
               product_id: Number(item.product_id || 0),
+              selected: true,
             },
           ];
-
     setProductSerials(normalizedSerials);
   }, [isOpen, selectedRowIndex, orderItems, inventoryByProductId]);
 
@@ -86,30 +85,31 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
     setSelectedRowIndex(null);
   }, [setIsOpen, setSelectedRowIndex]);
 
-  const handleSerialChange = React.useCallback(
-    (field: keyof ProductSerial, rowIndex: number, value: string | number) => {
-      setProductSerials(prev => {
-        const updated = [...prev];
-        updated[rowIndex] = {
-          ...updated[rowIndex],
-          [field]: field === 'quantity' ? Number(value) || 0 : value,
-        };
-        return updated;
-      });
-    },
-    []
-  );
-
-  const handleDeleteSerial = React.useCallback((rowIndex: number) => {
-    setProductSerials(prev => prev.filter((_, index) => index !== rowIndex));
+  const handleToggleSelected = React.useCallback((rowIndex: number) => {
+    setProductSerials(prev => {
+      const updated = [...prev];
+      const current = updated[rowIndex] as ProductSerial & {
+        selected?: boolean;
+      };
+      (updated[rowIndex] as ProductSerial & { selected?: boolean }) = {
+        ...current,
+        selected: current.selected === false,
+      };
+      return updated;
+    });
   }, []);
 
   const isFormValid = React.useMemo(() => {
     if (selectedRowIndex === null) return false;
 
-    if (productSerials.length === 0) return false;
+    const selectedSerials = productSerials.filter(s => {
+      const serial = s as ProductSerial & { selected?: boolean };
+      return serial.selected !== false;
+    });
 
-    const trimmedSerials = productSerials.map(s =>
+    if (selectedSerials.length === 0) return false;
+
+    const trimmedSerials = selectedSerials.map(s =>
       (s.serial_number || '').trim()
     );
     if (trimmedSerials.some(s => s.length === 0)) return false;
@@ -127,7 +127,12 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
   const handleSubmit = React.useCallback(() => {
     if (selectedRowIndex === null) return;
 
-    const trimmedSerials = productSerials.map(s =>
+    const selectedSerials = productSerials.filter(s => {
+      const serial = s as ProductSerial & { selected?: boolean };
+      return serial.selected !== false;
+    });
+
+    const trimmedSerials = selectedSerials.map(s =>
       (s.serial_number || '').trim()
     );
     const missingIndex = trimmedSerials.findIndex(s => s.length === 0);
@@ -150,14 +155,12 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
       return;
     }
 
-    const newQuantity = productSerials.length;
-
     const updatedItems = [...orderItems];
     updatedItems[selectedRowIndex] = {
       ...updatedItems[selectedRowIndex],
-      quantity: String(newQuantity),
+      quantity: String(selectedSerials.length),
       product_serials: productSerials.map(s => ({
-        ...s,
+        ...(s as ProductSerial & { selected?: boolean }),
         serial_number: (s.serial_number || '').trim(),
         quantity: 1,
       })),
@@ -172,65 +175,13 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
     handleClose,
   ]);
 
-  const columns: TableColumn<ProductSerial>[] = React.useMemo(
-    () => [
-      {
-        id: 'serial_number',
-        label: 'Serial Number',
-        render: (_value, row, rowIndex) => (
-          <Input
-            value={row.serial_number}
-            onChange={e =>
-              handleSerialChange('serial_number', rowIndex, e.target.value)
-            }
-            size="small"
-            placeholder="Enter serial number"
-            fullWidth
-          />
-        ),
-      },
-      {
-        id: 'quantity',
-        label: 'Quantity',
-        render: (_value, _row, _rowIndex) => (
-          <Input
-            type="number"
-            value={_row.quantity}
-            disabled
-            size="small"
-            placeholder="1"
-            fullWidth
-            slotProps={{
-              input: {
-                inputProps: { min: 1, max: 1 },
-              },
-            }}
-          />
-        ),
-      },
-      {
-        id: 'actions',
-        label: 'Actions',
-        render: (_value, row, rowIndex) => (
-          <DeleteButton
-            onClick={() => handleDeleteSerial(rowIndex)}
-            tooltip={`Delete ${row.serial_number || 'serial'}`}
-            itemName={row.serial_number || 'serial'}
-            confirmDelete
-          />
-        ),
-      },
-    ],
-    [handleSerialChange, handleDeleteSerial]
-  );
-
   return (
     <Dialog
       open={isOpen}
       onClose={handleClose}
       slotProps={{
         paper: {
-          className: '!min-w-[60%] !max-w-[60%]',
+          className: '!min-w-[40%] !max-w-[40%]',
         },
       }}
     >
@@ -247,15 +198,26 @@ const ManageOrderSerial: React.FC<ManageOrderSerialProps> = ({
       </div>
       <Divider />
       <Box className="!p-2 min-h-[40vh]">
-        <Table
-          stickyHeader
-          maxHeight="50vh"
-          columns={columns}
-          data={productSerials}
-          compact
-          pagination={false}
-          sortable={false}
-        />
+        <div className="max-h-[50vh] overflow-y-auto flex flex-col gap-2">
+          {productSerials.map((row, rowIndex) => {
+            const serial = row as ProductSerial & { selected?: boolean };
+            return (
+              <div
+                key={`${row.serial_number}-${rowIndex}`}
+                className="flex items-center justify-between border border-gray-200 rounded px-2 py-1"
+              >
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={serial.selected !== false}
+                    onChange={() => handleToggleSelected(rowIndex)}
+                    size="small"
+                  />
+                  <span>{row.serial_number}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </Box>
       <Box className="!p-2 !flex !justify-end !border-t gap-2 !border-gray-300">
         <Button variant="outlined" color="info" onClick={handleClose}>
