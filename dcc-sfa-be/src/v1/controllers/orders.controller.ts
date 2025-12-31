@@ -457,7 +457,6 @@ export const ordersController = {
   //   try {
   //     const { orderItems, order_items, selected_promotion_id, ...orderData } =
   //       data;
-
   //     const items = orderItems || order_items || [];
   //     let orderId = orderData.id;
 
@@ -498,19 +497,55 @@ export const ordersController = {
 
   //     if (selected_promotion_id) {
   //       try {
-  //         const promotionCheck = await prisma.promotions.findUnique({
+  //         const promotion = await prisma.promotions.findUnique({
   //           where: { id: parseInt(selected_promotion_id) },
-  //           select: {
-  //             id: true,
-  //             name: true,
-  //             code: true,
-  //             is_active: true,
-  //             start_date: true,
-  //             end_date: true,
+  //           include: {
+  //             promotion_condition_promotions: {
+  //               where: { is_active: 'Y' },
+  //               include: {
+  //                 promotion_condition_products: {
+  //                   where: { is_active: 'Y' },
+  //                 },
+  //               },
+  //             },
+  //             promotion_level_promotions: {
+  //               where: { is_active: 'Y' },
+  //               include: {
+  //                 promotion_benefit_level: {
+  //                   where: { is_active: 'Y' },
+  //                   include: {
+  //                     promotion_benefit_products: {
+  //                       select: {
+  //                         id: true,
+  //                         name: true,
+  //                         code: true,
+  //                       },
+  //                     },
+  //                   },
+  //                 },
+  //               },
+  //               orderBy: { threshold_value: 'desc' },
+  //             },
+  //             promotion_salesperson_promotions: {
+  //               where: { is_active: 'Y' },
+  //               select: { salesperson_id: true },
+  //             },
+  //             promotion_routes_promotions: {
+  //               where: { is_active: 'Y' },
+  //               select: { route_id: true },
+  //             },
+  //             promotion_customer_category_promotions: {
+  //               where: { is_active: 'Y' },
+  //               select: { customer_category_id: true },
+  //             },
+  //             promotion_customer_exclusion_promotions: {
+  //               where: { customer_id: orderData.parent_id },
+  //               select: { is_excluded: true },
+  //             },
   //           },
   //         });
 
-  //         if (!promotionCheck) {
+  //         if (!promotion) {
   //           return res.status(404).json({
   //             success: false,
   //             message: 'Selected promotion not found',
@@ -519,9 +554,9 @@ export const ordersController = {
 
   //         const now = new Date();
   //         if (
-  //           promotionCheck.is_active !== 'Y' ||
-  //           promotionCheck.start_date > now ||
-  //           promotionCheck.end_date < now
+  //           promotion.is_active !== 'Y' ||
+  //           promotion.start_date > now ||
+  //           promotion.end_date < now
   //         ) {
   //           return res.status(400).json({
   //             success: false,
@@ -529,70 +564,189 @@ export const ordersController = {
   //           });
   //         }
 
-  //         const productsWithCategories = await Promise.all(
-  //           items.map(async (item: any) => {
-  //             const product = await prisma.products.findUnique({
-  //               where: { id: item.product_id },
-  //               select: { id: true, category_id: true },
+  //         if (promotion.promotion_customer_exclusion_promotions.length > 0) {
+  //           const isExcluded =
+  //             promotion.promotion_customer_exclusion_promotions.some(
+  //               exc => exc.is_excluded === 'Y'
+  //             );
+  //           if (isExcluded) {
+  //             return res.status(400).json({
+  //               success: false,
+  //               message: 'Customer is excluded from this promotion',
   //             });
-  //             return {
-  //               product_id: item.product_id,
-  //               category_id: product?.category_id || 0,
-  //               quantity: item.quantity,
-  //               unit_price: item.price || item.unit_price || 0,
-  //             };
-  //           })
-  //         );
+  //           }
+  //         }
 
-  //         const platform = (req.headers['x-platform'] as string) || 'OFFICE';
-  //         const allPromotions = await calculatePromotionsInternal({
-  //           customer_id: orderData.parent_id,
-  //           salesman_id: orderData.salesperson_id,
-  //           route_id: customer.route_id || undefined,
-  //           platform,
-  //           order_date: orderData.order_date || new Date(),
-  //           order_lines: productsWithCategories,
-  //         });
+  //         let isEligible = false;
 
-  //         // Find the selected promotion in eligible list
-  //         appliedPromotion = allPromotions.find(
-  //           p => p.promotion_id === parseInt(selected_promotion_id)
-  //         );
+  //         if (
+  //           promotion.promotion_salesperson_promotions.length === 0 &&
+  //           promotion.promotion_routes_promotions.length === 0 &&
+  //           promotion.promotion_customer_category_promotions.length === 0
+  //         ) {
+  //           isEligible = true;
+  //         } else {
+  //           if (
+  //             promotion.promotion_salesperson_promotions.length > 0 &&
+  //             promotion.promotion_salesperson_promotions.some(
+  //               s => s.salesperson_id === orderData.salesperson_id
+  //             )
+  //           ) {
+  //             isEligible = true;
+  //           }
 
-  //         if (!appliedPromotion) {
+  //           if (
+  //             !isEligible &&
+  //             customer.route_id &&
+  //             promotion.promotion_routes_promotions.length > 0 &&
+  //             promotion.promotion_routes_promotions.some(
+  //               r => r.route_id === customer.route_id
+  //             )
+  //           ) {
+  //             isEligible = true;
+  //           }
+
+  //           if (
+  //             !isEligible &&
+  //             customer.type &&
+  //             promotion.promotion_customer_category_promotions.length > 0
+  //           ) {
+  //             const categoryIds =
+  //               promotion.promotion_customer_category_promotions.map(
+  //                 c => c.customer_category_id
+  //               );
+  //             const categories = await prisma.customer_category.findMany({
+  //               where: {
+  //                 id: { in: categoryIds },
+  //                 category_code: customer.type,
+  //               },
+  //               select: { id: true },
+  //             });
+
+  //             if (categories.length > 0) {
+  //               isEligible = true;
+  //             }
+  //           }
+  //         }
+
+  //         if (!isEligible) {
   //           return res.status(400).json({
   //             success: false,
-  //             message:
-  //               'Selected promotion is no longer valid or customer does not qualify',
+  //             message: 'Customer does not qualify for this promotion',
   //           });
   //         }
 
-  //         promotionDiscount = new Prisma.Decimal(appliedPromotion.discount_amount);
-  //         freeProducts = appliedPromotion.free_products || [];
+  //         if (promotion.promotion_condition_promotions.length === 0) {
+  //           return res.status(400).json({
+  //             success: false,
+  //             message: 'Promotion has no conditions defined',
+  //           });
+  //         }
 
-  //         console.log(
-  //           ' Customer-selected promotion applied:',
-  //           appliedPromotion.promotion_name
+  //         const condition = promotion.promotion_condition_promotions[0];
+  //         let totalQty = new Prisma.Decimal(0);
+  //         let totalValue = new Prisma.Decimal(0);
+
+  //         const productIds = items.map((item: any) => item.product_id);
+  //         const products = await prisma.products.findMany({
+  //           where: { id: { in: productIds } },
+  //           select: { id: true, category_id: true },
+  //         });
+
+  //         const productCategoryMap = new Map(
+  //           products.map(p => [p.id, p.category_id])
   //         );
-  //         console.log(' Discount:', appliedPromotion.discount_amount);
-  //         console.log(' Free Products:', freeProducts.length);
+
+  //         for (const item of items) {
+  //           const productMatch = condition.promotion_condition_products.find(
+  //             cp =>
+  //               cp.product_id === item.product_id ||
+  //               cp.category_id === productCategoryMap.get(item.product_id)
+  //           );
+
+  //           if (productMatch) {
+  //             const lineQty = new Prisma.Decimal(item.quantity || 0);
+  //             const linePrice = new Prisma.Decimal(
+  //               item.price || item.unit_price || 0
+  //             );
+  //             const lineValue = lineQty.mul(linePrice);
+
+  //             totalQty = totalQty.add(lineQty);
+  //             totalValue = totalValue.add(lineValue);
+  //           }
+  //         }
+
+  //         const minValue = new Prisma.Decimal(condition.min_value || 0);
+  //         if (!totalValue.gte(minValue)) {
+  //           return res.status(400).json({
+  //             success: false,
+  //             message: `Order value ${totalValue.toFixed(2)} does not meet minimum ${minValue.toFixed(2)}`,
+  //           });
+  //         }
+
+  //         const applicableLevel = promotion.promotion_level_promotions.find(
+  //           lvl => new Prisma.Decimal(lvl.threshold_value).lte(totalValue)
+  //         );
+
+  //         if (!applicableLevel) {
+  //           return res.status(400).json({
+  //             success: false,
+  //             message: 'Order does not meet promotion threshold',
+  //           });
+  //         }
+
+  //         let discountAmount = new Prisma.Decimal(0);
+  //         if (applicableLevel.discount_type === 'PERCENTAGE') {
+  //           const discountPercent = new Prisma.Decimal(
+  //             applicableLevel.discount_value || 0
+  //           );
+  //           discountAmount = totalValue.mul(discountPercent).div(100);
+  //         } else if (applicableLevel.discount_type === 'FIXED_AMOUNT') {
+  //           discountAmount = new Prisma.Decimal(
+  //             applicableLevel.discount_value || 0
+  //           );
+  //         }
+
+  //         for (const benefit of applicableLevel.promotion_benefit_level) {
+  //           if (benefit.benefit_type === 'FREE_PRODUCT') {
+  //             freeProducts.push({
+  //               product_id: benefit.product_id,
+  //               product_name: benefit.promotion_benefit_products?.name || null,
+  //               product_code: benefit.promotion_benefit_products?.code || null,
+  //               quantity: benefit.benefit_value.toNumber(),
+  //               gift_limit: benefit.gift_limit || 0,
+  //             });
+  //           }
+  //         }
+
+  //         appliedPromotion = {
+  //           promotion_id: promotion.id,
+  //           promotion_name: promotion.name,
+  //           promotion_code: promotion.code,
+  //           discount_amount: discountAmount.toNumber(),
+  //           free_products: freeProducts,
+  //         };
+
+  //         promotionDiscount = discountAmount;
+
+  //         console.log(appliedPromotion.promotion_name);
+  //         console.log(appliedPromotion.discount_amount);
+  //         console.log(freeProducts.length);
   //       } catch (error) {
-  //         console.error(' Error applying selected promotion:', error);
+  //         console.error(' Error applying promotion:', error);
   //         return res.status(400).json({
   //           success: false,
   //           message: 'Failed to apply selected promotion',
   //         });
   //       }
-  //     } else if (orderData.manual_discount) {
-  //       promotionDiscount = new Prisma.Decimal(orderData.manual_discount);
-  //     } else {
-  //       console.log(' No promotion selected by customer');
   //     }
 
   //     const subtotal = calculatedSubtotal;
   //     const discount_amount = promotionDiscount;
   //     const tax_amount = new Prisma.Decimal(orderData.tax_amount || 0);
-  //     const shipping_amount = new Prisma.Decimal(orderData.shipping_amount || 0);
+  //     const shipping_amount = new Prisma.Decimal(
+  //       orderData.shipping_amount || 0
+  //     );
 
   //     const total_amount = subtotal
   //       .minus(discount_amount)
@@ -611,7 +765,6 @@ export const ordersController = {
   //           if (existingOrder) {
   //             orderId = existingOrder.id;
   //             isUpdate = true;
-  //             console.log('🔄 Found existing order by order_number:', orderId);
   //           }
   //         } else if (orderId) {
   //           isUpdate = true;
@@ -620,7 +773,6 @@ export const ordersController = {
   //         let orderNumber = orderData.order_number;
   //         if (!isUpdate && !orderNumber) {
   //           orderNumber = await generateOrderNumber(tx);
-  //           console.log(' Generated new order number:', orderNumber);
   //         }
 
   //         const orderPayload = {
@@ -677,7 +829,6 @@ export const ordersController = {
   //               log_inst: 1,
   //             },
   //           });
-  //           console.log(' Order created, ID:', order.id);
   //         }
 
   //         if (items && items.length > 0) {
@@ -685,7 +836,6 @@ export const ordersController = {
   //             await tx.order_items.deleteMany({
   //               where: { parent_id: orderId },
   //             });
-  //             console.log(' Deleted existing order items');
   //           }
 
   //           const safeParse = (val: any, fallback = 0) => {
@@ -721,7 +871,6 @@ export const ordersController = {
   //           await tx.order_items.createMany({
   //             data: orderItemsData,
   //           });
-  //           console.log(` Created ${orderItemsData.length} order items`);
 
   //           if (freeProducts.length > 0) {
   //             const freeItemsData = freeProducts.map((freeProduct: any) => ({
@@ -741,7 +890,6 @@ export const ordersController = {
   //             await tx.order_items.createMany({
   //               data: freeItemsData,
   //             });
-  //             console.log(` Added ${freeItemsData.length} free products`);
   //           }
   //         }
 
@@ -749,7 +897,11 @@ export const ordersController = {
   //           where: { id: order.id },
   //           include: {
   //             orders_currencies: true,
-  //             orders_customers: true,
+  //             orders_customers: {
+  //               include: {
+  //                 customer_routes: true,
+  //               },
+  //             },
   //             orders_salesperson_users: true,
   //             order_items: true,
   //             invoices: true,
@@ -759,8 +911,8 @@ export const ordersController = {
   //         return finalOrder;
   //       },
   //       {
-  //         maxWait: 10000,
-  //         timeout: 20000,
+  //         maxWait: 5000,
+  //         timeout: 10000,
   //       }
   //     );
 
@@ -772,11 +924,10 @@ export const ordersController = {
   //             action_type: 'APPLIED',
   //             action_date: new Date(),
   //             user_id: userId,
-  //             comments: `Applied to order ${result?.order_number} for customer ${orderData.parent_id}. Discount: ${discount_amount.toNumber()}. Free Products: ${JSON.stringify(freeProducts.map(p => ({ product_id: p.product_id, quantity: p.quantity })))}`,
+  //             comments: `Applied to order ${result?.order_number}`,
   //             is_active: 'Y',
   //           },
   //         });
-  //         console.log(' Promotion tracked successfully');
   //       } catch (error) {
   //         console.error('Promotion tracking failed:', error);
   //       }
@@ -784,14 +935,11 @@ export const ordersController = {
 
   //     if (result && !orderId) {
   //       try {
-  //         const orderEvent = 'created';
-  //         const orderCreatorId = result.createdby || userId;
-
   //         await createOrderNotification(
-  //           orderCreatorId,
+  //           result.createdby || userId,
   //           result.id,
   //           result.order_number || '',
-  //           orderEvent,
+  //           'created',
   //           userId
   //         );
 
@@ -802,13 +950,8 @@ export const ordersController = {
   //           createdby: userId,
   //           log_inst: 1,
   //         });
-
-  //         console.log(
-  //           ' Approval workflow initiated for order:',
-  //           result.order_number
-  //         );
   //       } catch (error: any) {
-  //         console.error('  Error creating approval request:', error);
+  //         console.error(' Error creating approval request:', error);
   //       }
   //     }
 
@@ -819,15 +962,7 @@ export const ordersController = {
   //         : 'Order created successfully and sent for approval',
   //       data: {
   //         ...serializeOrder(result),
-  //         promotion_applied: appliedPromotion
-  //           ? {
-  //               promotion_id: appliedPromotion.promotion_id,
-  //               promotion_name: appliedPromotion.promotion_name,
-  //               promotion_code: appliedPromotion.promotion_code,
-  //               discount_amount: appliedPromotion.discount_amount,
-  //               free_products: freeProducts,
-  //             }
-  //           : null,
+  //         promotion_applied: appliedPromotion,
   //       },
   //     };
 
@@ -847,8 +982,13 @@ export const ordersController = {
     const userId = req.user?.id || 1;
 
     try {
-      const { orderItems, order_items, selected_promotion_id, ...orderData } =
-        data;
+      const {
+        orderItems,
+        order_items,
+        selected_promotion_id,
+        van_inventory_id,
+        ...orderData
+      } = data;
       const items = orderItems || order_items || [];
       let orderId = orderData.id;
 
@@ -857,7 +997,30 @@ export const ordersController = {
         orderNumber: orderData.order_number,
         itemsCount: items.length,
         selected_promotion_id: selected_promotion_id || 'None',
+        van_inventory_id: van_inventory_id || 'None',
       });
+
+      let vanInventory = null;
+      if (van_inventory_id) {
+        vanInventory = await prisma.van_inventory.findUnique({
+          where: { id: Number(van_inventory_id) },
+          include: {
+            van_inventory_items_inventory: {
+              include: {
+                van_inventory_items_products: true,
+                van_inventory_items_batch_lot: true,
+              },
+            },
+          },
+        });
+
+        if (!vanInventory) {
+          return res.status(404).json({
+            success: false,
+            message: 'Van inventory not found',
+          });
+        }
+      }
 
       let calculatedSubtotal = new Prisma.Decimal(0);
       for (const item of items) {
@@ -1121,9 +1284,7 @@ export const ordersController = {
 
           promotionDiscount = discountAmount;
 
-          console.log(appliedPromotion.promotion_name);
-          console.log(appliedPromotion.discount_amount);
-          console.log(freeProducts.length);
+          console.log(' Promotion applied:', appliedPromotion.promotion_name);
         } catch (error) {
           console.error(' Error applying promotion:', error);
           return res.status(400).json({
@@ -1230,58 +1391,400 @@ export const ordersController = {
               });
             }
 
-            const safeParse = (val: any, fallback = 0) => {
-              const num = parseFloat(val);
-              return isNaN(num) ? fallback : num;
-            };
+            for (const item of items) {
+              const product = await tx.products.findUnique({
+                where: { id: Number(item.product_id) },
+              });
 
-            const orderItemsData = items.map((item: any) => {
-              const quantity = safeParse(item.quantity, 0);
-              const unitPrice = safeParse(item.unit_price || item.price, 0);
-              const discountAmount = safeParse(
-                item.discount_amount || item.discount,
-                0
-              );
-              const taxAmount = safeParse(item.tax_amount || item.tax, 0);
-              const subtotal = quantity * unitPrice;
+              if (!product) {
+                throw new Error(`Product ${item.product_id} not found`);
+              }
 
-              return {
-                parent_id: order.id,
-                product_id: item.product_id,
-                product_name: item.product_name || null,
-                unit: item.unit || null,
-                quantity: quantity,
-                unit_price: unitPrice,
-                discount_amount: discountAmount,
-                tax_amount: taxAmount,
-                total_amount: subtotal - discountAmount + taxAmount,
-                notes: item.notes || null,
-                is_free_gift: false,
-              };
-            });
+              const trackingType =
+                product.tracking_type?.toUpperCase() || 'NONE';
+              const quantity = parseInt(item.quantity, 10);
 
-            await tx.order_items.createMany({
-              data: orderItemsData,
-            });
+              if (trackingType === 'BATCH') {
+                if (!item.batches || !Array.isArray(item.batches)) {
+                  throw new Error(
+                    `Batches are required for product "${product.name}"`
+                  );
+                }
+
+                let totalOrderedQty = 0;
+                for (const batchOrder of item.batches) {
+                  const batchQty = parseInt(batchOrder.quantity, 10);
+                  totalOrderedQty += batchQty;
+
+                  if (vanInventory) {
+                    const vanItem =
+                      vanInventory.van_inventory_items_inventory.find(
+                        vi =>
+                          vi.product_id === product.id &&
+                          vi.batch_lot_id === batchOrder.batch_lot_id
+                      );
+
+                    if (!vanItem) {
+                      throw new Error(
+                        `Batch ${batchOrder.batch_lot_id} not found in van inventory for product "${product.name}"`
+                      );
+                    }
+
+                    if (vanItem.quantity < batchQty) {
+                      throw new Error(
+                        `Insufficient quantity in van for batch. Available: ${vanItem.quantity}, Requested: ${batchQty}`
+                      );
+                    }
+                  }
+
+                  const batchLot = await tx.batch_lots.findUnique({
+                    where: { id: batchOrder.batch_lot_id },
+                  });
+
+                  if (!batchLot) {
+                    throw new Error(
+                      `Batch lot ${batchOrder.batch_lot_id} not found`
+                    );
+                  }
+
+                  if (batchLot.remaining_quantity < batchQty) {
+                    throw new Error(
+                      `Insufficient quantity in batch lot. Available: ${batchLot.remaining_quantity}, Requested: ${batchQty}`
+                    );
+                  }
+
+                  await tx.batch_lots.update({
+                    where: { id: batchOrder.batch_lot_id },
+                    data: {
+                      remaining_quantity:
+                        batchLot.remaining_quantity - batchQty,
+                      updatedate: new Date(),
+                    },
+                  });
+
+                  const productBatch = await tx.product_batches.findFirst({
+                    where: {
+                      product_id: product.id,
+                      batch_lot_id: batchOrder.batch_lot_id,
+                      is_active: 'Y',
+                    },
+                  });
+
+                  if (productBatch) {
+                    if (productBatch.quantity < batchQty) {
+                      throw new Error(
+                        `Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${batchQty}`
+                      );
+                    }
+
+                    await tx.product_batches.update({
+                      where: { id: productBatch.id },
+                      data: {
+                        quantity: productBatch.quantity - batchQty,
+                        updatedate: new Date(),
+                      },
+                    });
+                  }
+
+                  const inventoryStock = await tx.inventory_stock.findFirst({
+                    where: {
+                      product_id: product.id,
+                      batch_id: batchOrder.batch_lot_id,
+                    },
+                  });
+
+                  if (inventoryStock) {
+                    const currentStock = inventoryStock.current_stock ?? 0;
+                    const availableStock = inventoryStock.available_stock ?? 0;
+
+                    if (currentStock < batchQty) {
+                      throw new Error(
+                        `Insufficient inventory stock for batch. Available: ${currentStock}, Requested: ${batchQty}`
+                      );
+                    }
+
+                    await tx.inventory_stock.update({
+                      where: { id: inventoryStock.id },
+                      data: {
+                        current_stock: currentStock - batchQty,
+                        available_stock: availableStock - batchQty,
+                        updatedate: new Date(),
+                        updatedby: userId,
+                      },
+                    });
+                  } else {
+                    throw new Error(
+                      `Inventory stock not found for product ${product.name} and batch ${batchOrder.batch_lot_id}`
+                    );
+                  }
+
+                  await tx.stock_movements.create({
+                    data: {
+                      product_id: product.id,
+                      batch_id: batchOrder.batch_lot_id,
+                      serial_id: null,
+                      movement_type: 'SALE',
+                      reference_type: 'ORDER',
+                      reference_id: order.id,
+                      from_location_id: vanInventory?.location_id || null,
+                      to_location_id: null,
+                      quantity: batchQty,
+                      movement_date: new Date(),
+                      remarks: `Sold via order ${order.order_number} - Batch: ${batchLot.batch_number}`,
+                      is_active: 'Y',
+                      createdate: new Date(),
+                      createdby: userId,
+                      log_inst: 1,
+                      van_inventory_id: van_inventory_id
+                        ? Number(van_inventory_id)
+                        : null,
+                    },
+                  });
+
+                  console.log(
+                    ` Deducted ${batchQty} from batch ${batchLot.batch_number}`
+                  );
+                }
+
+                if (totalOrderedQty !== quantity) {
+                  throw new Error(
+                    `Total batch quantity (${totalOrderedQty}) does not match ordered quantity (${quantity})`
+                  );
+                }
+
+                await tx.order_items.create({
+                  data: {
+                    parent_id: order.id,
+                    product_id: product.id,
+                    product_name: product.name,
+                    unit: item.unit || 'pcs',
+                    quantity: totalOrderedQty,
+                    unit_price: Number(item.unit_price || item.price),
+                    discount_amount: Number(item.discount_amount) || 0,
+                    tax_amount: Number(item.tax_amount) || 0,
+                    total_amount:
+                      totalOrderedQty * Number(item.unit_price || item.price),
+                    notes: `Batches: ${item.batches.map((b: any) => b.batch_lot_id).join(', ')}`,
+                    is_free_gift: false,
+                  },
+                });
+              } else if (trackingType === 'SERIAL') {
+                if (!item.serials || !Array.isArray(item.serials)) {
+                  throw new Error(
+                    `Serial numbers are required for product "${product.name}"`
+                  );
+                }
+
+                for (const serialNumber of item.serials) {
+                  const serial = await tx.serial_numbers.findUnique({
+                    where: { serial_number: serialNumber },
+                  });
+
+                  if (!serial) {
+                    throw new Error(
+                      `Serial number "${serialNumber}" not found`
+                    );
+                  }
+
+                  if (
+                    serial.status !== 'in_van' &&
+                    serial.status !== 'available'
+                  ) {
+                    throw new Error(
+                      `Serial "${serialNumber}" is not available. Status: ${serial.status}`
+                    );
+                  }
+
+                  await tx.serial_numbers.update({
+                    where: { serial_number: serialNumber },
+                    data: {
+                      status: 'sold',
+                      customer_id: customer.id,
+                      sold_date: new Date(),
+                      updatedate: new Date(),
+                      updatedby: userId,
+                    },
+                  });
+
+                  const inventoryStock = await tx.inventory_stock.findFirst({
+                    where: {
+                      product_id: product.id,
+                      serial_number_id: serial.id,
+                    },
+                  });
+
+                  if (inventoryStock) {
+                    const currentStock = inventoryStock.current_stock ?? 0;
+                    const availableStock = inventoryStock.available_stock ?? 0;
+
+                    await tx.inventory_stock.update({
+                      where: { id: inventoryStock.id },
+                      data: {
+                        current_stock: Math.max(0, currentStock - 1),
+                        available_stock: Math.max(0, availableStock - 1),
+                        updatedate: new Date(),
+                        updatedby: userId,
+                      },
+                    });
+                  }
+
+                  await tx.stock_movements.create({
+                    data: {
+                      product_id: product.id,
+                      batch_id: null,
+                      serial_id: serial.id,
+                      movement_type: 'SALE',
+                      reference_type: 'ORDER',
+                      reference_id: order.id,
+                      from_location_id: vanInventory?.location_id || null,
+                      to_location_id: null,
+                      quantity: 1,
+                      movement_date: new Date(),
+                      remarks: `Sold via order ${order.order_number} - Serial: ${serialNumber}`,
+                      is_active: 'Y',
+                      createdate: new Date(),
+                      createdby: userId,
+                      log_inst: 1,
+                      van_inventory_id: van_inventory_id
+                        ? Number(van_inventory_id)
+                        : null,
+                    },
+                  });
+
+                  console.log(` Sold serial ${serialNumber}`);
+                }
+
+                await tx.order_items.create({
+                  data: {
+                    parent_id: order.id,
+                    product_id: product.id,
+                    product_name: product.name,
+                    unit: item.unit || 'pcs',
+                    quantity: item.serials.length,
+                    unit_price: Number(item.unit_price || item.price),
+                    discount_amount: Number(item.discount_amount) || 0,
+                    tax_amount: Number(item.tax_amount) || 0,
+                    total_amount:
+                      item.serials.length *
+                      Number(item.unit_price || item.price),
+                    notes: `Serials: ${item.serials.join(', ')}`,
+                    is_free_gift: false,
+                  },
+                });
+              } else {
+                if (vanInventory) {
+                  const vanItem =
+                    vanInventory.van_inventory_items_inventory.find(
+                      vi => vi.product_id === product.id
+                    );
+
+                  if (!vanItem) {
+                    throw new Error(
+                      `Product "${product.name}" not found in van inventory`
+                    );
+                  }
+
+                  if (vanItem.quantity < quantity) {
+                    throw new Error(
+                      `Insufficient quantity in van for "${product.name}". Available: ${vanItem.quantity}, Requested: ${quantity}`
+                    );
+                  }
+                }
+
+                const inventoryStock = await tx.inventory_stock.findFirst({
+                  where: {
+                    product_id: product.id,
+                    batch_id: null,
+                    serial_number_id: null,
+                  },
+                });
+
+                if (inventoryStock) {
+                  const currentStock = inventoryStock.current_stock ?? 0;
+                  const availableStock = inventoryStock.available_stock ?? 0;
+
+                  if (currentStock < quantity) {
+                    throw new Error(
+                      `Insufficient inventory stock. Available: ${currentStock}, Requested: ${quantity}`
+                    );
+                  }
+                  await tx.inventory_stock.update({
+                    where: { id: inventoryStock.id },
+                    data: {
+                      current_stock: currentStock - quantity,
+                      available_stock: availableStock - quantity,
+                      updatedate: new Date(),
+                      updatedby: userId,
+                    },
+                  });
+                } else {
+                  throw new Error(
+                    `Inventory stock not found for product ${product.name}`
+                  );
+                }
+
+                await tx.stock_movements.create({
+                  data: {
+                    product_id: product.id,
+                    batch_id: null,
+                    serial_id: null,
+                    movement_type: 'SALE',
+                    reference_type: 'ORDER',
+                    reference_id: order.id,
+                    from_location_id: vanInventory?.location_id || null,
+                    to_location_id: null,
+                    quantity: quantity,
+                    movement_date: new Date(),
+                    remarks: `Sold via order ${order.order_number}`,
+                    is_active: 'Y',
+                    createdate: new Date(),
+                    createdby: userId,
+                    log_inst: 1,
+                    van_inventory_id: van_inventory_id
+                      ? Number(van_inventory_id)
+                      : null,
+                  },
+                });
+
+                await tx.order_items.create({
+                  data: {
+                    parent_id: order.id,
+                    product_id: product.id,
+                    product_name: product.name,
+                    unit: item.unit || 'pcs',
+                    quantity: quantity,
+                    unit_price: Number(item.unit_price || item.price),
+                    discount_amount: Number(item.discount_amount) || 0,
+                    tax_amount: Number(item.tax_amount) || 0,
+                    total_amount:
+                      quantity * Number(item.unit_price || item.price),
+                    notes: item.notes || null,
+                    is_free_gift: false,
+                  },
+                });
+
+                console.log(` Sold ${quantity} units of ${product.name}`);
+              }
+            }
 
             if (freeProducts.length > 0) {
-              const freeItemsData = freeProducts.map((freeProduct: any) => ({
-                parent_id: order.id,
-                product_id: freeProduct.product_id,
-                product_name: freeProduct.product_name || null,
-                unit: null,
-                quantity: freeProduct.quantity,
-                unit_price: 0,
-                discount_amount: 0,
-                tax_amount: 0,
-                total_amount: 0,
-                notes: `Free gift from promotion: ${appliedPromotion?.promotion_name}`,
-                is_free_gift: true,
-              }));
-
-              await tx.order_items.createMany({
-                data: freeItemsData,
-              });
+              for (const freeProduct of freeProducts) {
+                await tx.order_items.create({
+                  data: {
+                    parent_id: order.id,
+                    product_id: freeProduct.product_id,
+                    product_name: freeProduct.product_name || null,
+                    unit: null,
+                    quantity: freeProduct.quantity,
+                    unit_price: 0,
+                    discount_amount: 0,
+                    tax_amount: 0,
+                    total_amount: 0,
+                    notes: `Free gift from promotion: ${appliedPromotion?.promotion_name}`,
+                    is_free_gift: true,
+                  },
+                });
+              }
             }
           }
 
@@ -1303,8 +1806,8 @@ export const ordersController = {
           return finalOrder;
         },
         {
-          maxWait: 5000,
-          timeout: 10000,
+          maxWait: 10000,
+          timeout: 20000,
         }
       );
 
@@ -1343,7 +1846,7 @@ export const ordersController = {
             log_inst: 1,
           });
         } catch (error: any) {
-          console.error(' Error creating approval request:', error);
+          console.error('Error creating approval request:', error);
         }
       }
 
@@ -1368,247 +1871,6 @@ export const ordersController = {
       });
     }
   },
-
-  // async getAllOrders(req: any, res: any) {
-  //   try {
-  //     const {
-  //       page,
-  //       limit,
-  //       search,
-  //       sales_person_id,
-  //       customer_id,
-  //       status,
-  //       isActive,
-  //       route_id,
-  //       route_ids,
-  //     } = req.query;
-
-  //     const pageNum = parseInt(page as string, 10) || 1;
-  //     const limitNum = parseInt(limit as string, 10) || 10;
-  //     const searchLower = search ? (search as string).toLowerCase() : '';
-
-  //     const filters: any = {};
-
-  //     if (search) {
-  //       filters.OR = [
-  //         { order_number: { contains: searchLower } },
-  //         { status: { contains: searchLower } },
-  //         { notes: { contains: searchLower } },
-  //         {
-  //           orders_customers: {
-  //             name: { contains: searchLower },
-  //           },
-  //         },
-  //       ];
-  //     }
-
-  //     if (sales_person_id) {
-  //       filters.salesperson_id = parseInt(sales_person_id as string, 10);
-  //     }
-
-  //     if (customer_id) {
-  //       filters.parent_id = parseInt(customer_id as string, 10);
-  //     }
-
-  //     if (status) {
-  //       filters.status = status as string;
-  //     }
-
-  //     if (route_ids) {
-  //       const routeIdArray = route_ids
-  //         .split(',')
-  //         .map((id: string) => parseInt(id.trim(), 10))
-  //         .filter((id: number) => !isNaN(id));
-
-  //       if (routeIdArray.length > 0) {
-  //         filters.orders_customers = {
-  //           ...filters.orders_customers,
-  //           route_id: {
-  //             in: routeIdArray,
-  //           },
-  //         };
-  //       }
-  //     } else if (route_id) {
-  //       const parsedRouteId = parseInt(route_id as string, 10);
-  //       if (!isNaN(parsedRouteId)) {
-  //         filters.orders_customers = {
-  //           ...filters.orders_customers,
-  //           route_id: parsedRouteId,
-  //         };
-  //       }
-  //     }
-
-  //     if (isActive !== undefined && isActive !== '') {
-  //       let activeValue = isActive.toString().toUpperCase();
-
-  //       if (
-  //         activeValue === 'TRUE' ||
-  //         activeValue === '1' ||
-  //         activeValue === 'ACTIVE'
-  //       ) {
-  //         activeValue = 'Y';
-  //       } else if (
-  //         activeValue === 'FALSE' ||
-  //         activeValue === '0' ||
-  //         activeValue === 'INACTIVE'
-  //       ) {
-  //         activeValue = 'N';
-  //       }
-
-  //       if (activeValue === 'Y' || activeValue === 'N') {
-  //         filters.is_active = activeValue;
-  //       }
-  //     }
-
-  //     const { data, pagination } = await paginate({
-  //       model: prisma.orders,
-  //       filters,
-  //       page: pageNum,
-  //       limit: limitNum,
-  //       orderBy: { createdate: 'desc' },
-  //       include: {
-  //         orders_currencies: true,
-  //         orders_customers: {
-  //           include: {
-  //             customer_routes: true,
-  //           },
-  //         },
-  //         orders_salesperson_users: true,
-  //         order_items: true,
-  //         invoices: true,
-  //       },
-  //     });
-
-  //     const statsFilter: any = {};
-
-  //     if (route_ids) {
-  //       const routeIdArray = route_ids
-  //         .split(',')
-  //         .map((id: string) => parseInt(id.trim(), 10))
-  //         .filter((id: number) => !isNaN(id));
-
-  //       if (routeIdArray.length > 0) {
-  //         statsFilter.orders_customers = {
-  //           route_id: { in: routeIdArray },
-  //         };
-  //       }
-  //     } else if (route_id) {
-  //       const parsedRouteId = parseInt(route_id as string, 10);
-  //       if (!isNaN(parsedRouteId)) {
-  //         statsFilter.orders_customers = {
-  //           route_id: parsedRouteId,
-  //         };
-  //       }
-  //     }
-
-  //     if (customer_id) {
-  //       statsFilter.parent_id = parseInt(customer_id as string, 10);
-  //     }
-
-  //     if (sales_person_id) {
-  //       statsFilter.salesperson_id = parseInt(sales_person_id as string, 10);
-  //     }
-
-  //     if (status) {
-  //       statsFilter.status = status as string;
-  //     }
-  //     const totalOrders = await prisma.orders.count({
-  //       where: statsFilter,
-  //     });
-
-  //     const activeOrders = await prisma.orders.count({
-  //       where: {
-  //         ...statsFilter,
-  //         is_active: 'Y',
-  //       },
-  //     });
-
-  //     const inactiveOrders = await prisma.orders.count({
-  //       where: {
-  //         ...statsFilter,
-  //         is_active: 'N',
-  //       },
-  //     });
-
-  //     const now = new Date();
-  //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-  //     const ordersThisMonth = await prisma.orders.count({
-  //       where: {
-  //         ...statsFilter,
-  //         createdate: {
-  //           gte: startOfMonth,
-  //           lte: endOfMonth,
-  //         },
-  //       },
-  //     });
-
-  //     let routeStats = null;
-  //     if (route_id || route_ids) {
-  //       const routeFilter = route_ids
-  //         ? {
-  //             route_id: {
-  //               in: route_ids
-  //                 .split(',')
-  //                 .map((id: string) => parseInt(id.trim(), 10))
-  //                 .filter((id: number) => !isNaN(id)),
-  //             },
-  //           }
-  //         : { route_id: parseInt(route_id as string, 10) };
-
-  //       const customersInRoutes = await prisma.customers.count({
-  //         where: routeFilter,
-  //       });
-
-  //       const orderTotals = await prisma.orders.aggregate({
-  //         where: {
-  //           orders_customers: routeFilter,
-  //         },
-  //         _sum: {
-  //           total_amount: true,
-  //         },
-  //         _avg: {
-  //           total_amount: true,
-  //         },
-  //       });
-
-  //       routeStats = {
-  //         customers_in_routes: customersInRoutes,
-  //         total_order_value: orderTotals._sum.total_amount || 0,
-  //         average_order_value: orderTotals._avg.total_amount || 0,
-  //       };
-  //     }
-
-  //     res.success(
-  //       'Orders retrieved successfully',
-  //       data.map((order: any) => serializeOrder(order)),
-  //       200,
-  //       pagination,
-  //       {
-  //         total_orders: totalOrders,
-  //         active_orders: activeOrders,
-  //         inactive_orders: inactiveOrders,
-  //         orders_this_month: ordersThisMonth,
-  //         ...(routeStats && { route_statistics: routeStats }),
-  //         filters_applied: {
-  //           route_id: route_id || null,
-  //           route_ids: route_ids || null,
-  //           sales_person_id: sales_person_id || null,
-  //           customer_id: customer_id || null,
-  //           status: status || null,
-  //           is_active: isActive || null,
-  //         },
-  //       }
-  //     );
-  //   } catch (error: any) {
-  //     console.error('Get Orders Error:', error);
-  //     res.status(500).json({
-  //       message: 'Failed to retrieve orders',
-  //       error: error.message,
-  //     });
-  //   }
-  // },
 
   async getAllOrders(req: any, res: any) {
     try {
