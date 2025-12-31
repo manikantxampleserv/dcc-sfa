@@ -593,6 +593,7 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
     }
     async checkDuplicate(data, tx) {
         const model = tx ? tx.visits : prisma_client_1.default.visits;
+        // Check for duplicate visit (same customer, salesperson, and date)
         if (data.customer_id && data.sales_person_id && data.visit_date) {
             const visitDate = new Date(data.visit_date);
             const startOfDay = new Date(visitDate.setHours(0, 0, 0, 0));
@@ -654,6 +655,7 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
                 return `Invalid Route ID ${data.route_id}`;
             }
         }
+        // Validate zone exists
         if (data.zones_id) {
             try {
                 const zone = await prismaClient.zones.findUnique({
@@ -693,6 +695,7 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
             createdate: new Date(),
             log_inst: 1,
         };
+        // Handle decimal fields
         if (data.start_latitude !== null && data.start_latitude !== undefined) {
             preparedData.start_latitude = new client_1.Prisma.Decimal(data.start_latitude);
         }
@@ -730,7 +733,7 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
                         continue;
                     }
                     else if (options.updateExisting) {
-                        const updated = await this.updateExisting(row, userId); 
+                        const updated = await this.updateExisting(row, userId);
                         if (updated) {
                             importedData.push(updated);
                             success++;
@@ -745,6 +748,7 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
                 if (fkValidation) {
                     throw new Error(fkValidation);
                 }
+                // Create visit
                 const preparedData = await this.prepareDataForImport(row, userId);
                 const created = await prisma_client_1.default.visits.create({
                     data: preparedData,

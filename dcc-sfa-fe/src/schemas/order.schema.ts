@@ -16,11 +16,6 @@ export const orderItemValidationSchema = yup.object().shape({
     .number()
     .required('Unit price is required')
     .min(0, 'Unit price must be non-negative'),
-  discount_amount: yup
-    .number()
-    .min(0, 'Discount amount must be non-negative')
-    .nullable(),
-  tax_amount: yup.number().min(0, 'Tax amount must be non-negative').nullable(),
   total_amount: yup
     .number()
     .min(0, 'Total amount must be non-negative')
@@ -83,11 +78,6 @@ export const orderValidationSchema = yup.object().shape({
     .max(50, 'Payment terms must be at most 50 characters')
     .nullable(),
   subtotal: yup.number().min(0, 'Subtotal must be non-negative').nullable(),
-  discount_amount: yup
-    .number()
-    .min(0, 'Discount amount must be non-negative')
-    .nullable(),
-  tax_amount: yup.number().min(0, 'Tax amount must be non-negative').nullable(),
   shipping_amount: yup
     .number()
     .min(0, 'Shipping amount must be non-negative')
@@ -155,11 +145,6 @@ export const orderItemCreateValidationSchema = yup.object().shape({
     .number()
     .required('Unit price is required')
     .min(0, 'Unit price must be non-negative'),
-  discount_amount: yup
-    .number()
-    .min(0, 'Discount amount must be non-negative')
-    .default(0),
-  tax_amount: yup.number().min(0, 'Tax amount must be non-negative').default(0),
   notes: yup
     .string()
     .max(500, 'Notes must be at most 500 characters')

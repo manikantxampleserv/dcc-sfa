@@ -1042,12 +1042,10 @@ exports.promotionsNewController = {
                 });
             }
             const salespersonIdNum = parseInt(salesperson_id, 10);
-            // Get current date (start and end of day)
             const currentDate = new Date();
             currentDate.setHours(0, 0, 0, 0);
             const endOfDay = new Date(currentDate);
             endOfDay.setHours(23, 59, 59, 999);
-            // Fetch promotions for the salesperson
             const promotions = await prisma_client_1.default.promotions.findMany({
                 where: {
                     is_active: 'Y',
@@ -1098,7 +1096,6 @@ exports.promotionsNewController = {
                     },
                 },
             });
-            // Fetch visits for the current date for this salesperson
             const visits = await prisma_client_1.default.visits.findMany({
                 where: {
                     sales_person_id: salespersonIdNum,
@@ -1149,7 +1146,6 @@ exports.promotionsNewController = {
                     visit_date: 'asc',
                 },
             });
-            // Structure the response
             const response = {
                 salesperson_id: salespersonIdNum,
                 date: currentDate.toISOString().split('T')[0],
