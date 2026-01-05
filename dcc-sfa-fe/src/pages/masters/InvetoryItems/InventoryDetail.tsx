@@ -226,101 +226,50 @@ const InventoryDetail: React.FC = () => {
     [navigate]
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col animate-pulse">
-        <div className="flex items-center mb-5 justify-between">
-          <div className="flex items-center gap-4">
-            <div>
-              <Skeleton variant="text" width={220} height={32} />
-              <Skeleton variant="text" width={160} height={20} sx={{ mt: 1 }} />
-            </div>
-          </div>
-          <Skeleton
-            variant="rectangular"
-            width={210}
-            height={34}
-            sx={{ borderRadius: 26 }}
-          />
-        </div>
-        <SalespersonCardSkeleton />
-        <StatsCardsSkeleton />
-        <TabsSkeleton />
-        {tabValue === 0 && <ProductsTabSkeleton />}
-        {tabValue === 1 && <TableSkeleton columns={7} rows={7} />}
-        {tabValue === 2 && <TableSkeleton columns={5} rows={7} />}
-      </div>
-    );
-  }
-
-  if (error || !inventoryData) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Package className="w-16 h-16 text-gray-300 mb-4" />
-        <Typography variant="h6" className="text-gray-600 mb-2">
-          Inventory Not Found
-        </Typography>
-        <Typography variant="body2" className="text-gray-500 mb-4">
-          The inventory item you're looking for doesn't exist or you don't have
-          permission to view it.
-        </Typography>
-        <Button onClick={handleBack}>Go Back to Inventory</Button>
-      </div>
-    );
-  }
-
-  const salespersonData =
-    (inventoryData?.data as SalespersonInventoryData) || null;
-
-  // Additional safety check to prevent hooks issues
-  if (!salespersonData) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Package className="w-16 h-16 text-gray-300 mb-4" />
-        <Typography variant="h6" className="text-gray-600 mb-2">
-          Invalid Inventory Data
-        </Typography>
-        <Typography variant="body2" className="text-gray-500 mb-4">
-          The inventory data could not be loaded properly.
-        </Typography>
-        <Button onClick={handleBack}>Go Back to Inventory</Button>
-      </div>
-    );
-  }
+  // MOVED ALL HOOKS BEFORE CONDITIONAL RETURNS
+  const salespersonData = useMemo(
+    () => (inventoryData?.data as SalespersonInventoryData) || null,
+    [inventoryData]
+  );
 
   const products: ProductInventory[] = useMemo(() => {
-    if (!salespersonData?.products) return [];
+    if (!salespersonData?.products || !Array.isArray(salespersonData.products))
+      return [];
 
     return salespersonData.products.map(product => ({
       ...product,
       product_name: product.product_name ?? '',
+      batches: product.batches ?? [],
+      serials: product.serials ?? [],
     }));
-  }, [salespersonData?.products]);
+  }, [salespersonData]);
 
   const batchRows: Array<BatchInfo & { product_id: number | string }> =
     useMemo(() => {
-      if (!products.length) return [];
+      if (!Array.isArray(products) || products.length === 0) return [];
 
-      return products.flatMap(product =>
-        (product.batches ?? []).map(batch => ({
+      return products.flatMap(product => {
+        if (!product.batches || !Array.isArray(product.batches)) return [];
+        return product.batches.map(batch => ({
           ...batch,
           product_id: product.product_id,
-        }))
-      );
+        }));
+      });
     }, [products]);
 
   const serialRows: Array<SerialInfo & { product_id: number | string }> =
     useMemo(() => {
-      if (!products.length) return [];
+      if (!Array.isArray(products) || products.length === 0) return [];
 
-      return products.flatMap(product =>
-        (product.serials ?? []).map(serial => ({
+      return products.flatMap(product => {
+        if (!product.serials || !Array.isArray(product.serials)) return [];
+        return product.serials.map(serial => ({
           ...serial,
           product_id: product.product_id,
           warranty_expiry: serial.warranty_expiry ?? null,
           customer: serial.customer,
-        }))
-      );
+        }));
+      });
     }, [products]);
 
   const batchColumns = useMemo<
@@ -430,6 +379,65 @@ const InventoryDetail: React.FC = () => {
     []
   );
 
+  // NOW CHECK CONDITIONS AFTER ALL HOOKS
+  if (isLoading) {
+    return (
+      <div className="flex flex-col animate-pulse">
+        <div className="flex items-center mb-5 justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <Skeleton variant="text" width={220} height={32} />
+              <Skeleton variant="text" width={160} height={20} sx={{ mt: 1 }} />
+            </div>
+          </div>
+          <Skeleton
+            variant="rectangular"
+            width={210}
+            height={34}
+            sx={{ borderRadius: 26 }}
+          />
+        </div>
+        <SalespersonCardSkeleton />
+        <StatsCardsSkeleton />
+        <TabsSkeleton />
+        {tabValue === 0 && <ProductsTabSkeleton />}
+        {tabValue === 1 && <TableSkeleton columns={7} rows={7} />}
+        {tabValue === 2 && <TableSkeleton columns={5} rows={7} />}
+      </div>
+    );
+  }
+
+  if (error || !inventoryData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Package className="w-16 h-16 text-gray-300 mb-4" />
+        <Typography variant="h6" className="text-gray-600 mb-2">
+          Inventory Not Found
+        </Typography>
+        <Typography variant="body2" className="text-gray-500 mb-4">
+          The inventory item you're looking for doesn't exist or you don't have
+          permission to view it.
+        </Typography>
+        <Button onClick={handleBack}>Go Back to Inventory</Button>
+      </div>
+    );
+  }
+
+  if (!salespersonData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Package className="w-16 h-16 text-gray-300 mb-4" />
+        <Typography variant="h6" className="text-gray-600 mb-2">
+          Invalid Inventory Data
+        </Typography>
+        <Typography variant="body2" className="text-gray-500 mb-4">
+          The inventory data could not be loaded properly.
+        </Typography>
+        <Button onClick={handleBack}>Go Back to Inventory</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col">
       <div className="flex items-center mb-5 justify-between">
@@ -526,92 +534,100 @@ const InventoryDetail: React.FC = () => {
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
-          <Tab label={`Products (${products.length})`} />
-          <Tab label={`Batches (${salespersonData.total_batches})`} />
-          <Tab label={`Serial Numbers (${salespersonData.total_serials})`} />
+          <Tab
+            label={`Products (${Array.isArray(products) ? products.length : 0})`}
+          />
+          <Tab label={`Batches (${salespersonData?.total_batches || 0})`} />
+          <Tab
+            label={`Serial Numbers (${salespersonData?.total_serials || 0})`}
+          />
         </Tabs>
       </Box>
 
       <TabPanel value={tabValue} index={0}>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-          {products.map(product => {
-            const stockStatus = getStockStatus(product.total_quantity);
-            return (
-              <div
-                key={product.product_id}
-                className="bg-white shadow-sm rounded-lg border border-gray-100"
-              >
-                <div className="flex items-start justify-between mb-4 pb-0 p-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar
-                      className="!bg-blue-100 !rounded-md !text-blue-600"
-                      src=""
-                    >
-                      {product.product_name?.charAt(0) || 'P'}
-                    </Avatar>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 text-sm">
-                        {product.product_name || 'Unknown Product'}
-                      </h3>
-                      <p className="text-xs text-gray-500 truncate text-ellipsis w-[90%]">
-                        {product.product_code || 'N/A'}
-                      </p>
+          {Array.isArray(products) &&
+            products.map(product => {
+              const stockStatus = getStockStatus(product.total_quantity);
+              return (
+                <div
+                  key={product.product_id}
+                  className="bg-white shadow-sm rounded-lg border border-gray-100"
+                >
+                  <div className="flex items-start justify-between mb-4 pb-0 p-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar
+                        className="!bg-blue-100 !rounded-md !text-blue-600"
+                        src=""
+                      >
+                        {product.product_name?.charAt(0) || 'P'}
+                      </Avatar>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-sm">
+                          {product.product_name || 'Unknown Product'}
+                        </h3>
+                        <p className="text-xs text-gray-500 truncate text-ellipsis w-[90%]">
+                          {product.product_code || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <Chip
+                      label={stockStatus.label}
+                      size="small"
+                      color={stockStatus.color as ChipProps['color']}
+                      variant="outlined"
+                    />
+                  </div>
+                  <div className="space-y-1 pb-3 px-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        Total Quantity
+                      </span>
+                      <span className="font-medium">
+                        {product.total_quantity}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        Tracking Type
+                      </span>
+                      <span className="font-medium uppercase">
+                        {product.tracking_type}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Van Entries</span>
+                      <span className="font-medium">
+                        {product.van_inventories?.length || 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Batches</span>
+                      <span className="font-medium">
+                        {product.batches?.length || 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        Serial Numbers
+                      </span>
+                      <span className="font-medium">
+                        {product.serials?.length || 0}
+                      </span>
                     </div>
                   </div>
-                  <Chip
-                    label={stockStatus.label}
-                    size="small"
-                    color={stockStatus.color as ChipProps['color']}
-                    variant="outlined"
-                  />
+                  {product.total_quantity > 0 &&
+                    product.total_quantity <= 10 && (
+                      <div className="border-t border-gray-100 p-3">
+                        <div className="flex items-center gap-2 text-orange-600 text-sm">
+                          <AlertTriangle className="w-4 h-4" />
+                          <span className="font-medium">Low Stock Alert</span>
+                        </div>
+                      </div>
+                    )}
                 </div>
-                <div className="space-y-1 pb-3 px-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">
-                      Total Quantity
-                    </span>
-                    <span className="font-medium">
-                      {product.total_quantity}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Tracking Type</span>
-                    <span className="font-medium uppercase">
-                      {product.tracking_type}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Van Entries</span>
-                    <span className="font-medium">
-                      {product.van_entries?.length || 0}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Batches</span>
-                    <span className="font-medium">
-                      {product.batches?.length || 0}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">
-                      Serial Numbers
-                    </span>
-                    <span className="font-medium">
-                      {product.serials?.length || 0}
-                    </span>
-                  </div>
-                </div>
-                {product.total_quantity > 0 && product.total_quantity <= 10 && (
-                  <div className="border-t border-gray-100 p-3">
-                    <div className="flex items-center gap-2 text-orange-600 text-sm">
-                      <AlertTriangle className="w-4 h-4" />
-                      <span className="font-medium">Low Stock Alert</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </TabPanel>
 

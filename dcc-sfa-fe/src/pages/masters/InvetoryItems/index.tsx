@@ -1,4 +1,4 @@
-import { Avatar, MenuItem, Skeleton } from '@mui/material';
+import { Avatar, Skeleton } from '@mui/material';
 import { useInventoryItems } from 'hooks/useInventoryItems';
 import type {
   AllSalespersonsResponse,
@@ -17,14 +17,11 @@ import {
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SearchInput from 'shared/SearchInput';
-import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import { formatDate } from 'utils/dateUtils';
 
 const InventoryItems: React.FC = () => {
-  type StatusFilter = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const navigate = useNavigate();
 
   const { isRead } = usePermission('dashboard');
@@ -139,27 +136,14 @@ const InventoryItems: React.FC = () => {
 
   const isSummaryView = isSummaryResponse;
 
-  const getSalespersonStatus = (
-    totalQuantity: number
-  ): Exclude<StatusFilter, 'all'> => {
-    if (totalQuantity === 0) return 'out_of_stock';
-    if (totalQuantity <= 10) return 'low_stock';
-    return 'in_stock';
-  };
-
   const filteredSummaryData = useMemo(() => {
-    return summaryData
-      .filter(person => {
-        if (!searchTerm) return true;
-        return person.salesperson_name
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      })
-      .filter(person => {
-        if (statusFilter === 'all') return true;
-        return getSalespersonStatus(person.total_quantity) === statusFilter;
-      });
-  }, [searchTerm, statusFilter, summaryData]);
+    return summaryData.filter(person => {
+      if (!searchTerm) return true;
+      return person.salesperson_name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    });
+  }, [searchTerm, summaryData]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -195,18 +179,6 @@ const InventoryItems: React.FC = () => {
                 className="!w-80"
               />
             </div>
-
-            <Select
-              placeholder="Select Status"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-              className="!min-w-[150px]"
-            >
-              <MenuItem value="all">All Status</MenuItem>
-              <MenuItem value="in_stock">In Stock</MenuItem>
-              <MenuItem value="low_stock">Low Stock</MenuItem>
-              <MenuItem value="out_of_stock">Out of Stock</MenuItem>
-            </Select>
             <div className="ml-auto flex items-center gap-2">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 rounded-full">
                 <Package className="w-4 h-4 text-green-600" />
@@ -348,8 +320,8 @@ const InventoryItems: React.FC = () => {
                     No inventory items found
                   </p>
                   <p className="text-gray-400 text-sm mt-2">
-                    {searchTerm || statusFilter !== 'all'
-                      ? 'Try adjusting your filters'
+                    {searchTerm
+                      ? 'Try adjusting your search'
                       : 'No inventory items have been added yet'}
                   </p>
                 </div>

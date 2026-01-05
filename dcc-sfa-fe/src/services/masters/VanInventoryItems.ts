@@ -48,13 +48,21 @@ export interface VanEntry {
   batch: BatchInfo | null;
 }
 
+export interface VanInventoryReference {
+  van_inventory_id: number;
+  document_date: string | null;
+  status: string;
+  loading_type: string;
+}
+
 export interface ProductInventory {
   product_id: number;
   product_name: string | null;
   product_code: string | null;
+  unit_price: number | null;
   tracking_type: string;
   total_quantity: number;
-  van_entries: VanEntry[];
+  van_inventories: VanInventoryReference[];
   batches: BatchInfo[];
   serials: SerialInfo[];
 }
@@ -63,8 +71,8 @@ export interface SalespersonSummary {
   salesperson_id: number;
   salesperson_name: string;
   salesperson_email: string;
-  salesperson_phone: string;
-  salesperson_profile_image?: string;
+  salesperson_phone: string | null;
+  salesperson_profile_image: string | null;
   total_van_inventories: number;
   total_products: number;
   total_quantity: number;
@@ -76,8 +84,8 @@ export interface SalespersonInventoryData {
   salesperson_id: number;
   salesperson_name: string;
   salesperson_email: string;
-  salesperson_phone: string;
-  salesperson_profile_image?: string;
+  salesperson_phone: string | null;
+  salesperson_profile_image: string | null;
   total_van_inventories: number;
   total_products: number;
   total_quantity: number;
@@ -90,6 +98,12 @@ export interface AllSalespersonsResponse {
   success: boolean;
   message: string;
   data: SalespersonSummary[];
+  filters?: {
+    document_date?: string | null;
+    product_id?: string | number | null;
+    batch_status?: string | null;
+    serial_status?: string | null;
+  };
   statistics: {
     total_salespersons: number;
     total_van_inventories: number;
@@ -112,6 +126,12 @@ export interface SingleSalespersonResponse {
   success: boolean;
   message: string;
   data: SalespersonInventoryData;
+  filters?: {
+    document_date?: string | null;
+    product_id?: string | number | null;
+    batch_status?: string | null;
+    serial_status?: string | null;
+  };
   pagination: {
     current_page: number;
     per_page: number;

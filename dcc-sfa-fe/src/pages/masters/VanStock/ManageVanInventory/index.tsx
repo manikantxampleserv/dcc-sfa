@@ -15,7 +15,7 @@ import {
   type SalespersonInventoryData,
 } from 'hooks/useInventoryItems';
 import { useVehicles } from 'hooks/useVehicles';
-import { LogIn, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import React, {
   useCallback,
   useEffect,
@@ -168,50 +168,23 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           van_inventory_items: values.van_inventory_items
             .filter(item => item.product_id && item.quantity != null)
             .map(item => {
-              console.log('Item before submission:', {
-                product_id: item.product_id,
-                tracking_type: item.tracking_type,
-                product_batches: item.product_batches,
-                product_serials: item.product_serials,
-                quantity: item.quantity,
-              });
-
-              const batchCondition1 =
-                item.tracking_type?.toLowerCase() === 'batch';
-              const batchCondition2 = item.product_batches;
-              const batchCondition3 = Array.isArray(item.product_batches);
-              const batchCondition4 = item?.product_batches?.length > 0;
-
-              console.log('Batch validation:', {
-                trackingIsBatch: batchCondition1,
-                hasBatches: !!batchCondition2,
-                isArray: batchCondition3,
-                hasLength: batchCondition4,
-                finalResult:
-                  batchCondition1 &&
-                  batchCondition2 &&
-                  batchCondition3 &&
-                  batchCondition4,
-              });
-
               const processedBatches =
                 item.tracking_type?.toLowerCase() === 'batch' &&
-                item.product_batches &&
-                Array.isArray(item.product_batches) &&
-                item.product_batches.length > 0
-                  ? item.product_batches.filter(batch => batch?.quantity > 0)
+                  item.product_batches &&
+                  Array.isArray(item.product_batches) &&
+                  item.product_batches.length > 0
+                  ? item.product_batches.filter(
+                    batch => batch?.quantity && batch?.quantity > 0
+                  )
                   : null;
-
-              console.log('Processed batches:', processedBatches);
-
               return {
                 product_id: Number(item.product_id),
                 product_name: item.product_name || null,
                 product_serials:
                   item.tracking_type?.toLowerCase() === 'serial' &&
-                  item.product_serials &&
-                  Array.isArray(item.product_serials) &&
-                  item.product_serials.length > 0
+                    item.product_serials &&
+                    Array.isArray(item.product_serials) &&
+                    item.product_serials.length > 0
                     ? item.product_serials
                     : null,
                 product_batches: processedBatches,
@@ -226,7 +199,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             }),
         };
 
-        console.log('Processed data:', submitData);
 
         if (isEdit && selectedVanInventory) {
           await updateVanInventoryMutation.mutateAsync({
@@ -240,7 +212,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         handleCancel();
       } catch (error) {
         console.error('Error saving van inventory:', error);
-        console.log('Failed submitData:', submitData);
         toast.error('Failed to save van inventory. Please try again.');
         return;
       }
@@ -281,42 +252,14 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
 
     const responseData = userInventoryData.data;
 
-    // Handle new API response structure
-    if ('van_inventories' in responseData) {
-      const productMap = new Map();
-      const vanInventories = responseData.van_inventories || [];
-
-      vanInventories.forEach((vanInventory: any) => {
-        (vanInventory.items || []).forEach((item: any) => {
-          if (!productMap.has(item.product_id)) {
-            productMap.set(item.product_id, {
-              id: item.product_id,
-              name: item.product_name,
-              code: item.product_code,
-              tracking_type: item.tracking_type,
-              unit_price: 0,
-            });
-          }
-        });
-      });
-
-      return Array.from(productMap.values());
-    }
-    // Handle old API response structure (fallback)
-    else if ('products' in responseData) {
-      const salespersonData = responseData as SalespersonInventoryData;
-      const userProducts = (salespersonData.products || []).map(product => ({
-        id: product.product_id,
-        name: product.product_name,
-        code: product.product_code,
-        tracking_type: product.tracking_type,
-        unit_price: 0,
-      }));
-
-      return userProducts;
-    }
-
-    return [];
+    const salespersonData = responseData as SalespersonInventoryData;
+    return (salespersonData.products || []).map(product => ({
+      id: product.product_id,
+      name: product.product_name,
+      code: product.product_code,
+      tracking_type: product.tracking_type,
+      unit_price: 0,
+    }));
   }, [isUnloadType, userInventoryData, products]);
 
   const inventoryByProductId = useMemo(() => {
@@ -328,84 +271,37 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
 
     const responseData = userInventoryData.data;
 
-    // Handle new API response structure
-    if ('van_inventories' in responseData) {
-      const vanInventories = responseData.van_inventories || [];
+    const salespersonData = responseData as SalespersonInventoryData;
+    (salespersonData.products || []).forEach(product => {
+      const batches: ProductBatch[] = (product.batches || []).map(batch => ({
+        batch_lot_id: batch.batch_lot_id,
+        batch_number: batch.batch_number,
+        lot_number: batch.lot_number,
+        manufacturing_date: batch.manufacturing_date,
+        expiry_date: batch.expiry_date,
+        batch_total_quantity: batch.total_quantity,
+        batch_remaining_quantity: batch.remaining_quantity,
+        remaining_quantity: batch.remaining_quantity,
+        supplier_name: batch.supplier_name,
+        quality_grade: batch.quality_grade,
+        days_until_expiry: batch.days_until_expiry,
+        is_expired: batch.is_expired,
+        is_expiring_soon: batch.is_expiring_soon,
+        quantity: null,
+      }));
 
-      vanInventories.forEach((vanInventory: any) => {
-        (vanInventory.items || []).forEach((item: any) => {
-          const productId = item.product_id;
+      const serials: ExtendedProductSerial[] = (product.serials || []).map(
+        serial => ({
+          id: serial.serial_id,
+          product_id: product.product_id,
+          serial_number: serial.serial_number,
+          quantity: 1,
+          selected: false,
+        })
+      );
 
-          if (!map[productId]) {
-            map[productId] = { batches: [], serials: [] };
-          }
-
-          // Add batch data if available
-          if (item.batch) {
-            const existingBatch = map[productId].batches.find(
-              b => b.batch_lot_id === item.batch.batch_lot_id
-            );
-
-            if (!existingBatch) {
-              map[productId].batches.push({
-                batch_lot_id: item.batch.batch_lot_id,
-                batch_number: item.batch.batch_number,
-                lot_number: item.batch.lot_number,
-                manufacturing_date: item.batch.manufacturing_date,
-                expiry_date: item.batch.expiry_date,
-                batch_total_quantity: item.batch.total_quantity,
-                batch_remaining_quantity: item.batch.remaining_quantity,
-                remaining_quantity: item.batch.remaining_quantity,
-                supplier_name: item.batch.supplier_name,
-                quality_grade: item.batch.quality_grade,
-                days_until_expiry: item.batch.days_until_expiry,
-                is_expired: item.batch.is_expired,
-                is_expiring_soon: item.batch.is_expiring_soon,
-                quantity: null,
-              });
-            }
-          }
-
-          // Add serial data if available (placeholder for now)
-          // This would need to be implemented when serial data is included in the new API response
-        });
-      });
-    }
-    // Handle old API response structure (fallback)
-    else if ('products' in responseData) {
-      const salespersonData = responseData as SalespersonInventoryData;
-
-      (salespersonData.products || []).forEach(product => {
-        const batches: ProductBatch[] = (product.batches || []).map(batch => ({
-          batch_lot_id: batch.batch_lot_id,
-          batch_number: batch.batch_number,
-          lot_number: batch.lot_number,
-          manufacturing_date: batch.manufacturing_date,
-          expiry_date: batch.expiry_date,
-          batch_total_quantity: batch.total_quantity,
-          batch_remaining_quantity: batch.remaining_quantity,
-          remaining_quantity: batch.remaining_quantity,
-          supplier_name: batch.supplier_name,
-          quality_grade: batch.quality_grade,
-          days_until_expiry: batch.days_until_expiry,
-          is_expired: batch.is_expired,
-          is_expiring_soon: batch.is_expiring_soon,
-          quantity: null,
-        }));
-
-        const serials: ExtendedProductSerial[] = (product.serials || []).map(
-          serial => ({
-            id: serial.serial_id,
-            product_id: product.product_id,
-            serial_number: serial.serial_number,
-            quantity: 1,
-            selected: false,
-          })
-        );
-
-        map[product.product_id] = { batches, serials };
-      });
-    }
+      map[product.product_id] = { batches, serials };
+    });
 
     return map;
   }, [isUnloadType, userInventoryData]);
@@ -541,8 +437,8 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           total_quantity: null,
           quantity:
             isUnloadType &&
-            (product?.tracking_type === 'batch' ||
-              product?.tracking_type === 'serial')
+              (product?.tracking_type === 'batch' ||
+                product?.tracking_type === 'serial')
               ? null
               : null,
           notes: '',
@@ -648,7 +544,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             </Typography>
             <Box className="flex justify-end items-center gap-2">
               {(value && value.toLowerCase() === 'batch') ||
-              (value && value.toLowerCase() === 'serial') ? (
+                (value && value.toLowerCase() === 'serial') ? (
                 <Button
                   startIcon={<Tag />}
                   variant="text"
@@ -680,19 +576,19 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                     (acc, batch) => acc + (batch.quantity ?? 0),
                     0
                   ) !== row.quantity)) && (
-                <Tooltip
-                  placement="top"
-                  color="error"
-                  title={
-                    row.tracking_type === 'serial'
-                      ? `Mismatch: ${row.product_serials?.length || 0} serial number(s) assigned, but quantity is ${row.quantity}. Please select serials to match the quantity.`
-                      : `Mismatch: ${row.product_batches?.reduce((acc, batch) => acc + (batch.quantity ?? 0), 0) || 0} units in batches, but quantity is ${row.quantity}. Please adjust batch quantities to match.`
-                  }
-                  arrow
-                >
-                  <WarningAmberRounded color="error" fontSize="small" />
-                </Tooltip>
-              )}
+                  <Tooltip
+                    placement="top"
+                    color="error"
+                    title={
+                      row.tracking_type === 'serial'
+                        ? `Mismatch: ${row.product_serials?.length || 0} serial number(s) assigned, but quantity is ${row.quantity}. Please select serials to match the quantity.`
+                        : `Mismatch: ${row.product_batches?.reduce((acc, batch) => acc + (batch.quantity ?? 0), 0) || 0} units in batches, but quantity is ${row.quantity}. Please adjust batch quantities to match.`
+                    }
+                    arrow
+                  >
+                    <WarningAmberRounded color="error" fontSize="small" />
+                  </Tooltip>
+                )}
             </Box>
           </Box>
         ),
@@ -871,7 +767,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               }
             >
               {createVanInventoryMutation.isPending ||
-              updateVanInventoryMutation.isPending
+                updateVanInventoryMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

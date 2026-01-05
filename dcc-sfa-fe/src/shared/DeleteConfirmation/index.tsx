@@ -55,15 +55,12 @@ const PopConfirm: React.FC<PopConfirmProps> = ({
       <Tooltip
         open={isOpen}
         onClose={handleClose}
-        onOpen={() => {}}
+        onOpen={() => { }}
         disableFocusListener
         disableHoverListener
         disableTouchListener
         placement={tooltipPlacement}
         slotProps={{
-          popper: {
-            className: '!z-[1200]',
-          },
           tooltip: {
             sx: {
               minWidth: '320px',
