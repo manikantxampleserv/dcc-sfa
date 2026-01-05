@@ -1202,8 +1202,9 @@ export const vanInventoryController = {
                       ` Found van_inventory_items entry - ID: ${vanItem.id}, Quantity: ${vanItem.quantity}`
                     );
 
-                    await tx.van_inventory_items.delete({
+                    await tx.van_inventory_items.update({
                       where: { id: vanItem.id },
+                      data: { quantity: 0 },
                     });
 
                     console.log(
@@ -1443,11 +1444,14 @@ export const vanInventoryController = {
                     }
 
                     const newQty = vanItem.quantity - batchQty;
+                    await tx.van_inventory_items.update({
+                      where: { id: vanItem.id },
+                      data: { quantity: newQty >= 0 ? newQty : 0 },
+                    });
                     if (newQty <= 0) {
-                      await tx.van_inventory_items.delete({
-                        where: { id: vanItem.id },
-                      });
-                      console.log(`    Deleted van_item (quantity reached 0)`);
+                      console.log(
+                        `SET van_inventory_items ID ${vanItem.id} quantity to 0 (was ${vanItem.quantity})`
+                      );
                     } else {
                       await tx.van_inventory_items.update({
                         where: { id: vanItem.id },
