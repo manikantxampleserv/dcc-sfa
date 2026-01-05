@@ -1542,7 +1542,7 @@ export const vanInventoryController = {
                   }
 
                   console.log(
-                    `✅ Successfully unloaded ${totalSerialQty} serials from van (inventory_stock NOT updated)`
+                    ` Successfully unloaded ${totalSerialQty} serials from van (inventory_stock NOT updated)`
                   );
                 } else {
                   const vanItem = await tx.van_inventory_items.findFirst({
