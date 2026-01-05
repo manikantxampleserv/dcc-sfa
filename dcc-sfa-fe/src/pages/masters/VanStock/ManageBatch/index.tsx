@@ -243,7 +243,6 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
 
     formik.setFieldValue('van_inventory_items', updatedItems);
 
-    // Verify the update was applied
     setTimeout(() => {
       console.log('ManageBatch - After formik.setFieldValue:');
       console.log(
