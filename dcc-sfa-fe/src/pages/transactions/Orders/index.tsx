@@ -1,4 +1,4 @@
-import { Add, Block, Download, Pending, Upload } from '@mui/icons-material';
+import { Add, Block, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { useDeleteOrder, useOrders, type Order } from 'hooks/useOrders';
@@ -149,6 +149,15 @@ const OrdersManagement: React.FC = () => {
       R: 'error',
     };
     return colors[normalizedStatus as keyof typeof colors] || 'default';
+  };
+  const getApprovalStatusLabel = (status: string) => {
+    const normalizedStatus = status?.slice(0, 1)?.toUpperCase();
+    const labels = {
+      P: 'Pending',
+      R: 'Pending',
+      A: 'Approved',
+    };
+    return labels[normalizedStatus as keyof typeof labels] || 'Pending';
   };
 
   const getStatusIcon = (status: string) => {
@@ -328,7 +337,7 @@ const OrdersManagement: React.FC = () => {
       render: (_value, row) => (
         <Box>
           <Chip
-            label={(row.approval_status || 'P').toUpperCase()}
+            label={getApprovalStatusLabel(row.approval_status as string)}
             variant="outlined"
             size="small"
             icon={
@@ -337,7 +346,7 @@ const OrdersManagement: React.FC = () => {
               ) : row.approval_status === 'R' ? (
                 <XCircle className="w-4 h-4" />
               ) : row.approval_status === 'P' ? (
-                <Pending className="w-4 h-4" />
+                <Clock className="w-4 h-4" />
               ) : (
                 <Clock className="w-4 h-4" />
               )
@@ -352,14 +361,6 @@ const OrdersManagement: React.FC = () => {
                 | 'info'
             }
           />
-          {row.approved_at && (
-            <Typography
-              variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-1"
-            >
-              {new Date(row.approved_at).toLocaleDateString()}
-            </Typography>
-          )}
         </Box>
       ),
     },

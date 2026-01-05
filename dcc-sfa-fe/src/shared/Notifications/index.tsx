@@ -19,7 +19,7 @@ import {
   Skeleton,
   Typography,
 } from '@mui/material';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useNotifications,
@@ -122,27 +122,6 @@ const Notifications: React.FC<NotificationsProps> = ({
     if (days < 7) return `${days}d ago`;
     return notificationDate.toLocaleDateString();
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        anchorEl &&
-        !anchorEl.contains(event.target as Node)
-      ) {
-        handleClose();
-      }
-    };
-
-    if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [open, anchorEl]);
 
   return (
     <div className="relative" ref={menuRef}>
@@ -257,9 +236,8 @@ const Notifications: React.FC<NotificationsProps> = ({
               <MenuItem
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`!px-4 !py-3 !border-b !border-gray-100 hover:!bg-gray-50 ${
-                  !notification.is_read ? '!bg-blue-50' : ''
-                }`}
+                className={`!px-4 !py-3 !border-b !border-gray-100 hover:!bg-gray-50 ${!notification.is_read ? '!bg-blue-50' : ''
+                  }`}
               >
                 <ListItemIcon className="!min-w-0 !mr-3">
                   {getNotificationIcon(notification.type)}
@@ -269,11 +247,10 @@ const Notifications: React.FC<NotificationsProps> = ({
                     <Box className="!flex !items-start !justify-between !gap-2">
                       <Typography
                         variant="body2"
-                        className={`!font-medium !text-sm ${
-                          !notification.is_read
-                            ? '!text-gray-900'
-                            : '!text-gray-700'
-                        }`}
+                        className={`!font-medium !text-sm ${!notification.is_read
+                          ? '!text-gray-900'
+                          : '!text-gray-700'
+                          }`}
                       >
                         {notification.title}
                       </Typography>
@@ -287,7 +264,7 @@ const Notifications: React.FC<NotificationsProps> = ({
                       <Typography
                         component="span"
                         variant="body2"
-                        className="!text-xs !text-gray-500 !mt-1 !block"
+                        className="!text-xs !text-wrap !text-gray-500 !mt-1 !block"
                       >
                         {notification.message}
                       </Typography>

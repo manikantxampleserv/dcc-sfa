@@ -1,5 +1,13 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
-import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import {
+  Alert,
+  Avatar,
+  Box,
+  Chip,
+  MenuItem,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { Building2, MapPin, User, UserCheck, XCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { usePermission } from 'hooks/usePermission';
@@ -51,15 +59,8 @@ const ZonesManagement: React.FC = () => {
     }
   );
 
-  const { data: depotsResponse } = useDepots({
-    page: 1,
-    limit: 100, // Get all depots for filter
-  });
-
-  const { data: usersResponse } = useUsers({
-    page: 1,
-    limit: 1000, // Get all users for supervisor filtering
-  });
+  const { data: depotsResponse } = useDepots({ page: 1, limit: 100 });
+  const { data: usersResponse } = useUsers({ page: 1, limit: 100 });
 
   const zones = zonesResponse?.data || [];
   const depots = depotsResponse?.data || [];
@@ -70,7 +71,6 @@ const ZonesManagement: React.FC = () => {
   const deleteZoneMutation = useDeleteZone();
   const exportToExcelMutation = useExportToExcel();
 
-  // Statistics - Use API stats when available, fallback to local calculation
   const totalZones = zonesResponse?.stats?.total_zones ?? zones.length;
   const activeZones =
     zonesResponse?.stats?.active_zones ??
@@ -132,7 +132,6 @@ const ZonesManagement: React.FC = () => {
     }
   }, [exportToExcelMutation, search, statusFilter, depotFilter]);
 
-  // Define table columns following Depot pattern
   const zoneColumns: TableColumn<Zone>[] = [
     {
       id: 'name',
@@ -174,14 +173,21 @@ const ZonesManagement: React.FC = () => {
     {
       id: 'description',
       label: 'Description',
-      render: description => (
-        <Typography
-          variant="body2"
-          className="!text-gray-600 !max-w-xs !truncate"
-        >
-          {description || 'No description'}
-        </Typography>
-      ),
+      render: description => {
+        return description ? (
+          <Tooltip title={description} placement="top" arrow>
+            <Box component="span" className="!block !max-w-[200px] !truncate">
+              <Typography variant="body2" className="!text-gray-600">
+                {description}
+              </Typography>
+            </Box>
+          </Tooltip>
+        ) : (
+          <Typography variant="body2" className="!text-gray-600">
+            No description
+          </Typography>
+        );
+      },
     },
     {
       id: 'supervisor_id',
@@ -190,7 +196,7 @@ const ZonesManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <User className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {users.find(u => u.id === row.supervisor_id)?.name || (
+            {row.supervisor?.name || (
               <span className="text-xs italic text-gray-500">
                 No Supervisor
               </span>

@@ -15,6 +15,7 @@ interface Zone {
   code: string;
   description?: string | null;
   supervisor_id?: number | null;
+  supervisor?: { id: number; name: string; email: string } | null;
   is_active: string;
   created_by: number;
   createdate?: string | null;
@@ -26,12 +27,7 @@ interface Zone {
     name: string;
     code: string;
   } | null;
-  zone_supervisor?: {
-    id: number;
-    name: string;
-    email: string;
-  } | null;
-  // Additional computed fields for display
+  // Computed fields can still be used for fallback
   depot_name?: string;
   supervisor_name?: string;
 }

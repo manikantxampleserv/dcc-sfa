@@ -235,14 +235,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         quantity: null,
       }));
 
-      const serials: ProductSerial[] = (product.serials || []).map(
-        serial => ({
-          id: serial.serial_id,
-          product_id: product.product_id,
-          serial_number: serial.serial_number,
-          quantity: 1,
-        })
-      );
+      const serials: ProductSerial[] = (product.serials || []).map(serial => ({
+        id: serial.serial_id,
+        product_id: product.product_id,
+        serial_number: serial.serial_number,
+        quantity: 1,
+      }));
 
       map[product.product_id] = { batches, serials };
     });
@@ -369,143 +367,143 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const orderItemsColumns: TableColumn<
     OrderItemFormData & { _index: number }
   >[] = [
-      {
-        id: 'product_id',
-        label: 'Product',
-        render: (_value, row) => (
-          <SalesItemsSelect
-            salespersonId={
-              formik.values.salesperson_id
-                ? Number(formik.values.salesperson_id)
-                : 0
-            }
-            value={row.product_id}
-            onChange={(_event, product) => {
-              const updatedItems = [...orderItems];
-              const trackingType = product?.tracking_type || null;
-              const trackingLower = trackingType
-                ? trackingType.toString().toLowerCase()
-                : null;
-              const isBatchOrSerial =
-                trackingLower === 'batch' || trackingLower === 'serial';
-              updatedItems[row._index] = {
-                ...updatedItems[row._index],
-                product_id: product ? product.product_id : '',
-                tracking_type: trackingType,
-                unit_price: product ? String(product.unit_price) : '0',
-                quantity:
-                  product && isBatchOrSerial
-                    ? '0'
-                    : updatedItems[row._index].quantity || '1',
-                product_batches: [],
-                product_serials: [],
-              };
-              setOrderItems(updatedItems);
-              formik.setFieldValue('order_items', updatedItems);
-            }}
-            size="small"
-            placeholder="Search for a product"
-            label=""
-            disabled={!formik.values.salesperson_id}
-            className="!min-w-72"
-          />
-        ),
-      },
-      {
-        id: 'tracking_type',
-        label: 'Tracking',
-        render: (_value, row) => {
-          const tracking = (row.tracking_type || '').toString().toLowerCase();
-          const canManage =
-            tracking === 'batch' || tracking === 'serial' ? tracking : null;
-          return (
-            <Box className="!flex !justify-between !items-center !min-w-52">
-              <Typography
-                variant="body2"
-                className="!text-gray-700 !uppercase !text-xs"
+    {
+      id: 'product_id',
+      label: 'Product',
+      render: (_value, row) => (
+        <SalesItemsSelect
+          salespersonId={
+            formik.values.salesperson_id
+              ? Number(formik.values.salesperson_id)
+              : 0
+          }
+          value={row.product_id}
+          onChange={(_event, product) => {
+            const updatedItems = [...orderItems];
+            const trackingType = product?.tracking_type || null;
+            const trackingLower = trackingType
+              ? trackingType.toString().toLowerCase()
+              : null;
+            const isBatchOrSerial =
+              trackingLower === 'batch' || trackingLower === 'serial';
+            updatedItems[row._index] = {
+              ...updatedItems[row._index],
+              product_id: product ? product.product_id : '',
+              tracking_type: trackingType,
+              unit_price: product ? String(product.unit_price) : '0',
+              quantity:
+                product && isBatchOrSerial
+                  ? '0'
+                  : updatedItems[row._index].quantity || '1',
+              product_batches: [],
+              product_serials: [],
+            };
+            setOrderItems(updatedItems);
+            formik.setFieldValue('order_items', updatedItems);
+          }}
+          size="small"
+          placeholder="Search for a product"
+          label=""
+          disabled={!formik.values.salesperson_id}
+          className="!min-w-72"
+        />
+      ),
+    },
+    {
+      id: 'tracking_type',
+      label: 'Tracking',
+      render: (_value, row) => {
+        const tracking = (row.tracking_type || '').toString().toLowerCase();
+        const canManage =
+          tracking === 'batch' || tracking === 'serial' ? tracking : null;
+        return (
+          <Box className="!flex !justify-between !items-center !min-w-52">
+            <Typography
+              variant="body2"
+              className="!text-gray-700 !uppercase !text-xs"
+            >
+              {tracking || 'none'}
+            </Typography>
+            {canManage && (
+              <Button
+                type="button"
+                startIcon={<Tag />}
+                variant="text"
+                size="small"
+                onClick={() => {
+                  const index = row._index;
+                  const item = orderItems[index];
+                  if (!item || !item.product_id) {
+                    toast.error('Please select a product first');
+                    return;
+                  }
+                  setSelectedRowIndex(index);
+                  if (canManage === 'batch') {
+                    setIsBatchSelectorOpen(true);
+                  } else {
+                    setIsSerialSelectorOpen(true);
+                  }
+                }}
               >
-                {tracking || 'none'}
-              </Typography>
-              {canManage && (
-                <Button
-                  type="button"
-                  startIcon={<Tag />}
-                  variant="text"
-                  size="small"
-                  onClick={() => {
-                    const index = row._index;
-                    const item = orderItems[index];
-                    if (!item || !item.product_id) {
-                      toast.error('Please select a product first');
-                      return;
-                    }
-                    setSelectedRowIndex(index);
-                    if (canManage === 'batch') {
-                      setIsBatchSelectorOpen(true);
-                    } else {
-                      setIsSerialSelectorOpen(true);
-                    }
-                  }}
-                >
-                  {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
-                </Button>
-              )}
-            </Box>
-          );
-        },
+                {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
+              </Button>
+            )}
+          </Box>
+        );
       },
-      {
-        id: 'quantity',
-        label: 'Quantity',
-        render: (_value, row) => {
-          const tracking = (row.tracking_type || '').toString().toLowerCase();
-          const isNoneTracking = !tracking || tracking === 'none';
-          return (
-            <Input
-              value={row.quantity}
-              onChange={e =>
-                updateOrderItem(row._index, 'quantity', e.target.value)
-              }
-              placeholder="1"
-              type="number"
-              size="small"
-              className="!min-w-20"
-              disabled={!isNoneTracking}
-            />
-          );
-        },
-      },
-      {
-        id: 'unit_price',
-        label: 'Unit Price',
-        render: (_value, row) => (
+    },
+    {
+      id: 'quantity',
+      label: 'Quantity',
+      render: (_value, row) => {
+        const tracking = (row.tracking_type || '').toString().toLowerCase();
+        const isNoneTracking = !tracking || tracking === 'none';
+        return (
           <Input
-            value={row.unit_price}
+            value={row.quantity}
             onChange={e =>
-              updateOrderItem(row._index, 'unit_price', e.target.value)
+              updateOrderItem(row._index, 'quantity', e.target.value)
             }
-            placeholder="0.00"
+            placeholder="1"
             type="number"
             size="small"
-            className="!min-w-32"
+            className="!min-w-20"
+            disabled={!isNoneTracking}
           />
-        ),
+        );
       },
-      {
-        id: 'actions',
-        label: 'Actions',
-        sortable: false,
-        render: (_value, row) => (
-          <DeleteButton
-            onClick={() => removeOrderItem(row._index)}
-            tooltip="Remove item"
-            confirmDelete={true}
-            size="medium"
-            itemName="order item"
-          />
-        ),
-      },
-    ];
+    },
+    {
+      id: 'unit_price',
+      label: 'Unit Price',
+      render: (_value, row) => (
+        <Input
+          value={row.unit_price}
+          onChange={e =>
+            updateOrderItem(row._index, 'unit_price', e.target.value)
+          }
+          placeholder="0.00"
+          type="number"
+          size="small"
+          className="!min-w-32"
+        />
+      ),
+    },
+    {
+      id: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (_value, row) => (
+        <DeleteButton
+          onClick={() => removeOrderItem(row._index)}
+          tooltip="Remove item"
+          confirmDelete={true}
+          size="medium"
+          itemName="order item"
+        />
+      ),
+    },
+  ];
 
   const getCurrencyCode = (currencyId: string | number) => {
     const currencies = currenciesResponse?.data || [];

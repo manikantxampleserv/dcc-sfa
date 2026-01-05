@@ -18,8 +18,8 @@ interface ZoneSerialized {
   log_inst?: number | null;
   promotions?: { id: number; name: string }[];
   routes_zones?: { id: number; name: string }[];
-  user_zones?: { id: number; name: string; email: string }[];
   zone_depots?: { id: number; name: string; code: string } | null;
+  supervisor?: { id: number; name: string; email: string } | null;
 }
 
 const generateZoneCode = async (name: string) => {
@@ -65,19 +65,19 @@ const serializeZone = (zone: any): ZoneSerialized => ({
 
   routes_zones: zone.routes_zones
     ? zone.routes_zones.map((r: any) => ({ id: r.id, name: r.name }))
-    : [],
-  user_zones: zone.user_zones
-    ? zone.user_zones.map((u: any) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-      }))
-    : [],
+    : undefined,
   zone_depots: zone.zone_depots
     ? {
         id: zone.zone_depots.id,
         name: zone.zone_depots.name,
         code: zone.zone_depots.code,
+      }
+    : null,
+  supervisor: zone.zone_supervisor
+    ? {
+        id: zone.zone_supervisor.id,
+        name: zone.zone_supervisor.name,
+        email: zone.zone_supervisor.email,
       }
     : null,
 });
@@ -108,8 +108,8 @@ export const zonesController = {
             },
           },
           routes_zones: true,
-          user_zones: true,
           zone_depots: true,
+          zone_supervisor: true,
         },
       });
 
@@ -154,8 +154,8 @@ export const zonesController = {
             },
           },
           routes_zones: true,
-          user_zones: true,
           zone_depots: true,
+          zone_supervisor: true,
         },
       });
 
@@ -210,8 +210,8 @@ export const zonesController = {
             },
           },
           routes_zones: true,
-          user_zones: true,
           zone_depots: true,
+          zone_supervisor: true,
         },
       });
 
@@ -257,8 +257,8 @@ export const zonesController = {
             },
           },
           routes_zones: true,
-          user_zones: true,
           zone_depots: true,
+          zone_supervisor: true,
         },
       });
 

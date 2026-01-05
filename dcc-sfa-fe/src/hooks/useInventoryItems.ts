@@ -51,13 +51,11 @@ export const useInventoryItems = (
       };
 
       if (params?.salesperson_id) {
-        // Single salesperson - detailed view
         return await fetchSalespersonInventory(
           params.salesperson_id,
           apiParams
         );
       } else {
-        // All salespersons - summary view
         return await fetchAllSalespersonsInventory(apiParams);
       }
     },
@@ -87,7 +85,6 @@ export const useInventoryItemById = (
   });
 };
 
-// Re-export types for convenience
 export type {
   AllSalespersonsResponse,
   SalespersonInventoryData,

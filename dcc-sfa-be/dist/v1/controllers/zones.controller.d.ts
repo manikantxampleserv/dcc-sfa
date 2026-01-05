@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import '../../types/express';
 export declare const zonesController: {
     createZone(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getZones(req: any, res: any): Promise<void>;
