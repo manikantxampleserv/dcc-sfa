@@ -277,176 +277,6 @@ interface BulkVisitInput {
   };
 }
 
-// const serializeVisit = (visit: any): VisitSerialized => ({
-//   id: visit.id,
-//   customer_id: visit.customer_id,
-//   sales_person_id: visit.sales_person_id,
-//   route_id: visit.route_id,
-//   zones_id: visit.zones_id,
-//   visit_date: visit.visit_date,
-//   visit_time: visit.visit_time,
-//   purpose: visit.purpose,
-//   status: visit.status,
-//   start_time: visit.start_time,
-//   end_time: visit.end_time,
-//   duration: visit.duration,
-//   start_latitude: visit.start_latitude,
-//   start_longitude: visit.start_longitude,
-//   end_latitude: visit.end_latitude,
-//   end_longitude: visit.end_longitude,
-//   check_in_time: visit.check_in_time,
-//   check_out_time: visit.check_out_time,
-//   orders_created: visit.orders_created,
-//   amount_collected: visit.amount_collected,
-//   visit_notes: visit.visit_notes,
-//   customer_feedback: visit.customer_feedback,
-//   next_visit_date: visit.next_visit_date,
-//   is_active: visit.is_active,
-//   createdate: visit.createdate,
-//   createdby: visit.createdby,
-//   updatedate: visit.updatedate,
-//   updatedby: visit.updatedby,
-//   log_inst: visit.log_inst,
-//   customer: visit.visit_customers
-//     ? {
-//         id: visit.visit_customers.id,
-//         name: visit.visit_customers.name,
-//         code: visit.visit_customers.code,
-//         type: visit.visit_customers.type,
-//         contact_person: visit.visit_customers.contact_person,
-//         phone_number: visit.visit_customers.phone_number,
-//         email: visit.visit_customers.email,
-//         address: visit.visit_customers.address,
-//         city: visit.visit_customers.city,
-//         state: visit.visit_customers.state,
-//         zipcode: visit.visit_customers.zipcode,
-//         outstanding_amount: visit.visit_customers.outstanding_amount,
-//         credit_limit: visit.visit_customers.credit_limit,
-//         is_active: visit.visit_customers.is_active,
-//       }
-//     : null,
-//   salesperson: visit.visits_salesperson
-//     ? {
-//         id: visit.visits_salesperson.id,
-//         name: visit.visits_salesperson.name,
-//         email: visit.visits_salesperson.email,
-//       }
-//     : null,
-//   route: visit.visit_routes
-//     ? {
-//         id: visit.visit_routes.id,
-//         name: visit.visit_routes.name,
-//         code: visit.visit_routes.code,
-//       }
-//     : null,
-//   zone: visit.visit_zones
-//     ? {
-//         id: visit.visit_zones.id,
-//         name: visit.visit_zones.name,
-//         code: visit.visit_zones.code,
-//       }
-//     : null,
-//   orders: visit.orders
-//     ? visit.orders.map((order: any) => ({
-//         id: order.id,
-//         order_number: order.order_number,
-//         order_type: order.order_type,
-//         order_date: order.order_date,
-//         delivery_date: order.delivery_date,
-//         status: order.status,
-//         priority: order.priority,
-//         payment_method: order.payment_method,
-//         payment_terms: order.payment_terms,
-//         subtotal: order.subtotal,
-//         discount_amount: order.discount_amount,
-//         tax_amount: order.tax_amount,
-//         shipping_amount: order.shipping_amount,
-//         total_amount: order.total_amount,
-//         notes: order.notes,
-//         shipping_address: order.shipping_address,
-//         approval_status: order.approval_status,
-//         is_active: order.is_active,
-//         items: order.order_items
-//           ? order.order_items.map((item: any) => ({
-//               id: item.id,
-//               product_id: item.product_id,
-//               product_name: item.product_name,
-//               unit: item.unit,
-//               quantity: item.quantity,
-//               unit_price: item.unit_price,
-//               discount_amount: item.discount_amount,
-//               tax_amount: item.tax_amount,
-//               total_amount: item.total_amount,
-//               notes: item.notes,
-//             }))
-//           : [],
-//       }))
-//     : [],
-//   payments: visit.payments
-//     ? visit.payments.map((payment: any) => ({
-//         id: payment.id,
-//         payment_number: payment.payment_number,
-//         customer_id: payment.customer_id,
-//         payment_date: payment.payment_date,
-//         collected_by: payment.collected_by,
-//         method: payment.method,
-//         reference_number: payment.reference_number,
-//         total_amount: payment.total_amount,
-//         notes: payment.notes,
-//         is_active: payment.is_active,
-//         currency_id: payment.currency_id,
-//       }))
-//     : [],
-//   cooler_inspections: visit.cooler_inspections
-//     ? visit.cooler_inspections.map((inspection: any) => ({
-//         id: inspection.id,
-//         cooler_id: inspection.cooler_id,
-//         inspected_by: inspection.inspected_by,
-//         inspection_date: inspection.inspection_date,
-//         temperature: inspection.temperature,
-//         is_working: inspection.is_working,
-//         issues: inspection.issues,
-//         images: inspection.images,
-//         latitude: inspection.latitude,
-//         longitude: inspection.longitude,
-//         action_required: inspection.action_required,
-//         action_taken: inspection.action_taken,
-//         next_inspection_due: inspection.next_inspection_due,
-//         cooler: inspection.coolers
-//           ? {
-//               id: inspection.coolers.id,
-//               code: inspection.coolers.code,
-//               brand: inspection.coolers.brand,
-//               model: inspection.coolers.model,
-//               serial_number: inspection.coolers.serial_number,
-//               customer_id: inspection.coolers.customer_id,
-//               capacity: inspection.coolers.capacity,
-//               status: inspection.coolers.status,
-//             }
-//           : null,
-//       }))
-//     : [],
-//   survey_responses: visit.survey_responses
-//     ? visit.survey_responses.map((response: any) => ({
-//         id: response.id,
-//         parent_id: response.parent_id,
-//         customer_id: response.customer_id,
-//         submitted_by: response.submitted_by,
-//         submitted_at: response.submitted_at,
-//         location: response.location,
-//         photo_url: response.photo_url,
-//         is_active: response.is_active,
-//         survey_answers: response.survey_answers
-//           ? response.survey_answers.map((answer: any) => ({
-//               id: answer.id,
-//               field_id: answer.field_id,
-//               answer: answer.answer,
-//             }))
-//           : [],
-//       }))
-//     : [],
-// });
-
 function serializeVisit(visit: any) {
   return {
     id: visit.id,
@@ -3811,18 +3641,92 @@ export const visitsController = {
           visits_salesperson: true,
           visit_routes: true,
           visit_zones: true,
+          cooler_inspections: true,
+          visit_attachments: true,
+          competitor_activity: true,
+          product_facing: true,
+          route_exceptions: true,
+          visit_tasks_visits: true,
         },
       });
+
       if (!visit) {
         return res.status(404).json({ message: 'Visit not found' });
       }
+
+      const coolers = await prisma.coolers.findMany({
+        where: {
+          customer_id: visit.customer_id,
+          is_active: 'Y',
+        },
+      });
+
+      const orders = await prisma.orders.findMany({
+        where: {
+          orders_customers: {
+            id: visit.customer_id,
+          },
+          is_active: 'Y',
+        },
+        include: {
+          order_items: {
+            include: {
+              products: true,
+            },
+          },
+        },
+      });
+
+      const payments = await prisma.payments.findMany({
+        where: {
+          payments_customers: {
+            id: visit.customer_id,
+          },
+          is_active: 'Y',
+        },
+      });
+
+      let surveyResponses: any[] = [];
+      try {
+        surveyResponses = await prisma.survey_responses.findMany({
+          where: {},
+        });
+      } catch (e) {
+        console.log('Survey responses table might not exist');
+      }
+
       res.status(200).json({
         message: 'Visit retrieved successfully',
-        data: serializeVisit(visit),
+        data: {
+          ...visit,
+          customer: visit.visit_customers
+            ? {
+                ...visit.visit_customers,
+                coolers: coolers,
+                total_coolers: coolers.length,
+              }
+            : null,
+          salesperson: visit.visits_salesperson
+            ? {
+                id: visit.visits_salesperson.id,
+                name: visit.visits_salesperson.name,
+                email: visit.visits_salesperson.email,
+              }
+            : null,
+          route: visit.visit_routes || null,
+          zone: visit.visit_zones || null,
+          orders: orders,
+          payments: payments,
+          cooler_inspections: visit.cooler_inspections || [],
+          survey_responses: surveyResponses,
+          visit_customers: undefined,
+          visits_salesperson: undefined,
+          visit_routes: undefined,
+          visit_zones: undefined,
+        },
       });
     } catch (error: any) {
       console.error('Get Visit Error:', error);
-
       res.status(500).json({ message: error.message });
     }
   },
