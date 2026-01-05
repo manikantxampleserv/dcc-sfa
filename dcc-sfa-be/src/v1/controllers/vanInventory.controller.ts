@@ -978,10 +978,13 @@ export const vanInventoryController = {
 
               if (loadingType === 'L') {
                 if (trackingType === 'BATCH') {
+                  // Handle both 'batches' and 'product_batches' field names
+                  const batchData = item.batches || item.product_batches;
+
                   if (
-                    !item.product_batches ||
-                    !Array.isArray(item.product_batches) ||
-                    item.product_batches.length === 0
+                    !batchData ||
+                    !Array.isArray(batchData) ||
+                    batchData.length === 0
                   ) {
                     throw new Error(
                       `Batches are required for batch-tracked product "${product.name}". ` +
@@ -992,7 +995,7 @@ export const vanInventoryController = {
                   let totalBatchQty = 0;
                   const createdBatches = [];
 
-                  for (const batchInput of item.product_batches) {
+                  for (const batchInput of batchData) {
                     const batchQty = parseInt(batchInput.quantity, 10) || 0;
                     if (batchQty <= 0) {
                       throw new Error('Batch quantity must be greater than 0');
@@ -1104,10 +1107,13 @@ export const vanInventoryController = {
                     ` Created ${createdBatches.length} batches for product ${product.name}`
                   );
                 } else if (trackingType === 'SERIAL') {
+                  // Handle both 'serials' and 'product_serials' field names
+                  const serialData = item.serials || item.product_serials;
+
                   if (
-                    !item.product_serials ||
-                    !Array.isArray(item.product_serials) ||
-                    item.product_serials.length === 0
+                    !serialData ||
+                    !Array.isArray(serialData) ||
+                    serialData.length === 0
                   ) {
                     throw new Error(
                       `Serial numbers are required for unloading serial-tracked product "${product.name}"`
@@ -1238,8 +1244,25 @@ export const vanInventoryController = {
                     );
                   }
 
+                  await tx.van_inventory_items.create({
+                    data: {
+                      parent_id: inventory.id,
+                      product_id: product.id,
+                      product_name: product.name,
+                      unit: product.product_unit_of_measurement?.name || 'pcs',
+                      quantity: serialData.length,
+                      unit_price: Number(item.unit_price) || 0,
+                      discount_amount: Number(item.discount_amount) || 0,
+                      tax_amount: Number(item.tax_amount) || 0,
+                      total_amount:
+                        serialData.length * (Number(item.unit_price) || 0),
+                      notes: item.notes || null,
+                      batch_lot_id: null,
+                    },
+                  });
+
                   console.log(
-                    ` Successfully unloaded ${totalSerialQty} serials from van`
+                    ` Created ${serialData.length} serials for product ${product.name}`
                   );
                 } else {
                   await tx.van_inventory_items.create({
@@ -1290,17 +1313,20 @@ export const vanInventoryController = {
                 }
               } else if (loadingType === 'U') {
                 if (trackingType === 'BATCH') {
+                  // Handle both 'batches' and 'product_batches' field names
+                  const batchData = item.batches || item.product_batches;
+
                   if (
-                    !item.product_batches ||
-                    !Array.isArray(item.product_batches) ||
-                    item.product_batches.length === 0
+                    !batchData ||
+                    !Array.isArray(batchData) ||
+                    batchData.length === 0
                   ) {
                     throw new Error(
                       `Batches are required for unloading batch-tracked product "${product.name}"`
                     );
                   }
 
-                  for (const batchInput of item.product_batches) {
+                  for (const batchInput of batchData) {
                     const batchQty = parseInt(batchInput.quantity, 10) || 0;
                     if (batchQty <= 0) {
                       throw new Error('Batch quantity must be greater than 0');

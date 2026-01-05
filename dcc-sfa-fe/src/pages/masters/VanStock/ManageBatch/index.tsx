@@ -11,6 +11,7 @@ import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
 import Table, { type TableColumn } from 'shared/Table';
 import type { VanInventoryFormValues } from '../ManageVanInventory';
+import { formatDate } from 'utils/dateUtils';
 
 interface ManageBatchProps {
   isOpen: boolean;
@@ -19,6 +20,20 @@ interface ManageBatchProps {
   setSelectedRowIndex: (rowIndex: number | null) => void;
   formik: FormikProps<VanInventoryFormValues>;
   quantity: number | string | null;
+  inventoryByProductId?: Record<
+    number,
+    {
+      batches: ProductBatch[];
+      serials: {
+        id?: number;
+        product_id: number;
+        serial_number: string;
+        quantity: number;
+        selected?: boolean;
+      }[];
+    }
+  >;
+  isUnloadType?: boolean;
 }
 
 const INITIAL_BATCH: ProductBatch = {
@@ -37,21 +52,55 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
   setSelectedRowIndex,
   formik,
   quantity = null,
+  inventoryByProductId,
+  isUnloadType = false,
 }) => {
   const [productBatches, setProductBatches] = useState<ProductBatch[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (
-      selectedRowIndex !== null &&
-      formik.values.van_inventory_items[selectedRowIndex]
-    ) {
-      setProductBatches(
-        formik.values.van_inventory_items[selectedRowIndex]
-          .product_batches as ProductBatch[]
-      );
+    if (selectedRowIndex === null) {
+      return;
     }
-  }, [selectedRowIndex, formik.values.van_inventory_items]);
+
+    const item = formik.values.van_inventory_items[selectedRowIndex];
+    if (!item) {
+      setProductBatches([]);
+      return;
+    }
+
+    const existing = (item.product_batches as ProductBatch[] | undefined) || [];
+
+    if (existing.length > 0) {
+      setProductBatches(existing);
+      return;
+    }
+
+    // For Unload type, initialize with available inventory batches
+    if (
+      isUnloadType &&
+      item.product_id &&
+      inventoryByProductId &&
+      inventoryByProductId[item.product_id] &&
+      inventoryByProductId[item.product_id].batches.length > 0
+    ) {
+      const initialBatches = inventoryByProductId[item.product_id].batches.map(
+        batch => ({
+          ...batch,
+          quantity: 0,
+        })
+      );
+      setProductBatches(initialBatches);
+      return;
+    }
+
+    setProductBatches([]);
+  }, [
+    selectedRowIndex,
+    formik.values.van_inventory_items,
+    inventoryByProductId,
+    isUnloadType,
+  ]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -81,7 +130,18 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
             : Number.POSITIVE_INFINITY;
           const raw = Number(value);
           const normalized = Number.isFinite(raw) ? raw : 0;
-          const nextQty = Math.min(Math.max(0, normalized), maxAllowed);
+
+          // For Unload type, also check against available inventory
+          const batchMax =
+            isUnloadType && updated[rowIndex].batch_remaining_quantity
+              ? Number(updated[rowIndex].batch_remaining_quantity)
+              : Number.POSITIVE_INFINITY;
+
+          const nextQty = Math.min(
+            Math.max(0, normalized),
+            maxAllowed,
+            batchMax
+          );
           updated[rowIndex] = {
             ...updated[rowIndex],
             quantity: nextQty,
@@ -97,7 +157,7 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
         return updated;
       });
     },
-    [quantity]
+    [quantity, isUnloadType]
   );
 
   const handleAddBatch = useCallback(() => {
@@ -150,21 +210,64 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
       return;
     }
 
+    const mappedBatches = productBatches.map(b => ({
+      ...b,
+      batch_number: (b.batch_number || '').trim(),
+      lot_number: (b.lot_number || '').trim(),
+      quantity: Number(b.quantity) || 0,
+      manufacturing_date: (b.manufacturing_date || '').trim(),
+      expiry_date: (b.expiry_date || '').trim(),
+    }));
+
+    console.log('ManageBatch - Saving batch data:', {
+      selectedRowIndex,
+      isUnloadType,
+      productBatches,
+      mappedBatches,
+    });
+
     const updatedItems = [...formik.values.van_inventory_items];
     updatedItems[selectedRowIndex] = {
       ...updatedItems[selectedRowIndex],
-      product_batches: productBatches.map(b => ({
-        ...b,
-        batch_number: (b.batch_number || '').trim(),
-        lot_number: (b.lot_number || '').trim(),
-        quantity: Number(b.quantity) || 0,
-        manufacturing_date: (b.manufacturing_date || '').trim(),
-        expiry_date: (b.expiry_date || '').trim(),
-      })),
+      quantity: isUnloadType
+        ? totalQty
+        : updatedItems[selectedRowIndex].quantity,
+      product_batches: mappedBatches,
     };
+
+    console.log('ManageBatch - Before formik.setFieldValue:');
+    console.log('- selectedRowIndex:', selectedRowIndex);
+    console.log('- mappedBatches:', mappedBatches);
+    console.log('- Updated item:', updatedItems[selectedRowIndex]);
+    console.log('- Current formik items:', formik.values.van_inventory_items);
+
     formik.setFieldValue('van_inventory_items', updatedItems);
+
+    setTimeout(() => {
+      console.log('ManageBatch - After formik.setFieldValue:');
+      console.log(
+        '- Formik items count:',
+        formik.values.van_inventory_items.length
+      );
+      console.log(
+        '- Specific item product_batches:',
+        formik.values.van_inventory_items[selectedRowIndex]?.product_batches
+      );
+      console.log(
+        '- Full item:',
+        formik.values.van_inventory_items[selectedRowIndex]
+      );
+    }, 100);
+
     handleClose();
-  }, [selectedRowIndex, productBatches, formik, handleClose, quantity]);
+  }, [
+    selectedRowIndex,
+    productBatches,
+    formik,
+    handleClose,
+    quantity,
+    isUnloadType,
+  ]);
 
   const filteredBatches = useMemo(() => {
     if (!searchQuery.trim()) return productBatches;
@@ -218,54 +321,79 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
       {
         id: 'batch_number',
         label: 'Batch Number',
-        render: (_value, row, rowIndex) => (
-          <Input
-            value={row.batch_number}
-            onChange={e =>
-              handleBatchChange('batch_number', rowIndex, e.target.value)
-            }
-            size="small"
-            className="!w-52"
-            placeholder="Enter batch number"
-            fullWidth
-          />
-        ),
+        render: (_value, row, rowIndex) =>
+          isUnloadType ? (
+            <span className="text-gray-900">{row.batch_number}</span>
+          ) : (
+            <Input
+              value={row.batch_number}
+              onChange={e =>
+                handleBatchChange('batch_number', rowIndex, e.target.value)
+              }
+              size="small"
+              className="!w-52"
+              placeholder="Enter batch number"
+              fullWidth
+            />
+          ),
       },
       {
         id: 'manufacturing_date',
         label: 'MFG Date',
-        render: (_value, row, rowIndex) => (
-          <Input
-            type="date"
-            value={row.manufacturing_date}
-            onChange={e =>
-              handleBatchChange('manufacturing_date', rowIndex, e.target.value)
-            }
-            className="!w-52"
-            size="small"
-            placeholder="Enter manufacturing date"
-          />
-        ),
+        render: (_value, row, rowIndex) =>
+          isUnloadType ? (
+            <span className="text-gray-900">
+              {formatDate(row.manufacturing_date)}
+            </span>
+          ) : (
+            <Input
+              type="date"
+              value={row.manufacturing_date}
+              onChange={e =>
+                handleBatchChange(
+                  'manufacturing_date',
+                  rowIndex,
+                  e.target.value
+                )
+              }
+              className="!w-52"
+              size="small"
+              placeholder="Enter manufacturing date"
+            />
+          ),
       },
       {
         id: 'expiry_date',
         label: 'EXP Date',
-        render: (_value, row, rowIndex) => (
-          <Input
-            type="date"
-            value={row.expiry_date}
-            onChange={e =>
-              handleBatchChange('expiry_date', rowIndex, e.target.value)
-            }
-            className="!w-52"
-            size="small"
-            placeholder="Enter expiry date"
-          />
-        ),
+        render: (_value, row, rowIndex) =>
+          isUnloadType ? (
+            <span className="text-gray-900">{formatDate(row.expiry_date)}</span>
+          ) : (
+            <Input
+              type="date"
+              value={row.expiry_date}
+              onChange={e =>
+                handleBatchChange('expiry_date', rowIndex, e.target.value)
+              }
+              className="!w-52"
+              size="small"
+              placeholder="Enter expiry date"
+            />
+          ),
+      },
+      {
+        id: 'available_quantity',
+        label: 'Available',
+        render: (_value, row) =>
+          isUnloadType ? (
+            <span className="text-gray-600">
+              {row.batch_remaining_quantity || 0}
+            </span>
+          ) : null,
       },
       {
         id: 'quantity',
-        label: 'Quantity',
+        label: isUnloadType ? 'Unload Quantity' : 'Quantity',
         render: (_value, row, rowIndex) => (
           <Input
             type="number"
@@ -275,9 +403,16 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
             }
             size="small"
             className="!w-32"
-            placeholder="Enter quantity"
+            placeholder={
+              isUnloadType ? 'Enter unload quantity' : 'Enter quantity'
+            }
             fullWidth
-            inputProps={{ min: 0 }}
+            inputProps={{
+              min: 0,
+              max: isUnloadType
+                ? row.batch_remaining_quantity || undefined
+                : undefined,
+            }}
           />
         ),
       },
@@ -294,7 +429,7 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
         ),
       },
     ],
-    [handleBatchChange, handleDelete]
+    [handleBatchChange, handleDelete, isUnloadType]
   );
 
   return (
@@ -326,14 +461,16 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
             value={searchQuery}
             onChange={e => setSearchQuery(e)}
           />
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Plus size={16} />}
-            onClick={handleAddBatch}
-          >
-            Add Batch
-          </Button>
+          {!isUnloadType && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Plus size={16} />}
+              onClick={handleAddBatch}
+            >
+              Add Batch
+            </Button>
+          )}
         </div>
         <Table
           stickyHeader

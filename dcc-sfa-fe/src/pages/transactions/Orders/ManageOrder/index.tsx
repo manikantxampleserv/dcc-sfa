@@ -214,35 +214,85 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       return map;
     }
 
-    const salespersonData = inventoryData.data as SalespersonInventoryData;
+    const responseData = inventoryData.data;
 
-    (salespersonData.products || []).forEach(product => {
-      const batches: ProductBatch[] = (product.batches || []).map(batch => ({
-        batch_lot_id: batch.batch_lot_id,
-        batch_number: batch.batch_number,
-        lot_number: batch.lot_number,
-        remaining_quantity: batch.remaining_quantity || 0,
-        manufacturing_date: batch.manufacturing_date,
-        expiry_date: batch.expiry_date,
-        batch_total_quantity: batch.total_quantity,
-        batch_remaining_quantity: batch.remaining_quantity,
-        supplier_name: batch.supplier_name,
-        quality_grade: batch.quality_grade,
-        days_until_expiry: batch.days_until_expiry,
-        is_expired: batch.is_expired,
-        is_expiring_soon: batch.is_expiring_soon,
-        quantity: null,
-      }));
+    // Handle new API response structure
+    if ('van_inventories' in responseData) {
+      const vanInventories = responseData.van_inventories || [];
 
-      const serials: ProductSerial[] = (product.serials || []).map(serial => ({
-        id: serial.serial_id,
-        product_id: product.product_id,
-        serial_number: serial.serial_number,
-        quantity: 1,
-      }));
+      vanInventories.forEach((vanInventory: any) => {
+        (vanInventory.items || []).forEach((item: any) => {
+          const productId = item.product_id;
 
-      map[product.product_id] = { batches, serials };
-    });
+          if (!map[productId]) {
+            map[productId] = { batches: [], serials: [] };
+          }
+
+          // Add batch data if available
+          if (item.batch) {
+            const existingBatch = map[productId].batches.find(
+              b => b.batch_lot_id === item.batch.batch_lot_id
+            );
+
+            if (!existingBatch) {
+              map[productId].batches.push({
+                batch_lot_id: item.batch.batch_lot_id,
+                batch_number: item.batch.batch_number,
+                lot_number: item.batch.lot_number,
+                remaining_quantity: item.batch.remaining_quantity || 0,
+                manufacturing_date: item.batch.manufacturing_date,
+                expiry_date: item.batch.expiry_date,
+                batch_total_quantity: item.batch.total_quantity,
+                batch_remaining_quantity: item.batch.remaining_quantity,
+                supplier_name: item.batch.supplier_name,
+                quality_grade: item.batch.quality_grade,
+                days_until_expiry: item.batch.days_until_expiry,
+                is_expired: item.batch.is_expired,
+                is_expiring_soon: item.batch.is_expiring_soon,
+                quantity: null,
+              });
+            }
+          }
+
+          // Add serial data if available (would need to be implemented in backend)
+          // For now, keeping empty serials array
+        });
+      });
+    }
+    // Handle old API response structure (fallback)
+    else if ('products' in responseData) {
+      const salespersonData = responseData as SalespersonInventoryData;
+
+      (salespersonData.products || []).forEach(product => {
+        const batches: ProductBatch[] = (product.batches || []).map(batch => ({
+          batch_lot_id: batch.batch_lot_id,
+          batch_number: batch.batch_number,
+          lot_number: batch.lot_number,
+          remaining_quantity: batch.remaining_quantity || 0,
+          manufacturing_date: batch.manufacturing_date,
+          expiry_date: batch.expiry_date,
+          batch_total_quantity: batch.total_quantity,
+          batch_remaining_quantity: batch.remaining_quantity,
+          supplier_name: batch.supplier_name,
+          quality_grade: batch.quality_grade,
+          days_until_expiry: batch.days_until_expiry,
+          is_expired: batch.is_expired,
+          is_expiring_soon: batch.is_expiring_soon,
+          quantity: null,
+        }));
+
+        const serials: ProductSerial[] = (product.serials || []).map(
+          serial => ({
+            id: serial.serial_id,
+            product_id: product.product_id,
+            serial_number: serial.serial_number,
+            quantity: 1,
+          })
+        );
+
+        map[product.product_id] = { batches, serials };
+      });
+    }
 
     return map;
   }, [inventoryData]);

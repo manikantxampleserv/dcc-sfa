@@ -1,7 +1,7 @@
 import { Close } from '@mui/icons-material';
 import { Box, Dialog, Divider } from '@mui/material';
 import type { FormikProps } from 'formik';
-import type { ProductSerial } from 'hooks/useVanInventory';
+import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { ActionButton } from 'shared/ActionButton';
@@ -10,6 +10,10 @@ import Input from 'shared/Input';
 import Table, { type TableColumn } from 'shared/Table';
 import type { VanInventoryFormValues } from '../ManageVanInventory';
 
+interface ExtendedProductSerial extends ProductSerial {
+  selected?: boolean;
+}
+
 interface ManageSerialProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
@@ -17,6 +21,20 @@ interface ManageSerialProps {
   setSelectedRowIndex: (rowIndex: number | null) => void;
   formik: FormikProps<VanInventoryFormValues>;
   quantity: number | string | null;
+  inventoryByProductId?: Record<
+    number,
+    {
+      batches: ProductBatch[];
+      serials: {
+        id?: number;
+        product_id: number;
+        serial_number: string;
+        quantity: number;
+        selected?: boolean;
+      }[];
+    }
+  >;
+  isUnloadType?: boolean;
 }
 
 const INITIAL_SERIAL: ProductSerial = {
@@ -32,36 +50,70 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
   setSelectedRowIndex,
   formik,
   quantity = null,
+  inventoryByProductId,
+  isUnloadType = false,
 }) => {
-  const [productSerials, setProductSerials] = useState<ProductSerial[]>([]);
+  const [productSerials, setProductSerials] = useState<ExtendedProductSerial[]>(
+    []
+  );
 
   useEffect(() => {
     if (!isOpen || selectedRowIndex === null) return;
 
-    const inventoryItem = formik.values.van_inventory_items[selectedRowIndex];
-    if (!inventoryItem) return;
+    const item = formik.values.van_inventory_items[selectedRowIndex];
+    if (!item) return;
 
-    const rawSerials = (inventoryItem.product_serials || []) as ProductSerial[];
-    const qty = Number(quantity);
-    const desiredCount =
-      Number.isFinite(qty) && qty > 0 ? qty : rawSerials.length;
+    let rawSerials = (item.product_serials || []) as ExtendedProductSerial[];
 
-    const normalizedSerials: ProductSerial[] = Array.from(
-      { length: desiredCount },
-      (_unused, index) => {
-        const existing = rawSerials[index];
-        return {
-          ...INITIAL_SERIAL,
-          ...(existing || {}),
-          product_id: Number(inventoryItem.product_id || 0),
-          quantity: 1,
-          serial_number: existing?.serial_number || '',
-        };
+    // For Unload type, initialize with available inventory serials
+    if (
+      rawSerials.length === 0 &&
+      isUnloadType &&
+      inventoryByProductId &&
+      typeof item.product_id === 'number'
+    ) {
+      const inventoryEntry = inventoryByProductId[item.product_id];
+      if (inventoryEntry && inventoryEntry.serials.length > 0) {
+        rawSerials = inventoryEntry.serials.map(serial => ({
+          ...serial,
+          selected: false,
+        }));
       }
-    );
+    }
 
-    setProductSerials(normalizedSerials);
-  }, [isOpen, selectedRowIndex, formik.values.van_inventory_items, quantity]);
+    if (isUnloadType) {
+      // For unload, show all available serials with selection state
+      setProductSerials(rawSerials);
+    } else {
+      // For load, create new serials based on quantity
+      const qty = Number(quantity);
+      const desiredCount =
+        Number.isFinite(qty) && qty > 0 ? qty : rawSerials.length;
+
+      const normalizedSerials: ExtendedProductSerial[] = Array.from(
+        { length: desiredCount },
+        (_unused, index) => {
+          const existing = rawSerials[index];
+          return {
+            ...INITIAL_SERIAL,
+            ...(existing || {}),
+            product_id: Number(item.product_id || 0),
+            quantity: 1,
+            serial_number: existing?.serial_number || '',
+          };
+        }
+      );
+
+      setProductSerials(normalizedSerials);
+    }
+  }, [
+    isOpen,
+    selectedRowIndex,
+    formik.values.van_inventory_items,
+    quantity,
+    inventoryByProductId,
+    isUnloadType,
+  ]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -70,21 +122,34 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
   }, [setIsOpen, setSelectedRowIndex]);
 
   const handleSerialChange = useCallback(
-    (field: keyof ProductSerial, rowIndex: number, value: string | number) => {
+    (
+      field: keyof ProductSerial | 'selected',
+      rowIndex: number,
+      value: string | number | boolean
+    ) => {
       setProductSerials(prev => {
         const updated = [...prev];
-        updated[rowIndex] = {
-          ...updated[rowIndex],
-          [field]: field === 'quantity' ? Number(value) || 0 : value,
-        };
+        if (field === 'selected' && isUnloadType) {
+          updated[rowIndex].selected = Boolean(value);
+        } else if (field !== 'selected') {
+          updated[rowIndex] = {
+            ...updated[rowIndex],
+            [field]: field === 'quantity' ? Number(value) || 0 : value,
+          };
+        }
         return updated;
       });
     },
-    []
+    [isUnloadType]
   );
 
   const isFormValid = useMemo(() => {
     if (selectedRowIndex === null) return false;
+
+    if (isUnloadType) {
+      const selectedSerials = productSerials.filter(s => s.selected);
+      return selectedSerials.length > 0;
+    }
 
     const expectedCount = Number(quantity);
     const hasExpectedCount =
@@ -109,11 +174,36 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
     }
 
     return true;
-  }, [selectedRowIndex, productSerials, quantity]);
+  }, [selectedRowIndex, productSerials, quantity, isUnloadType]);
 
   const handleSubmit = useCallback(() => {
     if (selectedRowIndex === null) return;
 
+    if (isUnloadType) {
+      const selectedSerials = productSerials.filter(s => s.selected);
+
+      if (selectedSerials.length === 0) {
+        toast.error('Please select at least one serial number.');
+        return;
+      }
+
+      const updatedItems = [...formik.values.van_inventory_items];
+      updatedItems[selectedRowIndex] = {
+        ...updatedItems[selectedRowIndex],
+        quantity: selectedSerials.length,
+        product_serials: selectedSerials.map(s => ({
+          ...s,
+          serial_number: (s.serial_number || '').trim(),
+          quantity: 1,
+          selected: true,
+        })),
+      };
+      formik.setFieldValue('van_inventory_items', updatedItems);
+      handleClose();
+      return;
+    }
+
+    // Original load logic
     const expectedCount = Number(quantity);
     if (Number.isFinite(expectedCount) && expectedCount > 0) {
       if (productSerials.length !== expectedCount) {
@@ -158,14 +248,43 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
     };
     formik.setFieldValue('van_inventory_items', updatedItems);
     handleClose();
-  }, [selectedRowIndex, productSerials, formik, handleClose, quantity]);
+  }, [
+    selectedRowIndex,
+    productSerials,
+    formik,
+    handleClose,
+    quantity,
+    isUnloadType,
+  ]);
 
-  const columns: TableColumn<ProductSerial>[] = useMemo(
-    () => [
-      {
-        id: 'serial_number',
-        label: 'Serial Number',
+  const columns: TableColumn<ExtendedProductSerial>[] = useMemo(() => {
+    const baseColumns: TableColumn<ExtendedProductSerial>[] = [];
+
+    if (isUnloadType) {
+      baseColumns.push({
+        id: 'selected',
+        label: 'Select',
+        width: 80,
         render: (_value, row, rowIndex) => (
+          <input
+            type="checkbox"
+            checked={row.selected || false}
+            onChange={e =>
+              handleSerialChange('selected', rowIndex, e.target.checked)
+            }
+            className="w-4 h-4"
+          />
+        ),
+      });
+    }
+
+    baseColumns.push({
+      id: 'serial_number',
+      label: 'Serial Number',
+      render: (_value, row, rowIndex) =>
+        isUnloadType ? (
+          <span className="text-gray-900">{row.serial_number}</span>
+        ) : (
           <Input
             value={row.serial_number}
             onChange={e =>
@@ -176,29 +295,30 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
             fullWidth
           />
         ),
-      },
-      {
-        id: 'quantity',
-        label: 'Quantity',
-        render: (_value, _row, _rowIndex) => (
-          <Input
-            type="number"
-            value={_row.quantity}
-            disabled
-            size="small"
-            placeholder="1"
-            fullWidth
-            slotProps={{
-              input: {
-                inputProps: { min: 1, max: 1 },
-              },
-            }}
-          />
-        ),
-      },
-    ],
-    [handleSerialChange]
-  );
+    });
+
+    baseColumns.push({
+      id: 'quantity',
+      label: 'Quantity',
+      render: (_value, row) => (
+        <Input
+          type="number"
+          value={row.quantity}
+          disabled
+          size="small"
+          placeholder="1"
+          fullWidth
+          slotProps={{
+            input: {
+              inputProps: { min: 1, max: 1 },
+            },
+          }}
+        />
+      ),
+    });
+
+    return baseColumns;
+  }, [handleSerialChange, isUnloadType]);
 
   return (
     <Dialog
@@ -212,7 +332,9 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
     >
       <div className="flex justify-between items-center !p-2">
         <p className="!font-semibold text-lg !text-gray-900">
-          Serial Information ({quantity})
+          {isUnloadType
+            ? 'Select Serials to Unload'
+            : `Serial Information (${quantity})`}
         </p>
         <ActionButton
           icon={<Close />}
