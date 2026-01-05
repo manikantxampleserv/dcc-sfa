@@ -269,18 +269,38 @@ const InventoryDetail: React.FC = () => {
     );
   }
 
-  const salespersonData = inventoryData.data as SalespersonInventoryData;
-  const products: ProductInventory[] = useMemo(() => {
+  const salespersonData =
+    (inventoryData?.data as SalespersonInventoryData) || null;
+
+  // Additional safety check to prevent hooks issues
+  if (!salespersonData) {
     return (
-      salespersonData.products?.map(product => ({
-        ...product,
-        product_name: product.product_name ?? '',
-      })) ?? []
+      <div className="flex flex-col items-center justify-center py-12">
+        <Package className="w-16 h-16 text-gray-300 mb-4" />
+        <Typography variant="h6" className="text-gray-600 mb-2">
+          Invalid Inventory Data
+        </Typography>
+        <Typography variant="body2" className="text-gray-500 mb-4">
+          The inventory data could not be loaded properly.
+        </Typography>
+        <Button onClick={handleBack}>Go Back to Inventory</Button>
+      </div>
     );
-  }, [salespersonData.products]);
+  }
+
+  const products: ProductInventory[] = useMemo(() => {
+    if (!salespersonData?.products) return [];
+
+    return salespersonData.products.map(product => ({
+      ...product,
+      product_name: product.product_name ?? '',
+    }));
+  }, [salespersonData?.products]);
 
   const batchRows: Array<BatchInfo & { product_id: number | string }> =
     useMemo(() => {
+      if (!products.length) return [];
+
       return products.flatMap(product =>
         (product.batches ?? []).map(batch => ({
           ...batch,
@@ -291,6 +311,8 @@ const InventoryDetail: React.FC = () => {
 
   const serialRows: Array<SerialInfo & { product_id: number | string }> =
     useMemo(() => {
+      if (!products.length) return [];
+
       return products.flatMap(product =>
         (product.serials ?? []).map(serial => ({
           ...serial,
@@ -301,13 +323,120 @@ const InventoryDetail: React.FC = () => {
       );
     }, [products]);
 
+  const batchColumns = useMemo<
+    TableColumn<BatchInfo & { product_id: number | string }>[]
+  >(
+    () => [
+      {
+        id: 'batch_number',
+        label: 'Batch Number',
+        sortable: true,
+      },
+      {
+        id: 'lot_number',
+        label: 'Lot Number',
+        sortable: true,
+      },
+      {
+        id: 'supplier_name',
+        label: 'Supplier',
+        sortable: true,
+        render: (value: string | undefined) => (value ? String(value) : 'N/A'),
+      },
+      {
+        id: 'total_quantity',
+        label: 'Total Qty',
+        sortable: true,
+      },
+      {
+        id: 'remaining_quantity',
+        label: 'Remaining',
+        sortable: true,
+      },
+      {
+        id: 'expiry_date',
+        label: 'Expiry Date',
+        sortable: true,
+        render: (value: string | undefined) =>
+          value ? formatDate(value) : 'N/A',
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        sortable: true,
+        render: (value: string) => (
+          <Chip
+            label={String(value || '').replace('_', ' ')}
+            size="small"
+            color={getStatusColor(String(value)) as ChipProps['color']}
+            variant="outlined"
+            className="!capitalize"
+          />
+        ),
+      },
+    ],
+    []
+  );
+
+  const serialColumns = useMemo<
+    TableColumn<SerialInfo & { product_id: number | string }>[]
+  >(
+    () => [
+      {
+        id: 'serial_number',
+        label: 'Serial Number',
+        sortable: true,
+        render: (value: string) => (
+          <span className="font-mono text-sm">
+            {value ? String(value) : 'N/A'}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        sortable: true,
+        render: (value: string) => (
+          <Chip
+            label={value ? String(value)?.replace('_', ' ') : 'N/A'}
+            size="small"
+            variant="outlined"
+            className="!capitalize"
+          />
+        ),
+      },
+      {
+        id: 'warranty_expiry',
+        label: 'Warranty Expiry',
+        sortable: true,
+        render: (value: string | undefined) =>
+          value ? formatDate(value) : 'N/A',
+      },
+      {
+        id: 'customer',
+        label: 'Customer',
+        sortable: false,
+        render: (_value: SerialInfo['customer'] | null, row) =>
+          row.customer ? `${row.customer.name} (${row.customer.code})` : 'N/A',
+      },
+      {
+        id: 'sold_date',
+        label: 'Sold Date',
+        sortable: true,
+        render: (value: string | undefined) =>
+          value ? formatDate(value) : 'Not Sold',
+      },
+    ],
+    []
+  );
+
   return (
     <div className="flex flex-col">
       <div className="flex items-center mb-5 justify-between">
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">
-              {salespersonData.salesperson_name}&apos;s Inventory
+              {salespersonData?.salesperson_name || 'Unknown'}&apos;s Inventory
             </h1>
             <p className="text-gray-500 text-sm">
               Detailed view of all inventory items and stock levels
@@ -325,17 +454,17 @@ const InventoryDetail: React.FC = () => {
       <div className="bg-white mb-5 shadow-sm rounded-lg border border-gray-100 p-6">
         <div className="flex items-start gap-6">
           <Avatar
-            src={salespersonData.salesperson_profile_image || ''}
-            alt={salespersonData.salesperson_name}
+            src={salespersonData?.salesperson_profile_image || undefined}
+            alt={salespersonData?.salesperson_name || 'Unknown'}
             className="!w-20 !h-20 !bg-green-100 !text-green-600 !text-2xl"
           >
-            {salespersonData.salesperson_name?.charAt(0)}
+            {salespersonData?.salesperson_name?.charAt(0)}
           </Avatar>
           <div className="flex-1">
             <div className="flex items-start gap-4 mb-2 justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {salespersonData.salesperson_name}
+                <h2 className="text-lg font-bold text-gray-900">
+                  {salespersonData?.salesperson_name || 'Unknown'}
                 </h2>
                 <p className="text-gray-500 text-sm">Sales Representative</p>
               </div>
@@ -350,13 +479,13 @@ const InventoryDetail: React.FC = () => {
               <div className="flex items-center gap-2 text-gray-600">
                 <Mail className="w-4 h-4" />
                 <span className="text-sm">
-                  {salespersonData.salesperson_email}
+                  {salespersonData?.salesperson_email || 'N/A'}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
                 <Phone className="w-4 h-4" />
                 <span className="text-sm">
-                  {salespersonData.salesperson_phone}
+                  {salespersonData?.salesperson_phone || 'N/A'}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-gray-600">
@@ -371,25 +500,25 @@ const InventoryDetail: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
         <StatsCard
           title="Total Products"
-          value={salespersonData.total_products}
+          value={salespersonData?.total_products || 0}
           icon={<Package className="w-6 h-6" />}
           color="blue"
         />
         <StatsCard
           title="Total Quantity"
-          value={salespersonData.total_quantity}
+          value={salespersonData?.total_quantity || 0}
           icon={<TrendingUp className="w-6 h-6" />}
           color="green"
         />
         <StatsCard
           title="Total Batches"
-          value={salespersonData.total_batches}
+          value={salespersonData?.total_batches || 0}
           icon={<Layers className="w-6 h-6" />}
           color="purple"
         />
         <StatsCard
           title="Total Serials"
-          value={salespersonData.total_serials}
+          value={salespersonData?.total_serials || 0}
           icon={<Fingerprint className="w-6 h-6" />}
           color="orange"
         />
@@ -489,58 +618,7 @@ const InventoryDetail: React.FC = () => {
       <TabPanel value={tabValue} index={1}>
         <Table<BatchInfo & { product_id: number | string }>
           data={batchRows}
-          columns={
-            [
-              {
-                id: 'batch_number',
-                label: 'Batch Number',
-                sortable: true,
-              },
-              {
-                id: 'lot_number',
-                label: 'Lot Number',
-                sortable: true,
-              },
-              {
-                id: 'supplier_name',
-                label: 'Supplier',
-                sortable: true,
-                render: (value: string | undefined) =>
-                  value ? String(value) : 'N/A',
-              },
-              {
-                id: 'total_quantity',
-                label: 'Total Qty',
-                sortable: true,
-              },
-              {
-                id: 'remaining_quantity',
-                label: 'Remaining',
-                sortable: true,
-              },
-              {
-                id: 'expiry_date',
-                label: 'Expiry Date',
-                sortable: true,
-                render: (value: string | undefined) =>
-                  value ? formatDate(value) : 'N/A',
-              },
-              {
-                id: 'status',
-                label: 'Status',
-                sortable: true,
-                render: (value: string) => (
-                  <Chip
-                    label={String(value || '').replace('_', ' ')}
-                    size="small"
-                    color={getStatusColor(String(value)) as ChipProps['color']}
-                    variant="outlined"
-                    className="!capitalize"
-                  />
-                ),
-              },
-            ] as TableColumn<BatchInfo & { product_id: number | string }>[]
-          }
+          columns={batchColumns}
           getRowId={(row: BatchInfo & { product_id: number | string }) =>
             `${row.batch_lot_id}-${row.product_id}`
           }
@@ -552,56 +630,7 @@ const InventoryDetail: React.FC = () => {
       <TabPanel value={tabValue} index={2}>
         <Table<SerialInfo & { product_id: number | string }>
           data={serialRows}
-          columns={
-            [
-              {
-                id: 'serial_number',
-                label: 'Serial Number',
-                sortable: true,
-                render: (value: string) => (
-                  <span className="font-mono text-sm">
-                    {value ? String(value) : 'N/A'}
-                  </span>
-                ),
-              },
-              {
-                id: 'status',
-                label: 'Status',
-                sortable: true,
-                render: (value: string) => (
-                  <Chip
-                    label={value ? String(value)?.replace('_', ' ') : 'N/A'}
-                    size="small"
-                    variant="outlined"
-                    className="!capitalize"
-                  />
-                ),
-              },
-              {
-                id: 'warranty_expiry',
-                label: 'Warranty Expiry',
-                sortable: true,
-                render: (value: string | undefined) =>
-                  value ? formatDate(value) : 'N/A',
-              },
-              {
-                id: 'customer',
-                label: 'Customer',
-                sortable: false,
-                render: (_value: SerialInfo['customer'] | null, row) =>
-                  row.customer
-                    ? `${row.customer.name} (${row.customer.code})`
-                    : 'N/A',
-              },
-              {
-                id: 'sold_date',
-                label: 'Sold Date',
-                sortable: true,
-                render: (value: string | undefined) =>
-                  value ? formatDate(value) : 'Not Sold',
-              },
-            ] as TableColumn<SerialInfo & { product_id: number | string }>[]
-          }
+          columns={serialColumns}
           getRowId={(row: SerialInfo) => row.serial_id}
           pagination={false}
           emptyMessage="No serial numbers found"

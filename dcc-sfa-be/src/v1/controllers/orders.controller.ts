@@ -1405,14 +1405,17 @@ export const ordersController = {
               const quantity = parseInt(item.quantity, 10);
 
               if (trackingType === 'BATCH') {
-                if (!item.batches || !Array.isArray(item.batches)) {
+                // Handle both 'batches' and 'product_batches' field names
+                const batchData = item.batches || item.product_batches;
+
+                if (!batchData || !Array.isArray(batchData)) {
                   throw new Error(
                     `Batches are required for product "${product.name}"`
                   );
                 }
 
                 let totalOrderedQty = 0;
-                for (const batchOrder of item.batches) {
+                for (const batchOrder of batchData) {
                   const batchQty = parseInt(batchOrder.quantity, 10);
                   totalOrderedQty += batchQty;
 
@@ -1564,18 +1567,21 @@ export const ordersController = {
                     tax_amount: Number(item.tax_amount) || 0,
                     total_amount:
                       totalOrderedQty * Number(item.unit_price || item.price),
-                    notes: `Batches: ${item.batches.map((b: any) => b.batch_lot_id).join(', ')}`,
+                    notes: `Batches: ${batchData.map((b: any) => b.batch_lot_id).join(', ')}`,
                     is_free_gift: false,
                   },
                 });
               } else if (trackingType === 'SERIAL') {
-                if (!item.serials || !Array.isArray(item.serials)) {
+                // Handle both 'serials' and 'product_serials' field names
+                const serialData = item.serials || item.product_serials;
+
+                if (!serialData || !Array.isArray(serialData)) {
                   throw new Error(
                     `Serial numbers are required for product "${product.name}"`
                   );
                 }
 
-                for (const serialNumber of item.serials) {
+                for (const serialNumber of serialData) {
                   const serial = await tx.serial_numbers.findUnique({
                     where: { serial_number: serialNumber },
                   });
@@ -1660,14 +1666,13 @@ export const ordersController = {
                     product_id: product.id,
                     product_name: product.name,
                     unit: item.unit || 'pcs',
-                    quantity: item.serials.length,
+                    quantity: serialData.length,
                     unit_price: Number(item.unit_price || item.price),
                     discount_amount: Number(item.discount_amount) || 0,
                     tax_amount: Number(item.tax_amount) || 0,
                     total_amount:
-                      item.serials.length *
-                      Number(item.unit_price || item.price),
-                    notes: `Serials: ${item.serials.join(', ')}`,
+                      serialData.length * Number(item.unit_price || item.price),
+                    notes: `Serials: ${serialData.join(', ')}`,
                     is_free_gift: false,
                   },
                 });

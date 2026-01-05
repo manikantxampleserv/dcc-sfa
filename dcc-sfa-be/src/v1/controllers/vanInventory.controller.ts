@@ -2893,10 +2893,13 @@ export const vanInventoryController = {
 
               if (loadingType === 'L') {
                 if (trackingType === 'BATCH') {
+                  // Handle both 'batches' and 'product_batches' field names
+                  const batchData = item.batches || item.product_batches;
+
                   if (
-                    !item.batches ||
-                    !Array.isArray(item.batches) ||
-                    item.batches.length === 0
+                    !batchData ||
+                    !Array.isArray(batchData) ||
+                    batchData.length === 0
                   ) {
                     throw new Error(
                       `Batches are required for batch-tracked product "${product.name}"`
@@ -2906,7 +2909,7 @@ export const vanInventoryController = {
                   let totalBatchQty = 0;
                   const createdBatches = [];
 
-                  for (const batchInput of item.batches) {
+                  for (const batchInput of batchData) {
                     const batchQty = parseInt(batchInput.quantity, 10) || 0;
                     if (batchQty <= 0) {
                       throw new Error('Batch quantity must be greater than 0');
@@ -3018,17 +3021,20 @@ export const vanInventoryController = {
                     ` Created ${createdBatches.length} batches for product ${product.name}`
                   );
                 } else if (trackingType === 'SERIAL') {
+                  // Handle both 'serials' and 'product_serials' field names
+                  const serialData = item.serials || item.product_serials;
+
                   if (
-                    !item.serials ||
-                    !Array.isArray(item.serials) ||
-                    item.serials.length === 0
+                    !serialData ||
+                    !Array.isArray(serialData) ||
+                    serialData.length === 0
                   ) {
                     throw new Error(
                       `Serial numbers are required for serial-tracked product "${product.name}"`
                     );
                   }
 
-                  for (const serialInput of item.serials) {
+                  for (const serialInput of serialData) {
                     const serialNumber =
                       typeof serialInput === 'string'
                         ? serialInput
@@ -3101,19 +3107,19 @@ export const vanInventoryController = {
                       product_id: product.id,
                       product_name: product.name,
                       unit: product.product_unit_of_measurement?.name || 'pcs',
-                      quantity: item.serials.length,
+                      quantity: serialData.length,
                       unit_price: Number(item.unit_price) || 0,
                       discount_amount: Number(item.discount_amount) || 0,
                       tax_amount: Number(item.tax_amount) || 0,
                       total_amount:
-                        item.serials.length * (Number(item.unit_price) || 0),
+                        serialData.length * (Number(item.unit_price) || 0),
                       notes: item.notes || null,
                       batch_lot_id: null,
                     },
                   });
 
                   console.log(
-                    ` Created ${item.serials.length} serials for product ${product.name}`
+                    ` Created ${serialData.length} serials for product ${product.name}`
                   );
                 } else {
                   await tx.van_inventory_items.create({
@@ -3164,17 +3170,20 @@ export const vanInventoryController = {
                 }
               } else if (loadingType === 'U') {
                 if (trackingType === 'BATCH') {
+                  // Handle both 'batches' and 'product_batches' field names
+                  const batchData = item.batches || item.product_batches;
+
                   if (
-                    !item.batches ||
-                    !Array.isArray(item.batches) ||
-                    item.batches.length === 0
+                    !batchData ||
+                    !Array.isArray(batchData) ||
+                    batchData.length === 0
                   ) {
                     throw new Error(
                       `Batches are required for unloading batch-tracked product "${product.name}"`
                     );
                   }
 
-                  for (const batchInput of item.batches) {
+                  for (const batchInput of batchData) {
                     const batchQty = parseInt(batchInput.quantity, 10) || 0;
                     if (batchQty <= 0) {
                       throw new Error('Batch quantity must be greater than 0');
@@ -3279,17 +3288,20 @@ export const vanInventoryController = {
                   );
                 }
               } else if (trackingType === 'SERIAL') {
+                // Handle both 'serials' and 'product_serials' field names
+                const serialData = item.serials || item.product_serials;
+
                 if (
-                  !item.serials ||
-                  !Array.isArray(item.serials) ||
-                  item.serials.length === 0
+                  !serialData ||
+                  !Array.isArray(serialData) ||
+                  serialData.length === 0
                 ) {
                   throw new Error(
                     `Serial numbers are required for unloading serial-tracked product "${product.name}"`
                   );
                 }
 
-                for (const serialInput of item.serials) {
+                for (const serialInput of serialData) {
                   const serialNumber =
                     typeof serialInput === 'string'
                       ? serialInput
@@ -3357,13 +3369,13 @@ export const vanInventoryController = {
                   );
                 }
 
-                if (vanItem.quantity < item.serials.length) {
+                if (vanItem.quantity < serialData.length) {
                   throw new Error(
-                    `Insufficient serial quantity in van. Available: ${vanItem.quantity}, Requested: ${item.serials.length}`
+                    `Insufficient serial quantity in van. Available: ${vanItem.quantity}, Requested: ${serialData.length}`
                   );
                 }
 
-                const newQty = vanItem.quantity - item.serials.length;
+                const newQty = vanItem.quantity - serialData.length;
                 if (newQty <= 0) {
                   await tx.van_inventory_items.delete({
                     where: { id: vanItem.id },
@@ -3382,7 +3394,7 @@ export const vanInventoryController = {
                 }
 
                 console.log(
-                  ` Unloaded ${item.serials.length} serials from van for product ${product.name}`
+                  ` Unloaded ${serialData.length} serials from van for product ${product.name}`
                 );
               }
             }

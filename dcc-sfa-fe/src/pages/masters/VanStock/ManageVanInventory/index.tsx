@@ -10,8 +10,12 @@ import {
   type ProductBatch,
   type VanInventory,
 } from 'hooks/useVanInventory';
+import {
+  useInventoryItemById,
+  type SalespersonInventoryData,
+} from 'hooks/useInventoryItems';
 import { useVehicles } from 'hooks/useVehicles';
-import { Plus } from 'lucide-react';
+import { LogIn, Plus } from 'lucide-react';
 import React, {
   useCallback,
   useEffect,
@@ -39,6 +43,19 @@ interface ManageVanInventoryProps {
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
 
+interface ExtendedProductSerial {
+  id?: number;
+  product_id: number;
+  serial_number: string;
+  quantity: number;
+  selected?: boolean;
+}
+
+interface InventoryByProductId {
+  batches: ProductBatch[];
+  serials: ExtendedProductSerial[];
+}
+
 interface VanInventoryItemFormData {
   product_id: number | null;
   product_name?: string | null;
@@ -51,7 +68,7 @@ interface VanInventoryItemFormData {
   remaining_quantity?: number | null;
   total_quantity?: number | null;
   product_batches?: ProductBatch[];
-  product_serials?: any;
+  product_serials?: ExtendedProductSerial[];
   id?: number | null;
   tempId?: string;
 }
@@ -93,16 +110,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
   const { data: productsResponse } = useProducts({ limit: 1000 });
   const { data: vehiclesResponse } = useVehicles({ limit: 1000 });
   const { data: depotsResponse } = useDepots({ limit: 1000 });
-
-  const products = useMemo(
-    () => productsResponse?.data || [],
-    [productsResponse]
-  );
-  const vehicles = useMemo(
-    () => vehiclesResponse?.data || [],
-    [vehiclesResponse]
-  );
-  const depots = useMemo(() => depotsResponse?.data || [], [depotsResponse]);
 
   const formik = useFormik<VanInventoryFormValues>({
     initialValues: {
@@ -160,22 +167,66 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           is_active: values.is_active,
           van_inventory_items: values.van_inventory_items
             .filter(item => item.product_id && item.quantity != null)
-            .map(item => ({
-              product_id: Number(item.product_id),
-              product_name: item.product_name || null,
-              product_serials:
-                item.tracking_type === 'serial' ? item.product_serials : null,
-              product_batches:
-                item.tracking_type === 'batch' ? item.product_batches : null,
-              quantity: Number(item.quantity),
-              notes: item.notes || null,
-              tracking_type: item.tracking_type || null,
-              batch_lot_id: item.batch_lot_id
-                ? Number(item.batch_lot_id)
-                : null,
-              id: item.id || undefined,
-            })),
+            .map(item => {
+              console.log('Item before submission:', {
+                product_id: item.product_id,
+                tracking_type: item.tracking_type,
+                product_batches: item.product_batches,
+                product_serials: item.product_serials,
+                quantity: item.quantity,
+              });
+
+              const batchCondition1 =
+                item.tracking_type?.toLowerCase() === 'batch';
+              const batchCondition2 = item.product_batches;
+              const batchCondition3 = Array.isArray(item.product_batches);
+              const batchCondition4 = item?.product_batches?.length > 0;
+
+              console.log('Batch validation:', {
+                trackingIsBatch: batchCondition1,
+                hasBatches: !!batchCondition2,
+                isArray: batchCondition3,
+                hasLength: batchCondition4,
+                finalResult:
+                  batchCondition1 &&
+                  batchCondition2 &&
+                  batchCondition3 &&
+                  batchCondition4,
+              });
+
+              const processedBatches =
+                item.tracking_type?.toLowerCase() === 'batch' &&
+                item.product_batches &&
+                Array.isArray(item.product_batches) &&
+                item.product_batches.length > 0
+                  ? item.product_batches.filter(batch => batch?.quantity > 0)
+                  : null;
+
+              console.log('Processed batches:', processedBatches);
+
+              return {
+                product_id: Number(item.product_id),
+                product_name: item.product_name || null,
+                product_serials:
+                  item.tracking_type?.toLowerCase() === 'serial' &&
+                  item.product_serials &&
+                  Array.isArray(item.product_serials) &&
+                  item.product_serials.length > 0
+                    ? item.product_serials
+                    : null,
+                product_batches: processedBatches,
+                quantity: Number(item.quantity),
+                notes: item.notes || null,
+                tracking_type: item.tracking_type || null,
+                batch_lot_id: item.batch_lot_id
+                  ? Number(item.batch_lot_id)
+                  : null,
+                id: item.id || undefined,
+              };
+            }),
         };
+
+        console.log('Processed data:', submitData);
 
         if (isEdit && selectedVanInventory) {
           await updateVanInventoryMutation.mutateAsync({
@@ -189,11 +240,99 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         handleCancel();
       } catch (error) {
         console.error('Error saving van inventory:', error);
+        console.log('Failed submitData:', submitData);
         toast.error('Failed to save van inventory. Please try again.');
         return;
       }
     },
   });
+
+  const userIdForInventory = formik.values.user_id
+    ? Number(formik.values.user_id)
+    : 0;
+  const isUnloadType = formik.values.loading_type === 'U';
+
+  const {
+    data: userInventoryData,
+    isLoading: isLoadingInventory,
+    refetch: refetchInventory,
+  } = useInventoryItemById(userIdForInventory, {
+    enabled: !!userIdForInventory && drawerOpen && isUnloadType,
+  });
+
+  const products = useMemo(
+    () => productsResponse?.data || [],
+    [productsResponse]
+  );
+  const vehicles = useMemo(
+    () => vehiclesResponse?.data || [],
+    [vehiclesResponse]
+  );
+  const depots = useMemo(() => depotsResponse?.data || [], [depotsResponse]);
+
+  const availableProducts = useMemo(() => {
+    if (!isUnloadType) {
+      return products;
+    }
+
+    if (!userInventoryData?.data) {
+      return [];
+    }
+
+    const salespersonData = userInventoryData.data as SalespersonInventoryData;
+    const userProducts = (salespersonData.products || []).map(product => ({
+      id: product.product_id,
+      name: product.product_name,
+      code: product.product_code,
+      tracking_type: product.tracking_type,
+      unit_price: 0,
+    }));
+
+    return userProducts;
+  }, [isUnloadType, userInventoryData, products]);
+
+  const inventoryByProductId = useMemo(() => {
+    const map: Record<number, InventoryByProductId> = {};
+
+    if (!isUnloadType || !userInventoryData?.data) {
+      return map;
+    }
+
+    const salespersonData = userInventoryData.data as SalespersonInventoryData;
+
+    (salespersonData.products || []).forEach(product => {
+      const batches: ProductBatch[] = (product.batches || []).map(batch => ({
+        batch_lot_id: batch.batch_lot_id,
+        batch_number: batch.batch_number,
+        lot_number: batch.lot_number,
+        manufacturing_date: batch.manufacturing_date,
+        expiry_date: batch.expiry_date,
+        batch_total_quantity: batch.total_quantity,
+        batch_remaining_quantity: batch.remaining_quantity,
+        remaining_quantity: batch.remaining_quantity,
+        supplier_name: batch.supplier_name,
+        quality_grade: batch.quality_grade,
+        days_until_expiry: batch.days_until_expiry,
+        is_expired: batch.is_expired,
+        is_expiring_soon: batch.is_expiring_soon,
+        quantity: null,
+      }));
+
+      const serials: ExtendedProductSerial[] = (product.serials || []).map(
+        serial => ({
+          id: serial.serial_id,
+          product_id: product.product_id,
+          serial_number: serial.serial_number,
+          quantity: 1,
+          selected: false,
+        })
+      );
+
+      map[product.product_id] = { batches, serials };
+    });
+
+    return map;
+  }, [isUnloadType, userInventoryData]);
 
   const vanInventoryData = vanInventoryResponse?.data;
   const vanInventoryId = vanInventoryData?.id;
@@ -233,13 +372,19 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       formik.setFieldValue('van_inventory_items', []);
       hasLoadedItemsRef.current = true;
     }
-  }, [isEdit, vanInventoryId, vanInventoryData]);
+  }, [isEdit, vanInventoryId, vanInventoryData, formik]);
 
   useEffect(() => {
     if (!drawerOpen) {
       hasLoadedItemsRef.current = false;
     }
   }, [drawerOpen]);
+
+  useEffect(() => {
+    if (isUnloadType && userIdForInventory > 0 && drawerOpen) {
+      refetchInventory();
+    }
+  }, [isUnloadType, userIdForInventory, drawerOpen, refetchInventory]);
 
   const addInventoryItem = useCallback(() => {
     const newItem: VanInventoryItemFormData = {
@@ -287,7 +432,27 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       if (field === 'product_id') {
         const numericValue =
           value === '' || value === null ? null : Number(value);
-        const product = products.find(p => p.id === numericValue);
+        const product = availableProducts.find(p => p.id === numericValue);
+
+        let initialBatches: ProductBatch[] = [];
+        let initialSerials: ExtendedProductSerial[] = [];
+
+        if (
+          isUnloadType &&
+          numericValue &&
+          inventoryByProductId[numericValue]
+        ) {
+          const inventory = inventoryByProductId[numericValue];
+          initialBatches = inventory.batches.map(batch => ({
+            ...batch,
+            quantity: 0,
+          }));
+          initialSerials = inventory.serials.map(serial => ({
+            ...serial,
+            selected: false,
+          })) as ExtendedProductSerial[];
+        }
+
         updatedItems[index] = {
           ...item,
           product_id: numericValue,
@@ -298,10 +463,15 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           lot_number: null,
           remaining_quantity: null,
           total_quantity: null,
-          quantity: null,
+          quantity:
+            isUnloadType &&
+            (product?.tracking_type === 'batch' ||
+              product?.tracking_type === 'serial')
+              ? null
+              : null,
           notes: '',
-          product_batches: [],
-          product_serials: [],
+          product_batches: initialBatches,
+          product_serials: initialSerials,
         };
       } else if (field === 'quantity') {
         updatedItems[index] = {
@@ -316,7 +486,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       }
       formik.setFieldValue('van_inventory_items', updatedItems);
     },
-    [formik, products]
+    [formik, availableProducts, isUnloadType, inventoryByProductId]
   );
 
   const handleSelectBatch = useCallback(
@@ -371,10 +541,18 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             }}
             fullWidth
             size="small"
-            placeholder="Select product"
+            placeholder={
+              isUnloadType
+                ? isLoadingInventory
+                  ? 'Loading inventory...'
+                  : availableProducts.length === 0
+                    ? 'No products in van inventory'
+                    : 'Select product from van inventory'
+                : 'Select product'
+            }
             disableClearable={false}
           >
-            {products.map(product => (
+            {availableProducts.map(product => (
               <MenuItem key={product.id} value={product.id}>
                 {product.name}
                 {product.code && ` [${product.code}]`}
@@ -399,22 +577,15 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                   startIcon={<Tag />}
                   variant="text"
                   onClick={() => {
-                    if (
-                      row.quantity === null ||
-                      row.quantity === undefined ||
-                      row.quantity === ''
-                    ) {
-                      toast.error(
-                        'Please manage the quantity on Item with ' +
-                          (value && value.toLowerCase() === 'batch'
-                            ? 'batches'
-                            : 'serial numbers')
-                      );
+                    if (!row.product_id) {
+                      toast.error('Please select a product first');
                       return;
                     }
-                    value && value.toLowerCase() === 'batch'
-                      ? handleSelectBatch(rowIndex)
-                      : handleSelectSerial(rowIndex);
+                    if (value && value.toLowerCase() === 'batch') {
+                      handleSelectBatch(rowIndex);
+                    } else {
+                      handleSelectSerial(rowIndex);
+                    }
                   }}
                 >
                   Select{' '}
@@ -454,24 +625,31 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         id: 'quantity',
         label: `${formik.values.loading_type === 'L' ? 'Load' : 'Unload'} Quantity`,
         width: 250,
-        render: (_value, row, rowIndex) => (
-          <Input
-            name={`van_inventory_items[${rowIndex}].quantity`}
-            type="number"
-            value={row.quantity ?? ''}
-            onChange={e => {
-              const value = e.target.value;
-              updateInventoryItem(
-                rowIndex,
-                'quantity',
-                value === '' ? null : value
-              );
-            }}
-            size="small"
-            fullWidth
-            placeholder="Enter Quantity"
-          />
-        ),
+        render: (_value, row, rowIndex) => {
+          const isTrackingDisabled =
+            (row.tracking_type === 'batch' || row.tracking_type === 'serial') &&
+            isUnloadType;
+
+          return (
+            <Input
+              name={`van_inventory_items[${rowIndex}].quantity`}
+              type="number"
+              value={row.quantity ?? ''}
+              onChange={e => {
+                const value = e.target.value;
+                updateInventoryItem(
+                  rowIndex,
+                  'quantity',
+                  value === '' ? null : value
+                );
+              }}
+              size="small"
+              fullWidth
+              placeholder="Enter Quantity"
+              disabled={isTrackingDisabled}
+            />
+          );
+        },
       },
       {
         id: 'action',
@@ -487,12 +665,13 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       },
     ],
     [
-      products,
+      availableProducts,
       formik.values.loading_type,
       updateInventoryItem,
       removeInventoryItem,
       handleSelectBatch,
       handleSelectSerial,
+      isUnloadType,
     ]
   );
 
@@ -538,7 +717,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               formik={formik}
               placeholder="Select Vehicle"
             >
-              {vehicles.map((vehicle: any) => (
+              {vehicles.map(vehicle => (
                 <MenuItem key={vehicle.id} value={vehicle.id}>
                   {vehicle.vehicle_number} ({vehicle.type})
                 </MenuItem>
@@ -551,7 +730,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
               formik={formik}
               placeholder="Select Location/Depot"
             >
-              {depots.map((depot: any) => (
+              {depots.map(depot => (
                 <MenuItem key={depot.id} value={depot.id}>
                   {depot.name} ({depot.code})
                 </MenuItem>
@@ -572,7 +751,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             actions={
               <Box className="!flex !justify-between !items-center">
                 <Typography variant="body1" className="!font-semibold">
-                  Inventory Items
+                  Inventory Items{' '}
                 </Typography>
                 <Button
                   type="button"
@@ -588,7 +767,11 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             columns={inventoryItemColumns}
             getRowId={item => item.tempId || item.id?.toString() || 'unknown'}
             pagination={false}
-            emptyMessage="No items added. Click 'Add Item' to add inventory items"
+            emptyMessage={
+              isUnloadType
+                ? "No items added. For Unload type, only products in user's van inventory are available."
+                : "No items added. Click 'Add Item' to add inventory items"
+            }
           />
 
           <Box className="!flex !justify-end !gap-3 !mt-6">
@@ -625,11 +808,21 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       </Box>
       <ManageBatch
         isOpen={isBatchSelectorOpen}
-        setIsOpen={setIsBatchSelectorOpen}
+        setIsOpen={isOpen => {
+          setIsBatchSelectorOpen(isOpen);
+          if (!isOpen && selectedRowIndex !== null) {
+            setTimeout(() => {
+              const item = formik.values.van_inventory_items[selectedRowIndex];
+              console.log('After batch dialog closed, item data:', item);
+            }, 100);
+          }
+        }}
         selectedRowIndex={selectedRowIndex}
         setSelectedRowIndex={setSelectedRowIndex}
         formik={formik}
         quantity={quantity}
+        inventoryByProductId={isUnloadType ? inventoryByProductId : undefined}
+        isUnloadType={isUnloadType}
       />
       <ManageSerial
         isOpen={isSerialSelectorOpen}
@@ -638,6 +831,8 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         setSelectedRowIndex={setSelectedRowIndex}
         formik={formik}
         quantity={quantity}
+        inventoryByProductId={isUnloadType ? inventoryByProductId : undefined}
+        isUnloadType={isUnloadType}
       />
     </CustomDrawer>
   );
