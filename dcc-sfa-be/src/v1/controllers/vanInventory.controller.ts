@@ -1104,8 +1104,6 @@ export const vanInventoryController = {
                     ` Created ${createdBatches.length} batches for product ${product.name}`
                   );
                 } else if (trackingType === 'SERIAL') {
-                  console.log('🔍 Starting SERIAL UNLOAD process...');
-
                   if (
                     !item.product_serials ||
                     !Array.isArray(item.product_serials) ||
@@ -1458,7 +1456,6 @@ export const vanInventoryController = {
 
                     console.log(`Processing serial: "${serialNumber}"`);
 
-                    // Find existing serial in database
                     const existingSerial = await tx.serial_numbers.findUnique({
                       where: { serial_number: serialNumber },
                     });
