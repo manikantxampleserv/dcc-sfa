@@ -5,7 +5,6 @@ import type { MenuItem } from 'mock/sidebar';
 import menuItems from 'mock/sidebar';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import SearchInput from 'shared/SearchInput';
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -161,15 +160,13 @@ const Sidebar: React.FC = () => {
           </span>
         </div>
       </div>
-      <div className="p-3 border-b border-gray-200">
-        <SearchInput
+      <div className="">
+        <input
+          type="text"
           placeholder="Search menu..."
           value={searchQuery}
-          onChange={setSearchQuery}
-          debounceMs={200}
-          showClear={true}
-          fullWidth={true}
-          size="small"
+          className="!w-full !p-2 px-2.5 rounded-none outline-none border-b border-gray-200"
+          onChange={e => setSearchQuery(e.target.value)}
         />
       </div>
       <div className="flex flex-col overflow-y-auto">

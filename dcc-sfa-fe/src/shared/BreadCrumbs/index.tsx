@@ -4,20 +4,14 @@ import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-interface BreadCrumbItem {
-  id: string | number;
-  navItem: string;
-  navLink: string;
-}
-
 interface BreadCrumbsProps {
+  id: string | number;
   navItem: string;
   navLink: string;
-  id: string | number;
 }
 
 const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
-  const [breadCrumbs, setBreadCrumbs] = useState<BreadCrumbItem[]>([]);
+  const [breadCrumbs, setBreadCrumbs] = useState<BreadCrumbsProps[]>([]);
   const [value, setValue] = useState<unknown>('');
   const { state } = useLocation();
 
@@ -48,6 +42,13 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
 
   useEffect(() => {
     setBreadCrumbs(prev => {
+      if (
+        navLink === '/dashboard/executive' &&
+        navItem === 'Executive Dashboard'
+      ) {
+        return [{ id, navItem, navLink }];
+      }
+
       const isNumericId = typeof navItem === 'string' && /^\d+$/.test(navItem);
 
       if (isNumericId && prev.length > 0) {
@@ -95,7 +96,9 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
             <Chip
               key={item.id}
               label={
-                item.navItem ? item.navItem?.replaceAll('-', ' ') : 'Dashboard'
+                item.navItem
+                  ? item.navItem?.replaceAll('-', ' ')
+                  : 'Executive Dashboard'
               }
               className={classNames(
                 '!rounded-md flex items-center !capitalize !text-white px-2 py-1',

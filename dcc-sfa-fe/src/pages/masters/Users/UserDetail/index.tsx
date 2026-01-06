@@ -1,6 +1,6 @@
 import {
   AccessTime,
-  Cancel,
+  Block,
   CheckCircle,
   History,
   Person,
@@ -302,10 +302,11 @@ const UserDetail: React.FC = () => {
           </Typography>
 
           <Chip
-            icon={user.is_active === 'Y' ? <CheckCircle /> : <Cancel />}
+            icon={user.is_active === 'Y' ? <CheckCircle /> : <Block />}
             label={user.is_active === 'Y' ? 'Active' : 'Inactive'}
             color={user.is_active === 'Y' ? 'success' : 'error'}
             size="small"
+            variant="outlined"
           />
 
           <div className="!space-y-1 !text-left">
@@ -486,10 +487,11 @@ const UserDetail: React.FC = () => {
               </Typography>
               <div className="!mt-1">
                 <Chip
-                  icon={user.is_active === 'Y' ? <CheckCircle /> : <Cancel />}
+                  icon={user.is_active === 'Y' ? <CheckCircle /> : <Block />}
                   label={user.is_active === 'Y' ? 'Active' : 'Inactive'}
                   color={user.is_active === 'Y' ? 'success' : 'error'}
                   size="small"
+                  variant="outlined"
                 />
               </div>
             </div>

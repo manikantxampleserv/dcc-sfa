@@ -1,1 +1,0 @@
-{"version":3,"file":"orders.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/orders.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAmc5C,eAAO,MAAM,gBAAgB;6BAghBI,OAAO,OAAO,QAAQ;sBAo4B7B,GAAG,OAAO,GAAG;uBAmRZ,OAAO,OAAO,QAAQ;sBA0BvB,GAAG,OAAO,GAAG;sBAiRb,OAAO,OAAO,QAAQ;sCAmBN,OAAO,OAAO,QAAQ;CAgC/D,CAAC"}

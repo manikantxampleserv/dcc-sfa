@@ -384,6 +384,7 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
       {
         id: 'available_quantity',
         label: 'Available',
+        isVisible: isUnloadType,
         render: (_value, row) =>
           isUnloadType ? (
             <span className="text-gray-600">

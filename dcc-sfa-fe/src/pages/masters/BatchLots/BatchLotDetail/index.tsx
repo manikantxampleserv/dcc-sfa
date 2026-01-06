@@ -52,7 +52,7 @@ const BatchLotDetail: React.FC = () => {
       return {
         status: 'expiring',
         color: 'warning',
-        label: `Expiring in ${daysUntilExpiry} days`,
+        label: `${daysUntilExpiry} days left`,
         icon: <Warning />,
       };
     }
@@ -130,31 +130,6 @@ const BatchLotDetail: React.FC = () => {
   }
 
   const expiryStatus = getExpiryStatus(batchLot.expiry_date);
-
-  //  {
-  //               "id": 22,
-  //               "name": "BULK WATER 12 Ltr",
-  //               "code": "KD005",
-  //               "base_price": null,
-  //               "quantity": 100,
-  //               "volume": {
-  //                   "id": 7,
-  //                   "name": "12 Ltr",
-  //                   "code": "VOL-12L-001"
-  //               },
-  //               "brand": {
-  //                   "id": 8,
-  //                   "name": "KILIMANJARO"
-  //               },
-  //               "category": {
-  //                   "id": 2,
-  //                   "name": "KDW"
-  //               },
-  //               "sub_category": {
-  //                   "id": 7,
-  //                   "name": "BULK WATER 12 LTR"
-  //               }
-  //           },
 
   const productColumns: TableColumn<any>[] = [
     {
@@ -251,6 +226,7 @@ const BatchLotDetail: React.FC = () => {
               icon={batchLot.is_active === 'Y' ? <CheckCircle /> : <Block />}
               label={batchLot.is_active === 'Y' ? 'Active' : 'Inactive'}
               size="small"
+              variant="outlined"
               color={batchLot.is_active === 'Y' ? 'success' : 'error'}
             />
             <Chip
@@ -259,6 +235,7 @@ const BatchLotDetail: React.FC = () => {
               size="small"
               color={expiryStatus.color as any}
               variant="outlined"
+              className="!pl-1"
             />
           </Box>
           <Typography variant="body2" className="!text-gray-500 !mt-1">

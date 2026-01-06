@@ -1,1 +1,0 @@
-{"version":3,"file":"assetMovements.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/assetMovements.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AA0E5C,eAAO,MAAM,wBAAwB;8BACH,OAAO,OAAO,QAAQ;8BAwCtB,GAAG,OAAO,GAAG;+BA4EZ,OAAO,OAAO,QAAQ;8BA+BvB,GAAG,OAAO,GAAG;8BA0Cb,OAAO,OAAO,QAAQ;CAkBvD,CAAC"}
