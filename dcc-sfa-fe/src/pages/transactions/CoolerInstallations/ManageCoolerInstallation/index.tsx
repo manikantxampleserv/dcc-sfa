@@ -35,6 +35,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
   const handleCancel = () => {
     setSelectedInstallation(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createCoolerInstallationMutation = useCreateCoolerInstallation();

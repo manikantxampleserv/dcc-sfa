@@ -30,6 +30,7 @@ const ManageWarehouse: React.FC<ManageWarehouseProps> = ({
   const handleCancel = () => {
     setSelectedWarehouse(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createWarehouseMutation = useCreateWarehouse();

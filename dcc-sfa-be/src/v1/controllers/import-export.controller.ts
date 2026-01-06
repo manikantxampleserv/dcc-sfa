@@ -268,7 +268,7 @@
 //         filters: search
 //           ? {
 //               OR: service.getSearchFields().map(field => ({
-//                 [field]: { contains: search as string, mode: 'insensitive' },
+//                 [field]: { contains: search as string },
 //               })),
 //             }
 //           : Object.keys(filters).length > 0
@@ -687,7 +687,7 @@ export const importExportController = {
         filters: search
           ? {
               OR: service.getSearchFields().map(field => ({
-                [field]: { contains: search as string, mode: 'insensitive' },
+                [field]: { contains: search as string },
               })),
             }
           : Object.keys(filters).length > 0

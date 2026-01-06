@@ -46,6 +46,7 @@ const ManageDeliverySchedule: React.FC<ManageDeliveryScheduleProps> = ({
     setSelectedDeliverySchedule(null);
     setDrawerOpen(false);
     setCustomerSignatureFile(null);
+    formik.resetForm();
   };
 
   const createDeliveryScheduleMutation = useCreateDeliverySchedule();

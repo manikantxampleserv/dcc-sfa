@@ -80,9 +80,9 @@ export const coolerTypesController = {
         ...(isActive && { is_active: isActive as string }),
         ...(search && {
           OR: [
-            { name: { contains: searchLower, mode: 'insensitive' } },
-            { code: { contains: searchLower, mode: 'insensitive' } },
-            { description: { contains: searchLower, mode: 'insensitive' } },
+            { name: { contains: searchLower } },
+            { code: { contains: searchLower } },
+            { description: { contains: searchLower } },
           ],
         }),
       };

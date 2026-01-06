@@ -33,12 +33,11 @@ const ManageProductSubCategory: React.FC<ManageProductSubCategoryProps> = ({
   const handleCancel = () => {
     setSelectedProductSubCategory(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createProductSubCategoryMutation = useCreateProductSubCategory();
   const updateProductSubCategoryMutation = useUpdateProductSubCategory();
-
-
 
   const formik = useFormik({
     initialValues: {
@@ -54,7 +53,7 @@ const ManageProductSubCategory: React.FC<ManageProductSubCategoryProps> = ({
         const productSubCategoryData = {
           sub_category_name: values.sub_category_name,
           product_category_id: values.product_category_id,
-          description: values.description || undefined,
+          description: values.description,
           is_active: values.is_active,
         };
 

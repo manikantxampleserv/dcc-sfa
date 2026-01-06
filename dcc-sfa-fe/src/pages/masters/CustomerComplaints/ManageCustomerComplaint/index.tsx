@@ -46,6 +46,7 @@ const ManageCustomerComplaint: React.FC<ManageCustomerComplaintProps> = ({
   const handleCancel = () => {
     setSelectedComplaint(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createComplaintMutation = useCreateCustomerComplaint();

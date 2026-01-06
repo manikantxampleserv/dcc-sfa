@@ -234,13 +234,11 @@ export const productFlavoursController = {
           {
             name: {
               contains: searchLower,
-              mode: 'insensitive',
             },
           },
           {
             code: {
               contains: searchLower,
-              mode: 'insensitive',
             },
           },
         ];

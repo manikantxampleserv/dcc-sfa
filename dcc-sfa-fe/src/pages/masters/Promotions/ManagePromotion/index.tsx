@@ -546,6 +546,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
     setDiscAmountError('');
     setSelectedConditionType('Price');
     setConditionProductTab(0);
+    formik.resetForm();
     resetProductConditionForm();
   };
 
@@ -648,7 +649,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
 
         const promotionData = {
           name: values.name,
-          description: values.description || undefined,
+          description: values.description,
           start_date: values.start_date,
           end_date: values.finish_date,
           platforms: ['Mobile'],
@@ -723,7 +724,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               name: values.name,
               start_date: values.start_date,
               end_date: values.finish_date,
-              description: values.description || undefined,
+              description: values.description,
               is_active: values.is_active,
               platforms: ['Mobile'],
               quantity_type: (values.quantity_type || 'QUANTITY').toUpperCase(),

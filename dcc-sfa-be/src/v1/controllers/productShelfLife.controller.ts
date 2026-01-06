@@ -241,13 +241,11 @@ export const productShelfLifeController = {
           {
             name: {
               contains: searchLower,
-              mode: 'insensitive',
             },
           },
           {
             code: {
               contains: searchLower,
-              mode: 'insensitive',
             },
           },
         ];

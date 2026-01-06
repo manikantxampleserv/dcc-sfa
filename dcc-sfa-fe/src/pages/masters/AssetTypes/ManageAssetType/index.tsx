@@ -30,6 +30,7 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
   const handleCancel = () => {
     setSelectedAssetType(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createAssetTypeMutation = useCreateAssetType();
@@ -49,9 +50,9 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
       try {
         const assetTypeData = {
           name: values.name,
-          description: values.description || undefined,
-          category: values.category || undefined,
-          brand: values.brand || undefined,
+          description: values.description,
+          category: values.category,
+          brand: values.brand,
           is_active: values.is_active,
         };
 

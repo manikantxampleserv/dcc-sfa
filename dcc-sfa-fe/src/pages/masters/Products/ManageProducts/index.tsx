@@ -90,6 +90,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
     setSelectedProduct(null);
     setDrawerOpen(false);
     setSelectedBatchLots([]);
+    formik.resetForm();
     hasLoadedBatchLotsRef.current = false;
   };
 
@@ -363,7 +364,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       try {
         const productData = {
           name: values.name,
-          description: values.description || undefined,
+          description: values.description,
           category_id: Number(values.category_id),
           sub_category_id: Number(values.sub_category_id),
           brand_id: Number(values.brand_id),

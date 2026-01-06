@@ -30,6 +30,7 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
   const handleCancel = () => {
     setSelectedUnit(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createUnitMutation = useCreateUnitOfMeasurement();
@@ -49,7 +50,7 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
       try {
         const unitData = {
           name: values.name,
-          description: values.description || undefined,
+          description: values.description,
           category: values.category || undefined,
           symbol: values.symbol || undefined,
           is_active: values.is_active,

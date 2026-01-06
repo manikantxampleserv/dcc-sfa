@@ -208,6 +208,7 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
   const handleCancel = () => {
     setSelectedPromotion(null);
     setDrawerOpen(false);
+    formik.resetForm();
     setProductConditions([]);
     setOutletRows([]);
     setGiftRows([]);
@@ -306,7 +307,7 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
 
         const promotionData = {
           name: values.name,
-          description: values.description || undefined,
+          description: values.description,
           start_date: values.start_date,
           end_date: values.finish_date,
           platforms: ['Mobile'],
@@ -347,7 +348,7 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
               name: values.name,
               start_date: values.start_date,
               end_date: values.finish_date,
-              description: values.description || undefined,
+              description: values.description,
               is_active: values.is_active,
               platforms: ['Mobile'],
               location_areas:
@@ -745,7 +746,10 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
               <ProductCategorySelect
                 value={locationForm.group}
                 onChange={(_event, category) =>
-                  setLocationForm({ ...locationForm, group: category ? category.id.toString() : '' })
+                  setLocationForm({
+                    ...locationForm,
+                    group: category ? category.id.toString() : '',
+                  })
                 }
                 label="Group"
                 fullWidth
@@ -1271,7 +1275,16 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
             <Box className="!space-y-2 !mt-2">
               <Box className="!grid !grid-cols-2 !gap-2">
                 <ProductCategorySelect
-                  value={productConditionForm.group ? productCategories.find((c: any) => c.category_name === productConditionForm.group)?.id.toString() : ''}
+                  value={
+                    productConditionForm.group
+                      ? productCategories
+                          .find(
+                            (c: any) =>
+                              c.category_name === productConditionForm.group
+                          )
+                          ?.id.toString()
+                      : ''
+                  }
                   nameToSearch={productConditionForm.group || ''}
                   onChange={(_event, category) =>
                     setProductConditionForm({
@@ -1576,7 +1589,9 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
               <ProductSelect
                 label="Name"
                 value={giftName}
-                onChange={(_event, product) => setGiftName(product ? product.id.toString() : '')}
+                onChange={(_event, product) =>
+                  setGiftName(product ? product.id.toString() : '')
+                }
                 fullWidth
                 size="small"
               />

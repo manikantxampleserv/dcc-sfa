@@ -32,6 +32,7 @@ const ManageProductTargetGroup: React.FC<ManageProductTargetGroupProps> = ({
   const handleCancel = () => {
     setSelectedProductTargetGroup(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createProductTargetGroupMutation = useCreateProductTargetGroup();

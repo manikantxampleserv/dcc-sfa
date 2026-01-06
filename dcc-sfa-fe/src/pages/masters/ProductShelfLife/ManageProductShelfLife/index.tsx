@@ -30,6 +30,7 @@ const ManageProductShelfLife: React.FC<ManageProductShelfLifeProps> = ({
   const handleCancel = () => {
     setSelectedShelfLife(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createShelfLifeMutation = useCreateProductShelfLife();

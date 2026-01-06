@@ -32,6 +32,7 @@ const ManageCoolerSubType: React.FC<ManageCoolerSubTypeProps> = ({
   const handleCancel = () => {
     setSelectedCoolerSubType(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createCoolerSubTypeMutation = useCreateCoolerSubType();
@@ -51,9 +52,9 @@ const ManageCoolerSubType: React.FC<ManageCoolerSubTypeProps> = ({
       try {
         const coolerSubTypeData = {
           name: values.name,
-          code: values.code || undefined,
+          code: values.code,
           cooler_type_id: Number(values.cooler_type_id),
-          description: values.description || undefined,
+          description: values.description,
           is_active: values.is_active,
         };
 

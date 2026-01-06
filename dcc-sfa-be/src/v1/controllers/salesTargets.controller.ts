@@ -179,12 +179,12 @@ export const salesTargetsController = {
           OR: [
             {
               sales_targets_groups: {
-                group_name: { contains: searchLower, mode: 'insensitive' },
+                group_name: { contains: searchLower },
               },
             },
             {
               sales_targets_product_categories: {
-                category_name: { contains: searchLower, mode: 'insensitive' },
+                category_name: { contains: searchLower },
               },
             },
           ],

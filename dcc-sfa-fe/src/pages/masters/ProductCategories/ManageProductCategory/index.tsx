@@ -30,6 +30,7 @@ const ManageProductCategory: React.FC<ManageProductCategoryProps> = ({
   const handleCancel = () => {
     setSelectedProductCategory(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createProductCategoryMutation = useCreateProductCategory();
@@ -47,7 +48,7 @@ const ManageProductCategory: React.FC<ManageProductCategoryProps> = ({
       try {
         const productCategoryData = {
           category_name: values.category_name,
-          description: values.description || undefined,
+          description: values.description,
           is_active: values.is_active,
         };
 

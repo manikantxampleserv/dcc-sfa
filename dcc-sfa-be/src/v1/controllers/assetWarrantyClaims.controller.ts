@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { paginate } from '../../utils/paginate';
 
 interface AssetWarrantyClaimSerialized {
   id: number;
@@ -97,13 +97,18 @@ export const assetWarrantyClaimsController = {
             {
               issue_description: {
                 contains: search as string,
-                mode: 'insensitive',
               },
             },
             {
-              claim_status: { contains: search as string, mode: 'insensitive' },
+              claim_status: {
+                contains: search as string,
+              },
             },
-            { notes: { contains: search as string, mode: 'insensitive' } },
+            {
+              notes: {
+                contains: search as string,
+              },
+            },
           ],
         }),
         ...(status === 'active' && { is_active: 'Y' }),

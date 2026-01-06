@@ -57,6 +57,7 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
     setSelectedSurvey(null);
     setDrawerOpen(false);
     setSurveyFields([]);
+    formik.resetForm();
   };
 
   const createOrUpdateSurveyMutation = useCreateOrUpdateSurvey();
@@ -99,7 +100,7 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
         const surveyData = {
           ...(isEdit && selectedSurvey ? { id: selectedSurvey.id } : {}),
           title: values.title,
-          description: values.description || undefined,
+          description: values.description,
           category: values.category,
           target_roles:
             values.target_roles && values.target_roles !== ''

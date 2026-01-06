@@ -3876,7 +3876,6 @@ export const visitsController = {
         filters.visit_customers = {
           name: {
             contains: customerNameTrim,
-            mode: 'insensitive',
           },
         };
       }
@@ -3888,7 +3887,6 @@ export const visitsController = {
         }
         filters.visits_salesperson.name = {
           contains: salespersonNameTrim,
-          mode: 'insensitive',
         };
       }
 
@@ -3920,21 +3918,20 @@ export const visitsController = {
 
       if (searchLower) {
         filters.OR = [
-          { purpose: { contains: searchLower, mode: 'insensitive' } },
-          { status: { contains: searchLower, mode: 'insensitive' } },
-          { visit_notes: { contains: searchLower, mode: 'insensitive' } },
+          { purpose: { contains: searchLower } },
+          { status: { contains: searchLower } },
+          { visit_notes: { contains: searchLower } },
           {
             visit_customers: {
               OR: [
-                { name: { contains: searchLower, mode: 'insensitive' } },
-                { code: { contains: searchLower, mode: 'insensitive' } },
+                { name: { contains: searchLower } },
+                { code: { contains: searchLower } },
                 {
-                  phone_number: { contains: searchLower, mode: 'insensitive' },
+                  phone_number: { contains: searchLower },
                 },
                 {
                   contact_person: {
                     contains: searchLower,
-                    mode: 'insensitive',
                   },
                 },
               ],

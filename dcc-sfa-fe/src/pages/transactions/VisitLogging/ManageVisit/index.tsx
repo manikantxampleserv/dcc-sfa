@@ -39,6 +39,7 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
   const handleCancel = () => {
     setSelectedVisit(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createVisitMutation = useCreateVisit();

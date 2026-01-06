@@ -37,6 +37,7 @@ const ManageReturnRequest: React.FC<ManageReturnRequestProps> = ({
   const handleCancel = () => {
     setSelectedReturnRequest(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createReturnRequestMutation = useCreateReturnRequest();

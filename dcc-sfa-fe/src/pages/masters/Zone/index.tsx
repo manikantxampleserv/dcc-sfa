@@ -39,7 +39,7 @@ const ZonesManagement: React.FC = () => {
 
   const {
     data: zonesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useZones(
     {
@@ -273,28 +273,28 @@ const ZonesManagement: React.FC = () => {
           value={totalZones}
           icon={<MapPin className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Zones"
           value={activeZones}
           icon={<UserCheck className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Zones"
           value={inactiveZones}
           icon={<XCircle className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newZonesThisMonth}
           icon={<Building2 className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -399,7 +399,7 @@ const ZonesManagement: React.FC = () => {
         }
         getRowId={zone => zone.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

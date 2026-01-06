@@ -36,6 +36,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
   const handleCancel = () => {
     setSelectedDepot(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createDepotMutation = useCreateDepot();

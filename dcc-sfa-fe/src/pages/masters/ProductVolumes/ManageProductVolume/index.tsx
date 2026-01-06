@@ -30,6 +30,7 @@ const ManageProductVolume: React.FC<ManageProductVolumeProps> = ({
   const handleCancel = () => {
     setSelectedVolume(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createVolumeMutation = useCreateProductVolume();
