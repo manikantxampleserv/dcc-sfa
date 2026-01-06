@@ -286,7 +286,7 @@ const SystemSettings: React.FC = () => {
                   variant="caption"
                   className="!block !mt-2 !text-gray-500"
                 >
-                  JPG, PNG or GIF. Max size of 2MB
+                  JPG, PNG or GIF. Max size of 10MB
                 </Typography>
               </Box>
             </Box>

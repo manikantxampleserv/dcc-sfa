@@ -34,7 +34,7 @@ const PriceListsManagement: React.FC = () => {
 
   const {
     data: priceListsResponse,
-    isLoading,
+    isFetching,
     error,
   } = usePriceLists(
     {
@@ -259,28 +259,28 @@ const PriceListsManagement: React.FC = () => {
           value={totalPriceLists}
           icon={<FileText className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Lists"
           value={activePriceLists}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Lists"
           value={inactivePriceLists}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={newPriceListsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -370,7 +370,7 @@ const PriceListsManagement: React.FC = () => {
         }
         getRowId={priceList => priceList.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

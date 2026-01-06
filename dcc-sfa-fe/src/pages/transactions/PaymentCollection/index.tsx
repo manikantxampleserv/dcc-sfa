@@ -405,6 +405,7 @@ const PaymentCollection: React.FC = () => {
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -442,18 +443,18 @@ const PaymentCollection: React.FC = () => {
                   >
                     Import
                   </Button>
+                  {isCreate && (
+                    <Button
+                      variant="contained"
+                      className="!capitalize"
+                      disableElevation
+                      startIcon={<Add />}
+                      onClick={handleCreatePayment}
+                    >
+                      Create
+                    </Button>
+                  )}
                 </div>
-              )}
-              {isCreate && (
-                <Button
-                  variant="contained"
-                  className="!capitalize"
-                  disableElevation
-                  startIcon={<Add />}
-                  onClick={handleCreatePayment}
-                >
-                  Create
-                </Button>
               )}
             </div>
           ) : (

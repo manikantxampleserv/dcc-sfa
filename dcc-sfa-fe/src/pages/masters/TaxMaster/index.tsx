@@ -34,7 +34,7 @@ const TaxMasterPage: React.FC = () => {
 
   const {
     data: taxMastersResponse,
-    isLoading,
+    isFetching,
     error,
   } = useTaxMasters(
     {
@@ -240,28 +240,28 @@ const TaxMasterPage: React.FC = () => {
           value={totalTaxMasters}
           icon={<Receipt className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Taxes"
           value={activeTaxMasters}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Taxes"
           value={inactiveTaxMasters}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newTaxMastersThisMonth}
           icon={<Building2 className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -292,6 +292,7 @@ const TaxMasterPage: React.FC = () => {
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -353,7 +354,7 @@ const TaxMasterPage: React.FC = () => {
         }
         getRowId={taxMaster => taxMaster.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.assetWarrantyClaimsController = void 0;
-const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const paginate_1 = require("../../utils/paginate");
 const serializeAssetWarrantyClaim = (claim) => ({
     id: claim.id,
     asset_id: claim.asset_id,
@@ -76,9 +76,15 @@ exports.assetWarrantyClaimsController = {
                             },
                         },
                         {
-                            claim_status: { contains: search },
+                            claim_status: {
+                                contains: search,
+                            },
                         },
-                        { notes: { contains: search } },
+                        {
+                            notes: {
+                                contains: search,
+                            },
+                        },
                     ],
                 }),
                 ...(status === 'active' && { is_active: 'Y' }),

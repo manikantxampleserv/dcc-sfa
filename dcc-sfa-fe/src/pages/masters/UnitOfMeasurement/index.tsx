@@ -44,7 +44,7 @@ const UnitOfMeasurementPage: React.FC = () => {
 
   const {
     data: unitsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useUnitOfMeasurement(
     {
@@ -248,28 +248,28 @@ const UnitOfMeasurementPage: React.FC = () => {
           value={totalUnits}
           icon={<Ruler className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Units"
           value={activeUnits}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Units"
           value={inactiveUnits}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newUnitsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -302,8 +302,9 @@ const UnitOfMeasurementPage: React.FC = () => {
                       setPage(1);
                     }}
                     className="!w-32"
-                    placeholder="Select Status"
+                    disableClearable
                   >
+                    <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
                   </Select>
@@ -360,7 +361,7 @@ const UnitOfMeasurementPage: React.FC = () => {
         }
         getRowId={unit => unit.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

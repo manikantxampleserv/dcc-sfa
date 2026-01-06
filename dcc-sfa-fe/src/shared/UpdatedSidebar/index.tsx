@@ -165,7 +165,7 @@ const Sidebar: React.FC = () => {
           type="text"
           placeholder="Search menu..."
           value={searchQuery}
-          className="!w-full !p-2 px-2.5 rounded-none outline-none border-b border-gray-200"
+          className="!w-full !p-2 px-2.5 placeholder:text-sm rounded-none outline-none border-b border-gray-200"
           onChange={e => setSearchQuery(e.target.value)}
         />
       </div>

@@ -375,6 +375,7 @@ const SurveyBuilder: React.FC = () => {
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
                     className="!w-32"
+                    disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="published">Published</MenuItem>
@@ -386,6 +387,7 @@ const SurveyBuilder: React.FC = () => {
                     value={categoryFilter}
                     onChange={e => setCategoryFilter(e.target.value)}
                     className="!w-68"
+                    disableClearable
                   >
                     <MenuItem value="all">All Categories</MenuItem>
                     <MenuItem value="cooler_inspection">

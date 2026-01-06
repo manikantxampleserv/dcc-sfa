@@ -38,7 +38,7 @@ const CoolerSubTypesPage: React.FC = () => {
 
   const {
     data: coolerSubTypesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCoolerSubTypes(
     {
@@ -257,28 +257,28 @@ const CoolerSubTypesPage: React.FC = () => {
           value={totalCoolerSubTypes}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Sub Types"
           value={activeCoolerSubTypes}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Sub Types"
           value={inactiveCoolerSubTypes}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newCoolerSubTypesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -330,9 +330,9 @@ const CoolerSubTypesPage: React.FC = () => {
                         setPage(1);
                       }}
                       className="!w-32"
-                      label="Status"
-                      placeholder="Select Status"
+                      disableClearable
                     >
+                      <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
@@ -390,7 +390,7 @@ const CoolerSubTypesPage: React.FC = () => {
         }
         getRowId={coolerSubType => coolerSubType.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

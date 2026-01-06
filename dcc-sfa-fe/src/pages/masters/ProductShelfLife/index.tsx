@@ -34,7 +34,7 @@ const ProductShelfLifePage: React.FC = () => {
 
   const {
     data: shelfLifeResponse,
-    isLoading,
+    isFetching,
     error,
   } = useProductShelfLife(
     {
@@ -218,28 +218,28 @@ const ProductShelfLifePage: React.FC = () => {
           value={totalShelfLife}
           icon={<Clock className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Shelf Life"
           value={activeShelfLife}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Shelf Life"
           value={inactiveShelfLife}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newShelfLifeThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -273,6 +273,7 @@ const ProductShelfLifePage: React.FC = () => {
                         setPage(1);
                       }}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -332,7 +333,7 @@ const ProductShelfLifePage: React.FC = () => {
         }
         getRowId={shelfLife => shelfLife.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

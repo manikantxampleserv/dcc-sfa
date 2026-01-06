@@ -43,7 +43,7 @@ const ProductSubCategoriesPage: React.FC = () => {
 
   const {
     data: productSubCategoriesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useProductSubCategories(
     {
@@ -256,28 +256,28 @@ const ProductSubCategoriesPage: React.FC = () => {
           value={totalProductSubCategories}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Sub Categories"
           value={activeProductSubCategories}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Sub Categories"
           value={inactiveProductSubCategories}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newProductSubCategoriesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -308,6 +308,7 @@ const ProductSubCategoriesPage: React.FC = () => {
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -367,7 +368,7 @@ const ProductSubCategoriesPage: React.FC = () => {
         }
         getRowId={productSubCategory => productSubCategory.id}
         initialOrderBy="sub_category_name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

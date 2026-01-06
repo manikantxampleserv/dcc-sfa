@@ -205,8 +205,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     },
   });
 
-  console.log('formik.errors', formik.errors);
-
   const salespersonId = formik.values.salesperson_id
     ? Number(formik.values.salesperson_id)
     : 0;

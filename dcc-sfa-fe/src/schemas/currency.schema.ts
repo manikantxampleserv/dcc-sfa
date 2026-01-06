@@ -16,11 +16,10 @@ export const currencyValidationSchema = Yup.object({
 
   code: Yup.string()
     .required('Currency code is required')
-    .min(2, 'Currency code must be at least 2 characters')
-    .max(10, 'Currency code must be less than 10 characters')
+    .length(3, 'Currency code must be exactly 3 characters')
     .matches(
-      /^[A-Z0-9]+$/,
-      'Currency code must contain only uppercase letters and numbers'
+      /^[A-Z]{3}$/,
+      'Currency code must be exactly 3 capital letters (e.g., USD, EUR, INR)'
     )
     .trim(),
 

@@ -26,7 +26,7 @@ const CompaniesManagement: React.FC = () => {
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('company');
 
-  const { data: companiesData, isLoading } = useCompanies(
+  const { data: companiesData, isFetching } = useCompanies(
     {
       page,
       limit,
@@ -241,28 +241,28 @@ const CompaniesManagement: React.FC = () => {
           value={companiesData?.stats?.total_companies || 0}
           icon={<Building2 className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Companies"
           value={companiesData?.stats?.active_companies || 0}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Companies"
           value={companiesData?.stats?.inactive_companies || 0}
           icon={<XCircle className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={companiesData?.stats?.new_companies || 0}
           icon={<Globe className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -315,7 +315,7 @@ const CompaniesManagement: React.FC = () => {
         }
         getRowId={company => company.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={companiesData?.meta?.total_count || 0}
         page={page - 1}
         rowsPerPage={limit}

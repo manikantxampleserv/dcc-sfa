@@ -22,7 +22,7 @@ const RolePermissions: React.FC = () => {
 
   const {
     data: rolesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useRoles(
     {
@@ -185,28 +185,28 @@ const RolePermissions: React.FC = () => {
           value={stats?.total_roles || 0}
           icon={<Shield className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Roles"
           value={stats?.active_roles || 0}
           icon={<ShieldCheck className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Roles"
           value={stats?.inactive_roles || 0}
           icon={<ShieldX className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={stats?.new_roles || 0}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -244,6 +244,7 @@ const RolePermissions: React.FC = () => {
                     placeholder="Status"
                     disableClearable
                   >
+                    <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
                   </Select>
@@ -264,7 +265,7 @@ const RolePermissions: React.FC = () => {
         }
         getRowId={role => role.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         pagination={true}
         totalCount={totalCount}
         page={currentPage}

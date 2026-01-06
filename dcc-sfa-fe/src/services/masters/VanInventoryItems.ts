@@ -62,6 +62,7 @@ export interface ProductInventory {
   unit_price: number | null;
   tracking_type: string;
   total_quantity: number;
+  total_remaining_quantity: number;
   van_inventories: VanInventoryReference[];
   batches: BatchInfo[];
   serials: SerialInfo[];
@@ -88,6 +89,7 @@ export interface SalespersonInventoryData {
   salesperson_profile_image: string | null;
   total_van_inventories: number;
   total_products: number;
+  total_remaining_quantity: number;
   total_quantity: number;
   total_batches: number;
   total_serials: number;

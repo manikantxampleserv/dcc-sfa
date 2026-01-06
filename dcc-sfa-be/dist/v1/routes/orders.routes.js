@@ -13,5 +13,6 @@ router.get('/orders', auth_middleware_1.authenticateToken, (0, auth_middleware_1
 router.put('/orders/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditUpdate)('orders'), (0, auth_middleware_1.requirePermission)([{ module: 'order', action: 'update' }]), orders_controller_1.ordersController.updateOrders);
 router.delete('/orders/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditDelete)('orders'), (0, auth_middleware_1.requirePermission)([{ module: 'order', action: 'delete' }]), orders_controller_1.ordersController.deleteOrders);
 router.get('/orders/order-items/:id', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'order', action: 'read' }]), orders_controller_1.ordersController.getOrdersOrderItemsByOrderId);
+router.patch('/orders/:id/approval', orders_controller_1.ordersController.approveOrRejectOrder);
 exports.default = router;
 //# sourceMappingURL=orders.routes.js.map

@@ -35,7 +35,7 @@ const CurrenciesManagement: React.FC = () => {
 
   const {
     data: currenciesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCurrencies(
     {
@@ -249,28 +249,28 @@ const CurrenciesManagement: React.FC = () => {
           value={totalCurrencies}
           icon={<DollarSign className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Currencies"
           value={activeCurrencies}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Currencies"
           value={inactiveCurrencies}
           icon={<XCircle className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Base Currencies"
           value={baseCurrencies}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -303,6 +303,7 @@ const CurrenciesManagement: React.FC = () => {
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!min-w-32"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -313,6 +314,7 @@ const CurrenciesManagement: React.FC = () => {
                       onChange={e => setBaseFilter(e.target.value)}
                       className="!min-w-40"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Types</MenuItem>
                       <MenuItem value="base">Base Currency</MenuItem>
@@ -372,7 +374,7 @@ const CurrenciesManagement: React.FC = () => {
         }
         getRowId={currency => currency.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

@@ -327,6 +327,7 @@ const ZonesManagement: React.FC = () => {
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!min-w-32"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -337,6 +338,7 @@ const ZonesManagement: React.FC = () => {
                       onChange={e => setDepotFilter(e.target.value)}
                       className="!min-w-60"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Depots</MenuItem>
                       {depots.map(depot => (

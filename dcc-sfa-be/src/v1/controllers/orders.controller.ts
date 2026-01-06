@@ -2650,7 +2650,6 @@ export const ordersController = {
           );
         }
       }
-
       res.json({
         message: 'Order updated successfully',
         data: serializeOrder(result),
@@ -2667,9 +2666,12 @@ export const ordersController = {
       const existingOrder = await prisma.orders.findUnique({
         where: { id: Number(id) },
       });
-
       if (!existingOrder)
         return res.status(404).json({ message: 'Order not found' });
+
+      await prisma.order_items.deleteMany({
+        where: { parent_id: Number(id) },
+      });
 
       await prisma.orders.delete({ where: { id: Number(id) } });
 

@@ -1523,6 +1523,122 @@ exports.ordersController = {
             });
         }
     },
+    async approveOrRejectOrder(req, res) {
+        try {
+            const { id } = req.params; // Order ID
+            const { action, comments, approvedby } = req.body; // action: 'approved' or 'rejected'
+            const userId = req.user?.id || 1;
+            // Validate action
+            if (!['approved', 'rejected'].includes(action)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid action. Must be "approved" or "rejected"',
+                });
+            }
+            const order = await prisma_client_1.default.orders.findUnique({
+                where: { id: Number(id) },
+                include: {
+                    orders_customers: true,
+                    orders_salesperson_users: true,
+                },
+            });
+            if (!order) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Order not found',
+                });
+            }
+            // Check if order is pending approval
+            if (order.approval_status !== 'pending' &&
+                order.approval_status !== 'submitted') {
+                return res.status(400).json({
+                    success: false,
+                    message: `Order is already ${order.approval_status}`,
+                });
+            }
+            // Update order with approval/rejection
+            const updatedOrder = await prisma_client_1.default.orders.update({
+                where: { id: Number(id) },
+                data: {
+                    approval_status: action, // 'approved' or 'rejected'
+                    approved_by: approvedby || userId,
+                    approved_at: new Date(),
+                    status: action === 'approved' ? 'confirmed' : 'cancelled',
+                    updatedate: new Date(),
+                    updatedby: userId,
+                    log_inst: { increment: 1 },
+                    notes: comments
+                        ? `${order.notes || ''}\n\nApproval Comments: ${comments}`
+                        : order.notes,
+                },
+                include: {
+                    orders_currencies: true,
+                    orders_customers: true,
+                    orders_salesperson_users: true,
+                    order_items: true,
+                    invoices: true,
+                },
+            });
+            // Update approval workflow if exists
+            const workflow = await prisma_client_1.default.approval_workflows.findFirst({
+                where: {
+                    reference_type: 'order',
+                    reference_number: order.order_number,
+                    status: { in: ['pending', 'inprogress'] },
+                },
+            });
+            if (workflow) {
+                // Update workflow with correct field names from schema
+                await prisma_client_1.default.approval_workflows.update({
+                    where: { id: workflow.id },
+                    data: {
+                        status: action === 'approved' ? 'approved' : 'rejected',
+                        final_approved_by: action === 'approved' ? approvedby || userId : undefined,
+                        final_approved_at: action === 'approved' ? new Date() : undefined,
+                        rejected_by: action === 'rejected' ? approvedby || userId : undefined,
+                        rejected_at: action === 'rejected' ? new Date() : undefined,
+                        rejection_reason: action === 'rejected' ? comments : undefined,
+                        updatedate: new Date(),
+                        updatedby: userId,
+                    },
+                });
+                // Update workflow steps - need to check workflow_steps schema for correct fields
+                await prisma_client_1.default.workflow_steps.updateMany({
+                    where: {
+                        workflow_id: workflow.id,
+                        status: 'pending',
+                    },
+                    data: {
+                        status: action === 'approved' ? 'completed' : 'rejected',
+                        // Remove completed_by and completed_at if they don't exist in schema
+                        updatedate: new Date(),
+                    },
+                });
+            }
+            try {
+                await (0, helpers_1.createOrderNotification)(order.createdby, order.id, order.order_number, action, userId);
+                if (order.salesperson_id && order.salesperson_id !== order.createdby) {
+                    await (0, helpers_1.createOrderNotification)(order.salesperson_id, order.id, order.order_number, action, userId);
+                }
+            }
+            catch (notificationError) {
+                console.error('Error sending approval notification:', notificationError);
+            }
+            return res.json({
+                success: true,
+                message: `Order ${action === 'approved' ? 'approved' : 'rejected'} successfully`,
+                data: serializeOrder(updatedOrder),
+            });
+        }
+        catch (error) {
+            console.error('Approve/Reject Order Error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to process order approval',
+                error: error.message,
+            });
+        }
+    },
     async getAllOrders(req, res) {
         try {
             const { page, limit, search, sales_person_id, customer_id, status, isActive, route_id, route_ids, } = req.query;
@@ -1988,6 +2104,9 @@ exports.ordersController = {
             });
             if (!existingOrder)
                 return res.status(404).json({ message: 'Order not found' });
+            await prisma_client_1.default.order_items.deleteMany({
+                where: { parent_id: Number(id) },
+            });
             await prisma_client_1.default.orders.delete({ where: { id: Number(id) } });
             res.json({ message: 'Order deleted successfully' });
         }

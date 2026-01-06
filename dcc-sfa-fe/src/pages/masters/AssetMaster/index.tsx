@@ -316,6 +316,7 @@ const AssetMasterManagement: React.FC = () => {
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>

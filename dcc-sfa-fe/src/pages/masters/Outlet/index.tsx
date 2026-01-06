@@ -37,7 +37,7 @@ const OutletsManagement: React.FC = () => {
 
   const {
     data: customersResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCustomers(
     {
@@ -308,28 +308,28 @@ const OutletsManagement: React.FC = () => {
           value={totalCustomers}
           icon={<Store className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Outlets"
           value={activeCustomers}
           icon={<UserCheck className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Total Credit Limit"
           value={formatCurrency(totalCreditLimit.toString())}
           icon={<CreditCard className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Outstanding Amount"
           value={formatCurrency(totalOutstanding.toString())}
           icon={<DollarSign className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -363,6 +363,7 @@ const OutletsManagement: React.FC = () => {
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!min-w-32"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -373,6 +374,7 @@ const OutletsManagement: React.FC = () => {
                       onChange={e => setTypeFilter(e.target.value)}
                       className="!min-w-40"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Types</MenuItem>
                       {BUSINESS_TYPES.map(type => (
@@ -402,7 +404,7 @@ const OutletsManagement: React.FC = () => {
         }
         getRowId={customer => customer.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

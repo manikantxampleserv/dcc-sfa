@@ -48,7 +48,7 @@ const DepotsManagement: React.FC = () => {
 
   const {
     data: depotsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useDepots(
     {
@@ -296,28 +296,28 @@ const DepotsManagement: React.FC = () => {
           value={totalDepots}
           icon={<Building2 className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Depots"
           value={activeDepots}
           icon={<UserCheck className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Depots"
           value={inactiveDepots}
           icon={<XCircle className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Unique Companies"
           value={uniqueCompanies}
           icon={<Users className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -348,6 +348,7 @@ const DepotsManagement: React.FC = () => {
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -357,6 +358,7 @@ const DepotsManagement: React.FC = () => {
                       value={companyFilter}
                       onChange={e => setCompanyFilter(e.target.value)}
                       className="!w-68"
+                      disableClearable
                     >
                       <MenuItem value="all">All Companies</MenuItem>
                       {companies.map(company => (
@@ -422,7 +424,7 @@ const DepotsManagement: React.FC = () => {
         }
         getRowId={depot => depot.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

@@ -28,7 +28,7 @@ const VehiclesPage: React.FC = () => {
 
   const {
     data: vehiclesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useVehicles(
     {
@@ -265,28 +265,28 @@ const VehiclesPage: React.FC = () => {
           value={totalVehicles}
           icon={<Car className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Vehicles"
           value={activeVehicles}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Vehicles"
           value={inactiveVehicles}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newVehiclesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -317,6 +317,7 @@ const VehiclesPage: React.FC = () => {
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -376,7 +377,7 @@ const VehiclesPage: React.FC = () => {
         }
         getRowId={vehicle => vehicle.id}
         initialOrderBy="vehicle_number"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
