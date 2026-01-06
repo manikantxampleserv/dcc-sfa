@@ -2,11 +2,11 @@ import { Tag } from '@mui/icons-material';
 import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
-import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
 import {
   useInventoryItemById,
   type SalespersonInventoryData,
 } from 'hooks/useInventoryItems';
+import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
 import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
 import { Package, Plus } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -24,6 +24,7 @@ import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
 import ManageOrderBatch from './ManageOrderBatch';
 import ManageOrderSerial from './ManageOrderSerial';
+import { useSettings } from 'hooks/useSettings';
 
 interface ManageOrderProps {
   open: boolean;
@@ -48,6 +49,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const [isBatchSelectorOpen, setIsBatchSelectorOpen] = useState(false);
   const [isSerialSelectorOpen, setIsSerialSelectorOpen] = useState(false);
   const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
+  const { data: settingsResponse } = useSettings();
+
+  const settings = settingsResponse?.data;
+  const defaultCurrencyId = settings?.currency_id || '';
 
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: orderResponse } = useOrder(order?.id || 0);
@@ -62,9 +67,15 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       order_number: order?.order_number || '',
       parent_id: order?.parent_id || '',
       salesperson_id: order?.salesperson_id || '',
-      currency_id: order?.currency_id || '',
-      order_date: order?.order_date ? order.order_date : '',
-      delivery_date: order?.delivery_date ? order.delivery_date : '',
+      currency_id: order?.currency_id || defaultCurrencyId,
+      order_date: order?.order_date
+        ? order.order_date
+        : new Date().toISOString().split('T')[0],
+      delivery_date: order?.delivery_date
+        ? order.delivery_date
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split('T')[0],
       status: order?.status || 'draft',
       priority: order?.priority || 'medium',
       order_type: order?.order_type || 'regular',
@@ -580,6 +591,14 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               {currencies.map(currency => (
                 <MenuItem key={currency.id} value={currency.id}>
                   {currency.code} - {currency.name}
+                  {currency.id === defaultCurrencyId && (
+                    <Typography
+                      component="span"
+                      className="!ml-2 !text-xs !text-blue-600"
+                    >
+                      (Default)
+                    </Typography>
+                  )}
                 </MenuItem>
               ))}
             </Select>

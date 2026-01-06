@@ -328,6 +328,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
           compact
           pagination={false}
           sortable={false}
+          emptyMessage="No batches in this product"
         />
       </Box>
       <Box className="!p-2 !flex !justify-end !border-t gap-2 !border-gray-300">

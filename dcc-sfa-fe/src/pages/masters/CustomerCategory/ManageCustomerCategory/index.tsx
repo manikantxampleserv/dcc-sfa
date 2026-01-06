@@ -17,6 +17,8 @@ import Input from 'shared/Input';
 import ProductCategorySelect from 'shared/ProductCategorySelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
+import { toast } from 'react-toastify';
 
 interface ManageCustomerCategoryProps {
   selectedCustomerCategory?: CustomerCategory | null;
@@ -42,7 +44,6 @@ const customerCategoryValidationSchema = Yup.object({
     .min(2, 'Category name must be at least 2 characters')
     .max(255, 'Category name must be less than 255 characters'),
   category_code: Yup.string()
-    .required('Category code is required')
     .min(2, 'Category code must be at least 2 characters')
     .max(50, 'Category code must be less than 50 characters'),
   is_active: Yup.string().oneOf(['Y', 'N']).required('Status is required'),
@@ -147,6 +148,16 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
   const updateCustomerCategoryMutation = useUpdateCustomerCategory();
 
   const addCondition = () => {
+    if (!conditionInput.condition_type.trim()) {
+      toast.error('Condition type is required');
+      return;
+    }
+
+    if (!conditionInput.threshold_value.trim()) {
+      toast.error('Threshold value is required');
+      return;
+    }
+
     const newCondition: ConditionFormData = {
       _index: conditions.length,
       condition_type: conditionInput.condition_type,
@@ -218,6 +229,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
     initialValues: {
       category_name: selectedCustomerCategory?.category_name || '',
       category_code: selectedCustomerCategory?.category_code || '',
+      category_level: selectedCustomerCategory?.category_level || '',
       is_active: selectedCustomerCategory?.is_active || 'Y',
     },
     validationSchema: customerCategoryValidationSchema,
@@ -227,6 +239,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
         const categoryData = {
           category_name: values.category_name,
           category_code: values.category_code,
+          category_level: values.category_level,
           is_active: values.is_active,
           conditions: conditions.map(cond => ({
             ...(cond.id && { id: cond.id }),
@@ -336,7 +349,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Customer Category' : 'Create Customer Category'}
-      size="larger"
+      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -356,11 +369,20 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
               formik={formik}
               required
             />
+            <Input
+              type="number"
+              name="category_level"
+              label="Category Level"
+              placeholder="Enter category level"
+              formik={formik}
+              required
+            />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              className="col-span-2"
+            />
           </Box>
 
           <Box className="!space-y-4 !mt-6">
@@ -449,24 +471,6 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
                 size="small"
                 fullWidth
               />
-
-              <Box className="md:!col-span-2">
-                <Input
-                  value={conditionInput.condition_description}
-                  onChange={e =>
-                    setConditionInput({
-                      ...conditionInput,
-                      condition_description: e.target.value,
-                    })
-                  }
-                  label="Description (Optional)"
-                  placeholder="Enter condition description"
-                  multiline
-                  rows={2}
-                  size="small"
-                  fullWidth
-                />
-              </Box>
 
               <Box className="md:!col-span-2 !flex !items-center !gap-4">
                 {selectedConditionIndex !== null && (

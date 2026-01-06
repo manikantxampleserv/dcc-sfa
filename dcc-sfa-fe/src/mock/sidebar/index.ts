@@ -56,11 +56,11 @@ const menuItems: MenuItem[] = [
         label: 'Organization Setup',
         icon: MdBusiness,
         children: [
-          {
-            id: 'company-master',
-            label: 'Company Master',
-            href: '/masters/company',
-          },
+          // {
+          //   id: 'company-master',
+          //   label: 'Company Master',
+          //   href: '/masters/company',
+          // },
           { id: 'user-master', label: 'User Master', href: '/masters/users' },
           {
             id: 'role-permission',
@@ -77,11 +77,11 @@ const menuItems: MenuItem[] = [
         label: 'Operations & Logistics',
         icon: MdLocalShipping,
         children: [
-          {
-            id: 'warehouse-master',
-            label: 'Warehouse Master',
-            href: '/masters/warehouses',
-          },
+          // {
+          //   id: 'warehouse-master',
+          //   label: 'Warehouse Master',
+          //   href: '/masters/warehouses',
+          // },
           {
             id: 'vehicle-master',
             label: 'Vehicle Master',
@@ -212,11 +212,11 @@ const menuItems: MenuItem[] = [
             label: 'Tax Master',
             href: '/masters/tax-master',
           },
-          {
-            id: 'pricelists',
-            label: 'Pricelists',
-            href: '/masters/pricelists',
-          },
+          // {
+          //   id: 'pricelists',
+          //   label: 'Pricelists',
+          //   href: '/masters/pricelists',
+          // },
         ],
       },
       {
@@ -370,11 +370,11 @@ const menuItems: MenuItem[] = [
             label: 'Stock Movements',
             href: '/transactions/stock-movements',
           },
-          {
-            id: 'stock-transfer-requests',
-            label: 'Stock Transfer Requests',
-            href: '/transactions/stock-transfer',
-          },
+          // {
+          //   id: 'stock-transfer-requests',
+          //   label: 'Stock Transfer Requests',
+          //   href: '/transactions/stock-transfer',
+          // },
         ],
       },
       {

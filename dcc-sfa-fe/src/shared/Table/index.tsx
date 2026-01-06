@@ -30,6 +30,7 @@ export interface TableColumn<T = any> {
   width?: string | number;
   render?: (value: any, row: T, index: number) => ReactNode;
   className?: string;
+  isVisible?: boolean;
 }
 
 /**
@@ -187,10 +188,12 @@ function TableHead<T>(props: TableHeadProps<T>) {
       onRequestSort(event, property);
     };
 
+  const visibleColumns = columns.filter(column => column.isVisible !== false);
+
   return (
     <MuiTableHead>
       <MuiTableRow>
-        {columns.map(column => (
+        {visibleColumns.map(column => (
           <MuiTableCell
             key={String(column.id)}
             align={column.numeric ? 'right' : 'left'}
@@ -264,11 +267,13 @@ function SkeletonLoader({ columns, rows = 3 }: SkeletonLoaderProps) {
     return widths[index % widths.length];
   };
 
+  const visibleColumns = columns.filter(column => column.isVisible !== false);
+
   return (
     <>
       {skeletonRows.map((_row, rowIndex) => (
         <MuiTableRow key={`skeleton-row-${rowIndex}`}>
-          {columns.map((column, colIndex) => (
+          {visibleColumns.map((column, colIndex) => (
             <MuiTableCell
               key={`skeleton-${rowIndex}-${String(column.id)}`}
               align={column.numeric ? 'right' : 'left'}
@@ -338,6 +343,10 @@ export default function Table<T extends Record<string, any>>(
 
   const columnMap = useMemo(() => {
     return new Map(columns.map(col => [String(col.id), col]));
+  }, [columns]);
+
+  const visibleColumns = useMemo(() => {
+    return columns.filter(column => column.isVisible !== false);
   }, [columns]);
 
   const handleRequestSort = (
@@ -461,7 +470,7 @@ export default function Table<T extends Record<string, any>>(
                   key={String(rowId)}
                   className="!whitespace-nowrap last:!border-b-0 !cursor-pointer hover:!bg-gray-50"
                 >
-                  {columns.map(column => (
+                  {visibleColumns.map(column => (
                     <MuiTableCell
                       key={String(column.id)}
                       align={column.numeric ? 'right' : 'left'}

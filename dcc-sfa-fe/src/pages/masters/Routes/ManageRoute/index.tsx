@@ -217,7 +217,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
           </Box>
 
           {/* Action Buttons */}
-          <Box className="!flex !gap-3 !pt-4">
+          <Box className="!flex !justify-end !gap-3 !pt-4">
             <Button
               type="button"
               variant="outlined"
