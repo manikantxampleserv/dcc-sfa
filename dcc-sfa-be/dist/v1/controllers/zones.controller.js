@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.zonesController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+require("../../types/express");
 const generateZoneCode = async (name) => {
     const prefix = name.slice(0, 3).toUpperCase();
     const lastZone = await prisma_client_1.default.zones.findFirst({
@@ -44,19 +45,19 @@ const serializeZone = (zone) => ({
         : [],
     routes_zones: zone.routes_zones
         ? zone.routes_zones.map((r) => ({ id: r.id, name: r.name }))
-        : [],
-    user_zones: zone.user_zones
-        ? zone.user_zones.map((u) => ({
-            id: u.id,
-            name: u.name,
-            email: u.email,
-        }))
-        : [],
+        : undefined,
     zone_depots: zone.zone_depots
         ? {
             id: zone.zone_depots.id,
             name: zone.zone_depots.name,
             code: zone.zone_depots.code,
+        }
+        : null,
+    supervisor: zone.zone_supervisor
+        ? {
+            id: zone.zone_supervisor.id,
+            name: zone.zone_supervisor.name,
+            email: zone.zone_supervisor.email,
         }
         : null,
 });
@@ -85,8 +86,8 @@ exports.zonesController = {
                         },
                     },
                     routes_zones: true,
-                    user_zones: true,
                     zone_depots: true,
+                    zone_supervisor: true,
                 },
             });
             res.status(201).json({
@@ -128,8 +129,8 @@ exports.zonesController = {
                         },
                     },
                     routes_zones: true,
-                    user_zones: true,
                     zone_depots: true,
+                    zone_supervisor: true,
                 },
             });
             const totalZones = await prisma_client_1.default.zones.count();
@@ -176,8 +177,8 @@ exports.zonesController = {
                         },
                     },
                     routes_zones: true,
-                    user_zones: true,
                     zone_depots: true,
+                    zone_supervisor: true,
                 },
             });
             if (!zone) {
@@ -219,8 +220,8 @@ exports.zonesController = {
                         },
                     },
                     routes_zones: true,
-                    user_zones: true,
                     zone_depots: true,
+                    zone_supervisor: true,
                 },
             });
             res.json({

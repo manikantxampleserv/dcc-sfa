@@ -87,19 +87,40 @@ const OrderDetail: React.FC = () => {
   };
 
   const getApprovalColor = (status: string) => {
+    const normalizedStatus = status?.slice(0, 1)?.toUpperCase();
     const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
+      P: 'bg-yellow-100 text-yellow-800',
+      A: 'bg-green-100 text-green-800',
+      R: 'bg-red-100 text-red-800',
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return (
+      colors[normalizedStatus as keyof typeof colors] ||
+      'bg-gray-100 text-gray-800'
+    );
   };
 
-  const formatCurrency = (amount: number | null | undefined) => {
+  const getApprovalLabel = (status: string) => {
+    const normalizedStatus = status?.slice(0, 1)?.toUpperCase();
+    const labels = {
+      P: 'Pending',
+      A: 'Approved',
+      R: 'Rejected',
+    };
+    return labels[normalizedStatus as keyof typeof labels] || status || 'N/A';
+  };
+
+  const getApprovalIcon = (status: string) => {
+    const normalizedStatus = status?.slice(0, 1)?.toUpperCase();
+    if (normalizedStatus === 'A') return <CheckCircle className="w-4 h-4" />;
+    if (normalizedStatus === 'R') return <XCircle className="w-4 h-4" />;
+    return <Clock className="w-4 h-4" />;
+  };
+
+  const formatCurrency = (amount: number | null | undefined, currency = 'USD') => {
     if (amount === null || amount === undefined) return 'N/A';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency,
     }).format(amount);
   };
 
@@ -259,6 +280,8 @@ const OrderDetail: React.FC = () => {
     );
   }
 
+  const currencyCode = orderData?.currency?.code || 'USD';
+
   const InfoCard = ({
     title,
     children,
@@ -335,8 +358,9 @@ const OrderDetail: React.FC = () => {
               size="small"
             />
             <Chip
-              label={orderData.approval_status || 'pending'}
-              className={`${getApprovalColor(orderData.approval_status || 'pending')} font-semibold`}
+              icon={getApprovalIcon(orderData.approval_status || 'P')}
+              label={getApprovalLabel(orderData.approval_status || 'P')}
+              className={`${getApprovalColor(orderData.approval_status || 'P')} font-semibold`}
               size="small"
             />
           </div>
@@ -353,7 +377,7 @@ const OrderDetail: React.FC = () => {
                 variant="body2"
                 className="!font-semibold !text-gray-900"
               >
-                {formatCurrency(orderData.total_amount)}
+                {formatCurrency(orderData.total_amount, currencyCode)}
               </Typography>
             </div>
 
@@ -445,6 +469,28 @@ const OrderDetail: React.FC = () => {
                 {orderData.payment_terms || 'N/A'}
               </Typography>
             </div>
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Approval Status
+              </Typography>
+              <Typography variant="body2" className="!font-semibold !text-gray-900">
+                {getApprovalLabel(orderData.approval_status || 'P')}
+              </Typography>
+            </div>
+            <div className="!space-y-0.5">
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+              >
+                Approved At
+              </Typography>
+              <Typography variant="body2" className="!font-semibold !text-gray-900">
+                {orderData.approved_at ? formatDate(orderData.approved_at) : 'N/A'}
+              </Typography>
+            </div>
           </div>
         </InfoCard>
         <InfoCard title="Customer Information" icon={Package}>
@@ -515,20 +561,42 @@ const OrderDetail: React.FC = () => {
                       variant="body2"
                       className="!font-semibold !text-gray-900"
                     >
-                      {formatCurrency(item.total_amount)}
+                      {formatCurrency(item.total_amount, currencyCode)}
                     </Typography>
                   </div>
                   <div className="!flex !justify-between !text-xs !text-gray-500">
                     <span>
-                      Qty: {item.quantity} × {formatCurrency(item.unit_price)}
+                      Qty: {item.quantity} ×{' '}
+                      {formatCurrency(item.unit_price, currencyCode)}
                       {item.unit && ` (${item.unit})`}
                     </span>
-                    {item.discount_amount && item.discount_amount > 0 && (
-                      <span className="!text-green-600">
-                        Discount: -{formatCurrency(item.discount_amount)}
-                      </span>
-                    )}
+
                   </div>
+                  {Array.isArray((item as any).product_batches) &&
+                    (item as any).product_batches.length > 0 && (
+                      <div className="!mt-2 !text-xs !text-gray-600">
+                        <span className="!font-semibold">Batches:</span>{' '}
+                        {(item as any).product_batches
+                          .filter((b: any) => Number(b?.quantity || 0) > 0)
+                          .map((b: any, idx: number) => {
+                            const label =
+                              b?.batch_number || b?.lot_number || `Batch ${idx + 1}`;
+                            return `${label} (${b?.quantity})`;
+                          })
+                          .join(', ') || 'N/A'}
+                      </div>
+                    )}
+                  {Array.isArray((item as any).product_serials) &&
+                    (item as any).product_serials.length > 0 && (
+                      <div className="!mt-1 !text-xs !text-gray-600">
+                        <span className="!font-semibold">Serials:</span>{' '}
+                        {(item as any).product_serials
+                          .filter((s: any) => s?.selected !== false)
+                          .map((s: any) => s?.serial_number)
+                          .filter(Boolean)
+                          .join(', ') || 'N/A'}
+                      </div>
+                    )}
                   {item.notes && (
                     <Typography
                       variant="caption"
@@ -562,7 +630,7 @@ const OrderDetail: React.FC = () => {
                 variant="body2"
                 className="!font-semibold !text-gray-900"
               >
-                {formatCurrency(orderData.subtotal)}
+                {formatCurrency(orderData.subtotal, currencyCode)}
               </Typography>
             </div>
             <div className="!space-y-0.5">
@@ -576,7 +644,7 @@ const OrderDetail: React.FC = () => {
                 variant="body2"
                 className="!font-semibold !text-green-600"
               >
-                -{formatCurrency(orderData.discount_amount)}
+                -{formatCurrency(orderData.discount_amount, currencyCode)}
               </Typography>
             </div>
             <div className="!space-y-0.5">
@@ -590,7 +658,7 @@ const OrderDetail: React.FC = () => {
                 variant="body2"
                 className="!font-semibold !text-gray-900"
               >
-                {formatCurrency(orderData.tax_amount)}
+                {formatCurrency(orderData.tax_amount, currencyCode)}
               </Typography>
             </div>
             <div className="!space-y-0.5">
@@ -604,7 +672,7 @@ const OrderDetail: React.FC = () => {
                 variant="body2"
                 className="!font-semibold !text-gray-900"
               >
-                {formatCurrency(orderData.shipping_amount)}
+                {formatCurrency(orderData.shipping_amount, currencyCode)}
               </Typography>
             </div>
             <div className="!space-y-0.5 md:!col-span-2">
@@ -616,7 +684,7 @@ const OrderDetail: React.FC = () => {
                   Total
                 </Typography>
                 <Typography variant="subtitle2" className="!font-bold">
-                  {formatCurrency(orderData.total_amount)}
+                  {formatCurrency(orderData.total_amount, currencyCode)}
                 </Typography>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { Block, CheckCircle, Group } from '@mui/icons-material';
-import { Alert, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { Alert, Box, Chip, MenuItem, Tooltip, Typography } from '@mui/material';
 import { Shield, ShieldCheck, ShieldX, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -7,9 +7,8 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { useDeleteRole, useRoles, type Role } from '../../../hooks/useRoles';
 import { usePermission } from '../../../hooks/usePermission';
-import { formatDate } from '../../../utils/dateUtils';
+import { useDeleteRole, useRoles, type Role } from '../../../hooks/useRoles';
 import ManageRolePermissions from './ManageRolePermissions';
 
 const RolePermissions: React.FC = () => {
@@ -53,16 +52,11 @@ const RolePermissions: React.FC = () => {
     {
       id: 'name',
       label: 'Role Name',
-      render: (_value, row) => row.name,
+      render: (_value, row) => (
+        <span className="font-semibold">{row.name}</span>
+      ),
     },
-    {
-      id: 'description',
-      label: 'Description',
-      render: (_value, row) =>
-        row.description || (
-          <span className="italic text-gray-400"> No Description </span>
-        ),
-    },
+
     {
       id: 'is_active',
       label: 'Status',
@@ -98,9 +92,19 @@ const RolePermissions: React.FC = () => {
       ),
     },
     {
-      id: 'created_at',
-      label: 'Created Date',
-      render: created_at => formatDate(created_at),
+      id: 'description',
+      label: 'Description',
+      render: (_value, row) => {
+        return row.description ? (
+          <Tooltip title={row.description} placement="top" arrow>
+            <Box component="span" className="!block !max-w-[200px] !truncate">
+              {row.description}
+            </Box>
+          </Tooltip>
+        ) : (
+          <span className="italic text-gray-400">No Description</span>
+        );
+      },
     },
     ...(isUpdate || isDelete || isRead
       ? [
@@ -175,7 +179,7 @@ const RolePermissions: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Roles"
           value={stats?.total_roles || 0}
@@ -237,9 +241,9 @@ const RolePermissions: React.FC = () => {
                     }}
                     className="!min-w-32"
                     size="small"
+                    placeholder="Status"
                     disableClearable
                   >
-                    <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
                   </Select>
