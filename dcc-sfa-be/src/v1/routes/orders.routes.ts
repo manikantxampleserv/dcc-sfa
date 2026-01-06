@@ -61,4 +61,6 @@ router.get(
   ordersController.getOrdersOrderItemsByOrderId
 );
 
+router.patch('/orders/:id/approval', ordersController.approveOrRejectOrder);
+
 export default router;
