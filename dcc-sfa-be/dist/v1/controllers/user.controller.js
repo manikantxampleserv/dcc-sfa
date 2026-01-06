@@ -48,13 +48,6 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             code: user.user_depot.code,
         }
         : null,
-    user_zones: user.zones
-        ? {
-            id: user.zones.id,
-            name: user.zones.name,
-            code: user.zones.code,
-        }
-        : null,
     reporting_manager: user.users
         ? {
             id: user.users.id,
@@ -139,7 +132,6 @@ exports.userController = {
                     user_role: true,
                     companies: true,
                     user_depot: true,
-                    user_zones: true,
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
@@ -191,7 +183,6 @@ exports.userController = {
                     user_role: true,
                     companies: true,
                     user_depot: true,
-                    user_zones: true,
                     users: {
                         select: {
                             id: true,
@@ -245,7 +236,6 @@ exports.userController = {
                     user_role: true,
                     companies: true,
                     user_depot: true,
-                    user_zones: true,
                     users: {
                         select: {
                             id: true,
@@ -377,7 +367,6 @@ exports.userController = {
                     user_role: true,
                     companies: true,
                     user_depot: true,
-                    user_zones: true,
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
@@ -424,7 +413,6 @@ exports.userController = {
                     },
                     companies: true,
                     user_depot: true,
-                    user_zones: true,
                     users: {
                         select: {
                             id: true,
@@ -513,7 +501,6 @@ exports.userController = {
                     user_role: true,
                     companies: true,
                     user_depot: true,
-                    user_zones: true,
                     users: { select: { id: true, name: true, email: true } },
                 },
             });

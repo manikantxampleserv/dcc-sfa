@@ -223,7 +223,6 @@ export const userController = {
           user_role: true,
           companies: true,
           user_depot: true,
-          user_zones: true,
           users: {
             select: {
               id: true,

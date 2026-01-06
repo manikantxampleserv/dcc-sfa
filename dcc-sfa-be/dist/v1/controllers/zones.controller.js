@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.zonesController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
-require("../../types/express");
 const generateZoneCode = async (name) => {
     const prefix = name.slice(0, 3).toUpperCase();
     const lastZone = await prisma_client_1.default.zones.findFirst({

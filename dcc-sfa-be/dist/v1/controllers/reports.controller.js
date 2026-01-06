@@ -2593,9 +2593,6 @@ exports.reportsController = {
                     user_depot: {
                         select: { id: true, name: true, code: true },
                     },
-                    user_zones: {
-                        select: { id: true, name: true, code: true },
-                    },
                 },
             });
             // Fetch Visits
@@ -2701,7 +2698,6 @@ exports.reportsController = {
                     email: user.email,
                     employee_id: user.employee_id || 'N/A',
                     depot_name: user.user_depot?.name || 'N/A',
-                    zone_name: user.user_zones?.name || 'N/A',
                     total_visits: repVisits.length,
                     completed_tasks: completedTasks,
                     pending_tasks: repTasks.length - completedTasks,

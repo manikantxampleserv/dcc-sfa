@@ -15,6 +15,7 @@ import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import ManageApprovalSetup from './ManageApprovalSetup';
+import { Add } from '@mui/icons-material';
 
 const ApprovalSetup: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -41,9 +42,7 @@ const ApprovalSetup: React.FC = () => {
       search: search || undefined,
       request_type: requestTypeFilter !== 'all' ? requestTypeFilter : undefined,
     },
-    {
-      enabled: isRead,
-    }
+    { enabled: isRead }
   );
 
   const workflows: ApprovalWorkflowSetupGrouped[] =
@@ -331,7 +330,7 @@ const ApprovalSetup: React.FC = () => {
                   variant="contained"
                   className="!capitalize"
                   disableElevation
-                  startIcon={<Settings />}
+                  startIcon={<Add />}
                   onClick={handleCreateSetup}
                 >
                   Create
