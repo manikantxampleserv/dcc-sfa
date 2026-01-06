@@ -1405,7 +1405,8 @@ export const ordersController = {
               const quantity = parseInt(item.quantity, 10);
 
               if (trackingType === 'BATCH') {
-                // Handle both 'batches' and 'product_batches' field names
+                console.log('✅ Going to BATCH branch');
+
                 const batchData = item.batches || item.product_batches;
 
                 if (!batchData || !Array.isArray(batchData)) {
@@ -1572,7 +1573,8 @@ export const ordersController = {
                   },
                 });
               } else if (trackingType === 'SERIAL') {
-                // Handle both 'serials' and 'product_serials' field names
+                console.log('✅ Going to SERIAL branch');
+
                 const serialData = item.serials || item.product_serials;
 
                 if (!serialData || !Array.isArray(serialData)) {
@@ -1581,9 +1583,28 @@ export const ordersController = {
                   );
                 }
 
-                for (const serialNumber of serialData) {
+                console.log(
+                  `\n========== PROCESS SERIALS FOR ORDER ==========`
+                );
+                console.log(`Product: ${product.name} (ID: ${product.id})`);
+                console.log(`Serials to process: ${serialData.length}`);
+
+                for (const serialInput of serialData) {
+                  // ✅ Extract serial_number string
+                  const serialNumber =
+                    typeof serialInput === 'string'
+                      ? serialInput
+                      : serialInput.serial_number;
+
+                  if (!serialNumber) {
+                    throw new Error('Serial number is required');
+                  }
+
+                  console.log(`\n🔍 Processing serial: ${serialNumber}`);
+
+                  // ✅ Find serial in database
                   const serial = await tx.serial_numbers.findUnique({
-                    where: { serial_number: serialNumber },
+                    where: { serial_number: serialNumber }, // ✅ Now it's a string
                   });
 
                   if (!serial) {
@@ -1592,17 +1613,53 @@ export const ordersController = {
                     );
                   }
 
+                  // Validate serial status
                   if (
-                    serial.status !== 'in_van' &&
+                    serial.status !== 'invan' &&
                     serial.status !== 'available'
                   ) {
                     throw new Error(
-                      `Serial "${serialNumber}" is not available. Status: ${serial.status}`
+                      `Serial "${serialNumber}" is not available. Current status: ${serial.status}`
                     );
                   }
 
+                  console.log(
+                    `   ✅ Found serial: ID ${serial.id}, Status: ${serial.status}`
+                  );
+
+                  // ✅ Verify serial is in van (if van_inventory_id provided)
+                  if (vanInventory) {
+                    const vanItem = await tx.van_inventory_items.findFirst({
+                      where: {
+                        parent_id: Number(van_inventory_id),
+                        product_id: product.id,
+                        serial_id: serial.id,
+                        quantity: { gt: 0 },
+                      },
+                    });
+
+                    if (!vanItem) {
+                      throw new Error(
+                        `Serial "${serialNumber}" not found in van inventory ${van_inventory_id}`
+                      );
+                    }
+
+                    console.log(
+                      `   ✅ Found in van_inventory_items: ID ${vanItem.id}`
+                    );
+
+                    // ✅ Reduce van_inventory_items quantity
+                    await tx.van_inventory_items.update({
+                      where: { id: vanItem.id },
+                      data: { quantity: { decrement: 1 } },
+                    });
+
+                    console.log(`   📉 Reduced van_item quantity`);
+                  }
+
+                  // ✅ Update serial status to 'sold'
                   await tx.serial_numbers.update({
-                    where: { serial_number: serialNumber },
+                    where: { id: serial.id },
                     data: {
                       status: 'sold',
                       customer_id: customer.id,
@@ -1612,6 +1669,11 @@ export const ordersController = {
                     },
                   });
 
+                  console.log(
+                    `   ✅ Updated serial status: ${serial.status} → sold`
+                  );
+
+                  // ✅ Update inventory_stock
                   const inventoryStock = await tx.inventory_stock.findFirst({
                     where: {
                       product_id: product.id,
@@ -1632,8 +1694,13 @@ export const ordersController = {
                         updatedby: userId,
                       },
                     });
+
+                    console.log(
+                      `   📉 Updated inventory_stock: ${currentStock} → ${currentStock - 1}`
+                    );
                   }
 
+                  // ✅ Create stock movement
                   await tx.stock_movements.create({
                     data: {
                       product_id: product.id,
@@ -1646,7 +1713,7 @@ export const ordersController = {
                       to_location_id: null,
                       quantity: 1,
                       movement_date: new Date(),
-                      remarks: `Sold via order ${order.order_number} - Serial: ${serialNumber}`,
+                      remarks: `Sold via order ${order.order_number} - Serial ${serialNumber}`,
                       is_active: 'Y',
                       createdate: new Date(),
                       createdby: userId,
@@ -1657,9 +1724,10 @@ export const ordersController = {
                     },
                   });
 
-                  console.log(` Sold serial ${serialNumber}`);
+                  console.log(`   ✅ Created stock movement`);
                 }
 
+                // ✅ Create order_item
                 await tx.order_items.create({
                   data: {
                     parent_id: order.id,
@@ -1668,15 +1736,22 @@ export const ordersController = {
                     unit: item.unit || 'pcs',
                     quantity: serialData.length,
                     unit_price: Number(item.unit_price || item.price),
-                    discount_amount: Number(item.discount_amount) || 0,
-                    tax_amount: Number(item.tax_amount) || 0,
+                    discount_amount: Number(item.discount_amount || 0),
+                    tax_amount: Number(item.tax_amount || 0),
                     total_amount:
                       serialData.length * Number(item.unit_price || item.price),
-                    notes: `Serials: ${serialData.join(', ')}`,
+                    notes: `Serials: ${serialData.map(s => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
                     is_free_gift: false,
                   },
                 });
+
+                console.log(
+                  `✅ Created order_item for ${serialData.length} serials`
+                );
+                console.log(`========== SERIALS PROCESSED ==========\n`);
               } else {
+                console.log('✅ Going to NONE branch');
+
                 if (vanInventory) {
                   const vanItem =
                     vanInventory.van_inventory_items_inventory.find(
