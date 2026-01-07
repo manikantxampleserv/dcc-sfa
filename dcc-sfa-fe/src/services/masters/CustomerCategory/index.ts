@@ -15,7 +15,7 @@ export interface CustomerCategory {
   id: number;
   category_name: string;
   category_code: string;
-  category_level: number;
+  level: number;
   is_active: string;
   createdate?: string | null;
   createdby: number;
@@ -113,4 +113,3 @@ export const deleteCustomerCategory = async (id: number): Promise<void> => {
     );
   }
 };
-

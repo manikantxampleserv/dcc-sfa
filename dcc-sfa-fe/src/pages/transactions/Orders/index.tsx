@@ -24,6 +24,7 @@ import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import ImportOrder from './ImportOrder';
 import ManageOrder from './ManageOrder';
+import { formatDate } from 'utils/dateUtils';
 
 const OrdersManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -300,15 +301,12 @@ const OrdersManagement: React.FC = () => {
         <Box>
           <Box className="flex items-center text-sm text-gray-900">
             <Calendar className="w-4 h-4 text-gray-400 mr-1" />
-            Order:{' '}
-            {row.order_date
-              ? new Date(row.order_date).toLocaleDateString()
-              : 'N/A'}
+            Order: {row.order_date ? formatDate(row.order_date) : 'N/A'}
           </Box>
           {row.delivery_date && (
             <Box className="flex items-center text-sm text-gray-500 mt-1">
               <Truck className="w-4 h-4 text-gray-400 mr-1" />
-              Delivery: {new Date(row.delivery_date).toLocaleDateString()}
+              Delivery: {formatDate(row.delivery_date)}
             </Box>
           )}
         </Box>
@@ -405,7 +403,7 @@ const OrdersManagement: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">Orders Management</p>
+          <p className="!font-bold text-xl !text-gray-900">Order Entry</p>
           <p className="!text-gray-500 text-sm">
             Manage customer orders, track status, and process deliveries
           </p>

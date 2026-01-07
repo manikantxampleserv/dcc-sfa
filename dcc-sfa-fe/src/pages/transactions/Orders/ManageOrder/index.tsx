@@ -7,8 +7,9 @@ import {
   type SalespersonInventoryData,
 } from 'hooks/useInventoryItems';
 import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
+import { useSettings } from 'hooks/useSettings';
 import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
-import { Package, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { orderValidationSchema } from 'schemas/order.schema';
@@ -24,7 +25,6 @@ import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
 import ManageOrderBatch from './ManageOrderBatch';
 import ManageOrderSerial from './ManageOrderSerial';
-import { useSettings } from 'hooks/useSettings';
 
 interface ManageOrderProps {
   open: boolean;
@@ -55,12 +55,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const defaultCurrencyId = settings?.currency_id || '';
 
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
-  const { data: orderResponse } = useOrder(order?.id || 0);
+  const { data: orderResponse, isFetching } = useOrder(order?.id || 0);
 
   const createOrderMutation = useCreateOrder();
   const updateOrderMutation = useUpdateOrder();
-
-  console.log(order);
 
   const formik = useFormik({
     initialValues: {
@@ -96,6 +94,13 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     enableReinitialize: true,
     onSubmit: async values => {
       try {
+        if (orderItems?.length === 0) {
+          toast.error(
+            `Please add at least one item to the order before submitting.`
+          );
+          return;
+        }
+
         for (let i = 0; i < orderItems.length; i += 1) {
           const item = orderItems[i];
           if (!item.product_id || !item.quantity) continue;
@@ -111,6 +116,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               (sum, b) => sum + (Number(b.quantity) || 0),
               0
             );
+
             if (nonZeroBatches.length === 0 || totalBatchQty === 0) {
               toast.error(
                 `Please allocate batch quantities for item ${i + 1} to match the ordered quantity.`
@@ -690,25 +696,19 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               </Button>
             </Box>
 
-            {orderItems.length > 0 && (
-              <Table
-                data={orderItemsWithIndex}
-                columns={orderItemsColumns}
-                getRowId={row => row._index.toString()}
-                pagination={false}
-                sortable={false}
-                emptyMessage="No order items added yet."
-              />
-            )}
-
-            {orderItems.length === 0 && (
-              <Box className="!text-center !py-8 !text-gray-500">
-                <Package className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                <Typography variant="body2">
-                  No items added yet. Click "Add Item" to get started.
-                </Typography>
-              </Box>
-            )}
+            <Table
+              data={orderItemsWithIndex}
+              columns={orderItemsColumns}
+              getRowId={row => row._index.toString()}
+              pagination={false}
+              loading={
+                isFetching ||
+                createOrderMutation.isPending ||
+                updateOrderMutation.isPending
+              }
+              sortable={false}
+              emptyMessage='No items added yet. Click "Add Item" to get started.'
+            />
 
             {orderItems.length > 0 && (
               <Box className="!bg-gray-50 !rounded-lg !mt-4">

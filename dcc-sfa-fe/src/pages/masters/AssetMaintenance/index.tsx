@@ -210,9 +210,12 @@ const AssetMaintenanceManagement: React.FC = () => {
       label: 'Cost',
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
-          <DollarSign className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {row.cost ? `$${row.cost.toFixed(2)}` : 'N/A'}
+            {row.cost ? (
+              `TZS ${row.cost.toFixed(2)}`
+            ) : (
+              <span className="italic">No Cost</span>
+            )}
           </span>
         </Box>
       ),

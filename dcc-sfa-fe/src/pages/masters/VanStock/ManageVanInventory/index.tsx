@@ -196,7 +196,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                 batch_lot_id: item.batch_lot_id
                   ? Number(item.batch_lot_id)
                   : null,
-                id: item.id,
+                ...(item.id && { id: item.id }),
               };
             }),
         };

@@ -355,8 +355,8 @@ const UserSelect: React.FC<UserSelectProps> = ({
       renderInput={(params: any) => (
         <TextField
           {...params}
-          label={label}
-          required={required}
+          label={`${label + (required ? ' *' : '')}`}
+          required={false}
           error={!!error}
           helperText={helperText}
           placeholder={placeholder}

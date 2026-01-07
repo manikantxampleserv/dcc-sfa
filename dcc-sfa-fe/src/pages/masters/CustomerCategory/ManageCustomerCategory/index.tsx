@@ -44,8 +44,13 @@ const customerCategoryValidationSchema = Yup.object({
     .min(2, 'Category name must be at least 2 characters')
     .max(255, 'Category name must be less than 255 characters'),
   category_code: Yup.string()
+    .required('Category code is required')
     .min(2, 'Category code must be at least 2 characters')
     .max(50, 'Category code must be less than 50 characters'),
+  level: Yup.string()
+    .required('Category level is required')
+    .min(1, 'Category level must be at least 1 character')
+    .max(10, 'Category level must be less than 10 characters'),
   is_active: Yup.string().oneOf(['Y', 'N']).required('Status is required'),
 });
 
@@ -229,7 +234,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
     initialValues: {
       category_name: selectedCustomerCategory?.category_name || '',
       category_code: selectedCustomerCategory?.category_code || '',
-      category_level: selectedCustomerCategory?.category_level || '',
+      level: selectedCustomerCategory?.level || '',
       is_active: selectedCustomerCategory?.is_active || 'Y',
     },
     validationSchema: customerCategoryValidationSchema,
@@ -239,7 +244,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
         const categoryData = {
           category_name: values.category_name,
           category_code: values.category_code,
-          category_level: values.category_level,
+          level: values.level,
           is_active: values.is_active,
           conditions: conditions.map(cond => ({
             ...(cond.id && { id: cond.id }),
@@ -371,7 +376,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
             />
             <Input
               type="number"
-              name="category_level"
+              name="level"
               label="Category Level"
               placeholder="Enter category level"
               formik={formik}
