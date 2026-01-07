@@ -15,7 +15,7 @@ import {
 } from 'hooks/useAssetMaintenance';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
-import { Calendar, DollarSign, FileText, Package, Wrench } from 'lucide-react';
+import { Calendar, FileText, Package, Wrench } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
