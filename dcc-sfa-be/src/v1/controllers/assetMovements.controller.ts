@@ -125,6 +125,7 @@ export const assetMovementsController = {
       const filters: any = {
         ...(search && {
           OR: [
+            { asset_type_id: { contains: searchLower } },
             { from_location: { contains: searchLower } },
             { to_location: { contains: searchLower } },
             { movement_type: { contains: searchLower } },
