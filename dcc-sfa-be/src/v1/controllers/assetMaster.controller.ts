@@ -78,6 +78,29 @@ export const assetMasterController = {
           .json({ message: 'asset_type_id and serial_number are required' });
       }
 
+      const duplicateAsset = await prisma.asset_master.findFirst({
+        where: {
+          asset_type_id: Number(asset_type_id),
+        },
+      });
+
+      if (duplicateAsset) {
+        return res.status(409).json({
+          message: 'Asset with this asset type  already exists',
+        });
+      }
+
+      const existingSerial = await prisma.asset_master.findFirst({
+        where: {
+          serial_number: serial_number,
+        },
+      });
+
+      if (existingSerial) {
+        return res.status(409).json({
+          message: 'Asset with this serial number already exists',
+        });
+      }
       const assetData = {
         asset_type_id: Number(asset_type_id),
         serial_number,
@@ -85,7 +108,7 @@ export const assetMasterController = {
         warranty_expiry: warranty_expiry ? new Date(warranty_expiry) : null,
         current_location,
         current_status,
-        assigned_to,
+        assigned_to: assigned_to ? String(assigned_to) : null,
         createdate: new Date(),
         createdby: req.user?.id || 1,
         is_active: is_active || 'Y',
@@ -134,6 +157,12 @@ export const assetMasterController = {
         data: createdAsset,
       });
     } catch (error: any) {
+      // if (error.code === 'P2002') {
+      //   return res.status(409).json({
+      //     message: 'Duplicate asset is not allowed',
+      //   });
+      // }
+
       console.error('Create Asset Error:', error);
       res.status(500).json({ message: error.message });
     }
@@ -250,6 +279,9 @@ export const assetMasterController = {
 
       const data = {
         ...req.body,
+        assigned_to: req.body.assigned_to
+          ? String(req.body.assigned_to)
+          : existingAsset.assigned_to,
         purchase_date: req.body.purchase_date
           ? new Date(req.body.purchase_date)
           : existingAsset.purchase_date,

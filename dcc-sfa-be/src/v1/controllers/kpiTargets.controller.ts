@@ -371,16 +371,7 @@ export const kpiTargetsController = {
         return res.status(404).json({ message: 'KPI target not found' });
       }
 
-      // Soft delete - set is_active to 'N'
-      await prisma.employee_kpi_targets.update({
-        where: { id: parseInt(id) },
-        data: {
-          is_active: 'N',
-          updatedby: (req as any).user?.id || 1,
-          updatedate: new Date(),
-        },
-      });
-
+      await prisma.employee_kpi_targets.delete({ where: { id: Number(id) } });
       res.json({
         message: 'KPI target deleted successfully',
       });
