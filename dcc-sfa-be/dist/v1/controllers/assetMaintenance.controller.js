@@ -61,25 +61,17 @@ exports.assetMaintenanceController = {
                     message: 'Asset not found',
                 });
             }
-            const warrantyClaimExists = await prisma_client_1.default.asset_warranty_claims.findFirst({
-                where: {
-                    asset_id: data.asset_id,
-                    is_active: 'Y',
-                },
-            });
-            if (!warrantyClaimExists) {
+            if (!asset.warranty_expiry ||
+                new Date(asset.warranty_expiry) < new Date()) {
                 return res.status(400).json({
-                    message: 'Cannot create maintenance record. No active warranty claim exists for this asset.',
+                    message: 'Cannot create maintenance record. Asset warranty has expired.',
                 });
             }
-            // if (
-            //   asset.warranty_expiry &&
-            //   new Date(data.maintenance_date) > asset.warranty_expiry
-            // ) {
-            //   return res.status(400).json({
-            //     message: 'Maintenance date is beyond the warranty expiry date.',
-            //   });
-            // }
+            if (new Date(data.maintenance_date) > new Date(asset.warranty_expiry)) {
+                return res.status(400).json({
+                    message: 'Maintenance date is beyond the warranty expiry date.',
+                });
+            }
             const record = await prisma_client_1.default.asset_maintenance.create({
                 data: {
                     ...data,

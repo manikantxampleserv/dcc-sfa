@@ -188,15 +188,38 @@ exports.coolerTypesController = {
             const { id } = req.params;
             const existingCoolerType = await prisma_client_1.default.cooler_types.findUnique({
                 where: { id: Number(id) },
+                include: {
+                    cooler_sub_types_cooler_types: true,
+                },
             });
             if (!existingCoolerType) {
                 return res.status(404).json({ message: 'Cooler type not found' });
+            }
+            const hasCoolerSubTypes = existingCoolerType.cooler_sub_types_cooler_types.length > 0;
+            if (hasCoolerSubTypes) {
+                return res.status(400).json({
+                    message: 'Cannot delete cooler type. It has associated cooler sub-types.',
+                    details: {
+                        cooler_sub_types_count: existingCoolerType.cooler_sub_types_cooler_types.length,
+                        message: 'Please delete or reassign the associated cooler sub-types first.',
+                    },
+                });
             }
             await prisma_client_1.default.cooler_types.delete({ where: { id: Number(id) } });
             res.json({ message: 'Cooler type deleted successfully' });
         }
         catch (error) {
             console.error('Delete Cooler Type Error:', error);
+            // Handle foreign key constraint violations
+            if (error.code === 'P2003') {
+                return res.status(400).json({
+                    message: 'Cannot delete cooler type due to existing dependencies.',
+                    details: {
+                        constraint: error.meta?.field || 'foreign_key_constraint',
+                        message: 'This cooler type is referenced by other records.',
+                    },
+                });
+            }
             res.status(500).json({ message: error.message });
         }
     },
