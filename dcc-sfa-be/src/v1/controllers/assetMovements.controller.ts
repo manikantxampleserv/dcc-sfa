@@ -113,6 +113,98 @@ export const assetMovementsController = {
     }
   },
 
+  // async getAllAssetMovements(req: any, res: any) {
+  //   try {
+  //     const { page, limit, search, status, asset_type_id, performed_by } =
+  //       req.query;
+  //     const pageNum = parseInt(page as string, 10) || 1;
+  //     const limitNum = parseInt(limit as string, 10) || 10;
+  //     const searchLower = search ? (search as string).toLowerCase() : '';
+  //     const statusLower = status ? (status as string).toLowerCase() : '';
+
+  //     const filters: any = {
+  //       ...(search && {
+  //         OR: [
+  //           {
+  //             asset_movements_master: {
+  //               OR: [
+  //                 { serial_number: { contains: searchLower } },
+  //                 { current_location: { contains: searchLower } },
+  //                 { current_status: { contains: searchLower } },
+  //                 { assigned_to: { contains: searchLower } },
+  //               ],
+  //             },
+  //           },
+  //           { from_location: { contains: searchLower } },
+  //           { to_location: { contains: searchLower } },
+  //           { movement_type: { contains: searchLower } },
+  //           { notes: { contains: searchLower } },
+  //         ],
+  //       }),
+  //       ...(statusLower === 'active' && { is_active: 'Y' }),
+  //       ...(statusLower === 'inactive' && { is_active: 'N' }),
+  //       ...(performed_by && { performed_by: Number(performed_by) }),
+  //       ...(asset_type_id && {
+  //         asset_movements_master: {
+  //           asset_type_id: Number(asset_type_id),
+  //         },
+  //       }),
+  //     };
+  //     const { data, pagination } = await paginate({
+  //       model: prisma.asset_movements,
+  //       filters,
+  //       page: pageNum,
+  //       limit: limitNum,
+  //       orderBy: { createdate: 'desc' },
+  //       include: {
+  //         asset_movements_master: {
+  //           include: {
+  //             asset_master_asset_types: {
+  //               select: { id: true, name: true },
+  //             },
+  //           },
+  //         },
+  //         asset_movements_performed_by: true,
+  //       },
+  //     });
+
+  //     const totalAssetMovements = await prisma.asset_movements.count();
+  //     const activeAssetMovements = await prisma.asset_movements.count({
+  //       where: { is_active: 'Y' },
+  //     });
+  //     const inactiveAssetMovements = await prisma.asset_movements.count({
+  //       where: { is_active: 'N' },
+  //     });
+  //     const thisMonthAssetMovements = await prisma.asset_movements.count({
+  //       where: {
+  //         createdate: {
+  //           gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  //           lte: new Date(
+  //             new Date().getFullYear(),
+  //             new Date().getMonth() + 1,
+  //             0
+  //           ),
+  //         },
+  //       },
+  //     });
+  //     res.success(
+  //       'Asset movements retrieved successfully',
+  //       data.map((m: any) => serializeAssetMovement(m)),
+  //       200,
+  //       pagination,
+  //       {
+  //         total_records: totalAssetMovements,
+  //         active_records: activeAssetMovements,
+  //         inactive_records: inactiveAssetMovements,
+  //         this_month_records: thisMonthAssetMovements,
+  //       }
+  //     );
+  //   } catch (error: any) {
+  //     console.error('Get Asset Movements Error:', error);
+  //     res.status(500).json({ message: error.message });
+  //   }
+  // },
+
   async getAllAssetMovements(req: any, res: any) {
     try {
       const { page, limit, search, status, asset_type_id, performed_by } =
@@ -125,7 +217,21 @@ export const assetMovementsController = {
       const filters: any = {
         ...(search && {
           OR: [
-            { asset_type_id: { contains: searchLower } },
+            {
+              asset_movements_master: {
+                OR: [
+                  { serial_number: { contains: searchLower } },
+                  { current_location: { contains: searchLower } },
+                  { current_status: { contains: searchLower } },
+                  { assigned_to: { contains: searchLower } },
+                  {
+                    asset_master_asset_types: {
+                      name: { contains: searchLower },
+                    },
+                  },
+                ],
+              },
+            },
             { from_location: { contains: searchLower } },
             { to_location: { contains: searchLower } },
             { movement_type: { contains: searchLower } },
@@ -141,6 +247,7 @@ export const assetMovementsController = {
           },
         }),
       };
+
       const { data, pagination } = await paginate({
         model: prisma.asset_movements,
         filters,
@@ -178,6 +285,7 @@ export const assetMovementsController = {
           },
         },
       });
+
       res.success(
         'Asset movements retrieved successfully',
         data.map((m: any) => serializeAssetMovement(m)),

@@ -76,16 +76,16 @@ export const approvalWorkflowSetupController = {
         }
 
         // Validate depot if depot_id is provided (not null/global)
-        if (data.depot_id && approver.depot_id !== Number(data.depot_id)) {
-          const depot = await prisma.depots.findUnique({
-            where: { id: Number(data.depot_id) },
-            select: { name: true },
-          });
+        //   if (data.depot_id && approver.depot_id !== Number(data.depot_id)) {
+        //     const depot = await prisma.depots.findUnique({
+        //       where: { id: Number(data.depot_id) },
+        //       select: { name: true },
+        //     });
 
-          return res.status(400).json({
-            message: `Approver ${approver.name} does not belong to ${depot?.name} depot`,
-          });
-        }
+        //     return res.status(400).json({
+        //       message: `Approver ${approver.name} does not belong to ${depot?.name} depot`,
+        //     });
+        //   }
       }
 
       // Delete existing workflows for the same request_type, zone_id, and depot_id
