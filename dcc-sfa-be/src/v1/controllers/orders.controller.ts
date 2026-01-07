@@ -1596,7 +1596,6 @@ export const ordersController = {
                     throw new Error('Serial number is required');
                   }
 
-                  // ✅ FIND EXISTING SERIAL
                   const serial = await tx.serial_numbers.findUnique({
                     where: { serial_number: serialNumber },
                   });
@@ -1605,7 +1604,6 @@ export const ordersController = {
                     throw new Error(`Serial number ${serialNumber} not found`);
                   }
 
-                  // ✅ UPDATE SERIAL STATUS TO SOLD
                   await tx.serial_numbers.update({
                     where: { id: serial.id },
                     data: {
@@ -1618,7 +1616,6 @@ export const ordersController = {
                   });
                   console.log(`✅ Serial ${serialNumber} marked as SOLD`);
 
-                  // ✅ DECREASE INVENTORY_STOCK (THIS IS THE MAIN FIX!)
                   const inventoryStock = await tx.inventory_stock.findFirst({
                     where: {
                       product_id: product.id,
@@ -1642,15 +1639,14 @@ export const ordersController = {
                       },
                     });
                     console.log(
-                      `✅ DECREASED inventory_stock for ${serialNumber}: current ${oldCurrent}→${newCurrentStock}, available ${oldAvailable}→${newAvailableStock}`
+                      ` DECREASED inventory_stock for ${serialNumber}: current ${oldCurrent}→${newCurrentStock}, available ${oldAvailable}→${newAvailableStock}`
                     );
                   } else {
                     console.warn(
-                      `⚠️ No inventory_stock found for serial ${serialNumber}`
+                      ` No inventory_stock found for serial ${serialNumber}`
                     );
                   }
 
-                  // ✅ DECREASE VAN INVENTORY IF PROVIDED
                   if (vanInventory) {
                     const vanItem = await tx.van_inventory_items.findFirst({
                       where: {
@@ -1666,12 +1662,11 @@ export const ordersController = {
                         data: { quantity: { decrement: 1 } },
                       });
                       console.log(
-                        `✅ DECREASED van_inventory_items for ${serialNumber}: ${vanItem.quantity}→${vanItem.quantity - 1}`
+                        ` DECREASED van_inventory_items for ${serialNumber}: ${vanItem.quantity}→${vanItem.quantity - 1}`
                       );
                     }
                   }
 
-                  // ✅ CREATE STOCK MOVEMENT FOR SALE
                   await tx.stock_movements.create({
                     data: {
                       product_id: product.id,
@@ -1695,11 +1690,10 @@ export const ordersController = {
                     },
                   });
                   console.log(
-                    `✅ SALE stock_movement created for ${serialNumber}`
+                    ` SALE stock_movement created for ${serialNumber}`
                   );
                 }
 
-                // ✅ CREATE ORDER ITEM FOR ALL SERIALS
                 await tx.order_items.create({
                   data: {
                     parent_id: order.id,
@@ -1762,8 +1756,8 @@ export const ordersController = {
                   await tx.inventory_stock.update({
                     where: { id: inventoryStock.id },
                     data: {
-                      current_stock: newCurrentStock, // ✅ DECREASED!
-                      available_stock: newAvailableStock, // ✅ DECREASED!
+                      current_stock: newCurrentStock,
+                      available_stock: newAvailableStock,
                       updatedate: new Date(),
                       updatedby: userId,
                     },
@@ -2631,6 +2625,7 @@ export const ordersController = {
           );
         }
       }
+
       res.json({
         message: 'Order updated successfully',
         data: serializeOrder(result),
@@ -2647,12 +2642,9 @@ export const ordersController = {
       const existingOrder = await prisma.orders.findUnique({
         where: { id: Number(id) },
       });
+
       if (!existingOrder)
         return res.status(404).json({ message: 'Order not found' });
-
-      await prisma.order_items.deleteMany({
-        where: { parent_id: Number(id) },
-      });
 
       await prisma.orders.delete({ where: { id: Number(id) } });
 

@@ -319,6 +319,12 @@ export const paymentsController = {
       const data = {
         ...req.body,
         updatedate: new Date(),
+        ...(req.body.payment_date && {
+          payment_date: new Date(req.body.payment_date),
+        }),
+        ...(req.body.total_amount && {
+          total_amount: Number(req.body.total_amount),
+        }),
         ...(req.body.reference_number === undefined && {
           reference_number: `REF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
         }),

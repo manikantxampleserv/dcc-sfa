@@ -337,7 +337,7 @@ model asset_movements {
   movement_type                String?      @db.NVarChar(50)
   movement_date                DateTime     @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
   performed_by                 Int
-  notes                        String?      @db.NVarChar(255)
+  notes                        String?      @db.Text
   is_active                    String       @default("Y") @db.Char(1)
   createdate                   DateTime?    @default(now(), map: "DF__asset_mov__creat__6B0FDBE9") @db.DateTime
   createdby                    Int

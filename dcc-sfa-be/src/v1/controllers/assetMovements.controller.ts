@@ -115,7 +115,8 @@ export const assetMovementsController = {
 
   async getAllAssetMovements(req: any, res: any) {
     try {
-      const { page, limit, search, status } = req.query;
+      const { page, limit, search, status, asset_type_id, performed_by } =
+        req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -124,6 +125,7 @@ export const assetMovementsController = {
       const filters: any = {
         ...(search && {
           OR: [
+            { asset_type_id: { contains: searchLower } },
             { from_location: { contains: searchLower } },
             { to_location: { contains: searchLower } },
             { movement_type: { contains: searchLower } },
@@ -132,8 +134,13 @@ export const assetMovementsController = {
         }),
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
+        ...(performed_by && { performed_by: Number(performed_by) }),
+        ...(asset_type_id && {
+          asset_movements_master: {
+            asset_type_id: Number(asset_type_id),
+          },
+        }),
       };
-
       const { data, pagination } = await paginate({
         model: prisma.asset_movements,
         filters,

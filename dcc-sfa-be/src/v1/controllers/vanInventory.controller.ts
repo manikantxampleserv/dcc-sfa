@@ -3562,6 +3562,7 @@ export const vanInventoryController = {
   //     ) => {
   //       const products: Map<number, any> = new Map();
   //       let totalQuantity = 0;
+  //       let totalRemainingQuantity = 0;
 
   //       for (const vanInventory of vanInventories) {
   //         for (const item of vanInventory.van_inventory_items_inventory) {
@@ -3614,6 +3615,8 @@ export const vanInventoryController = {
   //               days_until_expiry: daysUntilExpiry,
   //               status: batchStatusValue,
   //             };
+
+  //             totalRemainingQuantity += batch.remaining_quantity || 0;
   //           }
 
   //           const serials =
@@ -3653,6 +3656,7 @@ export const vanInventoryController = {
   //               unit_price: item.unit_price ? Number(item.unit_price) : null,
   //               tracking_type: product?.tracking_type || 'none',
   //               total_quantity: 0,
+  //               total_remaining_quantity: 0,
   //               batches: [],
   //               serials: [],
   //               van_inventories: [],
@@ -3662,6 +3666,10 @@ export const vanInventoryController = {
   //           const productData = products.get(productId)!;
   //           productData.total_quantity += item.quantity || 0;
   //           totalQuantity += item.quantity || 0;
+
+  //           if (batch?.remaining_quantity) {
+  //             productData.total_remaining_quantity += batch.remaining_quantity;
+  //           }
 
   //           const existingVanInventory = productData.van_inventories.find(
   //             (vi: any) => vi.van_inventory_id === vanInventory.id
@@ -3699,6 +3707,7 @@ export const vanInventoryController = {
   //       return {
   //         products: Array.from(products.values()),
   //         totalQuantity,
+  //         totalRemainingQuantity,
   //       };
   //     };
 
@@ -3744,6 +3753,7 @@ export const vanInventoryController = {
 
   //       const consolidatedSalespersons: any[] = [];
   //       let overallTotalQuantity = 0;
+  //       let overallTotalRemainingQuantity = 0;
   //       let overallTotalProducts = new Set<number>();
   //       let overallTotalVanInventories = new Set<number>();
   //       let overallTotalBatches = 0;
@@ -3830,10 +3840,8 @@ export const vanInventoryController = {
 
   //         if (vanInventories.length === 0) continue;
 
-  //         const { products, totalQuantity } = processVanInventoryItems(
-  //           vanInventories,
-  //           salesperson
-  //         );
+  //         const { products, totalQuantity, totalRemainingQuantity } =
+  //           processVanInventoryItems(vanInventories, salesperson);
 
   //         if (products.length === 0) continue;
 
@@ -3851,6 +3859,7 @@ export const vanInventoryController = {
   //         });
 
   //         overallTotalQuantity += totalQuantity;
+  //         overallTotalRemainingQuantity += totalRemainingQuantity;
   //         overallTotalBatches += totalBatches;
   //         overallTotalSerials += totalSerials;
 
@@ -3863,6 +3872,7 @@ export const vanInventoryController = {
   //           total_van_inventories: vanInventories.length,
   //           total_products: products.length,
   //           total_quantity: totalQuantity,
+  //           total_remaining_quantity: totalRemainingQuantity,
   //           total_batches: totalBatches,
   //           total_serials: totalSerials,
   //         });
@@ -3899,6 +3909,7 @@ export const vanInventoryController = {
   //           total_van_inventories: overallTotalVanInventories.size,
   //           total_unique_products: overallTotalProducts.size,
   //           total_quantity: overallTotalQuantity,
+  //           total_remaining_quantity: overallTotalRemainingQuantity,
   //           total_batches: overallTotalBatches,
   //           total_serials: overallTotalSerials,
   //         },
@@ -4015,6 +4026,7 @@ export const vanInventoryController = {
   //           total_van_inventories: 0,
   //           total_products: 0,
   //           total_quantity: 0,
+  //           total_remaining_quantity: 0,
   //           total_batches: 0,
   //           total_serials: 0,
   //           products: [],
@@ -4028,10 +4040,8 @@ export const vanInventoryController = {
   //       });
   //     }
 
-  //     const { products, totalQuantity } = processVanInventoryItems(
-  //       vanInventories,
-  //       salesperson
-  //     );
+  //     const { products, totalQuantity, totalRemainingQuantity } =
+  //       processVanInventoryItems(vanInventories, salesperson);
 
   //     let totalBatches = 0;
   //     let totalSerials = 0;
@@ -4068,6 +4078,7 @@ export const vanInventoryController = {
   //         total_van_inventories: vanInventories.length,
   //         total_products: products.length,
   //         total_quantity: totalQuantity,
+  //         total_remaining_quantity: totalRemainingQuantity,
   //         total_batches: totalBatches,
   //         total_serials: totalSerials,
   //         products: paginatedProducts,
@@ -4231,6 +4242,10 @@ export const vanInventoryController = {
                 document_date: vanInventory.document_date,
                 status: vanInventory.status,
                 loading_type: vanInventory.loading_type,
+                location_id: vanInventory.location_id,
+                location_type: vanInventory.location_type,
+                vehicle_id: vanInventory.vehicle_id,
+                vehicle_number: vanInventory.vehicle?.vehicle_number || null,
               });
             }
 
@@ -4322,6 +4337,15 @@ export const vanInventoryController = {
               status: true,
               loading_type: true,
               document_date: true,
+              location_id: true,
+              location_type: true,
+              vehicle_id: true,
+              vehicle: {
+                select: {
+                  id: true,
+                  vehicle_number: true,
+                },
+              },
               van_inventory_items_inventory: {
                 select: {
                   id: true,
@@ -4499,6 +4523,15 @@ export const vanInventoryController = {
           status: true,
           loading_type: true,
           document_date: true,
+          location_id: true,
+          location_type: true,
+          vehicle_id: true,
+          vehicle: {
+            select: {
+              id: true,
+              vehicle_number: true,
+            },
+          },
           van_inventory_items_inventory: {
             select: {
               id: true,
