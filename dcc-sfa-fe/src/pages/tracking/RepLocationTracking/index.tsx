@@ -107,7 +107,7 @@ const RepLocationTracking: React.FC = () => {
       battery_level: testGPSData.battery_level
         ? parseFloat(testGPSData.battery_level)
         : undefined,
-      network_type: testGPSData.network_type || undefined,
+      network_type: testGPSData.network_type,
     });
     setTestDialogOpen(false);
   };
@@ -183,6 +183,7 @@ const RepLocationTracking: React.FC = () => {
                 )
               }
               className="!min-w-[250px]"
+              disableClearable
             >
               <MenuItem value="all">All Representatives</MenuItem>
               {users.map((user: any) => (

@@ -291,7 +291,7 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
         invoice_id: invoiceId,
         payment_id: Number(line.payment_id),
         amount_applied: Number(line.amount_applied),
-        notes: line.notes || undefined,
+        notes: line.notes,
       }));
 
       await bulkUpdatePaymentLinesMutation.mutateAsync({

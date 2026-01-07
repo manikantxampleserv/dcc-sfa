@@ -48,7 +48,7 @@ const ManageProductShelfLife: React.FC<ManageProductShelfLifeProps> = ({
       try {
         const shelfLifeData = {
           name: values.name,
-          code: values.code || undefined,
+          code: values.code,
           is_active: values.is_active,
         };
 

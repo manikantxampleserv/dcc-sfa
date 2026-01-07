@@ -83,7 +83,7 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
             .map(member => ({
               sales_person_id: Number(member.sales_person_id),
               is_active: member.is_active,
-              id: member.id || undefined,
+              ...(member.id && { id: member.id }),
             })),
         };
 

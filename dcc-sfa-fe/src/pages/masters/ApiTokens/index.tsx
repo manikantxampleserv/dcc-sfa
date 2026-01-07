@@ -443,6 +443,7 @@ const ApiTokensPage: React.FC = () => {
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
                   className="!w-40"
+                  disableClearable
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
@@ -452,6 +453,7 @@ const ApiTokensPage: React.FC = () => {
                   value={revokedFilter}
                   onChange={e => setRevokedFilter(e.target.value)}
                   className="!w-40"
+                  disableClearable
                 >
                   <MenuItem value="all">All Revoked</MenuItem>
                   <MenuItem value="revoked">Revoked</MenuItem>

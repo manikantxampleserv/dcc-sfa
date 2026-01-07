@@ -66,16 +66,16 @@ const ManageCompetitorActivity: React.FC<ManageCompetitorActivityProps> = ({
           customer_id: Number(values.customer_id),
           visit_id: values.visit_id ? Number(values.visit_id) : undefined,
           brand_name: values.brand_name,
-          product_name: values.product_name || undefined,
+          product_name: values.product_name,
           observed_price: values.observed_price
             ? Number(values.observed_price)
             : undefined,
-          promotion_details: values.promotion_details || undefined,
+          promotion_details: values.promotion_details,
           visibility_score: values.visibility_score
             ? Number(values.visibility_score)
             : undefined,
-          image_url: values.image_url || undefined,
-          remarks: values.remarks || undefined,
+          image_url: values.image_url,
+          remarks: values.remarks,
           is_active: values.is_active,
         };
 

@@ -28,8 +28,8 @@ const RegionTerritorySalesReport: React.FC = () => {
 
   const { data: reportData, isLoading } = useRegionTerritorySalesReport(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       depot_id: depotId,
       zone_id: zoneId,
     },
@@ -58,8 +58,8 @@ const RegionTerritorySalesReport: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportRegionTerritorySalesReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         depot_id: depotId,
         zone_id: zoneId,
       });
@@ -249,6 +249,7 @@ const RegionTerritorySalesReport: React.FC = () => {
                   : undefined
               )
             }
+            disableClearable
           >
             <MenuItem value="all">All Depots</MenuItem>
             {depots.map((depot: any) => (
@@ -267,6 +268,7 @@ const RegionTerritorySalesReport: React.FC = () => {
                   : undefined
               )
             }
+            disableClearable
           >
             <MenuItem value="all">All Territories</MenuItem>
             {zones.map((zone: any) => (

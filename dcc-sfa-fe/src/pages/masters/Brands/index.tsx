@@ -151,16 +151,19 @@ const BrandsPage: React.FC = () => {
     {
       id: 'description',
       label: 'Description',
-      render: (_value, row) => (
-        <Tooltip title={row.description} placement="top" arrow>
-          <Typography
-            variant="body2"
-            className="!text-gray-900 !max-w-xs !truncate"
-          >
-            {row.description}
-          </Typography>
-        </Tooltip>
-      ),
+      render: (_value, row) =>
+        row.description ? (
+          <Tooltip title={row.description} placement="top" arrow>
+            <Typography
+              variant="body2"
+              className="!text-gray-900 !max-w-xs !truncate"
+            >
+              {row.description}
+            </Typography>
+          </Tooltip>
+        ) : (
+          <span className="italic text-gray-400">No Description</span>
+        ),
     },
     {
       id: 'is_active',

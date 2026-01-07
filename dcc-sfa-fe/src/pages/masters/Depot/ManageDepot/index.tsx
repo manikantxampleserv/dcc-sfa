@@ -66,12 +66,12 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
         const depotData = {
           parent_id: Number(values.parent_id),
           name: values.name,
-          address: values.address || undefined,
-          city: values.city || undefined,
-          state: values.state || undefined,
-          zipcode: values.zipcode || undefined,
-          phone_number: values.phone_number || undefined,
-          email: values.email || undefined,
+          address: values.address,
+          city: values.city,
+          state: values.state,
+          zipcode: values.zipcode,
+          phone_number: values.phone_number,
+          email: values.email,
           manager_id: values.manager_id ? Number(values.manager_id) : undefined,
           supervisor_id: values.supervisor_id
             ? Number(values.supervisor_id)

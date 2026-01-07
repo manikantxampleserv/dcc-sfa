@@ -48,7 +48,7 @@ const ManageProductFlavour: React.FC<ManageProductFlavourProps> = ({
       try {
         const flavourData = {
           name: values.name,
-          code: values.code || undefined,
+          code: values.code,
           is_active: values.is_active,
         };
 

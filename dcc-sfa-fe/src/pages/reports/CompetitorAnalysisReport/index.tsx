@@ -26,10 +26,10 @@ const CompetitorAnalysisReport: React.FC = () => {
 
   const { data: reportData, isLoading } = useCompetitorAnalysisReport(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       customer_id: customerId,
-      brand_name: brandName || undefined,
+      brand_name: brandName,
     },
     {
       enabled: isRead,
@@ -53,10 +53,10 @@ const CompetitorAnalysisReport: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportCompetitorAnalysisReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         customer_id: customerId,
-        brand_name: brandName || undefined,
+        brand_name: brandName,
       });
     } catch (error) {
       console.error('Error exporting report to Excel:', error);
@@ -239,6 +239,7 @@ const CompetitorAnalysisReport: React.FC = () => {
                   : undefined
               )
             }
+            disableClearable
           >
             <MenuItem value="all">All Customers</MenuItem>
             {customers.map((customer: any) => (

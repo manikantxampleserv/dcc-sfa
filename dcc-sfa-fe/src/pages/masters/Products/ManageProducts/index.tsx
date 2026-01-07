@@ -106,7 +106,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const { data: outletGroupsResponse } = useOutletGroups({ limit: 1000 });
   const { data: taxMastersResponse } = useTaxMasters({
     limit: 1000,
-    is_active: 'Y',
+    isActive: 'Y',
   });
   // const { data: batchLotsResponse } = useBatchLotsDropdown();
 
@@ -347,7 +347,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       tax_id: selectedProduct?.tax_id || '',
       route_type_id: selectedProduct?.route_type_id || '',
       outlet_group_id: selectedProduct?.outlet_group_id || '',
-      tracking_type: selectedProduct?.tracking_type || '',
+      tracking_type: selectedProduct?.tracking_type || 'None',
       product_type_id: selectedProduct?.product_type_id || '',
       product_target_group_id: selectedProduct?.product_target_group_id || '',
       product_web_order_id: selectedProduct?.product_web_order_id || '',

@@ -113,7 +113,7 @@ const ExecutiveDashboard: React.FC = () => {
     {
       title: 'Total Orders',
       value: stats?.totalOrders.value.toLocaleString() || '0',
-      description: `+${stats?.totalOrders.growthPercentage || '0'}% This Month`,
+      description: `${stats?.totalOrders.growthPercentage || '0'}% This Month`,
       icon: FaShoppingCart,
       color: 'blue',
       progress: stats
@@ -126,7 +126,7 @@ const ExecutiveDashboard: React.FC = () => {
     {
       title: 'Sales Revenue',
       value: stats?.salesRevenue.formatted || '₹0.0L',
-      description: `+${stats?.salesRevenue.growthPercentage || '0'}% vs Target`,
+      description: `${stats?.salesRevenue.growthPercentage || '0'}% vs Target`,
       icon: FaMoneyBillWave,
       color: 'green',
       progress: stats ? parseFloat(stats.salesRevenue.targetProgress) : 0,
@@ -142,7 +142,7 @@ const ExecutiveDashboard: React.FC = () => {
     {
       title: 'Active Outlets',
       value: stats?.activeOutlets.value.toLocaleString() || '0',
-      description: `+${stats?.activeOutlets.thisWeek || 0} New This Week`,
+      description: `${stats?.activeOutlets.thisWeek || 0} New This Week`,
       icon: FaUsers,
       color: 'pink',
       progress: stats

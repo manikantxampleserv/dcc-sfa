@@ -68,14 +68,14 @@ const ManageReturnRequest: React.FC<ManageReturnRequestProps> = ({
           customer_id: Number(values.customer_id),
           product_id: Number(values.product_id),
           serial_id: values.serial_id ? Number(values.serial_id) : undefined,
-          return_date: values.return_date || undefined,
-          reason: values.reason || undefined,
-          status: values.status || undefined,
+          return_date: values.return_date,
+          reason: values.reason,
+          status: values.status,
           approved_by: values.approved_by
             ? Number(values.approved_by)
             : undefined,
-          approved_date: values.approved_date || undefined,
-          resolution_notes: values.resolution_notes || undefined,
+          approved_date: values.approved_date,
+          resolution_notes: values.resolution_notes,
           is_active: values.is_active,
         };
 

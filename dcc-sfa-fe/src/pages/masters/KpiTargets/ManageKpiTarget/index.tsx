@@ -66,7 +66,7 @@ const ManageKpiTarget: React.FC<ManageKpiTargetProps> = ({
           ...values,
           employee_id: Number(values.employee_id),
           target_value: values.target_value.toString(),
-          measure_unit: values.measure_unit || undefined,
+          measure_unit: values.measure_unit,
         };
 
         if (isEdit && selectedKpiTarget) {

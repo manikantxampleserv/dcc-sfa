@@ -247,7 +247,11 @@ export const productCategoriesController = {
         take: 50,
       });
 
-      res.success('Product categories dropdown fetched successfully', categories, 200);
+      res.success(
+        'Product categories dropdown fetched successfully',
+        categories,
+        200
+      );
     } catch (error: any) {
       console.error('Error fetching product categories dropdown:', error);
       res.error(error.message);

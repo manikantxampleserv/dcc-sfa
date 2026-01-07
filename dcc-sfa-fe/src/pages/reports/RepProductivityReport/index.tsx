@@ -31,8 +31,8 @@ const RepProductivityReport: React.FC = () => {
 
   const { data: reportData, isLoading } = useRepProductivityReport(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       salesperson_id: salespersonId,
       depot_id: depotId,
     },
@@ -61,8 +61,8 @@ const RepProductivityReport: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportRepProductivityReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         salesperson_id: salespersonId,
         depot_id: depotId,
       });
@@ -199,6 +199,7 @@ const RepProductivityReport: React.FC = () => {
                   : undefined
               )
             }
+            disableClearable
           >
             <MenuItem value="all">All Reps</MenuItem>
             {users.map((user: any) => (
@@ -217,6 +218,7 @@ const RepProductivityReport: React.FC = () => {
                   : undefined
               )
             }
+            disableClearable
           >
             <MenuItem value="all">All Depots</MenuItem>
             {depots.map((depot: any) => (

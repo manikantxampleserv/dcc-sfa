@@ -241,6 +241,7 @@ const AlertsReminders: React.FC = () => {
                   value={typeFilter}
                   onChange={e => setTypeFilter(e.target.value)}
                   fullWidth
+                  disableClearable
                 >
                   <MenuItem value="all">All Types</MenuItem>
                   <MenuItem value="alert">Alerts</MenuItem>
@@ -253,6 +254,7 @@ const AlertsReminders: React.FC = () => {
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
                   fullWidth
+                  disableClearable
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
@@ -266,6 +268,7 @@ const AlertsReminders: React.FC = () => {
                   value={priorityFilter}
                   onChange={e => setPriorityFilter(e.target.value)}
                   fullWidth
+                  disableClearable
                 >
                   <MenuItem value="all">All Priorities</MenuItem>
                   <MenuItem value="high">High</MenuItem>

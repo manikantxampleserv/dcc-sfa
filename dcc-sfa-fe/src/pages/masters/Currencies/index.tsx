@@ -42,12 +42,12 @@ const CurrenciesManagement: React.FC = () => {
       search,
       page,
       limit,
-      isActive:
+      status:
         statusFilter === 'all'
           ? undefined
           : statusFilter === 'active'
-            ? 'Y'
-            : 'N',
+            ? 'active'
+            : 'inactive',
     },
     {
       enabled: isRead,

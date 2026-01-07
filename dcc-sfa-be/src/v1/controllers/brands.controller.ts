@@ -225,6 +225,32 @@ export const brandsController = {
 
       if (!brand) return res.status(404).json({ message: 'Brand not found' });
 
+      const productsCount = await prisma.products.count({
+        where: { brand_id: Number(id) },
+      });
+
+      const inventoryStockCount = await prisma.inventory_stock.count({
+        where: {
+          inventory_stock_products: {
+            brand_id: Number(id),
+          },
+        },
+      });
+
+      if (productsCount > 0) {
+        return res.status(400).json({
+          message:
+            'Cannot delete brand: It has associated products. Please delete or reassign the products first.',
+        });
+      }
+
+      if (inventoryStockCount > 0) {
+        return res.status(400).json({
+          message:
+            'Cannot delete brand: It has associated inventory records. Please clear the inventory first.',
+        });
+      }
+
       if (brand.logo) await deleteFile(brand.logo);
 
       await prisma.brands.delete({ where: { id: Number(id) } });

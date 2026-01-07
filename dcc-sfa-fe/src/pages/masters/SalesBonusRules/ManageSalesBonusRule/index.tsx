@@ -28,11 +28,10 @@ const ManageSalesBonusRule: React.FC<ManageSalesBonusRuleProps> = ({
 }) => {
   const isEdit = !!selectedRule;
 
-  // Fetch sales targets
   const { data: targetsResponse } = useSalesTargets({
     page: 1,
     limit: 1000,
-    is_active: 'Y', // Only show active targets
+    is_active: 'Y',
   });
   const targets = targetsResponse?.data || [];
 
@@ -105,8 +104,8 @@ const ManageSalesBonusRule: React.FC<ManageSalesBonusRuleProps> = ({
               {targets.map((target: any) => (
                 <MenuItem key={target.id} value={target.id}>
                   {target.sales_target_group?.group_name || 'Unknown Group'} -{' '}
-                  {target.product_category?.category_name || 'Unknown Category'}{' '}
-                  (Qty: {target.target_quantity})
+                  {target.product_category?.category_name ||
+                    'Unknown Category'}{' '}
                 </MenuItem>
               ))}
             </Select>

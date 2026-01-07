@@ -67,7 +67,7 @@ exports.currenciesController = {
                 }
                 return await tx.currencies.create({
                     data: {
-                        code: data.code,
+                        code: data.code.toUpperCase(), // Ensure uppercase for consistency
                         name: data.name,
                         symbol: data.symbol,
                         exchange_rate_to_base: data.exchange_rate_to_base,
@@ -92,15 +92,23 @@ exports.currenciesController = {
         }
         catch (error) {
             console.error('Create Currency Error:', error);
+            // Handle specific database errors
+            if (error.code === 'P2002') {
+                // Unique constraint violation
+                return res.status(400).json({
+                    message: 'Currency with this code already exists',
+                });
+            }
             res.status(500).json({ message: error.message });
         }
     },
     async getAllCurrencies(req, res) {
         try {
-            const { page, limit, search } = req.query;
+            const { page, limit, search, status } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
+            const statusLower = status ? status.toLowerCase() : '';
             const filters = {
                 ...(search && {
                     OR: [
@@ -108,6 +116,9 @@ exports.currenciesController = {
                         { name: { contains: searchLower } },
                         { symbol: { contains: searchLower } },
                     ],
+                }),
+                ...(status && {
+                    is_active: statusLower === 'active' ? 'Y' : 'N',
                 }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
@@ -233,14 +244,51 @@ exports.currenciesController = {
             const { id } = req.params;
             const existingCurrency = await prisma_client_1.default.currencies.findUnique({
                 where: { id: Number(id) },
+                include: {
+                    companies_currencies: true,
+                    credit_note_currencies: true,
+                    invoices: true,
+                    payments: true,
+                    orders_currencies: true,
+                },
             });
             if (!existingCurrency)
                 return res.status(404).json({ message: 'Currency not found' });
+            const hasCompanies = existingCurrency.companies_currencies.length > 0;
+            const hasCreditNotes = existingCurrency.credit_note_currencies.length > 0;
+            const hasInvoices = existingCurrency.invoices.length > 0;
+            const hasPayments = existingCurrency.payments.length > 0;
+            const hasOrders = existingCurrency.orders_currencies.length > 0;
+            if (hasCompanies ||
+                hasCreditNotes ||
+                hasInvoices ||
+                hasPayments ||
+                hasOrders) {
+                return res.status(400).json({
+                    message: 'Cannot delete currency. It has associated records.',
+                    details: {
+                        hasCompanies,
+                        hasCreditNotes,
+                        hasInvoices,
+                        hasPayments,
+                        hasOrders,
+                        companiesCount: existingCurrency.companies_currencies.length,
+                        creditNotesCount: existingCurrency.credit_note_currencies.length,
+                        invoicesCount: existingCurrency.invoices.length,
+                        paymentsCount: existingCurrency.payments.length,
+                        ordersCount: existingCurrency.orders_currencies.length,
+                    },
+                });
+            }
             await prisma_client_1.default.currencies.delete({ where: { id: Number(id) } });
             res.json({ message: 'Currency deleted successfully' });
         }
         catch (error) {
-            console.error('Delete Currency Error:', error);
+            if (error.code === 'P2003') {
+                return res.status(400).json({
+                    message: 'Cannot delete currency. It has associated records.',
+                });
+            }
             res.status(500).json({ message: error.message });
         }
     },

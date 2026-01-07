@@ -50,7 +50,7 @@ const LocationTestGPS: React.FC<LocationTestGPSProps> = ({
       battery_level: testGPSData.battery_level
         ? parseFloat(testGPSData.battery_level)
         : undefined,
-      network_type: testGPSData.network_type || undefined,
+      network_type: testGPSData.network_type,
     });
   };
 

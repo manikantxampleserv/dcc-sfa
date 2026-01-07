@@ -288,7 +288,7 @@ const ManageUpdatedPromotion: React.FC<ManageUpdatedPromotionProps> = ({
             return {
               product_id: c.product_id || 1,
               category_id: product?.category_id || defaultCategoryId,
-              product_group: c.product_group || undefined,
+              product_group: c.product_group,
               min_quantity: c.min_quantity || 0,
               min_value: c.min_quantity || 0,
             };

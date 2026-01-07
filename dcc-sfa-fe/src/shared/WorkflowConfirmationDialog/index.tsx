@@ -79,12 +79,12 @@ const WorkflowConfirmationDialog: React.FC<WorkflowConfirmationDialogProps> = ({
       try {
         if (isApprove) {
           await approveMutation.mutateAsync({
-            id: workflowDetail.id,
-            comments: values.remark.trim() || undefined,
+            id: workflowDetail!.id,
+            comments: values.remark.trim(),
           });
         } else {
           await rejectMutation.mutateAsync({
-            id: workflowDetail.id,
+            id: workflowDetail!.id,
             rejectionReason: values.remark.trim(),
           });
         }

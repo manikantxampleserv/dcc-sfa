@@ -76,7 +76,7 @@ const PaymentLinesManager: React.FC<PaymentLinesManagerProps> = ({
           paymentId,
           invoice_id: Number(values.invoice_id),
           amount_applied: Number(values.amount_applied),
-          notes: values.notes || undefined,
+          notes: values.notes,
         });
         handleCancel();
       } catch (error) {

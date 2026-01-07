@@ -234,6 +234,7 @@ const ActivityLogs: React.FC = () => {
               label="Action"
               value={action}
               onChange={e => setAction(e.target.value)}
+              disableClearable
             >
               <MenuItem value="all">All Actions</MenuItem>
               <MenuItem value="CREATE">Create</MenuItem>
@@ -244,6 +245,7 @@ const ActivityLogs: React.FC = () => {
               label="User"
               value={userId || 'all'}
               onChange={e => setUserId(e.target.value ? e.target.value : 'all')}
+              disableClearable
             >
               <MenuItem value="all">All Users</MenuItem>
               {users.map((user: any) => (

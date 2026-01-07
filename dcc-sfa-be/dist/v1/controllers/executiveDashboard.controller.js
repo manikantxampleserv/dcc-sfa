@@ -45,6 +45,7 @@ exports.executiveDashboardController = {
             const totalOrders = await prisma_client_1.default.orders.count({
                 where: { is_active: 'Y' },
             });
+            console.log(totalOrders);
             const ordersThisMonth = await prisma_client_1.default.orders.count({
                 where: { is_active: 'Y', order_date: { gte: startOfMonth } },
             });
@@ -113,7 +114,9 @@ exports.executiveDashboardController = {
                     },
                     salesRevenue: {
                         value: salesRevenue,
-                        formatted: `₹${(salesRevenue / 100000).toFixed(1)}L`,
+                        formatted: salesRevenue > 0
+                            ? `₹${(salesRevenue / 100000).toFixed(1)}L`
+                            : '₹0.0L',
                         growthPercentage: revenueGrowthPercentage.toFixed(1),
                         target: salesTarget,
                         targetProgress: targetProgress.toFixed(1),

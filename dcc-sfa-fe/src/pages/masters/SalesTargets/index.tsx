@@ -131,6 +131,7 @@ const SalesTargetsManagement: React.FC = () => {
     {
       id: 'target_info',
       label: 'Target Info',
+      sortable: false,
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
@@ -160,6 +161,7 @@ const SalesTargetsManagement: React.FC = () => {
     {
       id: 'product_category',
       label: 'Product Category',
+      sortable: false,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Package className="w-3 h-3 text-gray-400" />
@@ -172,6 +174,7 @@ const SalesTargetsManagement: React.FC = () => {
     {
       id: 'period',
       label: 'Period',
+      sortable: false,
       render: (_value, row) => {
         const start = formatDate(row.start_date);
         const end = formatDate(row.end_date);

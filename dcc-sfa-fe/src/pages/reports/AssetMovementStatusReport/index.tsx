@@ -23,8 +23,8 @@ const AssetMovementStatusReport: React.FC = () => {
 
   const { data: reportData, isLoading } = useAssetMovementStatusReport(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       asset_type_id: assetTypeId,
       asset_status: assetStatus === 'all' ? undefined : assetStatus,
       customer_id: customerId,
@@ -54,8 +54,8 @@ const AssetMovementStatusReport: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportAssetMovementStatusReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         asset_type_id: assetTypeId,
         asset_status: assetStatus === 'all' ? undefined : assetStatus,
         customer_id: customerId,
@@ -376,6 +376,7 @@ const AssetMovementStatusReport: React.FC = () => {
                     : undefined
                 )
               }
+              disableClearable
             >
               <MenuItem value="all">All Asset Types</MenuItem>
               {assetTypes.map((type: any) => (
@@ -388,6 +389,7 @@ const AssetMovementStatusReport: React.FC = () => {
               label="Status"
               value={assetStatus}
               onChange={e => setAssetStatus(e.target.value)}
+              disableClearable
             >
               <MenuItem value="all">All Status</MenuItem>
               <MenuItem value="working">Working</MenuItem>
@@ -405,6 +407,7 @@ const AssetMovementStatusReport: React.FC = () => {
                     : undefined
                 )
               }
+              disableClearable
             >
               <MenuItem value="all">All Customers</MenuItem>
               {customers.map((customer: any) => (

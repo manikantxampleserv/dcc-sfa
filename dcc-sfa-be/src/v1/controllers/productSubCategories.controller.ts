@@ -174,6 +174,7 @@ export const productSubCategoriesController = {
       const data = {
         ...req.body,
         updatedate: new Date(),
+        product_category_id: Number(req.body.product_category_id),
         updatedby: req.user?.id,
       };
 

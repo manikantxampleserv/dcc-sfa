@@ -43,7 +43,7 @@ interface GetProductSubCategoriesParams {
   page?: number;
   limit?: number;
   search?: string;
-  is_active?: string;
+  status?: string;
   product_category_id?: number;
 }
 

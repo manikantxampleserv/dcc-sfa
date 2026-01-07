@@ -48,7 +48,7 @@ const CustomerComplaintsPage: React.FC = () => {
     {
       page,
       limit,
-      search: search || undefined,
+      search: search,
       status: statusFilter !== 'all' ? statusFilter : undefined,
     },
     {

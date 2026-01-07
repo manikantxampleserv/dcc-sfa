@@ -227,19 +227,19 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
       try {
         const batchLotData = {
           batch_number: values.batch_number,
-          lot_number: values.lot_number || undefined,
+          lot_number: values.lot_number,
           manufacturing_date: values.manufacturing_date,
           expiry_date: values.expiry_date,
           quantity: Number(values.quantity),
           remaining_quantity: values.remaining_quantity
             ? Number(values.remaining_quantity)
             : undefined,
-          supplier_name: values.supplier_name || undefined,
+          supplier_name: values.supplier_name,
           purchase_price: values.purchase_price
             ? Number(values.purchase_price)
             : undefined,
-          quality_grade: values.quality_grade || undefined,
-          storage_location: values.storage_location || undefined,
+          quality_grade: values.quality_grade,
+          storage_location: values.storage_location,
           is_active: values.is_active,
           products: selectedProducts
             .filter(p => p.product_id > 0 && p.quantity > 0)

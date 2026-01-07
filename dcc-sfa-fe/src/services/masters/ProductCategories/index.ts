@@ -36,7 +36,7 @@ interface GetProductCategoriesParams {
   page?: number;
   limit?: number;
   search?: string;
-  is_active?: string;
+  status?: string;
 }
 
 /**
@@ -152,7 +152,8 @@ export const fetchProductCategoriesDropdown = async (
   } catch (error: any) {
     console.error('Error fetching product categories dropdown:', error);
     throw new Error(
-      error.response?.data?.message || 'Failed to fetch product categories dropdown'
+      error.response?.data?.message ||
+        'Failed to fetch product categories dropdown'
     );
   }
 };

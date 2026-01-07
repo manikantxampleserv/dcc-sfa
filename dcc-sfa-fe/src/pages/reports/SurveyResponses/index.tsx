@@ -410,6 +410,7 @@ const SurveyResponses: React.FC = () => {
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
                 className="!w-32"
+                disableClearable
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
@@ -425,6 +426,7 @@ const SurveyResponses: React.FC = () => {
                   )
                 }
                 className="!w-68"
+                disableClearable
               >
                 <MenuItem value="all">All Surveys</MenuItem>
                 {surveys.map(survey => (

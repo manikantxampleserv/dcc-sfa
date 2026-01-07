@@ -41,7 +41,7 @@ const PaymentCollection: React.FC = () => {
 
   const {
     data: paymentsResponse,
-    isLoading,
+    isFetching,
     error,
   } = usePayments(
     {
@@ -68,9 +68,16 @@ const PaymentCollection: React.FC = () => {
   const exportToExcelMutation = useExportToExcel();
 
   const totalPayments = paymentsResponse?.stats?.total_payments ?? 0;
-  const activePayments = paymentsResponse?.stats?.active_payments ?? 0;
-  const inactivePayments = paymentsResponse?.stats?.inactive_payments ?? 0;
   const totalAmount = paymentsResponse?.stats?.total_amount ?? 0;
+
+  const stats = {
+    total_payments: totalPayments,
+    total_amount: Number(totalAmount || 0),
+    payments_this_month: paymentsResponse?.stats?.payments_this_month ?? 0,
+    amount_this_month: Number(paymentsResponse?.stats?.amount_this_month || 0),
+    pending_collections: paymentsResponse?.stats?.pending_collections ?? 0,
+    overdue_amount: Number(paymentsResponse?.stats?.overdue_amount || 0),
+  };
 
   const handleCreatePayment = useCallback(() => {
     setSelectedPayment(null);
@@ -350,31 +357,31 @@ const PaymentCollection: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatsCard
           title="Total Payments"
-          value={totalPayments}
+          value={stats.total_payments}
           icon={<DollarSign className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
-        />
-        <StatsCard
-          title="Active Payments"
-          value={activePayments}
-          icon={<CheckCircle className="w-6 h-6" />}
-          color="green"
-          isLoading={isLoading}
-        />
-        <StatsCard
-          title="Inactive Payments"
-          value={inactivePayments}
-          icon={<Block className="w-6 h-6" />}
-          color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Total Amount"
-          value={`$${totalAmount.toFixed(2)}`}
+          value={stats.total_amount.toFixed(2)}
           icon={<DollarSign className="w-6 h-6" />}
           color="emerald"
-          isLoading={isLoading}
+          isLoading={isFetching}
+        />
+        <StatsCard
+          title="Payments This Month"
+          value={stats.payments_this_month}
+          icon={<CheckCircle className="w-6 h-6" />}
+          color="green"
+          isLoading={isFetching}
+        />
+        <StatsCard
+          title="Pending Collections"
+          value={stats.pending_collections}
+          icon={<Block className="w-6 h-6" />}
+          color="orange"
+          isLoading={isFetching}
         />
       </div>
 
@@ -463,7 +470,7 @@ const PaymentCollection: React.FC = () => {
         }
         getRowId={payment => payment.id}
         initialOrderBy="payment_number"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

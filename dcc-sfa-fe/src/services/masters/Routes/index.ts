@@ -107,7 +107,7 @@ interface GetRoutesParams {
   page?: number;
   limit?: number;
   search?: string;
-  isActive?: string;
+  status?: string;
   parent_id?: number;
   depot_id?: number;
   salesperson_id?: number;

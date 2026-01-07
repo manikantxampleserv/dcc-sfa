@@ -204,19 +204,21 @@ const RouteExceptions: React.FC = () => {
         actions={
           isRead ? (
             <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-[300px]">
+              <div className="flex-1">
                 <SearchInput
                   placeholder="Search Route Exceptions..."
                   value={search}
+                  className="!w-64"
                   onChange={setSearch}
+                  debounceMs={1000}
                 />
               </div>
               <div className="w-[180px]">
                 <Select
-                  label="Status"
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
                   fullWidth={true}
+                  disableClearable
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="open">Open</MenuItem>
@@ -226,10 +228,10 @@ const RouteExceptions: React.FC = () => {
               </div>
               <div className="w-[180px]">
                 <Select
-                  label="Severity"
                   value={severityFilter}
                   onChange={e => setSeverityFilter(e.target.value)}
                   fullWidth={true}
+                  disableClearable
                 >
                   <MenuItem value="all">All Severities</MenuItem>
                   <MenuItem value="critical">Critical</MenuItem>

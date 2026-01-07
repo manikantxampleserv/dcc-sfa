@@ -41,7 +41,7 @@ const TaxMasterPage: React.FC = () => {
       search,
       page,
       limit,
-      is_active:
+      isActive:
         statusFilter === 'all'
           ? undefined
           : statusFilter === 'active'

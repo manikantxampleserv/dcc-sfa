@@ -122,6 +122,7 @@ const SalesBonusRulesManagement: React.FC = () => {
     {
       id: 'rule_info',
       label: 'Rule Info',
+      sortable: false,
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
@@ -152,51 +153,54 @@ const SalesBonusRulesManagement: React.FC = () => {
       ),
     },
     {
-      id: 'achievement_range',
-      label: 'Achievement Range',
+      id: 'achievement_min_percent',
+      label: 'Min Achievement %',
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Percent className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.achievement_min_percent}% - {row.achievement_max_percent}%
-          </span>
+          <span className="text-xs">{row.achievement_min_percent}%</span>
         </Box>
       ),
     },
     {
-      id: 'bonus_info',
-      label: 'Bonus',
+      id: 'achievement_max_percent',
+      label: 'Max Achievement %',
+      render: (_value, row) => (
+        <Box className="flex items-center gap-1">
+          <Percent className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">{row.achievement_max_percent}%</span>
+        </Box>
+      ),
+    },
+    {
+      id: 'bonus_amount',
+      label: 'Bonus Amount',
       render: (_value, row) => (
         <Box className="flex flex-col items-start">
-          {row.bonus_amount && (
+          {row.bonus_amount ? (
             <Typography variant="body2" className="!text-gray-900">
               ${row.bonus_amount}
             </Typography>
-          )}
-          {row.bonus_percent && (
-            <Typography variant="body2" className="!text-gray-900">
-              {row.bonus_percent}%
-            </Typography>
-          )}
-          {!row.bonus_amount && !row.bonus_percent && (
+          ) : (
             <Typography variant="body2" className="!text-gray-400">
-              No bonus
+              No amount
             </Typography>
           )}
         </Box>
       ),
     },
     {
-      id: 'target_info',
-      label: 'Target Info',
+      id: 'bonus_percent',
+      label: 'Bonus Percent',
       render: (_value, row) => (
         <Box className="flex flex-col items-start">
-          <Typography variant="body2" className="!text-gray-900">
-            Qty: {row.sales_targets?.target_quantity || 'N/A'}
-          </Typography>
-          {row.sales_targets?.target_amount && (
-            <Typography variant="body2" className="!text-gray-600">
-              Amount: ${row.sales_targets.target_amount}
+          {row.bonus_percent ? (
+            <Typography variant="body2" className="!text-gray-900">
+              {row.bonus_percent}%
+            </Typography>
+          ) : (
+            <Typography variant="body2" className="!text-gray-400">
+              No percent
             </Typography>
           )}
         </Box>

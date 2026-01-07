@@ -12,7 +12,7 @@ import { useDepots } from 'hooks/useDepots';
 import { usePermission } from 'hooks/usePermission';
 import { useDeleteRoute, useRoutes, type Route } from 'hooks/useRoutes';
 import { useZones } from 'hooks/useZones';
-import { Building2, Clock, Navigation, Route as RouteIcon } from 'lucide-react';
+import { Building2, Navigation, Route as RouteIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
@@ -44,12 +44,12 @@ const RoutesManagement: React.FC = () => {
       search,
       page,
       limit,
-      isActive:
+      status:
         statusFilter === 'all'
           ? undefined
           : statusFilter === 'active'
-            ? 'Y'
-            : 'N',
+            ? 'active'
+            : 'inactive',
       depot_id: depotFilter === 'all' ? undefined : Number(depotFilter),
     },
     {
@@ -121,7 +121,6 @@ const RoutesManagement: React.FC = () => {
     setPage(newPage + 1);
   };
 
-  // Define table columns following Zone pattern
   const routeColumns: TableColumn<Route>[] = [
     {
       id: 'name',
@@ -224,27 +223,7 @@ const RoutesManagement: React.FC = () => {
         </Box>
       ),
     },
-    {
-      id: 'distance_time',
-      label: 'Distance & Duration',
-      render: (_value, row) => (
-        <Box className="!flex items-center !gap-1">
-          <Box className="!flex !items-center !gap-1">
-            <Navigation className="w-3 h-3 text-gray-400" />
-            <Typography variant="caption" className="!text-gray-600">
-              {row?.estimated_distance ? `${row.estimated_distance} km` : 'N/A'}
-            </Typography>
-          </Box>
 
-          <Box className="!flex !items-center !gap-1">
-            <Clock className="w-3 h-3 text-gray-400" />
-            <Typography variant="caption" className="!text-gray-600">
-              {row?.estimated_time ? `${row.estimated_time} min` : 'N/A'}
-            </Typography>
-          </Box>
-        </Box>
-      ),
-    },
     {
       id: 'is_active',
       label: 'Status',
@@ -383,7 +362,7 @@ const RoutesManagement: React.FC = () => {
                     <Select
                       value={depotFilter}
                       onChange={e => setDepotFilter(e.target.value)}
-                      className="!min-w-60"
+                      className="!min-w-80"
                       size="small"
                       disableClearable
                     >

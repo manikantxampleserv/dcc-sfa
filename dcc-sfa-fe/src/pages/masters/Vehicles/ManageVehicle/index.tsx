@@ -56,12 +56,12 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
         const vehicleData = {
           vehicle_number: values.vehicle_number,
           type: values.type,
-          make: values.make || undefined,
-          model: values.model || undefined,
+          make: values.make,
+          model: values.model,
           year: values.year ? Number(values.year) : undefined,
           capacity: values.capacity ? Number(values.capacity) : undefined,
-          fuel_type: values.fuel_type || undefined,
-          status: values.status || undefined,
+          fuel_type: values.fuel_type,
+          status: values.status,
           mileage: values.mileage ? Number(values.mileage) : undefined,
           is_active: values.is_active,
         };

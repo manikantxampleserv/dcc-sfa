@@ -401,6 +401,7 @@ const VanStockPage: React.FC = () => {
                     value={statusFilter}
                     onChange={e => handleStatusFilterChange(e.target.value)}
                     className="!w-32"
+                    disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
@@ -408,7 +409,8 @@ const VanStockPage: React.FC = () => {
                   </Select>
                   <Box className="!w-64">
                     <UserSelect
-                      label="Filter by User"
+                      label=""
+                      placeholder="Select User"
                       value={userFilter}
                       onChange={handleUserFilterChange}
                       fullWidth

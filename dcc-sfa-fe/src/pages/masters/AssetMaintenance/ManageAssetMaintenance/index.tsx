@@ -73,11 +73,11 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
         const submitData = {
           asset_id: Number(values.asset_id),
           maintenance_date: values.maintenance_date,
-          issue_reported: values.issue_reported || undefined,
-          action_taken: values.action_taken || undefined,
+          issue_reported: values.issue_reported,
+          action_taken: values.action_taken,
           technician_id: Number(values.technician_id),
           cost: values.cost ? Number(values.cost) : undefined,
-          remarks: values.remarks || undefined,
+          remarks: values.remarks,
           is_active: values.is_active,
         };
 

@@ -50,7 +50,7 @@ interface GetCurrenciesParams {
   page?: number;
   limit?: number;
   search?: string;
-  isActive?: string;
+  status?: string;
 }
 
 interface PaginationMeta {

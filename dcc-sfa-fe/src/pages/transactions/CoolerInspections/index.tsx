@@ -467,6 +467,7 @@ const CoolerInspectionsManagement: React.FC = () => {
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!w-40"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -476,6 +477,7 @@ const CoolerInspectionsManagement: React.FC = () => {
                       value={workingFilter}
                       onChange={e => setWorkingFilter(e.target.value)}
                       className="!w-40"
+                      disableClearable
                     >
                       <MenuItem value="all">All Working</MenuItem>
                       <MenuItem value="Y">Working</MenuItem>
@@ -485,13 +487,14 @@ const CoolerInspectionsManagement: React.FC = () => {
                       value={actionFilter}
                       onChange={e => setActionFilter(e.target.value)}
                       className="!w-40"
+                      disableClearable
                     >
                       <MenuItem value="all">All Action</MenuItem>
                       <MenuItem value="Y">Action Required</MenuItem>
                       <MenuItem value="N">No Action</MenuItem>
                     </Select>
                     <UserSelect
-                      label="Inspector"
+                      label=""
                       value={
                         inspectorFilter === 'all' || inspectorFilter === 'null'
                           ? undefined
@@ -501,6 +504,7 @@ const CoolerInspectionsManagement: React.FC = () => {
                       fullWidth={true}
                       size="small"
                       className="!w-60"
+                      placeholder="Select Inspector"
                     />
                   </>
                 )}
@@ -534,18 +538,18 @@ const CoolerInspectionsManagement: React.FC = () => {
                   >
                     Import
                   </Button>
+                  {isCreate && (
+                    <Button
+                      variant="contained"
+                      className="!capitalize"
+                      disableElevation
+                      startIcon={<Add />}
+                      onClick={handleCreateInspection}
+                    >
+                      Create
+                    </Button>
+                  )}
                 </div>
-              )}
-              {isCreate && (
-                <Button
-                  variant="contained"
-                  className="!capitalize"
-                  disableElevation
-                  startIcon={<Add />}
-                  onClick={handleCreateInspection}
-                >
-                  Create
-                </Button>
               )}
             </div>
           ) : (

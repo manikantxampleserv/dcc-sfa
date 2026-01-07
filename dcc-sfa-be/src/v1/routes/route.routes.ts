@@ -27,6 +27,16 @@ router.get(
   routesController.getRoutes
 );
 
+router.post(
+  '/routes',
+  authenticateToken,
+  auditCreate('routes'),
+  requirePermission([{ module: 'route', action: 'create' }]),
+  createRouteValidation,
+  validate,
+  routesController.createRoutes
+);
+
 router.put(
   '/routes/:id',
   authenticateToken,

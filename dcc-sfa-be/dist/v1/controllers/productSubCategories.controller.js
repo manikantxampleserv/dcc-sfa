@@ -140,6 +140,7 @@ exports.productSubCategoriesController = {
             const data = {
                 ...req.body,
                 updatedate: new Date(),
+                product_category_id: Number(req.body.product_category_id),
                 updatedby: req.user?.id,
             };
             const subCategory = await prisma_client_1.default.product_sub_categories.update({

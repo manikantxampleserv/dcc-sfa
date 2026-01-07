@@ -117,7 +117,6 @@ exports.salesTargetsController = {
             const { page = '1', limit = '10', search = '', sales_target_group_id, product_category_id, is_active, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
-            const searchLower = search.toLowerCase();
             const filters = {
                 ...(is_active && { is_active: is_active }),
                 ...(sales_target_group_id && {
@@ -130,12 +129,12 @@ exports.salesTargetsController = {
                     OR: [
                         {
                             sales_targets_groups: {
-                                group_name: { contains: searchLower },
+                                group_name: { contains: search },
                             },
                         },
                         {
                             sales_targets_product_categories: {
-                                category_name: { contains: searchLower },
+                                category_name: { contains: search },
                             },
                         },
                     ],

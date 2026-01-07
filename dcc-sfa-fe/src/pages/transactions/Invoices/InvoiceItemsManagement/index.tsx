@@ -245,7 +245,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
           unit_price: Number(item.unit_price),
           discount_amount: Number(item.discount_amount) || 0,
           tax_amount: Number(item.tax_amount) || 0,
-          notes: item.notes || undefined,
+          notes: item.notes,
         }));
 
       await bulkUpdateItemsMutation.mutateAsync({

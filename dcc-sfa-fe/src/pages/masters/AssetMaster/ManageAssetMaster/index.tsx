@@ -79,11 +79,11 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
         const submitData = {
           ...values,
           asset_type_id: Number(values.asset_type_id),
-          purchase_date: values.purchase_date || undefined,
-          warranty_expiry: values.warranty_expiry || undefined,
-          current_location: values.current_location || undefined,
-          current_status: values.current_status || undefined,
-          assigned_to: values.assigned_to || undefined,
+          purchase_date: values.purchase_date,
+          warranty_expiry: values.warranty_expiry,
+          current_location: values.current_location,
+          current_status: values.current_status,
+          assigned_to: values.assigned_to,
         };
 
         if (isEdit && selectedAsset) {

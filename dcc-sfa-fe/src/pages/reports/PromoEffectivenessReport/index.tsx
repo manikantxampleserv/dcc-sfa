@@ -30,8 +30,8 @@ const PromoEffectivenessReport: React.FC = () => {
 
   const { data: reportData, isLoading } = usePromoEffectivenessReport(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       depot_id: depotId,
       zone_id: zoneId,
     },
@@ -62,8 +62,8 @@ const PromoEffectivenessReport: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportPromoEffectivenessReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         depot_id: depotId,
         zone_id: zoneId,
       });
@@ -276,6 +276,7 @@ const PromoEffectivenessReport: React.FC = () => {
                   : undefined
               )
             }
+            disableClearable
           >
             <MenuItem value="all">All Depots</MenuItem>
             {depots.map((depot: any) => (
@@ -294,6 +295,7 @@ const PromoEffectivenessReport: React.FC = () => {
                   : undefined
               )
             }
+            disableClearable
           >
             <MenuItem value="all">All Zones</MenuItem>
             {zones.map((zone: any) => (

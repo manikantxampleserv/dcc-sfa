@@ -107,7 +107,7 @@ const ManageStockTransferRequest: React.FC<ManageStockTransferRequestProps> = ({
               product_id: Number(line.product_id),
               batch_id: line.batch_id ? Number(line.batch_id) : null,
               quantity: Number(line.quantity),
-              id: line.id || undefined,
+              id: line.id,
             })),
         };
 

@@ -50,7 +50,7 @@ const ApprovalWorkflows: React.FC = () => {
     {
       page,
       limit,
-      search: search || undefined,
+      search: search,
       status: statusFilter !== 'all' ? statusFilter : undefined,
       request_type: requestTypeFilter !== 'all' ? requestTypeFilter : undefined,
     },
@@ -120,14 +120,6 @@ const ApprovalWorkflows: React.FC = () => {
     formik.resetForm();
     setDialogOpen(false);
     setSelectedRequest(null);
-  };
-
-  const canApproveOrReject = (request: Request) => {
-    const approvalStatus = request.approvals?.[0]?.status || request.status;
-    return (
-      approvalStatus?.toUpperCase() === 'P' ||
-      approvalStatus?.toUpperCase() === 'PENDING'
-    );
   };
 
   const formatRequestType = (type: string): string => {
@@ -241,7 +233,7 @@ const ApprovalWorkflows: React.FC = () => {
             label: 'Actions',
             sortable: false,
             render: (_value: any, row: Request) => {
-              const canAction = canApproveOrReject(row);
+              const normalizedStatus = row.approvals?.[0]?.status || row.status;
               return (
                 <div className="!flex !gap-2 !items-center">
                   <ActionButton
@@ -249,14 +241,20 @@ const ApprovalWorkflows: React.FC = () => {
                     tooltip="Approve request"
                     icon={<Check className="!w-4 !h-4" />}
                     color="success"
-                    disabled={!canAction || takeActionMutation.isPending}
+                    disabled={
+                      normalizedStatus?.toUpperCase() !== 'P' ||
+                      takeActionMutation.isPending
+                    }
                   />
                   <ActionButton
                     onClick={() => handleRejectClick(row)}
                     tooltip="Reject request"
                     icon={<X className="!w-4 !h-4" />}
                     color="error"
-                    disabled={!canAction || takeActionMutation.isPending}
+                    disabled={
+                      normalizedStatus?.toUpperCase() !== 'P' ||
+                      takeActionMutation.isPending
+                    }
                   />
                 </div>
               );
@@ -337,6 +335,7 @@ const ApprovalWorkflows: React.FC = () => {
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
                   className="!w-40"
+                  disableClearable
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="P">Pending</MenuItem>
@@ -347,6 +346,7 @@ const ApprovalWorkflows: React.FC = () => {
                   value={requestTypeFilter}
                   onChange={e => setRequestTypeFilter(e.target.value)}
                   className="!w-48"
+                  disableClearable
                 >
                   <MenuItem value="all">All Types</MenuItem>
                   {requestTypes.map(type => (

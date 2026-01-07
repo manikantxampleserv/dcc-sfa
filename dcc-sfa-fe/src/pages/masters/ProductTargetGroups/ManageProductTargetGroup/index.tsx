@@ -50,7 +50,7 @@ const ManageProductTargetGroup: React.FC<ManageProductTargetGroupProps> = ({
       try {
         const productTargetGroupData = {
           name: values.name,
-          code: values.code || undefined,
+          code: values.code,
           is_active: values.is_active,
         };
 

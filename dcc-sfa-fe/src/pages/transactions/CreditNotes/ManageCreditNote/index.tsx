@@ -122,16 +122,15 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
       try {
         const submitData = {
           ...values,
-          credit_note_date:
-            new Date(values.credit_note_date).toISOString() || undefined,
+          credit_note_date: new Date(values.credit_note_date).toISOString(),
           parent_id: Number(values.parent_id),
           customer_id: Number(values.customer_id),
           currency_id: values.currency_id
             ? Number(values.currency_id)
             : undefined,
-          due_date: new Date(values.due_date).toISOString() || undefined,
-          notes: values.notes || undefined,
-          billing_address: values.billing_address || undefined,
+          due_date: new Date(values.due_date).toISOString(),
+          notes: values.notes,
+          billing_address: values.billing_address,
           creditNoteItems: creditNoteItems
             .filter(item => item.product_id !== '')
             .map(item => ({
@@ -140,7 +139,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
               unit_price: Number(item.unit_price),
               discount_amount: Number(item.discount_amount) || 0,
               tax_amount: Number(item.tax_amount) || 0,
-              notes: item.notes || undefined,
+              notes: item.notes,
             })),
         };
 

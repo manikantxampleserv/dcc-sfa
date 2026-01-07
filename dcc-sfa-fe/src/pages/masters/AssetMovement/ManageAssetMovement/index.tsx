@@ -70,12 +70,12 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       try {
         const submitData = {
           asset_id: Number(values.asset_id),
-          from_location: values.from_location || undefined,
-          to_location: values.to_location || undefined,
-          movement_type: values.movement_type || undefined,
+          from_location: values.from_location,
+          to_location: values.to_location,
+          movement_type: values.movement_type,
           movement_date: values.movement_date,
           performed_by: Number(values.performed_by),
-          notes: values.notes || undefined,
+          notes: values.notes,
           is_active: values.is_active,
         };
 

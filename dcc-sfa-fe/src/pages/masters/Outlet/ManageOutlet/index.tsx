@@ -89,7 +89,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       try {
         const customerData = {
           name: values.name,
-          short_name: values.short_name || undefined,
+          short_name: values.short_name,
           zones_id: values.zones_id ? Number(values.zones_id) : undefined,
           customer_type_id: values.customer_type_id
             ? Number(values.customer_type_id)
@@ -97,25 +97,25 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
           customer_channel_id: values.customer_channel_id
             ? Number(values.customer_channel_id)
             : undefined,
-          type: values.type || undefined,
-          internal_code_one: values.internal_code_one || undefined,
-          internal_code_two: values.internal_code_two || undefined,
-          contact_person: values.contact_person || undefined,
-          phone_number: values.phone_number || undefined,
-          email: values.email || undefined,
-          address: values.address || undefined,
-          city: values.city || undefined,
-          state: values.state || undefined,
-          zipcode: values.zipcode || undefined,
-          latitude: values.latitude || undefined,
-          longitude: values.longitude || undefined,
-          credit_limit: values.credit_limit || undefined,
+          type: values.type,
+          internal_code_one: values.internal_code_one,
+          internal_code_two: values.internal_code_two,
+          contact_person: values.contact_person,
+          phone_number: values.phone_number,
+          email: values.email,
+          address: values.address,
+          city: values.city,
+          state: values.state,
+          zipcode: values.zipcode,
+          latitude: values.latitude,
+          longitude: values.longitude,
+          credit_limit: values.credit_limit,
           outstanding_amount: values.outstanding_amount || '0',
           route_id: values.route_id ? Number(values.route_id) : undefined,
           salesperson_id: values.salesperson_id
             ? Number(values.salesperson_id)
             : undefined,
-          nfc_tag_code: values.nfc_tag_code || undefined,
+          nfc_tag_code: values.nfc_tag_code,
           last_visit_date: values.last_visit_date
             ? new Date(values.last_visit_date).toISOString()
             : undefined,

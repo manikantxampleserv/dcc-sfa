@@ -57,10 +57,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: orderResponse } = useOrder(order?.id || 0);
 
-  const currencies = currenciesResponse?.data || [];
-
   const createOrderMutation = useCreateOrder();
   const updateOrderMutation = useUpdateOrder();
+
+  console.log(order);
 
   const formik = useFormik({
     initialValues: {
@@ -86,10 +86,11 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       total_amount: order?.total_amount || 0,
       notes: order?.notes || '',
       shipping_address: order?.shipping_address || '',
-      approval_status: order?.approval_status || 'P',
+      approval_status:
+        order?.approval_status?.slice(0, 1)?.toUpperCase() || 'P',
       approved_by: order?.approved_by || '',
       is_active: order?.is_active || 'Y',
-      order_items: [],
+      order_items: orderItems,
     },
     validationSchema: orderValidationSchema,
     enableReinitialize: true,
@@ -165,16 +166,15 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
 
         const submitData = {
           ...values,
-          order_date: new Date(values.order_date).toISOString() || undefined,
+          order_date: new Date(values.order_date).toISOString(),
           parent_id: Number(values.parent_id),
           salesperson_id: Number(values.salesperson_id),
           currency_id: values.currency_id
             ? Number(values.currency_id)
             : undefined,
-          delivery_date:
-            new Date(values.delivery_date).toISOString() || undefined,
-          notes: values.notes || undefined,
-          shipping_address: values.shipping_address || undefined,
+          delivery_date: new Date(values.delivery_date).toISOString(),
+          notes: values.notes,
+          shipping_address: values.shipping_address,
           approved_by: values.approved_by
             ? Number(values.approved_by)
             : undefined,
@@ -184,9 +184,9 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               product_id: Number(item.product_id),
               quantity: Number(item.quantity),
               unit_price: Number(item.unit_price),
-              notes: item.notes || undefined,
-              product_batches: item.product_batches || undefined,
-              product_serials: item.product_serials || undefined,
+              notes: item.notes,
+              product_batches: item.product_batches,
+              product_serials: item.product_serials,
             })),
         };
 
@@ -328,6 +328,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       if (lastSynced !== orderItemsStr) {
         formik.setFieldValue('order_items', orderItems, false);
         syncedRef.current = orderItemsStr;
+        // Trigger validation after setting the value
+        setTimeout(() => {
+          formik.validateField('order_items');
+        }, 0);
       }
     }
   }, [open, orderItemsStr, formik, orderItems]);
@@ -548,6 +552,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
 
   const totals = calculateOrderTotals();
 
+  console.log(formik.errors);
+
   return (
     <CustomDrawer
       open={open}
@@ -580,7 +586,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               formik={formik}
               slotProps={{ inputLabel: { shrink: true } }}
             />
-            <Select
+            {/* <Select
               name="currency_id"
               label="Currency"
               formik={formik}
@@ -599,7 +605,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                   )}
                 </MenuItem>
               ))}
-            </Select>
+            </Select> */}
             <Select name="status" label="Status" formik={formik} required>
               <MenuItem value="draft">Draft</MenuItem>
               <MenuItem value="pending">Pending</MenuItem>

@@ -1,21 +1,20 @@
 import express from 'express';
-import multer from 'multer';
+import {
+  auditCreate,
+  auditDelete,
+  auditUpdate,
+} from '../../middlewares/audit.middleware';
+import {
+  authenticateToken,
+  requirePermission,
+} from '../../middlewares/auth.middleware';
+import { validate } from '../../middlewares/validation.middleware';
+import { upload } from '../../utils/multer';
 import { brandsController } from '../controllers/brands.controller';
 import {
   createBrandValidation,
   updateBrandValidation,
 } from '../validations/brands.validation';
-import { upload } from '../../utils/multer';
-import { validate } from '../../middlewares/validation.middleware';
-import {
-  authenticateToken,
-  requirePermission,
-} from '../../middlewares/auth.middleware';
-import {
-  auditCreate,
-  auditUpdate,
-  auditDelete,
-} from '../../middlewares/audit.middleware';
 
 const router = express.Router();
 

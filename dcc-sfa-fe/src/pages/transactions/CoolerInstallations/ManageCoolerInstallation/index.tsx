@@ -83,30 +83,30 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
         const installationData = {
           customer_id: Number(values.customer_id),
           code: values.code,
-          brand: values.brand || undefined,
-          model: values.model || undefined,
-          serial_number: values.serial_number || undefined,
+          brand: values.brand,
+          model: values.model,
+          serial_number: values.serial_number,
           capacity: values.capacity ? Number(values.capacity) : undefined,
-          install_date: values.install_date || undefined,
-          last_service_date: values.last_service_date || undefined,
-          next_service_due: values.next_service_due || undefined,
+          install_date: values.install_date,
+          last_service_date: values.last_service_date,
+          next_service_due: values.next_service_due,
           cooler_type_id: values.cooler_type_id
             ? Number(values.cooler_type_id)
             : undefined,
           cooler_sub_type_id: values.cooler_sub_type_id
             ? Number(values.cooler_sub_type_id)
             : undefined,
-          status: values.status || undefined,
+          status: values.status,
           temperature: values.temperature
             ? Number(values.temperature)
             : undefined,
-          energy_rating: values.energy_rating || undefined,
-          warranty_expiry: values.warranty_expiry || undefined,
-          maintenance_contract: values.maintenance_contract || undefined,
+          energy_rating: values.energy_rating,
+          warranty_expiry: values.warranty_expiry,
+          maintenance_contract: values.maintenance_contract,
           technician_id: values.technician_id
             ? Number(values.technician_id)
             : undefined,
-          last_scanned_date: values.last_scanned_date || undefined,
+          last_scanned_date: values.last_scanned_date,
           is_active: values.is_active,
         };
 

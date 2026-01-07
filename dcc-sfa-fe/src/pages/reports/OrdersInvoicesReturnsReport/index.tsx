@@ -28,8 +28,8 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
 
   const { data: reportData, isLoading } = useOrdersInvoicesReturnsReport(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       customer_id: customerId,
       status: status === 'all' ? undefined : status?.toUpperCase(),
     },
@@ -67,8 +67,8 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportOrdersInvoicesReturnsReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         customer_id: customerId,
         status: status === 'all' ? undefined : status?.toUpperCase(),
       });
@@ -451,6 +451,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
                 value={status}
                 fullWidth
                 onChange={e => setStatus(e.target.value as string)}
+                disableClearable
               >
                 <MenuItem value="all">All Status</MenuItem>
                 <MenuItem value="pending">Pending</MenuItem>

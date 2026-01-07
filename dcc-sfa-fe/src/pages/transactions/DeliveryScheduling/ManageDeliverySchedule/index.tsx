@@ -86,21 +86,21 @@ const ManageDeliverySchedule: React.FC<ManageDeliveryScheduleProps> = ({
           order_id: Number(values.order_id),
           customer_id: Number(values.customer_id),
           scheduled_date: values.scheduled_date,
-          scheduled_time_slot: values.scheduled_time_slot || undefined,
+          scheduled_time_slot: values.scheduled_time_slot,
           assigned_vehicle_id: values.assigned_vehicle_id
             ? Number(values.assigned_vehicle_id)
             : undefined,
           assigned_driver_id: values.assigned_driver_id
             ? Number(values.assigned_driver_id)
             : undefined,
-          status: values.status || undefined,
-          priority: values.priority || undefined,
-          delivery_instructions: values.delivery_instructions || undefined,
+          status: values.status,
+          priority: values.priority,
+          delivery_instructions: values.delivery_instructions,
           actual_delivery_time: values.actual_delivery_time
             ? new Date(values.actual_delivery_time).toISOString()
             : undefined,
-          delivery_proof: values.delivery_proof || undefined,
-          failure_reason: values.failure_reason || undefined,
+          delivery_proof: values.delivery_proof,
+          failure_reason: values.failure_reason,
           rescheduled_date: values.rescheduled_date
             ? new Date(values.rescheduled_date).toISOString()
             : undefined,

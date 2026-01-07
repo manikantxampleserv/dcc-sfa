@@ -100,10 +100,10 @@ const PaymentRefundsManager: React.FC<PaymentRefundsManagerProps> = ({
             refund_date: values.refund_date,
             amount: Number(values.amount),
             reason: values.reason,
-            reference_number: values.reference_number || undefined,
-            method: values.method || undefined,
+            reference_number: values.reference_number,
+            method: values.method,
             status: values.status,
-            notes: values.notes || undefined,
+            notes: values.notes,
             updatedby: 1,
           });
         } else {
@@ -112,10 +112,10 @@ const PaymentRefundsManager: React.FC<PaymentRefundsManagerProps> = ({
             refund_date: values.refund_date,
             amount: Number(values.amount),
             reason: values.reason,
-            reference_number: values.reference_number || undefined,
-            method: values.method || undefined,
+            reference_number: values.reference_number,
+            method: values.method,
             status: values.status,
-            notes: values.notes || undefined,
+            notes: values.notes,
             createdby: 1,
             log_inst: 1,
           });

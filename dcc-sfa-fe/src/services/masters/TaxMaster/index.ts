@@ -35,7 +35,7 @@ export interface GetTaxMastersParams {
   page?: number;
   limit?: number;
   search?: string;
-  is_active?: string;
+  isActive?: string;
 }
 
 export const fetchTaxMasters = async (

@@ -48,7 +48,7 @@ const ManageProductType: React.FC<ManageProductTypeProps> = ({
       try {
         const productTypeData = {
           name: values.name,
-          code: values.code || undefined,
+          code: values.code,
           is_active: values.is_active,
         };
 

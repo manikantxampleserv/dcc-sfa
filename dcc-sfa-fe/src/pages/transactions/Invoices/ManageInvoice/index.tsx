@@ -123,8 +123,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       try {
         const submitData = {
           ...values,
-          invoice_date:
-            new Date(values.invoice_date).toISOString() || undefined,
+          invoice_date: new Date(values.invoice_date).toISOString(),
           parent_id: Number(values.parent_id),
           customer_id: Number(values.customer_id),
           currency_id: values.currency_id
@@ -133,8 +132,8 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           due_date: values.due_date
             ? new Date(values.due_date).toISOString()
             : undefined,
-          notes: values.notes || undefined,
-          billing_address: values.billing_address || undefined,
+          notes: values.notes,
+          billing_address: values.billing_address,
           subtotal: totals.subtotal,
           discount_amount: totals.discount_amount,
           tax_amount: totals.tax_amount,
@@ -148,7 +147,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               unit_price: Number(item.unit_price),
               discount_amount: Number(item.discount_amount) || 0,
               tax_amount: Number(item.tax_amount) || 0,
-              notes: item.notes || undefined,
+              notes: item.notes,
             })),
         };
 

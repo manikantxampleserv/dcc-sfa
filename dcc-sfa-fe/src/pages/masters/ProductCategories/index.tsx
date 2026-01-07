@@ -49,12 +49,12 @@ const ProductCategoriesPage: React.FC = () => {
       search,
       page,
       limit,
-      is_active:
+      status:
         statusFilter === 'all'
           ? undefined
           : statusFilter === 'active'
-            ? 'Y'
-            : 'N',
+            ? 'active'
+            : 'inactive',
     },
     {
       enabled: isRead,

@@ -263,11 +263,19 @@ export const routesController = {
 
   async getRoutes(req: any, res: any) {
     try {
-      const { page, limit, search, salesperson_id, depot_id, parent_id } =
-        req.query;
+      const {
+        page,
+        limit,
+        search,
+        salesperson_id,
+        depot_id,
+        parent_id,
+        status,
+      } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
+      const statusLower = status ? (status as string).toLowerCase() : '';
 
       const filters: any = {
         ...(search && {
@@ -282,6 +290,9 @@ export const routesController = {
         }),
         ...(depot_id && { depot_id: parseInt(depot_id as string, 10) }),
         ...(parent_id && { parent_id: parseInt(parent_id as string, 10) }),
+        ...(status && {
+          is_active: statusLower === 'active' ? 'Y' : 'N',
+        }),
       };
 
       const { data, pagination } = await paginate({
@@ -456,12 +467,56 @@ export const routesController = {
   async deleteRoutes(req: Request, res: Response) {
     try {
       const { id } = req.params;
+
       const existingRoute = await prisma.routes.findUnique({
         where: { id: Number(id) },
+        include: {
+          customer_routes: true,
+          routes_depots: true,
+          routes_zones: true,
+          routes_salesperson: true,
+          visit_routes: {
+            include: {
+              visit_customers: true,
+              visits_salesperson: true,
+            },
+          },
+        },
       });
 
       if (!existingRoute) {
         return res.status(404).json({ message: 'Route not found' });
+      }
+
+      // Check for dependencies
+      const hasCustomers = existingRoute.customer_routes.length > 0;
+      const hasDepots = !!existingRoute.routes_depots;
+      const hasZones = !!existingRoute.routes_zones;
+      const hasSalespersons = !!existingRoute.routes_salesperson;
+      const hasVisits = existingRoute.visit_routes.length > 0;
+
+      if (
+        hasCustomers ||
+        hasDepots ||
+        hasZones ||
+        hasSalespersons ||
+        hasVisits
+      ) {
+        return res.status(400).json({
+          message: 'Cannot delete route. It has associated records.',
+          details: {
+            hasCustomers,
+            hasDepots,
+            hasZones,
+            hasSalespersons,
+            hasVisits,
+            customersCount: existingRoute.customer_routes.length,
+            depotsCount: hasDepots ? 1 : 0,
+            zonesCount: hasZones ? 1 : 0,
+            salespersonsCount: hasSalespersons ? 1 : 0,
+            visitsCount: existingRoute.visit_routes.length,
+          },
+        });
       }
 
       await prisma.routes.delete({ where: { id: Number(id) } });
@@ -469,6 +524,15 @@ export const routesController = {
       res.json({ message: 'Route deleted successfully' });
     } catch (error: any) {
       console.error('Delete Route Error:', error);
+
+      // Handle specific database errors
+      if (error.code === 'P2003') {
+        // Foreign key constraint violation (fallback if dependency check fails)
+        return res.status(400).json({
+          message: 'Cannot delete route. It has associated records.',
+        });
+      }
+
       res.status(500).json({ message: error.message });
     }
   },

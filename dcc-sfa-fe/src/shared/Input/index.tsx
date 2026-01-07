@@ -122,7 +122,6 @@ const Input: React.FC<InputProps> = ({
 
   const currentValue = value || formik?.values[name as string];
 
-  // Normalize date value - always return null (never undefined or empty string)
   const dateValue =
     currentValue && dayjs(currentValue).isValid() ? dayjs(currentValue) : null;
 
@@ -145,6 +144,12 @@ const Input: React.FC<InputProps> = ({
             error: !!error,
             helperText: errorMessage,
             name,
+            disabled: rest.disabled,
+            slotProps: {
+              htmlInput: {
+                required: false,
+              },
+            },
             onBlur: formik?.handleBlur || onBlur,
             InputLabelProps: {
               shrink: true,
@@ -163,6 +168,7 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleTimeChange}
+        disabled={rest.disabled}
         slotProps={{
           textField: {
             fullWidth,
@@ -170,6 +176,12 @@ const Input: React.FC<InputProps> = ({
             error: !!error,
             helperText: errorMessage,
             name,
+            disabled: rest.disabled,
+            slotProps: {
+              htmlInput: {
+                required: false,
+              },
+            },
             onBlur: formik?.handleBlur || onBlur,
             InputLabelProps: {
               shrink: true,
@@ -187,6 +199,7 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateTimeChange}
+        disabled={rest.disabled}
         slotProps={{
           textField: {
             fullWidth,
@@ -194,6 +207,12 @@ const Input: React.FC<InputProps> = ({
             error: !!error,
             helperText: errorMessage,
             name,
+            disabled: rest.disabled,
+            slotProps: {
+              htmlInput: {
+                required: false,
+              },
+            },
             onBlur: formik?.handleBlur || onBlur,
             InputLabelProps: {
               shrink: true,

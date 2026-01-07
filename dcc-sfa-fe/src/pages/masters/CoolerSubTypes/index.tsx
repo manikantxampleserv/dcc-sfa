@@ -24,7 +24,7 @@ import ManageCoolerSubType from './ManageCoolerSubType';
 const CoolerSubTypesPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [coolerTypeFilter, setCoolerTypeFilter] = useState<number | ''>('');
+  const [coolerTypeFilter, setCoolerTypeFilter] = useState<number | 0>(0);
   const [selectedCoolerSubType, setSelectedCoolerSubType] =
     useState<CoolerSubType | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -309,14 +309,14 @@ const CoolerSubTypesPage: React.FC = () => {
                       value={coolerTypeFilter}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         setCoolerTypeFilter(
-                          e.target.value === '' ? '' : Number(e.target.value)
+                          e.target.value === '' ? 0 : Number(e.target.value)
                         );
                         setPage(1);
                       }}
                       className="!w-48"
-                      label="Cooler Type"
-                      placeholder="Select Cooler Type"
+                      disableClearable
                     >
+                      <MenuItem value="0">All Cooler Types</MenuItem>
                       {coolerTypesDropdown?.data?.map(ct => (
                         <MenuItem key={ct.id} value={ct.id}>
                           {ct.name}

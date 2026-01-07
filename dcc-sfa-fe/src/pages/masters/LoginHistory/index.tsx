@@ -300,6 +300,7 @@ const LoginHistoryPage: React.FC = () => {
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
                   className="!w-40"
+                  disableClearable
                 >
                   <MenuItem value="all">All Status</MenuItem>
                   <MenuItem value="active">Successful</MenuItem>

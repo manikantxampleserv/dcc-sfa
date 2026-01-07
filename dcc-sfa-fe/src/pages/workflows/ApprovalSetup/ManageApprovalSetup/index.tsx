@@ -77,7 +77,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
 
   const { data: existingApprovers } = useApprovalWorkflowSetupsByRequest(
     requestType || '',
-    selectedZoneId || undefined,
+    selectedZoneId,
     selectedDepotId || undefined
   );
 
@@ -88,7 +88,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
   const { data: usersResponse } = useUsers({
     page: 1,
     limit: 1000,
-    search: availableUsersSearch || undefined,
+    search: availableUsersSearch,
     isActive: 'Y',
   });
 

@@ -1,11 +1,11 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
-import { useCurrencies } from 'hooks/useCurrencies';
 import {
   useCreatePayment,
   useUpdatePayment,
   type Payment,
 } from 'hooks/usePayments';
+import { useSettings } from 'hooks/useSettings';
 import { useUsers } from 'hooks/useUsers';
 import React from 'react';
 import { paymentValidationSchema } from 'schemas/payment.schema';
@@ -14,7 +14,7 @@ import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-
+import dayjs from 'dayjs';
 interface ManagePaymentProps {
   selectedPayment?: Payment | null;
   setSelectedPayment: (payment: Payment | null) => void;
@@ -41,22 +41,25 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
 
   // Fetch data for dropdowns
   const { data: usersResponse } = useUsers({ limit: 1000 });
-  const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
+
+  const { data: settingsResponse } = useSettings();
+
+  const settings = settingsResponse?.data;
+  const defaultCurrencyId = settings?.currency_id || '';
 
   const users = usersResponse?.data || [];
-  const currencies = currenciesResponse?.data || [];
 
   const formik = useFormik({
     initialValues: {
       customer_id: selectedPayment?.customer_id?.toString() || '',
       payment_date: selectedPayment?.payment_date
         ? selectedPayment.payment_date.split('T')[0]
-        : '',
+        : dayjs().format('YYYY-MM-DD'),
       collected_by: selectedPayment?.collected_by?.toString() || '',
       method: selectedPayment?.method || 'cash',
       total_amount: selectedPayment?.total_amount?.toString() || '',
       notes: selectedPayment?.notes || '',
-      currency_id: selectedPayment?.currency_id?.toString() || '',
+      currency_id: defaultCurrencyId || '',
       is_active: selectedPayment?.is_active || 'Y',
     },
     validationSchema: paymentValidationSchema,
@@ -69,10 +72,8 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
           collected_by: Number(values.collected_by),
           method: values.method || 'cash',
           total_amount: Number(values.total_amount),
-          notes: values.notes || undefined,
-          currency_id: values.currency_id
-            ? Number(values.currency_id)
-            : undefined,
+          notes: values.notes,
+          currency_id: Number(values.currency_id),
           is_active: values.is_active,
         };
 
@@ -102,14 +103,12 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <CustomerSelect
-                name="customer_id"
-                label="Customer"
-                formik={formik}
-                required
-              />
-            </Box>
+            <CustomerSelect
+              name="customer_id"
+              label="Customer"
+              formik={formik}
+              required
+            />
 
             <Input
               name="payment_date"
@@ -125,7 +124,6 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
               formik={formik}
               required
             >
-              <MenuItem value="">Select User</MenuItem>
               {users.map(user => (
                 <MenuItem key={user.id} value={user.id.toString()}>
                   {user.name} ({user.email})
@@ -156,14 +154,14 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
               required
             />
 
-            <Select name="currency_id" label="Currency" formik={formik}>
+            {/* <Select name="currency_id" label="Currency" formik={formik}>
               <MenuItem value="">Select Currency</MenuItem>
               {currencies.map(currency => (
                 <MenuItem key={currency.id} value={currency.id.toString()}>
                   {currency.name} ({currency.code})
                 </MenuItem>
               ))}
-            </Select>
+            </Select> */}
 
             <Select name="is_active" label="Status" formik={formik} required>
               <MenuItem value="Y">Active</MenuItem>

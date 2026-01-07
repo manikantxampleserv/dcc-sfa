@@ -27,11 +27,11 @@ const AttendanceReports: React.FC = () => {
     {
       page,
       limit,
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       user_id: userId,
       action_type: actionType === 'all' ? undefined : actionType,
-      search: search || undefined,
+      search: search,
     },
     {
       enabled: isRead,
@@ -60,11 +60,11 @@ const AttendanceReports: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportAttendanceHistoryReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         user_id: userId,
         action_type: actionType === 'all' ? undefined : actionType,
-        search: search || undefined,
+        search: search,
       });
     } catch (error) {
       console.error('Error exporting report to Excel:', error);
@@ -221,6 +221,7 @@ const AttendanceReports: React.FC = () => {
           <Box className="!w-full">
             <UserSelect
               label="Employee"
+              placeholder="Select Employee"
               value={userId}
               onChange={handleUserChange}
               fullWidth={true}
@@ -234,6 +235,7 @@ const AttendanceReports: React.FC = () => {
               setActionType(e.target.value);
               handleFilterChange();
             }}
+            disableClearable
           >
             <MenuItem value="all">All Actions</MenuItem>
             <MenuItem value="punch_in">Punch In</MenuItem>

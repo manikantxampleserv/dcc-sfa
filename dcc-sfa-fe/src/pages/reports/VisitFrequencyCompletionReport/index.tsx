@@ -32,8 +32,8 @@ const VisitFrequencyCompletionReport: React.FC = () => {
 
   const { data: reportData, isLoading } = useVisitFrequencyCompletionReport(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       salesperson_id: salespersonId,
       customer_id: customerId,
       status: status === 'all' ? undefined : status,
@@ -68,8 +68,8 @@ const VisitFrequencyCompletionReport: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportVisitFrequencyCompletionReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         salesperson_id: salespersonId,
         customer_id: customerId,
         status: status === 'all' ? undefined : status,
@@ -363,6 +363,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
                     : undefined
                 )
               }
+              disableClearable
             >
               <MenuItem value="all">All Salespeople</MenuItem>
               {users.map((user: any) => (
@@ -381,6 +382,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
                     : undefined
                 )
               }
+              disableClearable
             >
               <MenuItem value="all">All Customers</MenuItem>
               {customers.map((customer: any) => (
@@ -393,6 +395,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
               label="Status"
               value={status}
               onChange={e => setStatus(e.target.value)}
+              disableClearable
             >
               <MenuItem value="all">All Status</MenuItem>
               <MenuItem value="planned">Planned</MenuItem>

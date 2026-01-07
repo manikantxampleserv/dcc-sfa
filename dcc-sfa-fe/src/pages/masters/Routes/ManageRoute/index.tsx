@@ -74,8 +74,8 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
           salesperson_id: values.salesperson_id
             ? Number(values.salesperson_id)
             : undefined,
-          start_location: values.start_location || undefined,
-          end_location: values.end_location || undefined,
+          start_location: values.start_location,
+          end_location: values.end_location,
           estimated_distance: values.estimated_distance
             ? Number(values.estimated_distance)
             : undefined,
@@ -219,12 +219,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
 
           {/* Action Buttons */}
           <Box className="!flex !justify-end !gap-3 !pt-4">
-            <Button
-              type="button"
-              variant="outlined"
-              onClick={handleCancel}
-              className="!flex-1"
-            >
+            <Button type="button" variant="outlined" onClick={handleCancel}>
               Cancel
             </Button>
             <Button
@@ -233,7 +228,6 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
               loading={
                 createRouteMutation.isPending || updateRouteMutation.isPending
               }
-              className="!flex-1"
             >
               {isEdit ? 'Update Route' : 'Create Route'}
             </Button>

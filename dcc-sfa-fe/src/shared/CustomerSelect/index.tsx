@@ -281,6 +281,11 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
           error={!!error}
           helperText={helperText}
           onBlur={formik?.handleBlur}
+          slotProps={{
+            input: {
+              required: false,
+            },
+          }}
           name={name}
           size="small"
         />
@@ -292,8 +297,8 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       }
       loadingText={
         <span className="flex items-center gap-2">
-          <CircularProgress thickness={6} size={16} color="inherit" /> Loading
-          customers...
+          <CircularProgress thickness={6} size={16} color="inherit" />
+          Loading customers...
         </span>
       }
     />

@@ -29,8 +29,8 @@ const RouteEffectiveness: React.FC = () => {
 
   const { data: reportData, isLoading } = useRouteEffectiveness(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       salesperson_id: salespersonId,
       depot_id: depotId,
     },
@@ -186,6 +186,7 @@ const RouteEffectiveness: React.FC = () => {
                     : undefined
                 )
               }
+              disableClearable
             >
               <MenuItem value="all">All Salespersons</MenuItem>
               {users.map((user: any) => (
@@ -204,6 +205,7 @@ const RouteEffectiveness: React.FC = () => {
                     : undefined
                 )
               }
+              disableClearable
             >
               <MenuItem value="all">All Depots</MenuItem>
               {depots.map((depot: any) => (

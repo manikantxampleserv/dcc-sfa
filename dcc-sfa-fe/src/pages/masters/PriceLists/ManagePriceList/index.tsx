@@ -92,18 +92,18 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
         const submitData = {
           ...values,
           currency_code: values.currency_code || 'INR',
-          valid_from: values.valid_from || undefined,
-          valid_to: values.valid_to || undefined,
+          valid_from: values.valid_from,
+          valid_to: values.valid_to,
           description: values.description,
           priceListItems: priceListItems
             .filter(item => item.product_id !== '')
             .map(item => ({
               product_id: Number(item.product_id),
               unit_price: item.unit_price,
-              uom: item.uom || undefined,
-              discount_percent: item.discount_percent || undefined,
-              effective_from: item.effective_from || undefined,
-              effective_to: item.effective_to || undefined,
+              uom: item.uom,
+              discount_percent: item.discount_percent,
+              effective_from: item.effective_from,
+              effective_to: item.effective_to,
               is_active: item.is_active,
             })),
         };

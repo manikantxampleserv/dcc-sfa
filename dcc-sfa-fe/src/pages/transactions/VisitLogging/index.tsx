@@ -408,16 +408,19 @@ const VisitLogging: React.FC = () => {
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!min-w-32"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
+
                     <Select
                       value={salespersonFilter}
                       onChange={e => setSalespersonFilter(e.target.value)}
                       className="!min-w-60"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Sales Persons</MenuItem>
                       {salespeople.map(salesperson => (
@@ -432,8 +435,9 @@ const VisitLogging: React.FC = () => {
                   </>
                 )}
               </div>
-              {isRead && (
-                <div className="flex gap-2 items-center">
+
+              <div className="flex gap-2 items-center">
+                {isRead && (
                   <Button
                     variant="outlined"
                     className="!capitalize"
@@ -445,27 +449,27 @@ const VisitLogging: React.FC = () => {
                       ? 'Exporting...'
                       : 'Export'}
                   </Button>
-                  <Button
-                    variant="outlined"
-                    className="!capitalize"
-                    startIcon={<Upload />}
-                    onClick={() => setImportModalOpen(true)}
-                  >
-                    Import
-                  </Button>
-                </div>
-              )}
-              {isCreate && (
+                )}
                 <Button
-                  variant="contained"
+                  variant="outlined"
                   className="!capitalize"
-                  disableElevation
-                  startIcon={<Add />}
-                  onClick={handleCreateVisit}
+                  startIcon={<Upload />}
+                  onClick={() => setImportModalOpen(true)}
                 >
-                  Create
+                  Import
                 </Button>
-              )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateVisit}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             false

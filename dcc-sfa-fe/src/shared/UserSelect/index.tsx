@@ -45,6 +45,8 @@ interface UserSelectProps {
   nameToSearch?: string;
   /** Class name for the input */
   className?: string;
+  /** Placeholder for the input */
+  placeholder?: string;
 }
 
 /**
@@ -101,6 +103,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
   nameToSearch = '',
   onChange,
   className,
+  placeholder,
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
@@ -356,6 +359,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
           required={required}
           error={!!error}
           helperText={helperText}
+          placeholder={placeholder}
           onBlur={formik?.handleBlur}
           name={name}
           size={size}

@@ -49,8 +49,8 @@ const ManageWarehouse: React.FC<ManageWarehouseProps> = ({
       try {
         const warehouseData = {
           name: values.name,
-          type: values.type || undefined,
-          location: values.location || undefined,
+          type: values.type,
+          location: values.location,
           is_active: values.is_active,
         };
 

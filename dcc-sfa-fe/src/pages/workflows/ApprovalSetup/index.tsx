@@ -39,7 +39,7 @@ const ApprovalSetup: React.FC = () => {
     {
       page,
       size,
-      search: search || undefined,
+      search: search,
       request_type: requestTypeFilter !== 'all' ? requestTypeFilter : undefined,
     },
     { enabled: isRead }
@@ -303,6 +303,7 @@ const ApprovalSetup: React.FC = () => {
                       value={statusFilter}
                       onChange={e => handleStatusFilterChange(e.target.value)}
                       className="!w-40"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -313,7 +314,8 @@ const ApprovalSetup: React.FC = () => {
                       onChange={e =>
                         handleRequestTypeFilterChange(e.target.value)
                       }
-                      className="!w-48"
+                      className="!w-64"
+                      disableClearable
                     >
                       <MenuItem value="all">All Request Types</MenuItem>
                       {requestTypes.map(type => (

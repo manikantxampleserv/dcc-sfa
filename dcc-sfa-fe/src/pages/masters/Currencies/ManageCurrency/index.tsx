@@ -51,8 +51,8 @@ const ManageCurrency: React.FC<ManageCurrencyProps> = ({
       try {
         const currencyData = {
           name: values.name,
-          code: values.code || undefined,
-          symbol: values.symbol || undefined,
+          code: values.code,
+          symbol: values.symbol,
           exchange_rate_to_base: values.exchange_rate_to_base
             ? Number(values.exchange_rate_to_base)
             : undefined,

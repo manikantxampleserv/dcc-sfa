@@ -472,16 +472,17 @@ const CoolerInstallationsManagement: React.FC = () => {
                         setOperationalStatusFilter(e.target.value)
                       }
                       className="!w-50"
-                      label="Operational Status"
-                      placeholder="Select Operational Status"
+                      disableClearable
                     >
+                      <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="working">Working</MenuItem>
                       <MenuItem value="maintenance">Maintenance</MenuItem>
                       <MenuItem value="broken">Broken</MenuItem>
                       <MenuItem value="offline">Offline</MenuItem>
                     </Select>
                     <UserSelect
-                      label="Technician"
+                      label=""
+                      placeholder="Select Technician"
                       value={
                         technicianFilter === 'all' ||
                         technicianFilter === 'null'

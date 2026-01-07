@@ -93,8 +93,8 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
           credit_terms: values.credit_terms
             ? Number(values.credit_terms)
             : undefined,
-          payment_terms: values.payment_terms || undefined,
-          price_group: values.price_group || undefined,
+          payment_terms: values.payment_terms,
+          price_group: values.price_group,
           is_active: values.is_active,
           customerGroups: values.customerGroups,
         };

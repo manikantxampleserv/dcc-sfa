@@ -51,8 +51,8 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
         const unitData = {
           name: values.name,
           description: values.description,
-          category: values.category || undefined,
-          symbol: values.symbol || undefined,
+          category: values.category,
+          symbol: values.symbol,
           is_active: values.is_active,
         };
 

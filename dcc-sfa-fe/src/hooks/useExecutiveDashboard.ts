@@ -6,7 +6,7 @@ import {
   getOrderStatus,
 } from '../services/dashboards/executiveDashboard';
 
-const CACHE_TIME = 3 * 60 * 1000; // 3 minutes
+const CACHE_TIME = 3 * 60 * 1000;
 
 export const useDashboardStatistics = () => {
   return useQuery({

@@ -436,12 +436,32 @@ export const salesTargetGroupsController = {
 
       const existing = await prisma.sales_target_groups.findUnique({
         where: { id: Number(id) },
+        include: {
+          sales_target_group_members_id: true,
+          sales_targets_groups: true,
+        },
       });
 
       if (!existing)
         return res
           .status(404)
           .json({ message: 'Sales target group not found' });
+
+      const hasMembers = existing.sales_target_group_members_id.length > 0;
+      const hasTargets = existing.sales_targets_groups.length > 0;
+
+      if (hasMembers || hasTargets) {
+        return res.status(400).json({
+          message:
+            'Cannot delete sales target group. It has associated records.',
+          details: {
+            hasMembers,
+            hasTargets,
+            membersCount: existing.sales_target_group_members_id.length,
+            targetsCount: existing.sales_targets_groups.length,
+          },
+        });
+      }
 
       await prisma.sales_target_groups.delete({ where: { id: Number(id) } });
 

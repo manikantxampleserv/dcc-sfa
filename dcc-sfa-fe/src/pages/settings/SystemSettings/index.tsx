@@ -43,7 +43,7 @@ const validationSchema = Yup.object({
 const SystemSettings: React.FC = () => {
   const { data: settingsResponse, isLoading } = useSettings();
   const updateSettingsMutation = useUpdateSettings();
-  const { data: currenciesResponse } = useCurrencies({ isActive: 'Y' });
+  const { data: currenciesResponse } = useCurrencies({ status: 'active' });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -75,7 +75,6 @@ const SystemSettings: React.FC = () => {
         if (!settings?.id) {
           return;
         }
-
         const formData = new FormData();
         formData.append('name', values.name);
         formData.append('address', values.address || '');
@@ -102,12 +101,10 @@ const SystemSettings: React.FC = () => {
         if (uploadedFile) {
           formData.append('logo', uploadedFile);
         }
-
         await updateSettingsMutation.mutateAsync({
           id: settings.id,
           settingsData: formData,
         });
-
         setUploadedFile(null);
         setLogoPreview(null);
       } catch (error) {
@@ -366,10 +363,7 @@ const SystemSettings: React.FC = () => {
               placeholder="https://example.com"
               fullWidth
             />
-            <Select name="is_active" formik={formik} label="Status" fullWidth>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+
             <Select
               name="currency_id"
               formik={formik}

@@ -296,8 +296,8 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
           loadedConditions.push({
             _index: idx,
             id: condition.id,
-            product_id: conditionProduct.product_id || undefined,
-            product_group: conditionProduct.product_group || undefined,
+            product_id: conditionProduct.product_id,
+            product_group: conditionProduct.product_group,
             min_quantity: Number(conditionProduct.condition_quantity) || 0,
             unit: 'unit',
             type:
@@ -625,7 +625,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
             return {
               product_id: c.product_group ? undefined : c.product_id,
               category_id: product?.category_id || defaultCategoryId,
-              product_group: c.product_group || undefined,
+              product_group: c.product_group,
               min_quantity: c.min_quantity || 0,
               min_value: c.min_quantity || 0,
               quantity_type: (c.type || 'Quantity').toUpperCase(),
@@ -643,7 +643,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                   : 'AMOUNT',
             product_id: g.product_id,
             benefit_value: g.benefit_value || 0,
-            condition_type: g.application || undefined,
+            condition_type: g.application,
             gift_limit: g.gift_limit || 0,
           }));
 

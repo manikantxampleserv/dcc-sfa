@@ -30,8 +30,8 @@ const OutstandingCollectionReport: React.FC = () => {
 
   const { data: reportData, isLoading } = useOutstandingCollectionReport(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       customer_id: customerId,
       invoice_status: invoiceStatus !== 'all' ? invoiceStatus : undefined,
     },
@@ -60,8 +60,8 @@ const OutstandingCollectionReport: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportOutstandingCollectionReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         customer_id: customerId,
         invoice_status: invoiceStatus !== 'all' ? invoiceStatus : undefined,
       });
@@ -310,6 +310,7 @@ const OutstandingCollectionReport: React.FC = () => {
                   : undefined
               )
             }
+            disableClearable
           >
             <MenuItem value="all">All Customers</MenuItem>
             {customers.map((customer: any) => (
@@ -322,6 +323,7 @@ const OutstandingCollectionReport: React.FC = () => {
             label="Invoice Status"
             value={invoiceStatus}
             onChange={e => setInvoiceStatus(e.target.value)}
+            disableClearable
           >
             <MenuItem value="all">All Status</MenuItem>
             <MenuItem value="draft">Draft</MenuItem>

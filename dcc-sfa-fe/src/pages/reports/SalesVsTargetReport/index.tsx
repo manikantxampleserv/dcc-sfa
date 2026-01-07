@@ -24,8 +24,8 @@ const SalesVsTargetReport: React.FC = () => {
 
   const { data: reportData, isLoading } = useSalesVsTargetReport(
     {
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
+      start_date: startDate,
+      end_date: endDate,
       salesperson_id: salespersonId,
       product_category_id: categoryId,
     },
@@ -54,8 +54,8 @@ const SalesVsTargetReport: React.FC = () => {
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportSalesVsTargetReport({
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startDate,
+        end_date: endDate,
         salesperson_id: salespersonId,
         product_category_id: categoryId,
       });
@@ -277,6 +277,7 @@ const SalesVsTargetReport: React.FC = () => {
                       : parseInt(e.target.value)
                   )
                 }
+                disableClearable
               >
                 <MenuItem value="all">All Salespeople</MenuItem>
                 {users.map(user => (
@@ -298,6 +299,7 @@ const SalesVsTargetReport: React.FC = () => {
                       : parseInt(e.target.value)
                   )
                 }
+                disableClearable
               >
                 <MenuItem value="all">All Categories</MenuItem>
                 {categories.map((category: any) => (

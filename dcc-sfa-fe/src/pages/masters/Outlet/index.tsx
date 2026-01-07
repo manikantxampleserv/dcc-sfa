@@ -126,7 +126,10 @@ const OutletsManagement: React.FC = () => {
       id: 'name',
       label: 'Outlet Name',
       render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
+        <Box
+          className="!flex !gap-2 !items-center"
+          onClick={() => navigate(`/masters/outlets/${row.id}`)}
+        >
           <Avatar
             alt={row.name}
             className="!rounded !bg-primary-100 !text-primary-600"
@@ -342,7 +345,6 @@ const OutletsManagement: React.FC = () => {
       <Table
         data={customers}
         columns={outletColumns}
-        onRowClick={(row: Customer) => navigate(`/masters/outlets/${row.id}`)}
         actions={
           isRead || isCreate ? (
             <div className="flex justify-between w-full items-center flex-wrap gap-2">

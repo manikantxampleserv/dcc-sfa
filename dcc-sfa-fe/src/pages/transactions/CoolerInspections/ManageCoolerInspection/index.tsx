@@ -77,18 +77,18 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
         const inspectionData = {
           cooler_id: Number(values.cooler_id),
           inspected_by: Number(values.inspected_by),
-          inspection_date: values.inspection_date || undefined,
+          inspection_date: values.inspection_date,
           temperature: values.temperature
             ? Number(values.temperature)
             : undefined,
           is_working: values.is_working,
-          issues: values.issues || undefined,
-          images: values.images || undefined,
+          issues: values.issues,
+          images: values.images,
           latitude: values.latitude ? Number(values.latitude) : undefined,
           longitude: values.longitude ? Number(values.longitude) : undefined,
           action_required: values.action_required,
-          action_taken: values.action_taken || undefined,
-          next_inspection_due: values.next_inspection_due || undefined,
+          action_taken: values.action_taken,
+          next_inspection_due: values.next_inspection_due,
           visit_id: values.visit_id ? Number(values.visit_id) : undefined,
           is_active: values.is_active,
         };
