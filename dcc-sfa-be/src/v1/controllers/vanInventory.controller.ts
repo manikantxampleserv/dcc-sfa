@@ -1317,7 +1317,6 @@ export const vanInventoryController = {
                         );
                       }
 
-                      // 1. Find or create batch_lots
                       let batchLot = await tx.batch_lots.findFirst({
                         where: {
                           batch_number: batchInput.batch_number,
@@ -1326,7 +1325,6 @@ export const vanInventoryController = {
                       });
 
                       if (batchLot) {
-                        // Update existing batch_lots
                         await tx.batch_lots.update({
                           where: { id: batchLot.id },
                           data: {
@@ -1340,7 +1338,6 @@ export const vanInventoryController = {
                           ` Updated batch_lots: ${batchLot.batch_number}`
                         );
                       } else {
-                        // Create new batch_lots
                         batchLot = await tx.batch_lots.create({
                           data: {
                             batch_number: batchInput.batch_number,
@@ -1375,7 +1372,6 @@ export const vanInventoryController = {
                         );
                       }
 
-                      // 2. Update or create product_batches
                       let productBatch = await tx.product_batches.findFirst({
                         where: {
                           product_id: product.id,
@@ -1408,8 +1404,6 @@ export const vanInventoryController = {
                         console.log(` Created product_batches`);
                       }
 
-                      // 3. Update or create van_inventory_items
-                      // Search across ALL van inventories for this user to find existing batch
                       const existingVanItem =
                         await tx.van_inventory_items.findFirst({
                           where: {
@@ -1426,7 +1420,6 @@ export const vanInventoryController = {
                         });
 
                       if (existingVanItem) {
-                        // UPDATE existing van item
                         const newQuantity = existingVanItem.quantity + batchQty;
                         await tx.van_inventory_items.update({
                           where: { id: existingVanItem.id },
@@ -1440,7 +1433,6 @@ export const vanInventoryController = {
                           ` Updated van_inventory_items (ID: ${existingVanItem.id}): ${existingVanItem.quantity} → ${newQuantity}`
                         );
                       } else {
-                        // CREATE new van item
                         await tx.van_inventory_items.create({
                           data: {
                             parent_id: inventory.id,
@@ -1462,7 +1454,6 @@ export const vanInventoryController = {
                         console.log(` Created van_inventory_items`);
                       }
 
-                      // 4. Update inventory_stock
                       await updateInventoryStock(
                         tx,
                         product.id,
@@ -1474,7 +1465,6 @@ export const vanInventoryController = {
                         userId
                       );
 
-                      // 5. Create stock movement
                       await createStockMovement(tx, {
                         product_id: product.id,
                         batch_id: batchLot.id,
@@ -1642,9 +1632,7 @@ export const vanInventoryController = {
                       );
                     }
 
-                    console.log(
-                      `📦 Product: ${product.name}, ID: ${product.id}`
-                    );
+                    console.log(` Product: ${product.name}, ID: ${product.id}`);
 
                     for (const serialInput of serialData) {
                       const serialNumber =
@@ -1656,7 +1644,6 @@ export const vanInventoryController = {
                         throw new Error('Serial number is required');
                       }
 
-                      // ✅ STEP 1: FIND OR CREATE SERIAL
                       let existingSerial = await tx.serial_numbers.findUnique({
                         where: { serial_number: serialNumber },
                       });
@@ -1692,17 +1679,16 @@ export const vanInventoryController = {
                             log_inst: 1,
                           },
                         });
-                        console.log(`✅ Created new serial ${serialNumber}`);
+                        console.log(` Created new serial ${serialNumber}`);
                       }
 
-                      // ✅ STEP 2: Search EXISTING van_inventory_items (SAME AS BATCH!)
                       const existingVanItem =
                         await tx.van_inventory_items.findFirst({
                           where: {
                             product_id: product.id,
                             serial_id: existingSerial.id,
                             van_inventory_items_inventory: {
-                              user_id: inventoryData.user_id, // ✅ ALL vans for this user
+                              user_id: inventoryData.user_id,
                               is_active: 'Y',
                             },
                           },
@@ -1712,7 +1698,6 @@ export const vanInventoryController = {
                         });
 
                       if (existingVanItem) {
-                        // ✅ UPDATE existing record (0→1 or increment)
                         const newQuantity = existingVanItem.quantity + 1;
 
                         await tx.van_inventory_items.update({
@@ -1724,10 +1709,9 @@ export const vanInventoryController = {
                           },
                         });
                         console.log(
-                          `✅ Updated van_inventory_items ID: ${existingVanItem.id}, quantity: ${existingVanItem.quantity}→${newQuantity}`
+                          ` Updated van_inventory_items ID: ${existingVanItem.id}, quantity: ${existingVanItem.quantity}→${newQuantity}`
                         );
                       } else {
-                        // ✅ CREATE new record
                         await tx.van_inventory_items.create({
                           data: {
                             parent_id: inventory.id,
@@ -1746,11 +1730,10 @@ export const vanInventoryController = {
                           },
                         });
                         console.log(
-                          `✅ Created new van_inventory_items for serial ${serialNumber}`
+                          `Created new van_inventory_items for serial ${serialNumber}`
                         );
                       }
 
-                      // ✅ STEP 3: UPDATE inventory_stock
                       await updateInventoryStock(
                         tx,
                         product.id,
@@ -1762,10 +1745,9 @@ export const vanInventoryController = {
                         userId
                       );
                       console.log(
-                        `✅ INCREASED inventory_stock for serial ${serialNumber}`
+                        ` INCREASED inventory_stock for serial ${serialNumber}`
                       );
 
-                      // ✅ STEP 4: CREATE stock_movement
                       await createStockMovement(tx, {
                         product_id: product.id,
                         batch_id: null,
@@ -1781,7 +1763,7 @@ export const vanInventoryController = {
                         createdby: userId,
                       });
                       console.log(
-                        `✅ Created VAN_LOAD stock movement for ${serialNumber}`
+                        ` Created VAN_LOAD stock movement for ${serialNumber}`
                       );
                     }
                   }
@@ -2563,7 +2545,7 @@ export const vanInventoryController = {
                       where: {
                         product_id: product.id,
                         serial_id: existingSerial.id,
-                        quantity: { gt: 0 }, // ✅ Only items with quantity > 0
+                        quantity: { gt: 0 },
                       },
                     });
 
@@ -2574,19 +2556,16 @@ export const vanInventoryController = {
                     }
 
                     console.log(
-                      `✅ Found in van_inventory_items ID: ${vanItem.id}, parent_id: ${vanItem.parent_id}`
+                      ` Found in van_inventory_items ID: ${vanItem.id}, parent_id: ${vanItem.parent_id}`
                     );
 
-                    // ✅ USE THE CORRECT VAN INVENTORY ID
                     const vanInventoryId = vanItem.parent_id;
 
-                    // ✅ UNLOAD: SET VAN QUANTITY TO 0
                     await tx.van_inventory_items.update({
                       where: { id: vanItem.id },
                       data: { quantity: 0 },
                     });
 
-                    // ✅ DECREASE INVENTORY_STOCK
                     const inventoryStock = await tx.inventory_stock.findFirst({
                       where: {
                         product_id: product.id,
@@ -2611,7 +2590,7 @@ export const vanInventoryController = {
                         },
                       });
                       console.log(
-                        `✅ DECREASED inventory_stock for ${serialNumber}`
+                        ` DECREASED inventory_stock for ${serialNumber}`
                       );
                     }
 
