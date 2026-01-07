@@ -30,6 +30,7 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
   const handleCancel = () => {
     setSelectedVehicle(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createVehicleMutation = useCreateVehicle();

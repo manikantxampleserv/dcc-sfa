@@ -34,7 +34,7 @@ const WarehousesPage: React.FC = () => {
 
   const {
     data: warehousesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useWarehouses(
     {
@@ -222,28 +222,28 @@ const WarehousesPage: React.FC = () => {
           value={totalWarehouses}
           icon={<WarehouseIcon className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Warehouses"
           value={activeWarehouses}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Warehouses"
           value={inactiveWarehouses}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newWarehousesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -333,7 +333,7 @@ const WarehousesPage: React.FC = () => {
         }
         getRowId={warehouse => warehouse.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

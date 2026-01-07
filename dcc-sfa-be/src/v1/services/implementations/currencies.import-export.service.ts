@@ -199,7 +199,7 @@ export class CurrenciesImportExportService extends ImportExportService<any> {
     if (data.name) {
       const existingName = await model.findFirst({
         where: {
-          name: data.name, // Remove mode: 'insensitive'
+          name: data.name,
         },
       });
 
@@ -372,7 +372,6 @@ export class CurrenciesImportExportService extends ImportExportService<any> {
       where: {
         name: {
           equals: data.name,
-          mode: 'insensitive',
         },
       },
     });

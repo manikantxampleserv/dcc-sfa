@@ -35,7 +35,7 @@ const ProductFlavoursPage: React.FC = () => {
 
   const {
     data: flavoursResponse,
-    isLoading,
+    isFetching,
     error,
   } = useProductFlavours(
     {
@@ -219,28 +219,28 @@ const ProductFlavoursPage: React.FC = () => {
           value={totalFlavours}
           icon={<Coffee className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Flavours"
           value={activeFlavours}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Flavours"
           value={inactiveFlavours}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newFlavoursThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -274,6 +274,7 @@ const ProductFlavoursPage: React.FC = () => {
                         setPage(1);
                       }}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -333,7 +334,7 @@ const ProductFlavoursPage: React.FC = () => {
         }
         getRowId={flavour => flavour.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

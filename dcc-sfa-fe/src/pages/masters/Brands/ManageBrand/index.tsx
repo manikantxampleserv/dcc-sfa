@@ -26,6 +26,7 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
   const handleCancel = () => {
     setSelectedBrand(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createBrandMutation = useCreateBrand();
@@ -43,7 +44,7 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
       try {
         const brandData = {
           name: values.name,
-          description: values.description || undefined,
+          description: values.description,
           is_active: values.is_active,
         };
 

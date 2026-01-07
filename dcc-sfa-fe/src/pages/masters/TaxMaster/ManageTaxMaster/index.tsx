@@ -78,7 +78,7 @@ const ManageTaxMaster: React.FC<ManageTaxMasterProps> = ({
           name: values.name,
           code: values.code,
           tax_rate: Number(values.tax_rate),
-          description: values.description || undefined,
+          description: values.description,
           is_active: values.is_active,
         };
 

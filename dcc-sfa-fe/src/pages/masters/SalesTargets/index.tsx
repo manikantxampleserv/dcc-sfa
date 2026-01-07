@@ -330,6 +330,7 @@ const SalesTargetsManagement: React.FC = () => {
                     onChange={e => setStatusFilter(e.target.value)}
                     className="!min-w-32"
                     size="small"
+                    disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>

@@ -30,6 +30,7 @@ const ManageProductWebOrder: React.FC<ManageProductWebOrderProps> = ({
   const handleCancel = () => {
     setSelectedProductWebOrder(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createProductWebOrderMutation = useCreateProductWebOrder();

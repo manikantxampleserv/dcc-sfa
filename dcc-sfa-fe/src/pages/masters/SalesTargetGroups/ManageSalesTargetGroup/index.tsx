@@ -77,7 +77,7 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
       try {
         const submitData = {
           ...values,
-          description: values.description || undefined,
+          description: values.description,
           salesTargetMember: members
             .filter(member => member.sales_person_id !== '')
             .map(member => ({

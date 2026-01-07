@@ -38,6 +38,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
   const handleCancel = () => {
     setSelectedRoute(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createRouteMutation = useCreateRoute();
@@ -69,7 +70,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
           depot_id: Number(values.depot_id),
           route_type_id: Number(values.route_type_id),
           name: values.name,
-          description: values.description || undefined,
+          description: values.description,
           salesperson_id: values.salesperson_id
             ? Number(values.salesperson_id)
             : undefined,

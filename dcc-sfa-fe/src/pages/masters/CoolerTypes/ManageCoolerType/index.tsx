@@ -30,6 +30,7 @@ const ManageCoolerType: React.FC<ManageCoolerTypeProps> = ({
   const handleCancel = () => {
     setSelectedCoolerType(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createCoolerTypeMutation = useCreateCoolerType();
@@ -48,8 +49,8 @@ const ManageCoolerType: React.FC<ManageCoolerTypeProps> = ({
       try {
         const coolerTypeData = {
           name: values.name,
-          code: values.code || undefined,
-          description: values.description || undefined,
+          code: values.code,
+          description: values.description,
           is_active: values.is_active,
         };
 
@@ -151,4 +152,3 @@ const ManageCoolerType: React.FC<ManageCoolerTypeProps> = ({
 };
 
 export default ManageCoolerType;
-

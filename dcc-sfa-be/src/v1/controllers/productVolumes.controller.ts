@@ -250,13 +250,11 @@ export const productVolumesController = {
           {
             name: {
               contains: searchLower,
-              mode: 'insensitive',
             },
           },
           {
             code: {
               contains: searchLower,
-              mode: 'insensitive',
             },
           },
         ];

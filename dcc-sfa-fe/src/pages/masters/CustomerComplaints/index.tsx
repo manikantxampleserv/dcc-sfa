@@ -42,7 +42,7 @@ const CustomerComplaintsPage: React.FC = () => {
 
   const {
     data: complaintsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCustomerComplaints(
     {
@@ -272,28 +272,28 @@ const CustomerComplaintsPage: React.FC = () => {
           value={totalComplaints}
           icon={<MessageSquare className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Pending Complaints"
           value={pendingComplaints}
           icon={<AlertCircle className="w-6 h-6" />}
           color="orange"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Resolved Complaints"
           value={resolvedComplaints}
           icon={<MessageSquare className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Closed Complaints"
           value={closedComplaints}
           icon={<MessageSquare className="w-6 h-6" />}
           color="gray"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -323,6 +323,7 @@ const CustomerComplaintsPage: React.FC = () => {
                     value={statusFilter}
                     onChange={e => handleStatusFilterChange(e.target.value)}
                     className="!w-40"
+                    disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="P">Pending</MenuItem>
@@ -382,7 +383,7 @@ const CustomerComplaintsPage: React.FC = () => {
         }
         getRowId={complaint => complaint.id}
         initialOrderBy="createdate"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={pagination?.total_count || 0}
         page={page - 1}
         rowsPerPage={limit}

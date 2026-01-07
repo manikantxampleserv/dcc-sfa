@@ -287,19 +287,8 @@ const InventoryDetail: React.FC = () => {
         sortable: true,
       },
       {
-        id: 'supplier_name',
-        label: 'Supplier',
-        sortable: true,
-        render: (value: string | undefined) => (value ? String(value) : 'N/A'),
-      },
-      {
-        id: 'total_quantity',
-        label: 'Total Qty',
-        sortable: true,
-      },
-      {
         id: 'remaining_quantity',
-        label: 'Remaining',
+        label: 'Quantity',
         sortable: true,
       },
       {
@@ -514,7 +503,7 @@ const InventoryDetail: React.FC = () => {
         />
         <StatsCard
           title="Total Quantity"
-          value={salespersonData?.total_quantity || 0}
+          value={salespersonData?.total_remaining_quantity || 0}
           icon={<TrendingUp className="w-6 h-6" />}
           color="green"
         />
@@ -584,7 +573,7 @@ const InventoryDetail: React.FC = () => {
                         Total Quantity
                       </span>
                       <span className="font-medium">
-                        {product.total_quantity}
+                        {product.total_remaining_quantity}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">

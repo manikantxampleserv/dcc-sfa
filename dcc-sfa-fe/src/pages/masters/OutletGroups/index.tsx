@@ -29,7 +29,7 @@ const OutletGroupsManagement: React.FC = () => {
 
   const {
     data: outletGroupsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useOutletGroups(
     {
@@ -259,28 +259,28 @@ const OutletGroupsManagement: React.FC = () => {
           value={totalGroups}
           icon={<Users className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Groups"
           value={activeGroups}
           icon={<UserCheck className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Groups"
           value={inactiveGroups}
           icon={<Users className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Avg Discount %"
           value={avgDiscountPercentage}
           icon={<Percent className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -313,6 +313,7 @@ const OutletGroupsManagement: React.FC = () => {
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!min-w-32"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -339,7 +340,7 @@ const OutletGroupsManagement: React.FC = () => {
         }
         getRowId={outletGroup => outletGroup.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

@@ -107,9 +107,9 @@ export const coolerSubTypesController = {
         ...(coolerTypeId && { cooler_type_id: Number(coolerTypeId) }),
         ...(search && {
           OR: [
-            { name: { contains: searchLower, mode: 'insensitive' } },
-            { code: { contains: searchLower, mode: 'insensitive' } },
-            { description: { contains: searchLower, mode: 'insensitive' } },
+            { name: { contains: searchLower } },
+            { code: { contains: searchLower } },
+            { description: { contains: searchLower } },
           ],
         }),
       };

@@ -30,6 +30,7 @@ const ManageProductFlavour: React.FC<ManageProductFlavourProps> = ({
   const handleCancel = () => {
     setSelectedFlavour(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createFlavourMutation = useCreateProductFlavour();

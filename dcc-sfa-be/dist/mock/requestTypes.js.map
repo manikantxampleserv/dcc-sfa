@@ -1,0 +1,1 @@
+{"version":3,"file":"requestTypes.js","sourceRoot":"","sources":["../../src/mock/requestTypes.ts"],"names":[],"mappings":";;;AAAa,QAAA,YAAY,GAAG;IAC1B;QACE,KAAK,EAAE,gBAAgB;QACvB,KAAK,EAAE,gBAAgB;KACxB;IACD;QACE,KAAK,EAAE,gBAAgB;QACvB,KAAK,EAAE,gBAAgB;KACxB;IACD;QACE,KAAK,EAAE,iBAAiB;QACxB,KAAK,EAAE,iBAAiB;KACzB;CACF,CAAC"}

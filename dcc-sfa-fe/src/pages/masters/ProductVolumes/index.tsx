@@ -35,7 +35,7 @@ const ProductVolumesPage: React.FC = () => {
 
   const {
     data: volumesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useProductVolumes(
     {
@@ -219,28 +219,28 @@ const ProductVolumesPage: React.FC = () => {
           value={totalVolumes}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Volumes"
           value={activeVolumes}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Volumes"
           value={inactiveVolumes}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newVolumesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -274,6 +274,7 @@ const ProductVolumesPage: React.FC = () => {
                         setPage(1);
                       }}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -333,7 +334,7 @@ const ProductVolumesPage: React.FC = () => {
         }
         getRowId={volume => volume.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

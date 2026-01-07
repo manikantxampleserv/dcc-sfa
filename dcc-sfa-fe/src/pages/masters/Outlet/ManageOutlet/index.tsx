@@ -39,6 +39,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
   const handleCancel = () => {
     setSelectedOutlet(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createCustomerMutation = useCreateCustomer();

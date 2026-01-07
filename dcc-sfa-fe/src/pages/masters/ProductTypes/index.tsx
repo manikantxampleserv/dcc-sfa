@@ -34,7 +34,7 @@ const ProductTypesPage: React.FC = () => {
 
   const {
     data: productTypesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useProductTypes(
     {
@@ -218,28 +218,28 @@ const ProductTypesPage: React.FC = () => {
           value={totalProductTypes}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Types"
           value={activeProductTypes}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Types"
           value={inactiveProductTypes}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newProductTypesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -273,6 +273,7 @@ const ProductTypesPage: React.FC = () => {
                         setPage(1);
                       }}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -332,7 +333,7 @@ const ProductTypesPage: React.FC = () => {
         }
         getRowId={productType => productType.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

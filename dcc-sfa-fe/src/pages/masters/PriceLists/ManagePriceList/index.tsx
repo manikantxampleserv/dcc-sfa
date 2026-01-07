@@ -94,7 +94,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           currency_code: values.currency_code || 'INR',
           valid_from: values.valid_from || undefined,
           valid_to: values.valid_to || undefined,
-          description: values.description || undefined,
+          description: values.description,
           priceListItems: priceListItems
             .filter(item => item.product_id !== '')
             .map(item => ({

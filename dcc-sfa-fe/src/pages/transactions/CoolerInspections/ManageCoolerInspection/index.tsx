@@ -34,6 +34,7 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
   const handleCancel = () => {
     setSelectedInspection(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createCoolerInspectionMutation = useCreateCoolerInspection();

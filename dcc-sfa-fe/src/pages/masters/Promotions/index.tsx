@@ -38,7 +38,7 @@ const PromotionsManagement: React.FC = () => {
 
   const {
     data: promotionsResponse,
-    isLoading,
+    isFetching,
     error,
   } = usePromotions({
     search,
@@ -264,28 +264,28 @@ const PromotionsManagement: React.FC = () => {
           value={totalPromotions}
           icon={<Tag className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Promotions"
           value={activePromotions}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Promotions"
           value={inactivePromotions}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newPromotionsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -319,6 +319,7 @@ const PromotionsManagement: React.FC = () => {
                         setPage(1);
                       }}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -368,7 +369,7 @@ const PromotionsManagement: React.FC = () => {
         }
         getRowId={promotion => promotion.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

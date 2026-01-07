@@ -68,8 +68,8 @@ export const productWebOrdersController = {
         ...(isActive && { is_active: isActive as string }),
         ...(search && {
           OR: [
-            { name: { contains: searchLower, mode: 'insensitive' } },
-            { code: { contains: searchLower, mode: 'insensitive' } },
+            { name: { contains: searchLower } },
+            { code: { contains: searchLower } },
           ],
         }),
       };
@@ -224,13 +224,11 @@ export const productWebOrdersController = {
           {
             name: {
               contains: searchLower,
-              mode: 'insensitive',
             },
           },
           {
             code: {
               contains: searchLower,
-              mode: 'insensitive',
             },
           },
         ];

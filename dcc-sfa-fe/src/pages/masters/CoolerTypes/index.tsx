@@ -33,7 +33,7 @@ const CoolerTypesPage: React.FC = () => {
 
   const {
     data: coolerTypesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCoolerTypes(
     {
@@ -223,28 +223,28 @@ const CoolerTypesPage: React.FC = () => {
           value={totalCoolerTypes}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Types"
           value={activeCoolerTypes}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Types"
           value={inactiveCoolerTypes}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newCoolerTypesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -278,9 +278,9 @@ const CoolerTypesPage: React.FC = () => {
                         setPage(1);
                       }}
                       className="!w-32"
-                      label="Status"
-                      placeholder="Select Status"
+                      disableClearable
                     >
+                      <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
@@ -338,7 +338,7 @@ const CoolerTypesPage: React.FC = () => {
         }
         getRowId={coolerType => coolerType.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

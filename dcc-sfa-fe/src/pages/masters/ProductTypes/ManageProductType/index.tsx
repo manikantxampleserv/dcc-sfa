@@ -30,6 +30,7 @@ const ManageProductType: React.FC<ManageProductTypeProps> = ({
   const handleCancel = () => {
     setSelectedProductType(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createProductTypeMutation = useCreateProductType();

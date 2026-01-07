@@ -32,6 +32,7 @@ const ManageZone: React.FC<ManageZoneProps> = ({
   const handleCancel = () => {
     setSelectedZone(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createZoneMutation = useCreateZone();
@@ -52,7 +53,7 @@ const ManageZone: React.FC<ManageZoneProps> = ({
         const zoneData = {
           parent_id: Number(values.parent_id),
           name: values.name,
-          description: values.description || undefined,
+          description: values.description,
           supervisor_id: values.supervisor_id
             ? Number(values.supervisor_id)
             : undefined,

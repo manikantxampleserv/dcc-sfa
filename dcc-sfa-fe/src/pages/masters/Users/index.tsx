@@ -27,7 +27,7 @@ const UsersManagement: React.FC = () => {
 
   const {
     data: usersResponse,
-    isLoading,
+    isFetching,
     error,
   } = useUsers(
     {
@@ -39,7 +39,9 @@ const UsersManagement: React.FC = () => {
           ? undefined
           : statusFilter === 'active'
             ? 'Y'
-            : 'N',
+            : statusFilter === 'inactive'
+              ? 'N'
+              : undefined,
     },
     {
       enabled: isRead,
@@ -246,21 +248,21 @@ const UsersManagement: React.FC = () => {
           value={usersResponse?.stats?.total_users || 0}
           icon={<UsersIcon className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Users"
           value={usersResponse?.stats?.active_users || 0}
           icon={<UserCheck className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Users"
           value={usersResponse?.stats?.inactive_users || 0}
           icon={<UserX className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
 
         <StatsCard
@@ -268,7 +270,7 @@ const UsersManagement: React.FC = () => {
           value={usersResponse?.stats?.new_users || 0}
           icon={<UserPlus className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -300,6 +302,7 @@ const UsersManagement: React.FC = () => {
                     onChange={e => setStatusFilter(e.target.value)}
                     className="!min-w-32"
                     size="small"
+                    disableClearable
                   >
                     <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
@@ -325,7 +328,7 @@ const UsersManagement: React.FC = () => {
         }
         getRowId={user => user.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={pagination.total}
         page={page - 1}
         rowsPerPage={limit}

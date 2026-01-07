@@ -42,7 +42,7 @@ const ProductCategoriesPage: React.FC = () => {
 
   const {
     data: productCategoriesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useProductCategories(
     {
@@ -243,28 +243,28 @@ const ProductCategoriesPage: React.FC = () => {
           value={totalProductCategories}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Categories"
           value={activeProductCategories}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Categories"
           value={inactiveProductCategories}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newProductCategoriesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -295,8 +295,10 @@ const ProductCategoriesPage: React.FC = () => {
                       value={statusFilter}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         setStatusFilter(e.target.value);
+                        setPage(1);
                       }}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -356,7 +358,7 @@ const ProductCategoriesPage: React.FC = () => {
         }
         getRowId={productCategory => productCategory.id}
         initialOrderBy="category_name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

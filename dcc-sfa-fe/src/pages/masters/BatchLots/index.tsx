@@ -44,7 +44,7 @@ const BatchLotsPage: React.FC = () => {
 
   const {
     data: batchLotsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useBatchLots(
     {
@@ -371,28 +371,28 @@ const BatchLotsPage: React.FC = () => {
           value={totalBatchLots}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Batches"
           value={activeBatchLots}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Expiring Soon"
           value={expiringBatchLots}
           icon={<AlertTriangle className="w-6 h-6" />}
           color="orange"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Expired"
           value={expiredBatchLots}
           icon={<Archive className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -426,8 +426,9 @@ const BatchLotsPage: React.FC = () => {
                         setPage(1);
                       }}
                       className="!w-32"
-                      label="Status"
+                      disableClearable
                     >
+                      <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
@@ -485,7 +486,7 @@ const BatchLotsPage: React.FC = () => {
         }
         getRowId={batchLot => batchLot.id}
         initialOrderBy="expiry_date"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

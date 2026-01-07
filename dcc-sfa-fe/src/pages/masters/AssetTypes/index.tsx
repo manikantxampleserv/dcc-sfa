@@ -42,7 +42,7 @@ const AssetTypesPage: React.FC = () => {
 
   const {
     data: assetTypesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useAssetTypes(
     {
@@ -262,28 +262,28 @@ const AssetTypesPage: React.FC = () => {
           value={totalAssetTypes}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Types"
           value={activeAssetTypes}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Types"
           value={inactiveAssetTypes}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newAssetTypesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -317,6 +317,7 @@ const AssetTypesPage: React.FC = () => {
                         setPage(1);
                       }}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -376,7 +377,7 @@ const AssetTypesPage: React.FC = () => {
         }
         getRowId={assetType => assetType.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

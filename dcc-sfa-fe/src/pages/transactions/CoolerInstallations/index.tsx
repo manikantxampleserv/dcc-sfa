@@ -460,9 +460,9 @@ const CoolerInstallationsManagement: React.FC = () => {
                         setStatusFilter(e.target.value)
                       }
                       className="!w-32"
-                      label="Active Status"
-                      placeholder="Select Active Status"
+                      disableClearable
                     >
+                      <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="Y">Active</MenuItem>
                       <MenuItem value="N">Inactive</MenuItem>
                     </Select>

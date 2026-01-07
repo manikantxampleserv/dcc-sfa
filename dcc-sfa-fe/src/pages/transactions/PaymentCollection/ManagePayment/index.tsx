@@ -33,6 +33,7 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
   const handleCancel = () => {
     setSelectedPayment(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createPaymentMutation = useCreatePayment();

@@ -473,9 +473,9 @@ const ProductsManagement: React.FC = () => {
                       }}
                       className="!min-w-32"
                       size="small"
-                      placeholder="Select Status"
-                      label="Status"
+                      disableClearable
                     >
+                      <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>

@@ -30,6 +30,7 @@ const ManageCurrency: React.FC<ManageCurrencyProps> = ({
   const handleCancel = () => {
     setSelectedCurrency(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createCurrencyMutation = useCreateCurrency();

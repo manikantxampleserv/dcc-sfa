@@ -37,6 +37,7 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
   const handleCancel = () => {
     setSelectedOutletGroup(null);
     setDrawerOpen(false);
+    formik.resetForm();
   };
 
   const createOutletGroupMutation = useCreateOutletGroup();
@@ -85,7 +86,7 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
       try {
         const outletGroupData = {
           name: values.name,
-          description: values.description || undefined,
+          description: values.description,
           discount_percentage: values.discount_percentage
             ? Number(values.discount_percentage)
             : undefined,

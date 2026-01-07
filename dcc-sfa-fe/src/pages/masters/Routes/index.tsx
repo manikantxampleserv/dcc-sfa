@@ -37,7 +37,7 @@ const RoutesManagement: React.FC = () => {
 
   const {
     data: routesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useRoutes(
     {
@@ -320,28 +320,28 @@ const RoutesManagement: React.FC = () => {
           value={totalRoutes}
           icon={<RouteIcon className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Routes"
           value={activeRoutes}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Routes"
           value={inactiveRoutes}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newRoutesThisMonth}
           icon={<Navigation className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -374,6 +374,7 @@ const RoutesManagement: React.FC = () => {
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!min-w-32"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -384,6 +385,7 @@ const RoutesManagement: React.FC = () => {
                       onChange={e => setDepotFilter(e.target.value)}
                       className="!min-w-60"
                       size="small"
+                      disableClearable
                     >
                       <MenuItem value="all">All Depots</MenuItem>
                       {depots.map(depot => (
@@ -413,7 +415,7 @@ const RoutesManagement: React.FC = () => {
         }
         getRowId={route => route.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

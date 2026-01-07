@@ -36,7 +36,7 @@ const BrandsPage: React.FC = () => {
 
   const {
     data: brandsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useBrands(
     {
@@ -229,28 +229,28 @@ const BrandsPage: React.FC = () => {
           value={totalBrands}
           icon={<Tag className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Brands"
           value={activeBrands}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Brands"
           value={inactiveBrands}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newBrandsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -281,6 +281,7 @@ const BrandsPage: React.FC = () => {
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
                       className="!w-32"
+                      disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -340,7 +341,7 @@ const BrandsPage: React.FC = () => {
         }
         getRowId={brand => brand.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

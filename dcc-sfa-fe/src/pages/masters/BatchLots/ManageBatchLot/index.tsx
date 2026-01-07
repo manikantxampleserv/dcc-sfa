@@ -47,6 +47,7 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
     setDrawerOpen(false);
     setSelectedProducts([]);
     hasLoadedProductsRef.current = false;
+    formik.resetForm();
   };
 
   const createBatchLotMutation = useCreateBatchLot();
