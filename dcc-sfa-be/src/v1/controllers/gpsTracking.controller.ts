@@ -564,7 +564,6 @@ export const gpsTrackingController = {
         };
       });
 
-      // Calculate summary
       const totalRoutes = routeAnalysis.length;
       const totalCustomers = routeAnalysis.reduce(
         (sum, r) => sum + r.total_customers,

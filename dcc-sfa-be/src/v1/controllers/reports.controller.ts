@@ -2657,9 +2657,12 @@ export const reportsController = {
             },
           },
           visit_zones: {
-            where: Object.keys(dateFilter).length > 0 ? {
-              visit_date: dateFilter,
-            } : undefined,
+            where:
+              Object.keys(dateFilter).length > 0
+                ? {
+                    visit_date: dateFilter,
+                  }
+                : undefined,
             select: { id: true },
           },
         },
