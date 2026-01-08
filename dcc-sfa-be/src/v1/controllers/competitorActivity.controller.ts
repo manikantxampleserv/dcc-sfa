@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { deleteFile, uploadFile } from '../../utils/blackbaze';
 
 interface CompetitorActivitySerialized {
   id: number;
@@ -34,8 +35,8 @@ const serializeCompetitorActivity = (
   activity: any
 ): CompetitorActivitySerialized => ({
   id: activity.id,
-  customer_id: activity.customer_id,
-  visit_id: activity.visit_id,
+  customer_id: Number(activity.customer_id),
+  visit_id: activity.visit_id ? Number(activity.visit_id) : null,
   brand_name: activity.brand_name,
   product_name: activity.product_name,
   observed_price: activity.observed_price,
@@ -53,9 +54,10 @@ const serializeCompetitorActivity = (
 });
 
 export const competitorActivityController = {
-  async createCompetitorActivity(req: Request, res: Response) {
+  async createCompetitorActivity(req: any, res: any) {
     try {
       const data = req.body;
+
       if (!data.brand_name) {
         return res.status(400).json({ message: 'Brand name is required' });
       }
@@ -63,11 +65,37 @@ export const competitorActivityController = {
         return res.status(400).json({ message: 'Customer ID is required' });
       }
 
+      // Handle image upload
+      let imagePath: string | null = null;
+      if (req.file) {
+        const fileName = `competitor-activities/${Date.now()}-${req.file.originalname}`;
+        imagePath = await uploadFile(
+          req.file.buffer,
+          fileName,
+          req.file.mimetype
+        );
+      }
+
+      // Convert form-data string values to appropriate types
       const competitorActivity = await prisma.competitor_activity.create({
         data: {
-          ...data,
-          createdby: data.createdby ? Number(data.createdby) : 1,
-          log_inst: data.log_inst || 1,
+          customer_id: parseInt(data.customer_id),
+          visit_id: data.visit_id ? parseInt(data.visit_id) : null,
+          brand_name: data.brand_name,
+          product_name: data.product_name || null,
+          observed_price: data.observed_price
+            ? parseFloat(data.observed_price)
+            : null,
+          promotion_details: data.promotion_details || null,
+          visibility_score: data.visibility_score
+            ? parseInt(data.visibility_score)
+            : null,
+          image_url: imagePath,
+          remarks: data.remarks || null,
+          is_active: data.is_active || 'Y',
+          createdby:
+            req.user?.id || (data.createdby ? parseInt(data.createdby) : 1),
+          log_inst: data.log_inst ? parseInt(data.log_inst) : 1,
           createdate: new Date(),
         },
         include: {
@@ -215,7 +243,7 @@ export const competitorActivityController = {
     }
   },
 
-  async updateCompetitorActivity(req: Request, res: Response) {
+  async updateCompetitorActivity(req: any, res: any) {
     try {
       const { id } = req.params;
       const existingActivity = await prisma.competitor_activity.findUnique({
@@ -228,11 +256,47 @@ export const competitorActivityController = {
           .json({ message: 'Competitor activity not found' });
       }
 
-      const data = { ...req.body, updatedate: new Date() };
+      let imagePath: string | null = existingActivity.image_url;
+      if (req.file) {
+        const fileName = `competitor-activities/${Date.now()}-${req.file.originalname}`;
+        imagePath = await uploadFile(
+          req.file.buffer,
+          fileName,
+          req.file.mimetype
+        );
+
+        if (existingActivity.image_url) {
+          await deleteFile(existingActivity.image_url);
+        }
+      }
+
+      const data = req.body;
+
+      const updateData: any = {
+        updatedate: new Date(),
+        updatedby:
+          req.user?.id ||
+          (data.updatedby ? parseInt(data.updatedby) : undefined),
+        image_url: imagePath,
+      };
+
+      if (data.customer_id) updateData.customer_id = parseInt(data.customer_id);
+      if (data.visit_id) updateData.visit_id = parseInt(data.visit_id);
+      if (data.brand_name) updateData.brand_name = data.brand_name;
+      if (data.product_name !== undefined)
+        updateData.product_name = data.product_name || null;
+      if (data.observed_price)
+        updateData.observed_price = parseFloat(data.observed_price);
+      if (data.promotion_details !== undefined)
+        updateData.promotion_details = data.promotion_details || null;
+      if (data.visibility_score)
+        updateData.visibility_score = parseInt(data.visibility_score);
+      if (data.remarks !== undefined) updateData.remarks = data.remarks || null;
+      if (data.is_active) updateData.is_active = data.is_active;
 
       const competitorActivity = await prisma.competitor_activity.update({
         where: { id: Number(id) },
-        data,
+        data: updateData,
         include: {
           competitor_activity_customers: {
             select: { id: true, name: true, code: true },
@@ -264,6 +328,10 @@ export const competitorActivityController = {
         return res
           .status(404)
           .json({ message: 'Competitor activity not found' });
+      }
+
+      if (existingActivity.image_url) {
+        await deleteFile(existingActivity.image_url);
       }
 
       await prisma.competitor_activity.delete({ where: { id: Number(id) } });
