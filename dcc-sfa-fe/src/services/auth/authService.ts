@@ -50,6 +50,7 @@ class AuthService {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await api.post('/auth/login', credentials, {
       skipAuth: true, // Skip auth for login endpoint
+      skipErrorHandling: true, // Skip global error handling to prevent duplicate toasts
     } as any);
 
     const loginResponse = response.data as LoginResponse;

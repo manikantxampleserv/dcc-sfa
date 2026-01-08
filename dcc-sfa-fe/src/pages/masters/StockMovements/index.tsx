@@ -24,7 +24,7 @@ import ManageStockMovement from './ManageStockMovement';
 const StockMovementsManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [movementTypeFilter, setMovementTypeFilter] = useState('all');
+  const [movementTypeFilter] = useState('all');
   const [selectedMovement, setSelectedMovement] =
     useState<StockMovement | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -370,7 +370,7 @@ const StockMovementsManagement: React.FC = () => {
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
                   </Select>
-                  <Select
+                  {/* <Select
                     value={movementTypeFilter}
                     onChange={e => setMovementTypeFilter(e.target.value)}
                     className="!min-w-32"
@@ -381,7 +381,7 @@ const StockMovementsManagement: React.FC = () => {
                     <MenuItem value="IN">Stock In</MenuItem>
                     <MenuItem value="OUT">Stock Out</MenuItem>
                     <MenuItem value="TRANSFER">Transfer</MenuItem>
-                  </Select>
+                  </Select> */}
                 </div>
               )}
               <div className="flex items-center flex-wrap gap-2">

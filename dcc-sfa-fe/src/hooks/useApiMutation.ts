@@ -18,6 +18,7 @@ interface ApiMutationConfig<TData, TError, TVariables> {
   invalidateQueries?: string[] | string[][];
   onSuccess?: (data: TData, variables: TVariables) => void;
   onError?: (error: TError, variables: TVariables) => void;
+  suppressErrorToast?: boolean;
 }
 
 /**
@@ -89,7 +90,7 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
      * @param context - Context containing toast ID
      */
     onError: (error, variables, context) => {
-      if (context?.toastId) {
+      if (context?.toastId && !config.suppressErrorToast) {
         const status = (error as any)?.response?.status;
         if (status === 401) {
           toastService.dismiss(context.toastId);
@@ -116,7 +117,11 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
         }
 
         toastService.update(context.toastId, errorMessage, 'error');
+      } else if (context?.toastId && config.suppressErrorToast) {
+        // Just dismiss the loading toast if error toast is suppressed
+        toastService.dismiss(context.toastId);
       }
+
       config.onError?.(error as TError, variables);
     },
   });

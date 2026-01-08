@@ -13,6 +13,7 @@ import {
 import type { Company } from '../../../../services/masters/Companies';
 import type { User } from '../../../../services/masters/Users';
 import { depotValidationSchema } from '../../../../schemas/depot.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageDepotProps {
   selectedDepot?: Depot | null;
@@ -44,7 +45,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
 
   const formik = useFormik({
     initialValues: {
-      parent_id: selectedDepot?.parent_id?.toString() || '',
+      parent_id: companies?.[0]?.id || '',
       name: selectedDepot?.name || '',
       address: selectedDepot?.address || '',
       city: selectedDepot?.city || '',
@@ -114,8 +115,13 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select name="parent_id" label="Company" formik={formik} required>
-              <MenuItem value="">Select Company</MenuItem>
+            <Select
+              name="parent_id"
+              label="Company"
+              formik={formik}
+              required
+              disabled
+            >
               {companies.map(company => (
                 <MenuItem key={company.id} value={company.id.toString()}>
                   {company.name} ({company.code})
@@ -130,17 +136,13 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               formik={formik}
               required
             />
-
-            <Box className="md:!col-span-2">
-              <Input
-                name="address"
-                label="Address"
-                placeholder="Enter depot address"
-                formik={formik}
-                multiline
-                rows={3}
-              />
-            </Box>
+            <Input
+              name="email"
+              label="Email"
+              placeholder="Enter email address"
+              formik={formik}
+              type="email"
+            />
 
             <Input
               name="city"
@@ -171,16 +173,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               type="tel"
             />
 
-            <Input
-              name="email"
-              label="Email"
-              placeholder="Enter email address"
-              formik={formik}
-              type="email"
-            />
-
             <Select name="manager_id" label="Manager" formik={formik}>
-              <MenuItem value="">Select Manager</MenuItem>
               {managers.map(manager => (
                 <MenuItem key={manager.id} value={manager.id.toString()}>
                   {manager.name}
@@ -189,7 +182,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
             </Select>
 
             <Select name="supervisor_id" label="Supervisor" formik={formik}>
-              <MenuItem value="">Select Supervisor</MenuItem>
               {supervisors.map(supervisor => (
                 <MenuItem key={supervisor.id} value={supervisor.id.toString()}>
                   {supervisor.name}
@@ -198,7 +190,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
             </Select>
 
             <Select name="coordinator_id" label="Coordinator" formik={formik}>
-              <MenuItem value="">Select Coordinator</MenuItem>
               {coordinators.map(coordinator => (
                 <MenuItem
                   key={coordinator.id}
@@ -215,6 +206,24 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               placeholder="Enter latitude"
               formik={formik}
               type="number"
+              slotProps={{
+                htmlInput: {
+                  inputMode: 'decimal',
+                  pattern: '[+-]?[0-9]*\\.?[0-9]*',
+                  step: 'any',
+                  onKeyPress: (e: any) => {
+                    if (
+                      !/[0-9.-]/.test(e.key) &&
+                      e.key !== 'Backspace' &&
+                      e.key !== 'Delete' &&
+                      e.key !== 'Tab' &&
+                      e.key !== 'Enter'
+                    ) {
+                      e.preventDefault();
+                    }
+                  },
+                },
+              }}
             />
 
             <Input
@@ -223,12 +232,42 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               placeholder="Enter longitude"
               formik={formik}
               type="number"
+              slotProps={{
+                htmlInput: {
+                  inputMode: 'decimal',
+                  pattern: '[+-]?[0-9]*\\.?[0-9]*',
+                  step: 'any',
+                  onKeyPress: (e: any) => {
+                    if (
+                      !/[0-9.-]/.test(e.key) &&
+                      e.key !== 'Backspace' &&
+                      e.key !== 'Delete' &&
+                      e.key !== 'Tab' &&
+                      e.key !== 'Enter'
+                    ) {
+                      e.preventDefault();
+                    }
+                  },
+                },
+              }}
             />
+            <Box className="md:!col-span-2">
+              <Input
+                name="address"
+                label="Address"
+                placeholder="Enter depot address"
+                formik={formik}
+                multiline
+                rows={3}
+              />
+            </Box>
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              label="Status"
+              formik={formik}
+              required
+            />
           </Box>
 
           <Box className="!flex !justify-end items-center ">

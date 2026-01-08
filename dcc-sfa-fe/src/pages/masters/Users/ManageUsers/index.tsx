@@ -151,7 +151,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                 Upload file
               </Button>
               <Typography variant="body2" color="text.secondary">
-                JPG, GIF or PNG. Max size of 800K
+                JPG, GIF or PNG. Max size of 10MB
               </Typography>
             </>
           )}

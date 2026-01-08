@@ -75,12 +75,7 @@ const Login: React.FC = () => {
         setTimeout(() => {
           navigate(from, { replace: true });
         }, 100);
-      } else {
-        console.log(response.message || 'Login failed');
       }
-    },
-    onError: (err: any) => {
-      console.log(err.message || 'An error occurred during login');
     },
   });
 

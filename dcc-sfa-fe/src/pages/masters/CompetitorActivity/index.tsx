@@ -252,7 +252,7 @@ const CompetitorActivityManagement: React.FC = () => {
               Available
             </button>
           ) : (
-            <span className="text-xs italic text-gray-500">NO Image</span>
+            <span className="text-xs italic text-gray-500">No Image</span>
           )}
         </Box>
       ),
