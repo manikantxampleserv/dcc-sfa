@@ -50,7 +50,7 @@ router.get(
 
 router.put(
   '/cooler-inspections/:id',
-  upload.array('images', 10), // Allow up to 10 images
+  upload.array('images', 10),
   authenticateToken,
   auditUpdate('cooler_inspections'),
   requirePermission([{ module: 'inspection', action: 'update' }]),
