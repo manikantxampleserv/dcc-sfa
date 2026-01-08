@@ -2,6 +2,7 @@ import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from 'types/api.types';
 
 export interface CompetitorActivity {
+  image: string | URL | undefined;
   id: number;
   customer_id?: number | null;
   visit_id?: number | null;
