@@ -2,7 +2,6 @@ import { Box, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useUpsertStockMovement } from 'hooks/useStockMovements';
 import { useVanInventory } from 'hooks/useVanInventory';
-import { useWarehouses } from 'hooks/useWarehouses';
 import React from 'react';
 import { stockMovementValidationSchema } from 'schemas/stockMovement.schema';
 import type { StockMovement } from 'services/masters/StockMovements';
@@ -25,10 +24,8 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
 }) => {
   const isEdit = !!movement;
 
-  const { data: warehousesResponse } = useWarehouses({ limit: 1000 });
   const { data: vanInventoryResponse } = useVanInventory({ limit: 1000 });
 
-  const warehouses = warehousesResponse?.data || [];
   const vanInventory = vanInventoryResponse?.data || [];
 
   const upsertMovementMutation = useUpsertStockMovement();
@@ -152,7 +149,7 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
               <MenuItem value="TRANSFER">Transfer</MenuItem>
             </Select>
 
-            <Input
+            {/* <Input
               name="batch_id"
               label="Batch ID"
               placeholder="Optional"
@@ -166,7 +163,7 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
               placeholder="Optional"
               formik={formik}
               type="number"
-            />
+            /> */}
 
             <Input
               name="reference_type"
@@ -183,7 +180,7 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
               type="number"
             />
 
-            <Select
+            {/* <Select
               name="from_location_id"
               label="From Location"
               formik={formik}
@@ -203,7 +200,7 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
                   {warehouse.name}
                 </MenuItem>
               ))}
-            </Select>
+            </Select> */}
 
             <Input
               name="quantity"
@@ -226,9 +223,6 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
               label="Van Inventory"
               formik={formik}
             >
-              <MenuItem value="">
-                <em>No Van Inventory</em>
-              </MenuItem>
               {vanInventory.map((item: any) => {
                 const displayText = [
                   item.user?.name || 'Unknown User',

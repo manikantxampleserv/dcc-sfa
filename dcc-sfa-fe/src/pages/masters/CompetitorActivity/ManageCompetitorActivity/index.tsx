@@ -64,72 +64,63 @@ const ManageCompetitorActivity: React.FC<ManageCompetitorActivityProps> = ({
     enableReinitialize: true,
     onSubmit: async values => {
       try {
-        const hasFile =
-          values.image_url && values.image_url.startsWith('data:image/');
+        const formData = new FormData();
+        formData.append('customer_id', values.customer_id.toString());
 
-        let submitData;
+        // Only append visit_id if it has a value
+        if (values.visit_id && values.visit_id !== '') {
+          formData.append('visit_id', values.visit_id);
+        }
 
-        if (hasFile) {
-          const formData = new FormData();
-          formData.append('customer_id', values.customer_id.toString());
-          formData.append('visit_id', values.visit_id || '');
-          formData.append('brand_name', values.brand_name);
-          formData.append('product_name', values.product_name);
-          formData.append(
-            'observed_price',
-            values.observed_price ? values.observed_price.toString() : ''
-          );
-          formData.append('promotion_details', values.promotion_details);
-          formData.append(
-            'visibility_score',
-            values.visibility_score ? values.visibility_score.toString() : ''
-          );
+        formData.append('brand_name', values.brand_name);
+        formData.append('product_name', values.product_name);
 
-          if (values.image_url && values.image_url.startsWith('data:image/')) {
-            const base64Data = values.image_url.split(',')[1];
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'image/jpeg' });
-            const file = new File([blob], 'competition-image.jpg', {
-              type: 'image/jpeg',
-            });
-            formData.append('image_url', file);
+        // Only append observed_price if it has a valid positive value
+        if (
+          values.observed_price &&
+          values.observed_price !== '' &&
+          Number(values.observed_price) > 0
+        ) {
+          formData.append('observed_price', values.observed_price.toString());
+        }
+
+        formData.append('promotion_details', values.promotion_details);
+
+        if (values.visibility_score && values.visibility_score !== '') {
+          const score = Number(values.visibility_score);
+          if (score >= 0 && score <= 100) {
+            formData.append(
+              'visibility_score',
+              values.visibility_score.toString()
+            );
           }
+        }
 
-          formData.append('remarks', values.remarks);
-          formData.append('is_active', values.is_active);
+        formData.append('remarks', values.remarks);
+        formData.append('is_active', values.is_active);
 
-          submitData = formData;
-        } else {
-          submitData = {
-            customer_id: Number(values.customer_id),
-            visit_id: values.visit_id ? Number(values.visit_id) : undefined,
-            brand_name: values.brand_name,
-            product_name: values.product_name,
-            observed_price: values.observed_price
-              ? Number(values.observed_price)
-              : undefined,
-            promotion_details: values.promotion_details,
-            visibility_score: values.visibility_score
-              ? Number(values.visibility_score)
-              : undefined,
-            image_url: values.image_url,
-            remarks: values.remarks,
-            is_active: values.is_active,
-          };
+        if (values.image_url && values.image_url.startsWith('data:image/')) {
+          const base64Data = values.image_url.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/jpeg' });
+          const file = new File([blob], 'competition-image.jpg', {
+            type: 'image/jpeg',
+          });
+          formData.append('image', file);
         }
 
         if (isEdit && selectedActivity) {
           await updateCompetitorActivityMutation.mutateAsync({
             id: selectedActivity.id,
-            data: submitData,
+            data: formData,
           });
         } else {
-          await createCompetitorActivityMutation.mutateAsync(submitData);
+          await createCompetitorActivityMutation.mutateAsync(formData);
         }
         handleCancel();
       } catch (error) {

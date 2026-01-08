@@ -30,6 +30,19 @@ const serializeSettings = (settings, includeCreatedAt = false, includeUpdatedAt 
     currency_id: settings.currency_id,
     ...(includeCreatedAt && { created_date: settings.created_date }),
     ...(includeUpdatedAt && { updated_date: settings.updated_date }),
+    currency: settings.companies_currencies
+        ? {
+            id: settings.companies_currencies.id,
+            code: settings.companies_currencies.code,
+            name: settings.companies_currencies.name,
+            symbol: settings.companies_currencies.symbol,
+            exchange_rate_to_base: settings.companies_currencies
+                .exchange_rate_to_base
+                ? Number(settings.companies_currencies.exchange_rate_to_base)
+                : null,
+            is_base: settings.companies_currencies.is_base,
+        }
+        : null,
     users: settings.users
         ? settings.users.map((u) => ({
             id: u.id,
@@ -50,7 +63,11 @@ exports.settingsController = {
         try {
             const firstCompany = await prisma_client_1.default.companies.findFirst({
                 orderBy: { id: 'asc' },
-                include: { depot_companies: true, users: true },
+                include: {
+                    depot_companies: true,
+                    users: true,
+                    companies_currencies: true,
+                },
             });
             if (!firstCompany) {
                 res.error('No company settings found', 404);

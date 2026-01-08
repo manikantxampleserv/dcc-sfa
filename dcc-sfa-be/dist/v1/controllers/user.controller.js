@@ -381,7 +381,18 @@ exports.userController = {
     async deleteUser(req, res) {
         try {
             const id = Number(req.params.id);
-            await prisma_client_1.default.users.delete({ where: { id: Number(id) } });
+            await prisma_client_1.default.$transaction(async (tx) => {
+                await tx.login_history.deleteMany({
+                    where: { user_id: id },
+                });
+                await tx.api_tokens.deleteMany({
+                    where: { user_id: id },
+                });
+                await tx.cooler_inspections.deleteMany({
+                    where: { inspected_by: id },
+                });
+                await tx.users.delete({ where: { id: Number(id) } });
+            });
             res.success('User deleted successfully', null, 200);
         }
         catch (error) {

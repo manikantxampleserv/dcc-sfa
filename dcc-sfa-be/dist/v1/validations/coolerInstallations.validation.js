@@ -43,15 +43,15 @@ exports.createCoolerInstallationValidation = [
         .isInt({ min: 0 })
         .withMessage('Capacity must be a non-negative integer'),
     (0, express_validator_1.body)('install_date')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Install date must be a valid date'),
     (0, express_validator_1.body)('last_service_date')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Last service date must be a valid date'),
     (0, express_validator_1.body)('next_service_due')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Next service due must be a valid date'),
     (0, express_validator_1.body)('status')
@@ -71,7 +71,7 @@ exports.createCoolerInstallationValidation = [
         .isLength({ max: 10 })
         .withMessage('Energy rating must be less than 10 characters'),
     (0, express_validator_1.body)('warranty_expiry')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Warranty expiry must be a valid date'),
     (0, express_validator_1.body)('maintenance_contract')
@@ -85,7 +85,7 @@ exports.createCoolerInstallationValidation = [
         .isInt({ min: 1 })
         .withMessage('Technician ID must be a positive integer'),
     (0, express_validator_1.body)('last_scanned_date')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Last scanned date must be a valid date'),
     (0, express_validator_1.body)('is_active')

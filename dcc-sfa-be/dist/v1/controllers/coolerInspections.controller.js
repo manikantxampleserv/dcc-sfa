@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.coolerInspectionsController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const blackbaze_1 = require("../../utils/blackbaze");
 const serializeCoolerInspection = (inspection) => ({
     id: inspection.id,
     cooler_id: inspection.cooler_id,
@@ -15,7 +16,7 @@ const serializeCoolerInspection = (inspection) => ({
     temperature: inspection.temperature ? Number(inspection.temperature) : null,
     is_working: inspection.is_working,
     issues: inspection.issues,
-    images: inspection.images,
+    images: inspection.images ? JSON.parse(inspection.images) : null, // Parse JSON array
     latitude: inspection.latitude ? Number(inspection.latitude) : null,
     longitude: inspection.longitude ? Number(inspection.longitude) : null,
     action_required: inspection.action_required,
@@ -73,17 +74,36 @@ exports.coolerInspectionsController = {
             if (!data.inspected_by) {
                 return res.status(400).json({ message: 'Inspector ID is required' });
             }
+            let imageUrls = [];
+            if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+                for (const file of req.files) {
+                    const fileName = `cooler-inspections/${Date.now()}-${file.originalname}`;
+                    const imageUrl = await (0, blackbaze_1.uploadFile)(file.buffer, fileName, file.mimetype);
+                    imageUrls.push(imageUrl);
+                }
+            }
             const inspection = await prisma_client_1.default.cooler_inspections.create({
                 data: {
-                    ...data,
+                    cooler_id: parseInt(data.cooler_id),
+                    visit_id: data.visit_id ? parseInt(data.visit_id) : null,
+                    inspected_by: parseInt(data.inspected_by),
                     inspection_date: data.inspection_date
                         ? new Date(data.inspection_date)
-                        : null,
+                        : new Date(),
+                    temperature: data.temperature ? parseFloat(data.temperature) : null,
+                    is_working: data.is_working || 'Y',
+                    issues: data.issues || null,
+                    images: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
+                    latitude: data.latitude ? parseFloat(data.latitude) : null,
+                    longitude: data.longitude ? parseFloat(data.longitude) : null,
+                    action_required: data.action_required || 'N',
+                    action_taken: data.action_taken || null,
                     next_inspection_due: data.next_inspection_due
                         ? new Date(data.next_inspection_due)
                         : null,
-                    createdby: data.createdby ? Number(data.createdby) : 1,
-                    log_inst: data.log_inst || 1,
+                    is_active: data.is_active || 'Y',
+                    createdby: req.user?.id || (data.createdby ? parseInt(data.createdby) : 1),
+                    log_inst: data.log_inst ? parseInt(data.log_inst) : 1,
                     createdate: new Date(),
                 },
                 include: {
@@ -137,149 +157,6 @@ exports.coolerInspectionsController = {
             res.status(500).json({ message: error.message });
         }
     },
-    // async getCoolerInspections(req: Request, res: Response) {
-    //   try {
-    //     const {
-    //       page = '1',
-    //       limit = '10',
-    //       search = '',
-    //       isActive,
-    //       isWorking,
-    //       actionRequired,
-    //       cooler_id,
-    //       inspected_by,
-    //       inspector_id,
-    //       visit_id,
-    //     } = req.query;
-    //     const page_num = parseInt(page as string, 10);
-    //     const limit_num = parseInt(limit as string, 10);
-    //     const searchLower = (search as string).toLowerCase();
-    //     const inspectorFilter = inspector_id || inspected_by;
-    //     const filters: any = {
-    //       is_active: isActive as string,
-    //       ...(search && {
-    //         OR: [
-    //           { issues: { contains: searchLower } },
-    //           { action_taken: { contains: searchLower } },
-    //           { coolers: { code: { contains: searchLower } } },
-    //           { coolers: { brand: { contains: searchLower } } },
-    //           { coolers: { model: { contains: searchLower } } },
-    //           { users: { name: { contains: searchLower } } },
-    //           { users: { email: { contains: searchLower } } },
-    //         ],
-    //       }),
-    //       ...(isWorking && { is_working: isWorking as string }),
-    //       ...(actionRequired && { action_required: actionRequired as string }),
-    //       ...(cooler_id !== undefined &&
-    //         cooler_id !== null &&
-    //         cooler_id !== '' && {
-    //           cooler_id: parseInt(cooler_id as string, 10),
-    //         }),
-    //       ...(inspectorFilter !== undefined &&
-    //         inspectorFilter !== null &&
-    //         inspectorFilter !== '' && {
-    //           inspected_by:
-    //             inspectorFilter === 'null'
-    //               ? null
-    //               : parseInt(inspectorFilter as string, 10),
-    //         }),
-    //       ...(visit_id !== undefined &&
-    //         visit_id !== null &&
-    //         visit_id !== '' && {
-    //           visit_id:
-    //             visit_id === 'null' ? null : parseInt(visit_id as string, 10),
-    //         }),
-    //     };
-    //     const totalInspections = await prisma.cooler_inspections.count();
-    //     const activeInspections = await prisma.cooler_inspections.count({
-    //       where: { is_active: 'Y' },
-    //     });
-    //     const inactiveInspections = await prisma.cooler_inspections.count({
-    //       where: { is_active: 'N' },
-    //     });
-    //     const now = new Date();
-    //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    //     const newInspectionsThisMonth = await prisma.cooler_inspections.count({
-    //       where: {
-    //         createdate: {
-    //           gte: startOfMonth,
-    //           lt: endOfMonth,
-    //         },
-    //       },
-    //     });
-    //     const stats = {
-    //       total_inspections: totalInspections,
-    //       active_inspections: activeInspections,
-    //       inactive_inspections: inactiveInspections,
-    //       new_inspections_this_month: newInspectionsThisMonth,
-    //     };
-    //     const { data, pagination } = await paginate({
-    //       model: prisma.cooler_inspections,
-    //       filters,
-    //       page: page_num,
-    //       limit: limit_num,
-    //       orderBy: { createdate: 'desc' },
-    //       include: {
-    //         coolers: {
-    //           select: {
-    //             id: true,
-    //             code: true,
-    //             brand: true,
-    //             model: true,
-    //             serial_number: true,
-    //             capacity: true,
-    //             coolers_customers: {
-    //               select: {
-    //                 id: true,
-    //                 name: true,
-    //                 code: true,
-    //               },
-    //             },
-    //           },
-    //         },
-    //         users: {
-    //           select: {
-    //             id: true,
-    //             name: true,
-    //             email: true,
-    //             profile_image: true,
-    //           },
-    //         },
-    //         visits: {
-    //           select: {
-    //             id: true,
-    //             visit_date: true,
-    //             visit_customers: {
-    //               select: {
-    //                 id: true,
-    //                 name: true,
-    //                 code: true,
-    //               },
-    //             },
-    //           },
-    //         },
-    //       },
-    //     });
-    //     res.json({
-    //       success: true,
-    //       message: 'Cooler inspections retrieved successfully',
-    //       data: data.map((d: any) => serializeCoolerInspection(d)),
-    //       meta: {
-    //         requestDuration: Date.now(),
-    //         timestamp: new Date().toISOString(),
-    //         ...pagination,
-    //       },
-    //       stats,
-    //     });
-    //   } catch (error: any) {
-    //     console.error('Get Cooler Inspections Error:', error);
-    //     res.status(500).json({
-    //       success: false,
-    //       message: error.message,
-    //     });
-    //   }
-    // },
     async getCoolerInspections(req, res) {
         try {
             const { page, limit, search, isActive, isWorking, actionRequired, cooler_id, inspected_by, user_id, inspector_id, visit_id, } = req.query;
@@ -298,7 +175,6 @@ exports.coolerInspectionsController = {
                         { coolers: { model: { contains: searchLower } } },
                         { users: { name: { contains: searchLower } } },
                         { users: { email: { contains: searchLower } } },
-                        { user_id: { contains: searchLower } },
                     ],
                 }),
                 ...(isActive !== undefined &&
@@ -334,14 +210,10 @@ exports.coolerInspectionsController = {
             };
             const totalInspections = await prisma_client_1.default.cooler_inspections.count();
             const activeInspections = await prisma_client_1.default.cooler_inspections.count({
-                where: {
-                    is_active: 'Y',
-                },
+                where: { is_active: 'Y' },
             });
             const inactiveInspections = await prisma_client_1.default.cooler_inspections.count({
-                where: {
-                    is_active: 'N',
-                },
+                where: { is_active: 'N' },
             });
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -495,19 +367,69 @@ exports.coolerInspectionsController = {
             if (!existingInspection) {
                 return res.status(404).json({ message: 'Cooler inspection not found' });
             }
-            const data = {
-                ...req.body,
-                inspection_date: req.body.inspection_date
-                    ? new Date(req.body.inspection_date)
-                    : undefined,
-                next_inspection_due: req.body.next_inspection_due
-                    ? new Date(req.body.next_inspection_due)
-                    : undefined,
+            let imageUrls = [];
+            if (existingInspection.images) {
+                try {
+                    imageUrls = JSON.parse(existingInspection.images);
+                }
+                catch (e) {
+                    imageUrls = [];
+                }
+            }
+            if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+                for (const oldImageUrl of imageUrls) {
+                    try {
+                        await (0, blackbaze_1.deleteFile)(oldImageUrl);
+                    }
+                    catch (error) {
+                        console.error('Error deleting old image:', error);
+                    }
+                }
+                imageUrls = [];
+                for (const file of req.files) {
+                    const fileName = `cooler-inspections/${Date.now()}-${file.originalname}`;
+                    const imageUrl = await (0, blackbaze_1.uploadFile)(file.buffer, fileName, file.mimetype);
+                    imageUrls.push(imageUrl);
+                }
+            }
+            const data = req.body;
+            const updateData = {
                 updatedate: new Date(),
+                updatedby: req.user?.id ||
+                    (data.updatedby ? parseInt(data.updatedby) : undefined),
+                images: imageUrls.length > 0
+                    ? JSON.stringify(imageUrls)
+                    : existingInspection.images,
             };
+            if (data.cooler_id)
+                updateData.cooler_id = parseInt(data.cooler_id);
+            if (data.visit_id)
+                updateData.visit_id = parseInt(data.visit_id);
+            if (data.inspected_by)
+                updateData.inspected_by = parseInt(data.inspected_by);
+            if (data.inspection_date)
+                updateData.inspection_date = new Date(data.inspection_date);
+            if (data.temperature)
+                updateData.temperature = parseFloat(data.temperature);
+            if (data.is_working)
+                updateData.is_working = data.is_working;
+            if (data.issues !== undefined)
+                updateData.issues = data.issues || null;
+            if (data.latitude)
+                updateData.latitude = parseFloat(data.latitude);
+            if (data.longitude)
+                updateData.longitude = parseFloat(data.longitude);
+            if (data.action_required)
+                updateData.action_required = data.action_required;
+            if (data.action_taken !== undefined)
+                updateData.action_taken = data.action_taken || null;
+            if (data.next_inspection_due)
+                updateData.next_inspection_due = new Date(data.next_inspection_due);
+            if (data.is_active)
+                updateData.is_active = data.is_active;
             const inspection = await prisma_client_1.default.cooler_inspections.update({
                 where: { id: Number(id) },
-                data,
+                data: updateData,
                 include: {
                     coolers: {
                         select: {
@@ -568,6 +490,17 @@ exports.coolerInspectionsController = {
             if (!existingInspection) {
                 return res.status(404).json({ message: 'Cooler inspection not found' });
             }
+            if (existingInspection.images) {
+                try {
+                    const imageUrls = JSON.parse(existingInspection.images);
+                    for (const imageUrl of imageUrls) {
+                        await (0, blackbaze_1.deleteFile)(imageUrl);
+                    }
+                }
+                catch (error) {
+                    console.error('Error deleting images:', error);
+                }
+            }
             await prisma_client_1.default.cooler_inspections.delete({ where: { id: Number(id) } });
             res.json({ message: 'Cooler inspection deleted successfully' });
         }
@@ -580,11 +513,9 @@ exports.coolerInspectionsController = {
         try {
             const { id } = req.params;
             const { status, value } = req.body;
-            // Validate ID
             if (!id || isNaN(Number(id))) {
                 return res.status(400).json({ message: 'Invalid inspection ID' });
             }
-            // Validate status field and value
             const allowedStatuses = ['is_working', 'action_required', 'is_active'];
             const allowedValues = ['Y', 'N'];
             if (!allowedStatuses.includes(status)) {
@@ -651,7 +582,6 @@ exports.coolerInspectionsController = {
                     },
                 },
             });
-            // Map internal status names to user-friendly labels for the message
             const readableStatusMap = {
                 is_working: 'working status',
                 action_required: 'action required status',

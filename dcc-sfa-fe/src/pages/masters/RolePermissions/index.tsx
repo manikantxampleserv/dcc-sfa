@@ -15,7 +15,7 @@ const RolePermissions: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
-  const [limit] = useState(7);
+  const [limit] = useState(10);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('role');
@@ -157,14 +157,6 @@ const RolePermissions: React.FC = () => {
     setSearch(value);
     setPage(1);
   }, []);
-
-  if (error) {
-    return (
-      <Alert severity="error" className="m-4">
-        Error loading roles: {error.message}
-      </Alert>
-    );
-  }
 
   return (
     <>

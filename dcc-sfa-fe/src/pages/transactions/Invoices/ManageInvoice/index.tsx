@@ -108,9 +108,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       subtotal: invoice?.subtotal || 0,
       discount_amount: invoice?.discount_amount || 0,
       tax_amount: invoice?.tax_amount || 0,
-      shipping_amount: invoice?.shipping_amount || 0,
       total_amount: invoice?.total_amount || 0,
-      amount_paid: invoice?.amount_paid || 0,
       balance_due: invoice?.balance_due || 0,
       notes: invoice?.notes || '',
       billing_address: invoice?.billing_address || '',
@@ -337,23 +335,18 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       (sum, item) => sum + Number(item.tax_amount),
       0
     );
-    const shippingAmount = Number(formik.values.shipping_amount) || 0;
-    const totalAmount = subtotal - discountAmount + taxAmount + shippingAmount;
-    const amountPaid = Number(formik.values.amount_paid) || 0;
-    const balanceDue = totalAmount - amountPaid;
+
+    const totalAmount = subtotal - discountAmount + taxAmount;
+    const balanceDue = totalAmount;
 
     return {
       subtotal,
       discount_amount: discountAmount,
       tax_amount: taxAmount,
-      shipping_amount: shippingAmount,
       total_amount: totalAmount,
-      amount_paid: amountPaid,
       balance_due: balanceDue,
     };
-  }, [invoiceItems, formik.values.shipping_amount, formik.values.amount_paid]);
-
-  console.log(formik.errors);
+  }, [invoiceItems, formik.values.discount_amount, formik.values.tax_amount]);
 
   return (
     <CustomDrawer
@@ -440,22 +433,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
               <MenuItem value="online">Online Payment</MenuItem>
             </Select>
-
-            <Input
-              name="shipping_amount"
-              label="Shipping Amount"
-              placeholder="0.00"
-              type="number"
-              formik={formik}
-            />
-
-            <Input
-              name="amount_paid"
-              label="Amount Paid"
-              placeholder="0.00"
-              type="number"
-              formik={formik}
-            />
 
             <Box className="md:!col-span-2">
               <Input
@@ -556,15 +533,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                       )}
                     </Typography>
                   </Box>
-                  <Box className="!flex !justify-between">
-                    <Typography variant="body2">Shipping:</Typography>
-                    <Typography variant="body2">
-                      {formatCurrency(
-                        totals.shipping_amount,
-                        getCurrencyCode(formik.values.currency_id)
-                      )}
-                    </Typography>
-                  </Box>
                   <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
                     <Box className="!flex !justify-between">
                       <Typography variant="subtitle2" className="!font-bold">
@@ -577,15 +545,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                         )}
                       </Typography>
                     </Box>
-                  </Box>
-                  <Box className="!flex !justify-between">
-                    <Typography variant="body2">Amount Paid:</Typography>
-                    <Typography variant="body2">
-                      {formatCurrency(
-                        totals.amount_paid,
-                        getCurrencyCode(formik.values.currency_id)
-                      )}
-                    </Typography>
                   </Box>
                   <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
                     <Box className="!flex !justify-between">

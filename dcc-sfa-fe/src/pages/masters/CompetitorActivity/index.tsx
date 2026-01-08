@@ -243,9 +243,17 @@ const CompetitorActivityManagement: React.FC = () => {
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Image className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">
-            {row.image_url ? 'Available' : 'None'}
-          </span>
+          {row.image_url ? (
+            <button
+              onClick={() => window.open(row.image_url!, '_blank')}
+              className="text-xs text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+              title="Click to view image"
+            >
+              Available
+            </button>
+          ) : (
+            <span className="text-xs italic text-gray-500">No Image</span>
+          )}
         </Box>
       ),
     },

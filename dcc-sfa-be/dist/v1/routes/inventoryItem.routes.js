@@ -8,6 +8,7 @@ const vanInventory_controller_1 = require("../controllers/vanInventory.controlle
 const auth_middleware_1 = require("../../middlewares/auth.middleware");
 const router = express_1.default.Router();
 router.get('/inventory-item-salesperson', auth_middleware_1.authenticateToken, vanInventory_controller_1.vanInventoryController.getSalespersonInventory);
+router.get('/salesperson-item-inventory/:salesperson_id', auth_middleware_1.authenticateToken, vanInventory_controller_1.vanInventoryController.getinventoryItemSalesperson);
 router.get('/inventory-item-salesperson/:salesperson_id', auth_middleware_1.authenticateToken, vanInventory_controller_1.vanInventoryController.getSalespersonInventory);
 router.get('/inventory-items-dropdown/:salesperson_id', auth_middleware_1.authenticateToken, vanInventory_controller_1.vanInventoryController.getSalespersonInventoryItemsDropdown);
 router.get('/inventory-item-salesperson-items/:salesperson_id', auth_middleware_1.authenticateToken, vanInventory_controller_1.vanInventoryController.getSalespersonInventoryItems);

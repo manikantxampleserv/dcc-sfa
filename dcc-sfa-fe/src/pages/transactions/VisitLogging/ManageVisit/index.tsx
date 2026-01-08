@@ -29,9 +29,8 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
 }) => {
   const isEdit = !!selectedVisit;
 
-  // Fetch data using hooks
-  const routesResponse = useRoutes({ limit: 1000 }); // Get all routes
-  const zonesResponse = useZones({ limit: 1000 }); // Get all zones
+  const routesResponse = useRoutes({ limit: 1000, status: 'active' });
+  const zonesResponse = useZones({ limit: 1000, isActive: 'Y' });
 
   const routes = routesResponse?.data?.data || [];
   const zones = zonesResponse?.data?.data || [];
@@ -158,7 +157,6 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
               formik={formik}
               disabled={isRouteZoneReadOnly}
             >
-              <MenuItem value="">Select Route</MenuItem>
               {routes.map(route => (
                 <MenuItem key={route.id} value={route.id.toString()}>
                   {route.name} ({route.code})
@@ -172,7 +170,6 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
               formik={formik}
               disabled={isRouteZoneReadOnly}
             >
-              <MenuItem value="">Select Zone</MenuItem>
               {zones.map(zone => (
                 <MenuItem key={zone.id} value={zone.id.toString()}>
                   {zone.name}

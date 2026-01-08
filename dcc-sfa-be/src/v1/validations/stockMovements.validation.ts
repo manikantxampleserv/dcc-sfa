@@ -8,12 +8,12 @@ export const createStockMovementValidation = [
     .withMessage('Product ID must be a positive integer'),
 
   body('batch_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Batch ID must be a positive integer'),
 
   body('serial_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Serial ID must be a positive integer'),
 
@@ -26,24 +26,24 @@ export const createStockMovementValidation = [
     .withMessage('Movement type must be between 2 and 50 characters'),
 
   body('reference_type')
-    .optional()
+    .optional({ checkFalsy: true })
     .isString()
     .withMessage('Reference type must be a string')
     .isLength({ max: 50 })
     .withMessage('Reference type must be less than 50 characters'),
 
   body('reference_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Reference ID must be a positive integer'),
 
   body('from_location_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('From location ID must be a positive integer'),
 
   body('to_location_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('To location ID must be a positive integer')
     .custom((value, { req }) => {
@@ -64,70 +64,70 @@ export const createStockMovementValidation = [
     .withMessage('Quantity must be a positive integer'),
 
   body('movement_date')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Movement date must be a valid date'),
 
   body('remarks')
-    .optional()
+    .optional({ checkFalsy: true })
     .isString()
     .withMessage('Remarks must be a string')
     .isLength({ max: 1000 })
     .withMessage('Remarks must be less than 1000 characters'),
 
   body('van_inventory_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Van inventory ID must be a positive integer'),
 
   body('is_active')
-    .optional()
+    .optional({ checkFalsy: true })
     .isIn(['Y', 'N'])
     .withMessage('Is active must be Y or N'),
 ];
 
 export const updateStockMovementValidation = [
   body('product_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Product ID must be a positive integer'),
 
   body('batch_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Batch ID must be a positive integer'),
 
   body('serial_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Serial ID must be a positive integer'),
 
   body('movement_type')
-    .optional()
+    .optional({ checkFalsy: true })
     .isString()
     .withMessage('Movement type must be a string')
     .isLength({ min: 2, max: 50 })
     .withMessage('Movement type must be between 2 and 50 characters'),
 
   body('reference_type')
-    .optional()
+    .optional({ checkFalsy: true })
     .isString()
     .withMessage('Reference type must be a string')
     .isLength({ max: 50 })
     .withMessage('Reference type must be less than 50 characters'),
 
   body('reference_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Reference ID must be a positive integer'),
 
   body('from_location_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('From location ID must be a positive integer'),
 
   body('to_location_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('To location ID must be a positive integer')
     .custom((value, { req }) => {
@@ -142,29 +142,29 @@ export const updateStockMovementValidation = [
     }),
 
   body('quantity')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Quantity must be a positive integer'),
 
   body('movement_date')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Movement date must be a valid date'),
 
   body('remarks')
-    .optional()
+    .optional({ checkFalsy: true })
     .isString()
     .withMessage('Remarks must be a string')
     .isLength({ max: 1000 })
     .withMessage('Remarks must be less than 1000 characters'),
 
   body('van_inventory_id')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Van inventory ID must be a positive integer'),
 
   body('is_active')
-    .optional()
+    .optional({ checkFalsy: true })
     .isIn(['Y', 'N'])
     .withMessage('Is active must be Y or N'),
 ];

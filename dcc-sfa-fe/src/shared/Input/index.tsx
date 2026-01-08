@@ -125,6 +125,11 @@ const Input: React.FC<InputProps> = ({
   const dateValue =
     currentValue && dayjs(currentValue).isValid() ? dayjs(currentValue) : null;
 
+  const timeValue =
+    currentValue && currentValue.includes(':')
+      ? dayjs(currentValue, 'HH:mm')
+      : null;
+
   if (type === 'date') {
     return (
       <DatePicker
@@ -166,7 +171,7 @@ const Input: React.FC<InputProps> = ({
     return (
       <TimePicker
         label={label}
-        value={dateValue}
+        value={timeValue}
         onChange={handleTimeChange}
         disabled={rest.disabled}
         slotProps={{

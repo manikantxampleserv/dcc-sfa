@@ -9,10 +9,11 @@ import {
   Typography,
 } from '@mui/material';
 import classNames from 'classnames';
+import { usePermission } from 'hooks/usePermission';
 import { useDeleteUser, useUsers, type User } from 'hooks/useUsers';
-import { useNavigate } from 'react-router-dom';
 import { UserCheck, UserPlus, Users as UsersIcon, UserX } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
@@ -21,14 +22,13 @@ import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ManageUsers from './ManageUsers';
-import { usePermission } from 'hooks/usePermission';
 
 const UsersManagement: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
-  const [limit] = useState(8);
+  const [limit] = useState(10);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('user');
@@ -132,22 +132,7 @@ const UsersManagement: React.FC = () => {
         />
       ),
     },
-    {
-      id: 'depot',
-      label: 'Depot',
-      render: (_value, row) =>
-        row.depot?.name || (
-          <span className="italic text-gray-400"> No Depot </span>
-        ),
-    },
-    {
-      id: 'zone',
-      label: 'Zone',
-      render: (_value, row) =>
-        row.zone?.name || (
-          <span className="italic text-gray-400"> No Zone </span>
-        ),
-    },
+
     {
       id: 'phone_number',
       label: 'Phone',
