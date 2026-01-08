@@ -557,123 +557,90 @@ const CoolerInstallationDetail: React.FC = () => {
           {/* Installation Details */}
           <InfoCard title="Cooler Information" icon={Package}>
             <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-              <div className="!space-y-0.5">
+              <div className="!space-y-1">
                 <Typography
-                  variant="caption"
-                  className="!text-gray-500 !font-bold !uppercase !tracking-wide"
+                  variant="body2"
+                  className="!font-bold !text-gray-900"
                 >
                   Customer
                 </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {cooler.customer?.name || 'Unknown Customer'}
-                </Typography>
-                <Typography variant="caption" className="!text-gray-500">
-                  {cooler.customer?.code}
+                <Typography variant="body1" className="!text-gray-800">
+                  {cooler.customer?.name || 'Unknown Customer'} (
+                  {cooler.customer?.code})
                 </Typography>
               </div>
 
-              <div className="!space-y-0.5">
+              <div className="!space-y-1">
                 <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  variant="body2"
+                  className="!font-bold !text-gray-900"
                 >
                   Technician
                 </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
+                <Typography variant="body1" className="!text-gray-800">
                   {cooler.technician?.name || 'No technician assigned'}
-                </Typography>
-                <Typography variant="caption" className="!text-gray-500">
-                  {cooler.technician?.email}
                 </Typography>
               </div>
 
-              <div className="!space-y-0.5">
+              <div className="!space-y-1">
                 <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  variant="body2"
+                  className="!font-bold !text-gray-900"
                 >
                   Brand & Model
                 </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  {cooler.brand || 'Unknown Brand'}
-                </Typography>
-                <Typography variant="caption" className="!text-gray-500">
-                  {cooler.model || 'Unknown Model'}
+                <Typography variant="body1" className="!text-gray-800">
+                  {cooler.brand && cooler.model
+                    ? `${cooler.brand} ${cooler.model}`
+                    : 'Unknown Brand & Model'}
                 </Typography>
               </div>
 
-              <div className="!space-y-0.5">
+              <div className="!space-y-1">
                 <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  variant="body2"
+                  className="!font-bold !text-gray-900"
                 >
                   Serial Number
                 </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900 !font-mono"
-                >
+                <Typography variant="body1" className="!text-gray-800">
                   {cooler.serial_number || 'Not provided'}
                 </Typography>
               </div>
 
-              <div className="!space-y-0.5">
+              <div className="!space-y-1">
                 <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  variant="body2"
+                  className="!font-bold !text-gray-900"
                 >
                   Cooler Type
                 </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
+                <Typography variant="body1" className="!text-gray-800">
                   {cooler.cooler_type?.name || 'Not specified'}
-                </Typography>
-                <Typography variant="caption" className="!text-gray-500">
-                  {cooler.cooler_type?.code}
                 </Typography>
               </div>
 
-              <div className="!space-y-0.5">
+              <div className="!space-y-1">
                 <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  variant="body2"
+                  className="!font-bold !text-gray-900"
                 >
                   Cooler Sub Type
                 </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
+                <Typography variant="body1" className="!text-gray-800">
                   {cooler.cooler_sub_type?.name || 'Not specified'}
-                </Typography>
-                <Typography variant="caption" className="!text-gray-500">
-                  {cooler.cooler_sub_type?.code}
                 </Typography>
               </div>
 
               {cooler.maintenance_contract && (
                 <div className="!space-y-0.5 md:!col-span-2">
                   <Typography
-                    variant="caption"
-                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                    variant="body2"
+                    className="!font-bold !text-gray-900"
                   >
                     Maintenance Contract
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    className="!font-semibold !text-gray-900"
-                  >
+                  <Typography variant="body1" className="!text-gray-800">
                     {cooler.maintenance_contract}
                   </Typography>
                 </div>
@@ -688,12 +655,12 @@ const CoolerInstallationDetail: React.FC = () => {
                   <div className="!flex !items-center !justify-between">
                     <div>
                       <Typography
-                        variant="body2"
+                        variant="subtitle2"
                         className="!font-semibold !text-gray-900"
                       >
                         Warranty Expiry
                       </Typography>
-                      <Typography variant="caption" className="!text-gray-500">
+                      <Typography variant="body1" className="!text-gray-800">
                         {formatDate(cooler.warranty_expiry)}
                       </Typography>
                     </div>
@@ -718,12 +685,12 @@ const CoolerInstallationDetail: React.FC = () => {
                 <div className="!flex !items-center !justify-between">
                   <div>
                     <Typography
-                      variant="body2"
+                      variant="subtitle2"
                       className="!font-semibold !text-gray-900"
                     >
                       Current Status
                     </Typography>
-                    <Typography variant="caption" className="!text-gray-500">
+                    <Typography variant="body2" className="!text-gray-600">
                       Operational status
                     </Typography>
                   </div>
@@ -764,7 +731,7 @@ const CoolerInstallationDetail: React.FC = () => {
               {/* Operational Status */}
               <div className="!space-y-2">
                 <Typography
-                  variant="subtitle2"
+                  variant="h6"
                   className="!font-semibold !text-gray-900"
                 >
                   Operational Status
@@ -803,7 +770,7 @@ const CoolerInstallationDetail: React.FC = () => {
               {/* Active Status */}
               <div className="!space-y-2">
                 <Typography
-                  variant="subtitle2"
+                  variant="h6"
                   className="!font-semibold !text-gray-900"
                 >
                   Active Status

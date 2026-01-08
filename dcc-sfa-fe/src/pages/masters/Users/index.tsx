@@ -1,5 +1,13 @@
 import { Add, Block, CheckCircle } from '@mui/icons-material';
-import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import {
+  Alert,
+  Avatar,
+  Box,
+  Chip,
+  MenuItem,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import classNames from 'classnames';
 import { useDeleteUser, useUsers, type User } from 'hooks/useUsers';
 import { useNavigate } from 'react-router-dom';
@@ -61,7 +69,10 @@ const UsersManagement: React.FC = () => {
       id: 'name',
       label: 'Name & Avatar',
       render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
+        <Box
+          className="!flex !gap-2 !items-center"
+          onClick={() => handleRowClick(row)}
+        >
           <Avatar
             alt={row.name}
             src={row.profile_image || 'mkx'}
@@ -149,7 +160,13 @@ const UsersManagement: React.FC = () => {
       id: 'address',
       label: 'Address',
       render: (_value, row) =>
-        row.address || (
+        row.address ? (
+          <Tooltip title={row.address} placement="top" arrow>
+            <span className="truncate text-ellipsis max-w-72">
+              {row.address}
+            </span>
+          </Tooltip>
+        ) : (
           <span className="italic text-gray-400"> No Address </span>
         ),
     },
@@ -334,7 +351,6 @@ const UsersManagement: React.FC = () => {
         rowsPerPage={limit}
         isPermission={isRead}
         onPageChange={handlePageChange}
-        onRowClick={handleRowClick}
         emptyMessage={
           search
             ? `No users found matching "${search}"`

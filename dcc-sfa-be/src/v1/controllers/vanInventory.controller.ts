@@ -2690,14 +2690,14 @@ export const vanInventoryController = {
                           batch_lot_product_batches: true,
                         },
                       },
+                      serial_numbers_products: {
+                        include: {
+                          serial_numbers_customers: true,
+                        },
+                      },
                     },
                   },
                   van_inventory_items_batch_lot: true,
-                  van_inventory_serial: {
-                    include: {
-                      serial_numbers_customers: true,
-                    },
-                  },
                 },
               },
               van_inventory_stock_movements: true,
@@ -2745,11 +2745,14 @@ export const vanInventoryController = {
 
   async getAllVanInventory(req: any, res: any) {
     try {
-      const { page, limit, search, status, user_id } = req.query;
+      const { page, limit, search, status, loading_type, user_id } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
       const statusLower = status ? (status as string).toLowerCase() : '';
+      const loadingType = loading_type
+        ? (loading_type as string).toUpperCase()
+        : '';
 
       const filters: any = {
         ...(search && {
@@ -2760,6 +2763,8 @@ export const vanInventoryController = {
         }),
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
+        ...(loadingType === 'L' && { loading_type: 'L' }),
+        ...(loadingType === 'U' && { loading_type: 'U' }),
         ...(user_id && { user_id: parseInt(user_id as string, 10) }),
       };
 
@@ -2958,12 +2963,36 @@ export const vanInventoryController = {
       const { id } = req.params;
       const existing = await prisma.van_inventory.findUnique({
         where: { id: Number(id) },
+        include: {
+          van_inventory_items_inventory: true,
+          van_inventory_stock_movements: true,
+        },
       });
 
       if (!existing)
         return res.status(404).json({ message: 'Van inventory not found' });
 
-      await prisma.van_inventory.delete({ where: { id: Number(id) } });
+      await prisma.$transaction(async tx => {
+        if (existing.van_inventory_stock_movements?.length > 0) {
+          await tx.stock_movements.deleteMany({
+            where: {
+              van_inventory_id: Number(id),
+            },
+          });
+        }
+
+        if (existing.van_inventory_items_inventory?.length > 0) {
+          await tx.van_inventory_items.deleteMany({
+            where: {
+              parent_id: Number(id),
+            },
+          });
+        }
+
+        await tx.van_inventory.delete({
+          where: { id: Number(id) },
+        });
+      });
       res.json({ message: 'Van inventory deleted successfully' });
     } catch (error: any) {
       console.error('Delete Van Inventory Error:', error);

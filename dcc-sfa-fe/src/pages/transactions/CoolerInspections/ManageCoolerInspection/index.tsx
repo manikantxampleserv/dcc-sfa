@@ -10,6 +10,7 @@ import { useUsers } from 'hooks/useUsers';
 import { useVisits } from 'hooks/useVisits';
 import React from 'react';
 import { coolerInspectionValidationSchema } from 'schemas/coolerInspection.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -119,11 +120,7 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
       <Box className="!p-4">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            {/* Cooler Selection */}
             <Select name="cooler_id" label="Cooler" formik={formik} fullWidth>
-              <MenuItem value="">
-                <em>Select Cooler</em>
-              </MenuItem>
               {coolers.map(cooler => (
                 <MenuItem key={cooler.id} value={cooler.id}>
                   {cooler.code} - {cooler.brand} {cooler.model} (
@@ -132,16 +129,12 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
               ))}
             </Select>
 
-            {/* Inspector Selection */}
             <Select
               name="inspected_by"
               label="Inspector"
               formik={formik}
               fullWidth
             >
-              <MenuItem value="">
-                <em>Select Inspector</em>
-              </MenuItem>
               {users.map(user => (
                 <MenuItem key={user.id} value={user.id}>
                   {user.name} ({user.email})
@@ -149,7 +142,6 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
               ))}
             </Select>
 
-            {/* Inspection Date */}
             <Input
               name="inspection_date"
               label="Inspection Date"
@@ -158,7 +150,6 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
               required
             />
 
-            {/* Temperature */}
             <Input
               name="temperature"
               label="Temperature (°C)"
@@ -196,6 +187,24 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
               placeholder="Enter latitude"
               formik={formik}
               type="number"
+              slotProps={{
+                htmlInput: {
+                  inputMode: 'decimal',
+                  pattern: '[+-]?[0-9]*\\.?[0-9]*',
+                  step: 'any',
+                  onKeyPress: (e: any) => {
+                    if (
+                      !/[0-9.-]/.test(e.key) &&
+                      e.key !== 'Backspace' &&
+                      e.key !== 'Delete' &&
+                      e.key !== 'Tab' &&
+                      e.key !== 'Enter'
+                    ) {
+                      e.preventDefault();
+                    }
+                  },
+                },
+              }}
             />
 
             {/* Longitude */}
@@ -205,6 +214,24 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
               placeholder="Enter longitude"
               formik={formik}
               type="number"
+              slotProps={{
+                htmlInput: {
+                  inputMode: 'decimal',
+                  pattern: '[+-]?[0-9]*\\.?[0-9]*',
+                  step: 'any',
+                  onKeyPress: (e: any) => {
+                    if (
+                      !/[0-9.-]/.test(e.key) &&
+                      e.key !== 'Backspace' &&
+                      e.key !== 'Delete' &&
+                      e.key !== 'Tab' &&
+                      e.key !== 'Enter'
+                    ) {
+                      e.preventDefault();
+                    }
+                  },
+                },
+              }}
             />
 
             {/* Next Inspection Due */}
@@ -215,18 +242,14 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
               type="date"
             />
 
-            {/* Visit Selection */}
             <Select name="visit_id" label="Visit" formik={formik}>
-              <MenuItem value="">
-                <em>No visit associated</em>
-              </MenuItem>
               {visits.map(visit => (
                 <MenuItem key={visit.id} value={visit.id}>
-                  Visit #{visit.id} - {visit.customer?.name} (
-                  {visit.visit_date
-                    ? formatForDateInput(visit.visit_date)
-                    : 'No date'}
-                  )
+                  {`Visit #${visit.id} - ${visit.customer?.name} (${
+                    visit.visit_date
+                      ? formatForDateInput(visit.visit_date)
+                      : 'No date'
+                  })`}
                 </MenuItem>
               ))}
             </Select>
@@ -267,11 +290,11 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
               />
             </Box>
 
-            {/* Active Status */}
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              label="Status"
+              formik={formik}
+            />
           </Box>
 
           <Box className="!flex !justify-end">
