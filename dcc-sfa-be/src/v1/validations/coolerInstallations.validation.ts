@@ -47,17 +47,17 @@ export const createCoolerInstallationValidation = [
     .withMessage('Capacity must be a non-negative integer'),
 
   body('install_date')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Install date must be a valid date'),
 
   body('last_service_date')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Last service date must be a valid date'),
 
   body('next_service_due')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Next service due must be a valid date'),
 
@@ -81,7 +81,7 @@ export const createCoolerInstallationValidation = [
     .withMessage('Energy rating must be less than 10 characters'),
 
   body('warranty_expiry')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Warranty expiry must be a valid date'),
 
@@ -98,7 +98,7 @@ export const createCoolerInstallationValidation = [
     .withMessage('Technician ID must be a positive integer'),
 
   body('last_scanned_date')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Last scanned date must be a valid date'),
 

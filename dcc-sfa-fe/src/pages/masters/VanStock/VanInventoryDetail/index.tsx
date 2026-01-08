@@ -13,7 +13,7 @@ import {
   User,
   XCircle,
 } from 'lucide-react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Table, { type TableColumn } from 'shared/Table';
@@ -30,12 +30,36 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
   onClose,
   vanInventory,
 }) => {
+  const [isClosing, setIsClosing] = useState(false);
+  const [shouldShowError, setShouldShowError] = useState(false);
+
   const {
     data: vanInventoryResponse,
     isLoading,
     error,
   } = useVanInventoryById(vanInventory?.id || 0);
   const vanInventoryData = vanInventoryResponse?.data || vanInventory;
+
+  useEffect(() => {
+    if (open) {
+      setIsClosing(false);
+      setShouldShowError(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (error && !isClosing && open) {
+      const timer = setTimeout(() => {
+        setShouldShowError(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, isClosing, open]);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    onClose();
+  };
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -86,14 +110,14 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
   };
 
   const handleBack = () => {
-    onClose();
+    handleClose();
   };
 
   if (isLoading) {
     return (
       <CustomDrawer
         open={open}
-        setOpen={onClose}
+        setOpen={handleClose}
         title="Van Inventory Details"
         size="large"
       >
@@ -155,11 +179,11 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
     );
   }
 
-  if (error || !vanInventoryData) {
+  if (error || (!vanInventoryData && shouldShowError)) {
     return (
       <CustomDrawer
         open={open}
-        setOpen={onClose}
+        setOpen={handleClose}
         title="Van Inventory Details"
         size="large"
       >
@@ -184,6 +208,23 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
           >
             Back to Van Inventory
           </Button>
+        </div>
+      </CustomDrawer>
+    );
+  }
+
+  if (!vanInventoryData) {
+    return (
+      <CustomDrawer
+        open={open}
+        setOpen={handleClose}
+        title="Van Inventory Details"
+        size="large"
+      >
+        <div className="!p-6">
+          <Typography variant="body2" className="!text-gray-500 text-center">
+            No van inventory data available
+          </Typography>
         </div>
       </CustomDrawer>
     );
@@ -294,7 +335,7 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
   return (
     <CustomDrawer
       open={open}
-      setOpen={onClose}
+      setOpen={handleClose}
       title="Van Inventory Details"
       size="large"
     >

@@ -32,6 +32,7 @@ import VanInventoryDetail from './VanInventoryDetail';
 const VanStockPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [userFilter, setUserFilter] = useState<number | undefined>(undefined);
   const [selectedVanInventory, setSelectedVanInventory] =
     useState<VanInventory | null>(null);
@@ -58,6 +59,8 @@ const VanStockPage: React.FC = () => {
           : statusFilter === 'active'
             ? 'active'
             : 'inactive',
+      loading_type:
+        typeFilter === 'all' ? undefined : typeFilter === 'load' ? 'L' : 'U',
       user_id: userFilter,
     },
     {
@@ -117,6 +120,11 @@ const VanStockPage: React.FC = () => {
 
   const handleStatusFilterChange = useCallback((value: string) => {
     setStatusFilter(value);
+    setPage(1);
+  }, []);
+
+  const handleTypeFilterChange = useCallback((value: string) => {
+    setTypeFilter(value);
     setPage(1);
   }, []);
 
@@ -335,7 +343,7 @@ const VanStockPage: React.FC = () => {
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Van Stock Load/Unload Management
+            Van Stock Load/Unload
           </p>
           <p className="!text-gray-500 text-sm">
             Manage van inventory, stock levels, and load/unload operations for
@@ -406,6 +414,16 @@ const VanStockPage: React.FC = () => {
                     <MenuItem value="all">All Status</MenuItem>
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                  <Select
+                    value={typeFilter}
+                    onChange={e => handleTypeFilterChange(e.target.value)}
+                    className="!w-32"
+                    disableClearable
+                  >
+                    <MenuItem value="all">All Types</MenuItem>
+                    <MenuItem value="load">Load</MenuItem>
+                    <MenuItem value="unload">Unload</MenuItem>
                   </Select>
                   <Box className="!w-64">
                     <UserSelect

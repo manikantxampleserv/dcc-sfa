@@ -325,9 +325,11 @@ const CoolerInspectionsManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <MapPin className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {row.latitude && row.longitude
-              ? `${row.latitude.toFixed(4)}, ${row.longitude.toFixed(4)}`
-              : 'N/A'}
+            {row.latitude && row.longitude ? (
+              `${row.latitude.toFixed(4)}, ${row.longitude.toFixed(4)}`
+            ) : (
+              <span className="italic text-sm">No Location</span>
+            )}
           </span>
         </Box>
       ),
@@ -339,9 +341,11 @@ const CoolerInspectionsManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <Calendar className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {row.next_inspection_due
-              ? formatDate(row.next_inspection_due)
-              : 'N/A'}
+            {row.next_inspection_due ? (
+              formatDate(row.next_inspection_due)
+            ) : (
+              <span className="italic text-sm">No Date</span>
+            )}
           </span>
         </Box>
       ),
