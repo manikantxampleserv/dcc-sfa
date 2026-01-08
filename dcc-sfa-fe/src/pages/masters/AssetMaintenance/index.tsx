@@ -120,6 +120,7 @@ const AssetMaintenanceManagement: React.FC = () => {
     {
       id: 'asset_info',
       label: 'Asset Info',
+      sortable: false,
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
@@ -150,6 +151,7 @@ const AssetMaintenanceManagement: React.FC = () => {
     {
       id: 'maintenance_details',
       label: 'Maintenance Details',
+      sortable: false,
       render: (_value, row) => (
         <Box className="flex flex-col gap-1">
           <Box className="flex items-center gap-1">
@@ -170,6 +172,7 @@ const AssetMaintenanceManagement: React.FC = () => {
     {
       id: 'technician',
       label: 'Technician',
+      sortable: false,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Avatar
@@ -177,7 +180,6 @@ const AssetMaintenanceManagement: React.FC = () => {
             src={row.asset_maintenance_technician?.profile_image || 'mkx'}
             className="!rounded !bg-primary-100 !text-primary-500"
           />
-
           <Box>
             <Typography
               variant="body1"
@@ -198,6 +200,7 @@ const AssetMaintenanceManagement: React.FC = () => {
     {
       id: 'maintenance_date',
       label: 'Date',
+      sortable: true,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Calendar className="w-3 h-3 text-gray-400" />
@@ -208,6 +211,7 @@ const AssetMaintenanceManagement: React.FC = () => {
     {
       id: 'cost',
       label: 'Cost',
+      sortable: true,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <span className="text-xs">
@@ -223,6 +227,7 @@ const AssetMaintenanceManagement: React.FC = () => {
     {
       id: 'remarks',
       label: 'Remarks',
+      sortable: true,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <FileText className="w-3 h-3 text-gray-400" />
@@ -237,6 +242,7 @@ const AssetMaintenanceManagement: React.FC = () => {
     {
       id: 'is_active',
       label: 'Active Status',
+      sortable: true,
       render: (_value, row) => (
         <Chip
           icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}

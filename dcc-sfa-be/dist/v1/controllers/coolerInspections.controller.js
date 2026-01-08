@@ -16,7 +16,7 @@ const serializeCoolerInspection = (inspection) => ({
     temperature: inspection.temperature ? Number(inspection.temperature) : null,
     is_working: inspection.is_working,
     issues: inspection.issues,
-    images: inspection.images ? JSON.parse(inspection.images) : null, // Parse JSON array
+    images: inspection.images ? JSON.parse(inspection.images) : null,
     latitude: inspection.latitude ? Number(inspection.latitude) : null,
     longitude: inspection.longitude ? Number(inspection.longitude) : null,
     action_required: inspection.action_required,
@@ -157,6 +157,159 @@ exports.coolerInspectionsController = {
             res.status(500).json({ message: error.message });
         }
     },
+    // async getCoolerInspections(req: Request, res: Response) {
+    //   try {
+    //     const {
+    //       page,
+    //       limit,
+    //       search,
+    //       isActive,
+    //       isWorking,
+    //       actionRequired,
+    //       cooler_id,
+    //       inspected_by,
+    //       user_id,
+    //       inspector_id,
+    //       visit_id,
+    //     } = req.query;
+    //     const page_num = page ? parseInt(page as string, 10) : 1;
+    //     const limit_num = limit ? parseInt(limit as string, 10) : 10;
+    //     const searchLower = search ? (search as string).toLowerCase() : '';
+    //     const inspectorFilter = inspector_id || inspected_by || user_id;
+    //     const filters: any = {
+    //       visit_id: { not: null },
+    //       ...(search && {
+    //         OR: [
+    //           { issues: { contains: searchLower } },
+    //           { action_taken: { contains: searchLower } },
+    //           { coolers: { code: { contains: searchLower } } },
+    //           { coolers: { brand: { contains: searchLower } } },
+    //           { coolers: { model: { contains: searchLower } } },
+    //           { users: { name: { contains: searchLower } } },
+    //           { users: { email: { contains: searchLower } } },
+    //         ],
+    //       }),
+    //       ...(isActive !== undefined &&
+    //         isActive !== null &&
+    //         isActive !== '' && {
+    //           is_active: isActive as string,
+    //         }),
+    //       ...(isWorking !== undefined &&
+    //         isWorking !== null &&
+    //         isWorking !== '' && {
+    //           is_working: isWorking as string,
+    //         }),
+    //       ...(actionRequired !== undefined &&
+    //         actionRequired !== null &&
+    //         actionRequired !== '' && {
+    //           action_required: actionRequired as string,
+    //         }),
+    //       ...(cooler_id !== undefined &&
+    //         cooler_id !== null &&
+    //         cooler_id !== '' && {
+    //           cooler_id: parseInt(cooler_id as string, 10),
+    //         }),
+    //       ...(inspectorFilter !== undefined &&
+    //         inspectorFilter !== null &&
+    //         inspectorFilter !== '' && {
+    //           inspected_by: parseInt(inspectorFilter as string, 10),
+    //         }),
+    //       ...(visit_id !== undefined &&
+    //         visit_id !== null &&
+    //         visit_id !== '' && {
+    //           visit_id: parseInt(visit_id as string, 10),
+    //         }),
+    //     };
+    //     const totalInspections = await prisma.cooler_inspections.count();
+    //     const activeInspections = await prisma.cooler_inspections.count({
+    //       where: { is_active: 'Y' },
+    //     });
+    //     const inactiveInspections = await prisma.cooler_inspections.count({
+    //       where: { is_active: 'N' },
+    //     });
+    //     const now = new Date();
+    //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    //     const newInspectionsThisMonth = await prisma.cooler_inspections.count({
+    //       where: {
+    //         createdate: {
+    //           gte: startOfMonth,
+    //           lte: endOfMonth,
+    //         },
+    //       },
+    //     });
+    //     const stats = {
+    //       total_inspections: totalInspections,
+    //       active_inspections: activeInspections,
+    //       inactive_inspections: inactiveInspections,
+    //       new_inspections_this_month: newInspectionsThisMonth,
+    //     };
+    //     const { data, pagination } = await paginate({
+    //       model: prisma.cooler_inspections,
+    //       filters,
+    //       page: page_num,
+    //       limit: limit_num,
+    //       orderBy: { createdate: 'desc' },
+    //       include: {
+    //         coolers: {
+    //           select: {
+    //             id: true,
+    //             code: true,
+    //             brand: true,
+    //             model: true,
+    //             serial_number: true,
+    //             capacity: true,
+    //             coolers_customers: {
+    //               select: {
+    //                 id: true,
+    //                 name: true,
+    //                 code: true,
+    //               },
+    //             },
+    //           },
+    //         },
+    //         users: {
+    //           select: {
+    //             id: true,
+    //             name: true,
+    //             email: true,
+    //             profile_image: true,
+    //           },
+    //         },
+    //         visits: {
+    //           select: {
+    //             id: true,
+    //             visit_date: true,
+    //             visit_customers: {
+    //               select: {
+    //                 id: true,
+    //                 name: true,
+    //                 code: true,
+    //               },
+    //             },
+    //           },
+    //         },
+    //       },
+    //     });
+    //     res.json({
+    //       success: true,
+    //       message: 'Cooler inspections retrieved successfully',
+    //       data: data.map((d: any) => serializeCoolerInspection(d)),
+    //       meta: {
+    //         requestDuration: Date.now(),
+    //         timestamp: new Date().toISOString(),
+    //         ...pagination,
+    //       },
+    //       stats,
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Get Cooler Inspections Error:', error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: error.message,
+    //     });
+    //   }
+    // },
     async getCoolerInspections(req, res) {
         try {
             const { page, limit, search, isActive, isWorking, actionRequired, cooler_id, inspected_by, user_id, inspector_id, visit_id, } = req.query;
@@ -165,7 +318,6 @@ exports.coolerInspectionsController = {
             const searchLower = search ? search.toLowerCase() : '';
             const inspectorFilter = inspector_id || inspected_by || user_id;
             const filters = {
-                visit_id: { not: null },
                 ...(search && {
                     OR: [
                         { issues: { contains: searchLower } },
@@ -205,15 +357,19 @@ exports.coolerInspectionsController = {
                 ...(visit_id !== undefined &&
                     visit_id !== null &&
                     visit_id !== '' && {
-                    visit_id: parseInt(visit_id, 10),
+                    visit_id: visit_id === 'null' ? null : parseInt(visit_id, 10),
                 }),
             };
             const totalInspections = await prisma_client_1.default.cooler_inspections.count();
             const activeInspections = await prisma_client_1.default.cooler_inspections.count({
-                where: { is_active: 'Y' },
+                where: {
+                    is_active: 'Y',
+                },
             });
             const inactiveInspections = await prisma_client_1.default.cooler_inspections.count({
-                where: { is_active: 'N' },
+                where: {
+                    is_active: 'N',
+                },
             });
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

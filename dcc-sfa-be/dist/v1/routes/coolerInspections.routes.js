@@ -6,7 +6,7 @@ const audit_middleware_1 = require("../../middlewares/audit.middleware");
 const coolerInspections_controller_1 = require("../controllers/coolerInspections.controller");
 const coolerInspections_validation_1 = require("../validations/coolerInspections.validation");
 const validation_middleware_1 = require("../../middlewares/validation.middleware");
-const multer_1 = require("../../utils/multer"); // Import multer
+const multer_1 = require("../../utils/multer");
 const router = (0, express_1.Router)();
 router.post('/cooler-inspections', multer_1.upload.array('images', 5), auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditCreate)('cooler_inspections'), (0, auth_middleware_1.requirePermission)([{ module: 'inspection', action: 'create' }]), coolerInspections_validation_1.createCoolerInspectionValidation, validation_middleware_1.validate, coolerInspections_controller_1.coolerInspectionsController.createCoolerInspection);
 router.get('/cooler-inspections/status-options', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'inspection', action: 'read' }]), coolerInspections_controller_1.coolerInspectionsController.getCoolerInspectionStatusOptions);

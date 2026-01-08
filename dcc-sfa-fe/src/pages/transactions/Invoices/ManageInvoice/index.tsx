@@ -30,8 +30,6 @@ interface InvoiceItemFormData {
   product_id: number | '';
   quantity: string;
   unit_price: string;
-  discount_amount: string;
-  tax_amount: string;
   notes: string;
 }
 
@@ -76,8 +74,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             product_id: item.product_id,
             quantity: item.quantity.toString(),
             unit_price: item.unit_price.toString(),
-            discount_amount: (item.discount_amount || 0).toString(),
-            tax_amount: (item.tax_amount || 0).toString(),
             notes: item.notes || '',
           })) || [];
         setInvoiceItems(items);
@@ -106,8 +102,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       status: invoice?.status || 'draft',
       payment_method: invoice?.payment_method || 'credit',
       subtotal: invoice?.subtotal || 0,
-      discount_amount: invoice?.discount_amount || 0,
-      tax_amount: invoice?.tax_amount || 0,
       total_amount: invoice?.total_amount || 0,
       balance_due: invoice?.balance_due || 0,
       notes: invoice?.notes || '',
@@ -133,8 +127,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           notes: values.notes,
           billing_address: values.billing_address,
           subtotal: totals.subtotal,
-          discount_amount: totals.discount_amount,
-          tax_amount: totals.tax_amount,
           total_amount: totals.total_amount,
           balance_due: totals.balance_due,
           invoiceItems: invoiceItems
@@ -143,8 +135,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               product_id: Number(item.product_id),
               quantity: Number(item.quantity),
               unit_price: Number(item.unit_price),
-              discount_amount: Number(item.discount_amount) || 0,
-              tax_amount: Number(item.tax_amount) || 0,
               notes: item.notes,
             })),
         };
@@ -169,8 +159,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       product_id: '',
       quantity: '1',
       unit_price: '0',
-      discount_amount: '0',
-      tax_amount: '0',
       notes: '',
     };
     const updatedItems = [...invoiceItems, newItem];
@@ -259,38 +247,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       ),
     },
     {
-      id: 'discount_amount',
-      label: 'Discount',
-      render: (_value, row) => (
-        <Input
-          value={row.discount_amount}
-          onChange={e =>
-            updateInvoiceItem(row._index, 'discount_amount', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
-      id: 'tax_amount',
-      label: 'Tax',
-      render: (_value, row) => (
-        <Input
-          value={row.tax_amount}
-          onChange={e =>
-            updateInvoiceItem(row._index, 'tax_amount', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
       id: 'actions',
       label: 'Actions',
       sortable: false,
@@ -327,26 +283,16 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
       0
     );
-    const discountAmount = invoiceItems.reduce(
-      (sum, item) => sum + Number(item.discount_amount),
-      0
-    );
-    const taxAmount = invoiceItems.reduce(
-      (sum, item) => sum + Number(item.tax_amount),
-      0
-    );
 
-    const totalAmount = subtotal - discountAmount + taxAmount;
+    const totalAmount = subtotal;
     const balanceDue = totalAmount;
 
     return {
       subtotal,
-      discount_amount: discountAmount,
-      tax_amount: taxAmount,
       total_amount: totalAmount,
       balance_due: balanceDue,
     };
-  }, [invoiceItems, formik.values.discount_amount, formik.values.tax_amount]);
+  }, [invoiceItems]);
 
   return (
     <CustomDrawer
@@ -506,58 +452,15 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                 </Typography>
                 <Box className="!space-y-2">
                   <Box className="!flex !justify-between">
-                    <Typography variant="body2">Subtotal:</Typography>
-                    <Typography variant="body2">
+                    <Typography variant="subtitle2" className="!font-bold">
+                      Total Amount:
+                    </Typography>
+                    <Typography variant="subtitle2" className="!font-bold">
                       {formatCurrency(
-                        totals.subtotal,
+                        totals.total_amount,
                         getCurrencyCode(formik.values.currency_id)
                       )}
                     </Typography>
-                  </Box>
-                  <Box className="!flex !justify-between">
-                    <Typography variant="body2">Discount:</Typography>
-                    <Typography variant="body2">
-                      -
-                      {formatCurrency(
-                        totals.discount_amount,
-                        getCurrencyCode(formik.values.currency_id)
-                      )}
-                    </Typography>
-                  </Box>
-                  <Box className="!flex !justify-between">
-                    <Typography variant="body2">Tax:</Typography>
-                    <Typography variant="body2">
-                      {formatCurrency(
-                        totals.tax_amount,
-                        getCurrencyCode(formik.values.currency_id)
-                      )}
-                    </Typography>
-                  </Box>
-                  <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
-                    <Box className="!flex !justify-between">
-                      <Typography variant="subtitle2" className="!font-bold">
-                        Total Amount:
-                      </Typography>
-                      <Typography variant="subtitle2" className="!font-bold">
-                        {formatCurrency(
-                          totals.total_amount,
-                          getCurrencyCode(formik.values.currency_id)
-                        )}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
-                    <Box className="!flex !justify-between">
-                      <Typography variant="subtitle2" className="!font-bold">
-                        Balance Due:
-                      </Typography>
-                      <Typography variant="subtitle2" className="!font-bold">
-                        {formatCurrency(
-                          totals.balance_due,
-                          getCurrencyCode(formik.values.currency_id)
-                        )}
-                      </Typography>
-                    </Box>
                   </Box>
                 </Box>
               </Box>

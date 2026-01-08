@@ -113,7 +113,6 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             {/* Zone Selection */}
             <Select name="parent_id" label="Zone" formik={formik} required>
-              <MenuItem value="">Select Zone</MenuItem>
               {zones.map(zone => (
                 <MenuItem key={zone.id} value={zone.id.toString()}>
                   {zone.name}
@@ -123,7 +122,6 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
 
             {/* Depot Selection */}
             <Select name="depot_id" label="Depot" formik={formik} required>
-              <MenuItem value="">Select Depot</MenuItem>
               {depots.map(depot => (
                 <MenuItem key={depot.id} value={depot.id.toString()}>
                   {depot.name} ({depot.code})
@@ -138,7 +136,6 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
               formik={formik}
               required
             >
-              <MenuItem value="">Select Route Type</MenuItem>
               {routeTypes.map((routeType: RouteType) => (
                 <MenuItem key={routeType.id} value={routeType.id.toString()}>
                   {routeType.name}

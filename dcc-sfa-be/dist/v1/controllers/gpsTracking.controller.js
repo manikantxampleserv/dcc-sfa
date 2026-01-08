@@ -350,10 +350,18 @@ exports.gpsTrackingController = {
                         },
                     },
                     routes_salesperson: {
-                        select: { id: true, name: true, email: true },
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
                     },
                     routes_depots: {
-                        select: { id: true, name: true, code: true },
+                        include: {
+                            routes_depots_depot: {
+                                select: { id: true, name: true, code: true },
+                            },
+                        },
                     },
                 },
             });
@@ -425,7 +433,7 @@ exports.gpsTrackingController = {
                     return sum;
                 }, 0);
                 const routeGPSLogs = gpsLogs.filter(log => {
-                    if (route.routes_salesperson) {
+                    if (route.routes_salesperson?.id) {
                         return log.user_id === route.routes_salesperson.id;
                     }
                     return false;
@@ -457,7 +465,7 @@ exports.gpsTrackingController = {
                     route_id: route.id,
                     route_name: route.name,
                     route_code: route.code,
-                    depot_name: route.routes_depots?.name || 'N/A',
+                    depot_name: route.routes_depots?.[0]?.routes_depots_depot?.name || 'N/A',
                     salesperson_name: route.routes_salesperson?.name || 'N/A',
                     total_customers: routeCustomers.length,
                     planned_visits: routeCustomers.length,

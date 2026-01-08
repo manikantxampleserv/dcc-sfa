@@ -116,13 +116,14 @@ export const useUpdateRoute = (options?: {
  * Hook to delete a route
  */
 export const useDeleteRoute = (options?: {
-  onSuccess?: (data: any, variables: number) => void;
-  onError?: (error: any, variables: number) => void;
+  onSuccess?: (data: any, variables: { id: number; force?: string }) => void;
+  onError?: (error: any, variables: { id: number; force?: string }) => void;
 }) => {
   const queryClient = useQueryClient();
 
   return useApiMutation({
-    mutationFn: deleteRoute,
+    mutationFn: ({ id, force }: { id: number; force?: string }) =>
+      deleteRoute(id, force),
     loadingMessage: 'Deleting route...',
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: routeKeys.lists() });
