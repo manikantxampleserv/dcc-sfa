@@ -201,7 +201,8 @@ export const updateRoute = async (
 export const deleteRoute = async (id: number, force?: string) => {
   const response = await axiosInstance({
     method: 'DELETE',
-    url: `/routes/${id}${force ? '?force=true' : ''}`,
+    url: `/routes/${id}`,
+    data: { force: force || undefined }, // Always include force in request body
   });
   return response.data;
 };

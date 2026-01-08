@@ -109,31 +109,6 @@ const RoutesManagement: React.FC = () => {
         await deleteRouteMutation.mutateAsync({ id });
       } catch (error: any) {
         console.error('Error deleting route:', error);
-
-        // Enhanced error handling for foreign key constraints
-        if (error?.response?.data?.details) {
-          const details = error.response.data.details;
-          let message = 'Cannot delete route. It has associated records:\n';
-
-          if (details.hasCustomers) {
-            message += `• ${details.customersCount} customer route(s)\n`;
-          }
-          if (details.hasDepots) {
-            message += `• ${details.depotsCount} depot(s)\n`;
-          }
-          if (details.hasZones) {
-            message += `• ${details.zonesCount} zone(s)\n`;
-          }
-          if (details.hasSalespersons) {
-            message += `• ${details.salespersonsCount} salesperson(s)\n`;
-          }
-          if (details.hasVisits) {
-            message += `• ${details.visitsCount} visit record(s)\n`;
-          }
-
-          // Show detailed error message
-          alert(message);
-        }
       }
     },
     [deleteRouteMutation]

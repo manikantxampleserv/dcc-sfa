@@ -467,7 +467,7 @@ export const routesController = {
   async deleteRoutes(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { force } = req.body;
+      const force = 'true';
 
       const existingRoute = await prisma.routes.findUnique({
         where: { id: Number(id) },
