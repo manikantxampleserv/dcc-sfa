@@ -11,11 +11,13 @@ import {
 import { competitorActivityController } from '../controllers/competitorActivity.controller';
 import { createCompetitorActivityValidation } from '../validations/competitorActivity.validation';
 import { validate } from '../../middlewares/validation.middleware';
+import { upload } from '../../utils/multer';
 
 const router = Router();
 
 router.post(
   '/competitor-activity',
+  upload.single('image'),
   authenticateToken,
   auditCreate('competitor_activities'),
   requirePermission([{ module: 'competitor', action: 'create' }]),
@@ -41,6 +43,7 @@ router.get(
 
 router.put(
   '/competitor-activity/:id',
+  upload.single('image'),
   authenticateToken,
   auditUpdate('competitor_activities'),
   requirePermission([{ module: 'competitor', action: 'update' }]),

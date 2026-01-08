@@ -11,11 +11,13 @@ import {
 import { coolerInspectionsController } from '../controllers/coolerInspections.controller';
 import { createCoolerInspectionValidation } from '../validations/coolerInspections.validation';
 import { validate } from '../../middlewares/validation.middleware';
+import { upload } from '../../utils/multer'; // Import multer
 
 const router = Router();
 
 router.post(
   '/cooler-inspections',
+  upload.array('images', 5),
   authenticateToken,
   auditCreate('cooler_inspections'),
   requirePermission([{ module: 'inspection', action: 'create' }]),
@@ -48,6 +50,7 @@ router.get(
 
 router.put(
   '/cooler-inspections/:id',
+  upload.array('images', 10), // Allow up to 10 images
   authenticateToken,
   auditUpdate('cooler_inspections'),
   requirePermission([{ module: 'inspection', action: 'update' }]),

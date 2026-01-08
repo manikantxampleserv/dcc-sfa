@@ -11,6 +11,12 @@ router.get(
 );
 
 router.get(
+  '/salesperson-item-inventory/:salesperson_id',
+  authenticateToken,
+  vanInventoryController.getinventoryItemSalesperson
+);
+
+router.get(
   '/inventory-item-salesperson/:salesperson_id',
   authenticateToken,
   vanInventoryController.getSalespersonInventory
