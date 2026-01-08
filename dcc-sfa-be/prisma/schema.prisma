@@ -433,32 +433,34 @@ model batch_lots {
 }
 
 model companies {
-  id                   Int         @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
-  name                 String      @db.NVarChar(255)
-  code                 String      @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
-  address              String?     @db.NVarChar(500)
-  city                 String?     @db.NVarChar(100)
-  state                String?     @db.NVarChar(100)
-  country              String?     @db.NVarChar(100)
-  zipcode              String?     @db.NVarChar(20)
-  phone_number         String?     @db.NVarChar(20)
-  email                String?     @db.NVarChar(255)
-  website              String?     @db.NVarChar(255)
-  logo                 String?     @db.NVarChar(500)
-  is_active            String      @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
-  created_date         DateTime?   @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
-  created_by           Int
-  updated_date         DateTime?   @db.DateTime
-  updated_by           Int?
-  log_inst             Int?
-  smtp_host            String?     @db.VarChar(50)
-  smtp_password        String?     @db.VarChar(100)
-  smtp_port            Int?
-  smtp_username        String?     @db.VarChar(200)
-  currency_id          Int?
-  companies_currencies currencies? @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  depot_companies      depots[]
-  users                users[]
+  id                     Int         @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
+  name                   String      @db.NVarChar(255)
+  code                   String      @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
+  address                String?     @db.NVarChar(500)
+  city                   String?     @db.NVarChar(100)
+  state                  String?     @db.NVarChar(100)
+  country                String?     @db.NVarChar(100)
+  zipcode                String?     @db.NVarChar(20)
+  phone_number           String?     @db.NVarChar(20)
+  email                  String?     @db.NVarChar(255)
+  website                String?     @db.NVarChar(255)
+  logo                   String?     @db.NVarChar(500)
+  is_active              String      @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
+  created_date           DateTime?   @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
+  created_by             Int
+  updated_date           DateTime?   @db.DateTime
+  updated_by             Int?
+  log_inst               Int?
+  smtp_host              String?     @db.VarChar(50)
+  smtp_password          String?     @db.VarChar(100)
+  smtp_port              Int?
+  smtp_username          String?     @db.VarChar(200)
+  smtp_mail_from_address String?     @db.NVarChar(200)
+  smtp_mail_from_name    String?     @db.NVarChar(200)
+  currency_id            Int?
+  companies_currencies   currencies? @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  depot_companies        depots[]
+  users                  users[]
 }
 
 model competitor_activity {

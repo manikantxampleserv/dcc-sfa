@@ -95,6 +95,7 @@
 
 // export default sendEmail;
 
+//II. Taking config from env
 import nodemailer from 'nodemailer';
 import prisma from '../configs/prisma.client';
 
@@ -197,3 +198,33 @@ export const sendBulkEmails = async (
 };
 
 export default sendEmail;
+
+//III. Taking confi g from compnay
+// import nodemailer from 'nodemailer'
+// import prisma from '../configs/prisma.client'
+
+// interface EmailData{
+//   to:string| string[]
+//   subject: string;
+//   html: string
+//   cc?: string | string[];
+//   bcc?:string | string[];
+//   attachemnt? :Array<{
+//     filename: string;
+//     path?: string;
+//     content?:Buffer |string;
+//   }>
+//   createdby?:number;
+
+//   log_inst? : Number;
+
+// }
+
+// interface SMTPConfig {
+//   host: string;
+//   port :number;
+//   username: string;
+//   password: string;
+//   fromAddress: string;
+//   fromName: string
+// }
