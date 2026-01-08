@@ -103,10 +103,19 @@ export const fetchCompetitorActivityById = async (
 };
 
 export const createCompetitorActivity = async (
-  data: CreateCompetitorActivityPayload
+  data: CreateCompetitorActivityPayload | FormData
 ): Promise<CompetitorActivity> => {
   try {
-    const response = await axiosInstance.post('/competitor-activity', data);
+    const config =
+      data instanceof FormData
+        ? { headers: { 'Content-Type': 'multipart/form-data' } }
+        : { headers: { 'Content-Type': 'application/json' } };
+
+    const response = await axiosInstance.post(
+      '/competitor-activity',
+      data,
+      config
+    );
     return response.data.data;
   } catch (error: any) {
     console.error('Error creating competitor activity:', error);
@@ -118,12 +127,19 @@ export const createCompetitorActivity = async (
 
 export const updateCompetitorActivity = async (
   id: number,
-  data: UpdateCompetitorActivityPayload
+  data: UpdateCompetitorActivityPayload | FormData
 ): Promise<CompetitorActivity> => {
   try {
+    // Set appropriate headers based on data type
+    const config =
+      data instanceof FormData
+        ? { headers: { 'Content-Type': 'multipart/form-data' } }
+        : { headers: { 'Content-Type': 'application/json' } };
+
     const response = await axiosInstance.put(
       `/competitor-activity/${id}`,
-      data
+      data,
+      config
     );
     return response.data.data;
   } catch (error: any) {

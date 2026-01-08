@@ -79,11 +79,25 @@ export const useCompetitorActivityById = (
  * Hook to create competitor activity with automatic toast notifications
  * @returns Mutation object for creating competitor activity
  */
-export const useCreateCompetitorActivity = () => {
+export const useCreateCompetitorActivity = (options?: {
+  onSuccess?: (
+    data: competitorActivityService.CompetitorActivity,
+    variables:
+      | competitorActivityService.CreateCompetitorActivityPayload
+      | FormData
+  ) => void;
+  onError?: (
+    error: any,
+    variables:
+      | competitorActivityService.CreateCompetitorActivityPayload
+      | FormData
+  ) => void;
+}) => {
   return useApiMutation({
     mutationFn: competitorActivityService.createCompetitorActivity,
     invalidateQueries: ['competitor-activity'],
     loadingMessage: 'Creating competitor activity...',
+    ...options,
   });
 };
 
@@ -91,17 +105,39 @@ export const useCreateCompetitorActivity = () => {
  * Hook to update competitor activity with automatic toast notifications
  * @returns Mutation object for updating competitor activity
  */
-export const useUpdateCompetitorActivity = () => {
+export const useUpdateCompetitorActivity = (options?: {
+  onSuccess?: (
+    data: competitorActivityService.CompetitorActivity,
+    variables: {
+      id: number;
+      data:
+        | competitorActivityService.UpdateCompetitorActivityPayload
+        | FormData;
+    }
+  ) => void;
+  onError?: (
+    error: any,
+    variables: {
+      id: number;
+      data:
+        | competitorActivityService.UpdateCompetitorActivityPayload
+        | FormData;
+    }
+  ) => void;
+}) => {
   return useApiMutation({
     mutationFn: ({
       id,
       data,
     }: {
       id: number;
-      data: competitorActivityService.UpdateCompetitorActivityPayload;
+      data:
+        | competitorActivityService.UpdateCompetitorActivityPayload
+        | FormData;
     }) => competitorActivityService.updateCompetitorActivity(id, data),
     invalidateQueries: ['competitor-activity'],
     loadingMessage: 'Updating competitor activity...',
+    ...options,
   });
 };
 

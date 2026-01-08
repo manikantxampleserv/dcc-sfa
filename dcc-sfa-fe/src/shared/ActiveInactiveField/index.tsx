@@ -118,7 +118,7 @@ const ActiveInactiveField: React.FC<ActiveInactiveFieldProps> = ({
         className="!text-gray-700 !text-sm !font-medium"
       >
         {label}
-        {required && <span className="!text-red-500"> *</span>}
+        {required && <span> *</span>}
       </FormLabel>
       <RadioGroup
         row
