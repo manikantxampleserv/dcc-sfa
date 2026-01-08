@@ -11,7 +11,7 @@ import {
 import { coolerInspectionsController } from '../controllers/coolerInspections.controller';
 import { createCoolerInspectionValidation } from '../validations/coolerInspections.validation';
 import { validate } from '../../middlewares/validation.middleware';
-import { upload } from '../../utils/multer'; // Import multer
+import { upload } from '../../utils/multer';
 
 const router = Router();
 
