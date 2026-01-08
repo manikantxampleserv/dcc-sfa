@@ -1236,14 +1236,13 @@ exports.ordersController = {
                             });
                         }
                         else if (trackingType === 'SERIAL') {
-                            console.log(' Going to SERIAL branch');
+                            console.log('🔹 Going to SERIAL branch');
                             const serialData = item.serials || item.product_serials;
-                            if (!serialData || !Array.isArray(serialData)) {
-                                throw new Error(`Serial numbers are required for product "${product.name}"`);
+                            if (!serialData ||
+                                !Array.isArray(serialData) ||
+                                serialData.length === 0) {
+                                throw new Error(`Serial numbers required for "${product.name}"`);
                             }
-                            console.log(`\n========== PROCESS SERIALS FOR ORDER ==========`);
-                            console.log(`Product: ${product.name} (ID: ${product.id})`);
-                            console.log(`Serials to process: ${serialData.length}`);
                             for (const serialInput of serialData) {
                                 const serialNumber = typeof serialInput === 'string'
                                     ? serialInput
@@ -1251,48 +1250,23 @@ exports.ordersController = {
                                 if (!serialNumber) {
                                     throw new Error('Serial number is required');
                                 }
-                                console.log(`\n Processing serial: ${serialNumber}`);
                                 const serial = await tx.serial_numbers.findUnique({
                                     where: { serial_number: serialNumber },
                                 });
                                 if (!serial) {
-                                    throw new Error(`Serial number "${serialNumber}" not found`);
-                                }
-                                if (serial.status !== 'invan' &&
-                                    serial.status !== 'available') {
-                                    throw new Error(`Serial "${serialNumber}" is not available. Current status: ${serial.status}`);
-                                }
-                                console.log(`    Found serial: ID ${serial.id}, Status: ${serial.status}`);
-                                if (vanInventory) {
-                                    const vanItem = await tx.van_inventory_items.findFirst({
-                                        where: {
-                                            parent_id: Number(van_inventory_id),
-                                            product_id: product.id,
-                                            serial_id: serial.id,
-                                            quantity: { gt: 0 },
-                                        },
-                                    });
-                                    if (!vanItem) {
-                                        throw new Error(`Serial "${serialNumber}" not found in van inventory ${van_inventory_id}`);
-                                    }
-                                    console.log(`    Found in van_inventory_items: ID ${vanItem.id}`);
-                                    await tx.van_inventory_items.update({
-                                        where: { id: vanItem.id },
-                                        data: { quantity: { decrement: 1 } },
-                                    });
-                                    console.log(`   Reduced van_item quantity`);
+                                    throw new Error(`Serial number ${serialNumber} not found`);
                                 }
                                 await tx.serial_numbers.update({
                                     where: { id: serial.id },
                                     data: {
                                         status: 'sold',
-                                        customer_id: customer.id,
+                                        customer_id: customer?.id || null,
                                         sold_date: new Date(),
                                         updatedate: new Date(),
                                         updatedby: userId,
                                     },
                                 });
-                                console.log(`    Updated serial status: ${serial.status} → sold`);
+                                console.log(`✅ Serial ${serialNumber} marked as SOLD`);
                                 const inventoryStock = await tx.inventory_stock.findFirst({
                                     where: {
                                         product_id: product.id,
@@ -1300,18 +1274,39 @@ exports.ordersController = {
                                     },
                                 });
                                 if (inventoryStock) {
-                                    const currentStock = inventoryStock.current_stock ?? 0;
-                                    const availableStock = inventoryStock.available_stock ?? 0;
+                                    const oldCurrent = inventoryStock.current_stock || 0;
+                                    const oldAvailable = inventoryStock.available_stock || 0;
+                                    const newCurrentStock = Math.max(0, oldCurrent - 1);
+                                    const newAvailableStock = Math.max(0, oldAvailable - 1);
                                     await tx.inventory_stock.update({
                                         where: { id: inventoryStock.id },
                                         data: {
-                                            current_stock: Math.max(0, currentStock - 1),
-                                            available_stock: Math.max(0, availableStock - 1),
+                                            current_stock: newCurrentStock,
+                                            available_stock: newAvailableStock,
                                             updatedate: new Date(),
                                             updatedby: userId,
                                         },
                                     });
-                                    console.log(`    Updated inventory_stock: ${currentStock} → ${currentStock - 1}`);
+                                    console.log(` DECREASED inventory_stock for ${serialNumber}: current ${oldCurrent}→${newCurrentStock}, available ${oldAvailable}→${newAvailableStock}`);
+                                }
+                                else {
+                                    console.warn(` No inventory_stock found for serial ${serialNumber}`);
+                                }
+                                if (vanInventory) {
+                                    const vanItem = await tx.van_inventory_items.findFirst({
+                                        where: {
+                                            parent_id: Number(van_inventory_id),
+                                            product_id: product.id,
+                                            serial_id: serial.id,
+                                        },
+                                    });
+                                    if (vanItem && vanItem.quantity > 0) {
+                                        await tx.van_inventory_items.update({
+                                            where: { id: vanItem.id },
+                                            data: { quantity: { decrement: 1 } },
+                                        });
+                                        console.log(` DECREASED van_inventory_items for ${serialNumber}: ${vanItem.quantity}→${vanItem.quantity - 1}`);
+                                    }
                                 }
                                 await tx.stock_movements.create({
                                     data: {
@@ -1335,24 +1330,24 @@ exports.ordersController = {
                                             : null,
                                     },
                                 });
-                                console.log(`    Created stock movement`);
+                                console.log(` SALE stock_movement created for ${serialNumber}`);
                             }
                             await tx.order_items.create({
                                 data: {
                                     parent_id: order.id,
                                     product_id: product.id,
                                     product_name: product.name,
-                                    unit: item.unit || 'pcs',
+                                    unit: 'pcs',
                                     quantity: serialData.length,
                                     unit_price: Number(item.unit_price || item.price),
                                     discount_amount: Number(item.discount_amount || 0),
                                     tax_amount: Number(item.tax_amount || 0),
                                     total_amount: serialData.length * Number(item.unit_price || item.price),
-                                    notes: `Serials: ${serialData.map(s => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
+                                    notes: `Serials: ${serialData.map((s) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
                                     is_free_gift: false,
                                 },
                             });
-                            console.log(` Created order_item for ${serialData.length} serials`);
+                            console.log(`✅ Order item created for ${serialData.length} serials`);
                         }
                         else {
                             console.log(' Going to NONE branch');
@@ -1373,16 +1368,13 @@ exports.ordersController = {
                                 },
                             });
                             if (inventoryStock) {
-                                const currentStock = inventoryStock.current_stock ?? 0;
-                                const availableStock = inventoryStock.available_stock ?? 0;
-                                if (currentStock < quantity) {
-                                    throw new Error(`Insufficient inventory stock. Available: ${currentStock}, Requested: ${quantity}`);
-                                }
+                                const newCurrentStock = Math.max(0, (inventoryStock.current_stock || 0) - 1);
+                                const newAvailableStock = Math.max(0, (inventoryStock.available_stock || 0) - 1);
                                 await tx.inventory_stock.update({
                                     where: { id: inventoryStock.id },
                                     data: {
-                                        current_stock: currentStock - quantity,
-                                        available_stock: availableStock - quantity,
+                                        current_stock: newCurrentStock,
+                                        available_stock: newAvailableStock,
                                         updatedate: new Date(),
                                         updatedby: userId,
                                     },
@@ -2104,9 +2096,6 @@ exports.ordersController = {
             });
             if (!existingOrder)
                 return res.status(404).json({ message: 'Order not found' });
-            await prisma_client_1.default.order_items.deleteMany({
-                where: { parent_id: Number(id) },
-            });
             await prisma_client_1.default.orders.delete({ where: { id: Number(id) } });
             res.json({ message: 'Order deleted successfully' });
         }

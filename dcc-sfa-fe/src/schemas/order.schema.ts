@@ -106,11 +106,6 @@ export const orderValidationSchema = yup.object().shape({
     .string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')
     .required('Status is required'),
-  order_items: yup
-    .array()
-    .of(orderItemValidationSchema)
-    .min(1, 'At least one order item is required')
-    .required('Order items are required'),
 });
 
 export const orderUpdateValidationSchema = orderValidationSchema.shape({
@@ -123,11 +118,6 @@ export const orderUpdateValidationSchema = orderValidationSchema.shape({
   salesperson_id: yup
     .number()
     .positive('Salesperson ID must be positive')
-    .nullable(),
-  order_items: yup
-    .array()
-    .of(orderItemValidationSchema)
-    .min(1, 'At least one order item is required')
     .nullable(),
 });
 

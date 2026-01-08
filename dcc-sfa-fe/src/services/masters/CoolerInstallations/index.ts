@@ -51,7 +51,6 @@ export interface CoolerInstallation {
 
 export interface CreateCoolerInstallationPayload {
   customer_id: number;
-  code: string;
   brand?: string;
   model?: string;
   serial_number?: string;

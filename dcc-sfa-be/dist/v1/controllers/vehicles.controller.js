@@ -47,6 +47,16 @@ exports.vehiclesController = {
                     .status(400)
                     .json({ message: 'Vehicle number and type are required' });
             }
+            const duplicateVechile = await prisma_client_1.default.vehicles.findFirst({
+                where: {
+                    vehicle_number: data.vehicle_number,
+                },
+            });
+            if (duplicateVechile) {
+                return res.status(409).json({
+                    message: 'Vehicle with this vehicle number already exists',
+                });
+            }
             const vehicle = await prisma_client_1.default.vehicles.create({
                 data: {
                     ...data,

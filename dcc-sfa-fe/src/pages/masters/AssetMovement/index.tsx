@@ -292,7 +292,7 @@ const AssetMovementManagement: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">Asset Movements</p>
+          <p className="!font-bold text-xl !text-gray-900">Asset Movement</p>
           <p className="!text-gray-500 text-sm">
             Track and manage asset movements across locations
           </p>

@@ -77,11 +77,10 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
 
   const { data: existingApprovers } = useApprovalWorkflowSetupsByRequest(
     requestType || '',
-    selectedZoneId,
-    selectedDepotId || undefined
+    selectedZoneId ?? undefined,
+    selectedDepotId ?? undefined
   );
 
-  console.log('existingApprovers', existingApprovers);
   const { data: zonesResponse } = useZones({ isActive: 'Y' });
   const { data: depotsResponse } = useDepots({ isActive: 'Y' });
   const { data: requestTypesResponse } = useRequestTypes();

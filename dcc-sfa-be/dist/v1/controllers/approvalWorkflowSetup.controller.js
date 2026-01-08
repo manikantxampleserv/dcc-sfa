@@ -57,15 +57,15 @@ exports.approvalWorkflowSetupController = {
                     });
                 }
                 // Validate depot if depot_id is provided (not null/global)
-                if (data.depot_id && approver.depot_id !== Number(data.depot_id)) {
-                    const depot = await prisma_client_1.default.depots.findUnique({
-                        where: { id: Number(data.depot_id) },
-                        select: { name: true },
-                    });
-                    return res.status(400).json({
-                        message: `Approver ${approver.name} does not belong to ${depot?.name} depot`,
-                    });
-                }
+                //   if (data.depot_id && approver.depot_id !== Number(data.depot_id)) {
+                //     const depot = await prisma.depots.findUnique({
+                //       where: { id: Number(data.depot_id) },
+                //       select: { name: true },
+                //     });
+                //     return res.status(400).json({
+                //       message: `Approver ${approver.name} does not belong to ${depot?.name} depot`,
+                //     });
+                //   }
             }
             // Delete existing workflows for the same request_type, zone_id, and depot_id
             // This ensures we replace instead of duplicate

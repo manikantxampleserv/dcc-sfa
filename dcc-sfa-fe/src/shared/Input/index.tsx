@@ -239,14 +239,6 @@ const Input: React.FC<InputProps> = ({
       name={name}
       slotProps={{
         htmlInput: {
-          style:
-            type === 'file'
-              ? {
-                  paddingTop: '1.5rem',
-                  paddingLeft: '1.5rem',
-                  paddingBottom: '3rem',
-                }
-              : undefined,
           required: false,
         },
         input: {

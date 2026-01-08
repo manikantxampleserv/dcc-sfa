@@ -276,16 +276,12 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       renderInput={(params: any) => (
         <TextField
           {...params}
-          label={label}
-          required={required}
+          label={`${label + (required ? ' *' : '')}`}
+          required={false}
           error={!!error}
+          require
           helperText={helperText}
           onBlur={formik?.handleBlur}
-          slotProps={{
-            input: {
-              required: false,
-            },
-          }}
           name={name}
           size="small"
         />
@@ -297,8 +293,8 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       }
       loadingText={
         <span className="flex items-center gap-2">
-          <CircularProgress thickness={6} size={16} color="inherit" />
-          Loading customers...
+          <CircularProgress thickness={6} size={16} color="inherit" /> Loading
+          customers...
         </span>
       }
     />

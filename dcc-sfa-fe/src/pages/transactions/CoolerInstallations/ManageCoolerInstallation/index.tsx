@@ -16,6 +16,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import { formatForDateInput } from 'utils/dateUtils';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageCoolerInstallationProps {
   selectedInstallation?: CoolerInstallation | null;
@@ -82,7 +83,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       try {
         const installationData = {
           customer_id: Number(values.customer_id),
-          code: values.code,
           brand: values.brand,
           model: values.model,
           serial_number: values.serial_number,
@@ -146,27 +146,13 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            {/* Customer Selection */}
-            <Box className="md:!col-span-2">
-              <CustomerSelect
-                name="customer_id"
-                label="Customer"
-                formik={formik}
-                required
-              />
-            </Box>
+            <CustomerSelect
+              name="customer_id"
+              label="Customer"
+              formik={formik}
+              required
+            />
 
-            {/* Cooler Code */}
-            <Box className="md:!col-span-2">
-              <Input
-                name="code"
-                label="Cooler Code"
-                placeholder="Leave empty to auto-generate"
-                formik={formik}
-              />
-            </Box>
-
-            {/* Brand and Model */}
             <Input
               name="brand"
               label="Brand"
@@ -181,7 +167,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               formik={formik}
             />
 
-            {/* Serial Number and Capacity */}
             <Input
               name="serial_number"
               label="Serial Number"
@@ -197,7 +182,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               type="number"
             />
 
-            {/* Installation Date */}
             <Input
               name="install_date"
               label="Installation Date"
@@ -205,7 +189,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               type="date"
             />
 
-            {/* Cooler Type */}
             <Select
               name="cooler_type_id"
               label="Cooler Type"
@@ -222,7 +205,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               ))}
             </Select>
 
-            {/* Cooler Sub Type */}
             <Select
               name="cooler_sub_type_id"
               label="Cooler Sub Type"
@@ -236,7 +218,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               ))}
             </Select>
 
-            {/* Status */}
             <Select name="status" label="Status" formik={formik}>
               <MenuItem value="working">Working</MenuItem>
               <MenuItem value="maintenance">Maintenance</MenuItem>
@@ -244,7 +225,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               <MenuItem value="offline">Offline</MenuItem>
             </Select>
 
-            {/* Temperature */}
             <Input
               name="temperature"
               label="Temperature (°C)"
@@ -253,7 +233,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               type="number"
             />
 
-            {/* Energy Rating */}
             <Input
               name="energy_rating"
               label="Energy Rating"
@@ -261,7 +240,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               formik={formik}
             />
 
-            {/* Last Service Date */}
             <Input
               name="last_service_date"
               label="Last Service Date"
@@ -269,7 +247,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               type="date"
             />
 
-            {/* Next Service Due */}
             <Input
               name="next_service_due"
               label="Next Service Due"
@@ -277,7 +254,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               type="date"
             />
 
-            {/* Warranty Expiry */}
             <Input
               name="warranty_expiry"
               label="Warranty Expiry"
@@ -285,7 +261,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               type="date"
             />
 
-            {/* Technician */}
             <Select name="technician_id" label="Technician" formik={formik}>
               {users.map(user => (
                 <MenuItem key={user.id} value={user.id}>
@@ -294,7 +269,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               ))}
             </Select>
 
-            {/* Last Scanned Date */}
             <Input
               name="last_scanned_date"
               label="Last Scanned Date"
@@ -302,7 +276,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               type="date"
             />
 
-            {/* Maintenance Contract */}
             <Box className="md:!col-span-2">
               <Input
                 name="maintenance_contract"
@@ -310,15 +283,16 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
                 placeholder="Enter maintenance contract details"
                 formik={formik}
                 multiline
-                rows={2}
+                rows={3}
               />
             </Box>
 
-            {/* Active Status */}
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              label="Status"
+              formik={formik}
+              required
+            />
           </Box>
 
           <Box className="!flex !justify-end">

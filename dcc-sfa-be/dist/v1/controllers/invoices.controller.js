@@ -85,6 +85,19 @@ exports.invoicesController = {
             if (!data.payment_method) {
                 return res.status(400).json({ message: 'Payment method is required' });
             }
+            if (!data.invoiceItems ||
+                !Array.isArray(data.invoiceItems) ||
+                data.invoiceItems.length === 0) {
+                return res.status(400).json({
+                    message: 'At leat one invoice item is required to create an invoice',
+                });
+            }
+            const invalidItems = data.invoiceItems.filter((item) => !item.product_id || !item.quantity || !item.unit_price);
+            if (invalidItems.length > 0) {
+                return res.status(400).json({
+                    message: 'All invoice items must have product_id, quantity, and unit_price',
+                });
+            }
             const invoiceNumber = data.invoice_number || `INV-${Date.now()}`;
             const invoice = await prisma_client_1.default.$transaction(async (tx) => {
                 const newInvoice = await tx.invoices.create({
