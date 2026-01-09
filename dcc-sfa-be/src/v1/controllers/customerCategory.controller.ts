@@ -320,6 +320,321 @@ const serializeCustomerCategory = (category: any) => ({
 });
 
 export const customerCategoryController = {
+  // async bulkCustomerCategory(req: Request, res: Response) {
+  //   try {
+  //     const input: CustomerCategoryInput[] = Array.isArray(req.body)
+  //       ? req.body
+  //       : [req.body];
+
+  //     const results = {
+  //       created: [] as any[],
+  //       updated: [] as any[],
+  //       failed: [] as any[],
+  //     };
+
+  //     for (const item of input) {
+  //       try {
+  //         const result = await prisma.$transaction(async tx => {
+  //           const duplicateCategory = await tx.customer_category.findFirst({
+  //             where: {
+  //               AND: [
+  //                 { category_name: item.category_name },
+  //                 item.id ? { id: { not: item.id } } : {},
+  //               ],
+  //             },
+  //           });
+
+  //           if (duplicateCategory) {
+  //             throw new Error(
+  //               `Category name '${item.category_name}' already exists`
+  //             );
+  //           }
+
+  //           const duplicateLevel = await tx.customer_category.findFirst({
+  //             where: {
+  //               AND: [
+  //                 { level: item.level },
+  //                 item.id ? { id: { not: item.id } } : {},
+  //               ],
+  //             },
+  //           });
+
+  //           if (duplicateLevel) {
+  //             throw new Error(
+  //               `Level '${item.level}' is already assigned to another category either update or delete`
+  //             );
+  //           }
+
+  //           let parent;
+
+  //           if (item.id) {
+  //             const exists = await tx.customer_category.findUnique({
+  //               where: { id: item.id },
+  //             });
+
+  //             if (!exists)
+  //               throw new Error(`Category with id ${item.id} not found`);
+
+  //             parent = await tx.customer_category.update({
+  //               where: { id: item.id },
+  //               data: {
+  //                 category_name: item.category_name,
+  //                 category_code: item.category_code,
+  //                 level: item.level,
+  //                 is_active: item.is_active || 'Y',
+  //                 updatedby: req.user?.id || item.updatedby || 1,
+  //                 updatedate: new Date(),
+  //               },
+  //             });
+  //           } else {
+  //             parent = await tx.customer_category.create({
+  //               data: {
+  //                 category_name: item.category_name,
+  //                 category_code: item.category_code,
+  //                 level: item.level || 1,
+  //                 is_active: item.is_active || 'Y',
+  //                 createdby: req.user?.id || item.createdby || 1,
+  //                 createdate: new Date(),
+  //                 log_inst: 1,
+  //               },
+  //             });
+  //           }
+
+  //           const parentId = parent.id;
+
+  //           if (item.conditions && item.conditions.length > 0) {
+  //             for (const cond of item.conditions) {
+  //               const condData = {
+  //                 condition_type: cond.condition_type,
+  //                 condition_operator: cond.condition_operator,
+  //                 threshold_value: cond.threshold_value,
+  //                 product_category_id: cond.product_category_id,
+  //                 condition_description: cond.condition_description,
+  //                 is_active: cond.is_active || 'Y',
+  //               };
+
+  //               if (cond.id) {
+  //                 await tx.customer_category_condition.update({
+  //                   where: { id: cond.id },
+  //                   data: {
+  //                     ...condData,
+  //                   },
+  //                 });
+  //               } else {
+  //                 await tx.customer_category_condition.create({
+  //                   data: {
+  //                     ...condData,
+  //                     customer_category_id: parentId,
+  //                   },
+  //                 });
+  //               }
+  //             }
+  //           }
+
+  //           const completeRecord = await tx.customer_category.findUnique({
+  //             where: { id: parentId },
+  //             include: {
+  //               customer_category_condition_customer_category: true,
+  //             },
+  //           });
+
+  //           return completeRecord;
+  //         });
+
+  //         if (item.id) results.updated.push(serializeCustomerCategory(result));
+  //         else results.created.push(serializeCustomerCategory(result));
+  //       } catch (error: any) {
+  //         results.failed.push({
+  //           item,
+  //           error: error.message,
+  //         });
+  //       }
+  //     }
+
+  //     return res.status(200).json({
+  //       message: 'Bulk upsert completed',
+  //       results,
+  //     });
+  //   } catch (e: any) {
+  //     return res.status(500).json({ message: e.message });
+  //   }
+  // },
+
+  //II
+  // async bulkCustomerCategory(req: Request, res: Response) {
+  //   try {
+  //     const input: CustomerCategoryInput[] = Array.isArray(req.body)
+  //       ? req.body
+  //       : [req.body];
+
+  //     const results = {
+  //       created: [] as any[],
+  //       updated: [] as any[],
+  //       failed: [] as any[],
+  //     };
+
+  //     for (const item of input) {
+  //       try {
+  //         const result = await prisma.$transaction(async tx => {
+  //           const duplicateCategory = await tx.customer_category.findFirst({
+  //             where: {
+  //               AND: [
+  //                 { category_name: item.category_name },
+  //                 item.id ? { id: { not: item.id } } : {},
+  //               ],
+  //             },
+  //           });
+
+  //           if (duplicateCategory) {
+  //             throw new Error(
+  //               `Category name '${item.category_name}' already exists`
+  //             );
+  //           }
+
+  //           const duplicateLevel = await tx.customer_category.findFirst({
+  //             where: {
+  //               AND: [
+  //                 { level: item.level },
+  //                 item.id ? { id: { not: item.id } } : {},
+  //               ],
+  //             },
+  //           });
+
+  //           if (duplicateLevel) {
+  //             throw new Error(
+  //               `Level '${item.level}' is already assigned to another category either update or delete`
+  //             );
+  //           }
+
+  //           let parent;
+
+  //           if (item.id) {
+  //             const exists = await tx.customer_category.findUnique({
+  //               where: { id: item.id },
+  //             });
+
+  //             if (!exists)
+  //               throw new Error(`Category with id ${item.id} not found`);
+
+  //             parent = await tx.customer_category.update({
+  //               where: { id: item.id },
+  //               data: {
+  //                 category_name: item.category_name,
+  //                 category_code: item.category_code,
+  //                 level: item.level,
+  //                 is_active: item.is_active || 'Y',
+  //                 updatedby: req.user?.id || item.updatedby || 1,
+  //                 updatedate: new Date(),
+  //               },
+  //             });
+  //           } else {
+  //             parent = await tx.customer_category.create({
+  //               data: {
+  //                 category_name: item.category_name,
+  //                 category_code: item.category_code,
+  //                 level: item.level || 1,
+  //                 is_active: item.is_active || 'Y',
+  //                 createdby: req.user?.id || item.createdby || 1,
+  //                 createdate: new Date(),
+  //                 log_inst: 1,
+  //               },
+  //             });
+  //           }
+
+  //           const parentId = parent.id;
+
+  //           if (item.id) {
+  //             const existingConditions =
+  //               await tx.customer_category_condition.findMany({
+  //                 where: {
+  //                   customer_category_id: parentId,
+  //                 },
+  //                 select: { id: true },
+  //               });
+
+  //             const existingConditionIds = existingConditions.map(c => c.id);
+
+  //             const inputConditionIds = (item.conditions || [])
+  //               .filter(cond => cond.id)
+  //               .map(cond => cond.id);
+
+  //             const conditionsToDelete = existingConditionIds.filter(
+  //               id => !inputConditionIds.includes(id)
+  //             );
+
+  //             if (conditionsToDelete.length > 0) {
+  //               await tx.customer_category_condition.deleteMany({
+  //                 where: {
+  //                   id: { in: conditionsToDelete },
+  //                 },
+  //               });
+  //             }
+  //           }
+
+  //           if (item.conditions && item.conditions.length > 0) {
+  //             for (const cond of item.conditions) {
+  //               const condData = {
+  //                 condition_type: cond.condition_type,
+  //                 condition_operator: cond.condition_operator,
+  //                 threshold_value: cond.threshold_value,
+  //                 product_category_id: cond.product_category_id,
+  //                 condition_description: cond.condition_description,
+  //                 is_active: cond.is_active || 'Y',
+  //               };
+
+  //               if (cond.id) {
+  //                 await tx.customer_category_condition.update({
+  //                   where: { id: cond.id },
+  //                   data: {
+  //                     ...condData,
+  //                   },
+  //                 });
+  //               } else {
+  //                 await tx.customer_category_condition.create({
+  //                   data: {
+  //                     ...condData,
+  //                     customer_category_id: parentId,
+  //                   },
+  //                 });
+  //               }
+  //             }
+  //           } else if (item.id) {
+  //             await tx.customer_category_condition.deleteMany({
+  //               where: {
+  //                 customer_category_id: parentId,
+  //               },
+  //             });
+  //           }
+
+  //           const completeRecord = await tx.customer_category.findUnique({
+  //             where: { id: parentId },
+  //             include: {
+  //               customer_category_condition_customer_category: true,
+  //             },
+  //           });
+
+  //           return completeRecord;
+  //         });
+
+  //         if (item.id) results.updated.push(serializeCustomerCategory(result));
+  //         else results.created.push(serializeCustomerCategory(result));
+  //       } catch (error: any) {
+  //         results.failed.push({
+  //           item,
+  //           error: error.message,
+  //         });
+  //       }
+  //     }
+
+  //     return res.status(200).json({
+  //       message: 'Bulk upsert completed',
+  //       results,
+  //     });
+  //   } catch (e: any) {
+  //     return res.status(500).json({ message: e.message });
+  //   }
+  // },
+
   async bulkCustomerCategory(req: Request, res: Response) {
     try {
       const input: CustomerCategoryInput[] = Array.isArray(req.body)
@@ -335,6 +650,32 @@ export const customerCategoryController = {
       for (const item of input) {
         try {
           const result = await prisma.$transaction(async tx => {
+            const duplicateCategory = await tx.customer_category.findFirst({
+              where: {
+                category_name: item.category_name,
+                ...(item.id && { id: { not: item.id } }),
+              },
+            });
+
+            if (duplicateCategory) {
+              throw new Error(
+                `Category name '${item.category_name}' already exists`
+              );
+            }
+
+            const duplicateLevel = await tx.customer_category.findFirst({
+              where: {
+                level: item.level,
+                ...(item.id && { id: { not: item.id } }),
+              },
+            });
+
+            if (duplicateLevel) {
+              throw new Error(
+                `Level '${item.level}' is already assigned to another category (ID: ${duplicateLevel.id})`
+              );
+            }
+
             let parent;
 
             if (item.id) {
@@ -372,23 +713,49 @@ export const customerCategoryController = {
 
             const parentId = parent.id;
 
+            if (item.id) {
+              const existingConditions =
+                await tx.customer_category_condition.findMany({
+                  where: {
+                    customer_category_id: parentId,
+                  },
+                  select: { id: true },
+                });
+
+              const existingConditionIds = existingConditions.map(c => c.id);
+
+              const inputConditionIds = (item.conditions || [])
+                .filter(cond => cond.id)
+                .map(cond => cond.id);
+
+              const conditionsToDelete = existingConditionIds.filter(
+                id => !inputConditionIds.includes(id)
+              );
+
+              if (conditionsToDelete.length > 0) {
+                await tx.customer_category_condition.deleteMany({
+                  where: {
+                    id: { in: conditionsToDelete },
+                  },
+                });
+              }
+            }
+
             if (item.conditions && item.conditions.length > 0) {
               for (const cond of item.conditions) {
                 const condData = {
                   condition_type: cond.condition_type,
                   condition_operator: cond.condition_operator,
                   threshold_value: cond.threshold_value,
-                  product_category_id: cond.product_category_id,
-                  condition_description: cond.condition_description,
+                  product_category_id: cond.product_category_id || null,
+                  condition_description: cond.condition_description || null,
                   is_active: cond.is_active || 'Y',
                 };
 
                 if (cond.id) {
                   await tx.customer_category_condition.update({
                     where: { id: cond.id },
-                    data: {
-                      ...condData,
-                    },
+                    data: condData,
                   });
                 } else {
                   await tx.customer_category_condition.create({
@@ -399,6 +766,12 @@ export const customerCategoryController = {
                   });
                 }
               }
+            } else if (item.id) {
+              await tx.customer_category_condition.deleteMany({
+                where: {
+                  customer_category_id: parentId,
+                },
+              });
             }
 
             const completeRecord = await tx.customer_category.findUnique({
@@ -411,8 +784,11 @@ export const customerCategoryController = {
             return completeRecord;
           });
 
-          if (item.id) results.updated.push(serializeCustomerCategory(result));
-          else results.created.push(serializeCustomerCategory(result));
+          if (item.id) {
+            results.updated.push(serializeCustomerCategory(result));
+          } else {
+            results.created.push(serializeCustomerCategory(result));
+          }
         } catch (error: any) {
           results.failed.push({
             item,
