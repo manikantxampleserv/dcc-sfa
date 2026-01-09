@@ -898,6 +898,46 @@ export const customerCategoryController = {
       if (!exists)
         return res.status(404).json({ message: 'Category not found' });
 
+      // Check for foreign key constraints before deletion
+      const [customersCount, conditionsCount, promotionCategoriesCount] =
+        await Promise.all([
+          prisma.customers.count({ where: { customer_category_id: id } }),
+          prisma.customer_category_condition.count({
+            where: { customer_category_id: id },
+          }),
+          prisma.promotion_customer_category.count({
+            where: { customer_category_id: id },
+          }),
+        ]);
+
+      const hasRelatedRecords =
+        customersCount > 0 ||
+        conditionsCount > 0 ||
+        promotionCategoriesCount > 0;
+
+      if (hasRelatedRecords) {
+        const relatedRecords = [];
+        if (customersCount > 0)
+          relatedRecords.push(`${customersCount} customer(s)`);
+        if (conditionsCount > 0)
+          relatedRecords.push(`${conditionsCount} condition(s)`);
+        if (promotionCategoriesCount > 0)
+          relatedRecords.push(
+            `${promotionCategoriesCount} promotion category reference(s)`
+          );
+
+        return res.status(400).json({
+          message:
+            'Cannot delete customer category. This category has related records.',
+          details: {
+            category: exists.category_name,
+            relatedRecords,
+            suggestion:
+              'Please delete or reassign the related records first, or consider marking this category as inactive instead of deleting.',
+          },
+        });
+      }
+
       await prisma.customer_category.delete({
         where: { id },
       });
@@ -906,6 +946,22 @@ export const customerCategoryController = {
         message: 'Customer category deleted successfully',
       });
     } catch (e: any) {
+      console.error('Delete Customer Category Error:', e);
+
+      // Handle specific database errors
+      if (e.code === 'P2003') {
+        // Foreign key constraint violation
+        return res.status(400).json({
+          message:
+            'Cannot delete customer category. This category has related records in other tables.',
+          details: {
+            error: 'Foreign key constraint violated',
+            suggestion:
+              'Please delete the related records first or mark the category as inactive.',
+          },
+        });
+      }
+
       return res.status(500).json({ message: e.message });
     }
   },

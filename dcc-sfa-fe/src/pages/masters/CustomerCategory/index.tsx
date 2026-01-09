@@ -161,6 +161,13 @@ const CustomerCategoryPage: React.FC = () => {
       ),
     },
     {
+      id: 'level',
+      label: 'Level',
+      render: value => (
+        <Chip label={value} className="!px-5" size="small" variant="outlined" />
+      ),
+    },
+    {
       id: 'is_active',
       label: 'Status',
       render: is_active => (
