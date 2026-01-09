@@ -57,6 +57,7 @@ router.post(
 );
 router.post(
   '/customers/bulk-upsert',
+
   authenticateToken,
   upload.fields([
     { name: 'profile_picture', maxCount: 10 },
