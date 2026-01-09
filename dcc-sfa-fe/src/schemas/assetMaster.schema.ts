@@ -29,9 +29,9 @@ export const assetMasterValidationSchema = Yup.object({
       return value;
     })
     .when('purchase_date', (purchase_date, schema) => {
-      if (purchase_date && purchase_date[0]) {
+      if (purchase_date) {
         return schema.min(
-          purchase_date[0],
+          purchase_date,
           'Warranty expiry must be after purchase date'
         );
       }

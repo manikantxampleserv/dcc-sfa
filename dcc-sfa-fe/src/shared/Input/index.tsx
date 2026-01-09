@@ -126,7 +126,9 @@ const Input: React.FC<InputProps> = ({
     currentValue && dayjs(currentValue).isValid() ? dayjs(currentValue) : null;
 
   const timeValue =
-    currentValue && currentValue.includes(':')
+    currentValue &&
+    typeof currentValue === 'string' &&
+    currentValue.includes(':')
       ? dayjs(currentValue, 'HH:mm')
       : null;
 

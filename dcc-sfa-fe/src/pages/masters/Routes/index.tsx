@@ -60,11 +60,13 @@ const RoutesManagement: React.FC = () => {
   const { data: depotsResponse } = useDepots({
     page: 1,
     limit: 100,
+    isActive: 'Y',
   });
 
   const { data: zonesResponse } = useZones({
     page: 1,
     limit: 100,
+    isActive: 'Y',
   });
 
   const routes = routesResponse?.data || [];
@@ -104,8 +106,8 @@ const RoutesManagement: React.FC = () => {
   const handleDeleteRoute = useCallback(
     async (id: number) => {
       try {
-        await deleteRouteMutation.mutateAsync(id);
-      } catch (error) {
+        await deleteRouteMutation.mutateAsync({ id });
+      } catch (error: any) {
         console.error('Error deleting route:', error);
       }
     },

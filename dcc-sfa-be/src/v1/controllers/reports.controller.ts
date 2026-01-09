@@ -2642,24 +2642,27 @@ export const reportsController = {
           },
           customer_zones: {
             where: { is_active: 'Y' },
-            select: { id: true },
+            select: { id: true, name: true, code: true },
           },
           routes_zones: {
             where: { is_active: 'Y' },
-            ...(route_id && { id: parseInt(route_id as string) }),
             include: {
-              routes_salesperson: {
-                select: { id: true, name: true, email: true },
-              },
-              customer_routes: {
-                where: { is_active: 'Y' },
+              routes_zones_route: {
+                include: {
+                  customer_routes: {
+                    where: { is_active: 'Y' },
+                  },
+                },
               },
             },
           },
           visit_zones: {
-            ...(Object.keys(dateFilter).length > 0 && {
-              visit_date: dateFilter,
-            }),
+            where:
+              Object.keys(dateFilter).length > 0
+                ? {
+                    visit_date: dateFilter,
+                  }
+                : undefined,
             select: { id: true },
           },
         },
@@ -2745,8 +2748,9 @@ export const reportsController = {
         const visitCount = zone.visit_zones?.length || 0;
 
         // Aggregate by route
-        const routesData = (zone.routes_zones || []).map((route: any) => {
-          const routeCustomers = route.customer_routes || [];
+        const routesData = (zone.routes_zones || []).map((routeZone: any) => {
+          const route = routeZone.routes_zones_route;
+          const routeCustomers = route?.customer_routes || [];
           const routeOrders = orders.filter((o: any) => {
             return routeCustomers.some((c: any) => c.id === o.customer_id);
           });
@@ -2755,11 +2759,11 @@ export const reportsController = {
           });
 
           return {
-            route_id: route.id,
-            route_name: route.name,
-            route_code: route.code,
-            salesperson_name: route.routes_salesperson?.name || 'N/A',
-            customers: route.customer_routes?.length || 0,
+            route_id: route?.id,
+            route_name: route?.name || 'N/A',
+            route_code: route?.code || 'N/A',
+            salesperson_name: route?.routes_salesperson?.name || 'N/A',
+            customers: routeCustomers.length,
             orders: routeOrders.length,
             order_value: routeOrders.reduce(
               (sum: number, o: any) => sum + Number(o.total_amount || 0),

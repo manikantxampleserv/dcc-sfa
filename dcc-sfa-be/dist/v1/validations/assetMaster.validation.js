@@ -16,19 +16,19 @@ exports.createAssetMasterValidation = [
         .matches(/^[A-Za-z0-9\-_]+$/)
         .withMessage('Serial number can only contain letters, numbers, hyphens, and underscores'),
     (0, express_validator_1.body)('purchase_date')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Purchase date must be a valid date (YYYY-MM-DD)'),
     (0, express_validator_1.body)('warranty_expiry')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Warranty expiry must be a valid date (YYYY-MM-DD)'),
     (0, express_validator_1.body)('current_location')
-        .optional()
+        .optional({ checkFalsy: true })
         .isLength({ max: 255 })
         .withMessage('Current location must not exceed 255 characters'),
     (0, express_validator_1.body)('current_status')
-        .optional()
+        .optional({ checkFalsy: true })
         .isLength({ max: 50 })
         .withMessage('Current status must not exceed 50 characters')
         .isIn([
@@ -41,39 +41,39 @@ exports.createAssetMasterValidation = [
     ])
         .withMessage('Current status must be one of: Available, In Use, Under Maintenance, Retired, Lost, Damaged'),
     (0, express_validator_1.body)('assigned_to')
-        .optional()
+        .optional({ checkFalsy: true })
         .isLength({ max: 100 })
         .withMessage('Assigned to must not exceed 100 characters'),
     (0, express_validator_1.body)('is_active')
-        .optional()
+        .optional({ checkFalsy: true })
         .isIn(['Y', 'N'])
         .withMessage('Status must be Y or N'),
 ];
 exports.updateAssetMasterValidation = [
     (0, express_validator_1.body)('asset_type_id')
-        .optional()
+        .optional({ checkFalsy: true })
         .isInt({ min: 1 })
         .withMessage('Asset type ID must be a positive integer'),
     (0, express_validator_1.body)('serial_number')
-        .optional()
+        .optional({ checkFalsy: true })
         .isLength({ min: 1, max: 100 })
         .withMessage('Serial number must be between 1 and 100 characters')
         .matches(/^[A-Za-z0-9\-_]+$/)
         .withMessage('Serial number can only contain letters, numbers, hyphens, and underscores'),
     (0, express_validator_1.body)('purchase_date')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Purchase date must be a valid date (YYYY-MM-DD)'),
     (0, express_validator_1.body)('warranty_expiry')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Warranty expiry must be a valid date (YYYY-MM-DD)'),
     (0, express_validator_1.body)('current_location')
-        .optional()
+        .optional({ checkFalsy: true })
         .isLength({ max: 255 })
         .withMessage('Current location must not exceed 255 characters'),
     (0, express_validator_1.body)('current_status')
-        .optional()
+        .optional({ checkFalsy: true })
         .isLength({ max: 50 })
         .withMessage('Current status must not exceed 50 characters')
         .isIn([
@@ -86,11 +86,11 @@ exports.updateAssetMasterValidation = [
     ])
         .withMessage('Current status must be one of: Available, In Use, Under Maintenance, Retired, Lost, Damaged'),
     (0, express_validator_1.body)('assigned_to')
-        .optional()
+        .optional({ checkFalsy: true })
         .isLength({ max: 100 })
         .withMessage('Assigned to must not exceed 100 characters'),
     (0, express_validator_1.body)('is_active')
-        .optional()
+        .optional({ checkFalsy: true })
         .isIn(['Y', 'N'])
         .withMessage('Status must be Y or N'),
 ];

@@ -88,18 +88,24 @@ export const createStockMovementValidation = [
 
 export const updateStockMovementValidation = [
   body('product_id')
-    .optional({ checkFalsy: true })
+    .optional()
     .isInt({ min: 1 })
     .withMessage('Product ID must be a positive integer'),
 
   body('batch_id')
-    .optional({ checkFalsy: true })
-    .isInt({ min: 1 })
+    .optional()
+    .custom(value => {
+      if (value === null || value === undefined || value === '') return true;
+      return Number.isInteger(Number(value)) && Number(value) > 0;
+    })
     .withMessage('Batch ID must be a positive integer'),
 
   body('serial_id')
-    .optional({ checkFalsy: true })
-    .isInt({ min: 1 })
+    .optional()
+    .custom(value => {
+      if (value === null || value === undefined || value === '') return true;
+      return Number.isInteger(Number(value)) && Number(value) > 0;
+    })
     .withMessage('Serial ID must be a positive integer'),
 
   body('movement_type')
@@ -122,18 +128,26 @@ export const updateStockMovementValidation = [
     .withMessage('Reference ID must be a positive integer'),
 
   body('from_location_id')
-    .optional({ checkFalsy: true })
-    .isInt({ min: 1 })
+    .optional()
+    .custom(value => {
+      if (value === null || value === undefined || value === '') return true;
+      return Number.isInteger(Number(value)) && Number(value) > 0;
+    })
     .withMessage('From location ID must be a positive integer'),
 
   body('to_location_id')
-    .optional({ checkFalsy: true })
-    .isInt({ min: 1 })
+    .optional()
+    .custom(value => {
+      if (value === null || value === undefined || value === '') return true;
+      return Number.isInteger(Number(value)) && Number(value) > 0;
+    })
     .withMessage('To location ID must be a positive integer')
     .custom((value, { req }) => {
       if (
         value &&
         req.body.from_location_id &&
+        value !== null &&
+        req.body.from_location_id !== null &&
         value === req.body.from_location_id
       ) {
         throw new Error('From location and To location cannot be the same');

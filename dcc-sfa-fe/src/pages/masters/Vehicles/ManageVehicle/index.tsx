@@ -100,13 +100,16 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
               required
             />
 
-            <Input
-              name="type"
-              label="Vehicle Type"
-              placeholder="Enter vehicle type (e.g., Truck, Van)"
-              formik={formik}
-              required
-            />
+            <Select name="type" label="Vehicle Type" formik={formik} required>
+              <MenuItem value="Truck">Truck</MenuItem>
+              <MenuItem value="Trailer">Trailer</MenuItem>
+              <MenuItem value="Van">Van</MenuItem>
+              <MenuItem value="Pickup">Pickup</MenuItem>
+              <MenuItem value="Motorcycle">Motorcycle</MenuItem>
+              <MenuItem value="Car">Car</MenuItem>
+              <MenuItem value="Bus">Bus</MenuItem>
+              <MenuItem value="Other">Other</MenuItem>
+            </Select>
 
             <Input
               name="make"
@@ -138,12 +141,15 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
               formik={formik}
             />
 
-            <Input
-              name="fuel_type"
-              label="Fuel Type"
-              placeholder="Enter fuel type (e.g., Diesel, Petrol)"
-              formik={formik}
-            />
+            <Select name="fuel_type" label="Fuel Type" formik={formik}>
+              <MenuItem value="Petrol">Petrol</MenuItem>
+              <MenuItem value="Diesel">Diesel</MenuItem>
+              <MenuItem value="Electric">Electric</MenuItem>
+              <MenuItem value="Hybrid">Hybrid</MenuItem>
+              <MenuItem value="CNG">CNG</MenuItem>
+              <MenuItem value="LPG">LPG</MenuItem>
+              <MenuItem value="Other">Other</MenuItem>
+            </Select>
 
             <Select name="status" label="Status" formik={formik}>
               <MenuItem value="available">Available</MenuItem>

@@ -381,6 +381,65 @@ exports.userController = {
     async deleteUser(req, res) {
         try {
             const id = Number(req.params.id);
+            const user = await prisma_client_1.default.users.findUnique({
+                where: { id },
+                include: {
+                    _count: {
+                        select: {
+                            customer_users: true,
+                            orders_salesperson_users: true,
+                            orders_approved_by: true,
+                            visits_salesperson: true,
+                            cooler_inspections: true,
+                            asset_movements_performed_by: true,
+                            asset_maintenance_technician: true,
+                            payments_payments_collected_byTousers: true,
+                            return_requests_users: true,
+                            delivery_schedules_users: true,
+                        },
+                    },
+                },
+            });
+            if (!user) {
+                res.error('User not found', 404);
+                return;
+            }
+            const constraints = [];
+            if (user._count.customer_users > 0) {
+                constraints.push(`${user._count.customer_users} customer(s)`);
+            }
+            if (user._count.orders_salesperson_users > 0) {
+                constraints.push(`${user._count.orders_salesperson_users} order(s) as salesperson`);
+            }
+            if (user._count.orders_approved_by > 0) {
+                constraints.push(`${user._count.orders_approved_by} order(s) as approver`);
+            }
+            if (user._count.visits_salesperson > 0) {
+                constraints.push(`${user._count.visits_salesperson} visit(s)`);
+            }
+            if (user._count.cooler_inspections > 0) {
+                constraints.push(`${user._count.cooler_inspections} cooler inspection(s)`);
+            }
+            if (user._count.asset_movements_performed_by > 0) {
+                constraints.push(`${user._count.asset_movements_performed_by} asset movement(s)`);
+            }
+            if (user._count.asset_maintenance_technician > 0) {
+                constraints.push(`${user._count.asset_maintenance_technician} maintenance record(s)`);
+            }
+            if (user._count.payments_payments_collected_byTousers > 0) {
+                constraints.push(`${user._count.payments_payments_collected_byTousers} payment(s)`);
+            }
+            if (user._count.return_requests_users > 0) {
+                constraints.push(`${user._count.return_requests_users} return request(s)`);
+            }
+            if (user._count.delivery_schedules_users > 0) {
+                constraints.push(`${user._count.delivery_schedules_users} delivery schedule(s)`);
+            }
+            if (constraints.length > 0) {
+                const message = `Cannot delete user "${user.name}" because it is linked to: ${constraints.join(', ')}. Please remove or reassign these records first.`;
+                res.error(message, 400);
+                return;
+            }
             await prisma_client_1.default.$transaction(async (tx) => {
                 await tx.login_history.deleteMany({
                     where: { user_id: id },
@@ -388,16 +447,21 @@ exports.userController = {
                 await tx.api_tokens.deleteMany({
                     where: { user_id: id },
                 });
-                await tx.cooler_inspections.deleteMany({
-                    where: { inspected_by: id },
-                });
                 await tx.users.delete({ where: { id: Number(id) } });
             });
             res.success('User deleted successfully', null, 200);
         }
         catch (error) {
             console.error('Error deleting user:', error);
-            res.error(error.message);
+            if (error.code === 'P2003') {
+                res.error('Cannot delete user because it is referenced by other records. Please remove or reassign these records first.', 400);
+            }
+            else if (error.code === 'P2025') {
+                res.error('User not found', 404);
+            }
+            else {
+                res.error(error.message || 'Failed to delete user');
+            }
         }
     },
     async getUserProfile(req, res) {

@@ -365,18 +365,22 @@ exports.routesController = {
     },
     async deleteRoutes(req, res) {
         try {
-            const { id } = req.params;
+            const { id, force } = req.body;
             const existingRoute = await prisma_client_1.default.routes.findUnique({
                 where: { id: Number(id) },
                 include: {
-                    customer_routes: true,
                     routes_depots: true,
                     routes_zones: true,
                     routes_salesperson: true,
+                    routes_route_type: true,
+                    customer_routes: true,
                     visit_routes: {
                         include: {
                             visit_customers: true,
                             visits_salesperson: true,
+                        },
+                        orderBy: {
+                            visit_date: 'desc',
                         },
                     },
                 },
@@ -384,12 +388,55 @@ exports.routesController = {
             if (!existingRoute) {
                 return res.status(404).json({ message: 'Route not found' });
             }
-            // Check for dependencies
-            const hasCustomers = existingRoute.customer_routes.length > 0;
+            const hasCustomers = existingRoute.customer_routes &&
+                Array.isArray(existingRoute.customer_routes) &&
+                existingRoute.customer_routes.length > 0;
             const hasDepots = !!existingRoute.routes_depots;
             const hasZones = !!existingRoute.routes_zones;
             const hasSalespersons = !!existingRoute.routes_salesperson;
             const hasVisits = existingRoute.visit_routes.length > 0;
+            if (force === 'true') {
+                if (hasCustomers) {
+                    await prisma_client_1.default.customers.updateMany({
+                        where: { route_id: Number(id) },
+                        data: { route_id: null },
+                    });
+                }
+                if (hasDepots) {
+                    await prisma_client_1.default.routes_depots.deleteMany({
+                        where: { route_id: Number(id) },
+                    });
+                }
+                if (hasZones) {
+                    await prisma_client_1.default.routes_zones.deleteMany({
+                        where: { route_id: Number(id) },
+                    });
+                }
+                if (hasSalespersons) {
+                    await prisma_client_1.default.routes.update({
+                        where: { id: Number(id) },
+                        data: { salesperson_id: null },
+                    });
+                }
+                if (hasVisits) {
+                    await prisma_client_1.default.visits.deleteMany({
+                        where: { route_id: Number(id) },
+                    });
+                }
+                // Now delete the route
+                await prisma_client_1.default.routes.delete({ where: { id: Number(id) } });
+                res.json({
+                    message: 'Route and all associated records deleted successfully',
+                    deletedRecords: {
+                        customers: hasCustomers ? existingRoute.customer_routes.length : 0,
+                        depots: hasDepots ? 1 : 0,
+                        zones: hasZones ? 1 : 0,
+                        salespersons: hasSalespersons ? 1 : 0,
+                        visits: hasVisits ? existingRoute.visit_routes.length : 0,
+                    },
+                });
+                return;
+            }
             if (hasCustomers ||
                 hasDepots ||
                 hasZones ||

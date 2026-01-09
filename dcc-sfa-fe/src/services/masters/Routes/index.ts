@@ -195,10 +195,15 @@ export const updateRoute = async (
 /**
  * Delete route (silent - no toast, used by React Query hooks)
  * @param id - Route ID
+ * @param force - Force delete
  * @returns Promise<ApiResponse<void>>
  */
-export const deleteRoute = async (id: number): Promise<ApiResponse<void>> => {
-  const response = await axiosInstance.delete(`/routes/${id}`);
+export const deleteRoute = async (id: number, force?: string) => {
+  const response = await axiosInstance({
+    method: 'DELETE',
+    url: `/routes/${id}`,
+    data: { force: force || undefined }, // Always include force in request body
+  });
   return response.data;
 };
 

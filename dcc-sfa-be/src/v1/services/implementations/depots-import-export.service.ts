@@ -422,10 +422,14 @@ export class DepotsImportExportService extends ImportExportService<any> {
           },
         },
         routes_depots: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
+          include: {
+            routes_depots_depot: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
           },
         },
         _count: {

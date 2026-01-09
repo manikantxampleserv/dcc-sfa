@@ -214,8 +214,9 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
             <Input
               name="movement_date"
               label="Movement Date"
-              type="datetime-local"
+              type="date"
               formik={formik}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
 
             <Select

@@ -67,6 +67,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       warranty_expiry: selectedAsset?.warranty_expiry
         ? selectedAsset.warranty_expiry.split('T')[0]
         : '',
+      warranty_period: '1', // Default to 1 year (UI only)
       current_location: selectedAsset?.current_location || '',
       current_status: selectedAsset?.current_status || 'Available',
       assigned_to: selectedAsset?.assigned_to || '',
@@ -154,6 +155,24 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     }
   }, [selectedAsset]);
 
+  useEffect(() => {
+    const purchaseDate = formik.values.purchase_date;
+    const warrantyPeriod = formik.values.warranty_period;
+
+    if (purchaseDate && warrantyPeriod) {
+      const purchase = new Date(purchaseDate);
+      const years = parseInt(warrantyPeriod);
+
+      if (!isNaN(purchase.getTime()) && !isNaN(years)) {
+        const expiryDate = new Date(purchase);
+        expiryDate.setFullYear(expiryDate.getFullYear() + years);
+
+        const formattedExpiry = expiryDate.toISOString().split('T')[0];
+        formik.setFieldValue('warranty_expiry', formattedExpiry);
+      }
+    }
+  }, [formik.values.purchase_date, formik.values.warranty_period]);
+
   const statusOptions = [
     { value: 'Available', label: 'Available' },
     { value: 'In Use', label: 'In Use' },
@@ -179,7 +198,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               formik={formik}
               required
             >
-              <MenuItem value={0}>Select Asset Type</MenuItem>
               {assetTypes.map(type => (
                 <MenuItem key={type.id} value={type.id}>
                   {type.name}
@@ -202,6 +220,18 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               formik={formik}
               slotProps={{ inputLabel: { shrink: true } }}
             />
+
+            <Select
+              name="warranty_period"
+              label="Warranty Period"
+              formik={formik}
+            >
+              <MenuItem value="1">1 Year</MenuItem>
+              <MenuItem value="2">2 Years</MenuItem>
+              <MenuItem value="3">3 Years</MenuItem>
+              <MenuItem value="4">4 Years</MenuItem>
+              <MenuItem value="5">5 Years</MenuItem>
+            </Select>
 
             <Input
               name="warranty_expiry"
@@ -231,9 +261,8 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
             </Select>
 
             <Select name="assigned_to" label="Assigned To" formik={formik}>
-              <MenuItem value="">Select User</MenuItem>
               {users.map(user => (
-                <MenuItem key={user.id} value={user.id}>
+                <MenuItem key={user.id} value={user.name}>
                   {user.name} ({user.email})
                 </MenuItem>
               ))}
@@ -260,7 +289,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
                   {isEdit ? 'Add more images' : 'Upload images'}
                 </Typography>
                 <Typography variant="caption" className="!text-gray-500">
-                  JPG, PNG, GIF, WEBP (Max 5MB)
+                  JPG, PNG, GIF, WEBP (Max 10MB)
                 </Typography>
                 <input
                   ref={fileInputRef}
