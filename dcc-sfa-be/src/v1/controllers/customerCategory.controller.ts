@@ -650,11 +650,10 @@ export const customerCategoryController = {
       for (const item of input) {
         try {
           const result = await prisma.$transaction(async tx => {
-            // Check duplicate category name
             const duplicateCategory = await tx.customer_category.findFirst({
               where: {
                 category_name: item.category_name,
-                ...(item.id && { id: { not: item.id } }), // ✅ Cleaner syntax
+                ...(item.id && { id: { not: item.id } }),
               },
             });
 
@@ -664,11 +663,10 @@ export const customerCategoryController = {
               );
             }
 
-            // ✅ FIX: Check duplicate level (exclude current record for updates)
             const duplicateLevel = await tx.customer_category.findFirst({
               where: {
                 level: item.level,
-                ...(item.id && { id: { not: item.id } }), // Exclude current record
+                ...(item.id && { id: { not: item.id } }),
               },
             });
 
@@ -681,7 +679,6 @@ export const customerCategoryController = {
             let parent;
 
             if (item.id) {
-              // Update existing category
               const exists = await tx.customer_category.findUnique({
                 where: { id: item.id },
               });
@@ -701,7 +698,6 @@ export const customerCategoryController = {
                 },
               });
             } else {
-              // Create new category
               parent = await tx.customer_category.create({
                 data: {
                   category_name: item.category_name,
@@ -717,9 +713,7 @@ export const customerCategoryController = {
 
             const parentId = parent.id;
 
-            // Handle condition deletion for updates
             if (item.id) {
-              // Get existing condition IDs from database
               const existingConditions =
                 await tx.customer_category_condition.findMany({
                   where: {
@@ -730,17 +724,14 @@ export const customerCategoryController = {
 
               const existingConditionIds = existingConditions.map(c => c.id);
 
-              // Get condition IDs from input (only those being updated, not created)
               const inputConditionIds = (item.conditions || [])
                 .filter(cond => cond.id)
                 .map(cond => cond.id);
 
-              // Find IDs to delete (exist in DB but not in input)
               const conditionsToDelete = existingConditionIds.filter(
                 id => !inputConditionIds.includes(id)
               );
 
-              // Delete removed conditions
               if (conditionsToDelete.length > 0) {
                 await tx.customer_category_condition.deleteMany({
                   where: {
@@ -750,7 +741,6 @@ export const customerCategoryController = {
               }
             }
 
-            // Create or update conditions from input
             if (item.conditions && item.conditions.length > 0) {
               for (const cond of item.conditions) {
                 const condData = {
@@ -763,13 +753,11 @@ export const customerCategoryController = {
                 };
 
                 if (cond.id) {
-                  // Update existing condition
                   await tx.customer_category_condition.update({
                     where: { id: cond.id },
                     data: condData,
                   });
                 } else {
-                  // Create new condition
                   await tx.customer_category_condition.create({
                     data: {
                       ...condData,
@@ -779,7 +767,6 @@ export const customerCategoryController = {
                 }
               }
             } else if (item.id) {
-              // If conditions array is empty/null and it's an update, delete all
               await tx.customer_category_condition.deleteMany({
                 where: {
                   customer_category_id: parentId,
@@ -787,7 +774,6 @@ export const customerCategoryController = {
               });
             }
 
-            // Fetch complete record with conditions
             const completeRecord = await tx.customer_category.findUnique({
               where: { id: parentId },
               include: {
