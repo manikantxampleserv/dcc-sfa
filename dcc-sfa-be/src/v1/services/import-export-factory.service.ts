@@ -52,6 +52,7 @@ import { CoolerSubTypesImportExportService } from './implementations/coolerSubTy
 import { TaxMasterImportExportService } from './implementations/taxMaster-import-export.service';
 import { BatchLotsImportExportService } from './implementations/batchLots-import-export.service';
 import { UserImportExportService } from './implementations/UserImportExportService';
+import { RoleImportExportService } from './implementations/role.import-export.service';
 type ServiceConstructor = new () => ImportExportService<any>;
 
 export class ImportExportFactory {
@@ -113,6 +114,7 @@ export class ImportExportFactory {
     ['tax_master', TaxMasterImportExportService],
     ['batch_lots', BatchLotsImportExportService],
     ['users', UserImportExportService],
+    ['roles', RoleImportExportService],
   ]);
 
   static getService(tableName: string): ImportExportService<any> | null {
