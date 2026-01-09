@@ -29,6 +29,7 @@ export interface ManageCustomerCategoryPayload {
   category_name: string;
   category_code: string;
   is_active?: string;
+  level: number;
   conditions?: CustomerCategoryCondition[];
 }
 
@@ -36,6 +37,7 @@ export interface UpdateCustomerCategoryPayload {
   category_name?: string;
   category_code?: string;
   is_active?: string;
+  level: number;
   conditions?: CustomerCategoryCondition[];
 }
 

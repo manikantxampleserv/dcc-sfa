@@ -234,7 +234,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
     initialValues: {
       category_name: selectedCustomerCategory?.category_name || '',
       category_code: selectedCustomerCategory?.category_code || '',
-      level: selectedCustomerCategory?.level || '',
+      level: selectedCustomerCategory?.level || 0,
       is_active: selectedCustomerCategory?.is_active || 'Y',
     },
     validationSchema: customerCategoryValidationSchema,
@@ -244,7 +244,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
         const categoryData = {
           category_name: values.category_name,
           category_code: values.category_code,
-          level: values.level,
+          level: Number(values.level),
           is_active: values.is_active,
           conditions: conditions.map(cond => ({
             ...(cond.id && { id: cond.id }),
