@@ -140,7 +140,7 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
               <MenuItem value="cash">Cash</MenuItem>
               <MenuItem value="credit">Credit Card</MenuItem>
               <MenuItem value="debit">Debit Card</MenuItem>
-              <MenuItem value="check">Check</MenuItem>
+              <MenuItem value="cheque">Cheque</MenuItem>
               <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
               <MenuItem value="online">Online Payment</MenuItem>
             </Select>

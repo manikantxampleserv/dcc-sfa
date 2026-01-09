@@ -28,6 +28,31 @@ const SurveyResponseDetail: React.FC = () => {
     navigate('/reports/survey-responses');
   };
 
+  const formatAnswer = (answer: string | null) => {
+    if (!answer) return null;
+
+    try {
+      // Try to parse as JSON array
+      const parsed = JSON.parse(answer);
+
+      // If it's an array, format it nicely
+      if (Array.isArray(parsed)) {
+        return parsed.join(', ');
+      }
+
+      // If it's an object, stringify it nicely
+      if (typeof parsed === 'object' && parsed !== null) {
+        return JSON.stringify(parsed, null, 2);
+      }
+
+      // Otherwise return as-is
+      return answer;
+    } catch {
+      // If parsing fails, return as-is
+      return answer;
+    }
+  };
+
   const getFieldTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       text: 'Text',
@@ -582,7 +607,7 @@ const SurveyResponseDetail: React.FC = () => {
                       variant="body1"
                       className="!text-gray-700 !mt-2 !p-2 !bg-white !rounded !border !border-gray-200"
                     >
-                      {answer.answer || (
+                      {formatAnswer(answer?.answer || '') || (
                         <span className="!text-gray-400 italic">
                           No answer provided
                         </span>

@@ -85,6 +85,7 @@ exports.sendBulkEmails = exports.sendEmail = void 0;
 //   return { success, failed };
 // };
 // export default sendEmail;
+//II. Taking config from env
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const createTransporter = () => {
     const port = parseInt(process.env.MAIL_PORT || '587');
@@ -152,4 +153,29 @@ const sendBulkEmails = async (emails) => {
 };
 exports.sendBulkEmails = sendBulkEmails;
 exports.default = exports.sendEmail;
+//III. Taking confi g from compnay
+// import nodemailer from 'nodemailer'
+// import prisma from '../configs/prisma.client'
+// interface EmailData{
+//   to:string| string[]
+//   subject: string;
+//   html: string
+//   cc?: string | string[];
+//   bcc?:string | string[];
+//   attachemnt? :Array<{
+//     filename: string;
+//     path?: string;
+//     content?:Buffer |string;
+//   }>
+//   createdby?:number;
+//   log_inst? : Number;
+// }
+// interface SMTPConfig {
+//   host: string;
+//   port :number;
+//   username: string;
+//   password: string;
+//   fromAddress: string;
+//   fromName: string
+// }
 //# sourceMappingURL=mailer.js.map

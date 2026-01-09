@@ -125,7 +125,7 @@ export const zonesController = {
 
   async getZones(req: any, res: any) {
     try {
-      const { page, limit, search } = req.query;
+      const { page, limit, search, isActive } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -137,6 +137,7 @@ export const zonesController = {
             { code: { contains: searchLower } },
           ],
         }),
+        ...(isActive && { is_active: isActive as string }),
       };
 
       const { data, pagination } = await paginate({

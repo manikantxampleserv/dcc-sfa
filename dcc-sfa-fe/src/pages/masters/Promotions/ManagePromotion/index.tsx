@@ -141,25 +141,25 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const products = productsResponse?.data || [];
 
   const { data: depotsResponse } = useDepots(
-    { limit: 1000 },
+    { limit: 1000, isActive: 'Y' },
     { enabled: drawerOpen }
   );
   const depots = depotsResponse?.data || [];
 
   const { data: zonesResponse } = useZones(
-    { limit: 1000 },
+    { limit: 1000, isActive: 'Y' },
     { enabled: drawerOpen }
   );
   const zones = zonesResponse?.data || [];
 
   const { data: customersResponse } = useCustomers(
-    { limit: 1000 },
+    { limit: 1000, isActive: 'Y' },
     { enabled: drawerOpen }
   );
   const customers = customersResponse?.data || [];
 
   const { data: customerTypesResponse } = useCustomerTypes(
-    { limit: 1000 },
+    { limit: 1000, is_active: 'Y' },
     { enabled: drawerOpen }
   );
   const customerTypes = customerTypesResponse?.data || [];
@@ -167,6 +167,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const { data: customerCategoriesResponse } = useCustomerCategories(
     {
       limit: 1000,
+      is_active: 'Y',
     },
     { enabled: drawerOpen }
   );
@@ -175,19 +176,20 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
   const { data: customerChannelsResponse } = useCustomerChannels(
     {
       limit: 1000,
+      is_active: 'Y',
     },
     { enabled: drawerOpen }
   );
   const customerChannels = customerChannelsResponse?.data || [];
 
   const { data: routesResponse } = useRoutes(
-    { limit: 1000 },
+    { limit: 1000, status: 'Active' },
     { enabled: drawerOpen }
   );
   const routes = routesResponse?.data || [];
 
   const { data: usersResponse } = useUsers(
-    { limit: 1000 },
+    { limit: 1000, isActive: 'Y' },
     { enabled: drawerOpen }
   );
   const users = usersResponse?.data || [];
@@ -2083,16 +2085,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               ) : (
                 <ProductCategorySelect
                   label="Product Category"
-                  value={
-                    productConditionForm.group
-                      ? productCategories
-                          .find(
-                            (c: any) =>
-                              c.category_name === productConditionForm.group
-                          )
-                          ?.id.toString()
-                      : ''
-                  }
+                  value={productConditionForm.group}
                   nameToSearch={productConditionForm.group || ''}
                   onChange={(_event, category) => {
                     const selectedCategoryName = category
@@ -2381,11 +2374,14 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
               ) : (
                 <ProductCategorySelect
                   label="Product Category"
-                  value={giftName}
+                  value={giftNameDisplay}
+                  nameToSearch={giftNameDisplay || ''}
                   onChange={(_event, category) => {
-                    const selectedId = category ? category.id.toString() : '';
-                    setGiftName(selectedId);
-                    setGiftNameDisplay(category?.category_name || '');
+                    const selectedCategoryName = category
+                      ? category.category_name
+                      : '';
+                    setGiftName(selectedCategoryName);
+                    setGiftNameDisplay(selectedCategoryName);
                   }}
                   fullWidth
                   size="small"
@@ -2616,7 +2612,7 @@ const ManagePromotion: React.FC<ManagePromotionProps> = ({
                 updatePromotionMutation.isPending
               }
             >
-              Save
+              {isEdit ? 'Update Promotion' : 'Create Promotion'}
             </Button>
           </Box>
         </form>

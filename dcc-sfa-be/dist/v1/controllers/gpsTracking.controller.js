@@ -492,7 +492,6 @@ exports.gpsTrackingController = {
                     })),
                 };
             });
-            // Calculate summary
             const totalRoutes = routeAnalysis.length;
             const totalCustomers = routeAnalysis.reduce((sum, r) => sum + r.total_customers, 0);
             const totalPlannedVisits = routeAnalysis.reduce((sum, r) => sum + r.planned_visits, 0);

@@ -48,7 +48,7 @@ export const paymentValidationSchema = Yup.object({
   method: Yup.string()
     .required('Payment method is required')
     .oneOf(
-      ['cash', 'credit', 'debit', 'check', 'bank_transfer', 'online'],
+      ['cash', 'credit', 'debit', 'cheque', 'bank_transfer', 'online'],
       'Please select a valid payment method'
     ),
 

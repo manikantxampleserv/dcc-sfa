@@ -5,17 +5,7 @@ interface SurveyField {
   id?: number;
   parent_id?: number;
   label: string;
-  field_type:
-    | 'text'
-    | 'textarea'
-    | 'number'
-    | 'select'
-    | 'checkbox'
-    | 'radio'
-    | 'date'
-    | 'time'
-    | 'photo'
-    | 'signature';
+  field_type: 'text' | 'number' | 'checkbox' | 'radio';
   options?: string | null;
   is_required?: boolean;
   sort_order?: number;
