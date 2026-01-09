@@ -37,7 +37,14 @@ exports.salesBonusRulesController = {
                     createdby: req.user?.id || 1,
                     log_inst: data.log_inst || 1,
                 },
-                include: { sales_targets: true },
+                include: {
+                    sales_targets: {
+                        include: {
+                            sales_targets_groups: true,
+                            sales_targets_product_categories: true,
+                        },
+                    },
+                },
             });
             res.status(201).json({
                 message: 'Sales bonus rule created successfully',
@@ -65,7 +72,14 @@ exports.salesBonusRulesController = {
                 page: pageNum,
                 limit: limitNum,
                 orderBy: { createdate: 'desc' },
-                include: { sales_targets: true },
+                include: {
+                    sales_targets: {
+                        include: {
+                            sales_targets_groups: true,
+                            sales_targets_product_categories: true,
+                        },
+                    },
+                },
             });
             const totalRules = await prisma_client_1.default.sales_bonus_rules.count();
             const activeRules = await prisma_client_1.default.sales_bonus_rules.count({
@@ -102,7 +116,14 @@ exports.salesBonusRulesController = {
             const { id } = req.params;
             const rule = await prisma_client_1.default.sales_bonus_rules.findUnique({
                 where: { id: Number(id) },
-                include: { sales_targets: true },
+                include: {
+                    sales_targets: {
+                        include: {
+                            sales_targets_groups: true,
+                            sales_targets_product_categories: true,
+                        },
+                    },
+                },
             });
             if (!rule)
                 return res.status(404).json({ message: 'Sales bonus rule not found' });
@@ -138,7 +159,14 @@ exports.salesBonusRulesController = {
                     updatedby: req.user?.id || 1,
                     log_inst: data.log_inst ?? existing.log_inst,
                 },
-                include: { sales_targets: true },
+                include: {
+                    sales_targets: {
+                        include: {
+                            sales_targets_groups: true,
+                            sales_targets_product_categories: true,
+                        },
+                    },
+                },
             });
             res.json({
                 message: 'Sales bonus rule updated successfully',

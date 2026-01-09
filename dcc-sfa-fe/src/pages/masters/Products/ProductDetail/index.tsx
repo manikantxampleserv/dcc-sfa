@@ -1,9 +1,10 @@
 import { Alert, Avatar, Box, Chip, Skeleton, Typography } from '@mui/material';
 import { useProduct } from 'hooks/useProducts';
+import { useSettings } from 'hooks/useSettings';
+import { useCurrencies } from 'hooks/useCurrencies';
 import {
   Calendar,
   CheckCircle,
-  DollarSign,
   Droplet,
   Package,
   Package2,
@@ -25,14 +26,45 @@ const ProductDetail: React.FC = () => {
 
   const { data: productData, isLoading, error } = useProduct(Number(id));
 
+  // Get system settings and currencies for dynamic currency formatting
+  const { data: settingsResponse } = useSettings();
+  const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
+
+  const settings = settingsResponse?.data;
+  const currencies = currenciesResponse?.data || [];
+  const defaultCurrencyId = settings?.currency_id || 1; // Default to 1 if not set
+  const defaultCurrency = currencies.find(c => c.id === defaultCurrencyId);
+
   const product = productData?.data;
   const batchLots = product?.batch_lots || [];
 
   const formatPrice = (price: number | null | undefined) => {
     if (price === null || price === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
+
+    // Use dynamic currency from system settings, fallback to INR
+    const currency = defaultCurrency?.code || 'INR';
+
+    // Currency to locale mapping
+    const currencyToLocale: Record<string, string> = {
+      USD: 'en-US',
+      EUR: 'de-DE',
+      GBP: 'en-GB',
+      JPY: 'ja-JP',
+      CNY: 'zh-CN',
+      AUD: 'en-AU',
+      CAD: 'en-CA',
+      INR: 'en-IN',
+      AED: 'ar-AE',
+      SAR: 'ar-SA',
+    };
+
+    const locale = currencyToLocale[currency] || 'en-IN';
+
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: 'USD',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(price);
   };
 
@@ -198,7 +230,7 @@ const ProductDetail: React.FC = () => {
               </Typography>
             </div>
             <Avatar className="!bg-green-100">
-              <DollarSign className="text-green-600" />
+              <TrendingUp className="text-green-600" />
             </Avatar>
           </div>
         </div>

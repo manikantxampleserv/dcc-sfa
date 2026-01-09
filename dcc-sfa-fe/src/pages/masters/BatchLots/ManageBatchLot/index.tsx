@@ -270,7 +270,6 @@ const ManageBatchLot: React.FC<ManageBatchLotProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Batch Lot' : 'Create Batch Lot'}
-      // size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

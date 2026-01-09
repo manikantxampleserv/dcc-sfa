@@ -47,8 +47,8 @@ const BrandsPage: React.FC = () => {
         statusFilter === 'all'
           ? undefined
           : statusFilter === 'active'
-            ? 'active'
-            : 'inactive',
+            ? 'Y'
+            : 'N',
     },
     {
       enabled: isRead,
@@ -105,8 +105,8 @@ const BrandsPage: React.FC = () => {
           statusFilter === 'all'
             ? undefined
             : statusFilter === 'active'
-              ? 'active'
-              : 'inactive',
+              ? 'Y'
+              : 'N',
       };
 
       await exportToExcelMutation.mutateAsync({

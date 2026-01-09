@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createSalesTargetGroupsValidation = void 0;
 const express_validator_1 = require("express-validator");
 exports.createSalesTargetGroupsValidation = [
-    (0, express_validator_1.body)('sales_target_id').notEmpty().withMessage('Sales Target is required'),
+    (0, express_validator_1.body)('group_name')
+        .notEmpty()
+        .withMessage('Sales Target Group name is required'),
     (0, express_validator_1.body)('description')
         .optional()
         .isString()

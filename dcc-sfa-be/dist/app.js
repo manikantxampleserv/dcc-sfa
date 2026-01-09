@@ -12,6 +12,7 @@ const cors_1 = __importDefault(require("cors"));
 const express_1 = __importDefault(require("express"));
 const response_middleware_1 = require("./middlewares/response.middleware");
 const routes_1 = __importDefault(require("./routes"));
+const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignment.job");
 /**
  * Creates and configures the Express application
  * @returns {Application} Configured Express application
@@ -25,6 +26,7 @@ const createApp = () => {
     app.use((0, cors_1.default)({ origin: '*', credentials: true }));
     app.use(response_middleware_1.responseHandler);
     app.use('/api', routes_1.default);
+    (0, customerCategoryAssignment_job_1.scheduleCustomerCategoryAssignment)();
     return app;
 };
 exports.createApp = createApp;

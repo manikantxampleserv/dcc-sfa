@@ -301,6 +301,13 @@ exports.surveysController = {
             const { id } = req.params;
             const existingSurvey = await prisma_client_1.default.surveys.findUnique({
                 where: { id: Number(id) },
+                include: {
+                    survey_fields: {
+                        include: {
+                            survey_answers: true,
+                        },
+                    },
+                },
             });
             if (!existingSurvey)
                 return res.status(404).json({ message: 'Survey not found' });
@@ -312,7 +319,85 @@ exports.surveysController = {
                     message: `Cannot delete survey with ${responseCount} existing responses`,
                 });
             }
-            await prisma_client_1.default.surveys.delete({ where: { id: Number(id) } });
+            const answerCount = await prisma_client_1.default.survey_answers.count({
+                where: {
+                    survey_fields: {
+                        parent_id: Number(id),
+                    },
+                },
+            });
+            if (answerCount > 0) {
+                console.log(`Found ${answerCount} survey answers to delete`);
+            }
+            await prisma_client_1.default.$transaction(async (tx) => {
+                // First, delete ALL survey answers for this survey using a more comprehensive approach
+                console.log('Attempting to delete survey answers for survey:', id);
+                // Try multiple approaches to ensure we get all answers
+                // Approach 1: Delete by field IDs
+                const fieldIds = existingSurvey.survey_fields.map(field => field.id);
+                console.log('Field IDs:', fieldIds);
+                if (fieldIds.length > 0) {
+                    const deletedByFields = await tx.survey_answers.deleteMany({
+                        where: {
+                            field_id: {
+                                in: fieldIds,
+                            },
+                        },
+                    });
+                    console.log(`Deleted ${deletedByFields.count} answers by field IDs`);
+                }
+                // Approach 2: Also try to delete any orphaned answers that might exist
+                // Get all answer IDs that reference fields belonging to this survey
+                const allSurveyAnswers = await tx.survey_answers.findMany({
+                    where: {
+                        survey_fields: {
+                            parent_id: Number(id),
+                        },
+                    },
+                });
+                console.log(`Found ${allSurveyAnswers.length} total answers for survey`);
+                // Delete any remaining answers individually
+                for (const answer of allSurveyAnswers) {
+                    try {
+                        await tx.survey_answers.delete({
+                            where: { id: answer.id },
+                        });
+                        console.log(`Deleted answer ${answer.id}`);
+                    }
+                    catch (err) {
+                        console.error(`Failed to delete answer ${answer.id}:`, err);
+                    }
+                }
+                // Now try to delete fields
+                try {
+                    const deletedFields = await tx.survey_fields.deleteMany({
+                        where: { parent_id: Number(id) },
+                    });
+                    console.log(`Deleted ${deletedFields.count} survey fields`);
+                }
+                catch (fieldError) {
+                    console.error('Failed to delete fields:', fieldError);
+                    // Try deleting fields one by one
+                    const fields = await tx.survey_fields.findMany({
+                        where: { parent_id: Number(id) },
+                    });
+                    for (const field of fields) {
+                        try {
+                            await tx.survey_fields.delete({
+                                where: { id: field.id },
+                            });
+                            console.log(`Deleted field ${field.id}`);
+                        }
+                        catch (singleFieldError) {
+                            console.error(`Failed to delete field ${field.id}:`, singleFieldError);
+                            throw singleFieldError;
+                        }
+                    }
+                }
+                await tx.surveys.delete({
+                    where: { id: Number(id) },
+                });
+            });
             res.json({ message: 'Survey deleted successfully' });
         }
         catch (error) {

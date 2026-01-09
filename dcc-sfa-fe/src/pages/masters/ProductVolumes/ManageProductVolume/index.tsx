@@ -93,6 +93,7 @@ const ManageProductVolume: React.FC<ManageProductVolumeProps> = ({
               label="Code"
               placeholder="Enter code (optional)"
               formik={formik}
+              disabled={isEdit}
             />
 
             <Select name="is_active" label="Status" formik={formik} required>

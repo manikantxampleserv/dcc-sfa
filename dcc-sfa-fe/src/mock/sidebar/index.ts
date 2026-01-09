@@ -197,11 +197,7 @@ const menuItems: MenuItem[] = [
             label: 'Product Catalog',
             href: '/masters/products',
           },
-          {
-            id: 'inventory-items',
-            label: 'Inventory Items',
-            href: '/masters/inventory-items',
-          },
+
           {
             id: 'batch-lots',
             label: 'Batch & Lot Management',
@@ -288,6 +284,11 @@ const menuItems: MenuItem[] = [
             id: 'invoice-management',
             label: 'Invoice Management',
             href: '/transactions/invoices',
+          },
+          {
+            id: 'inventory-items',
+            label: 'Inventory Items',
+            href: '/masters/inventory-items',
           },
           // {
           //   id: 'credit-notes',

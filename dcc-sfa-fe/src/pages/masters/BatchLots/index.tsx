@@ -15,6 +15,8 @@ import {
 } from 'hooks/useBatchLots';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
+import { useSettings } from 'hooks/useSettings';
+import { useCurrencies } from 'hooks/useCurrencies';
 import { AlertTriangle, Archive, Calendar, Package } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -42,6 +44,15 @@ const BatchLotsPage: React.FC = () => {
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('batch-lots');
 
+  // Get system settings and currencies for dynamic currency formatting
+  const { data: settingsResponse } = useSettings();
+  const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
+
+  const settings = settingsResponse?.data;
+  const currencies = currenciesResponse?.data || [];
+  const defaultCurrencyId = settings?.currency_id || 1; // Default to 1 if not set
+  const defaultCurrency = currencies.find(c => c.id === defaultCurrencyId);
+
   const {
     data: batchLotsResponse,
     isFetching,
@@ -57,6 +68,37 @@ const BatchLotsPage: React.FC = () => {
       enabled: isRead,
     }
   );
+
+  // Dynamic currency formatting function
+  const formatPrice = (price: number | null | undefined) => {
+    if (price === null || price === undefined) return 'N/A';
+
+    // Use dynamic currency from system settings, fallback to INR
+    const currency = defaultCurrency?.code || 'INR';
+
+    // Currency to locale mapping
+    const currencyToLocale: Record<string, string> = {
+      USD: 'en-US',
+      EUR: 'de-DE',
+      GBP: 'en-GB',
+      JPY: 'ja-JP',
+      CNY: 'zh-CN',
+      AUD: 'en-AU',
+      CAD: 'en-CA',
+      INR: 'en-IN',
+      AED: 'ar-AE',
+      SAR: 'ar-SA',
+    };
+
+    const locale = currencyToLocale[currency] || 'en-IN';
+
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price);
+  };
 
   const batchLots = batchLotsResponse?.data || [];
   const totalCount = batchLotsResponse?.meta?.total_count || 0;
@@ -266,14 +308,7 @@ const BatchLotsPage: React.FC = () => {
       label: 'Purchase Price',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.purchase_price ? (
-            new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: 'USD',
-            }).format(row.purchase_price)
-          ) : (
-            <span className="!text-gray-500 italic">no price</span>
-          )}
+          {formatPrice(row.purchase_price)}
         </Typography>
       ),
     },
