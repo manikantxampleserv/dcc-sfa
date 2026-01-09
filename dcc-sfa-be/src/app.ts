@@ -7,6 +7,7 @@ import cors from 'cors';
 import express, { Application } from 'express';
 import { responseHandler } from './middlewares/response.middleware';
 import routes from './routes';
+import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssignment.job';
 
 /**
  * Creates and configures the Express application
@@ -28,6 +29,7 @@ export const createApp = (): Application => {
   app.use(responseHandler);
 
   app.use('/api', routes);
+  scheduleCustomerCategoryAssignment();
 
   return app;
 };
