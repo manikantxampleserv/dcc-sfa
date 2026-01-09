@@ -162,30 +162,15 @@ const PromotionsManagement: React.FC = () => {
     },
     {
       id: 'start_date',
-      label: 'Period',
-      render: (_value, row) => (
-        <Box>
-          <Typography variant="body2" className="!text-gray-900">
-            {formatDate(row.start_date)}
-          </Typography>
-          <Typography variant="caption" className="!text-gray-500">
-            to {formatDate(row.end_date)}
-          </Typography>
-        </Box>
-      ),
+      label: 'Start Date',
+      render: (_value, row) => <Box>{formatDate(row.start_date)}</Box>,
     },
     {
-      id: 'description',
-      label: 'Description',
-      render: (_value, row) => (
-        <Typography
-          variant="body2"
-          className="!text-gray-700 !max-w-xs !truncate"
-        >
-          {row.description || 'N/A'}
-        </Typography>
-      ),
+      id: 'end_date',
+      label: 'End Date',
+      render: (_value, row) => <Box>{formatDate(row.end_date)}</Box>,
     },
+
     {
       id: 'is_active',
       label: 'Status',
@@ -214,7 +199,7 @@ const PromotionsManagement: React.FC = () => {
             label: 'Actions',
             sortable: false,
             render: (_value: any, row: Promotion) => (
-              <div className="!flex !gap-2 !items-center">
+              <div className="!flex !gap-2 !items-center !justify-center">
                 {isUpdate && (
                   <EditButton
                     onClick={() => handleEditPromotion(row)}

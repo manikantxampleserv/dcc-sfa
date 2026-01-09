@@ -242,6 +242,21 @@ exports.visitsController = {
                 next_visit_date: data.next_visit_date
                     ? new Date(data.next_visit_date)
                     : undefined,
+                start_latitude: data.start_latitude && data.start_latitude.trim() !== ''
+                    ? parseFloat(data.start_latitude)
+                    : null,
+                start_longitude: data.start_longitude && data.start_longitude.trim() !== ''
+                    ? parseFloat(data.start_longitude)
+                    : null,
+                end_latitude: data.end_latitude && data.end_latitude.trim() !== ''
+                    ? parseFloat(data.end_latitude)
+                    : null,
+                end_longitude: data.end_longitude && data.end_longitude.trim() !== ''
+                    ? parseFloat(data.end_longitude)
+                    : null,
+                amount_collected: data.amount_collected && data.amount_collected.trim() !== ''
+                    ? parseFloat(data.amount_collected)
+                    : null,
             };
             const visit = await prisma_client_1.default.visits.create({
                 data: {
@@ -1801,15 +1816,21 @@ exports.visitsController = {
                             end_time: new Date(visit.end_time),
                         }),
                         ...(visit.duration !== undefined && { duration: visit.duration }),
-                        ...(visit.start_latitude && {
-                            start_latitude: visit.start_latitude,
+                        ...(visit.start_latitude &&
+                            visit.start_latitude.trim() !== '' && {
+                            start_latitude: parseFloat(visit.start_latitude),
                         }),
-                        ...(visit.start_longitude && {
-                            start_longitude: visit.start_longitude,
+                        ...(visit.start_longitude &&
+                            visit.start_longitude.trim() !== '' && {
+                            start_longitude: parseFloat(visit.start_longitude),
                         }),
-                        ...(visit.end_latitude && { end_latitude: visit.end_latitude }),
-                        ...(visit.end_longitude && {
-                            end_longitude: visit.end_longitude,
+                        ...(visit.end_latitude &&
+                            visit.end_latitude.trim() !== '' && {
+                            end_latitude: parseFloat(visit.end_latitude),
+                        }),
+                        ...(visit.end_longitude &&
+                            visit.end_longitude.trim() !== '' && {
+                            end_longitude: parseFloat(visit.end_longitude),
                         }),
                         ...(visit.check_in_time && {
                             check_in_time: new Date(visit.check_in_time),
@@ -1820,8 +1841,9 @@ exports.visitsController = {
                         ...(visit.orders_created !== undefined && {
                             orders_created: visit.orders_created,
                         }),
-                        ...(visit.amount_collected && {
-                            amount_collected: visit.amount_collected,
+                        ...(visit.amount_collected &&
+                            visit.amount_collected.trim() !== '' && {
+                            amount_collected: parseFloat(visit.amount_collected),
                         }),
                         ...(visit.visit_notes && { visit_notes: visit.visit_notes }),
                         ...(visit.customer_feedback && {
@@ -3081,6 +3103,21 @@ exports.visitsController = {
                 next_visit_date: req.body.next_visit_date
                     ? new Date(req.body.next_visit_date)
                     : undefined,
+                start_latitude: req.body.start_latitude && req.body.start_latitude.trim() !== ''
+                    ? parseFloat(req.body.start_latitude)
+                    : null,
+                start_longitude: req.body.start_longitude && req.body.start_longitude.trim() !== ''
+                    ? parseFloat(req.body.start_longitude)
+                    : null,
+                end_latitude: req.body.end_latitude && req.body.end_latitude.trim() !== ''
+                    ? parseFloat(req.body.end_latitude)
+                    : null,
+                end_longitude: req.body.end_longitude && req.body.end_longitude.trim() !== ''
+                    ? parseFloat(req.body.end_longitude)
+                    : null,
+                amount_collected: req.body.amount_collected && req.body.amount_collected.trim() !== ''
+                    ? parseFloat(req.body.amount_collected)
+                    : null,
             };
             const data = {
                 ...processedData,

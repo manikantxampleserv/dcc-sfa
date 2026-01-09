@@ -61,7 +61,8 @@ const CoolerInspectionsManagement: React.FC = () => {
       search,
       page,
       limit,
-      isActive: statusFilter === 'all' ? undefined : statusFilter,
+      isActive:
+        statusFilter === 'all' ? undefined : statusFilter === 'Y' ? 'Y' : 'N',
       isWorking: workingFilter === 'all' ? undefined : workingFilter,
       actionRequired: actionFilter === 'all' ? undefined : actionFilter,
       inspector_id:
@@ -136,7 +137,8 @@ const CoolerInspectionsManagement: React.FC = () => {
     try {
       const filters = {
         search,
-        isActive: statusFilter === 'all' ? undefined : statusFilter,
+        isActive:
+          statusFilter === 'all' ? undefined : statusFilter === 'Y' ? 'Y' : 'N',
         isWorking: workingFilter === 'all' ? undefined : workingFilter,
         actionRequired: actionFilter === 'all' ? undefined : actionFilter,
         inspector_id:
@@ -146,7 +148,6 @@ const CoolerInspectionsManagement: React.FC = () => {
             ? undefined
             : Number(inspectorFilter),
       };
-
       await exportToExcelMutation.mutateAsync({
         tableName: 'cooler_inspections',
         filters,
@@ -474,8 +475,8 @@ const CoolerInspectionsManagement: React.FC = () => {
                       disableClearable
                     >
                       <MenuItem value="all">All Status</MenuItem>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="inactive">Inactive</MenuItem>
+                      <MenuItem value="Y">Active</MenuItem>
+                      <MenuItem value="N">Inactive</MenuItem>
                     </Select>
                     <Select
                       value={workingFilter}

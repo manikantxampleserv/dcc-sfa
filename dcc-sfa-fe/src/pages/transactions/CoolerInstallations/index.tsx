@@ -176,6 +176,7 @@ const CoolerInstallationsManagement: React.FC = () => {
     {
       id: 'cooler_info',
       label: 'Cooler Info',
+      sortable: false,
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
@@ -205,6 +206,7 @@ const CoolerInstallationsManagement: React.FC = () => {
     {
       id: 'customer',
       label: 'Customer',
+      sortable: false,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Avatar
@@ -232,6 +234,7 @@ const CoolerInstallationsManagement: React.FC = () => {
     {
       id: 'installation_details',
       label: 'Installation Details',
+      sortable: false,
       render: (_value, row) => (
         <Box className="flex flex-col gap-1">
           <Box className="flex items-center gap-1">
@@ -301,6 +304,7 @@ const CoolerInstallationsManagement: React.FC = () => {
     {
       id: 'technician',
       label: 'Technician',
+      sortable: false,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <Avatar

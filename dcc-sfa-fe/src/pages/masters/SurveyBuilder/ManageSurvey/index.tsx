@@ -24,17 +24,7 @@ interface ManageSurveyProps {
 
 interface SurveyFieldFormData {
   label: string;
-  field_type:
-    | 'text'
-    | 'textarea'
-    | 'number'
-    | 'select'
-    | 'checkbox'
-    | 'radio'
-    | 'date'
-    | 'time'
-    | 'photo'
-    | 'signature';
+  field_type: 'text' | 'number' | 'checkbox' | 'radio';
   options?: string | null;
   is_required: boolean;
   sort_order?: number;
@@ -198,15 +188,9 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
           label="Field Type"
         >
           <MenuItem value="text">Text</MenuItem>
-          <MenuItem value="textarea">Textarea</MenuItem>
           <MenuItem value="number">Number</MenuItem>
-          <MenuItem value="select">Select</MenuItem>
           <MenuItem value="checkbox">Checkbox</MenuItem>
           <MenuItem value="radio">Radio</MenuItem>
-          <MenuItem value="date">Date</MenuItem>
-          <MenuItem value="time">Time</MenuItem>
-          <MenuItem value="photo">Photo</MenuItem>
-          <MenuItem value="signature">Signature</MenuItem>
         </Select>
       ),
     },
@@ -224,11 +208,7 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
           fullWidth
           label="Options"
           placeholder="Comma-separated for select/radio"
-          disabled={
-            row.field_type !== 'select' &&
-            row.field_type !== 'radio' &&
-            row.field_type !== 'checkbox'
-          }
+          disabled={row.field_type !== 'radio' && row.field_type !== 'checkbox'}
         />
       ),
     },
