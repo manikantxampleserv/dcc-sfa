@@ -236,8 +236,9 @@ const Notifications: React.FC<NotificationsProps> = ({
               <MenuItem
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`!px-4 !py-3 !border-b !border-gray-100 hover:!bg-gray-50 ${!notification.is_read ? '!bg-blue-50' : ''
-                  }`}
+                className={`!px-4 !py-3 !border-b !border-gray-100 hover:!bg-gray-50 ${
+                  !notification.is_read ? '!bg-blue-50' : ''
+                }`}
               >
                 <ListItemIcon className="!min-w-0 !mr-3">
                   {getNotificationIcon(notification.type)}
@@ -247,10 +248,11 @@ const Notifications: React.FC<NotificationsProps> = ({
                     <Box className="!flex !items-start !justify-between !gap-2">
                       <Typography
                         variant="body2"
-                        className={`!font-medium !text-sm ${!notification.is_read
-                          ? '!text-gray-900'
-                          : '!text-gray-700'
-                          }`}
+                        className={`!font-medium !text-sm ${
+                          !notification.is_read
+                            ? '!text-gray-900'
+                            : '!text-gray-700'
+                        }`}
                       >
                         {notification.title}
                       </Typography>

@@ -16,6 +16,7 @@ import {
 } from '../../../../hooks/useSalesTargetGroups';
 import { salesTargetGroupValidationSchema } from '../../../../schemas/salesTargetGroup.schema';
 import type { SalesTargetGroup } from '../../../../services/masters/SalesTargetGroups';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageSalesTargetGroupProps {
   open: boolean;
@@ -192,11 +193,11 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
       open={open}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Sales Target Group' : 'Create Sales Target Group'}
-      size="large"
+      size="medium"
     >
       <Box className="!p-4">
         <form onSubmit={formik.handleSubmit} className="!space-y-4">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
+          <Box className="!grid !grid-cols-1 !gap-5">
             <Input
               name="group_name"
               label="Group Name"
@@ -205,21 +206,16 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
               required
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField name="is_active" formik={formik} required />
 
-            <Box className="md:!col-span-2">
-              <Input
-                name="description"
-                label="Description"
-                placeholder="Enter group description"
-                formik={formik}
-                multiline
-                rows={3}
-              />
-            </Box>
+            <Input
+              name="description"
+              label="Description"
+              placeholder="Enter group description"
+              formik={formik}
+              multiline
+              rows={3}
+            />
           </Box>
 
           <Box className="!space-y-3">

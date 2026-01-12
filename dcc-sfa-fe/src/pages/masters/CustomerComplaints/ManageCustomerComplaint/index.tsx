@@ -114,18 +114,6 @@ const ManageCustomerComplaint: React.FC<ManageCustomerComplaintProps> = ({
               required
             />
 
-            <Box className="md:!col-span-2">
-              <Input
-                name="complaint_description"
-                label="Complaint Description"
-                placeholder="Enter complaint description"
-                formik={formik}
-                multiline
-                rows={4}
-                required
-              />
-            </Box>
-
             <UserSelect
               name="submitted_by"
               label="Submitted By"
@@ -138,6 +126,17 @@ const ManageCustomerComplaint: React.FC<ManageCustomerComplaintProps> = ({
               <MenuItem value="R">Resolved</MenuItem>
               <MenuItem value="C">Closed</MenuItem>
             </Select>
+            <Box className="md:!col-span-2">
+              <Input
+                name="complaint_description"
+                label="Complaint Description"
+                placeholder="Enter complaint description"
+                formik={formik}
+                multiline
+                rows={4}
+                required
+              />
+            </Box>
           </Box>
 
           <Box className="!flex !justify-end">

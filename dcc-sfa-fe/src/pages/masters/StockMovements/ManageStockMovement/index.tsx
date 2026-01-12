@@ -5,6 +5,7 @@ import { useVanInventory } from 'hooks/useVanInventory';
 import React from 'react';
 import { stockMovementValidationSchema } from 'schemas/stockMovement.schema';
 import type { StockMovement } from 'services/masters/StockMovements';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -247,10 +248,12 @@ const ManageStockMovement: React.FC<ManageStockMovementProps> = ({
               })}
             </Select>
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
           </Box>
 
           <Box className="!space-y-3">

@@ -8,8 +8,8 @@ import {
   Typography,
 } from '@mui/material';
 import { useFormik } from 'formik';
-import { useSettings, useUpdateSettings } from 'hooks/useSettings';
 import { useCurrencies } from 'hooks/useCurrencies';
+import { useSettings, useUpdateSettings } from 'hooks/useSettings';
 import {
   Building2,
   CheckCircle,
@@ -37,13 +37,18 @@ const validationSchema = Yup.object({
   smtp_port: Yup.number().nullable(),
   smtp_username: Yup.string(),
   smtp_password: Yup.string(),
+  smtp_mail_from_name: Yup.string(),
+  smtp_mail_from_address: Yup.string().email('Invalid from email address'),
   currency_id: Yup.number().nullable(),
 });
 
 const SystemSettings: React.FC = () => {
   const { data: settingsResponse, isLoading } = useSettings();
   const updateSettingsMutation = useUpdateSettings();
-  const { data: currenciesResponse } = useCurrencies({ status: 'active' });
+  const { data: currenciesResponse } = useCurrencies({
+    status: 'active',
+    page: 1,
+  });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -62,6 +67,8 @@ const SystemSettings: React.FC = () => {
       email: settings?.email || '',
       website: settings?.website || '',
       is_active: settings?.is_active || 'Y',
+      smtp_mail_from_name: settings?.smtp_mail_from_name || '',
+      smtp_mail_from_address: settings?.smtp_mail_from_address || '',
       smtp_host: settings?.smtp_host || '',
       smtp_port: settings?.smtp_port || null,
       smtp_username: settings?.smtp_username || '',
@@ -86,6 +93,14 @@ const SystemSettings: React.FC = () => {
         formData.append('email', values.email || '');
         formData.append('website', values.website || '');
         formData.append('is_active', values.is_active);
+        formData.append(
+          'smtp_mail_from_name',
+          values.smtp_mail_from_name || ''
+        );
+        formData.append(
+          'smtp_mail_from_address',
+          values.smtp_mail_from_address || ''
+        );
         formData.append('smtp_host', values.smtp_host || '');
         formData.append(
           'smtp_port',
@@ -391,6 +406,21 @@ const SystemSettings: React.FC = () => {
 
           <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
+              name="smtp_mail_from_name"
+              formik={formik}
+              label="From Name"
+              placeholder="Company Name"
+              fullWidth
+            />
+            <Input
+              name="smtp_mail_from_address"
+              formik={formik}
+              label="From Email"
+              placeholder="noreply@company.com"
+              type="email"
+              fullWidth
+            />
+            <Input
               name="smtp_host"
               formik={formik}
               label="SMTP Host"
@@ -418,6 +448,7 @@ const SystemSettings: React.FC = () => {
               label="SMTP Password"
               placeholder="Enter SMTP password"
               type="password"
+              autoComplete="new-password"
               fullWidth
             />
           </Box>

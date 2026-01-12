@@ -1,4 +1,4 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateProductShelfLife,
@@ -7,10 +7,10 @@ import {
 } from 'hooks/useProductShelfLife';
 import React from 'react';
 import { productShelfLifeValidationSchema } from 'schemas/productShelfLife.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
 
 interface ManageProductShelfLifeProps {
   selectedShelfLife?: ProductShelfLife | null;
@@ -78,15 +78,13 @@ const ManageProductShelfLife: React.FC<ManageProductShelfLifeProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <Input
-                name="name"
-                label="Shelf Life Name"
-                placeholder="Enter shelf life name"
-                formik={formik}
-                required
-              />
-            </Box>
+            <Input
+              name="name"
+              label="Shelf Life Name"
+              placeholder="Enter shelf life name"
+              formik={formik}
+              required
+            />
 
             <Input
               name="code"
@@ -96,10 +94,9 @@ const ManageProductShelfLife: React.FC<ManageProductShelfLifeProps> = ({
               disabled={isEdit}
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <Box className="md:!col-span-2">
+              <ActiveInactiveField name="is_active" formik={formik} required />
+            </Box>
           </Box>
 
           <Box className="!flex !justify-end">

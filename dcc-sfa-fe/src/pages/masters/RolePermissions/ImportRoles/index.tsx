@@ -11,7 +11,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import * as Yup from 'yup';
 
-interface ImportAssetTypeProps {
+interface ImportRolesProps {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
 }
@@ -20,7 +20,7 @@ const importValidationSchema = Yup.object({
   file: Yup.mixed().required('Please select a file to import'),
 });
 
-const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
+const ImportRoles: React.FC<ImportRolesProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
@@ -59,7 +59,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
 
   const handleDownloadSample = async () => {
     try {
-      await downloadTemplateMutation.mutateAsync('asset_types');
+      await downloadTemplateMutation.mutateAsync('roles');
     } catch (error) {
       console.error('Failed to download template:', error);
     }
@@ -84,7 +84,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
 
     try {
       await importDataMutation.mutateAsync({
-        tableName: 'asset_types',
+        tableName: 'roles',
         file: uploadedFile,
         options: {
           batchSize: 100,
@@ -92,7 +92,6 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
           updateExisting: false,
         },
       });
-      // Results are handled in the mutation onSuccess callback
     } catch (error) {
       console.error('Import failed:', error);
     }
@@ -112,15 +111,15 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
-      title="Import Asset Types"
+      title="Import Roles"
       size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
-              Upload an Excel file to import multiple asset types. Download the
-              sample file to see the required format.
+              Upload an Excel file to import multiple roles. Download the sample
+              file to see the required format.
             </Typography>
           </Alert>
 
@@ -307,7 +306,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
             )}
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center gap-3">
             <Button
               type="button"
               variant="outlined"
@@ -340,4 +339,4 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
   );
 };
 
-export default ImportAssetType;
+export default ImportRoles;

@@ -15,6 +15,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import dayjs from 'dayjs';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 interface ManagePaymentProps {
   selectedPayment?: Payment | null;
   setSelectedPayment: (payment: Payment | null) => void;
@@ -154,19 +155,12 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
               required
             />
 
-            {/* <Select name="currency_id" label="Currency" formik={formik}>
-              <MenuItem value="">Select Currency</MenuItem>
-              {currencies.map(currency => (
-                <MenuItem key={currency.id} value={currency.id.toString()}>
-                  {currency.name} ({currency.code})
-                </MenuItem>
-              ))}
-            </Select> */}
-
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
 
             <Box className="md:!col-span-2">
               <Input

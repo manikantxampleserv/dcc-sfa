@@ -76,17 +76,16 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
     isLoggingOut,
   } = useAuth();
 
-  // Fetch pending approvals for badge count
   const { data: pendingRequestsResponse } = useRequestsByUsersWithoutPermission(
     {
       page: 1,
       limit: 100,
-      status: 'P', // Only pending requests
+      status: 'P',
     },
     {
-      retry: false, // Don't retry if it fails (especially 403)
-      refetchOnMount: false, // Don't refetch on mount
-      refetchOnWindowFocus: false, // Don't refetch on window focus
+      retry: false,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
     }
   );
 

@@ -5,6 +5,7 @@ import { useRolesDropdown } from 'hooks/useRoles';
 import { useCreateUser, useUpdateUser, type User } from 'hooks/useUsers';
 import React, { useState } from 'react';
 import validationSchema from 'schemas/masters/Users';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -124,7 +125,6 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? `Edit User: ${selectedUser?.name}` : 'Create New User'}
-      size="large"
     >
       <Box component="form" onSubmit={handleSubmit} className="p-4">
         <div
@@ -158,7 +158,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
         </div>
 
         {/* User Basic Information */}
-        <Box className="mb-6">
+        <Box className="mb-6 flex flex-col gap-2">
           <p className="!font-semibold !mb-4 !text-gray-900">
             User Information
           </p>
@@ -199,19 +199,6 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                 ))
               )}
             </Select>
-            <Select
-              required
-              name="is_active"
-              formik={formik}
-              label="Status"
-              fullWidth
-            >
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
-          </div>
-
-          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
             <Input
               name="phone_number"
               formik={formik}
@@ -220,7 +207,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
             />
           </div>
 
-          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
+          <div className="flex mb-2 sm:flex-row flex-col sm:gap-4 gap-2">
             <Input
               name="joining_date"
               formik={formik}
@@ -234,7 +221,9 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               required
             />
           </div>
-
+          <Box className="md:!col-span-2">
+            <ActiveInactiveField name="is_active" formik={formik} required />
+          </Box>
           <Input
             name="address"
             formik={formik}

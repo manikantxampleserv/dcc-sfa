@@ -26,13 +26,12 @@ const ProductDetail: React.FC = () => {
 
   const { data: productData, isLoading, error } = useProduct(Number(id));
 
-  // Get system settings and currencies for dynamic currency formatting
   const { data: settingsResponse } = useSettings();
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
 
   const settings = settingsResponse?.data;
   const currencies = currenciesResponse?.data || [];
-  const defaultCurrencyId = settings?.currency_id || 1; // Default to 1 if not set
+  const defaultCurrencyId = settings?.currency_id || 1;
   const defaultCurrency = currencies.find(c => c.id === defaultCurrencyId);
 
   const product = productData?.data;
@@ -41,10 +40,8 @@ const ProductDetail: React.FC = () => {
   const formatPrice = (price: number | null | undefined) => {
     if (price === null || price === undefined) return 'N/A';
 
-    // Use dynamic currency from system settings, fallback to INR
     const currency = defaultCurrency?.code || 'INR';
 
-    // Currency to locale mapping
     const currencyToLocale: Record<string, string> = {
       USD: 'en-US',
       EUR: 'de-DE',

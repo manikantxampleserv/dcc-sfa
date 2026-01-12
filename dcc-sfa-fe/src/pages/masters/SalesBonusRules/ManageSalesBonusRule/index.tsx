@@ -8,6 +8,7 @@ import {
 import { useSalesTargets } from 'hooks/useSalesTargets';
 import React from 'react';
 import { salesBonusRuleValidationSchema } from 'schemas/salesBonusRule.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -110,11 +111,6 @@ const ManageSalesBonusRule: React.FC<ManageSalesBonusRuleProps> = ({
               ))}
             </Select>
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
-
             <Input
               name="achievement_min_percent"
               label="Minimum Achievement %"
@@ -151,6 +147,12 @@ const ManageSalesBonusRule: React.FC<ManageSalesBonusRuleProps> = ({
               placeholder="Enter bonus percentage (optional)"
               formik={formik}
               inputProps={{ min: 0, max: 100, step: 0.01 }}
+            />
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
             />
           </Box>
 

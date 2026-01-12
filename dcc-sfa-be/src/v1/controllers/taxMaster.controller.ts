@@ -1,6 +1,5 @@
-import { Request, Response } from 'express';
-import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { paginate } from '../../utils/paginate';
 
 interface TaxMasterSerialized {
   id: number;

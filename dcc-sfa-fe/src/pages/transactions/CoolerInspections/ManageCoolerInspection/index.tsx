@@ -115,7 +115,6 @@ const ManageCoolerInspection: React.FC<ManageCoolerInspectionProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Cooler Inspection' : 'Create Cooler Inspection'}
-      size="large"
     >
       <Box className="!p-4">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

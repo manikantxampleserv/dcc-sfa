@@ -13,6 +13,7 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageVisitProps {
   selectedVisit?: Visit | null;
@@ -198,16 +199,6 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
               <MenuItem value="cancelled">Cancelled</MenuItem>
             </Select>
 
-            <Select
-              name="is_active"
-              label="Active Status"
-              formik={formik}
-              required
-            >
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
-
             <Input
               name="orders_created"
               label="Orders Created"
@@ -231,6 +222,12 @@ const ManageVisit: React.FC<ManageVisitProps> = ({
               formik={formik}
             />
 
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
             <Box className="md:!col-span-2">
               <Input
                 name="purpose"

@@ -14,6 +14,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import { formatForDateInput } from 'utils/dateUtils';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageAssetMaintenanceProps {
   selectedMaintenance?: AssetMaintenance | null;
@@ -101,7 +102,7 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Asset Maintenance' : 'Create Asset Maintenance'}
-      size="large"
+      size="medium"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -145,11 +146,6 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
               placeholder="Enter maintenance cost"
               formik={formik}
             />
-
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
           </Box>
 
           <Input
@@ -177,6 +173,12 @@ const ManageAssetMaintenance: React.FC<ManageAssetMaintenanceProps> = ({
             formik={formik}
             multiline
             rows={3}
+          />
+          <ActiveInactiveField
+            name="is_active"
+            formik={formik}
+            required
+            className="col-span-2"
           />
 
           <Box className="!flex !justify-end">

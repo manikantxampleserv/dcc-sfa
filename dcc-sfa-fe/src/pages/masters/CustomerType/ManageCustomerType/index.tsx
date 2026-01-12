@@ -1,17 +1,17 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import { useFormik } from 'formik';
-import React from 'react';
-import * as Yup from 'yup';
 import {
   useCreateCustomerType,
   useCustomerTypeById,
   useUpdateCustomerType,
   type CustomerType,
 } from 'hooks/useCustomerType';
+import React from 'react';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
+import * as Yup from 'yup';
 
 interface ManageCustomerTypeProps {
   selectedCustomerType?: CustomerType | null;
@@ -97,8 +97,8 @@ const ManageCustomerType: React.FC<ManageCustomerTypeProps> = ({
       size="medium"
     >
       <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+        <form onSubmit={formik.handleSubmit} className="!space-y-5">
+          <Box className="!grid !grid-cols-1 !gap-5">
             <Input
               name="type_name"
               label="Type Name"
@@ -107,10 +107,9 @@ const ManageCustomerType: React.FC<ManageCustomerTypeProps> = ({
               required
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <Box>
+              <ActiveInactiveField name="is_active" formik={formik} required />
+            </Box>
           </Box>
 
           <Box className="!flex !justify-end items-center gap-2">

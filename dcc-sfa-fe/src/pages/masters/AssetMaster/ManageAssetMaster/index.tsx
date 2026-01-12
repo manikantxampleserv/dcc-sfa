@@ -14,6 +14,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageAssetMasterProps {
   selectedAsset?: AssetMaster | null;
@@ -268,10 +269,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               ))}
             </Select>
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField name="is_active" formik={formik} required />
           </Box>
 
           <Box className="!space-y-3">

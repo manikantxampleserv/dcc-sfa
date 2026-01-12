@@ -16,6 +16,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageOutletProps {
   selectedOutlet?: Customer | null;
@@ -137,8 +138,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       }
     },
   });
-
-  console.log(formik.errors);
 
   return (
     <CustomDrawer
@@ -306,10 +305,9 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               formik={formik}
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <Box className="md:!col-span-2">
+              <ActiveInactiveField name="is_active" formik={formik} required />
+            </Box>
 
             <Box className="md:!col-span-2">
               <Input

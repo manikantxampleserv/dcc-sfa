@@ -43,11 +43,9 @@ export const useSupportedTables = () => {
  * Hook to download template
  */
 export const useDownloadTemplate = () => {
-  return useMutation({
+  return useApiMutation({
     mutationFn: async (tableName: string) => {
       const blob = await downloadTemplate(tableName);
-
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -56,12 +54,9 @@ export const useDownloadTemplate = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
       return { success: true, message: 'Template downloaded successfully' };
     },
-    onError: (error: any) => {
-      console.error('Template download failed:', error);
-    },
+    loadingMessage: 'Downloading template...',
   });
 };
 
@@ -109,7 +104,7 @@ export const useImportData = (options?: {
  * Hook to export to Excel
  */
 export const useExportToExcel = () => {
-  return useMutation({
+  return useApiMutation({
     mutationFn: async ({
       tableName,
       filters,
@@ -118,8 +113,6 @@ export const useExportToExcel = () => {
       filters?: Record<string, any>;
     }) => {
       const blob = await exportToExcel(tableName, filters);
-
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -128,12 +121,9 @@ export const useExportToExcel = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
       return { success: true, message: 'Data exported to Excel successfully' };
     },
-    onError: (error: any) => {
-      console.error('Excel export failed:', error);
-    },
+    loadingMessage: 'Exporting to Excel...',
   });
 };
 
@@ -150,8 +140,6 @@ export const useExportToPDF = () => {
       filters?: Record<string, any>;
     }) => {
       const blob = await exportToPDF(tableName, filters);
-
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -160,7 +148,6 @@ export const useExportToPDF = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
       return { success: true, message: 'Data exported to PDF successfully' };
     },
     onError: (error: any) => {
