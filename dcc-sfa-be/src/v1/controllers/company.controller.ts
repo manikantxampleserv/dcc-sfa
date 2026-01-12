@@ -63,7 +63,8 @@ const serializeCompany = (
   company: any,
   includeCreatedAt = false,
   includeUpdatedAt = false,
-  includeSensitiveData = false
+  includeSensitiveData = false,
+  includeSmtpPassword = false
 ) => {
   const baseData = {
     id: company.id,
@@ -90,6 +91,7 @@ const serializeCompany = (
       smtp_mail_from_address: company.smtp_mail_from_address,
       smtp_mail_from_name: company.smtp_mail_from_name,
       smtp_password_set: !!company.smtp_password,
+      ...(includeSmtpPassword && { smtp_password: company.smtp_password }),
     }),
 
     ...(includeCreatedAt && { created_date: company.created_date }),
@@ -266,7 +268,7 @@ export const companyController = {
 
       res.success(
         'Companies retrieved successfully',
-        data.map((c: any) => serializeCompany(c, true, true, false)),
+        data.map((c: any) => serializeCompany(c, true, true, true, true)),
         200,
         pagination,
         {
@@ -297,7 +299,7 @@ export const companyController = {
 
       res.success(
         'Company fetched successfully',
-        serializeCompany(company, true, true, true),
+        serializeCompany(company, true, true, false),
         200
       );
     } catch (error: any) {
