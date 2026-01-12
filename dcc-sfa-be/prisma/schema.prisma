@@ -216,11 +216,11 @@ model depots {
   inventory_stock_depots       inventory_stock[]
   van_inventory_depot          van_inventory[]         @relation("VanInventoryDepot")
   promotion_depot              promotion_depot[]
-  routes_depots                routes_depots[]
   serial_numbers               serial_numbers[]
   user_depot                   users[]
   zone_depots                  zones[]
   depot_price_overrides_depots depot_price_overrides[]
+  route_depots                 routes[]                @relation("DepotRoutes")
 }
 
 model api_tokens {
@@ -1622,35 +1622,29 @@ model route_type {
 }
 
 model routes_depots {
-  id         Int    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   route_id   Int
   depot_id   Int
-  is_active  String @default("Y") @db.Char(1)
+  is_active  String    @default("Y") @db.Char(1)
   createdate DateTime? @default(now()) @db.DateTime
   createdby  Int
   updatedate DateTime? @db.DateTime
   updatedby  Int?
   log_inst   Int?
-
-  routes_depots_route routes @relation(fields: [route_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  routes_depots_depot depots  @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([route_id, depot_id])
 }
 
 model routes_zones {
-  id         Int    @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   route_id   Int
   zone_id    Int
-  is_active  String @default("Y") @db.Char(1)
+  is_active  String    @default("Y") @db.Char(1)
   createdate DateTime? @default(now()) @db.DateTime
   createdby  Int
   updatedate DateTime? @db.DateTime
   updatedby  Int?
   log_inst   Int?
-
-  routes_zones_route routes @relation(fields: [route_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  routes_zones_zone  zones  @relation(fields: [zone_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([route_id, zone_id])
 }
@@ -1678,10 +1672,10 @@ model routes {
   outlet_group       String?            @db.NVarChar(Max)
   customer_routes    customers[]
   promotion_route    promotion_routes[]
-  routes_depots      routes_depots[]
-  routes_zones       routes_zones[]
   routes_route_type  route_type         @relation(fields: [route_type_id], references: [id], onUpdate: NoAction)
   routes_salesperson users?             @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  route_zones        zones              @relation("ZoneRoutes", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  route_depots       depots             @relation("DepotRoutes", fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   visit_routes       visits[]
 }
 
@@ -2162,11 +2156,11 @@ model zones {
   log_inst                Int?
   approval_work_flow_zone approval_work_flow[] @relation("ApprovalWorkFlowZone")
   customer_zones          customers[]          @relation("ZoneCustomer")
-  routes_zones            routes_zones[]
   visit_zones             visits[]             @relation("VisitZones")
   promotion_zones_zones   promotion_zones[]
   zone_supervisor         users?               @relation(fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   zone_depots             depots?              @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  route_zones             routes[]             @relation("ZoneRoutes")
 }
 
 model approval_work_flow {

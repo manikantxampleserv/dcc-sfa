@@ -37,10 +37,10 @@ interface RouteSerialized {
     zipcode?: string | null;
     is_active: string;
   }>;
-  routes_depots?: { id: number; name: string; code: string };
-  routes_zones?: { id: number; name: string; code: string };
+  route_depots?: { id: number; name: string; code: string } | null;
+  route_zones?: { id: number; name: string; code: string } | null;
   routes_salesperson?: { id: number; name: string; email: string } | null;
-  routes_route_type?: { id: number; name: string };
+  routes_route_type?: { id: number; name: string } | null;
   visit_routes?: Array<{
     id: number;
     customer_id: number;
@@ -121,20 +121,20 @@ const serializeRoute = (route: any): RouteSerialized => ({
       zipcode: c.zipcode,
       is_active: c.is_active,
     })) || [],
-  routes_depots: route.routes_depots
+  route_depots: route.route_depots
     ? {
-        id: route.routes_depots.id,
-        name: route.routes_depots.name,
-        code: route.routes_depots.code,
+        id: route.route_depots.id,
+        name: route.route_depots.name,
+        code: route.route_depots.code,
       }
-    : undefined,
-  routes_zones: route.routes_zones
+    : null,
+  route_zones: route.route_zones
     ? {
-        id: route.routes_zones.id,
-        name: route.routes_zones.name,
-        code: route.routes_zones.code,
+        id: route.route_zones.id,
+        name: route.route_zones.name,
+        code: route.route_zones.code,
       }
-    : undefined,
+    : null,
   routes_salesperson: route.routes_salesperson
     ? {
         id: route.routes_salesperson.id,
@@ -147,7 +147,7 @@ const serializeRoute = (route: any): RouteSerialized => ({
         id: route.routes_route_type.id,
         name: route.routes_route_type.name,
       }
-    : undefined,
+    : null,
   visit_routes:
     route.visit_routes?.map((v: any) => ({
       id: v.id,
@@ -222,10 +222,12 @@ export const routesController = {
         createdate: new Date(),
         createdby: req.user?.id || 1,
         log_inst: data.log_inst || 1,
-        routes_depots: {
+        parent_id: data.parent_id,
+        depot_id: data.depot_id,
+        route_depots: {
           connect: { id: data.depot_id },
         },
-        routes_zones: {
+        route_zones: {
           connect: { id: data.parent_id },
         },
         routes_route_type: {
@@ -243,8 +245,8 @@ export const routesController = {
         data: createData,
         include: {
           customer_routes: true,
-          routes_depots: true,
-          routes_zones: true,
+          route_depots: true,
+          route_zones: true,
           routes_salesperson: true,
           routes_route_type: true,
           visit_routes: true,
@@ -303,8 +305,8 @@ export const routesController = {
         orderBy: { createdate: 'desc' },
         include: {
           customer_routes: true,
-          routes_depots: true,
-          routes_zones: true,
+          route_depots: true,
+          route_zones: true,
           routes_salesperson: true,
           routes_route_type: true,
           visit_routes: true,
@@ -356,8 +358,8 @@ export const routesController = {
         where: { id: Number(id) },
         include: {
           customer_routes: true,
-          routes_depots: true,
-          routes_zones: true,
+          route_depots: true,
+          route_zones: true,
           routes_salesperson: true,
           routes_route_type: true,
           visit_routes: {
@@ -414,13 +416,15 @@ export const routesController = {
       };
 
       if (data.depot_id !== undefined) {
-        updateData.routes_depots = {
+        updateData.depot_id = data.depot_id;
+        updateData.route_depots = {
           connect: { id: data.depot_id },
         };
       }
 
       if (data.parent_id !== undefined) {
-        updateData.routes_zones = {
+        updateData.parent_id = data.parent_id;
+        updateData.route_zones = {
           connect: { id: data.parent_id },
         };
       }
@@ -433,8 +437,10 @@ export const routesController = {
 
       if (data.salesperson_id !== undefined) {
         if (data.salesperson_id === null) {
+          updateData.salesperson_id = null;
           updateData.routes_salesperson = { disconnect: true };
         } else {
+          updateData.salesperson_id = data.salesperson_id;
           updateData.routes_salesperson = {
             connect: { id: data.salesperson_id },
           };
@@ -446,8 +452,8 @@ export const routesController = {
         data: updateData,
         include: {
           customer_routes: true,
-          routes_depots: true,
-          routes_zones: true,
+          route_depots: true,
+          route_zones: true,
           routes_salesperson: true,
           routes_route_type: true,
           visit_routes: true,
@@ -467,25 +473,17 @@ export const routesController = {
   async deleteRoutes(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const force = 'true';
+      const { force } = req.query;
 
       const existingRoute = await prisma.routes.findUnique({
         where: { id: Number(id) },
         include: {
-          routes_depots: true,
-          routes_zones: true,
+          route_depots: true,
+          route_zones: true,
           routes_salesperson: true,
           routes_route_type: true,
           customer_routes: true,
-          visit_routes: {
-            include: {
-              visit_customers: true,
-              visits_salesperson: true,
-            },
-            orderBy: {
-              visit_date: 'desc',
-            },
-          },
+          visit_routes: true,
         },
       });
 
@@ -497,9 +495,6 @@ export const routesController = {
         existingRoute.customer_routes &&
         Array.isArray(existingRoute.customer_routes) &&
         existingRoute.customer_routes.length > 0;
-      const hasDepots = !!existingRoute.routes_depots;
-      const hasZones = !!existingRoute.routes_zones;
-      const hasSalespersons = !!existingRoute.routes_salesperson;
       const hasVisits = existingRoute.visit_routes.length > 0;
 
       if (force === 'true') {
@@ -510,66 +505,31 @@ export const routesController = {
           });
         }
 
-        if (hasDepots) {
-          await prisma.routes_depots.deleteMany({
-            where: { route_id: Number(id) },
-          });
-        }
-
-        if (hasZones) {
-          await prisma.routes_zones.deleteMany({
-            where: { route_id: Number(id) },
-          });
-        }
-
-        if (hasSalespersons) {
-          await prisma.routes.update({
-            where: { id: Number(id) },
-            data: { salesperson_id: null },
-          });
-        }
-
         if (hasVisits) {
           await prisma.visits.deleteMany({
             where: { route_id: Number(id) },
           });
         }
 
-        // Now delete the route
         await prisma.routes.delete({ where: { id: Number(id) } });
 
         res.json({
           message: 'Route and all associated records deleted successfully',
           deletedRecords: {
             customers: hasCustomers ? existingRoute.customer_routes.length : 0,
-            depots: hasDepots ? 1 : 0,
-            zones: hasZones ? 1 : 0,
-            salespersons: hasSalespersons ? 1 : 0,
             visits: hasVisits ? existingRoute.visit_routes.length : 0,
           },
         });
         return;
       }
 
-      if (
-        hasCustomers ||
-        hasDepots ||
-        hasZones ||
-        hasSalespersons ||
-        hasVisits
-      ) {
+      if (hasCustomers || hasVisits) {
         return res.status(400).json({
           message: 'Cannot delete route. It has associated records.',
           details: {
             hasCustomers,
-            hasDepots,
-            hasZones,
-            hasSalespersons,
             hasVisits,
             customersCount: existingRoute.customer_routes.length,
-            depotsCount: hasDepots ? 1 : 0,
-            zonesCount: hasZones ? 1 : 0,
-            salespersonsCount: hasSalespersons ? 1 : 0,
             visitsCount: existingRoute.visit_routes.length,
           },
         });
@@ -581,9 +541,7 @@ export const routesController = {
     } catch (error: any) {
       console.error('Delete Route Error:', error);
 
-      // Handle specific database errors
       if (error.code === 'P2003') {
-        // Foreign key constraint violation (fallback if dependency check fails)
         return res.status(400).json({
           message: 'Cannot delete route. It has associated records.',
         });

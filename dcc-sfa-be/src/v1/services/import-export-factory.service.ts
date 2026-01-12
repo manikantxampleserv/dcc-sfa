@@ -53,6 +53,8 @@ import { TaxMasterImportExportService } from './implementations/taxMaster-import
 import { BatchLotsImportExportService } from './implementations/batchLots-import-export.service';
 import { UserImportExportService } from './implementations/UserImportExportService';
 import { RoleImportExportService } from './implementations/role.import-export.service';
+import { RouteImportExportService } from './implementations/route-import-export.service';
+
 type ServiceConstructor = new () => ImportExportService<any>;
 
 export class ImportExportFactory {
@@ -115,6 +117,7 @@ export class ImportExportFactory {
     ['batch_lots', BatchLotsImportExportService],
     ['users', UserImportExportService],
     ['roles', RoleImportExportService],
+    ['routes', RouteImportExportService],
   ]);
 
   static getService(tableName: string): ImportExportService<any> | null {

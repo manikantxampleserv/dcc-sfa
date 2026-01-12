@@ -2,49 +2,117 @@ import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 
+// const serializeCompany = (
+//   company: any,
+//   includeCreatedAt = false,
+//   includeUpdatedAt = false,
+//   includeSensitiveData = false
+// ) => {
+//   const baseData = {
+//     id: company.id,
+//     name: company.name,
+//     code: company.code,
+//     address: company.address,
+//     city: company.city,
+//     state: company.state,
+//     country: company.country,
+//     zipcode: company.zipcode,
+//     phone_number: company.phone_number,
+//     email: company.email,
+//     website: company.website,
+//     logo: company.logo,
+//     is_active: company.is_active,
+//     created_by: company.created_by,
+//     updated_by: company.updated_by,
+//     log_inst: company.log_inst,
+//     smtp_host: company.smtp_host,
+//     smtp_port: company.smtp_port,
+//     smtp_username: company.smtp_username,
+//     smtp_password: company.smtp_password,
+//     ...(includeCreatedAt && { created_date: company.created_date }),
+//     ...(includeUpdatedAt && { updated_date: company.updated_date }),
+
+//     ...company(
+//       includeSensitiveData && {
+//         smtp_host: company.smtp_host,
+//         smtp_port: company.smtp_port,
+//         smttp_username: company.smtp_username,
+//         smtp_mail_from_address: company.smtp_mail_from_address,
+//         smtp_mail_from_name: company.smtp_mail_from_name,
+//       }
+//     ),
+
+//     users: company.users
+//       ? company.users.map((u: any) => ({
+//           id: u.id,
+//           name: u.name,
+//           email: u.email,
+//         }))
+//       : [],
+//     depot_companies: company.depot_companies
+//       ? company.depot_companies.map((d: any) => ({
+//           id: d.id,
+//           parent_id: d.parent_id,
+//           name: d.name,
+//         }))
+//       : [],
+//   };
+// };
+
 const serializeCompany = (
   company: any,
   includeCreatedAt = false,
-  includeUpdatedAt = false
-) => ({
-  id: company.id,
-  name: company.name,
-  code: company.code,
-  address: company.address,
-  city: company.city,
-  state: company.state,
-  country: company.country,
-  zipcode: company.zipcode,
-  phone_number: company.phone_number,
-  email: company.email,
-  website: company.website,
-  logo: company.logo,
-  is_active: company.is_active,
-  created_by: company.created_by,
-  updated_by: company.updated_by,
-  log_inst: company.log_inst,
-  smtp_host: company.smtp_host,
-  smtp_port: company.smtp_port,
-  smtp_username: company.smtp_username,
-  smtp_password: company.smtp_password,
-  ...(includeCreatedAt && { created_date: company.created_date }),
-  ...(includeUpdatedAt && { updated_date: company.updated_date }),
+  includeUpdatedAt = false,
+  includeSensitiveData = false
+) => {
+  const baseData = {
+    id: company.id,
+    name: company.name,
+    code: company.code,
+    address: company.address,
+    city: company.city,
+    state: company.state,
+    country: company.country,
+    zipcode: company.zipcode,
+    phone_number: company.phone_number,
+    email: company.email,
+    website: company.website,
+    logo: company.logo,
+    is_active: company.is_active,
+    created_by: company.created_by,
+    updated_by: company.updated_by,
+    log_inst: company.log_inst,
 
-  users: company.users
-    ? company.users.map((u: any) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-      }))
-    : [],
-  depot_companies: company.depot_companies
-    ? company.depot_companies.map((d: any) => ({
-        id: d.id,
-        parent_id: d.parent_id,
-        name: d.name,
-      }))
-    : [],
-});
+    ...(includeSensitiveData && {
+      smtp_host: company.smtp_host,
+      smtp_port: company.smtp_port,
+      smtp_username: company.smtp_username,
+      smtp_mail_from_address: company.smtp_mail_from_address,
+      smtp_mail_from_name: company.smtp_mail_from_name,
+      smtp_password_set: !!company.smtp_password,
+    }),
+
+    ...(includeCreatedAt && { created_date: company.created_date }),
+    ...(includeUpdatedAt && { updated_date: company.updated_date }),
+
+    users: company.users
+      ? company.users.map((u: any) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+        }))
+      : [],
+    depot_companies: company.depot_companies
+      ? company.depot_companies.map((d: any) => ({
+          id: d.id,
+          parent_id: d.parent_id,
+          name: d.name,
+        }))
+      : [],
+  };
+
+  return baseData;
+};
 
 export const companyController = {
   async createCompany(req: any, res: any) {
@@ -54,6 +122,7 @@ export const companyController = {
         address,
         city,
         state,
+
         country,
         zipcode,
         phone_number,
@@ -66,7 +135,15 @@ export const companyController = {
         smtp_port,
         smtp_username,
         smtp_password,
+        smtp_mail_from_address,
+        smtp_mail_from_name,
+        currency_id,
       } = req.body;
+
+      if (!name) {
+        res.error('Company name is required', 400);
+        return;
+      }
 
       const prefix = name.slice(0, 3).toUpperCase();
 
@@ -122,7 +199,7 @@ export const companyController = {
 
       res.success(
         'Company created successfully',
-        serializeCompany(company, true),
+        serializeCompany(company, true, false, false),
         201
       );
     } catch (error: any) {
@@ -189,7 +266,7 @@ export const companyController = {
 
       res.success(
         'Companies retrieved successfully',
-        data.map((c: any) => serializeCompany(c, true, true)),
+        data.map((c: any) => serializeCompany(c, true, true, false)),
         200,
         pagination,
         {
@@ -220,7 +297,7 @@ export const companyController = {
 
       res.success(
         'Company fetched successfully',
-        serializeCompany(company, true, true),
+        serializeCompany(company, true, true, true),
         200
       );
     } catch (error: any) {
@@ -260,6 +337,9 @@ export const companyController = {
         smtp_port,
         smtp_username,
         smtp_password,
+        smtp_mail_from_address,
+        smtp_mail_from_name,
+        currency_id,
       } = req.body;
 
       const data: any = {
@@ -282,6 +362,12 @@ export const companyController = {
         }),
         ...(smtp_username !== undefined && { smtp_username }),
         ...(smtp_password !== undefined && { smtp_password }),
+        ...(smtp_password && { smtp_password }),
+        ...(smtp_mail_from_address !== undefined && { smtp_mail_from_address }),
+        ...(smtp_mail_from_name !== undefined && { smtp_mail_from_name }),
+        ...(currency_id !== undefined && {
+          currency_id: currency_id ? Number(currency_id) : null,
+        }),
         updated_date: new Date(),
         updated_by: req.user?.id,
       };
