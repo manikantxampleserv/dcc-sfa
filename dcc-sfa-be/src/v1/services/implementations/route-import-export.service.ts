@@ -990,9 +990,9 @@ export class RouteImportExportService extends ImportExportService<routes> {
       code: route.code || '',
       name: route.name || '',
       parent_id: route.parent_id || '',
-      zone_name: route.routes_zones?.name || '',
+      zone_name: route.route_zones?.name || '',
       depot_id: route.depot_id || '',
-      depot_name: route.routes_depots?.name || '',
+      depot_name: route.route_depots?.name || '',
       route_type_id: route.route_type_id || '',
       route_type_name: route.routes_route_type?.name || '',
       salesperson_id: route.salesperson_id || '',
@@ -1081,10 +1081,10 @@ export class RouteImportExportService extends ImportExportService<routes> {
   async exportToExcel(options: any = {}): Promise<Buffer> {
     const query: any = {
       where: options.filters,
-      orderBy: options.orderBy || { createdate: 'desc' },
+      orderBy: options.orderBy || { id: 'desc' },
       include: {
-        routes_zones: { select: { name: true } },
-        routes_depots: { select: { name: true } },
+        route_zones: { select: { name: true } },
+        route_depots: { select: { name: true } },
         routes_route_type: { select: { name: true } },
         routes_salesperson: { select: { name: true, email: true } },
       },
