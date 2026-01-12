@@ -17,7 +17,7 @@ interface ZoneSerialized {
   updatedby?: number | null;
   log_inst?: number | null;
   promotions?: { id: number; name: string }[];
-  routes_zones?: { id: number; name: string }[];
+  route_zones?: { id: number; name: string }[];
   zone_depots?: { id: number; name: string; code: string } | null;
   supervisor?: { id: number; name: string; email: string } | null;
 }
@@ -63,8 +63,8 @@ const serializeZone = (zone: any): ZoneSerialized => ({
       }))
     : [],
 
-  routes_zones: zone.routes_zones
-    ? zone.routes_zones.map((r: any) => ({ id: r.id, name: r.name }))
+  route_zones: zone.route_zones
+    ? zone.route_zones.map((r: any) => ({ id: r.id, name: r.name }))
     : undefined,
   zone_depots: zone.zone_depots
     ? {
@@ -107,7 +107,7 @@ export const zonesController = {
               },
             },
           },
-          routes_zones: true,
+          route_zones: true,
           zone_depots: true,
           zone_supervisor: true,
         },
@@ -154,7 +154,7 @@ export const zonesController = {
               },
             },
           },
-          routes_zones: true,
+          route_zones: true,
           zone_depots: true,
           zone_supervisor: true,
         },
@@ -210,7 +210,7 @@ export const zonesController = {
               },
             },
           },
-          routes_zones: true,
+          route_zones: true,
           zone_depots: true,
           zone_supervisor: true,
         },
@@ -257,7 +257,7 @@ export const zonesController = {
               },
             },
           },
-          routes_zones: true,
+          route_zones: true,
           zone_depots: true,
           zone_supervisor: true,
         },

@@ -525,7 +525,8 @@ export const requestsController = {
                   request_type: formatRequestType(request_type),
                   action: 'created',
                   company_name: 'SFA System',
-                  request_detail: JSON.stringify(request_detail),
+                  // request_detail: JSON.stringify(request_detail),
+                  ...request_detail,
                 }
               );
 
@@ -1013,101 +1014,6 @@ export const requestsController = {
       });
     }
   },
-
-  // async getRequestsByUsers(req: Request, res: Response) {
-  //   try {
-  //     const userId = req.user?.id;
-  //     const { page = 1, limit = 10, status = 'P' } = req.query;
-
-  //     if (!userId) {
-  //       return res.status(401).json({ message: 'User not authenticated' });
-  //     }
-
-  //     const pageNum = parseInt(page as string);
-  //     const limitNum = parseInt(limit as string);
-  //     const skip = (pageNum - 1) * limitNum;
-
-  //     const myApprovals = await prisma.sfa_d_request_approvals.findMany({
-  //       where: {
-  //         approver_id: userId,
-  //         status: status as string,
-  //       },
-  //       include: {
-  //         sfa_d_requests_approvals_request: {
-  //           include: {
-  //             sfa_d_requests_requester: {
-  //               select: { id: true, name: true, email: true },
-  //             },
-  //           },
-  //         },
-  //       },
-  //     });
-
-  //     const filteredApprovals = [];
-
-  //     for (const approval of myApprovals) {
-  //       const previousPending = await prisma.sfa_d_request_approvals.findFirst({
-  //         where: {
-  //           request_id: approval.request_id,
-  //           sequence: { lt: approval.sequence },
-  //           status: 'P',
-  //         },
-  //       });
-
-  //       if (!previousPending) {
-  //         filteredApprovals.push(approval);
-  //       }
-  //     }
-
-  //     const requests = filteredApprovals.map(approval => ({
-  //       id: approval.sfa_d_requests_approvals_request.id,
-  //       requester_id: approval.sfa_d_requests_approvals_request.requester_id,
-  //       request_type: approval.sfa_d_requests_approvals_request.request_type,
-  //       request_data: approval.sfa_d_requests_approvals_request.request_data,
-  //       status: approval.sfa_d_requests_approvals_request.status,
-  //       reference_id: approval.sfa_d_requests_approvals_request.reference_id,
-  //       overall_status:
-  //         approval.sfa_d_requests_approvals_request.overall_status,
-  //       createdate: approval.sfa_d_requests_approvals_request.createdate,
-  //       createdby: approval.sfa_d_requests_approvals_request.createdby,
-  //       updatedate: approval.sfa_d_requests_approvals_request.updatedate,
-  //       updatedby: approval.sfa_d_requests_approvals_request.updatedby,
-  //       log_inst: approval.sfa_d_requests_approvals_request.log_inst,
-  //       requester:
-  //         approval.sfa_d_requests_approvals_request.sfa_d_requests_requester,
-  //       approvals: [
-  //         {
-  //           id: approval.id,
-  //           sequence: approval.sequence,
-  //           status: approval.status,
-  //           remarks: approval.remarks,
-  //           approver: null,
-  //         },
-  //       ],
-  //     }));
-
-  //     const total = requests.length;
-  //     const paginatedData = requests.slice(skip, skip + limitNum);
-
-  //     res.json({
-  //       message: 'Requests found successfully',
-  //       data: paginatedData,
-  //       pagination: {
-  //         current_page: pageNum,
-  //         total_pages: Math.ceil(total / limitNum),
-  //         total_count: total,
-  //         has_next: skip + limitNum < total,
-  //         has_previous: pageNum > 1,
-  //       },
-  //     });
-  //   } catch (error: any) {
-  //     console.error('Get Requests By Users Error:', error);
-  //     res.status(500).json({
-  //       message: 'Failed to retrieve requests',
-  //       error: error.message,
-  //     });
-  //   }
-  // },
 
   async getRequestsByUsers(req: Request, res: Response) {
     try {
