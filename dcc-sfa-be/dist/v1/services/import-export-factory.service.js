@@ -54,6 +54,7 @@ const coolerSubTypes_import_export_service_1 = require("./implementations/cooler
 const taxMaster_import_export_service_1 = require("./implementations/taxMaster-import-export.service");
 const batchLots_import_export_service_1 = require("./implementations/batchLots-import-export.service");
 const UserImportExportService_1 = require("./implementations/UserImportExportService");
+const role_import_export_service_1 = require("./implementations/role.import-export.service");
 class ImportExportFactory {
     static services = new Map([
         ['zones', zones_import_export_service_1.ZonesImportExportService],
@@ -110,6 +111,7 @@ class ImportExportFactory {
         ['tax_master', taxMaster_import_export_service_1.TaxMasterImportExportService],
         ['batch_lots', batchLots_import_export_service_1.BatchLotsImportExportService],
         ['users', UserImportExportService_1.UserImportExportService],
+        ['roles', role_import_export_service_1.RoleImportExportService],
     ]);
     static getService(tableName) {
         const ServiceClass = this.services.get(tableName);

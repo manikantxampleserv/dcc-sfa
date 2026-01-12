@@ -12,6 +12,7 @@ import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import { kpiTargetValidationSchema } from 'schemas/kpiTargets.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageKpiTargetProps {
   selectedKpiTarget?: KpiTarget | null;
@@ -100,7 +101,6 @@ const ManageKpiTarget: React.FC<ManageKpiTargetProps> = ({
               formik={formik}
               required
             >
-              <MenuItem value={0}>Select Employee</MenuItem>
               {users.map(user => (
                 <MenuItem key={user.id} value={user.id}>
                   {user.name} ({user.email})
@@ -150,10 +150,7 @@ const ManageKpiTarget: React.FC<ManageKpiTargetProps> = ({
               slotProps={{ inputLabel: { shrink: true } }}
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField name="is_active" formik={formik} required />
           </Box>
 
           <Box className="!flex !justify-end">

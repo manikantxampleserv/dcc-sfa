@@ -1,7 +1,9 @@
 import { body } from 'express-validator';
 
 export const createSalesTargetGroupsValidation = [
-  body('sales_target_id').notEmpty().withMessage('Sales Target is required'),
+  body('group_name')
+    .notEmpty()
+    .withMessage('Sales Target Group name is required'),
   body('description')
     .optional()
     .isString()

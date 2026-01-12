@@ -55,8 +55,8 @@ const UnitOfMeasurementPage: React.FC = () => {
         statusFilter === 'all'
           ? undefined
           : statusFilter === 'active'
-            ? 'active'
-            : 'inactive',
+            ? 'Y'
+            : 'N',
     },
     {
       enabled: isRead,
@@ -113,8 +113,8 @@ const UnitOfMeasurementPage: React.FC = () => {
           statusFilter === 'all'
             ? undefined
             : statusFilter === 'active'
-              ? 'active'
-              : 'inactive',
+              ? 'Y'
+              : 'N',
       };
 
       await exportToExcelMutation.mutateAsync({

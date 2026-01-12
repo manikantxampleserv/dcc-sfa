@@ -21,11 +21,11 @@ const serializeKpiTarget = (kpiTarget) => ({
     updatedate: kpiTarget.updatedate,
     updatedby: kpiTarget.updatedby,
     log_inst: kpiTarget.log_inst,
-    employee: kpiTarget.users_employee_kpi_targets_employee_idTousers
+    employee: kpiTarget.employee_kpi_targets_users
         ? {
-            id: kpiTarget.users_employee_kpi_targets_employee_idTousers.id,
-            name: kpiTarget.users_employee_kpi_targets_employee_idTousers.name,
-            email: kpiTarget.users_employee_kpi_targets_employee_idTousers.email,
+            id: kpiTarget.employee_kpi_targets_users.id,
+            name: kpiTarget.employee_kpi_targets_users.name,
+            email: kpiTarget.employee_kpi_targets_users.email,
         }
         : null,
     kpi_actuals: kpiTarget.employee_kpi_actuals
@@ -47,14 +47,12 @@ exports.kpiTargetsController = {
                 });
             }
             const { employee_id, kpi_name, target_value, measure_unit, period_start, period_end, is_active, } = req.body;
-            // Check if employee exists
             const employee = await prisma_client_1.default.users.findUnique({
                 where: { id: employee_id },
             });
             if (!employee) {
                 return res.status(404).json({ message: 'Employee not found' });
             }
-            // Check for overlapping periods for the same employee and KPI
             const existingTarget = await prisma_client_1.default.employee_kpi_targets.findFirst({
                 where: {
                     employee_id,

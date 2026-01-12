@@ -44,7 +44,7 @@ export interface ManageCustomerComplaintPayload {
   complaint_title: string;
   complaint_description: string;
   status?: string;
-  submitted_by: number;
+  submitted_by: number | string;
 }
 
 export interface UpdateCustomerComplaintPayload {
@@ -52,7 +52,7 @@ export interface UpdateCustomerComplaintPayload {
   complaint_title?: string;
   complaint_description?: string;
   status?: string;
-  submitted_by?: number;
+  submitted_by: number | string;
 }
 
 /**

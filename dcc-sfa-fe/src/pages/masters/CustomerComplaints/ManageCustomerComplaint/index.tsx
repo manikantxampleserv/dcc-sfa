@@ -58,7 +58,7 @@ const ManageCustomerComplaint: React.FC<ManageCustomerComplaintProps> = ({
       complaint_title: selectedComplaint?.complaint_title || '',
       complaint_description: selectedComplaint?.complaint_description || '',
       status: selectedComplaint?.status || 'P',
-      submitted_by: selectedComplaint?.submitted_by_user?.id || 0,
+      submitted_by: selectedComplaint?.submitted_by_user?.id || '',
     },
     validationSchema,
     enableReinitialize: true,
@@ -96,27 +96,23 @@ const ManageCustomerComplaint: React.FC<ManageCustomerComplaintProps> = ({
       size="medium"
     >
       <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <CustomerSelect
-                name="customer_id"
-                label="Customer"
-                formik={formik}
-                required
-                nameToSearch={selectedComplaint?.customer?.name || ''}
-              />
-            </Box>
+        <form onSubmit={formik.handleSubmit} className="!space-y-4">
+          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+            <CustomerSelect
+              name="customer_id"
+              label="Customer"
+              formik={formik}
+              required
+              nameToSearch={selectedComplaint?.customer?.name || ''}
+            />
 
-            <Box className="md:!col-span-2">
-              <Input
-                name="complaint_title"
-                label="Complaint Title"
-                placeholder="Enter complaint title"
-                formik={formik}
-                required
-              />
-            </Box>
+            <Input
+              name="complaint_title"
+              label="Complaint Title"
+              placeholder="Enter complaint title"
+              formik={formik}
+              required
+            />
 
             <Box className="md:!col-span-2">
               <Input

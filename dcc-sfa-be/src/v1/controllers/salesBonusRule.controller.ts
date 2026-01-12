@@ -50,7 +50,14 @@ export const salesBonusRulesController = {
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
         },
-        include: { sales_targets: true },
+        include: {
+          sales_targets: {
+            include: {
+              sales_targets_groups: true,
+              sales_targets_product_categories: true,
+            },
+          },
+        },
       });
 
       res.status(201).json({
@@ -81,7 +88,14 @@ export const salesBonusRulesController = {
         page: pageNum,
         limit: limitNum,
         orderBy: { createdate: 'desc' },
-        include: { sales_targets: true },
+        include: {
+          sales_targets: {
+            include: {
+              sales_targets_groups: true,
+              sales_targets_product_categories: true,
+            },
+          },
+        },
       });
 
       const totalRules = await prisma.sales_bonus_rules.count();
@@ -126,7 +140,14 @@ export const salesBonusRulesController = {
       const { id } = req.params;
       const rule = await prisma.sales_bonus_rules.findUnique({
         where: { id: Number(id) },
-        include: { sales_targets: true },
+        include: {
+          sales_targets: {
+            include: {
+              sales_targets_groups: true,
+              sales_targets_product_categories: true,
+            },
+          },
+        },
       });
 
       if (!rule)
@@ -168,9 +189,15 @@ export const salesBonusRulesController = {
           updatedby: req.user?.id || 1,
           log_inst: data.log_inst ?? existing.log_inst,
         },
-        include: { sales_targets: true },
+        include: {
+          sales_targets: {
+            include: {
+              sales_targets_groups: true,
+              sales_targets_product_categories: true,
+            },
+          },
+        },
       });
-
       res.json({
         message: 'Sales bonus rule updated successfully',
         data: serializeSalesBonusRule(updated),
@@ -187,12 +214,9 @@ export const salesBonusRulesController = {
       const existing = await prisma.sales_bonus_rules.findUnique({
         where: { id: Number(id) },
       });
-
       if (!existing)
         return res.status(404).json({ message: 'Sales bonus rule not found' });
-
       await prisma.sales_bonus_rules.delete({ where: { id: Number(id) } });
-
       res.json({ message: 'Sales bonus rule deleted successfully' });
     } catch (error: any) {
       console.error('Delete SalesBonusRule Error:', error);

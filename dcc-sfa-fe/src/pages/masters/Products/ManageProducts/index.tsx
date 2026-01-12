@@ -343,7 +343,9 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       sub_category_id: selectedProduct?.sub_category_id || '',
       brand_id: selectedProduct?.brand_id || '',
       unit_of_measurement: selectedProduct?.unit_of_measurement || '',
-      base_price: selectedProduct?.base_price || '',
+      base_price: selectedProduct?.base_price
+        ? Number(selectedProduct.base_price)
+        : '',
       tax_id: selectedProduct?.tax_id || '',
       route_type_id: selectedProduct?.route_type_id || '',
       outlet_group_id: selectedProduct?.outlet_group_id || '',
@@ -354,8 +356,12 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       volume_id: selectedProduct?.volume_id || '',
       flavour_id: selectedProduct?.flavour_id || '',
       shelf_life_id: selectedProduct?.shelf_life_id || '',
-      weight_in_grams: selectedProduct?.weight_in_grams || '',
-      volume_in_liters: selectedProduct?.volume_in_liters || '',
+      weight_in_grams: selectedProduct?.weight_in_grams
+        ? Number(selectedProduct.weight_in_grams)
+        : '',
+      volume_in_liters: selectedProduct?.volume_in_liters
+        ? Number(selectedProduct.volume_in_liters)
+        : '',
       is_active: selectedProduct?.is_active || 'Y',
     },
     validationSchema: productValidationSchema,

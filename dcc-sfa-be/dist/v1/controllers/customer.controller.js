@@ -35,6 +35,7 @@ const serializeCustomer = async (customer) => {
         zones_id: customer.zones_id || null,
         customer_type_id: customer.customer_type_id || null,
         customer_channel_id: customer.customer_channel_id || null,
+        customer_category_id: customer.customer_category_id ?? null,
         profile_picture: customer.profile_picture || null,
         type: customer.type || null,
         internal_code_one: customer.internal_code_one || null,
@@ -86,6 +87,14 @@ const serializeCustomer = async (customer) => {
                 id: customer.customer_type_customer.id,
                 type_name: customer.customer_type_customer.type_name,
                 type_code: customer.customer_type_customer.type_code,
+            }
+            : null,
+        customer_category: customer.customer_category_customer
+            ? {
+                id: customer.customer_category_customer.id,
+                category_name: customer.customer_category_customer.category_name,
+                category_code: customer.customer_category_customer.category_code,
+                level: customer.customer_category_customer.level,
             }
             : null,
         customer_channel: customer.customer_channel_customer
@@ -833,6 +842,14 @@ exports.customerController = {
                             type_code: true,
                         },
                     },
+                    customer_category_customer: {
+                        select: {
+                            id: true,
+                            category_name: true,
+                            category_code: true,
+                            level: true,
+                        },
+                    },
                     customer_channel_customer: {
                         select: {
                             id: true,
@@ -914,6 +931,7 @@ exports.customerController = {
                     customer_zones: true,
                     customer_routes: true,
                     customer_users: true,
+                    customer_category_customer: true,
                     customer_type_customer: {
                         select: {
                             id: true,
@@ -1031,11 +1049,53 @@ exports.customerController = {
             if (!existingCustomer) {
                 return res.status(404).json({ message: 'Customer not found' });
             }
+            const [invoicesCount, ordersCount, visitsCount, coolersCount, paymentsCount,] = await Promise.all([
+                prisma_client_1.default.invoices.count({ where: { customer_id: Number(id) } }),
+                prisma_client_1.default.orders.count({ where: { parent_id: Number(id) } }),
+                prisma_client_1.default.visits.count({ where: { customer_id: Number(id) } }),
+                prisma_client_1.default.coolers.count({ where: { customer_id: Number(id) } }),
+                prisma_client_1.default.payments.count({ where: { customer_id: Number(id) } }),
+            ]);
+            const hasRelatedRecords = invoicesCount > 0 ||
+                ordersCount > 0 ||
+                visitsCount > 0 ||
+                coolersCount > 0 ||
+                paymentsCount > 0;
+            if (hasRelatedRecords) {
+                const relatedRecords = [];
+                if (invoicesCount > 0)
+                    relatedRecords.push(`${invoicesCount} invoice(s)`);
+                if (ordersCount > 0)
+                    relatedRecords.push(`${ordersCount} order(s)`);
+                if (visitsCount > 0)
+                    relatedRecords.push(`${visitsCount} visit(s)`);
+                if (coolersCount > 0)
+                    relatedRecords.push(`${coolersCount} cooler(s)`);
+                if (paymentsCount > 0)
+                    relatedRecords.push(`${paymentsCount} payment(s)`);
+                return res.status(400).json({
+                    message: 'Cannot delete customer. This customer has related records.',
+                    details: {
+                        customer: existingCustomer.name,
+                        relatedRecords,
+                        suggestion: 'Please delete or reassign the related records first, or consider marking this customer as inactive instead of deleting.',
+                    },
+                });
+            }
             await prisma_client_1.default.customers.delete({ where: { id: Number(id) } });
             res.json({ message: 'Customer deleted successfully' });
         }
         catch (error) {
             console.error('Delete Customer Error:', error);
+            if (error.code === 'P2003') {
+                return res.status(400).json({
+                    message: 'Cannot delete customer. This customer has related records in other tables.',
+                    details: {
+                        error: 'Foreign key constraint violated',
+                        suggestion: 'Please delete the related records first or mark the customer as inactive.',
+                    },
+                });
+            }
             res.status(500).json({ message: error.message });
         }
     },

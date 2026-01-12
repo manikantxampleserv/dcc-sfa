@@ -40,7 +40,12 @@ const RouteTypesManagement: React.FC = () => {
       search,
       page,
       limit,
-      status: statusFilter === 'all' ? undefined : statusFilter,
+      status:
+        statusFilter === 'all'
+          ? undefined
+          : statusFilter === 'active'
+            ? 'Y'
+            : 'N',
     },
     {
       enabled: isRead,
@@ -95,7 +100,12 @@ const RouteTypesManagement: React.FC = () => {
     try {
       const filters = {
         search,
-        status: statusFilter === 'all' ? undefined : statusFilter,
+        status:
+          statusFilter === 'all'
+            ? undefined
+            : statusFilter === 'active'
+              ? 'Y'
+              : 'N',
       };
 
       await exportToExcelMutation.mutateAsync({

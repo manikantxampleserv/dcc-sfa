@@ -15,7 +15,8 @@ export const batchLotValidationSchema = Yup.object({
     .min(
       Yup.ref('manufacturing_date'),
       'Expiry date must be after manufacturing date'
-    ),
+    )
+    .min(new Date(), 'Expiry date must be a future date'),
   quantity: Yup.number()
     .required('Quantity is required')
     .positive('Quantity must be positive')

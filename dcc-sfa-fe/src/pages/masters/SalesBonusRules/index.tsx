@@ -7,6 +7,8 @@ import {
   type SalesBonusRule,
 } from 'hooks/useSalesBonusRules';
 import { usePermission } from 'hooks/usePermission';
+import { useSettings } from 'hooks/useSettings';
+import { useCurrencies } from 'hooks/useCurrencies';
 import { Award, Percent, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -32,6 +34,15 @@ const SalesBonusRulesManagement: React.FC = () => {
   const { isCreate, isUpdate, isDelete, isRead } =
     usePermission('sales-bonus-rule');
 
+  // Get system settings and currencies for dynamic currency formatting
+  const { data: settingsResponse } = useSettings();
+  const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
+
+  const settings = settingsResponse?.data;
+  const currencies = currenciesResponse?.data || [];
+  const defaultCurrencyId = settings?.currency_id || 1; // Default to 1 if not set
+  const defaultCurrency = currencies.find(c => c.id === defaultCurrencyId);
+
   const {
     data: rulesResponse,
     isLoading,
@@ -52,6 +63,37 @@ const SalesBonusRulesManagement: React.FC = () => {
       enabled: isRead,
     }
   );
+
+  // Dynamic currency formatting function
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return 'No amount';
+
+    // Use dynamic currency from system settings, fallback to INR
+    const currency = defaultCurrency?.code || 'INR';
+
+    // Currency to locale mapping
+    const currencyToLocale: Record<string, string> = {
+      USD: 'en-US',
+      EUR: 'de-DE',
+      GBP: 'en-GB',
+      JPY: 'ja-JP',
+      CNY: 'zh-CN',
+      AUD: 'en-AU',
+      CAD: 'en-CA',
+      INR: 'en-IN',
+      AED: 'ar-AE',
+      SAR: 'ar-SA',
+    };
+
+    const locale = currencyToLocale[currency] || 'en-IN';
+
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
 
   const rules = rulesResponse?.data || [];
   const totalCount = rulesResponse?.pagination?.total_count || 0;
@@ -177,15 +219,9 @@ const SalesBonusRulesManagement: React.FC = () => {
       label: 'Bonus Amount',
       render: (_value, row) => (
         <Box className="flex flex-col items-start">
-          {row.bonus_amount ? (
-            <Typography variant="body2" className="!text-gray-900">
-              ${row.bonus_amount}
-            </Typography>
-          ) : (
-            <Typography variant="body2" className="!text-gray-400">
-              No amount
-            </Typography>
-          )}
+          <Typography variant="body2" className="!text-gray-900">
+            {formatCurrency(row.bonus_amount)}
+          </Typography>
         </Box>
       ),
     },
@@ -199,7 +235,7 @@ const SalesBonusRulesManagement: React.FC = () => {
               {row.bonus_percent}%
             </Typography>
           ) : (
-            <Typography variant="body2" className="!text-gray-400">
+            <Typography variant="body2" className="!text-gray-400 italic">
               No percent
             </Typography>
           )}

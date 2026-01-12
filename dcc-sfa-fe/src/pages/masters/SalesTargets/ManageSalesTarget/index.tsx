@@ -29,16 +29,16 @@ const ManageSalesTarget: React.FC<ManageSalesTargetProps> = ({
 }) => {
   const isEdit = !!selectedTarget;
 
-  // Fetch sales target groups
   const { data: groupsResponse } = useSalesTargetGroups({
     page: 1,
+    status: 'active',
     limit: 1000,
   });
   const groups = groupsResponse?.data || [];
 
-  // Fetch product categories
   const { data: categoriesResponse } = useProductCategories({
     page: 1,
+    status: 'active',
     limit: 1000,
   });
   const categories = categoriesResponse?.data || [];

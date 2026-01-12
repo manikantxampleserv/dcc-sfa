@@ -9,7 +9,10 @@ import {
   auditDelete,
 } from '../../middlewares/audit.middleware';
 import { salesBonusRulesController } from '../controllers/salesBonusRule.controller';
-import { createSalesTargetGroupsValidation } from '../validations/salesTargetGroups.validation';
+import {
+  createSalesBonusRuleValidation,
+  updateSalesBonusRuleValidation,
+} from '../validations/salesBonusRule.validation';
 import { validate } from '../../middlewares/validation.middleware';
 
 const router = Router();
@@ -19,7 +22,7 @@ router.post(
   authenticateToken,
   auditCreate('sales_bonus_rules'),
   requirePermission([{ module: 'sales-bonus-rule', action: 'create' }]),
-  createSalesTargetGroupsValidation,
+  createSalesBonusRuleValidation,
   validate,
   salesBonusRulesController.createSalesBonusRule
 );
@@ -36,6 +39,8 @@ router.put(
   authenticateToken,
   auditUpdate('sales_bonus_rules'),
   requirePermission([{ module: 'sales-bonus-rule', action: 'update' }]),
+  updateSalesBonusRuleValidation,
+  validate,
   salesBonusRulesController.updateSalesBonusRule
 );
 router.get(
