@@ -12,7 +12,12 @@ import { useDepots } from 'hooks/useDepots';
 import { usePermission } from 'hooks/usePermission';
 import { useDeleteRoute, useRoutes, type Route } from 'hooks/useRoutes';
 import { useZones } from 'hooks/useZones';
-import { Building2, Navigation, Route as RouteIcon } from 'lucide-react';
+import {
+  Building,
+  Building2,
+  Navigation,
+  Route as RouteIcon,
+} from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
@@ -171,13 +176,15 @@ const RoutesManagement: React.FC = () => {
       label: 'Depot',
       render: (_value, row) => (
         <Box className="!flex !items-center !gap-2">
-          <Building2 className="w-4 h-4 text-gray-400" />
+          <Avatar className="!rounded !bg-primary-100 !text-primary-600">
+            <Building2 className="w-5 h-5" />
+          </Avatar>
           <Box>
             <Typography variant="body2" className="!font-medium">
-              {row.routes_depots?.name || 'N/A'}
+              {row.route_depots?.name || 'N/A'}
             </Typography>
             <Typography variant="caption" className="!text-gray-500">
-              {row.routes_depots?.code || ''}
+              {row.route_depots?.code || ''}
             </Typography>
           </Box>
         </Box>
@@ -187,9 +194,19 @@ const RoutesManagement: React.FC = () => {
       id: 'zone',
       label: 'Zone',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.routes_zones?.name || 'N/A'}
-        </Typography>
+        <Box className="!flex !items-center !gap-2">
+          <Avatar className="!rounded !bg-primary-100 !text-primary-600">
+            <Building className="w-5 h-5" />
+          </Avatar>
+          <Box>
+            <Typography variant="body2" className="!font-medium">
+              {row.route_zones?.name || 'N/A'}
+            </Typography>
+            <Typography variant="caption" className="!text-gray-500">
+              {row.route_zones?.code || ''}
+            </Typography>
+          </Box>
+        </Box>
       ),
     },
     {

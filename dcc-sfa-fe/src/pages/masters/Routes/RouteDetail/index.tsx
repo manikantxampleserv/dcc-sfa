@@ -357,7 +357,7 @@ const RouteDetail: React.FC = () => {
             </div>
 
             <div className="!space-y-1 !text-left !mt-4">
-              {route.routes_depots && (
+              {route.route_depots && (
                 <div className="!p-1 !bg-gray-50 !rounded-md">
                   <Typography
                     variant="caption"
@@ -369,7 +369,7 @@ const RouteDetail: React.FC = () => {
                     variant="body2"
                     className="!font-semibold !text-gray-900"
                   >
-                    {route.routes_depots.name} ({route.routes_depots.code})
+                    {route.route_depots.name} ({route.route_depots.code})
                   </Typography>
                 </div>
               )}
@@ -519,7 +519,7 @@ const RouteDetail: React.FC = () => {
                 </Typography>
               </div>
 
-              {route.routes_depots && (
+              {route.route_depots && (
                 <div className="!space-y-0.5">
                   <Typography
                     variant="caption"
@@ -531,12 +531,12 @@ const RouteDetail: React.FC = () => {
                     variant="body2"
                     className="!font-semibold !text-gray-900"
                   >
-                    {route.routes_depots.name}
+                    {route.route_depots.name}
                   </Typography>
                 </div>
               )}
 
-              {route.routes_zones && (
+              {route.route_zones && (
                 <div className="!space-y-0.5">
                   <Typography
                     variant="caption"
@@ -548,7 +548,7 @@ const RouteDetail: React.FC = () => {
                     variant="body2"
                     className="!font-semibold !text-gray-900"
                   >
-                    {route.routes_zones.name}
+                    {route.route_zones.name}
                   </Typography>
                 </div>
               )}

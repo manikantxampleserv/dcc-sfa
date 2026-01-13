@@ -43,8 +43,7 @@ const Layout: React.FC = () => {
     const lastSegment = pathSegments[pathSegments.length - 1] || '';
     const isNumeric = /^\d+$/.test(lastSegment);
 
-    // Special handling for Executive Dashboard
-    if (location.pathname === '/dashboard/executive') {
+    if (location.pathname === '/' || location.pathname === '/dashboard/executive') {
       return 'Executive Dashboard';
     }
 
