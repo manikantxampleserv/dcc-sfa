@@ -25,6 +25,15 @@ const serializeSettings = (
   smtp_host: settings.smtp_host,
   smtp_port: settings.smtp_port,
   smtp_username: settings.smtp_username,
+  smtp_mail_from_address:
+    settings.smtp_mail_from_address ||
+    process.env.MAIL_FROM_ADDRESS ||
+    settings.smtp_username ||
+    null,
+  smtp_mail_from_name:
+    settings.smtp_mail_from_name ||
+    process.env.MAIL_FROM_NAME ||
+    'DCC SFA System',
   smtp_password: settings.smtp_password,
   currency_id: settings.currency_id,
   ...(includeCreatedAt && { created_date: settings.created_date }),

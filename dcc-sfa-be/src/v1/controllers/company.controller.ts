@@ -88,8 +88,15 @@ const serializeCompany = (
       smtp_host: company.smtp_host,
       smtp_port: company.smtp_port,
       smtp_username: company.smtp_username,
-      smtp_mail_from_address: company.smtp_mail_from_address,
-      smtp_mail_from_name: company.smtp_mail_from_name,
+      smtp_mail_from_address:
+        company.smtp_mail_from_address ||
+        process.env.MAIL_FROM_ADDRESS ||
+        company.smtp_username ||
+        null,
+      smtp_mail_from_name:
+        company.smtp_mail_from_name ||
+        process.env.MAIL_FROM_NAME ||
+        'DCC SFA System',
       smtp_password_set: !!company.smtp_password,
       ...(includeSmtpPassword && { smtp_password: company.smtp_password }),
     }),

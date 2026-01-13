@@ -197,6 +197,235 @@ async function getWorkflowForRequest(
   }
 }
 
+// export const createRequest = async (data: {
+//   requester_id: number;
+//   request_type: string;
+//   reference_id?: number | null;
+//   request_data?: string | null;
+//   createdby: number;
+//   log_inst: number;
+// }) => {
+//   try {
+//     console.log('Creating approval request:', data);
+
+//     const requester = await prisma.users.findUnique({
+//       where: { id: data.requester_id },
+//       select: {
+//         id: true,
+//         name: true,
+//         email: true,
+//         zone_id: true,
+//         depot_id: true,
+//       },
+//     });
+
+//     if (!requester) {
+//       throw new Error('Requester not found');
+//     }
+
+//     const request = await prisma.sfa_d_requests.create({
+//       data: {
+//         requester_id: data.requester_id,
+//         request_type: data.request_type,
+//         reference_id: data.reference_id || null,
+//         request_data: data.request_data || null,
+//         status: 'P',
+//         createdby: data.createdby,
+//         createdate: new Date(),
+//         log_inst: data.log_inst,
+//       },
+//     });
+
+//     console.log(' Request created, ID:', request.id);
+
+//     let workflowSteps;
+//     let workflowType = 'NONE';
+
+//     if (requester.zone_id && requester.depot_id) {
+//       workflowSteps = await prisma.approval_work_flow.findMany({
+//         where: {
+//           request_type: data.request_type,
+//           zone_id: requester.zone_id,
+//           depot_id: requester.depot_id,
+//           is_active: 'Y',
+//         },
+//         orderBy: { sequence: 'asc' },
+//         include: {
+//           approval_work_flow_approver: {
+//             select: { id: true, name: true, email: true },
+//           },
+//         },
+//       });
+
+//       if (workflowSteps && workflowSteps.length > 0) {
+//         workflowType = 'ZONE_DEPOT_SPECIFIC';
+//       }
+//     }
+
+//     if ((!workflowSteps || workflowSteps.length === 0) && requester.zone_id) {
+//       workflowSteps = await prisma.approval_work_flow.findMany({
+//         where: {
+//           request_type: data.request_type,
+//           zone_id: requester.zone_id,
+//           depot_id: null,
+//           is_active: 'Y',
+//         },
+//         orderBy: { sequence: 'asc' },
+//         include: {
+//           approval_work_flow_approver: {
+//             select: { id: true, name: true, email: true },
+//           },
+//         },
+//       });
+
+//       if (workflowSteps && workflowSteps.length > 0) {
+//         workflowType = 'ZONE_SPECIFIC';
+//       }
+//     }
+
+//     if ((!workflowSteps || workflowSteps.length === 0) && requester.depot_id) {
+//       workflowSteps = await prisma.approval_work_flow.findMany({
+//         where: {
+//           request_type: data.request_type,
+//           depot_id: requester.depot_id,
+//           zone_id: null,
+//           is_active: 'Y',
+//         },
+//         orderBy: { sequence: 'asc' },
+//         include: {
+//           approval_work_flow_approver: {
+//             select: { id: true, name: true, email: true },
+//           },
+//         },
+//       });
+
+//       if (workflowSteps && workflowSteps.length > 0) {
+//         workflowType = 'DEPOT_SPECIFIC';
+//       }
+//     }
+
+//     if (!workflowSteps || workflowSteps.length === 0) {
+//       workflowSteps = await prisma.approval_work_flow.findMany({
+//         where: {
+//           request_type: data.request_type,
+//           zone_id: null,
+//           depot_id: null,
+//           is_active: 'Y',
+//         },
+//         orderBy: { sequence: 'asc' },
+//         include: {
+//           approval_work_flow_approver: {
+//             select: { id: true, name: true, email: true },
+//           },
+//         },
+//       });
+
+//       if (workflowSteps && workflowSteps.length > 0) {
+//         workflowType = 'GLOBAL';
+//       }
+//     }
+
+//     if (!workflowSteps || workflowSteps.length === 0) {
+//       console.log(` No approval workflow defined for '${data.request_type}'`);
+//       return request;
+//     }
+
+//     console.log(` Using ${workflowType} workflow for ${data.request_type}`);
+
+//     const approvalsToInsert = workflowSteps.map((step, index) => ({
+//       request_id: Number(request.id),
+//       approver_id: Number(step.approver_id),
+//       sequence: Number(step.sequence) || index + 1,
+//       status: 'P',
+//       createdby: data.createdby,
+//       createdate: new Date(),
+//       log_inst: data.log_inst,
+//     }));
+
+//     await prisma.sfa_d_request_approvals.createMany({
+//       data: approvalsToInsert,
+//     });
+
+//     console.log(`Created ${approvalsToInsert.length} approval steps`);
+
+//     const request_detail = await getRequestDetailsByType(
+//       data.request_type,
+//       data.reference_id || null
+//     );
+
+//     const firstApprover = workflowSteps[0];
+//     if (firstApprover?.approval_work_flow_approver?.email) {
+//       const template = await generateEmailContent(
+//         templateKeyMap.notifyApprover,
+//         {
+//           approver_name: firstApprover.approval_work_flow_approver.name,
+//           requester_name: requester.name,
+//           request_type: data.request_type.replace(/_/g, ' '),
+//           company_name: 'SFA System',
+//           request_detail,
+//         }
+//       );
+
+//       await sendEmail({
+//         to: firstApprover.approval_work_flow_approver.email,
+//         subject: template.subject,
+//         html: template.body,
+//         createdby: data.createdby,
+//         log_inst: data.log_inst,
+//       });
+
+//       console.log(
+//         `Email Sent ${firstApprover.approval_work_flow_approver.email}`
+//       );
+//     }
+
+//     return request;
+//   } catch (error: any) {
+//     console.error('Error creating approval request:', error);
+//     throw error;
+//   }
+// };
+
+function replaceVariables(template: string, data: Record<string, any>): string {
+  if (!template) {
+    console.log(' Empty template provided');
+    return '';
+  }
+
+  let result = template;
+
+  console.log(' Starting variable replacement...');
+  console.log(' Template length:', template.length);
+  console.log(' Variables to replace:', Object.keys(data).join(', '));
+
+  Object.keys(data).forEach(key => {
+    const value =
+      data[key] !== undefined && data[key] !== null ? String(data[key]) : '';
+
+    const pattern = `\${${key}}`;
+    const count = (result.match(new RegExp(`\\$\\{${key}\\}`, 'g')) || [])
+      .length;
+
+    if (count > 0) {
+      console.log(
+        `   Replacing ${count} occurrence(s) of \${${key}} with: "${value}"`
+      );
+    }
+
+    const regex = new RegExp(`\\$\\{${key}\\}`, 'g');
+    result = result.replace(regex, value);
+  });
+
+  const unreplaced = result.match(/\$\{[^}]+\}/g);
+  if (unreplaced) {
+    console.log(' Unreplaced variables found:', unreplaced);
+  } else {
+    console.log('All variables replaced successfully');
+  }
+
+  return result;
+}
+
 export const createRequest = async (data: {
   requester_id: number;
   request_type: string;
@@ -206,7 +435,7 @@ export const createRequest = async (data: {
   log_inst: number;
 }) => {
   try {
-    console.log('Creating approval request:', data);
+    console.log(' Creating request:', data.request_type);
 
     const requester = await prisma.users.findUnique({
       where: { id: data.requester_id },
@@ -236,7 +465,7 @@ export const createRequest = async (data: {
       },
     });
 
-    console.log(' Request created, ID:', request.id);
+    console.log('Request created:', request.id);
 
     let workflowSteps;
     let workflowType = 'NONE';
@@ -256,7 +485,6 @@ export const createRequest = async (data: {
           },
         },
       });
-
       if (workflowSteps && workflowSteps.length > 0) {
         workflowType = 'ZONE_DEPOT_SPECIFIC';
       }
@@ -277,7 +505,6 @@ export const createRequest = async (data: {
           },
         },
       });
-
       if (workflowSteps && workflowSteps.length > 0) {
         workflowType = 'ZONE_SPECIFIC';
       }
@@ -298,7 +525,6 @@ export const createRequest = async (data: {
           },
         },
       });
-
       if (workflowSteps && workflowSteps.length > 0) {
         workflowType = 'DEPOT_SPECIFIC';
       }
@@ -319,18 +545,19 @@ export const createRequest = async (data: {
           },
         },
       });
-
       if (workflowSteps && workflowSteps.length > 0) {
         workflowType = 'GLOBAL';
       }
     }
 
     if (!workflowSteps || workflowSteps.length === 0) {
-      console.log(` No approval workflow defined for '${data.request_type}'`);
+      console.log('No workflow found');
       return request;
     }
 
-    console.log(` Using ${workflowType} workflow for ${data.request_type}`);
+    console.log(
+      ` Using ${workflowType} workflow with ${workflowSteps.length} steps`
+    );
 
     const approvalsToInsert = workflowSteps.map((step, index) => ({
       request_id: Number(request.id),
@@ -346,45 +573,83 @@ export const createRequest = async (data: {
       data: approvalsToInsert,
     });
 
-    console.log(`Created ${approvalsToInsert.length} approval steps`);
-
-    const request_detail = await getRequestDetailsByType(
-      data.request_type,
-      data.reference_id || null
-    );
+    console.log(` Created ${approvalsToInsert.length} approvals`);
 
     const firstApprover = workflowSteps[0];
     if (firstApprover?.approval_work_flow_approver?.email) {
-      const template = await generateEmailContent(
-        templateKeyMap.notifyApprover,
-        {
+      try {
+        let orderData: any = {};
+        if (data.request_type === 'ORDER_APPROVAL' && data.reference_id) {
+          const order = await prisma.orders.findUnique({
+            where: { id: data.reference_id },
+            include: {
+              orders_customers: true,
+              orders_salesperson_users: true,
+            },
+          });
+
+          if (order) {
+            orderData = {
+              order_number: order.order_number || 'N/A',
+              customer_name: order.orders_customers?.name || 'N/A',
+              salesperson_name: order.orders_salesperson_users?.name || 'N/A',
+              total_amount: order.total_amount
+                ? `$${Number(order.total_amount).toFixed(2)}`
+                : '$0.00',
+              request_date: new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              }),
+            };
+          }
+        }
+
+        const template = await prisma.sfa_d_templates.findUnique({
+          where: { key: 'notify_approver' },
+        });
+
+        if (!template) {
+          throw new Error('Email template "notify_approver" not found');
+        }
+
+        const variables = {
           approver_name: firstApprover.approval_work_flow_approver.name,
           requester_name: requester.name,
-          request_type: data.request_type.replace(/_/g, ' '),
-          company_name: 'SFA System',
-          request_detail,
-        }
-      );
+          company_name: process.env.COMPANY_NAME || 'SFA System',
+          ...orderData,
+        };
 
-      await sendEmail({
-        to: firstApprover.approval_work_flow_approver.email,
-        subject: template.subject,
-        html: template.body,
-        createdby: data.createdby,
-        log_inst: data.log_inst,
-      });
+        console.log('Email variables:', Object.keys(variables));
 
-      console.log(
-        `Email Sent ${firstApprover.approval_work_flow_approver.email}`
-      );
+        const subject = replaceVariables(template.subject, variables);
+        const body = replaceVariables(template.body, variables);
+
+        console.log(' Subject:', subject);
+
+        await sendEmail({
+          to: firstApprover.approval_work_flow_approver.email,
+          subject: subject,
+          html: body,
+          createdby: data.createdby,
+          log_inst: data.log_inst,
+        });
+
+        console.log(
+          `Email sent to ${firstApprover.approval_work_flow_approver.email}`
+        );
+      } catch (emailError) {
+        console.error(' Email error:', emailError);
+      }
     }
 
     return request;
   } catch (error: any) {
-    console.error('Error creating approval request:', error);
+    console.error(' Error:', error);
     throw error;
   }
 };
+
 export const requestsController = {
   async getRequestTypes(_req: Request, res: Response) {
     return res.json({
@@ -392,6 +657,7 @@ export const requestsController = {
       data: requestTypes,
     });
   },
+
   async createRequest(req: Request, res: Response) {
     const data = req.body;
     const userId = req.user?.id || 1;
