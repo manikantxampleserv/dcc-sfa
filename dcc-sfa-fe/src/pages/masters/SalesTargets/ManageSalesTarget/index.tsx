@@ -13,6 +13,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageSalesTargetProps {
   selectedTarget?: SalesTarget | null;
@@ -166,10 +167,7 @@ const ManageSalesTarget: React.FC<ManageSalesTargetProps> = ({
               slotProps={{ inputLabel: { shrink: true } }}
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField name="is_active" formik={formik} required />
           </Box>
 
           <Box className="!flex !justify-end">

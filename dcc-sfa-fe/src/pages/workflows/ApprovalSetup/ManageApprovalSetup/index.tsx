@@ -314,7 +314,7 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
           ? `Manage Approval Setup - ${requestType.replace(/_/g, ' ')}`
           : 'Create Approval Setup'
       }
-      size="extra-large"
+      size="large"
     >
       <Box className="!p-4 select-none">
         <form onSubmit={formik.handleSubmit}>

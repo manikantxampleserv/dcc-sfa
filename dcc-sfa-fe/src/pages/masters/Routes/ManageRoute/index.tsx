@@ -5,6 +5,7 @@ import { useRouteTypes, type RouteType } from 'hooks/useRouteTypes';
 import React from 'react';
 import { routeValidationSchema } from 'schemas/route.schema';
 import type { Depot } from 'services/masters/Depots';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -195,11 +196,9 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
               slotProps={{ htmlInput: { min: '0' } }}
             />
 
-            {/* Status */}
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <Box className="md:!col-span-2">
+              <ActiveInactiveField name="is_active" formik={formik} required />
+            </Box>
 
             {/* Description - Full width */}
             <Box className="md:!col-span-2">

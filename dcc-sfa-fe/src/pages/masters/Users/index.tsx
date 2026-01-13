@@ -1,4 +1,4 @@
-import { Add, Block, CheckCircle } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import {
   Alert,
   Avatar,
@@ -11,6 +11,7 @@ import {
 import classNames from 'classnames';
 import { usePermission } from 'hooks/usePermission';
 import { useDeleteUser, useUsers, type User } from 'hooks/useUsers';
+import { useExportToExcel } from 'hooks/useImportExport';
 import { UserCheck, UserPlus, Users as UsersIcon, UserX } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -20,8 +21,10 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import { formatDate } from 'utils/dateUtils';
 import ManageUsers from './ManageUsers';
+import ImportUsers from './ImportUsers';
 
 const UsersManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -31,6 +34,7 @@ const UsersManagement: React.FC = () => {
   const [limit] = useState(10);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('user');
 
   const {
@@ -201,6 +205,7 @@ const UsersManagement: React.FC = () => {
   ];
 
   const deleteUserMutation = useDeleteUser();
+  const exportToExcelMutation = useExportToExcel();
 
   const handleCreateUser = useCallback(() => {
     setSelectedUser(null);
@@ -225,6 +230,27 @@ const UsersManagement: React.FC = () => {
   }, []);
 
   const handlePageChange = (newPage: number) => setPage(newPage + 1);
+
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      const filters = {
+        search,
+        isActive:
+          statusFilter === 'all'
+            ? undefined
+            : statusFilter === 'active'
+              ? 'Y'
+              : 'N',
+      };
+
+      await exportToExcelMutation.mutateAsync({
+        tableName: 'users',
+        filters,
+      });
+    } catch (error) {
+      console.error('Error exporting users:', error);
+    }
+  }, [exportToExcelMutation, search, statusFilter]);
 
   const handleRowClick = useCallback(
     (user: User) => {
@@ -313,15 +339,48 @@ const UsersManagement: React.FC = () => {
                 )}
               </div>
               {isCreate && (
-                <Button
-                  variant="contained"
-                  className="!capitalize"
-                  disableElevation
-                  startIcon={<Add />}
-                  onClick={handleCreateUser}
-                >
-                  Create
-                </Button>
+                <div className="flex items-center gap-2">
+                  {isRead && (
+                    <PopConfirm
+                      title="Export Users"
+                      description="Are you sure you want to export the current users data to Excel? This will include all filtered results."
+                      onConfirm={handleExportToExcel}
+                      confirmText="Export"
+                      cancelText="Cancel"
+                      placement="top"
+                    >
+                      <Button
+                        variant="outlined"
+                        className="!capitalize"
+                        startIcon={<Download />}
+                        disabled={exportToExcelMutation.isPending}
+                      >
+                        {exportToExcelMutation.isPending
+                          ? 'Exporting...'
+                          : 'Export'}
+                      </Button>
+                    </PopConfirm>
+                  )}
+                  {isCreate && (
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Upload />}
+                      onClick={() => setImportModalOpen(true)}
+                    >
+                      Import
+                    </Button>
+                  )}
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateUser}
+                  >
+                    Create
+                  </Button>
+                </div>
               )}
             </div>
           ) : (
@@ -348,6 +407,11 @@ const UsersManagement: React.FC = () => {
         setSelectedUser={setSelectedUser}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
+      />
+
+      <ImportUsers
+        drawerOpen={importModalOpen}
+        setDrawerOpen={setImportModalOpen}
       />
     </>
   );

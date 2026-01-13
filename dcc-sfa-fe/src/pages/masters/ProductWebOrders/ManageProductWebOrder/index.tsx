@@ -1,4 +1,4 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateProductWebOrder,
@@ -7,10 +7,10 @@ import {
 } from 'hooks/useProductWebOrders';
 import React from 'react';
 import { productWebOrderValidationSchema } from 'schemas/productWebOrder.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
 
 interface ManageProductWebOrderProps {
   selectedProductWebOrder?: ProductWebOrder | null;
@@ -78,15 +78,13 @@ const ManageProductWebOrder: React.FC<ManageProductWebOrderProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <Input
-                name="name"
-                label="Product Web Order Name"
-                placeholder="Enter product web order name"
-                formik={formik}
-                required
-              />
-            </Box>
+            <Input
+              name="name"
+              label="Product Web Order Name"
+              placeholder="Enter product web order name"
+              formik={formik}
+              required
+            />
 
             <Input
               name="code"
@@ -95,10 +93,9 @@ const ManageProductWebOrder: React.FC<ManageProductWebOrderProps> = ({
               formik={formik}
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <Box className="md:!col-span-2">
+              <ActiveInactiveField name="is_active" formik={formik} required />
+            </Box>
           </Box>
 
           <Box className="!flex !justify-end">

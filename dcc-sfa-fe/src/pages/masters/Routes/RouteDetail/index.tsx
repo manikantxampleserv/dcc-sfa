@@ -117,50 +117,6 @@ const RouteDetail: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-              <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
-              <div className="!relative !z-10">
-                <div className="!flex !items-center !gap-2 !mb-4">
-                  <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
-                    <Skeleton
-                      variant="circular"
-                      width={16}
-                      height={16}
-                      className="!bg-primary-200"
-                    />
-                  </div>
-                  <Skeleton variant="text" width={140} height={20} />
-                </div>
-
-                <div className="!space-y-3">
-                  {[1, 2, 3].map(item => (
-                    <div
-                      key={item}
-                      className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
-                    >
-                      <div className="!flex !items-center !justify-between">
-                        <div className="!flex-1">
-                          <Skeleton
-                            variant="text"
-                            width="60%"
-                            height={16}
-                            className="!mb-1"
-                          />
-                          <Skeleton variant="text" width="40%" height={12} />
-                        </div>
-                        <Skeleton
-                          variant="text"
-                          width={80}
-                          height={16}
-                          className="!text-right"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="!flex-4 !space-y-4">

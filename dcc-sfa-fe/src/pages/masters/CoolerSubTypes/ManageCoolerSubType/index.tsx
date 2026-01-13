@@ -8,6 +8,7 @@ import {
 import { useCoolerTypesDropdown } from 'hooks/useCoolerTypes';
 import React from 'react';
 import { coolerSubTypeValidationSchema } from 'schemas/coolerSubType.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -115,10 +116,12 @@ const ManageCoolerSubType: React.FC<ManageCoolerSubTypeProps> = ({
               ))}
             </Select>
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
 
             <Box className="md:!col-span-2">
               <Input

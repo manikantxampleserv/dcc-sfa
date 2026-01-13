@@ -14,6 +14,7 @@ import {
   type Survey,
 } from '../../../../hooks/useSurveys';
 import { surveyValidationSchema } from '../../../../schemas/survey.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageSurveyProps {
   selectedSurvey?: Survey | null;
@@ -262,15 +263,13 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <Input
-                name="title"
-                label="Survey Title"
-                placeholder="Enter survey title"
-                formik={formik}
-                required
-              />
-            </Box>
+            <Input
+              name="title"
+              label="Survey Title"
+              placeholder="Enter survey title"
+              formik={formik}
+              required
+            />
 
             <Select name="category" label="Category" formik={formik} required>
               <MenuItem value="general">General</MenuItem>
@@ -305,11 +304,12 @@ const ManageSurvey: React.FC<ManageSurveyProps> = ({
               type="date"
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
-
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
             <Box className="md:!col-span-2">
               <Input
                 name="description"

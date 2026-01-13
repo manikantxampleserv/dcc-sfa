@@ -9,6 +9,7 @@ import {
 import { useUsers, type User } from 'hooks/useUsers';
 import React from 'react';
 import { assetMovementValidationSchema } from 'schemas/assetMovement.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -168,10 +169,12 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
               ))}
             </Select>
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
           </Box>
 
           <Input

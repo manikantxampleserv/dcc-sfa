@@ -1,4 +1,4 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateRouteType,
@@ -7,10 +7,10 @@ import {
 } from 'hooks/useRouteTypes';
 import React from 'react';
 import { routeTypeValidationSchema } from 'schemas/routeType.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
 
 interface ManageRouteTypeProps {
   selectedRouteType?: RouteType | null;
@@ -68,8 +68,8 @@ const ManageRouteType: React.FC<ManageRouteTypeProps> = ({
       size="medium"
     >
       <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+        <form onSubmit={formik.handleSubmit} className="!space-y-5">
+          <Box className="!grid !grid-cols-1 !gap-5">
             <Input
               name="name"
               label="Route Type Name"
@@ -78,10 +78,7 @@ const ManageRouteType: React.FC<ManageRouteTypeProps> = ({
               required
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField name="is_active" formik={formik} required />
           </Box>
 
           <Box className="!flex !justify-end">
@@ -112,7 +109,7 @@ const ManageRouteType: React.FC<ManageRouteTypeProps> = ({
                   : 'Creating...'
                 : isEdit
                   ? 'Update'
-                  : 'Create'}{' '}
+                  : 'Create'}
             </Button>
           </Box>
         </form>
@@ -122,4 +119,3 @@ const ManageRouteType: React.FC<ManageRouteTypeProps> = ({
 };
 
 export default ManageRouteType;
-

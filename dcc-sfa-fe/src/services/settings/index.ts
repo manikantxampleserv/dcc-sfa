@@ -22,6 +22,8 @@ export interface Settings {
   smtp_port?: number | null;
   smtp_username?: string | null;
   smtp_password?: string | null;
+  smtp_mail_from_name?: string | null;
+  smtp_mail_from_address?: string | null;
   currency_id?: number | null;
   created_date?: string;
   updated_date?: string;

@@ -1,4 +1,4 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateCoolerType,
@@ -7,10 +7,10 @@ import {
 } from 'hooks/useCoolerTypes';
 import React from 'react';
 import { coolerTypeValidationSchema } from 'schemas/coolerType.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
 
 interface ManageCoolerTypeProps {
   selectedCoolerType?: CoolerType | null;
@@ -80,15 +80,13 @@ const ManageCoolerType: React.FC<ManageCoolerTypeProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <Input
-                name="name"
-                label="Cooler Type Name"
-                placeholder="Enter cooler type name"
-                formik={formik}
-                required
-              />
-            </Box>
+            <Input
+              name="name"
+              label="Cooler Type Name"
+              placeholder="Enter cooler type name"
+              formik={formik}
+              required
+            />
 
             <Input
               name="code"
@@ -96,11 +94,6 @@ const ManageCoolerType: React.FC<ManageCoolerTypeProps> = ({
               placeholder="Enter code (optional)"
               formik={formik}
             />
-
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
 
             <Box className="md:!col-span-2">
               <Input
@@ -112,6 +105,13 @@ const ManageCoolerType: React.FC<ManageCoolerTypeProps> = ({
                 rows={3}
               />
             </Box>
+
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
           </Box>
 
           <Box className="!flex !justify-end">

@@ -3,7 +3,7 @@ import {
   Alert,
   Box,
   Checkbox,
-  MenuItem,
+  Paper,
   Switch,
   Table,
   TableBody,
@@ -11,17 +11,16 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import { usePermissionsByModule } from 'hooks/usePermissions';
 import { useCreateRole, useUpdateRole, type Role } from 'hooks/useRoles';
 import React from 'react';
+import validationSchema from 'schemas/masters/RolePersmissions';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
-import validationSchema from 'schemas/masters/RolePersmissions';
 
 interface ManageRolePermissionsProps {
   selectedRole?: Role | null;
@@ -221,16 +220,13 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
         open={drawerOpen}
         setOpen={handleCancel}
         title={isEdit ? `Edit Role: ${selectedRole?.name}` : 'Create New Role'}
-        size="larger"
       >
         <Box component="form" onSubmit={handleSubmit} className="p-4">
           {/* Role Basic Information */}
-          <Box className="mb-3">
-            <p className="!font-semibold !mb-4 !text-gray-900">
-              Role Information
-            </p>
+          <Box className="space-y-4">
+            <p className="!font-semibold !text-gray-900">Role Information</p>
 
-            <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
+            <div className="flex sm:flex-row flex-col sm:gap-4 gap-2">
               <Input
                 name="name"
                 formik={formik}
@@ -238,24 +234,21 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                 placeholder="Enter role name"
                 required
               />
-              <Select
-                name="is_active"
-                formik={formik}
-                label="Status"
-                fullWidth
-                required
-              >
-                <MenuItem value="Y">Active</MenuItem>
-                <MenuItem value="N">Inactive</MenuItem>
-              </Select>
             </div>
 
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
             <Input
               name="description"
               formik={formik}
               label="Description"
               placeholder="Enter role description"
               multiline
+              className="!my-2"
               rows={3}
             />
           </Box>

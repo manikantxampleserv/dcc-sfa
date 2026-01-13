@@ -7,6 +7,7 @@ import {
 } from 'hooks/useCurrencies';
 import React from 'react';
 import { currencyValidationSchema } from 'schemas/currency.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -81,7 +82,6 @@ const ManageCurrency: React.FC<ManageCurrencyProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Currency' : 'Create Currency'}
-      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -127,10 +127,12 @@ const ManageCurrency: React.FC<ManageCurrencyProps> = ({
               <MenuItem value="Y">Yes</MenuItem>
             </Select>
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
           </Box>
 
           <Box className="!flex !justify-end !gap-2 items-center">

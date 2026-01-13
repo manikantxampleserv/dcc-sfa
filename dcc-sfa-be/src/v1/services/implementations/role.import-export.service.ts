@@ -251,16 +251,6 @@ export class RoleImportExportService extends ImportExportService<any> {
       include: {
         roles_permission: {
           where: { is_active: 'Y' },
-          include: {
-            permissions: {
-              select: {
-                id: true,
-                name: true,
-                module: true,
-                action: true,
-              },
-            },
-          },
         },
         user_role: {
           where: { is_active: 'Y' },
@@ -319,11 +309,9 @@ export class RoleImportExportService extends ImportExportService<any> {
 
     exportData.forEach((row: any, index: number) => {
       const role = data[index] as any;
-
       row.id = role.id;
       row.permissions_count = role.roles_permission?.length || 0;
       row.users_count = role.user_role?.length || 0;
-
       totalRoles++;
       if (role.is_active === 'Y') activeRoles++;
       if (role.is_active === 'N') inactiveRoles++;

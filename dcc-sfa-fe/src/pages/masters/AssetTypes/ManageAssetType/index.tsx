@@ -1,4 +1,4 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateAssetType,
@@ -7,10 +7,10 @@ import {
 } from 'hooks/useAssetTypes';
 import React from 'react';
 import { assetTypeValidationSchema } from 'schemas/assetType.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
 
 interface ManageAssetTypeProps {
   selectedAssetType?: AssetType | null;
@@ -92,17 +92,6 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
               />
             </Box>
 
-            <Box className="md:!col-span-2">
-              <Input
-                name="description"
-                label="Description"
-                placeholder="Enter description"
-                formik={formik}
-                multiline
-                rows={3}
-              />
-            </Box>
-
             <Input
               name="category"
               label="Category"
@@ -117,10 +106,18 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
               formik={formik}
             />
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <ActiveInactiveField name="is_active" formik={formik} required />
+
+            <Box className="md:!col-span-2">
+              <Input
+                name="description"
+                label="Description"
+                placeholder="Enter description"
+                formik={formik}
+                multiline
+                rows={3}
+              />
+            </Box>
           </Box>
 
           <Box className="!flex !justify-end">

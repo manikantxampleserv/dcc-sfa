@@ -7,6 +7,7 @@ import {
 } from 'hooks/useVehicles';
 import React from 'react';
 import { vehicleValidationSchema } from 'schemas/vehicle.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -166,15 +167,9 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
               formik={formik}
             />
 
-            <Select
-              name="is_active"
-              label="Active Status"
-              formik={formik}
-              required
-            >
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <Box className="md:!col-span-2">
+              <ActiveInactiveField name="is_active" formik={formik} required />
+            </Box>
           </Box>
 
           <Box className="!flex !justify-end items-center ">

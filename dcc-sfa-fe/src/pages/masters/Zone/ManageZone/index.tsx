@@ -5,6 +5,7 @@ import React from 'react';
 import { zoneValidationSchema } from 'schemas/zone.schema';
 import type { Depot } from 'services/masters/Depots';
 import type { User } from 'services/masters/Users';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -83,7 +84,6 @@ const ManageZone: React.FC<ManageZoneProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Zone' : 'Create Zone'}
-      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -117,10 +117,13 @@ const ManageZone: React.FC<ManageZoneProps> = ({
                 </MenuItem>
               ))}
             </Select>
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
 
             <Box className="md:!col-span-2">
               <Input

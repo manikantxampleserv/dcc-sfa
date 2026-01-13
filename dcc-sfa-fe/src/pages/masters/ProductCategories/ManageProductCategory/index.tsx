@@ -1,4 +1,4 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateProductCategory,
@@ -7,10 +7,10 @@ import {
 } from 'hooks/useProductCategories';
 import React from 'react';
 import { productCategoryValidationSchema } from 'schemas/productCategory.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
 
 interface ManageProductCategoryProps {
   selectedProductCategory?: ProductCategory | null;
@@ -99,10 +99,9 @@ const ManageProductCategory: React.FC<ManageProductCategoryProps> = ({
               />
             </Box>
 
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            <Box className="md:!col-span-2">
+              <ActiveInactiveField name="is_active" formik={formik} required />
+            </Box>
           </Box>
 
           <Box className="!flex !justify-end">

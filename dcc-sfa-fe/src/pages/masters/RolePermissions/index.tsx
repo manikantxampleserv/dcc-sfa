@@ -1,15 +1,25 @@
-import { Block, CheckCircle, Group } from '@mui/icons-material';
+import {
+  Block,
+  CheckCircle,
+  Download,
+  Group,
+  Upload,
+} from '@mui/icons-material';
 import { Alert, Box, Chip, MenuItem, Tooltip, Typography } from '@mui/material';
 import { Shield, ShieldCheck, ShieldX, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
+import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { usePermission } from '../../../hooks/usePermission';
 import { useDeleteRole, useRoles, type Role } from '../../../hooks/useRoles';
+import { useExportToExcel } from '../../../hooks/useImportExport';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import ManageRolePermissions from './ManageRolePermissions';
+import ImportRoles from './ImportRoles';
 
 const RolePermissions: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -18,6 +28,7 @@ const RolePermissions: React.FC = () => {
   const [limit] = useState(10);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('role');
 
   const {
@@ -47,6 +58,7 @@ const RolePermissions: React.FC = () => {
   const stats = rolesResponse?.stats;
 
   const deleteRoleMutation = useDeleteRole();
+  const exportToExcelMutation = useExportToExcel();
 
   const roleColumns: TableColumn<Role>[] = [
     {
@@ -153,6 +165,27 @@ const RolePermissions: React.FC = () => {
     [deleteRoleMutation]
   );
 
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      const filters = {
+        search,
+        isActive:
+          statusFilter === 'all'
+            ? undefined
+            : statusFilter === 'active'
+              ? 'Y'
+              : 'N',
+      };
+
+      await exportToExcelMutation.mutateAsync({
+        tableName: 'roles',
+        filters,
+      });
+    } catch (error) {
+      console.error('Error exporting roles:', error);
+    }
+  }, [exportToExcelMutation, search, statusFilter]);
+
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
     setPage(1);
@@ -242,13 +275,50 @@ const RolePermissions: React.FC = () => {
                   </Select>
                 </div>
               )}
-              {(isCreate || isUpdate) && (
-                <ManageRolePermissions
-                  selectedRole={selectedRole}
-                  setSelectedRole={setSelectedRole}
-                  setDrawerOpen={setDrawerOpen}
-                  drawerOpen={drawerOpen}
-                />
+              {isCreate && (
+                <div className="flex items-center gap-2">
+                  {isRead && (
+                    <PopConfirm
+                      title="Export Roles"
+                      description="Are you sure you want to export current roles data to Excel? This will include all filtered results."
+                      onConfirm={handleExportToExcel}
+                      confirmText="Export"
+                      cancelText="Cancel"
+                      placement="top"
+                    >
+                      <Button
+                        variant="outlined"
+                        className="!capitalize"
+                        startIcon={<Download />}
+                        disabled={exportToExcelMutation.isPending}
+                      >
+                        {exportToExcelMutation.isPending
+                          ? 'Exporting...'
+                          : 'Export'}
+                      </Button>
+                    </PopConfirm>
+                  )}
+                  {isCreate && (
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Upload />}
+                      onClick={() => setImportModalOpen(true)}
+                    >
+                      Import
+                    </Button>
+                  )}
+                  <ManageRolePermissions
+                    selectedRole={selectedRole}
+                    setSelectedRole={setSelectedRole}
+                    setDrawerOpen={setDrawerOpen}
+                    drawerOpen={drawerOpen}
+                  />
+                  <ImportRoles
+                    drawerOpen={importModalOpen}
+                    setDrawerOpen={setImportModalOpen}
+                  />
+                </div>
               )}
             </div>
           ) : (

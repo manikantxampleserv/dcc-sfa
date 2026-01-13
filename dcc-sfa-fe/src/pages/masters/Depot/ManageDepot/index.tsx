@@ -110,7 +110,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Depot' : 'Create Depot'}
-      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
