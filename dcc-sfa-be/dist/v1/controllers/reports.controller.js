@@ -2246,17 +2246,8 @@ exports.reportsController = {
                         where: { is_active: 'Y' },
                         select: { id: true, name: true, code: true },
                     },
-                    routes_zones: {
+                    route_zones: {
                         where: { is_active: 'Y' },
-                        include: {
-                            routes_zones_route: {
-                                include: {
-                                    customer_routes: {
-                                        where: { is_active: 'Y' },
-                                    },
-                                },
-                            },
-                        },
                     },
                     visit_zones: {
                         where: Object.keys(dateFilter).length > 0
@@ -2323,12 +2314,12 @@ exports.reportsController = {
                 const totalInvoiceValue = zoneInvoices.reduce((sum, i) => sum + Number(i.total_amount || 0), 0);
                 const totalCollection = zonePayments.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
                 const customerCount = zone.customer_zones?.length || 0;
-                const routeCount = zone.routes_zones?.length || 0;
+                const routeCount = zone.route_zones?.length || 0;
                 const visitCount = zone.visit_zones?.length || 0;
                 // Aggregate by route
-                const routesData = (zone.routes_zones || []).map((routeZone) => {
-                    const route = routeZone.routes_zones_route;
-                    const routeCustomers = route?.customer_routes || [];
+                const routesData = (zone.route_zones || []).map((routeZone) => {
+                    const route = routeZone;
+                    const routeCustomers = [];
                     const routeOrders = orders.filter((o) => {
                         return routeCustomers.some((c) => c.id === o.customer_id);
                     });
@@ -2367,7 +2358,7 @@ exports.reportsController = {
             // Calculate summary statistics
             const totalZones = zones.length;
             const totalCustomers = zones.reduce((sum, z) => sum + (z.customer_zones?.length || 0), 0);
-            const totalRoutes = zones.reduce((sum, z) => sum + (z.routes_zones?.length || 0), 0);
+            const totalRoutes = zones.reduce((sum, z) => sum + (z.route_zones?.length || 0), 0);
             const totalOrders = orders.length;
             const totalOrderValue = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
             const totalInvoices = invoices.length;
@@ -2430,7 +2421,7 @@ exports.reportsController = {
                     zone_depots: {
                         select: { id: true, name: true, code: true },
                     },
-                    routes_zones: {
+                    route_zones: {
                         where: { is_active: 'Y' },
                         ...(route_id && { id: parseInt(route_id) }),
                     },

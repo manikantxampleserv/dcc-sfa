@@ -429,15 +429,11 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
                         code: true,
                     },
                 },
-                routes_depots: {
-                    include: {
-                        routes_depots_depot: {
-                            select: {
-                                id: true,
-                                name: true,
-                                code: true,
-                            },
-                        },
+                route_depots: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true,
                     },
                 },
                 _count: {
@@ -464,7 +460,7 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
                 _count: {
                     select: {
                         zone_depots: true,
-                        routes_depots: true,
+                        route_depots: true,
                         inventory_stock: true,
                         user_depot: true,
                     },
@@ -503,7 +499,7 @@ class DepotsImportExportService extends import_export_service_1.ImportExportServ
             const depot = data[index];
             row.company_name = depot.depot_companies?.name || '';
             row.total_zones = depot._count?.zone_depots || 0;
-            row.total_routes = depot._count?.routes_depots || 0;
+            row.total_routes = depot._count?.route_depots || 0;
             row.total_stock = depot._count?.inventory_stock || 0;
             row.total_users = depot._count?.user_depot || 0;
             const excelRow = worksheet.addRow(row);

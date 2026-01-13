@@ -33,14 +33,15 @@ interface Route {
     zipcode?: string | null;
     is_active: string;
   }>;
-  routes_depots?: {
+  route_depots?: {
     id: number;
     name: string;
     code: string;
   } | null;
-  routes_zones?: {
+  route_zones?: {
     id: number;
     name: string;
+    code: string;
   } | null;
   routes_salesperson?: {
     id: number;

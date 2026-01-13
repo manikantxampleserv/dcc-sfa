@@ -42,11 +42,24 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
 
   useEffect(() => {
     setBreadCrumbs(prev => {
-      if (
-        navLink === '/dashboard/executive' &&
-        navItem === 'Executive Dashboard'
-      ) {
-        return [{ id, navItem, navLink }];
+      const existingByName = prev.findIndex(item => item.navItem === navItem);
+      if (existingByName !== -1) {
+        if (
+          prev[existingByName].id === id &&
+          prev[existingByName].navLink === navLink
+        ) {
+          return prev;
+        }
+        const updatedBreadcrumbs = [...prev];
+        updatedBreadcrumbs[existingByName] = { id, navItem, navLink };
+        return updatedBreadcrumbs;
+      }
+
+      const existingById = prev.findIndex(item => item.id === id);
+      if (existingById !== -1) {
+        const updatedBreadcrumbs = [...prev];
+        updatedBreadcrumbs[existingById] = { id, navItem, navLink };
+        return updatedBreadcrumbs;
       }
 
       const isNumericId = typeof navItem === 'string' && /^\d+$/.test(navItem);
@@ -65,22 +78,7 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
         }
         return prev;
       }
-
-      if (
-        prev.length === 0 ||
-        prev.filter(item => item.id === id).length === 0
-      ) {
-        return [...prev, { id, navItem, navLink }];
-      }
-
-      const existingIndex = prev.findIndex(item => item.id === id);
-      if (existingIndex !== -1) {
-        const updatedBreadcrumbs = [...prev];
-        updatedBreadcrumbs[existingIndex] = { id, navItem, navLink };
-        return updatedBreadcrumbs;
-      }
-
-      return prev;
+      return [...prev, { id, navItem, navLink }];
     });
   }, [id, navItem, navLink]);
 
@@ -91,25 +89,29 @@ const BreadCrumbs: React.FC<BreadCrumbsProps> = ({ navItem, navLink, id }) => {
   return (
     <div className="flex !p-0 items-center gap-1 border-b overflow-x-auta border-gray-300">
       <div className="flex items-center hide-scrollbar gap-0.5 w-[84vw] transition-all duration-300 overflow-x-auto overflow-y-hidden breadcrambs rounded-lg px-0.5 py-1">
-        {breadCrumbs.map((item, index) => {
-          return (
-            <Chip
-              key={item.id}
-              label={
-                item.navItem
-                  ? item.navItem?.replaceAll('-', ' ')
-                  : 'Executive Dashboard'
-              }
-              className={classNames(
-                '!rounded-md flex items-center !capitalize !text-white px-2 py-1',
-                item.id === id ? '!bg-blue-600' : '!bg-blue-300'
-              )}
-              onClick={() => navigate(item.navLink, { state: value })}
-              onDelete={e => handleClose(e, item.id, index)}
-              deleteIcon={<CloseTwoTone className="!text-white" />}
-            />
-          );
-        })}
+        {breadCrumbs
+          .filter(item =>
+            breadCrumbs?.some(breadcrumb => breadcrumb.navItem === item.navItem)
+          )
+          .map((item, index) => {
+            return (
+              <Chip
+                key={item.id}
+                label={
+                  item.navItem
+                    ? item.navItem?.replaceAll('-', ' ')
+                    : 'Executive Dashboard'
+                }
+                className={classNames(
+                  '!rounded-md flex items-center !capitalize !text-white px-2 py-1',
+                  item.id === id ? '!bg-blue-600' : '!bg-blue-300'
+                )}
+                onClick={() => navigate(item.navLink, { state: value })}
+                onDelete={e => handleClose(e, item.id, index)}
+                deleteIcon={<CloseTwoTone className="!text-white" />}
+              />
+            );
+          })}
       </div>
     </div>
   );

@@ -2644,17 +2644,8 @@ export const reportsController = {
             where: { is_active: 'Y' },
             select: { id: true, name: true, code: true },
           },
-          routes_zones: {
+          route_zones: {
             where: { is_active: 'Y' },
-            include: {
-              routes_zones_route: {
-                include: {
-                  customer_routes: {
-                    where: { is_active: 'Y' },
-                  },
-                },
-              },
-            },
           },
           visit_zones: {
             where:
@@ -2744,13 +2735,13 @@ export const reportsController = {
         );
 
         const customerCount = zone.customer_zones?.length || 0;
-        const routeCount = zone.routes_zones?.length || 0;
+        const routeCount = zone.route_zones?.length || 0;
         const visitCount = zone.visit_zones?.length || 0;
 
         // Aggregate by route
-        const routesData = (zone.routes_zones || []).map((routeZone: any) => {
-          const route = routeZone.routes_zones_route;
-          const routeCustomers = route?.customer_routes || [];
+        const routesData = (zone.route_zones || []).map((routeZone: any) => {
+          const route = routeZone;
+          const routeCustomers: any[] = [];
           const routeOrders = orders.filter((o: any) => {
             return routeCustomers.some((c: any) => c.id === o.customer_id);
           });
@@ -2802,7 +2793,7 @@ export const reportsController = {
         0
       );
       const totalRoutes = zones.reduce(
-        (sum, z) => sum + (z.routes_zones?.length || 0),
+        (sum, z) => sum + (z.route_zones?.length || 0),
         0
       );
       const totalOrders = orders.length;
@@ -2882,7 +2873,7 @@ export const reportsController = {
           zone_depots: {
             select: { id: true, name: true, code: true },
           },
-          routes_zones: {
+          route_zones: {
             where: { is_active: 'Y' },
             ...(route_id && { id: parseInt(route_id as string) }),
           },

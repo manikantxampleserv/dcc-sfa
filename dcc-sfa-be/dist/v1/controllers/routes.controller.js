@@ -57,20 +57,20 @@ const serializeRoute = (route) => ({
         zipcode: c.zipcode,
         is_active: c.is_active,
     })) || [],
-    routes_depots: route.routes_depots
+    route_depots: route.route_depots
         ? {
-            id: route.routes_depots.id,
-            name: route.routes_depots.name,
-            code: route.routes_depots.code,
+            id: route.route_depots.id,
+            name: route.route_depots.name,
+            code: route.route_depots.code,
         }
-        : undefined,
-    routes_zones: route.routes_zones
+        : null,
+    route_zones: route.route_zones
         ? {
-            id: route.routes_zones.id,
-            name: route.routes_zones.name,
-            code: route.routes_zones.code,
+            id: route.route_zones.id,
+            name: route.route_zones.name,
+            code: route.route_zones.code,
         }
-        : undefined,
+        : null,
     routes_salesperson: route.routes_salesperson
         ? {
             id: route.routes_salesperson.id,
@@ -83,7 +83,7 @@ const serializeRoute = (route) => ({
             id: route.routes_route_type.id,
             name: route.routes_route_type.name,
         }
-        : undefined,
+        : null,
     visit_routes: route.visit_routes?.map((v) => ({
         id: v.id,
         customer_id: v.customer_id,
@@ -153,10 +153,12 @@ exports.routesController = {
                 createdate: new Date(),
                 createdby: req.user?.id || 1,
                 log_inst: data.log_inst || 1,
-                routes_depots: {
+                parent_id: data.parent_id,
+                depot_id: data.depot_id,
+                route_depots: {
                     connect: { id: data.depot_id },
                 },
-                routes_zones: {
+                route_zones: {
                     connect: { id: data.parent_id },
                 },
                 routes_route_type: {
@@ -172,8 +174,8 @@ exports.routesController = {
                 data: createData,
                 include: {
                     customer_routes: true,
-                    routes_depots: true,
-                    routes_zones: true,
+                    route_depots: true,
+                    route_zones: true,
                     routes_salesperson: true,
                     routes_route_type: true,
                     visit_routes: true,
@@ -221,8 +223,8 @@ exports.routesController = {
                 orderBy: { createdate: 'desc' },
                 include: {
                     customer_routes: true,
-                    routes_depots: true,
-                    routes_zones: true,
+                    route_depots: true,
+                    route_zones: true,
                     routes_salesperson: true,
                     routes_route_type: true,
                     visit_routes: true,
@@ -265,8 +267,8 @@ exports.routesController = {
                 where: { id: Number(id) },
                 include: {
                     customer_routes: true,
-                    routes_depots: true,
-                    routes_zones: true,
+                    route_depots: true,
+                    route_zones: true,
                     routes_salesperson: true,
                     routes_route_type: true,
                     visit_routes: {
@@ -317,12 +319,14 @@ exports.routesController = {
                 updatedby: req.user?.id || 1,
             };
             if (data.depot_id !== undefined) {
-                updateData.routes_depots = {
+                updateData.depot_id = data.depot_id;
+                updateData.route_depots = {
                     connect: { id: data.depot_id },
                 };
             }
             if (data.parent_id !== undefined) {
-                updateData.routes_zones = {
+                updateData.parent_id = data.parent_id;
+                updateData.route_zones = {
                     connect: { id: data.parent_id },
                 };
             }
@@ -333,9 +337,11 @@ exports.routesController = {
             }
             if (data.salesperson_id !== undefined) {
                 if (data.salesperson_id === null) {
+                    updateData.salesperson_id = null;
                     updateData.routes_salesperson = { disconnect: true };
                 }
                 else {
+                    updateData.salesperson_id = data.salesperson_id;
                     updateData.routes_salesperson = {
                         connect: { id: data.salesperson_id },
                     };
@@ -346,8 +352,8 @@ exports.routesController = {
                 data: updateData,
                 include: {
                     customer_routes: true,
-                    routes_depots: true,
-                    routes_zones: true,
+                    route_depots: true,
+                    route_zones: true,
                     routes_salesperson: true,
                     routes_route_type: true,
                     visit_routes: true,
@@ -366,24 +372,16 @@ exports.routesController = {
     async deleteRoutes(req, res) {
         try {
             const { id } = req.params;
-            const force = 'true';
+            const { force } = req.query;
             const existingRoute = await prisma_client_1.default.routes.findUnique({
                 where: { id: Number(id) },
                 include: {
-                    routes_depots: true,
-                    routes_zones: true,
+                    route_depots: true,
+                    route_zones: true,
                     routes_salesperson: true,
                     routes_route_type: true,
                     customer_routes: true,
-                    visit_routes: {
-                        include: {
-                            visit_customers: true,
-                            visits_salesperson: true,
-                        },
-                        orderBy: {
-                            visit_date: 'desc',
-                        },
-                    },
+                    visit_routes: true,
                 },
             });
             if (!existingRoute) {
@@ -392,9 +390,6 @@ exports.routesController = {
             const hasCustomers = existingRoute.customer_routes &&
                 Array.isArray(existingRoute.customer_routes) &&
                 existingRoute.customer_routes.length > 0;
-            const hasDepots = !!existingRoute.routes_depots;
-            const hasZones = !!existingRoute.routes_zones;
-            const hasSalespersons = !!existingRoute.routes_salesperson;
             const hasVisits = existingRoute.visit_routes.length > 0;
             if (force === 'true') {
                 if (hasCustomers) {
@@ -403,58 +398,28 @@ exports.routesController = {
                         data: { route_id: null },
                     });
                 }
-                if (hasDepots) {
-                    await prisma_client_1.default.routes_depots.deleteMany({
-                        where: { route_id: Number(id) },
-                    });
-                }
-                if (hasZones) {
-                    await prisma_client_1.default.routes_zones.deleteMany({
-                        where: { route_id: Number(id) },
-                    });
-                }
-                if (hasSalespersons) {
-                    await prisma_client_1.default.routes.update({
-                        where: { id: Number(id) },
-                        data: { salesperson_id: null },
-                    });
-                }
                 if (hasVisits) {
                     await prisma_client_1.default.visits.deleteMany({
                         where: { route_id: Number(id) },
                     });
                 }
-                // Now delete the route
                 await prisma_client_1.default.routes.delete({ where: { id: Number(id) } });
                 res.json({
                     message: 'Route and all associated records deleted successfully',
                     deletedRecords: {
                         customers: hasCustomers ? existingRoute.customer_routes.length : 0,
-                        depots: hasDepots ? 1 : 0,
-                        zones: hasZones ? 1 : 0,
-                        salespersons: hasSalespersons ? 1 : 0,
                         visits: hasVisits ? existingRoute.visit_routes.length : 0,
                     },
                 });
                 return;
             }
-            if (hasCustomers ||
-                hasDepots ||
-                hasZones ||
-                hasSalespersons ||
-                hasVisits) {
+            if (hasCustomers || hasVisits) {
                 return res.status(400).json({
                     message: 'Cannot delete route. It has associated records.',
                     details: {
                         hasCustomers,
-                        hasDepots,
-                        hasZones,
-                        hasSalespersons,
                         hasVisits,
                         customersCount: existingRoute.customer_routes.length,
-                        depotsCount: hasDepots ? 1 : 0,
-                        zonesCount: hasZones ? 1 : 0,
-                        salespersonsCount: hasSalespersons ? 1 : 0,
                         visitsCount: existingRoute.visit_routes.length,
                     },
                 });
@@ -464,9 +429,7 @@ exports.routesController = {
         }
         catch (error) {
             console.error('Delete Route Error:', error);
-            // Handle specific database errors
             if (error.code === 'P2003') {
-                // Foreign key constraint violation (fallback if dependency check fails)
                 return res.status(400).json({
                     message: 'Cannot delete route. It has associated records.',
                 });
