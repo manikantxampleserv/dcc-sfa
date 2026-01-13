@@ -309,7 +309,6 @@ function serializeVisit(visit: any) {
     updatedby: visit.updatedby,
     log_inst: visit.log_inst,
 
-    // Add images - convert comma-separated strings to arrays
     images: {
       self: visit.self_image ? visit.self_image.split(',').filter(Boolean) : [],
       customer: visit.customer_image
@@ -320,7 +319,6 @@ function serializeVisit(visit: any) {
         : [],
     },
 
-    // Include relations
     customer: visit.visit_customers
       ? {
           id: visit.visit_customers.id,
@@ -351,40 +349,40 @@ function serializeVisit(visit: any) {
     route: visit.visit_routes,
     zone: visit.visit_zones,
 
-    orders:
-      visit.orders?.map((order: any) => ({
-        id: order.id,
-        order_number: order.order_number,
-        order_type: order.order_type,
-        order_date: order.order_date,
-        delivery_date: order.delivery_date,
-        status: order.status,
-        priority: order.priority,
-        payment_method: order.payment_method,
-        payment_terms: order.payment_terms,
-        subtotal: order.subtotal,
-        discount_amount: order.discount_amount,
-        tax_amount: order.tax_amount,
-        shipping_amount: order.shipping_amount,
-        total_amount: order.total_amount,
-        notes: order.notes,
-        shipping_address: order.shipping_address,
-        approval_status: order.approval_status,
-        is_active: order.is_active,
-        items:
-          order.order_items?.map((item: any) => ({
-            id: item.id,
-            product_id: item.product_id,
-            product_name: item.product_name,
-            unit: item.unit,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            discount_amount: item.discount_amount,
-            tax_amount: item.tax_amount,
-            total_amount: item.total_amount,
-            notes: item.notes,
-          })) || [],
-      })) || [],
+    // orders:
+    //   visit.orders?.map((order: any) => ({
+    //     id: order.id,
+    //     order_number: order.order_number,
+    //     order_type: order.order_type,
+    //     order_date: order.order_date,
+    //     delivery_date: order.delivery_date,
+    //     status: order.status,
+    //     priority: order.priority,
+    //     payment_method: order.payment_method,
+    //     payment_terms: order.payment_terms,
+    //     subtotal: order.subtotal,
+    //     discount_amount: order.discount_amount,
+    //     tax_amount: order.tax_amount,
+    //     shipping_amount: order.shipping_amount,
+    //     total_amount: order.total_amount,
+    //     notes: order.notes,
+    //     shipping_address: order.shipping_address,
+    //     approval_status: order.approval_status,
+    //     is_active: order.is_active,
+    //     items:
+    //       order.order_items?.map((item: any) => ({
+    //         id: item.id,
+    //         product_id: item.product_id,
+    //         product_name: item.product_name,
+    //         unit: item.unit,
+    //         quantity: item.quantity,
+    //         unit_price: item.unit_price,
+    //         discount_amount: item.discount_amount,
+    //         tax_amount: item.tax_amount,
+    //         total_amount: item.total_amount,
+    //         notes: item.notes,
+    //       })) || [],
+    //   })) || [],
 
     payments:
       visit.payments?.map((payment: any) => ({
@@ -498,7 +496,6 @@ const uploadMultipleImages = async (
       uploadedUrls.push(uploadedUrl);
     }
 
-    // Join multiple URLs with comma
     return uploadedUrls.join(',');
   } catch (error) {
     console.error(`Error uploading images to ${folder}:`, error);
@@ -2971,6 +2968,7 @@ export const visitsController = {
   //   try {
   //     console.log('Request Query:', req.query);
   //     console.log('Request User:', req.user);
+
   //     const {
   //       page,
   //       limit,
@@ -3137,7 +3135,6 @@ export const visitsController = {
   //         visits_salesperson: true,
   //         visit_routes: true,
   //         visit_zones: true,
-
   //         cooler_inspections: {
   //           include: {
   //             coolers: true,
@@ -3151,30 +3148,113 @@ export const visitsController = {
   //       },
   //     });
 
+  //     console.log(`Fetched ${data.length} visits`);
+
+  //     const visitIds = data.map((visit: any) => visit.id);
   //     const customerIds = data
   //       .filter((visit: any) => visit.customer_id)
   //       .map((visit: any) => visit.customer_id);
 
-  //     const customerCoolers = await prisma.coolers.findMany({
-  //       where: {
-  //         customer_id: { in: customerIds },
-  //         is_active: 'Y',
-  //       },
-  //       select: {
-  //         id: true,
-  //         code: true,
-  //         brand: true,
-  //         model: true,
-  //         serial_number: true,
-  //         status: true,
-  //         capacity: true,
-  //         install_date: true,
-  //         last_service_date: true,
-  //         next_service_due: true,
-  //         temperature: true,
-  //         customer_id: true,
-  //       },
+  //     console.log(` Visit IDs:`, visitIds);
+  //     console.log(` Customer IDs:`, customerIds);
+
+  //     const visitOrders =
+  //       customerIds.length > 0
+  //         ? await prisma.orders.findMany({
+  //             where: {
+  //               parent_id: { in: customerIds },
+  //             },
+  //             include: {
+  //               order_items: {
+  //                 include: {
+  //                   products: true,
+  //                 },
+  //               },
+  //             },
+  //           })
+  //         : [];
+
+  //     const visitPayments =
+  //       customerIds.length > 0
+  //         ? await prisma.payments.findMany({
+  //             where: {
+  //               customer_id: { in: customerIds },
+  //             },
+  //           })
+  //         : [];
+
+  //     console.log(` Fetched ${visitPayments.length} payments`);
+
+  //     let visitSurveys: any[] = [];
+  //     try {
+  //       if (visitIds.length > 0) {
+  //         visitSurveys = await prisma.survey_responses.findMany({
+  //           where: {
+  //             parent_id: { in: visitIds },
+  //           },
+  //         });
+  //         console.log(` Fetched ${visitSurveys.length} survey responses`);
+  //       }
+  //     } catch (error: any) {
+  //       console.log(' Survey responses fetch error:', error.message);
+  //     }
+
+  //     const ordersByCustomer = new Map();
+  //     visitOrders.forEach(order => {
+  //       if (order.parent_id) {
+  //         if (!ordersByCustomer.has(order.parent_id)) {
+  //           ordersByCustomer.set(order.parent_id, []);
+  //         }
+  //         ordersByCustomer.get(order.parent_id).push(order);
+  //       }
   //     });
+
+  //     console.log(` Orders mapped for ${ordersByCustomer.size} customers`);
+  //     ordersByCustomer.forEach((orders, customerId) => {
+  //       console.log(`   Customer ${customerId} has ${orders.length} orders`);
+  //     });
+
+  //     const paymentsByCustomer = new Map();
+  //     visitPayments.forEach(payment => {
+  //       if (!paymentsByCustomer.has(payment.customer_id)) {
+  //         paymentsByCustomer.set(payment.customer_id, []);
+  //       }
+  //       paymentsByCustomer.get(payment.customer_id).push(payment);
+  //     });
+
+  //     const surveysByVisit = new Map();
+  //     visitSurveys.forEach(survey => {
+  //       if (!surveysByVisit.has(survey.parent_id)) {
+  //         surveysByVisit.set(survey.parent_id, []);
+  //       }
+  //       surveysByVisit.get(survey.parent_id).push(survey);
+  //     });
+
+  //     const customerCoolers =
+  //       customerIds.length > 0
+  //         ? await prisma.coolers.findMany({
+  //             where: {
+  //               customer_id: { in: customerIds },
+  //               is_active: 'Y',
+  //             },
+  //             select: {
+  //               id: true,
+  //               code: true,
+  //               brand: true,
+  //               model: true,
+  //               serial_number: true,
+  //               status: true,
+  //               capacity: true,
+  //               install_date: true,
+  //               last_service_date: true,
+  //               next_service_due: true,
+  //               temperature: true,
+  //               customer_id: true,
+  //             },
+  //           })
+  //         : [];
+
+  //     console.log(` Fetched ${customerCoolers.length} customer coolers`);
 
   //     const coolersByCustomer = new Map();
   //     customerCoolers.forEach(cooler => {
@@ -3219,7 +3299,23 @@ export const visitsController = {
   //     const serializedData = data
   //       .filter((visit: any) => visit.visit_customers)
   //       .map((visit: any) => {
-  //         const serialized = serializeVisit(visit);
+  //         const customerOrders = ordersByCustomer.get(visit.customer_id) || [];
+  //         const customerPayments =
+  //           paymentsByCustomer.get(visit.customer_id) || [];
+  //         const visitSurveyResponses = surveysByVisit.get(visit.id) || [];
+
+  //         console.log(
+  //           ` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerOrders.length} orders, ${customerPayments.length} payments`
+  //         );
+
+  //         const visitWithRelations = {
+  //           ...visit,
+  //           orders: customerOrders,
+  //           payments: customerPayments,
+  //           survey_responses: visitSurveyResponses,
+  //         };
+
+  //         const serialized = serializeVisit(visitWithRelations);
 
   //         if (serialized.customer) {
   //           const customerCoolerList =
@@ -3240,6 +3336,10 @@ export const visitsController = {
   //         return serialized;
   //       });
 
+  //     console.log(
+  //       ` Serialized ${serializedData.length} visits with all relations`
+  //     );
+
   //     res.success(
   //       'Visits retrieved successfully',
   //       serializedData,
@@ -3253,7 +3353,7 @@ export const visitsController = {
   //       }
   //     );
   //   } catch (error: any) {
-  //     console.error('Get All Visits Error:', error);
+  //     console.error(' Get All Visits Error:', error);
   //     res.status(500).json({
   //       message: error.message,
   //       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
@@ -3455,22 +3555,6 @@ export const visitsController = {
       console.log(` Visit IDs:`, visitIds);
       console.log(` Customer IDs:`, customerIds);
 
-      const visitOrders =
-        customerIds.length > 0
-          ? await prisma.orders.findMany({
-              where: {
-                parent_id: { in: customerIds },
-              },
-              include: {
-                order_items: {
-                  include: {
-                    products: true,
-                  },
-                },
-              },
-            })
-          : [];
-
       const visitPayments =
         customerIds.length > 0
           ? await prisma.payments.findMany({
@@ -3495,21 +3579,6 @@ export const visitsController = {
       } catch (error: any) {
         console.log(' Survey responses fetch error:', error.message);
       }
-
-      const ordersByCustomer = new Map();
-      visitOrders.forEach(order => {
-        if (order.parent_id) {
-          if (!ordersByCustomer.has(order.parent_id)) {
-            ordersByCustomer.set(order.parent_id, []);
-          }
-          ordersByCustomer.get(order.parent_id).push(order);
-        }
-      });
-
-      console.log(` Orders mapped for ${ordersByCustomer.size} customers`);
-      ordersByCustomer.forEach((orders, customerId) => {
-        console.log(`   Customer ${customerId} has ${orders.length} orders`);
-      });
 
       const paymentsByCustomer = new Map();
       visitPayments.forEach(payment => {
@@ -3596,18 +3665,16 @@ export const visitsController = {
       const serializedData = data
         .filter((visit: any) => visit.visit_customers)
         .map((visit: any) => {
-          const customerOrders = ordersByCustomer.get(visit.customer_id) || [];
           const customerPayments =
             paymentsByCustomer.get(visit.customer_id) || [];
           const visitSurveyResponses = surveysByVisit.get(visit.id) || [];
 
           console.log(
-            ` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerOrders.length} orders, ${customerPayments.length} payments`
+            ` Visit ${visit.id} (Customer ${visit.customer_id}) has ${customerPayments.length} payments`
           );
 
           const visitWithRelations = {
             ...visit,
-            orders: customerOrders,
             payments: customerPayments,
             survey_responses: visitSurveyResponses,
           };
@@ -3657,7 +3724,6 @@ export const visitsController = {
       });
     }
   },
-
   async getVisitsById(req: Request, res: Response) {
     try {
       const { id } = req.params;
