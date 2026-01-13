@@ -42,8 +42,8 @@ const serializeZone = (zone) => ({
             name: pz.promotion_zones_promotions?.name || '',
         }))
         : [],
-    routes_zones: zone.routes_zones
-        ? zone.routes_zones.map((r) => ({ id: r.id, name: r.name }))
+    route_zones: zone.route_zones
+        ? zone.route_zones.map((r) => ({ id: r.id, name: r.name }))
         : undefined,
     zone_depots: zone.zone_depots
         ? {
@@ -84,7 +84,7 @@ exports.zonesController = {
                             },
                         },
                     },
-                    routes_zones: true,
+                    route_zones: true,
                     zone_depots: true,
                     zone_supervisor: true,
                 },
@@ -128,7 +128,7 @@ exports.zonesController = {
                             },
                         },
                     },
-                    routes_zones: true,
+                    route_zones: true,
                     zone_depots: true,
                     zone_supervisor: true,
                 },
@@ -176,7 +176,7 @@ exports.zonesController = {
                             },
                         },
                     },
-                    routes_zones: true,
+                    route_zones: true,
                     zone_depots: true,
                     zone_supervisor: true,
                 },
@@ -219,7 +219,7 @@ exports.zonesController = {
                             },
                         },
                     },
-                    routes_zones: true,
+                    route_zones: true,
                     zone_depots: true,
                     zone_supervisor: true,
                 },

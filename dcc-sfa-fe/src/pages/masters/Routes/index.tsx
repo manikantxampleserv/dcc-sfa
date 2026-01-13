@@ -1,4 +1,10 @@
-import { Add, Block, CheckCircle, Visibility } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  Visibility,
+} from '@mui/icons-material';
 import {
   Alert,
   Avatar,
@@ -27,6 +33,8 @@ import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
+import { useExportToExcel } from '../../../hooks/useImportExport';
+import ImportRoutes from './ImportRoutes';
 import ManageRoute from './ManageRoute';
 
 const RoutesManagement: React.FC = () => {
@@ -36,6 +44,7 @@ const RoutesManagement: React.FC = () => {
   const [depotFilter, setDepotFilter] = useState('all');
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('route');
@@ -81,6 +90,7 @@ const RoutesManagement: React.FC = () => {
   const currentPage = (routesResponse?.meta?.page || 1) - 1;
 
   const deleteRouteMutation = useDeleteRoute();
+  const exportToExcelMutation = useExportToExcel();
 
   const totalRoutes = routesResponse?.stats?.total_routes ?? routes.length;
   const activeRoutes =
@@ -95,6 +105,27 @@ const RoutesManagement: React.FC = () => {
     setSelectedRoute(null);
     setDrawerOpen(true);
   }, []);
+
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      const filters = {
+        search,
+        isActive:
+          statusFilter === 'all'
+            ? undefined
+            : statusFilter === 'active'
+              ? 'Y'
+              : 'N',
+      };
+
+      await exportToExcelMutation.mutateAsync({
+        tableName: 'routes',
+        filters,
+      });
+    } catch (error) {
+      console.error('Error exporting routes:', error);
+    }
+  }, [exportToExcelMutation, search, statusFilter]);
 
   const handleEditRoute = useCallback((route: Route) => {
     setSelectedRoute(route);
@@ -157,20 +188,7 @@ const RoutesManagement: React.FC = () => {
         </Box>
       ),
     },
-    {
-      id: 'description',
-      label: 'Description',
-      render: (_value, row) => (
-        <Tooltip title={row.description} placement="top" arrow>
-          <Typography
-            variant="body2"
-            className="!text-gray-600 !max-w-xs !truncate"
-          >
-            {row.description || 'No description'}
-          </Typography>
-        </Tooltip>
-      ),
-    },
+
     {
       id: 'depot',
       label: 'Depot',
@@ -242,7 +260,20 @@ const RoutesManagement: React.FC = () => {
         </Box>
       ),
     },
-
+    {
+      id: 'description',
+      label: 'Description',
+      render: (_value, row) => (
+        <Tooltip title={row.description} placement="top" arrow>
+          <Typography
+            variant="body2"
+            className="!text-gray-600 !max-w-xs !truncate"
+          >
+            {row.description || 'No description'}
+          </Typography>
+        </Tooltip>
+      ),
+    },
     {
       id: 'is_active',
       label: 'Status',
@@ -395,6 +426,7 @@ const RoutesManagement: React.FC = () => {
                   </>
                 )}
               </div>
+
               {isCreate && (
                 <Button
                   variant="contained"
@@ -404,6 +436,18 @@ const RoutesManagement: React.FC = () => {
                   onClick={handleCreateRoute}
                 >
                   Create
+                </Button>
+              )}
+              {isCreate && (
+                <Button
+                  variant="outlined"
+                  className="!capitalize"
+                  disableElevation
+                  startIcon={<Download />}
+                  onClick={handleExportToExcel}
+                  disabled={exportToExcelMutation.isPending}
+                >
+                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
                 </Button>
               )}
             </div>
@@ -434,6 +478,12 @@ const RoutesManagement: React.FC = () => {
         setDrawerOpen={setDrawerOpen}
         depots={depots}
         zones={zones}
+      />
+
+      {/* ImportRoutes Component */}
+      <ImportRoutes
+        drawerOpen={importDrawerOpen}
+        setDrawerOpen={setImportDrawerOpen}
       />
     </>
   );

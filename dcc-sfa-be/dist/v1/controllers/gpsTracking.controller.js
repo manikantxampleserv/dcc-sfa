@@ -356,11 +356,11 @@ exports.gpsTrackingController = {
                             email: true,
                         },
                     },
-                    routes_depots: {
-                        include: {
-                            routes_depots_depot: {
-                                select: { id: true, name: true, code: true },
-                            },
+                    route_depots: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
                         },
                     },
                 },
@@ -386,7 +386,6 @@ exports.gpsTrackingController = {
                 },
                 orderBy: { visit_date: 'desc' },
             });
-            // Fetch GPS Logs for comparison
             const whereGpsLogs = {
                 is_active: 'Y',
                 ...(Object.keys(dateFilter).length > 0 && { log_time: dateFilter }),
@@ -407,7 +406,7 @@ exports.gpsTrackingController = {
             // Analyze each route
             const routeAnalysis = routes.map(route => {
                 const routeVisits = visits.filter(v => v.route_id === route.id);
-                const routeCustomers = route.customer_routes;
+                const routeCustomers = route.customer_routes || [];
                 // Calculate visit completion rate
                 const completedVisits = routeVisits.filter(v => v.status === 'completed').length;
                 const completionRate = routeCustomers.length > 0
@@ -465,7 +464,7 @@ exports.gpsTrackingController = {
                     route_id: route.id,
                     route_name: route.name,
                     route_code: route.code,
-                    depot_name: route.routes_depots?.[0]?.routes_depots_depot?.name || 'N/A',
+                    depot_name: route.route_depots?.name || 'N/A',
                     salesperson_name: route.routes_salesperson?.name || 'N/A',
                     total_customers: routeCustomers.length,
                     planned_visits: routeCustomers.length,
@@ -492,6 +491,7 @@ exports.gpsTrackingController = {
                     })),
                 };
             });
+            // Calculate summary
             const totalRoutes = routeAnalysis.length;
             const totalCustomers = routeAnalysis.reduce((sum, r) => sum + r.total_customers, 0);
             const totalPlannedVisits = routeAnalysis.reduce((sum, r) => sum + r.planned_visits, 0);

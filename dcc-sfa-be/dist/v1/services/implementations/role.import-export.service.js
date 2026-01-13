@@ -262,16 +262,6 @@ class RoleImportExportService extends import_export_service_1.ImportExportServic
             include: {
                 roles_permission: {
                     where: { is_active: 'Y' },
-                    include: {
-                        permissions: {
-                            select: {
-                                id: true,
-                                name: true,
-                                module: true,
-                                action: true,
-                            },
-                        },
-                    },
                 },
                 user_role: {
                     where: { is_active: 'Y' },

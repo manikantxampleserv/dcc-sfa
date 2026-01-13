@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.taxMasterController = void 0;
-const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const paginate_1 = require("../../utils/paginate");
 const serializeTaxMaster = (taxMaster) => ({
     id: taxMaster.id,
     name: taxMaster.name,
