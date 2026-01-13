@@ -11,7 +11,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import * as Yup from 'yup';
 
-interface ImportRoutesProps {
+interface ImportCustomersProps {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
 }
@@ -20,7 +20,7 @@ const importValidationSchema = Yup.object({
   file: Yup.mixed().required('Please select a file to import'),
 });
 
-const ImportRoutes: React.FC<ImportRoutesProps> = ({
+const ImportCustomers: React.FC<ImportCustomersProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
@@ -59,7 +59,7 @@ const ImportRoutes: React.FC<ImportRoutesProps> = ({
 
   const handleDownloadSample = async () => {
     try {
-      await downloadTemplateMutation.mutateAsync('routes');
+      await downloadTemplateMutation.mutateAsync('customers');
     } catch (error) {
       console.error('Failed to download template:', error);
     }
@@ -84,7 +84,7 @@ const ImportRoutes: React.FC<ImportRoutesProps> = ({
 
     try {
       await importDataMutation.mutateAsync({
-        tableName: 'routes',
+        tableName: 'customers',
         file: uploadedFile,
         options: {
           batchSize: 100,
@@ -111,13 +111,13 @@ const ImportRoutes: React.FC<ImportRoutesProps> = ({
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
-      title="Import Routes"
+      title="Import Customers"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
-              Upload an Excel file to import multiple routes. Download the
+              Upload an Excel file to import multiple customers. Download the
               sample file to see the required format.
             </Typography>
           </Alert>
@@ -235,7 +235,7 @@ const ImportRoutes: React.FC<ImportRoutesProps> = ({
                           variant="caption"
                           className="!text-green-600"
                         >
-                          Successful
+                          Successfully Imported
                         </Typography>
                       </Box>
 
@@ -249,53 +249,25 @@ const ImportRoutes: React.FC<ImportRoutesProps> = ({
                       </Box>
                     </Box>
 
-                    {importResults.fileInfo && (
-                      <Box className="!mt-3 !p-3 !bg-gray-50 !rounded-lg">
-                        <Typography
-                          variant="subtitle2"
-                          className="!font-medium !mb-1"
-                        >
-                          File Information
-                        </Typography>
-                        <Typography variant="body2" className="!text-gray-600">
-                          File: {importResults.fileInfo.originalName}
-                        </Typography>
-                        <Typography variant="body2" className="!text-gray-600">
-                          Total Rows: {importResults.fileInfo.rows}
-                        </Typography>
-                      </Box>
-                    )}
-
                     {importResults.errors &&
                       importResults.errors.length > 0 && (
-                        <Box className="!mt-3">
+                        <Box className="!mt-4">
                           <Typography
                             variant="subtitle2"
-                            className="!font-medium !mb-2 !text-red-700"
+                            className="!font-medium !mb-2"
                           >
-                            Import Errors ({importResults.errors.length}):
+                            Errors Found:
                           </Typography>
-                          <Box className="!bg-red-50 !rounded-lg !max-h-32 !overflow-y-auto !p-2">
-                            {importResults.errors
-                              .slice(0, 10)
-                              .map((error: string, index: number) => (
-                                <Typography
-                                  key={index}
-                                  variant="body2"
-                                  className="!text-red-600 !mb-1"
-                                >
-                                  • {error}
-                                </Typography>
-                              ))}
-                            {importResults.errors.length > 10 && (
+                          <Box className="!max-h-40 !overflow-y-auto !bg-red-50 !p-3 !rounded-lg">
+                            {importResults.errors.map((error, index) => (
                               <Typography
-                                variant="body2"
-                                className="!text-red-600 !font-medium"
+                                key={index}
+                                variant="caption"
+                                className="!text-red-700 !block !mb-1"
                               >
-                                ... and {importResults.errors.length - 10} more
-                                errors
+                                {error}
                               </Typography>
-                            )}
+                            ))}
                           </Box>
                         </Box>
                       )}
@@ -314,8 +286,7 @@ const ImportRoutes: React.FC<ImportRoutesProps> = ({
             >
               Cancel
             </Button>
-
-            {step === 'upload' && (
+            {uploadedFile && step === 'upload' && (
               <Button
                 type="submit"
                 variant="contained"
@@ -325,9 +296,13 @@ const ImportRoutes: React.FC<ImportRoutesProps> = ({
                 {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
-
-            {step === 'results' && (
-              <Button type="button" variant="contained" onClick={handleCancel}>
+            {importResults && step === 'results' && (
+              <Button
+                type="button"
+                variant="contained"
+                onClick={handleCancel}
+                className="!bg-green-600 hover:!bg-green-700"
+              >
                 Done
               </Button>
             )}
@@ -338,4 +313,4 @@ const ImportRoutes: React.FC<ImportRoutesProps> = ({
   );
 };
 
-export default ImportRoutes;
+export default ImportCustomers;

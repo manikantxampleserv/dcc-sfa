@@ -3,6 +3,7 @@ import {
   Block,
   CheckCircle,
   Download,
+  Upload,
   Visibility,
 } from '@mui/icons-material';
 import {
@@ -28,6 +29,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
@@ -343,7 +345,7 @@ const RoutesManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Routes"
           value={totalRoutes}
@@ -427,29 +429,51 @@ const RoutesManagement: React.FC = () => {
                 )}
               </div>
 
-              {isCreate && (
-                <Button
-                  variant="contained"
-                  className="!capitalize"
-                  disableElevation
-                  startIcon={<Add />}
-                  onClick={handleCreateRoute}
-                >
-                  Create
-                </Button>
-              )}
-              {isCreate && (
-                <Button
-                  variant="outlined"
-                  className="!capitalize"
-                  disableElevation
-                  startIcon={<Download />}
-                  onClick={handleExportToExcel}
-                  disabled={exportToExcelMutation.isPending}
-                >
-                  {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {isCreate && (
+                  <PopConfirm
+                    title="Export Routes"
+                    description="Are you sure you want to export the current routes data to Excel? This will include all filtered results."
+                    onConfirm={handleExportToExcel}
+                    confirmText="Export"
+                    cancelText="Cancel"
+                  >
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      disableElevation
+                      startIcon={<Download />}
+                      disabled={exportToExcelMutation.isPending}
+                    >
+                      {exportToExcelMutation.isPending
+                        ? 'Exporting...'
+                        : 'Export'}
+                    </Button>
+                  </PopConfirm>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="outlined"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Upload />}
+                    onClick={() => setImportDrawerOpen(true)}
+                  >
+                    Import
+                  </Button>
+                )}
+                {isCreate && (
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateRoute}
+                  >
+                    Create
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             false

@@ -10,7 +10,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import UserSelect from 'shared/UserSelect';
+import MultiUserSelect from 'shared/MultiUserSelect';
 
 interface Zone {
   id: number;
@@ -55,7 +55,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
       route_type_id: (selectedRoute as any)?.route_type_id?.toString() || '',
       name: selectedRoute?.name || '',
       description: selectedRoute?.description || '',
-      salesperson_id: selectedRoute?.salesperson_id?.toString() || '',
+      sales_persons: (selectedRoute as any)?.sales_persons || [],
       start_location: selectedRoute?.start_location || '',
       end_location: selectedRoute?.end_location || '',
       estimated_distance: selectedRoute?.estimated_distance?.toString() || '',
@@ -72,9 +72,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
           route_type_id: Number(values.route_type_id),
           name: values.name,
           description: values.description,
-          salesperson_id: values.salesperson_id
-            ? Number(values.salesperson_id)
-            : undefined,
+          sales_persons: values.sales_persons,
           start_location: values.start_location,
           end_location: values.end_location,
           estimated_distance: values.estimated_distance
@@ -153,13 +151,6 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
               required
             />
 
-            {/* Salesperson Selection */}
-            <UserSelect
-              name="salesperson_id"
-              label="Salesperson"
-              formik={formik}
-            />
-
             {/* Start Location */}
             <Input
               name="start_location"
@@ -195,8 +186,17 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
               formik={formik}
               slotProps={{ htmlInput: { min: '0' } }}
             />
-
+            {/* Salespersons Selection */}
             <Box className="md:!col-span-2">
+              <MultiUserSelect
+                name="sales_persons"
+                label="Salespersons"
+                formik={formik}
+                className="!col-span-2"
+              />
+            </Box>
+
+            <Box>
               <ActiveInactiveField name="is_active" formik={formik} required />
             </Box>
 
