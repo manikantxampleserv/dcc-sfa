@@ -155,6 +155,8 @@ export const settingsController = {
         smtp_port,
         smtp_username,
         smtp_password,
+        smtp_mail_from_address,
+        smtp_mail_from_name,
         currency_id,
       } = req.body;
 
@@ -178,6 +180,8 @@ export const settingsController = {
         }),
         ...(smtp_username !== undefined && { smtp_username }),
         ...(smtp_password !== undefined && { smtp_password }),
+        ...(smtp_mail_from_address !== undefined && { smtp_mail_from_address }),
+        ...(smtp_mail_from_name !== undefined && { smtp_mail_from_name }),
         ...(currency_id !== undefined && {
           currency_id: currency_id ? Number(currency_id) : null,
         }),
