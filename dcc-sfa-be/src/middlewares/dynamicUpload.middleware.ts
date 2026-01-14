@@ -1,21 +1,31 @@
 import multer from 'multer';
 import { Request, Response, NextFunction } from 'express';
 
-// Configure multer storage
+/**
+ * Multer storage configuration using memory storage
+ */
 const storage = multer.memoryStorage();
 
-// File filter - only allow images
+/**
+ * File filter callback type for multer
+ * @callback multer.FileFilterCallback
+ */
+
+/**
+ * File filter to only allow specific image types
+ * @param {any} req - Express request object
+ * @param {Express.Multer.File} file - Uploaded file object
+ * @param {multer.FileFilterCallback} cb - Callback to accept or reject file
+ */
 const fileFilter = (
   req: any,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  // Accept images only
   if (!file.mimetype.startsWith('image/')) {
     return cb(new Error('Only image files are allowed!'));
   }
 
-  // Optional: Check specific image types
   const allowedMimes = [
     'image/jpeg',
     'image/jpg',
@@ -35,12 +45,15 @@ const fileFilter = (
   cb(null, true);
 };
 
-// Create multer instance with flexible limits
+/**
+ * Multer instance with configured storage, limits and file filter
+ * Limits: 10MB per file, maximum 200 files total
+ */
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB per file
-    files: 200, // Maximum 200 files total (increased for bulk operations)
+    fileSize: 10 * 1024 * 1024,
+    files: 200,
   },
   fileFilter,
 });
@@ -63,12 +76,10 @@ export const dynamicVisitUpload = (
   res: Response,
   next: NextFunction
 ) => {
-  // Use multer's any() to accept unlimited field names
   const uploadAny = upload.any();
 
   uploadAny(req, res, (err: any) => {
     if (err instanceof multer.MulterError) {
-      // Multer-specific errors
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({
           success: false,
@@ -96,7 +107,6 @@ export const dynamicVisitUpload = (
         error: err.message,
       });
     } else if (err) {
-      // Other errors (like file filter errors)
       return res.status(400).json({
         success: false,
         message: 'File upload error',
@@ -104,7 +114,6 @@ export const dynamicVisitUpload = (
       });
     }
 
-    // Organize uploaded files by field name
     const files = (req as any).files as Express.Multer.File[];
     const organizedFiles: { [key: string]: Express.Multer.File[] } = {};
     const visitStats: {
@@ -117,14 +126,12 @@ export const dynamicVisitUpload = (
       files.forEach(file => {
         const fieldName = file.fieldname;
 
-        // Initialize array for this field name if it doesn't exist
         if (!organizedFiles[fieldName]) {
           organizedFiles[fieldName] = [];
         }
 
         organizedFiles[fieldName].push(file);
 
-        // Parse visit index and type from field name (e.g., visit_0_self_images)
         const match = fieldName.match(
           /visit_(\d+)_(self|customer|cooler)_images/
         );
@@ -168,7 +175,7 @@ export const dynamicVisitUpload = (
 };
 
 /**
- * Alternative: Upload middleware with no file count limit
+ * Alternative upload middleware with no file count limit
  * Use for very large bulk operations
  */
 export const unlimitedVisitUpload = (
@@ -179,8 +186,7 @@ export const unlimitedVisitUpload = (
   const uploadUnlimited = multer({
     storage: multer.memoryStorage(),
     limits: {
-      fileSize: 10 * 1024 * 1024, // 10MB per file
-      // No files limit
+      fileSize: 10 * 1024 * 1024,
     },
     fileFilter,
   }).any();
@@ -194,7 +200,6 @@ export const unlimitedVisitUpload = (
       });
     }
 
-    // Same organization logic
     const files = (req as any).files as Express.Multer.File[];
     const organizedFiles: { [key: string]: Express.Multer.File[] } = {};
 
@@ -217,20 +222,20 @@ export const unlimitedVisitUpload = (
 };
 
 /**
- * Helper function to validate field names (optional)
- * Can be used in controller to ensure proper naming convention
+ * Helper function to validate field names
+ * Ensures proper naming convention for visit image fields
+ * @param {string} fieldName - Field name to validate
+ * @returns {boolean} True if field name matches expected pattern
  */
 export const validateVisitImageFields = (fieldName: string): boolean => {
-  // Valid patterns:
-  // - visit_0_self_images
-  // - visit_1_customer_images
-  // - visit_2_cooler_images
   const pattern = /^visit_\d+_(self|customer|cooler)_images$/;
   return pattern.test(fieldName);
 };
 
 /**
  * Helper function to extract visit index and image type from field name
+ * @param {string} fieldName - Field name to parse
+ * @returns {Object|null} Object with visitIndex and imageType, or null if no match
  */
 export const parseVisitImageField = (
   fieldName: string

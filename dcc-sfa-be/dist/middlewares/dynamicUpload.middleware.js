@@ -5,15 +5,24 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseVisitImageField = exports.validateVisitImageFields = exports.unlimitedVisitUpload = exports.dynamicVisitUpload = void 0;
 const multer_1 = __importDefault(require("multer"));
-// Configure multer storage
+/**
+ * Multer storage configuration using memory storage
+ */
 const storage = multer_1.default.memoryStorage();
-// File filter - only allow images
+/**
+ * File filter callback type for multer
+ * @callback multer.FileFilterCallback
+ */
+/**
+ * File filter to only allow specific image types
+ * @param {any} req - Express request object
+ * @param {Express.Multer.File} file - Uploaded file object
+ * @param {multer.FileFilterCallback} cb - Callback to accept or reject file
+ */
 const fileFilter = (req, file, cb) => {
-    // Accept images only
     if (!file.mimetype.startsWith('image/')) {
         return cb(new Error('Only image files are allowed!'));
     }
-    // Optional: Check specific image types
     const allowedMimes = [
         'image/jpeg',
         'image/jpg',
@@ -28,12 +37,15 @@ const fileFilter = (req, file, cb) => {
     }
     cb(null, true);
 };
-// Create multer instance with flexible limits
+/**
+ * Multer instance with configured storage, limits and file filter
+ * Limits: 10MB per file, maximum 200 files total
+ */
 const upload = (0, multer_1.default)({
     storage,
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB per file
-        files: 200, // Maximum 200 files total (increased for bulk operations)
+        fileSize: 10 * 1024 * 1024,
+        files: 200,
     },
     fileFilter,
 });
@@ -51,11 +63,9 @@ const upload = (0, multer_1.default)({
  * etc.
  */
 const dynamicVisitUpload = (req, res, next) => {
-    // Use multer's any() to accept unlimited field names
     const uploadAny = upload.any();
     uploadAny(req, res, (err) => {
         if (err instanceof multer_1.default.MulterError) {
-            // Multer-specific errors
             if (err.code === 'LIMIT_FILE_SIZE') {
                 return res.status(400).json({
                     success: false,
@@ -84,14 +94,12 @@ const dynamicVisitUpload = (req, res, next) => {
             });
         }
         else if (err) {
-            // Other errors (like file filter errors)
             return res.status(400).json({
                 success: false,
                 message: 'File upload error',
                 error: err.message,
             });
         }
-        // Organize uploaded files by field name
         const files = req.files;
         const organizedFiles = {};
         const visitStats = {};
@@ -99,12 +107,10 @@ const dynamicVisitUpload = (req, res, next) => {
             console.log(`\n📤 Received ${files.length} file(s)`);
             files.forEach(file => {
                 const fieldName = file.fieldname;
-                // Initialize array for this field name if it doesn't exist
                 if (!organizedFiles[fieldName]) {
                     organizedFiles[fieldName] = [];
                 }
                 organizedFiles[fieldName].push(file);
-                // Parse visit index and type from field name (e.g., visit_0_self_images)
                 const match = fieldName.match(/visit_(\d+)_(self|customer|cooler)_images/);
                 if (match) {
                     const visitIndex = parseInt(match[1], 10);
@@ -135,15 +141,14 @@ const dynamicVisitUpload = (req, res, next) => {
 };
 exports.dynamicVisitUpload = dynamicVisitUpload;
 /**
- * Alternative: Upload middleware with no file count limit
+ * Alternative upload middleware with no file count limit
  * Use for very large bulk operations
  */
 const unlimitedVisitUpload = (req, res, next) => {
     const uploadUnlimited = (0, multer_1.default)({
         storage: multer_1.default.memoryStorage(),
         limits: {
-            fileSize: 10 * 1024 * 1024, // 10MB per file
-            // No files limit
+            fileSize: 10 * 1024 * 1024,
         },
         fileFilter,
     }).any();
@@ -155,7 +160,6 @@ const unlimitedVisitUpload = (req, res, next) => {
                 error: err.message,
             });
         }
-        // Same organization logic
         const files = req.files;
         const organizedFiles = {};
         if (files && files.length > 0) {
@@ -176,20 +180,20 @@ const unlimitedVisitUpload = (req, res, next) => {
 };
 exports.unlimitedVisitUpload = unlimitedVisitUpload;
 /**
- * Helper function to validate field names (optional)
- * Can be used in controller to ensure proper naming convention
+ * Helper function to validate field names
+ * Ensures proper naming convention for visit image fields
+ * @param {string} fieldName - Field name to validate
+ * @returns {boolean} True if field name matches expected pattern
  */
 const validateVisitImageFields = (fieldName) => {
-    // Valid patterns:
-    // - visit_0_self_images
-    // - visit_1_customer_images
-    // - visit_2_cooler_images
     const pattern = /^visit_\d+_(self|customer|cooler)_images$/;
     return pattern.test(fieldName);
 };
 exports.validateVisitImageFields = validateVisitImageFields;
 /**
  * Helper function to extract visit index and image type from field name
+ * @param {string} fieldName - Field name to parse
+ * @returns {Object|null} Object with visitIndex and imageType, or null if no match
  */
 const parseVisitImageField = (fieldName) => {
     const match = fieldName.match(/^visit_(\d+)_(self|customer|cooler)_images$/);

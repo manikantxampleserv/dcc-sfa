@@ -60,7 +60,7 @@ exports.createCoolerInspectionValidation = [
         .isLength({ max: 2000 })
         .withMessage('Action taken must be less than 2000 characters'),
     (0, express_validator_1.body)('next_inspection_due')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Next inspection due must be a valid date'),
     (0, express_validator_1.body)('is_active')

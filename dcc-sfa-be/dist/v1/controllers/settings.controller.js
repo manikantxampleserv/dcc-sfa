@@ -121,7 +121,7 @@ exports.settingsController = {
                 res.error('Company settings not found', 404);
                 return;
             }
-            const { name, address, city, state, country, zipcode, phone_number, email, website, is_active, log_inst, smtp_host, smtp_port, smtp_username, smtp_password, currency_id, } = req.body;
+            const { name, address, city, state, country, zipcode, phone_number, email, website, is_active, log_inst, smtp_host, smtp_port, smtp_username, smtp_password, smtp_mail_from_address, smtp_mail_from_name, currency_id, } = req.body;
             const data = {
                 ...(name && { name }),
                 ...(address !== undefined && { address }),
@@ -142,6 +142,8 @@ exports.settingsController = {
                 }),
                 ...(smtp_username !== undefined && { smtp_username }),
                 ...(smtp_password !== undefined && { smtp_password }),
+                ...(smtp_mail_from_address !== undefined && { smtp_mail_from_address }),
+                ...(smtp_mail_from_name !== undefined && { smtp_mail_from_name }),
                 ...(currency_id !== undefined && {
                     currency_id: currency_id ? Number(currency_id) : null,
                 }),
