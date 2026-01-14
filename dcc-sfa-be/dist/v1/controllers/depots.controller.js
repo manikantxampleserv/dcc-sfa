@@ -255,11 +255,36 @@ exports.depotsController = {
             if (!existingDepot) {
                 return res.status(404).json({ message: 'Depot not found' });
             }
+            // Check for dependent zones
+            const dependentZones = await prisma_client_1.default.zones.findMany({
+                where: { depot_id: Number(id) },
+            });
+            if (dependentZones.length > 0) {
+                // Option 1: Update zones to remove depot reference
+                await prisma_client_1.default.zones.updateMany({
+                    where: { depot_id: Number(id) },
+                    data: { depot_id: null },
+                });
+                // Option 2: If you want to prevent deletion when zones exist, uncomment below:
+                // return res.status(400).json({
+                //   message: `Cannot delete depot. It is referenced by ${dependentZones.length} zone(s). Please reassign or delete the zones first.`,
+                // });
+            }
             await prisma_client_1.default.depots.delete({ where: { id: Number(id) } });
-            res.json({ message: 'Depot deleted successfully' });
+            res.json({
+                message: 'Depot deleted successfully',
+                warning: dependentZones.length > 0
+                    ? `${dependentZones.length} zone(s) were updated to remove depot reference`
+                    : undefined,
+            });
         }
         catch (error) {
-            console.error('Delete Depot Error:', error);
+            if (error.code === 'P2003' ||
+                error.message.includes('Foreign key constraint violated')) {
+                return res.status(400).json({
+                    message: 'Cannot delete depot. It is referenced by other records. Please update or delete those records first.',
+                });
+            }
             res.status(500).json({ message: error.message });
         }
     },

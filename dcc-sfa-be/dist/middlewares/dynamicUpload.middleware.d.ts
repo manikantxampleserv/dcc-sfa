@@ -14,17 +14,21 @@ import { Request, Response, NextFunction } from 'express';
  */
 export declare const dynamicVisitUpload: (req: Request, res: Response, next: NextFunction) => void;
 /**
- * Alternative: Upload middleware with no file count limit
+ * Alternative upload middleware with no file count limit
  * Use for very large bulk operations
  */
 export declare const unlimitedVisitUpload: (req: Request, res: Response, next: NextFunction) => void;
 /**
- * Helper function to validate field names (optional)
- * Can be used in controller to ensure proper naming convention
+ * Helper function to validate field names
+ * Ensures proper naming convention for visit image fields
+ * @param {string} fieldName - Field name to validate
+ * @returns {boolean} True if field name matches expected pattern
  */
 export declare const validateVisitImageFields: (fieldName: string) => boolean;
 /**
  * Helper function to extract visit index and image type from field name
+ * @param {string} fieldName - Field name to parse
+ * @returns {Object|null} Object with visitIndex and imageType, or null if no match
  */
 export declare const parseVisitImageField: (fieldName: string) => {
     visitIndex: number;
