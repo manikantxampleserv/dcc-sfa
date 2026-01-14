@@ -61,7 +61,7 @@ model users {
   return_workflow_return_workflow_action_byTousers                  return_workflow[]            @relation("return_workflow_action_byTousers")
   route_exceptions_route_exceptions_sales_person_idTousers          route_exceptions[]           @relation("route_exceptions_sales_person_idTousers")
   route_plans_route_plans_sales_person_idTousers                    route_plans[]                @relation("route_plans_sales_person_idTousers")
-  routes_salesperson                                                routes[]
+  // routes_salesperson                                                routes[]
   sales_target_group_members_users                                  sales_target_group_members[]
   sales_target_overrides_users                                      sales_target_overrides[]
   sfa_d_requests_approvals_approver                                 sfa_d_request_approvals[]    @relation("SfaDRequetsApprovalsApprover")
@@ -83,6 +83,7 @@ model users {
   promotion_salesperson_users                                       promotion_salesperson[]
   promotion_tracking_users                                          promotion_tracking[]
   zone_supervisor                                                   zones[]
+  route_salespersons                                                route_salespersons[]
 }
 
 model attendance {
@@ -1650,33 +1651,49 @@ model routes_zones {
 }
 
 model routes {
-  id                 Int                @id @default(autoincrement())
+  id                 Int                  @id @default(autoincrement())
   parent_id          Int
   depot_id           Int
-  name               String             @db.NVarChar(255)
-  code               String             @db.NVarChar(50)
-  description        String?            @db.NVarChar(500)
-  salesperson_id     Int?
-  start_location     String?            @db.NVarChar(255)
-  end_location       String?            @db.NVarChar(255)
-  estimated_distance Decimal?           @db.Decimal(10, 2)
+  name               String               @db.NVarChar(255)
+  code               String               @db.NVarChar(50)
+  description        String?              @db.NVarChar(500)
+  // salesperson_id     Int?
+  start_location     String?              @db.NVarChar(255)
+  end_location       String?              @db.NVarChar(255)
+  estimated_distance Decimal?             @db.Decimal(10, 2)
   estimated_time     Int?
-  is_active          String             @default("Y") @db.Char(1)
-  createdate         DateTime?          @default(now()) @db.DateTime
+  is_active          String               @default("Y") @db.Char(1)
+  createdate         DateTime?            @default(now()) @db.DateTime
   createdby          Int
-  updatedate         DateTime?          @db.DateTime
+  updatedate         DateTime?            @db.DateTime
   updatedby          Int?
   log_inst           Int?
   route_type_id      Int
-  route_type         String?            @db.NVarChar(Max)
-  outlet_group       String?            @db.NVarChar(Max)
+  route_type         String?              @db.NVarChar(Max)
+  outlet_group       String?              @db.NVarChar(Max)
   customer_routes    customers[]
   promotion_route    promotion_routes[]
-  routes_route_type  route_type         @relation(fields: [route_type_id], references: [id], onUpdate: NoAction)
-  routes_salesperson users?             @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  route_zones        zones              @relation("ZoneRoutes", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  route_depots       depots             @relation("DepotRoutes", fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  routes_route_type  route_type           @relation(fields: [route_type_id], references: [id], onUpdate: NoAction)
+  // routes_salesperson users?             @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  route_zones        zones                @relation("ZoneRoutes", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  route_depots       depots               @relation("DepotRoutes", fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  salespersons       route_salespersons[]
   visit_routes       visits[]
+}
+
+model route_salespersons {
+  id          Int      @id @default(autoincrement())
+  route_id    Int
+  user_id     Int
+  role        String   @default("PRIMARY")
+  assigned_at DateTime @default(now())
+  is_active   String   @default("Y") @db.Char(1)
+
+  route routes @relation(fields: [route_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user  users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([route_id, user_id])
+  @@map("route_salespersons")
 }
 
 model sales_bonus_rules {
