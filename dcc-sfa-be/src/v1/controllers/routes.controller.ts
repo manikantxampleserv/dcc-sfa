@@ -39,7 +39,17 @@ interface RouteSerialized {
   }>;
   route_depots?: { id: number; name: string; code: string } | null;
   route_zones?: { id: number; name: string; code: string } | null;
-  routes_salesperson?: { id: number; name: string; email: string } | null;
+  // routes_salesperson?: { id: number; name: string; email: string } | null;
+  salespersons?: Array<{
+    id: number;
+    role: string;
+    is_active: string;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+    };
+  }> | null;
   routes_route_type?: { id: number; name: string } | null;
   visit_routes?: Array<{
     id: number;
@@ -123,25 +133,38 @@ const serializeRoute = (route: any): RouteSerialized => ({
     })) || [],
   route_depots: route.route_depots
     ? {
-        id: route.route_depots.id,
-        name: route.route_depots.name,
-        code: route.route_depots.code,
+        id: route.route_depots.id ?? 0,
+        name: route.route_depots.name ?? '',
+        code: route.route_depots.code ?? '',
       }
     : null,
+
   route_zones: route.route_zones
     ? {
-        id: route.route_zones.id,
-        name: route.route_zones.name,
-        code: route.route_zones.code,
+        id: route.route_zones.id ?? 0,
+        name: route.route_zones.name ?? '',
+        code: route.route_zones.code ?? '',
       }
     : null,
-  routes_salesperson: route.routes_salesperson
-    ? {
-        id: route.routes_salesperson.id,
-        name: route.routes_salesperson.name,
-        email: route.routes_salesperson.email,
-      }
-    : null,
+  // routes_salesperson: route.routes_salesperson
+  //   ? {
+  //       id: route.routes_salesperson.id,
+  //       name: route.routes_salesperson.name,
+  //       email: route.routes_salesperson.email,
+  //     }
+  //   : null,
+
+  salespersons:
+    route.salespersons?.map((sp: any) => ({
+      id: sp.id,
+      role: sp.role,
+      is_active: sp.is_active,
+      user: {
+        id: sp.user?.id ?? 0,
+        name: sp.user?.name ?? '',
+        email: sp.user?.email ?? '',
+      },
+    })) || [],
   routes_route_type: route.routes_route_type
     ? {
         id: route.routes_route_type.id,
@@ -220,10 +243,10 @@ export const routesController = {
         estimated_time: data.estimated_time,
         is_active: data.is_active || 'Y',
         createdate: new Date(),
-        createdby: req.user?.id || 1,
+        createdby: (req.user?.id as number) || 1,
         log_inst: data.log_inst || 1,
-        parent_id: data.parent_id,
-        depot_id: data.depot_id,
+        // parent_id: data.parent_id,
+        // depot_id: data.depot_id,
         route_depots: {
           connect: { id: data.depot_id },
         },
@@ -235,9 +258,17 @@ export const routesController = {
         },
       };
 
-      if (data.salesperson_id) {
-        createData.routes_salesperson = {
-          connect: { id: data.salesperson_id },
+      // if (data.salesperson_id) {
+      //   createData.routes_salesperson = {
+      //     connect: { id: data.salesperson_id },
+      //   };
+      // }
+      if (data.salespersons) {
+        createData.salespersons = {
+          create: data.salespersons.map((sp: any) => ({
+            user_id: sp.user_id,
+            role: sp.role || 'PRIMARY',
+          })),
         };
       }
 
@@ -247,7 +278,12 @@ export const routesController = {
           customer_routes: true,
           route_depots: true,
           route_zones: true,
-          routes_salesperson: true,
+          // routes_salesperson: true,
+          salespersons: {
+            include: {
+              user: true,
+            },
+          },
           routes_route_type: true,
           visit_routes: true,
         },
@@ -307,7 +343,12 @@ export const routesController = {
           customer_routes: true,
           route_depots: true,
           route_zones: true,
-          routes_salesperson: true,
+          // routes_salesperson: true,
+          salespersons: {
+            include: {
+              user: true,
+            },
+          },
           routes_route_type: true,
           visit_routes: true,
         },
@@ -360,7 +401,8 @@ export const routesController = {
           customer_routes: true,
           route_depots: true,
           route_zones: true,
-          routes_salesperson: true,
+          // routes_salesperson: true,
+
           routes_route_type: true,
           visit_routes: {
             include: {
@@ -454,7 +496,12 @@ export const routesController = {
           customer_routes: true,
           route_depots: true,
           route_zones: true,
-          routes_salesperson: true,
+          // routes_salesperson: true,
+          salespersons: {
+            include: {
+              user: true,
+            },
+          },
           routes_route_type: true,
           visit_routes: true,
         },
@@ -480,7 +527,12 @@ export const routesController = {
         include: {
           route_depots: true,
           route_zones: true,
-          routes_salesperson: true,
+          // routes_salesperson: true,
+          salespersons: {
+            include: {
+              user: true,
+            },
+          },
           routes_route_type: true,
           customer_routes: true,
           visit_routes: true,

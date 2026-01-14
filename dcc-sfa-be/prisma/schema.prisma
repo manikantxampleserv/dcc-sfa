@@ -1685,7 +1685,7 @@ model route_salespersons {
   id          Int      @id @default(autoincrement())
   route_id    Int
   user_id     Int
-  role        String   @default("PRIMARY")
+  role        String?  @default("PRIMARY")
   assigned_at DateTime @default(now())
   is_active   String   @default("Y") @db.Char(1)
 
