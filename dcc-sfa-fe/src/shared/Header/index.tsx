@@ -199,7 +199,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                     className="!w-9 !h-9 !text-sm !font-medium"
                     sx={{
                       bgcolor: 'primary.main',
-                      borderRadius: '8px',
+                      borderRadius: '5px',
                     }}
                   >
                     {getUserInitials()}
