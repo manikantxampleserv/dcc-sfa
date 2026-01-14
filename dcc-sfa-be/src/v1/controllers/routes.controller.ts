@@ -458,14 +458,12 @@ export const routesController = {
       };
 
       if (data.depot_id !== undefined) {
-        updateData.depot_id = data.depot_id;
         updateData.route_depots = {
           connect: { id: data.depot_id },
         };
       }
 
       if (data.parent_id !== undefined) {
-        updateData.parent_id = data.parent_id;
         updateData.route_zones = {
           connect: { id: data.parent_id },
         };
