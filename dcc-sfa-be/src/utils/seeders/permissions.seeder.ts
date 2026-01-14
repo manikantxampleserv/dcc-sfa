@@ -125,7 +125,7 @@ const mockPermissions: MockPermission[] = [];
  * @description Modules that should not have delete permissions (read-only or system modules)
  * @type {string[]}
  */
-const READ_ONLY_MODULES = [
+const READ_ONLY_MODULES: string[] = [
   'dashboard',
   'report',
   'location',

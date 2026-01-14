@@ -275,11 +275,41 @@ export const customerGroupsController = {
       if (!existingGroup)
         return res.status(404).json({ message: 'Customer group not found' });
 
+      const warnings = [];
+
+      // Check for dependent products
+      const dependentProducts = await prisma.products.findMany({
+        where: { outlet_group_id: Number(id) },
+      });
+
+      if (dependentProducts.length > 0) {
+        await prisma.products.updateMany({
+          where: { outlet_group_id: Number(id) },
+          data: { outlet_group_id: null },
+        });
+        warnings.push(
+          `${dependentProducts.length} product(s) were updated to remove customer group reference`
+        );
+      }
+
+      // Now safely delete the customer group
       await prisma.customer_groups.delete({ where: { id: Number(id) } });
 
-      res.json({ message: 'Customer group deleted successfully' });
+      res.json({
+        message: 'Customer group deleted successfully',
+        warnings: warnings.length > 0 ? warnings : undefined,
+      });
     } catch (error: any) {
-      console.error('Delete Customer Group Error:', error);
+      if (
+        error.code === 'P2003' ||
+        error.message.includes('Foreign key constraint violated')
+      ) {
+        return res.status(400).json({
+          message:
+            'Cannot delete customer group. It is referenced by other records. Please update or delete those records first.',
+        });
+      }
+
       res.status(500).json({ message: error.message });
     }
   },
