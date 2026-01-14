@@ -1957,22 +1957,20 @@ exports.promotionsNewController = {
                     },
                 });
                 if (todaysVisits.length > 0) {
-                    salespersonOutletIds = [
-                        ...new Set(todaysVisits.map(v => v.customer_id)),
-                    ];
+                    salespersonOutletIds = Array.from(new Set(todaysVisits.map(v => v.customer_id)));
                     outletSource = 'visits';
                 }
                 else {
-                    const salespersonRoutes = await prisma_client_1.default.routes.findMany({
+                    const salespersonRouteAssignments = await prisma_client_1.default.route_salespersons.findMany({
                         where: {
-                            salesperson_id: salespersonIdNum,
+                            user_id: salespersonIdNum,
                             is_active: 'Y',
                         },
                         select: {
-                            id: true,
+                            route_id: true,
                         },
                     });
-                    const routeIds = salespersonRoutes.map(r => r.id);
+                    const routeIds = salespersonRouteAssignments.map(r => r.route_id);
                     if (routeIds.length > 0) {
                         const routeCustomers = await prisma_client_1.default.customers.findMany({
                             where: {

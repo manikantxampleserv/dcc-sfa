@@ -146,13 +146,6 @@ const serializeRoute = (route: any): RouteSerialized => ({
         code: route.route_zones.code ?? '',
       }
     : null,
-  // routes_salesperson: route.routes_salesperson
-  //   ? {
-  //       id: route.routes_salesperson.id,
-  //       name: route.routes_salesperson.name,
-  //       email: route.routes_salesperson.email,
-  //     }
-  //   : null,
 
   salespersons:
     route.salespersons?.map((sp: any) => ({
@@ -245,8 +238,6 @@ export const routesController = {
         createdate: new Date(),
         createdby: (req.user?.id as number) || 1,
         log_inst: data.log_inst || 1,
-        // parent_id: data.parent_id,
-        // depot_id: data.depot_id,
         route_depots: {
           connect: { id: data.depot_id },
         },
@@ -278,7 +269,6 @@ export const routesController = {
           customer_routes: true,
           route_depots: true,
           route_zones: true,
-          // routes_salesperson: true,
           salespersons: {
             include: {
               user: true,
@@ -343,7 +333,6 @@ export const routesController = {
           customer_routes: true,
           route_depots: true,
           route_zones: true,
-          // routes_salesperson: true,
           salespersons: {
             include: {
               user: true,
@@ -475,18 +464,6 @@ export const routesController = {
         };
       }
 
-      if (data.salesperson_id !== undefined) {
-        if (data.salesperson_id === null) {
-          updateData.salesperson_id = null;
-          updateData.routes_salesperson = { disconnect: true };
-        } else {
-          updateData.salesperson_id = data.salesperson_id;
-          updateData.routes_salesperson = {
-            connect: { id: data.salesperson_id },
-          };
-        }
-      }
-
       const route = await prisma.routes.update({
         where: { id: Number(id) },
         data: updateData,
@@ -494,7 +471,6 @@ export const routesController = {
           customer_routes: true,
           route_depots: true,
           route_zones: true,
-          // routes_salesperson: true,
           salespersons: {
             include: {
               user: true,
@@ -525,7 +501,6 @@ export const routesController = {
         include: {
           route_depots: true,
           route_zones: true,
-          // routes_salesperson: true,
           salespersons: {
             include: {
               user: true,

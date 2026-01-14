@@ -1,40 +1,57 @@
-export interface RouteWithSalesperson {
-    id: number;
-    parent_id: number;
-    depot_id: number;
-    name: string;
-    code: string;
-    description?: string;
+export interface RouteWithSalesperson extends RouteEffectivenessMetrics {
     salesperson_id?: number;
-    start_location?: string;
-    end_location?: string;
-    estimated_distance?: number;
-    estimated_time?: number;
-    is_active: string;
-    createdate?: Date;
-    createdby: number;
-    updatedate?: Date;
-    updatedby?: number;
-    log_inst?: number;
-    route_type_id: number;
-    route_type?: string;
-    outlet_group?: string;
     routes_salesperson?: {
         id: number;
         name: string;
         email: string;
     };
-    routes_depots?: {
-        id: number;
-        name: string;
-        code: string;
-    };
     customer_routes?: Array<{
         id: number;
         name: string;
         code: string;
+        type?: string;
+        contact_person?: string;
+        phone_number?: string;
+        email?: string;
+        address?: string;
+        city?: string;
+        state?: string;
+        zipcode?: string;
         latitude?: number;
         longitude?: number;
+        is_active: string;
+        createdate?: Date;
+        createdby?: number;
+        updatedate?: Date;
+        updatedby?: number;
+        log_inst?: number;
+        route_type_id: number;
+        route_type?: string;
+        outlet_group?: string;
+        start_location?: string;
+        end_location?: string;
+        estimated_distance?: number;
+        estimated_time?: number;
+        salespersons?: Array<{
+            id: number;
+            role: string;
+            is_active: string;
+            user: {
+                id: number;
+                name: string;
+                email: string;
+            };
+        }>;
+        routes_depots?: {
+            id: number;
+            name: string;
+            code: string;
+        };
+        route_zones?: {
+            id: number;
+            name: string;
+            code: string;
+        };
     }>;
 }
 export interface RouteEffectivenessMetrics {
@@ -57,5 +74,46 @@ export interface RouteEffectivenessMetrics {
     distance_efficiency: string;
     total_orders: number;
     route_efficiency_score: string;
+    customer_routes?: Array<{
+        id: number;
+        name: string;
+        code: string;
+        type?: string;
+        contact_person?: string;
+        phone_number?: string;
+        email?: string;
+        address?: string;
+        city?: string;
+        state?: string;
+        zipcode?: string;
+        latitude?: number;
+        longitude?: number;
+        is_active: string;
+        createdate?: Date;
+        createdby?: number;
+        updatedate?: Date;
+        updatedby?: number;
+        log_inst?: number;
+    }>;
+    route_depots?: {
+        id: number;
+        name: string;
+        code: string;
+    };
+    route_zones?: {
+        id: number;
+        name: string;
+        code: string;
+    };
+    salespersons?: Array<{
+        id: number;
+        role: string;
+        is_active: string;
+        user: {
+            id: number;
+            name: string;
+            email: string;
+        };
+    }>;
 }
 //# sourceMappingURL=gps-tracking.types.d.ts.map

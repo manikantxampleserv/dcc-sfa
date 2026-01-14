@@ -1,9 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
-import {
-  RouteWithSalesperson,
-  RouteEffectivenessMetrics,
-} from '../../types/gps-tracking.types';
+import { RouteEffectivenessMetrics } from '../../types/gps-tracking.types';
 
 /**
  * GPS Tracking Controller
@@ -381,21 +378,18 @@ export const gpsTrackingController = {
       const routes = await prisma.routes.findMany({
         where: whereRoutes,
         include: {
-          customer_routes: {
-            where: { is_active: 'Y' },
+          salespersons: {
             select: {
               id: true,
-              name: true,
-              code: true,
-              latitude: true,
-              longitude: true,
-            },
-          },
-          routes_salesperson: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+              role: true,
+              assigned_at: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
             },
           },
           route_depots: {
@@ -448,15 +442,31 @@ export const gpsTrackingController = {
           },
         },
         orderBy: { log_time: 'asc' },
-        take: 50000, // Limit for performance
+        take: 50000,
       });
 
-      // Analyze each route
+      // Fetch customers for each route separately since the relationship doesn't exist
+      const allRouteCustomers = await prisma.customers.findMany({
+        where: {
+          route_id: { in: routes.map(r => r.id) },
+          is_active: 'Y',
+        },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          latitude: true,
+          longitude: true,
+          route_id: true,
+        },
+      });
+
       const routeAnalysis = routes.map(route => {
         const routeVisits = visits.filter(v => v.route_id === route.id);
-        const routeCustomers = route.customer_routes || [];
+        const routeCustomers = allRouteCustomers.filter(
+          c => c.route_id === route.id
+        );
 
-        // Calculate visit completion rate
         const completedVisits = routeVisits.filter(
           v => v.status === 'completed'
         ).length;
@@ -465,7 +475,6 @@ export const gpsTrackingController = {
             ? (completedVisits / routeCustomers.length) * 100
             : 0;
 
-        // Calculate average visit duration
         const visitsWithDuration = routeVisits.filter(
           v => v.start_time && v.end_time
         );
@@ -492,8 +501,8 @@ export const gpsTrackingController = {
         }, 0);
 
         const routeGPSLogs = gpsLogs.filter(log => {
-          if (route.routes_salesperson?.id) {
-            return log.user_id === route.routes_salesperson.id;
+          if (route.salespersons?.length > 0) {
+            return route.salespersons.some(sp => sp.user.id === log.user_id);
           }
           return false;
         });
@@ -531,7 +540,6 @@ export const gpsTrackingController = {
           route_name: route.name,
           route_code: route.code,
           depot_name: route.route_depots?.name || 'N/A',
-          salesperson_name: route.routes_salesperson?.name || 'N/A',
           total_customers: routeCustomers.length,
           planned_visits: routeCustomers.length,
           actual_visits: routeVisits.length,

@@ -1,8 +1,8 @@
+/// <reference path="../../types/express.d.ts" />
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { Prisma } from '@prisma/client';
-import { channel } from 'diagnostics_channel';
 
 interface PromotionCreateInput {
   name: string;
@@ -2230,22 +2230,23 @@ export const promotionsNewController = {
         });
 
         if (todaysVisits.length > 0) {
-          salespersonOutletIds = [
-            ...new Set(todaysVisits.map(v => v.customer_id)),
-          ];
+          salespersonOutletIds = Array.from(
+            new Set(todaysVisits.map(v => v.customer_id))
+          );
           outletSource = 'visits';
         } else {
-          const salespersonRoutes = await prisma.routes.findMany({
-            where: {
-              salesperson_id: salespersonIdNum,
-              is_active: 'Y',
-            },
-            select: {
-              id: true,
-            },
-          });
+          const salespersonRouteAssignments =
+            await prisma.route_salespersons.findMany({
+              where: {
+                user_id: salespersonIdNum,
+                is_active: 'Y',
+              },
+              select: {
+                route_id: true,
+              },
+            });
 
-          const routeIds = salespersonRoutes.map(r => r.id);
+          const routeIds = salespersonRouteAssignments.map(r => r.route_id);
 
           if (routeIds.length > 0) {
             const routeCustomers = await prisma.customers.findMany({

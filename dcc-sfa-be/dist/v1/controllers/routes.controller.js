@@ -59,25 +59,28 @@ const serializeRoute = (route) => ({
     })) || [],
     route_depots: route.route_depots
         ? {
-            id: route.route_depots.id,
-            name: route.route_depots.name,
-            code: route.route_depots.code,
+            id: route.route_depots.id ?? 0,
+            name: route.route_depots.name ?? '',
+            code: route.route_depots.code ?? '',
         }
         : null,
     route_zones: route.route_zones
         ? {
-            id: route.route_zones.id,
-            name: route.route_zones.name,
-            code: route.route_zones.code,
+            id: route.route_zones.id ?? 0,
+            name: route.route_zones.name ?? '',
+            code: route.route_zones.code ?? '',
         }
         : null,
-    routes_salesperson: route.routes_salesperson
-        ? {
-            id: route.routes_salesperson.id,
-            name: route.routes_salesperson.name,
-            email: route.routes_salesperson.email,
-        }
-        : null,
+    salespersons: route.salespersons?.map((sp) => ({
+        id: sp.id,
+        role: sp.role,
+        is_active: sp.is_active,
+        user: {
+            id: sp.user?.id ?? 0,
+            name: sp.user?.name ?? '',
+            email: sp.user?.email ?? '',
+        },
+    })) || [],
     routes_route_type: route.routes_route_type
         ? {
             id: route.routes_route_type.id,
@@ -153,8 +156,6 @@ exports.routesController = {
                 createdate: new Date(),
                 createdby: req.user?.id || 1,
                 log_inst: data.log_inst || 1,
-                parent_id: data.parent_id,
-                depot_id: data.depot_id,
                 route_depots: {
                     connect: { id: data.depot_id },
                 },
@@ -165,9 +166,17 @@ exports.routesController = {
                     connect: { id: data.route_type_id },
                 },
             };
-            if (data.salesperson_id) {
-                createData.routes_salesperson = {
-                    connect: { id: data.salesperson_id },
+            // if (data.salesperson_id) {
+            //   createData.routes_salesperson = {
+            //     connect: { id: data.salesperson_id },
+            //   };
+            // }
+            if (data.salespersons) {
+                createData.salespersons = {
+                    create: data.salespersons.map((sp) => ({
+                        user_id: sp.user_id,
+                        role: sp.role || 'PRIMARY',
+                    })),
                 };
             }
             const route = await prisma_client_1.default.routes.create({
@@ -176,7 +185,11 @@ exports.routesController = {
                     customer_routes: true,
                     route_depots: true,
                     route_zones: true,
-                    routes_salesperson: true,
+                    salespersons: {
+                        include: {
+                            user: true,
+                        },
+                    },
                     routes_route_type: true,
                     visit_routes: true,
                 },
@@ -225,7 +238,11 @@ exports.routesController = {
                     customer_routes: true,
                     route_depots: true,
                     route_zones: true,
-                    routes_salesperson: true,
+                    salespersons: {
+                        include: {
+                            user: true,
+                        },
+                    },
                     routes_route_type: true,
                     visit_routes: true,
                 },
@@ -269,7 +286,7 @@ exports.routesController = {
                     customer_routes: true,
                     route_depots: true,
                     route_zones: true,
-                    routes_salesperson: true,
+                    // routes_salesperson: true,
                     routes_route_type: true,
                     visit_routes: {
                         include: {
@@ -319,13 +336,11 @@ exports.routesController = {
                 updatedby: req.user?.id || 1,
             };
             if (data.depot_id !== undefined) {
-                updateData.depot_id = data.depot_id;
                 updateData.route_depots = {
                     connect: { id: data.depot_id },
                 };
             }
             if (data.parent_id !== undefined) {
-                updateData.parent_id = data.parent_id;
                 updateData.route_zones = {
                     connect: { id: data.parent_id },
                 };
@@ -335,18 +350,6 @@ exports.routesController = {
                     connect: { id: data.route_type_id },
                 };
             }
-            if (data.salesperson_id !== undefined) {
-                if (data.salesperson_id === null) {
-                    updateData.salesperson_id = null;
-                    updateData.routes_salesperson = { disconnect: true };
-                }
-                else {
-                    updateData.salesperson_id = data.salesperson_id;
-                    updateData.routes_salesperson = {
-                        connect: { id: data.salesperson_id },
-                    };
-                }
-            }
             const route = await prisma_client_1.default.routes.update({
                 where: { id: Number(id) },
                 data: updateData,
@@ -354,7 +357,11 @@ exports.routesController = {
                     customer_routes: true,
                     route_depots: true,
                     route_zones: true,
-                    routes_salesperson: true,
+                    salespersons: {
+                        include: {
+                            user: true,
+                        },
+                    },
                     routes_route_type: true,
                     visit_routes: true,
                 },
@@ -378,7 +385,11 @@ exports.routesController = {
                 include: {
                     route_depots: true,
                     route_zones: true,
-                    routes_salesperson: true,
+                    salespersons: {
+                        include: {
+                            user: true,
+                        },
+                    },
                     routes_route_type: true,
                     customer_routes: true,
                     visit_routes: true,
