@@ -70,7 +70,6 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
   setValue,
   value,
   onChange,
-  nameToSearch,
   className,
   placeholder = 'Select Users...',
   colorPattern = 'blue',
@@ -82,14 +81,9 @@ const MultiUserSelect: React.FC<MultiUserSelectProps> = ({
     data: usersResponse,
     isFetching,
     refetch,
-  } = useUsersDropdown(
-    {
-      search: inputValue,
-    },
-    {
-      enabled: inputValue.length > 0 || !!nameToSearch,
-    }
-  );
+  } = useUsersDropdown({
+    search: inputValue,
+  });
 
   const users = usersResponse?.data || [];
 

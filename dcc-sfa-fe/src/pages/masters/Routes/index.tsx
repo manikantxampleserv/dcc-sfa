@@ -1,20 +1,22 @@
 import {
-  Add,
-  Block,
-  CheckCircle,
-  Download,
-  Upload,
-  Visibility,
-} from '@mui/icons-material';
-import {
-  Alert,
+  AvatarGroup,
   Avatar,
   Box,
   Chip,
   MenuItem,
   Tooltip,
   Typography,
+  Alert,
 } from '@mui/material';
+import {
+  Add as AddIcon,
+  Block,
+  Block as BlockIcon,
+  CheckCircle,
+  Download,
+  Upload,
+  Visibility,
+} from '@mui/icons-material';
 import { useDepots } from 'hooks/useDepots';
 import { usePermission } from 'hooks/usePermission';
 import { useDeleteRoute, useRoutes, type Route } from 'hooks/useRoutes';
@@ -234,26 +236,32 @@ const RoutesManagement: React.FC = () => {
       label: 'Sales Person',
       render: (_value, row) => (
         <Box className="!flex !items-center !gap-2">
-          {row.routes_salesperson ? (
+          {row.salespersons && row.salespersons.length > 0 ? (
             <>
-              <Avatar
-                alt={row.routes_salesperson.name}
-                src={row.routes_salesperson.profile_image || 'mkx'}
-                className="!rounded !bg-primary-100 !text-primary-600"
-              />
-
-              <Box>
-                <Typography variant="body2" className="!font-medium">
-                  {row.routes_salesperson.name}
-                </Typography>
-                <Typography variant="caption" className="!text-gray-500">
-                  {row.routes_salesperson.email}
-                </Typography>
+              <Box className="!flex !items-center !gap-2">
+                <AvatarGroup max={3}>
+                  {row.salespersons.map(sp => (
+                    <Tooltip
+                      title={`${sp.user.name} (${sp.role})`}
+                      arrow
+                      placement="top"
+                    >
+                      <Avatar
+                        key={sp.id}
+                        alt={sp.user.name}
+                        src={'mkx'}
+                        className="!bg-primary-100 !text-primary-600"
+                      >
+                        {sp.user.name.charAt(0).toUpperCase()}
+                      </Avatar>
+                    </Tooltip>
+                  ))}
+                </AvatarGroup>
               </Box>
             </>
           ) : (
             <>
-              <Block className="w-4 h-4 text-gray-400" />
+              <BlockIcon className="w-4 h-4 text-gray-400" />
               <Typography variant="body2" className="!text-gray-500">
                 Unassigned
               </Typography>
@@ -281,7 +289,7 @@ const RoutesManagement: React.FC = () => {
       label: 'Status',
       render: is_active => (
         <Chip
-          icon={is_active === 'Y' ? <CheckCircle /> : <Block />}
+          icon={is_active === 'Y' ? <CheckCircle /> : <BlockIcon />}
           label={is_active === 'Y' ? 'Active' : 'Inactive'}
           size="small"
           variant="outlined"
@@ -467,7 +475,7 @@ const RoutesManagement: React.FC = () => {
                     variant="contained"
                     className="!capitalize"
                     disableElevation
-                    startIcon={<Add />}
+                    startIcon={<AddIcon />}
                     onClick={handleCreateRoute}
                   >
                     Create

@@ -9,6 +9,17 @@ interface Route {
   code: string;
   description?: string | null;
   salesperson_id?: number | null;
+  route_type_id?: number | null;
+  salespersons?: Array<{
+    id: number;
+    role: string;
+    is_active: string;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+    };
+  }>;
   start_location?: string | null;
   end_location?: string | null;
   estimated_distance?: string | null; // API returns string
@@ -83,7 +94,10 @@ interface ManageRoutePayload {
   depot_id: number;
   name: string;
   description?: string;
-  salesperson_id?: number;
+  salespersons?: Array<{
+    user_id: number;
+    role?: string;
+  }>;
   start_location?: string;
   end_location?: string;
   estimated_distance?: number;
@@ -96,7 +110,10 @@ interface UpdateRoutePayload {
   depot_id?: number;
   name?: string;
   description?: string;
-  salesperson_id?: number;
+  salespersons?: Array<{
+    user_id: number;
+    role?: string;
+  }>;
   start_location?: string;
   end_location?: string;
   estimated_distance?: number;

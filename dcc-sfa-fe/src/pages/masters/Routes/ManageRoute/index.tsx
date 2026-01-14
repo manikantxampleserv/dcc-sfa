@@ -52,10 +52,10 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
     initialValues: {
       parent_id: selectedRoute?.parent_id?.toString() || '',
       depot_id: selectedRoute?.depot_id?.toString() || '',
-      route_type_id: (selectedRoute as any)?.route_type_id?.toString() || '',
+      route_type_id: selectedRoute?.route_type_id?.toString() || '',
       name: selectedRoute?.name || '',
       description: selectedRoute?.description || '',
-      sales_persons: (selectedRoute as any)?.sales_persons || [],
+      sales_persons: selectedRoute?.salespersons?.map(sp => sp.user.id) || [],
       start_location: selectedRoute?.start_location || '',
       end_location: selectedRoute?.end_location || '',
       estimated_distance: selectedRoute?.estimated_distance?.toString() || '',
@@ -72,7 +72,10 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
           route_type_id: Number(values.route_type_id),
           name: values.name,
           description: values.description,
-          sales_persons: values.sales_persons,
+          salespersons:
+            values.sales_persons?.map(userId => ({
+              user_id: userId,
+            })) || [],
           start_location: values.start_location,
           end_location: values.end_location,
           estimated_distance: values.estimated_distance
