@@ -70,7 +70,7 @@ export const createCoolerInspectionValidation = [
     .withMessage('Action taken must be less than 2000 characters'),
 
   body('next_inspection_due')
-    .optional()
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Next inspection due must be a valid date'),
 

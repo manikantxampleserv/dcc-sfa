@@ -1,4 +1,4 @@
-import { Add, Block, CheckCircle } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import { CreditCard, DollarSign, MapPin, Store, UserCheck } from 'lucide-react';
@@ -6,6 +6,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
@@ -17,6 +18,8 @@ import {
 } from '../../../hooks/useCustomers';
 import { useRoutes } from '../../../hooks/useRoutes';
 import { useZones } from '../../../hooks/useZones';
+import { useExportToExcel } from '../../../hooks/useImportExport';
+import ImportCustomers from './ImportCustomers';
 import ManageOutlet from './ManageOutlet';
 import {
   BUSINESS_TYPES,
@@ -31,6 +34,7 @@ const OutletsManagement: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedOutlet, setSelectedOutlet] = useState<Customer | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('outlet');
@@ -74,6 +78,7 @@ const OutletsManagement: React.FC = () => {
   const currentPage = (customersResponse?.meta?.page || 1) - 1;
 
   const deleteCustomerMutation = useDeleteCustomer();
+  const exportToExcelMutation = useExportToExcel();
 
   const totalCustomers = customersResponse?.stats?.total_customers ?? 0;
   const activeCustomers = customersResponse?.stats?.active_customers ?? 0;
@@ -108,6 +113,28 @@ const OutletsManagement: React.FC = () => {
     setSearch(value);
     setPage(1);
   }, []);
+
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      const filters = {
+        search,
+        isActive:
+          statusFilter === 'all'
+            ? undefined
+            : statusFilter === 'active'
+              ? 'Y'
+              : 'N',
+        type: typeFilter === 'all' ? undefined : typeFilter,
+      };
+
+      await exportToExcelMutation.mutateAsync({
+        tableName: 'customers',
+        filters,
+      });
+    } catch (error) {
+      console.error('Error exporting customers:', error);
+    }
+  }, [exportToExcelMutation, search, statusFilter, typeFilter]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
@@ -389,15 +416,49 @@ const OutletsManagement: React.FC = () => {
                 )}
               </div>
               {isCreate && (
-                <Button
-                  variant="contained"
-                  className="!capitalize"
-                  disableElevation
-                  startIcon={<Add />}
-                  onClick={handleCreateOutlet}
-                >
-                  Add Outlet
-                </Button>
+                <div className="flex items-center gap-2">
+                  {isRead && (
+                    <PopConfirm
+                      title="Export Customers"
+                      description="Are you sure you want to export the current customers data to Excel? This will include all filtered results."
+                      onConfirm={handleExportToExcel}
+                      confirmText="Export"
+                      cancelText="Cancel"
+                    >
+                      <Button
+                        variant="outlined"
+                        className="!capitalize"
+                        disableElevation
+                        startIcon={<Download />}
+                        disabled={exportToExcelMutation.isPending}
+                      >
+                        {exportToExcelMutation.isPending
+                          ? 'Exporting...'
+                          : 'Export'}
+                      </Button>
+                    </PopConfirm>
+                  )}
+                  {isRead && (
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      disableElevation
+                      startIcon={<Upload />}
+                      onClick={() => setImportDrawerOpen(true)}
+                    >
+                      Import
+                    </Button>
+                  )}
+                  <Button
+                    variant="contained"
+                    className="!capitalize"
+                    disableElevation
+                    startIcon={<Add />}
+                    onClick={handleCreateOutlet}
+                  >
+                    Add Outlet
+                  </Button>
+                </div>
               )}
             </div>
           ) : (
@@ -426,6 +487,11 @@ const OutletsManagement: React.FC = () => {
         setDrawerOpen={setDrawerOpen}
         routes={routes}
         zones={zones}
+      />
+
+      <ImportCustomers
+        drawerOpen={importDrawerOpen}
+        setDrawerOpen={setImportDrawerOpen}
       />
     </>
   );

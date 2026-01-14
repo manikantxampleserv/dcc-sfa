@@ -17,15 +17,12 @@ export const formatDate = (
   if (!dateString) {
     return null;
   }
-
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   };
-
   const formatOptions = { ...defaultOptions, ...options };
-
   try {
     return new Intl.DateTimeFormat('en-US', formatOptions).format(
       new Date(dateString)
@@ -81,13 +78,11 @@ export const formatRelativeTime = (
   if (!dateString) {
     return 'No Date';
   }
-
   try {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMs = now.getTime() - date.getTime();
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
     if (diffInDays === 0) {
       return 'Today';
     } else if (diffInDays === 1) {

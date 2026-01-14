@@ -57,9 +57,14 @@ export const createCoolerInstallationValidation = [
     .withMessage('Last service date must be a valid date'),
 
   body('next_service_due')
-    .optional({ checkFalsy: true })
+    .optional()
     .isISO8601()
     .withMessage('Next service due must be a valid date'),
+
+  body('next_inspection_due')
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .withMessage('Next inspection due must be a valid date'),
 
   body('status')
     .optional()

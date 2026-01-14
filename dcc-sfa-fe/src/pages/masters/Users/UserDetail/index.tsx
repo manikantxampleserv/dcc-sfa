@@ -25,13 +25,14 @@ const UserDetail: React.FC = () => {
   }
 
   const userId = parseInt(id, 10);
+
   const { data: userResponse, isLoading, error } = useUser(userId);
 
   const user = userResponse?.data;
 
   if (isLoading) {
     return (
-      <div className="flex items-start gap-5">
+      <div className="flex items-start gap-4">
         <div className="flex-2">
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-5 !text-center !relative">
             <div className="!absolute !top-4 !right-4">

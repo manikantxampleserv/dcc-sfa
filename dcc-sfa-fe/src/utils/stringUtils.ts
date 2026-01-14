@@ -12,3 +12,14 @@ export const formatLabel = (str: string | null | undefined): string => {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
+
+/**
+ * Utility function for combining class names with conditional logic
+ * @param inputs - Class names or conditional class objects
+ * @returns Combined class string
+ */
+export const cn = (
+  ...inputs: (string | undefined | null | false)[]
+): string => {
+  return inputs.filter(Boolean).join(' ').trim();
+};
