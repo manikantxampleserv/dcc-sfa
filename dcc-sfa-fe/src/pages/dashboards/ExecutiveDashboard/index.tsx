@@ -29,7 +29,6 @@ import {
   useTopProducts,
 } from '../../../hooks/useExecutiveDashboard';
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -154,7 +153,6 @@ const ExecutiveDashboard: React.FC = () => {
     },
   ];
 
-  // Transform data for Chart.js Line Chart
   const lineChartLabels = salesData?.labels || [];
   const lineChartDataValue = {
     labels: lineChartLabels,
@@ -170,7 +168,6 @@ const ExecutiveDashboard: React.FC = () => {
     ],
   };
 
-  // Transform data for Chart.js Doughnut Chart (Order Status)
   const pieChartLabels =
     orderStatus?.labels.map(
       label => label?.charAt(0).toUpperCase() + label?.slice(1)
@@ -192,7 +189,6 @@ const ExecutiveDashboard: React.FC = () => {
     ],
   };
 
-  // Transform data for Chart.js Bar Chart
   const barChartLabels =
     topProducts?.products.map(product =>
       product.length > 15 ? product.substring(0, 15) + '...' : product
@@ -211,7 +207,6 @@ const ExecutiveDashboard: React.FC = () => {
     ],
   };
 
-  // Area chart data (revenue trend) - Line chart with fill
   const areaChartDataValue = {
     labels: lineChartLabels,
     datasets: [
@@ -226,7 +221,6 @@ const ExecutiveDashboard: React.FC = () => {
     ],
   };
 
-  // Composed chart data (Sales vs Average Orders per day)
   const averageDailyOrders = stats
     ? Math.round(stats.totalOrders.value / Math.max(lineChartLabels.length, 1))
     : 0;
@@ -258,7 +252,6 @@ const ExecutiveDashboard: React.FC = () => {
     ],
   };
 
-  // Revenue distribution (Pie chart)
   const revenueDistributionData = stats
     ? [
         {
@@ -291,7 +284,6 @@ const ExecutiveDashboard: React.FC = () => {
     ],
   };
 
-  // Check if charts have valid data
   const hasLineChartData = lineChartLabels.length > 0;
   const hasPieChartData = pieChartLabels.length > 0;
   const hasBarChartData = barChartLabels.length > 0;
@@ -299,7 +291,6 @@ const ExecutiveDashboard: React.FC = () => {
   const hasComposedChartData = lineChartLabels.length > 0;
   const hasRevenueDistributionData = revenueDistributionData.length > 0;
 
-  // Common chart options
   const commonChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
