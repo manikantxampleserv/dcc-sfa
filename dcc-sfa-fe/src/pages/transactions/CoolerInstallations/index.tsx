@@ -5,6 +5,7 @@ import {
   Download,
   Upload,
   Visibility,
+  BugReport,
 } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import {
@@ -32,6 +33,7 @@ import ManageCoolerInstallation from './ManageCoolerInstallation';
 const CoolerInstallationsManagement: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [shouldThrowTestError, setShouldThrowTestError] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [operationalStatusFilter, setOperationalStatusFilter] = useState('all');
   const [technicianFilter, setTechnicianFilter] = useState<string>('all');
@@ -392,6 +394,10 @@ const CoolerInstallationsManagement: React.FC = () => {
       : []),
   ];
 
+  if (shouldThrowTestError) {
+    throw new Error('Test error triggered from Cooler Installations page!');
+  }
+
   return (
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
@@ -435,6 +441,26 @@ const CoolerInstallationsManagement: React.FC = () => {
           isLoading={isLoading || isFetching}
         />
       </div>
+
+      {/* 🧪 ErrorBoundary Test Button - Remove in production */}
+      {import.meta.env.DEV && (
+        <Box sx={{ mb: 3, p: 2, border: '2px dashed orange', borderRadius: 2 }}>
+          <Typography variant="subtitle2" gutterBottom color="warning.main">
+            🧪 ErrorBoundary Test (Development Only)
+          </Typography>
+          <Button
+            variant="outlined"
+            color="warning"
+            size="small"
+            startIcon={<BugReport />}
+            onClick={() => {
+              setShouldThrowTestError(true);
+            }}
+          >
+            Trigger ErrorBoundary Test
+          </Button>
+        </Box>
+      )}
 
       {error && (
         <Alert severity="error" className="!mb-4">

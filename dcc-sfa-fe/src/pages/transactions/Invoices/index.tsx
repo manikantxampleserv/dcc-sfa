@@ -3,6 +3,7 @@ import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import { useDeleteInvoice, useInvoices, type Invoice } from 'hooks/useInvoices';
+import { useCurrency } from 'hooks/useCurrency';
 import {
   AlertTriangle,
   Calendar,
@@ -30,6 +31,7 @@ import InvoicePaymentTracking from './InvoicePaymentTracking';
 import ManageInvoice from './ManageInvoice';
 
 const InvoicesManagement: React.FC = () => {
+  const { formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -138,14 +140,6 @@ const InvoicesManagement: React.FC = () => {
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount === null || amount === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-
   const getStatusColor = (status: string) => {
     const colors = {
       draft: '!bg-gray-100 !text-gray-800',
@@ -183,7 +177,7 @@ const InvoicesManagement: React.FC = () => {
 
   const invoiceColumns: TableColumn<Invoice>[] = [
     {
-      id: 'invoice_info',
+      id: 'invoice_number',
       label: 'Invoice Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
@@ -211,7 +205,7 @@ const InvoicesManagement: React.FC = () => {
       ),
     },
     {
-      id: 'customer',
+      id: 'customer.name',
       label: 'Customer',
       render: (_value, row) => (
         <Box>
@@ -249,7 +243,7 @@ const InvoicesManagement: React.FC = () => {
       ),
     },
     {
-      id: 'dates',
+      id: 'invoice_date',
       label: 'Dates',
       render: (_value, row) => (
         <Box>
@@ -270,25 +264,25 @@ const InvoicesManagement: React.FC = () => {
       ),
     },
     {
-      id: 'amounts',
+      id: 'total_amount',
       label: 'Amounts',
       render: (_value, row) => (
         <Box>
           <Typography variant="body2" className="!text-gray-900 !font-medium">
-            Total: {formatCurrency(row.total_amount)}
+            Total: {formatCurrency(row.total_amount || 0)}
           </Typography>
           <Typography
             variant="caption"
             className="!text-green-600 !text-xs !block !mt-0.5"
           >
-            Paid: {formatCurrency(row.amount_paid)}
+            Paid: {formatCurrency(row.amount_paid || 0)}
           </Typography>
           {row.balance_due && row.balance_due > 0 && (
             <Typography
               variant="caption"
               className="!text-red-600 !text-xs !block !mt-0.5"
             >
-              Balance: {formatCurrency(row.balance_due)}
+              Balance: {formatCurrency(row.balance_due || 0)}
             </Typography>
           )}
         </Box>

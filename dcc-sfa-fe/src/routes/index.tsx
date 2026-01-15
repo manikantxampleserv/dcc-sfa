@@ -1,4 +1,5 @@
 import ProtectedRoute from 'components/ProtectedRoute';
+import ErrorBoundary from 'components/ErrorBoundary';
 import PermissionGuard from 'shared/PermissionGuard';
 import Layout from 'layout';
 import Login from 'pages/auth/Login';
@@ -121,6 +122,7 @@ const router = createBrowserRouter(
           <Layout />
         </ProtectedRoute>
       ),
+      errorElement: <ErrorBoundary showFallback />,
       children: [
         {
           path: '/',

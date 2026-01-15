@@ -4342,6 +4342,11 @@ export const vanInventoryController = {
             email: true,
             phone_number: true,
             profile_image: true,
+            user_role: {
+              select: {
+                name: true,
+              },
+            },
           },
         });
 
@@ -4472,6 +4477,7 @@ export const vanInventoryController = {
             salesperson_email: salesperson.email,
             salesperson_phone: salesperson.phone_number,
             salesperson_profile_image: salesperson.profile_image,
+            salesperson_role: salesperson.user_role.name,
             total_van_inventories: vanInventories.length,
             total_products: products.length,
             total_quantity: totalQuantity,
@@ -4530,6 +4536,11 @@ export const vanInventoryController = {
           email: true,
           phone_number: true,
           profile_image: true,
+          user_role: {
+            select: {
+              name: true,
+            },
+          },
         },
       });
 
@@ -4953,6 +4964,11 @@ export const vanInventoryController = {
             email: true,
             phone_number: true,
             profile_image: true,
+            user_role: {
+              select: {
+                name: true,
+              },
+            },
           },
         });
 
@@ -5066,6 +5082,7 @@ export const vanInventoryController = {
             salesperson_email: salesperson.email,
             salesperson_phone: salesperson.phone_number,
             salesperson_profile_image: salesperson.profile_image,
+            salesperson_role: salesperson.user_role.name,
             total_van_inventories: processedVanInventories.length,
             total_products: totalProducts,
             total_quantity: totalQuantity,
@@ -5116,6 +5133,11 @@ export const vanInventoryController = {
           email: true,
           phone_number: true,
           profile_image: true,
+          user_role: {
+            select: {
+              name: true,
+            },
+          },
         },
       });
 
@@ -5221,6 +5243,7 @@ export const vanInventoryController = {
             salesperson_name: salesperson.name,
             salesperson_email: salesperson.email,
             salesperson_phone: salesperson.phone_number,
+            salesperson_role: salesperson.user_role.name,
             salesperson_profile_image: salesperson.profile_image,
             total_van_inventories: 0,
             total_products: 0,

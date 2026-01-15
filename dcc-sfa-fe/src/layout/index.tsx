@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Header from '../shared/Header';
 import Sidebar from '../shared/UpdatedSidebar';
 import BreadCrumbs from 'shared/BreadCrumbs';
+import { CurrencyProvider } from '../context/CurrencyContext';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -43,7 +44,10 @@ const Layout: React.FC = () => {
     const lastSegment = pathSegments[pathSegments.length - 1] || '';
     const isNumeric = /^\d+$/.test(lastSegment);
 
-    if (location.pathname === '/' || location.pathname === '/dashboard/executive') {
+    if (
+      location.pathname === '/' ||
+      location.pathname === '/dashboard/executive'
+    ) {
       return 'Executive Dashboard';
     }
 
@@ -65,20 +69,22 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-        <BreadCrumbs
-          navItem={getNavItem()}
-          navLink={location.pathname}
-          id={location.pathname}
-        />
-        <main ref={mainRef} className="flex-1 overflow-auto p-5">
-          <Outlet key={outletKey} />
-        </main>
+    <CurrencyProvider>
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+          <BreadCrumbs
+            navItem={getNavItem()}
+            navLink={location.pathname}
+            id={location.pathname}
+          />
+          <main ref={mainRef} className="flex-1 overflow-auto p-5">
+            <Outlet key={outletKey} />
+          </main>
+        </div>
       </div>
-    </div>
+    </CurrencyProvider>
   );
 };
 

@@ -54,6 +54,7 @@ interface Order {
     name: string;
     code: string;
     type: string;
+    profile_image: string;
   } | null;
   salesperson?: {
     id: number;

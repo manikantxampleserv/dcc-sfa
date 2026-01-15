@@ -5,8 +5,7 @@ import type {
   SingleSalespersonResponse,
 } from 'hooks/useInventoryItems';
 import { usePermission } from 'hooks/usePermission';
-import { useSettings } from 'hooks/useSettings';
-import { useCurrencies } from 'hooks/useCurrencies';
+import { useCurrency } from 'hooks/useCurrency';
 import {
   AlertTriangle,
   Clock,
@@ -27,42 +26,12 @@ const InventoryItems: React.FC = () => {
   const navigate = useNavigate();
 
   const { isRead } = usePermission('dashboard');
-
-  const { data: settingsResponse } = useSettings();
-  const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
-
-  const settings = settingsResponse?.data;
-  const currencies = currenciesResponse?.data || [];
-  const defaultCurrencyId = settings?.currency_id || 1;
-  const defaultCurrency = currencies.find(c => c.id === defaultCurrencyId);
+  const { formatCurrency } = useCurrency();
 
   const { data: inventoryResponse, isLoading: isLoadingInventory } =
     useInventoryItems({ page: 1, limit: 50 }, { enabled: isRead });
 
   const isLoading = isLoadingInventory;
-
-  const formatCurrency = (value: number) => {
-    const currency = defaultCurrency?.code || 'INR';
-    const currencyToLocale: Record<string, string> = {
-      USD: 'en-US',
-      EUR: 'de-DE',
-      GBP: 'en-GB',
-      JPY: 'ja-JP',
-      CNY: 'zh-CN',
-      AUD: 'en-AU',
-      CAD: 'en-CA',
-      INR: 'en-IN',
-      AED: 'ar-AE',
-      SAR: 'ar-SA',
-    };
-    const locale = currencyToLocale[currency] || 'en-IN';
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
 
   const isAllSalespersonsResponse = (
     response?: AllSalespersonsResponse | SingleSalespersonResponse | null

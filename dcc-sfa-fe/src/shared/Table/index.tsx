@@ -123,6 +123,18 @@ export interface TableProps<T = any> {
 type Order = 'asc' | 'desc' | 'none';
 
 /**
+ * Get nested property value from object using dot notation
+ * @param obj - The object to get property from
+ * @param path - The property path (e.g., 'customer.name')
+ * @returns The property value
+ */
+function getNestedValue(obj: any, path: string): any {
+  return path.split('.').reduce((current, key) => {
+    return current && current[key] !== undefined ? current[key] : '';
+  }, obj);
+}
+
+/**
  * Comparator function for descending sort
  * @template T - The type of objects being compared
  * @param a - First object to compare
@@ -130,11 +142,14 @@ type Order = 'asc' | 'desc' | 'none';
  * @param orderBy - Property to compare by
  * @returns Comparison result
  */
-function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
-  if (b[orderBy] < a[orderBy]) {
+function descendingComparator<T>(a: T, b: T, orderBy: keyof T | string) {
+  const aValue = getNestedValue(a, String(orderBy));
+  const bValue = getNestedValue(b, String(orderBy));
+
+  if (bValue < aValue) {
     return -1;
   }
-  if (b[orderBy] > a[orderBy]) {
+  if (bValue > aValue) {
     return 1;
   }
   return 0;

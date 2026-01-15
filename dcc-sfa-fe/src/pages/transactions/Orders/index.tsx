@@ -3,6 +3,7 @@ import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { useDeleteOrder, useOrders, type Order } from 'hooks/useOrders';
 import { usePermission } from 'hooks/usePermission';
+import { useCurrency } from 'hooks/useCurrency';
 import {
   Calendar,
   CheckCircle as CheckCircleIcon,
@@ -28,6 +29,7 @@ import { formatDate } from 'utils/dateUtils';
 
 const OrdersManagement: React.FC = () => {
   const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -111,14 +113,6 @@ const OrdersManagement: React.FC = () => {
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount === null || amount === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-
   const getStatusColor = (status: string) => {
     const colors = {
       draft: 'info',
@@ -184,7 +178,7 @@ const OrdersManagement: React.FC = () => {
 
   const orderColumns: TableColumn<Order>[] = [
     {
-      id: 'order_info',
+      id: 'order_number',
       label: 'Order Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
@@ -214,24 +208,31 @@ const OrdersManagement: React.FC = () => {
       ),
     },
     {
-      id: 'customer',
+      id: 'customer.name',
       label: 'Customer',
       render: (_value, row) => (
-        <Box>
-          <Typography variant="body2" className="!text-gray-900 !font-medium">
-            {row.customer?.name || 'N/A'}
-          </Typography>
-          <Typography
-            variant="caption"
-            className="!text-gray-500 !text-xs !block !mt-0.5"
-          >
-            {row.customer?.code || 'N/A'}
-          </Typography>
+        <Box className="flex items-center !gap-2">
+          <Avatar
+            alt={row.customer?.name}
+            src={row.customer?.profile_image || 'mkx'}
+            className="!rounded !bg-primary-100 !text-primary-600"
+          />
+          <Box>
+            <Typography variant="body2" className="!text-gray-900 !font-medium">
+              {row.customer?.name || 'N/A'}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.customer?.code || 'N/A'}
+            </Typography>
+          </Box>
         </Box>
       ),
     },
     {
-      id: 'salesperson',
+      id: 'salesperson.name',
       label: 'Sales Person',
       render: (_value, row) => (
         <Box className="flex items-center !gap-2">
@@ -295,7 +296,7 @@ const OrdersManagement: React.FC = () => {
       ),
     },
     {
-      id: 'dates',
+      id: 'order_date',
       label: 'Dates',
       render: (_value, row) => (
         <Box>
@@ -313,18 +314,18 @@ const OrdersManagement: React.FC = () => {
       ),
     },
     {
-      id: 'amount',
+      id: 'total_amount',
       label: 'Amount',
       render: (_value, row) => (
         <Box>
           <Typography variant="body2" className="!text-gray-900 !font-medium">
-            {formatCurrency(row.total_amount)}
+            {formatCurrency(row.total_amount || 0)}
           </Typography>
           <Typography
             variant="caption"
             className="!text-gray-500 !text-xs !block !mt-0.5"
           >
-            Subtotal: {formatCurrency(row.subtotal)}
+            Subtotal: {formatCurrency(row.subtotal || 0)}
           </Typography>
         </Box>
       ),

@@ -1,4 +1,26 @@
+import { Skeleton } from '@mui/material';
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+} from 'chart.js';
+import {
+  useDashboardStatistics,
+  useOrderStatus,
+  useSalesPerformance,
+  useTopProducts,
+} from 'hooks/useExecutiveDashboard';
+import { useCurrency } from 'hooks/useCurrency';
 import React from 'react';
+import { Bar, Chart, Doughnut, Line, Pie } from 'react-chartjs-2';
 import {
   FaChartLine,
   FaClipboardList,
@@ -7,27 +29,6 @@ import {
   FaTruck,
   FaUsers,
 } from 'react-icons/fa';
-import { Skeleton } from '@mui/material';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-import { Line, Bar, Doughnut, Pie, Chart } from 'react-chartjs-2';
-import {
-  useDashboardStatistics,
-  useOrderStatus,
-  useSalesPerformance,
-  useTopProducts,
-} from '../../../hooks/useExecutiveDashboard';
 
 ChartJS.register(
   CategoryScale,
@@ -50,6 +51,7 @@ const ExecutiveDashboard: React.FC = () => {
     5
   );
   const { data: orderStatus, isLoading: orderStatusLoading } = useOrderStatus();
+  const { formatCurrency } = useCurrency();
 
   const CHART_COLORS = {
     primary: '#3b82f6',
@@ -124,7 +126,10 @@ const ExecutiveDashboard: React.FC = () => {
     },
     {
       title: 'Sales Revenue',
-      value: stats?.salesRevenue.formatted || '₹0.0L',
+      value: formatCurrency(
+        stats?.salesRevenue.value || 0,
+        stats?.salesRevenue.formatted
+      ),
       description: `${stats?.salesRevenue.growthPercentage || '0'}% vs Target`,
       icon: FaMoneyBillWave,
       color: 'green',
@@ -231,7 +236,7 @@ const ExecutiveDashboard: React.FC = () => {
     labels: lineChartLabels,
     datasets: [
       {
-        label: 'Sales (₹)',
+        label: 'Sales',
         data: salesData?.sales || [],
         type: 'bar' as const,
         backgroundColor: CHART_COLORS.warning,
@@ -256,19 +261,13 @@ const ExecutiveDashboard: React.FC = () => {
     ? [
         {
           name: 'Achieved',
-          value:
-            parseFloat(stats.salesRevenue.formatted.replace(/[₹L]/g, '')) || 0,
+          value: stats?.salesRevenue.value || 0,
         },
         {
           name: 'Pending',
           value:
             (stats.salesRevenue.target
-              ? parseFloat(
-                  String(stats.salesRevenue.target).replace(/[₹L]/g, '')
-                ) -
-                (parseFloat(
-                  stats.salesRevenue.formatted.replace(/[₹L]/g, '')
-                ) || 0)
+              ? stats.salesRevenue.target - (stats.salesRevenue.value || 0)
               : 0) || 0,
         },
       ].filter(item => item.value > 0)
@@ -307,7 +306,8 @@ const ExecutiveDashboard: React.FC = () => {
       ...commonChartOptions.plugins,
       tooltip: {
         callbacks: {
-          label: (context: any) => `Daily Sales: ${context.parsed.y}`,
+          label: (context: any) =>
+            `Daily Sales: ${formatCurrency(context.parsed.y)}`,
         },
       },
     },
@@ -330,7 +330,7 @@ const ExecutiveDashboard: React.FC = () => {
           label: (context: any) => {
             const index = context.dataIndex;
             const fullName = barChartFullNames[index];
-            return `${fullName || context.dataset.label}: ${context.parsed.y}`;
+            return `${fullName || context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
           },
         },
       },
@@ -360,7 +360,7 @@ const ExecutiveDashboard: React.FC = () => {
               0
             );
             const percentage = ((context.parsed / total) * 100).toFixed(1);
-            return `${context.label}: ${context.parsed} (${percentage}%)`;
+            return `${context.label}: ${formatCurrency(context.parsed)} (${percentage}%)`;
           },
         },
       },
@@ -388,6 +388,18 @@ const ExecutiveDashboard: React.FC = () => {
 
   const composedChartOptions = {
     ...commonChartOptions,
+    plugins: {
+      ...commonChartOptions.plugins,
+      tooltip: {
+        callbacks: {
+          label: (context: any) => {
+            const datasetLabel = context.dataset.label || '';
+            const value = context.parsed.y;
+            return `${datasetLabel}: ${formatCurrency(value)}`;
+          },
+        },
+      },
+    },
     scales: {
       x: {
         ticks: {
@@ -416,7 +428,7 @@ const ExecutiveDashboard: React.FC = () => {
 
   // Header Skeleton Component
   const HeaderSkeleton = () => (
-    <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+    <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
       <div className="flex justify-between items-center">
         <div className="flex-1">
           <Skeleton variant="text" width={280} height={32} className="!mb-2" />
@@ -448,7 +460,7 @@ const ExecutiveDashboard: React.FC = () => {
 
   // Stats Card Skeleton Component
   const StatsCardSkeleton = () => (
-    <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+    <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
       <div className="flex justify-between items-start mb-4">
         <Skeleton variant="text" width={120} height={16} />
         <Skeleton
@@ -525,7 +537,7 @@ const ExecutiveDashboard: React.FC = () => {
   // Doughnut Chart Skeleton Component
   const DoughnutChartSkeleton = () => (
     <div className="h-72 w-full flex flex-col items-center justify-center">
-      <div className="relative mb-6">
+      <div className="relative mb-4">
         <Skeleton
           variant="circular"
           width={200}
@@ -580,20 +592,20 @@ const ExecutiveDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         <HeaderSkeleton />
 
         {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
             <StatsCardSkeleton key={i} />
           ))}
         </div>
 
         {/* Charts Row Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2">
-            <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+            <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
               <ChartSkeleton height={288} />
             </div>
           </div>
@@ -611,23 +623,23 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
 
         {/* Top Products Chart Skeleton */}
-        <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+        <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
           <ChartSkeleton height={288} />
         </div>
 
         {/* Revenue Trend Chart Skeleton */}
-        <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+        <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
           <ChartSkeleton height={288} />
         </div>
 
         {/* Composed Chart Skeleton */}
-        <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+        <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
           <ChartSkeleton height={320} />
         </div>
 
         {/* Revenue Distribution Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <Skeleton
               variant="text"
               width={180}
@@ -643,7 +655,7 @@ const ExecutiveDashboard: React.FC = () => {
               />
             </div>
           </div>
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <Skeleton
               variant="text"
               width={150}
@@ -658,8 +670,8 @@ const ExecutiveDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+    <div className="flex flex-col gap-4">
+      <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-semibold text-blue-600 mb-1">
@@ -671,7 +683,11 @@ const ExecutiveDashboard: React.FC = () => {
           </div>
           <div className="flex gap-3">
             <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-              {stats?.salesRevenue.formatted || '₹0.0L'} Revenue MTD
+              {formatCurrency(
+                stats?.salesRevenue.value || 0,
+                stats?.salesRevenue.formatted
+              )}{' '}
+              Revenue MTD
             </span>
             <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
               {stats?.totalOrders.value.toLocaleString() || '0'} Orders
@@ -683,14 +699,14 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats_cards.map(stat => {
           const colors = getColorClasses(stat.color);
 
           return (
             <div
               key={stat.title}
-              className="bg-white shadow-sm p-6 rounded-lg border border-gray-100"
+              className="bg-white shadow-sm p-5 rounded-lg border border-gray-100"
             >
               <div className="flex justify-between items-start mb-4">
                 <span className="text-sm text-gray-500 font-medium">
@@ -723,9 +739,9 @@ const ExecutiveDashboard: React.FC = () => {
         })}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Sales Performance & Trends
             </h3>
@@ -749,7 +765,7 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
 
         <div className="md:col-span-1">
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Order Status
             </h3>
@@ -776,9 +792,9 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-4">
         {hasBarChartData && (
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Top Selling Products (Last 30 Days)
             </h3>
@@ -793,7 +809,7 @@ const ExecutiveDashboard: React.FC = () => {
         )}
 
         {hasAreaChartData && (
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Revenue Trend
             </h3>
@@ -809,7 +825,7 @@ const ExecutiveDashboard: React.FC = () => {
       </div>
 
       {hasComposedChartData && (
-        <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+        <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Sales vs Orders Performance
           </h3>
@@ -828,8 +844,8 @@ const ExecutiveDashboard: React.FC = () => {
       )}
 
       {hasRevenueDistributionData && revenueDistributionData.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Revenue vs Target
             </h3>
@@ -841,7 +857,7 @@ const ExecutiveDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
+          <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Sales Distribution
             </h3>
@@ -854,7 +870,10 @@ const ExecutiveDashboard: React.FC = () => {
                         Total Revenue
                       </span>
                       <span className="text-sm font-semibold">
-                        {stats.salesRevenue.formatted}
+                        {formatCurrency(
+                          stats.salesRevenue.value || 0,
+                          stats.salesRevenue.formatted
+                        )}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">

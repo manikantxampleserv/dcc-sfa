@@ -1,4 +1,4 @@
-import axiosInstance from 'configs/axio.config';
+import axiosInstance from '../../../configs/axio.config';
 import type { ApiResponse } from 'types/api.types';
 
 export interface CoolerInstallation {

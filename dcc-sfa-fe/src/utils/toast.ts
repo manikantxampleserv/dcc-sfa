@@ -20,6 +20,75 @@ const defaultOptions = {
 };
 
 /**
+ * Toast message tracking for duplicate prevention
+ */
+const activeToasts = new Map<string, { id: Id; timestamp: number }>();
+const DUPLICATE_CHECK_TIME = 5000; // 5 seconds
+
+/**
+ * Generate unique key for toast message
+ * @param message - Toast message
+ * @param type - Toast type
+ * @returns Unique key
+ */
+function generateToastKey(message: string, type: string): string {
+  return `${type}:${message.toLowerCase().trim()}`;
+}
+
+/**
+ * Check if toast is a duplicate
+ * @param message - Toast message
+ * @param type - Toast type
+ * @returns True if duplicate
+ */
+function isDuplicateToast(message: string, type: string): boolean {
+  const key = generateToastKey(message, type);
+  const existing = activeToasts.get(key);
+
+  if (!existing) return false;
+
+  const timeDiff = Date.now() - existing.timestamp;
+  return timeDiff < DUPLICATE_CHECK_TIME;
+}
+
+/**
+ * Track toast for duplicate prevention
+ * @param message - Toast message
+ * @param type - Toast type
+ * @param toastId - Toast ID
+ */
+function trackToast(message: string, type: string, toastId: Id): void {
+  const key = generateToastKey(message, type);
+  activeToasts.set(key, { id: toastId, timestamp: Date.now() });
+}
+
+/**
+ * Remove toast from tracking
+ * @param message - Toast message
+ * @param type - Toast type
+ */
+function removeToastTracking(message: string, type: string): void {
+  const key = generateToastKey(message, type);
+  activeToasts.delete(key);
+}
+
+/**
+ * Clean up old toast tracking
+ */
+function cleanupOldToasts(): void {
+  const now = Date.now();
+  const keysToDelete: string[] = [];
+
+  activeToasts.forEach((toast, key) => {
+    if (now - toast.timestamp > DUPLICATE_CHECK_TIME) {
+      keysToDelete.push(key);
+    }
+  });
+
+  keysToDelete.forEach(key => activeToasts.delete(key));
+}
+
+/**
  * Global Toast Service
  * @description Provides standardized toast notifications across the application
  */
@@ -28,40 +97,100 @@ class ToastService {
    * Show success toast
    * @param message - Success message to display
    * @param options - Additional toast options
-   * @returns Toast ID
+   * @returns Toast ID or null if duplicate
    */
-  success(message: string, options?: any): Id {
-    return toast.success(message, { ...defaultOptions, ...options });
+  success(message: string, options?: any): Id | null {
+    if (isDuplicateToast(message, 'success')) {
+      return null;
+    }
+
+    cleanupOldToasts();
+    const toastId = toast.success(message, {
+      ...defaultOptions,
+      ...options,
+      onClose: () => {
+        removeToastTracking(message, 'success');
+        options?.onClose?.();
+      },
+    });
+
+    trackToast(message, 'success', toastId);
+    return toastId;
   }
 
   /**
    * Show error toast
    * @param message - Error message to display
    * @param options - Additional toast options
-   * @returns Toast ID
+   * @returns Toast ID or null if duplicate
    */
-  error(message: string, options?: any): Id {
-    return toast.error(message, { ...defaultOptions, ...options });
+  error(message: string, options?: any): Id | null {
+    if (isDuplicateToast(message, 'error')) {
+      return null;
+    }
+
+    cleanupOldToasts();
+    const toastId = toast.error(message, {
+      ...defaultOptions,
+      ...options,
+      onClose: () => {
+        removeToastTracking(message, 'error');
+        options?.onClose?.();
+      },
+    });
+
+    trackToast(message, 'error', toastId);
+    return toastId;
   }
 
   /**
    * Show warning toast
    * @param message - Warning message to display
    * @param options - Additional toast options
-   * @returns Toast ID
+   * @returns Toast ID or null if duplicate
    */
-  warning(message: string, options?: any): Id {
-    return toast.warning(message, { ...defaultOptions, ...options });
+  warning(message: string, options?: any): Id | null {
+    if (isDuplicateToast(message, 'warning')) {
+      return null;
+    }
+
+    cleanupOldToasts();
+    const toastId = toast.warning(message, {
+      ...defaultOptions,
+      ...options,
+      onClose: () => {
+        removeToastTracking(message, 'warning');
+        options?.onClose?.();
+      },
+    });
+
+    trackToast(message, 'warning', toastId);
+    return toastId;
   }
 
   /**
    * Show info toast
    * @param message - Info message to display
    * @param options - Additional toast options
-   * @returns Toast ID
+   * @returns Toast ID or null if duplicate
    */
-  info(message: string, options?: any): Id {
-    return toast.info(message, { ...defaultOptions, ...options });
+  info(message: string, options?: any): Id | null {
+    if (isDuplicateToast(message, 'info')) {
+      return null;
+    }
+
+    cleanupOldToasts();
+    const toastId = toast.info(message, {
+      ...defaultOptions,
+      ...options,
+      onClose: () => {
+        removeToastTracking(message, 'info');
+        options?.onClose?.();
+      },
+    });
+
+    trackToast(message, 'info', toastId);
+    return toastId;
   }
 
   /**
@@ -102,6 +231,16 @@ class ToastService {
    */
   dismiss(toastId?: Id): void {
     toast.dismiss(toastId);
+
+    // Remove from tracking if specific toast ID provided
+    if (toastId) {
+      for (const [key, trackedToast] of activeToasts.entries()) {
+        if (trackedToast.id === toastId) {
+          activeToasts.delete(key);
+          break;
+        }
+      }
+    }
   }
 
   /**
@@ -109,6 +248,35 @@ class ToastService {
    */
   dismissAll(): void {
     toast.dismiss();
+    activeToasts.clear();
+  }
+
+  /**
+   * Clear all network error toasts
+   * @description Specifically clears toasts related to network/connection errors
+   */
+  clearNetworkErrorToasts(): void {
+    const networkErrorIds: Id[] = [];
+    const networkErrorKeys: string[] = [];
+
+    activeToasts.forEach((toast, key) => {
+      const message = key.toLowerCase();
+      if (
+        message.includes('network') ||
+        message.includes('connection') ||
+        message.includes('server') ||
+        message.includes('unable to reach')
+      ) {
+        networkErrorIds.push(toast.id);
+        networkErrorKeys.push(key);
+      }
+    });
+
+    // Dismiss the toasts
+    networkErrorIds.forEach(id => toast.dismiss(id));
+
+    // Remove from tracking
+    networkErrorKeys.forEach(key => activeToasts.delete(key));
   }
 
   /**

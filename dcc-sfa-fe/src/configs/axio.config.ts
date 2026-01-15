@@ -141,6 +141,8 @@ axiosInstance.interceptors.response.use(
    */
   (response: CustomAxiosResponse): CustomAxiosResponse => {
     try {
+      toastService.clearNetworkErrorToasts();
+
       const startTime = response.config.metadata?.startTime;
       const duration = startTime ? Date.now() - startTime : 0;
 
@@ -269,21 +271,27 @@ async function handleUnauthorizedError(
   const countdownInterval = setInterval(() => {
     countdown--;
     if (countdown > 0) {
-      toastService.update(
-        toastId,
-        `Session expired. Redirecting to login in ${countdown}...`,
-        'warning'
-      );
+      if (toastId) {
+        toastService.update(
+          toastId,
+          `Session expired. Redirecting to login in ${countdown}...`,
+          'warning'
+        );
+      }
     } else {
       clearInterval(countdownInterval);
-      toastService.update(toastId, 'Redirecting to login...', 'warning');
+      if (toastId) {
+        toastService.update(toastId, 'Redirecting to login...', 'warning');
+      }
     }
   }, 1000);
 
   if (typeof window !== 'undefined') {
     setTimeout(() => {
       clearInterval(countdownInterval);
-      toastService.dismiss(toastId);
+      if (toastId) {
+        toastService.dismiss(toastId);
+      }
       window.location.href = '/login';
     }, 3000);
   }
@@ -376,6 +384,7 @@ function handleNetworkError(error: AxiosError): Promise<never> {
     message = 'Network error. Please check your internet connection.';
   }
 
+  // Show toast (toastService will handle duplicates automatically)
   showNotification(message, NotificationType.ERROR);
 
   return Promise.reject(new ApiErrorClass(message, 0, errorType, error));
@@ -433,24 +442,32 @@ function generateRequestId(): string {
  * Shows notification to user (implement based on your notification system)
  * @param {string} message - Notification message
  * @param {NotificationTypeType} type - Notification type
+ * @returns {import('react-toastify').Id | null} Toast ID for tracking
  */
-function showNotification(message: string, type: NotificationTypeType): void {
+function showNotification(
+  message: string,
+  type: NotificationTypeType
+): import('react-toastify').Id | null {
+  let toastId: import('react-toastify').Id | null = null;
+
   switch (type) {
     case NotificationType.SUCCESS:
-      toastService.success(message);
+      toastId = toastService.success(message);
       break;
     case NotificationType.ERROR:
-      toastService.error(message);
+      toastId = toastService.error(message);
       break;
     case NotificationType.WARNING:
-      toastService.warning(message);
+      toastId = toastService.warning(message);
       break;
     case NotificationType.INFO:
-      toastService.info(message);
+      toastId = toastService.info(message);
       break;
     default:
-      toastService.info(message);
+      toastId = toastService.info(message);
   }
+
+  return toastId;
 }
 
 /**
@@ -479,6 +496,17 @@ export const createRequest = (
  */
 export const resetSessionExpiredFlag = (): void => {
   isSessionExpiredHandled = false;
+};
+
+/**
+ * Clear active network error toast
+ * @returns {void}
+ * @example
+ * // Clear network error toast manually
+ * clearNetworkErrorToast();
+ */
+export const clearNetworkErrorToast = (): void => {
+  toastService.clearNetworkErrorToasts();
 };
 
 /**
