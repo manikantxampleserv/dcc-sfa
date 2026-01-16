@@ -2176,7 +2176,7 @@ model zones {
   visit_zones             visits[]             @relation("VisitZones")
   promotion_zones_zones   promotion_zones[]
   zone_supervisor         users?               @relation(fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  zone_depots             depots?              @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  zone_depots             depots               @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   route_zones             routes[]             @relation("ZoneRoutes")
 }
 
