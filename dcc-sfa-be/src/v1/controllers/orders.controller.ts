@@ -252,13 +252,11 @@ async function calculatePromotionsInternal(params: {
 
   const checkDate = new Date(order_date);
 
-  // Get customer details
   const customer = await prisma.customers.findUnique({
     where: { id: customer_id },
     select: { type: true },
   });
 
-  // Get active promotions
   const promotionsQuery: Prisma.promotionsWhereInput = {
     is_active: 'Y',
     start_date: { lte: checkDate },

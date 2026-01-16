@@ -7,24 +7,7 @@ export const customerValidationSchema = yup.object().shape({
     .min(2, 'Customer name must be at least 2 characters')
     .max(100, 'Customer name must be at most 100 characters'),
   zones_id: yup.string().nullable(),
-  type: yup
-    .string()
-    .oneOf(
-      [
-        'Retail',
-        'Wholesale',
-        'Corporate',
-        'Industrial',
-        'Healthcare',
-        'Automotive',
-        'Restaurant',
-        'Service',
-        'Manufacturing',
-        'Distribution',
-      ],
-      'Invalid customer type'
-    )
-    .nullable(),
+  type: yup.string().nullable(),
   contact_person: yup
     .string()
     .max(100, 'Contact person name must be at most 100 characters')
