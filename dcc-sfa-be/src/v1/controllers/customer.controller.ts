@@ -840,9 +840,28 @@ export const customerController = {
           }
         }
 
+        if (results.errors.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Bulk upsert completed with errors',
+            summary: {
+              total: customersData.length,
+              created: results.created.length,
+              updated: results.updated.length,
+              skipped: results.skipped.length,
+              errors: results.errors.length,
+              outlet_images_uploaded: uploadedImageUrls.filter(url => url)
+                .length,
+              profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
+                .length,
+            },
+            data: results,
+          });
+        }
+
         res.status(200).json({
           success: true,
-          message: 'Bulk upsert completed',
+          message: 'Bulk upsert completed successfully',
           summary: {
             total: customersData.length,
             created: results.created.length,
@@ -1789,9 +1808,27 @@ export const customerController = {
           }
         }
 
+        // Check if there were any processing errors
+        if (results.errors.length > 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Bulk create completed with errors',
+            summary: {
+              total: customersData.length,
+              created: results.created.length,
+              errors: results.errors.length,
+              outlet_images_uploaded: uploadedImageUrls.filter(url => url)
+                .length,
+              profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
+                .length,
+            },
+            data: results,
+          });
+        }
+
         res.status(200).json({
           success: true,
-          message: 'Bulk create completed',
+          message: 'Bulk create completed successfully',
           summary: {
             total: customersData.length,
             created: results.created.length,
