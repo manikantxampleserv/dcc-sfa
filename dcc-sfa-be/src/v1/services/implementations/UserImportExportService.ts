@@ -662,7 +662,6 @@ export class UserImportExportService extends ImportExportService<any> {
       });
 
       if (user.is_active === 'N') {
-        // ✅ FIX: Changed from isactive to is_active
         excelRow.getCell('is_active').font = {
           color: { argb: 'FFFF0000' },
           bold: true,
