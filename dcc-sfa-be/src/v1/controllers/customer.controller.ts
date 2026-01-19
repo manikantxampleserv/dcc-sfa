@@ -1553,7 +1553,6 @@ export const customerController = {
           }
         }
 
-        // Process customers individually to avoid MSSQL transaction conflicts
         for (
           let customerIndex = 0;
           customerIndex < customersData.length;
@@ -1597,7 +1596,6 @@ export const customerController = {
               }
             }
 
-            // Check if customer already exists - if so, skip creation
             let whereConditions: any = {};
             if (cleanData.email && cleanData.phone_number) {
               whereConditions.OR = [
@@ -1614,20 +1612,19 @@ export const customerController = {
               where: whereConditions,
             });
 
-            if (existingCustomer) {
-              results.errors.push({
-                customer: {
-                  name: customerData.name,
-                  email: customerData.email,
-                  phone_number: customerData.phone_number,
-                },
-                reason:
-                  'Customer already exists with this email or phone number',
-              });
-              continue;
-            }
+            // if (existingCustomer) {
+            //   results.errors.push({
+            //     customer: {
+            //       name: customerData.name,
+            //       email: customerData.email,
+            //       phone_number: customerData.phone_number,
+            //     },
+            //     reason:
+            //       'Customer already exists with this email or phone number',
+            //   });
+            //   continue;
+            // }
 
-            // Generate unique code if not provided
             if (!cleanData.code) {
               let uniqueCode = await generateCustomerCode(cleanData.name);
               let attempts = 0;
