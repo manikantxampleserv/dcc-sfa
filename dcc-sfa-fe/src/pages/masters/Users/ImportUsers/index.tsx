@@ -112,7 +112,7 @@ const ImportUsers: React.FC<ImportUsersProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Users"
-      size="large"
+      size="medium"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

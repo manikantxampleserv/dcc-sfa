@@ -1,10 +1,10 @@
 import { Box, MenuItem } from '@mui/material';
+import { useCurrency } from 'hooks/useCurrency';
 import { useDepots } from 'hooks/useDepots';
 import { usePermission } from 'hooks/usePermission';
 import { useRegionTerritorySalesReport } from 'hooks/useReports';
 import { useZones } from 'hooks/useZones';
 import {
-  DollarSign,
   Download,
   MapPin,
   ShoppingCart,
@@ -24,6 +24,7 @@ const RegionTerritorySalesReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [depotId, setDepotId] = useState<number | undefined>(undefined);
   const [zoneId, setZoneId] = useState<number | undefined>(undefined);
+  const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
   const { data: reportData, isLoading } = useRegionTerritorySalesReport(
@@ -114,7 +115,7 @@ const RegionTerritorySalesReport: React.FC = () => {
       id: 'total_order_value',
       label: 'Order Value',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'total_invoices',
@@ -126,7 +127,7 @@ const RegionTerritorySalesReport: React.FC = () => {
       id: 'total_invoice_value',
       label: 'Invoice Value',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'total_collection',
@@ -134,7 +135,7 @@ const RegionTerritorySalesReport: React.FC = () => {
       numeric: true,
       render: value => (
         <span className="font-semibold text-green-600">
-          ₹{Number(value).toLocaleString()}
+          {formatCurrency(Number(value))}
         </span>
       ),
     },
@@ -179,7 +180,7 @@ const RegionTerritorySalesReport: React.FC = () => {
       id: 'order_value',
       label: 'Order Value',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'invoices',
@@ -191,7 +192,7 @@ const RegionTerritorySalesReport: React.FC = () => {
       id: 'invoice_value',
       label: 'Invoice Value',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
   ];
 
@@ -335,11 +336,11 @@ const RegionTerritorySalesReport: React.FC = () => {
                 Total Collection
               </p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{summary.total_collection.toLocaleString()}
+                {formatCurrency(summary.total_collection)}
               </p>
             </div>
             <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-emerald-600" />
+              <TrendingUp className="w-6 h-6 text-emerald-600" />
             </div>
           </div>
         </div>

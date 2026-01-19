@@ -145,12 +145,10 @@ async function generateOrderNumber(tx) {
 async function calculatePromotionsInternal(params) {
     const { customer_id, depot_id, salesman_id, route_id, platform, order_date, order_lines, } = params;
     const checkDate = new Date(order_date);
-    // Get customer details
     const customer = await prisma_client_1.default.customers.findUnique({
         where: { id: customer_id },
         select: { type: true },
     });
-    // Get active promotions
     const promotionsQuery = {
         is_active: 'Y',
         start_date: { lte: checkDate },
@@ -1226,10 +1224,11 @@ exports.ordersController = {
                                     product_name: product.name,
                                     unit: item.unit || 'pcs',
                                     quantity: totalOrderedQty,
-                                    unit_price: Number(item.unit_price || item.price),
+                                    unit_price: Number(item.unit_price || item.price) || 0,
                                     discount_amount: Number(item.discount_amount) || 0,
                                     tax_amount: Number(item.tax_amount) || 0,
-                                    total_amount: totalOrderedQty * Number(item.unit_price || item.price),
+                                    total_amount: totalOrderedQty *
+                                        (Number(item.unit_price || item.price) || 0),
                                     notes: `Batches: ${batchData.map((b) => b.batch_lot_id).join(', ')}`,
                                     is_free_gift: false,
                                 },
@@ -1339,10 +1338,11 @@ exports.ordersController = {
                                     product_name: product.name,
                                     unit: 'pcs',
                                     quantity: serialData.length,
-                                    unit_price: Number(item.unit_price || item.price),
+                                    unit_price: Number(item.unit_price || item.price) || 0,
                                     discount_amount: Number(item.discount_amount || 0),
                                     tax_amount: Number(item.tax_amount || 0),
-                                    total_amount: serialData.length * Number(item.unit_price || item.price),
+                                    total_amount: serialData.length *
+                                        (Number(item.unit_price || item.price) || 0),
                                     notes: `Serials: ${serialData.map((s) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
                                     is_free_gift: false,
                                 },
@@ -1412,15 +1412,14 @@ exports.ordersController = {
                                     product_name: product.name,
                                     unit: item.unit || 'pcs',
                                     quantity: quantity,
-                                    unit_price: Number(item.unit_price || item.price),
+                                    unit_price: Number(item.unit_price || item.price) || 0,
                                     discount_amount: Number(item.discount_amount) || 0,
                                     tax_amount: Number(item.tax_amount) || 0,
-                                    total_amount: quantity * Number(item.unit_price || item.price),
+                                    total_amount: quantity * (Number(item.unit_price || item.price) || 0),
                                     notes: item.notes || null,
                                     is_free_gift: false,
                                 },
                             });
-                            console.log(` Sold ${quantity} units of ${product.name}`);
                         }
                     }
                     if (freeProducts.length > 0) {
@@ -1933,12 +1932,12 @@ exports.ordersController = {
                         where: { parent_id: order.id },
                     });
                     const itemsToCreate = items.map((item) => {
-                        const unitPrice = parseFloat(item.unit_price || item.price || '0');
+                        const unitPrice = parseFloat(item.unit_price || item.price || '0') || 0;
                         const quantity = parseInt(item.quantity) || 1;
-                        const discountAmount = parseFloat(item.discount_amount || '0');
-                        const taxAmount = parseFloat(item.tax_amount || '0');
+                        const discountAmount = parseFloat(item.discount_amount || '0') || 0;
+                        const taxAmount = parseFloat(item.tax_amount || '0') || 0;
                         const totalAmount = item.total_amount
-                            ? parseFloat(item.total_amount)
+                            ? parseFloat(item.total_amount) || 0
                             : unitPrice * quantity - discountAmount + taxAmount;
                         return {
                             parent_id: order.id,

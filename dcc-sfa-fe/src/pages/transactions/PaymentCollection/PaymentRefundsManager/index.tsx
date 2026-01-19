@@ -7,6 +7,7 @@ import {
   useUpdatePaymentRefund,
   type PaymentRefund,
 } from 'hooks/usePayments';
+import { useCurrency } from 'hooks/useCurrency';
 import {
   AlertTriangle,
   CheckCircle,
@@ -70,6 +71,8 @@ const PaymentRefundsManager: React.FC<PaymentRefundsManagerProps> = ({
   const createPaymentRefundMutation = useCreatePaymentRefund();
   const updatePaymentRefundMutation = useUpdatePaymentRefund();
   const deletePaymentRefundMutation = useDeletePaymentRefund();
+
+  const { formatCurrency } = useCurrency();
 
   const handleCancel = () => {
     setEditingRefund(null);
@@ -221,7 +224,7 @@ const PaymentRefundsManager: React.FC<PaymentRefundsManagerProps> = ({
                   variant="caption"
                   className="!text-gray-600 !text-xs"
                 >
-                  ${Number(totalRefunded || '0').toFixed(2)}
+                  {formatCurrency(Number(totalRefunded || '0'))}
                 </Typography>
               </div>
             </div>
@@ -390,7 +393,7 @@ const PaymentRefundsManager: React.FC<PaymentRefundsManagerProps> = ({
                         variant="body2"
                         className="!font-semibold !text-red-600"
                       >
-                        ${Number(refund.amount || '0')?.toFixed(2)}
+                        {formatCurrency(Number(refund.amount || '0'))}
                       </Typography>
                       <div className="!flex !items-center !gap-1">
                         <Button

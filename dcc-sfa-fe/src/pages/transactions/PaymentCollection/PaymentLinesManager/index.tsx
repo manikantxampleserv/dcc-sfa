@@ -1,5 +1,6 @@
 import { Chip, Skeleton, Typography } from '@mui/material';
 import { useFormik } from 'formik';
+import { useCurrency } from 'hooks/useCurrency';
 import {
   useCreatePaymentLine,
   useDeletePaymentLine,
@@ -48,6 +49,7 @@ const PaymentLinesManager: React.FC<PaymentLinesManagerProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
+  const { formatCurrency } = useCurrency();
   const [editingLine, setEditingLine] = useState<PaymentLine | null>(null);
 
   const { data: paymentLinesResponse, isLoading } = usePaymentLines(paymentId);
@@ -157,7 +159,7 @@ const PaymentLinesManager: React.FC<PaymentLinesManagerProps> = ({
                   variant="caption"
                   className="!text-gray-600 !text-xs"
                 >
-                  ${Number(totalAllocated || '0').toFixed(2)}
+                  {formatCurrency(Number(totalAllocated || 0))}
                 </Typography>
               </div>
             </div>
@@ -289,7 +291,7 @@ const PaymentLinesManager: React.FC<PaymentLinesManagerProps> = ({
                         variant="caption"
                         className="!font-semibold !text-green-600 !text-xs"
                       >
-                        ${Number(line.amount_applied || '0').toFixed(2)}
+                        {formatCurrency(Number(line.amount_applied || '0'))}
                       </Typography>
                       <div className="!flex !items-center !gap-1">
                         <Button

@@ -428,7 +428,18 @@ exports.customerController = {
                             const cleanData = {};
                             Object.keys(customerData).forEach(key => {
                                 if (allowedFields.includes(key)) {
-                                    cleanData[key] = customerData[key];
+                                    if ([
+                                        'credit_limit',
+                                        'outstanding_amount',
+                                        'latitude',
+                                        'longitude',
+                                    ].includes(key)) {
+                                        cleanData[key] =
+                                            customerData[key] === '' ? null : customerData[key];
+                                    }
+                                    else {
+                                        cleanData[key] = customerData[key];
+                                    }
                                 }
                             });
                             if (profileMapping[customerIndex] !== undefined) {
@@ -764,10 +775,19 @@ exports.customerController = {
             if (!data.name) {
                 return res.status(400).json({ message: 'Customer name is required' });
             }
+            // Handle decimal fields - convert empty strings to null
+            const { credit_limit, outstanding_amount, latitude, longitude, ...otherData } = data;
+            const processedData = {
+                ...otherData,
+                credit_limit: credit_limit === '' ? null : credit_limit,
+                outstanding_amount: outstanding_amount === '' ? null : outstanding_amount,
+                latitude: latitude === '' ? null : latitude,
+                longitude: longitude === '' ? null : longitude,
+            };
             const newCode = await generateCustomerCode(data.name);
             const customer = await prisma_client_1.default.customers.create({
                 data: {
-                    ...data,
+                    ...processedData,
                     code: newCode,
                     createdby: req.user?.id || 1,
                     log_inst: data.log_inst || 1,
@@ -1004,8 +1024,13 @@ exports.customerController = {
             if (!existingCustomer) {
                 return res.status(404).json({ message: 'Customer not found' });
             }
+            const { credit_limit, outstanding_amount, latitude, longitude, ...otherData } = req.body;
             const data = {
-                ...req.body,
+                ...otherData,
+                credit_limit: credit_limit === '' ? null : credit_limit,
+                outstanding_amount: outstanding_amount === '' ? null : outstanding_amount,
+                latitude: latitude === '' ? null : latitude,
+                longitude: longitude === '' ? null : longitude,
                 updatedate: new Date(),
                 updatedby: req.user?.id || 1,
             };

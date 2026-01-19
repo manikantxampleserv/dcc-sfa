@@ -2,6 +2,7 @@ import { Box, Skeleton, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useInvoice } from 'hooks/useInvoices';
 import { useProducts } from 'hooks/useProducts';
+import { useCurrency } from 'hooks/useCurrency';
 import {
   useInvoiceItems,
   useBulkUpdateInvoiceItems,
@@ -69,6 +70,9 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
     null
   );
   const [isEditing, setIsEditing] = useState(false);
+
+  // Use dynamic currency formatting
+  const { formatCurrency } = useCurrency();
 
   const { data: productsResponse, isLoading: productsLoading } = useProducts({
     limit: 1000,
@@ -322,7 +326,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
       label: 'Unit Price',
       render: (_value, row) => (
         <Typography variant="caption" className="!text-xs">
-          ${Number(row.unit_price).toFixed(2)}
+          {formatCurrency(Number(row.unit_price))}
         </Typography>
       ),
     },
@@ -331,7 +335,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
       label: 'Discount',
       render: (_value, row) => (
         <Typography variant="caption" className="!text-red-600 !text-xs">
-          -${Number(row.discount_amount).toFixed(2)}
+          -{formatCurrency(Number(row.discount_amount))}
         </Typography>
       ),
     },
@@ -340,7 +344,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
       label: 'Tax',
       render: (_value, row) => (
         <Typography variant="caption" className="!text-green-600 !text-xs">
-          +${Number(row.tax_amount).toFixed(2)}
+          +{formatCurrency(Number(row.tax_amount))}
         </Typography>
       ),
     },
@@ -349,7 +353,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
       label: 'Total',
       render: (_value, row) => (
         <Typography variant="caption" className="!font-medium !text-xs">
-          ${Number(row.total_amount || 0).toFixed(2)}
+          {formatCurrency(Number(row.total_amount || 0))}
         </Typography>
       ),
     },
@@ -595,7 +599,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
                     Subtotal:
                   </Typography>
                   <Typography variant="caption" className="!text-xs">
-                    ${totals.subtotal.toFixed(2)}
+                    {formatCurrency(totals.subtotal)}
                   </Typography>
                 </Box>
                 <Box className="!flex !justify-between">
@@ -606,7 +610,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
                     variant="caption"
                     className="!text-red-600 !text-xs"
                   >
-                    -${totals.totalDiscount.toFixed(2)}
+                    -{formatCurrency(totals.totalDiscount)}
                   </Typography>
                 </Box>
                 <Box className="!flex !justify-between">
@@ -617,7 +621,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
                     variant="caption"
                     className="!text-green-600 !text-xs"
                   >
-                    +${totals.totalTax.toFixed(2)}
+                    +{formatCurrency(totals.totalTax)}
                   </Typography>
                 </Box>
                 <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
@@ -632,7 +636,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
                       variant="caption"
                       className="!font-bold !text-xs"
                     >
-                      ${totals.totalAmount.toFixed(2)}
+                      {formatCurrency(totals.totalAmount)}
                     </Typography>
                   </Box>
                 </Box>

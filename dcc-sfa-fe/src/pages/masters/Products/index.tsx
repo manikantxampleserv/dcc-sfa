@@ -20,8 +20,7 @@ import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import { useExportToExcel } from '../../../hooks/useImportExport';
-import { useSettings } from '../../../hooks/useSettings';
-import { useCurrencies } from '../../../hooks/useCurrencies';
+import { useCurrency } from '../../../hooks/useCurrency';
 import {
   useDeleteProduct,
   useProducts,
@@ -41,14 +40,7 @@ const ProductsManagement: React.FC = () => {
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('product');
 
-  // Get system settings and currencies for dynamic currency formatting
-  const { data: settingsResponse } = useSettings();
-  const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
-
-  const settings = settingsResponse?.data;
-  const currencies = currenciesResponse?.data || [];
-  const defaultCurrencyId = settings?.currency_id || 1; // Default to 1 if not set
-  const defaultCurrency = currencies.find(c => c.id === defaultCurrencyId);
+  const { formatCurrency: formatPrice } = useCurrency();
 
   const {
     data: productsResponse,
@@ -142,36 +134,6 @@ const ProductsManagement: React.FC = () => {
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  const formatPrice = (price: number | null | undefined) => {
-    if (price === null || price === undefined) return 'N/A';
-
-    // Use dynamic currency from system settings, fallback to INR
-    const currency = defaultCurrency?.code || 'INR';
-
-    // Currency to locale mapping
-    const currencyToLocale: Record<string, string> = {
-      USD: 'en-US',
-      EUR: 'de-DE',
-      GBP: 'en-GB',
-      JPY: 'ja-JP',
-      CNY: 'zh-CN',
-      AUD: 'en-AU',
-      CAD: 'en-CA',
-      INR: 'en-IN',
-      AED: 'ar-AE',
-      SAR: 'ar-SA',
-    };
-
-    const locale = currencyToLocale[currency] || 'en-IN';
-
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(price);
-  };
-
   const formatPercentage = (percentage: number | null | undefined) => {
     if (percentage === null || percentage === undefined) return 'N/A';
     return `${Number(percentage || '0').toFixed(2)}%`;
@@ -236,7 +198,9 @@ const ProductsManagement: React.FC = () => {
       render: (_value, row) => (
         <Box>
           <Box className="flex items-center text-sm text-gray-900">
-            {formatPrice(row.base_price || 0)}
+            {row.base_price !== null && row.base_price !== undefined
+              ? formatPrice(row.base_price)
+              : 'N/A'}
           </Box>
 
           <Box className="flex items-center text-sm text-gray-500 mt-1">

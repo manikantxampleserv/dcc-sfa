@@ -285,8 +285,14 @@ const UserSelect: React.FC<UserSelectProps> = ({
         onChange(event, newValue);
       }
 
-      if (!newValue) {
+      if (newValue) {
+        // Update input value to show the full selected name
+        setInputValue(newValue.name);
+        setSearchValue('');
+        setDebouncedSearch('');
+      } else {
         setInputValue('');
+        setSearchValue('');
         setDebouncedSearch('');
       }
 

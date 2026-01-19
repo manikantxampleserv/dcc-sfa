@@ -2,6 +2,7 @@ import { Box, Chip, MenuItem, Skeleton, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import { useInvoice } from 'hooks/useInvoices';
 import { usePayments } from 'hooks/usePayments';
+import { useCurrency } from 'hooks/useCurrency';
 import {
   useInvoicePaymentLines,
   useBulkUpdateInvoicePaymentLines,
@@ -73,6 +74,8 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
   );
   const [isEditing, setIsEditing] = useState(false);
   const [showAddPaymentForm, setShowAddPaymentForm] = useState(false);
+
+  const { formatCurrency } = useCurrency();
 
   const { data: invoiceResponse, isLoading: invoiceLoading } =
     useInvoice(invoiceId);
@@ -147,7 +150,7 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
 
         if (amountApplied > paymentTotal) {
           toast.error(
-            `Amount applied ($${amountApplied.toFixed(2)}) cannot exceed payment total ($${paymentTotal.toFixed(2)})`
+            `Amount applied (${formatCurrency(amountApplied)}) cannot exceed payment total (${formatCurrency(paymentTotal)})`
           );
           return;
         }
@@ -165,7 +168,7 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
 
         if (newTotalApplied > invoiceTotal) {
           toast.error(
-            `Total amount applied ($${newTotalApplied.toFixed(2)}) cannot exceed invoice total ($${invoiceTotal.toFixed(2)})`
+            `Total amount applied (${formatCurrency(newTotalApplied)}) cannot exceed invoice total (${formatCurrency(invoiceTotal)})`
           );
           return;
         }
@@ -396,7 +399,7 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
           variant="caption"
           className="!font-medium !text-green-600 !text-xs"
         >
-          ${Number(row.amount_applied).toFixed(2)}
+          {formatCurrency(Number(row.amount_applied))}
         </Typography>
       ),
     },
@@ -540,7 +543,7 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
                     variant="subtitle2"
                     className="!font-bold !text-blue-900 !text-sm"
                   >
-                    ${summary.invoiceTotal.toFixed(2)}
+                    {formatCurrency(summary.invoiceTotal)}
                   </Typography>
                 )}
                 <Typography
@@ -564,7 +567,7 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
                     variant="subtitle2"
                     className="!font-bold !text-green-900 !text-sm"
                   >
-                    ${summary.totalApplied.toFixed(2)}
+                    {formatCurrency(summary.totalApplied)}
                   </Typography>
                 )}
                 <Typography
@@ -588,7 +591,7 @@ const InvoicePaymentTracking: React.FC<InvoicePaymentTrackingProps> = ({
                     variant="subtitle2"
                     className="!font-bold !text-orange-900 !text-sm"
                   >
-                    ${Math.abs(summary.balanceDue).toFixed(2)}
+                    {formatCurrency(Math.abs(summary.balanceDue))}
                   </Typography>
                 )}
                 <Typography

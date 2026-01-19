@@ -10,7 +10,6 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-
   resolve: {
     alias: {
       routes: path.resolve(__dirname, './src/routes'),

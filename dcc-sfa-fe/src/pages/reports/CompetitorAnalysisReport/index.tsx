@@ -1,14 +1,9 @@
 import { Box, Chip, MenuItem } from '@mui/material';
+import { useCurrency } from 'hooks/useCurrency';
 import { useCustomers } from 'hooks/useCustomers';
 import { usePermission } from 'hooks/usePermission';
 import { useCompetitorAnalysisReport } from 'hooks/useReports';
-import {
-  Download,
-  AlertCircle,
-  TrendingUp,
-  Eye,
-  DollarSign,
-} from 'lucide-react';
+import { AlertCircle, Download, Eye, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { exportCompetitorAnalysisReport } from 'services/reports/competitorAnalysis';
 import Button from 'shared/Button';
@@ -22,6 +17,7 @@ const CompetitorAnalysisReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [brandName, setBrandName] = useState('');
+  const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
   const { data: reportData, isLoading } = useCompetitorAnalysisReport(
@@ -93,7 +89,7 @@ const CompetitorAnalysisReport: React.FC = () => {
       id: 'observed_price',
       label: 'Price',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'visibility_score',
@@ -164,7 +160,7 @@ const CompetitorAnalysisReport: React.FC = () => {
       id: 'avg_price',
       label: 'Avg Price',
       numeric: true,
-      render: value => `₹${Number(value).toFixed(2)}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'avg_visibility',
@@ -313,7 +309,7 @@ const CompetitorAnalysisReport: React.FC = () => {
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-green-600" />
+              <TrendingUp className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>

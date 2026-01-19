@@ -4,7 +4,6 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  MenuItem,
   Skeleton,
 } from '@mui/material';
 import {
@@ -13,7 +12,6 @@ import {
   useRealTimeGPSTracking,
 } from 'hooks/useGPSTracking';
 import { usePermission } from 'hooks/usePermission';
-import { useUsers } from 'hooks/useUsers';
 import {
   Activity,
   Battery,
@@ -24,7 +22,6 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import Button from 'shared/Button';
-import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import { formatDate } from 'utils/dateUtils';
 import toastService from 'utils/toast';
@@ -32,9 +29,6 @@ import LocationDetail from './LocationDetail';
 import LocationTestGPS from './LocationTestGPS';
 
 const RepLocationTracking: React.FC = () => {
-  const [selectedUserId, setSelectedUserId] = useState<number | undefined>(
-    undefined
-  );
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
   const [selectedRep, setSelectedRep] = useState<any>(null);
@@ -56,7 +50,7 @@ const RepLocationTracking: React.FC = () => {
   const { data: trackingData, isLoading: isLoadingTracking } =
     useGPSTrackingData(
       {
-        user_id: selectedUserId,
+        user_id: undefined,
       },
       {
         enabled: isRead,
@@ -64,9 +58,6 @@ const RepLocationTracking: React.FC = () => {
     );
 
   const createGPSLog = useCreateGPSLog();
-
-  const { data: usersData } = useUsers();
-  const users = usersData?.data || [];
 
   const realTimeGPS = realTimeData?.gps_data || [];
   const historicalLogs = trackingData?.data?.gps_logs || [];
@@ -168,41 +159,6 @@ const RepLocationTracking: React.FC = () => {
           </div>
         )}
       </div>
-
-      {isRead && (
-        <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100">
-          <div className="flex items-center flex-wrap gap-4">
-            <Select
-              label="Representative"
-              value={selectedUserId?.toString() || 'all'}
-              onChange={e =>
-                setSelectedUserId(
-                  e.target.value && e.target.value !== 'all'
-                    ? parseInt(e.target.value)
-                    : undefined
-                )
-              }
-              className="!min-w-[250px]"
-              disableClearable
-            >
-              <MenuItem value="all">All Representatives</MenuItem>
-              {users.map((user: any) => (
-                <MenuItem key={user.id} value={user.id.toString()}>
-                  {user.name}
-                </MenuItem>
-              ))}
-            </Select>
-            <div className="ml-auto flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 rounded-full">
-                <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-green-700">
-                  Live Tracking
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {isRead && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">

@@ -1,16 +1,17 @@
+import { TrendingUp } from '@mui/icons-material';
 import { Box, Chip, MenuItem } from '@mui/material';
+import { useCurrency } from 'hooks/useCurrency';
 import { useDepots } from 'hooks/useDepots';
 import { usePermission } from 'hooks/usePermission';
 import { useRepProductivityReport } from 'hooks/useReports';
 import { useUsers } from 'hooks/useUsers';
 import {
-  Download,
-  User,
+  Activity,
   Calendar,
   CheckCircle,
+  Download,
   ShoppingCart,
-  DollarSign,
-  Activity,
+  User,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { exportRepProductivityReport } from 'services/reports/repProductivity';
@@ -27,6 +28,7 @@ const RepProductivityReport: React.FC = () => {
     undefined
   );
   const [depotId, setDepotId] = useState<number | undefined>(undefined);
+  const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
   const { data: reportData, isLoading } = useRepProductivityReport(
@@ -114,7 +116,7 @@ const RepProductivityReport: React.FC = () => {
       id: 'order_value',
       label: 'Order Value',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'total_collection',
@@ -122,7 +124,7 @@ const RepProductivityReport: React.FC = () => {
       numeric: true,
       render: value => (
         <span className="font-semibold text-green-600">
-          ₹{Number(value).toLocaleString()}
+          {formatCurrency(Number(value))}
         </span>
       ),
     },
@@ -294,11 +296,11 @@ const RepProductivityReport: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Order Value</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{summary.total_order_value.toLocaleString()}
+                {formatCurrency(summary.total_order_value)}
               </p>
             </div>
             <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-orange-600" />
+              <TrendingUp className="w-6 h-6 text-orange-600" />
             </div>
           </div>
         </div>
@@ -310,7 +312,7 @@ const RepProductivityReport: React.FC = () => {
                 Total Collection
               </p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{summary.total_collection.toLocaleString()}
+                {formatCurrency(summary.total_collection)}
               </p>
             </div>
             <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">

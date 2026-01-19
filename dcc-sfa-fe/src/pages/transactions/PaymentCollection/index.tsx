@@ -214,21 +214,6 @@ const PaymentCollection: React.FC = () => {
       ),
     },
     {
-      id: 'currency',
-      label: 'Currency',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.currency ? (
-            <span className="!font-medium">
-              {row.currency.code || ''} ({row.currency.name})
-            </span>
-          ) : (
-            <span className="italic text-gray-400">No Currency</span>
-          )}
-        </Typography>
-      ),
-    },
-    {
       id: 'collected_by_user',
       label: 'Collected By',
       render: (_value, row) => (

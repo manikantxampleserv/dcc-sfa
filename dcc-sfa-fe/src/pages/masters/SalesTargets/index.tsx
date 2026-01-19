@@ -6,6 +6,7 @@ import {
   type SalesTarget,
 } from 'hooks/useSalesTargets';
 import { useExportToExcel } from 'hooks/useImportExport';
+import { useCurrency } from 'hooks/useCurrency';
 import { usePermission } from 'hooks/usePermission';
 import { Target, Calendar, TrendingUp, Package } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
@@ -30,6 +31,9 @@ const SalesTargetsManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+
+  // Use dynamic currency formatting
+  const { formatCurrency } = useCurrency();
 
   const { isCreate, isUpdate, isDelete, isRead } =
     usePermission('sales-target');
@@ -152,7 +156,7 @@ const SalesTargetsManagement: React.FC = () => {
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
               Qty: {row.target_quantity} | Amount:{' '}
-              {row.target_amount ? `$${row.target_amount}` : 'N/A'}
+              {row.target_amount ? formatCurrency(row.target_amount) : 'N/A'}
             </Typography>
           </Box>
         </Box>
@@ -207,7 +211,7 @@ const SalesTargetsManagement: React.FC = () => {
       label: 'Amount',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-900">
-          {row.target_amount ? `$${row.target_amount}` : 'N/A'}
+          {row.target_amount ? formatCurrency(row.target_amount) : 'N/A'}
         </Typography>
       ),
     },

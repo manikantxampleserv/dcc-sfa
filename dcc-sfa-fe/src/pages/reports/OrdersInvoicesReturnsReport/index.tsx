@@ -1,5 +1,6 @@
 import { CheckCircle, Pending } from '@mui/icons-material';
 import { Box, Chip, MenuItem } from '@mui/material';
+import { useCurrency } from 'hooks/useCurrency';
 import { usePermission } from 'hooks/usePermission';
 import { useOrdersInvoicesReturnsReport } from 'hooks/useReports';
 import {
@@ -24,6 +25,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [status, setStatus] = useState('all');
+  const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
   const { data: reportData, isLoading } = useOrdersInvoicesReturnsReport(
@@ -199,7 +201,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
       id: 'total_amount',
       label: 'Amount',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
   ];
 
@@ -291,7 +293,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
       id: 'total_amount',
       label: 'Amount',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'balance_due',
@@ -303,7 +305,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
             Number(value) > 0 ? 'text-red-600' : 'text-green-600'
           }`}
         >
-          ₹{Number(value).toLocaleString()}
+          {formatCurrency(Number(value))}
         </span>
       ),
     },
@@ -516,10 +518,9 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Total Value</p>
               <p className="text-2xl font-bold text-gray-900">
-                ₹
-                {(
+                {formatCurrency(
                   summary.total_order_value + summary.total_invoice_value
-                ).toLocaleString()}
+                )}
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -538,13 +539,13 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
           <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Avg Order Value</p>
             <p className="text-xl font-bold text-gray-900">
-              ₹{statistics.average_order_value.toLocaleString()}
+              {formatCurrency(statistics.average_order_value)}
             </p>
           </div>
           <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Avg Invoice Value</p>
             <p className="text-xl font-bold text-gray-900">
-              ₹{statistics.average_invoice_value.toLocaleString()}
+              {formatCurrency(statistics.average_invoice_value)}
             </p>
           </div>
           <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">

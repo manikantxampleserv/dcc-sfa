@@ -245,7 +245,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
 
             <UserSelect
               name="salesperson_id"
-              label="Salesperson"
+              label="Sales Person"
               formik={formik}
             />
 

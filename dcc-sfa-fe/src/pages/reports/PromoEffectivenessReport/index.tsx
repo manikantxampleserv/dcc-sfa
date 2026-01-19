@@ -58,7 +58,6 @@ const PromoEffectivenessReport: React.FC = () => {
     unique_zones: 0,
   };
 
-  // Handle export to Excel
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportPromoEffectivenessReport({
@@ -72,7 +71,6 @@ const PromoEffectivenessReport: React.FC = () => {
     }
   }, [startDate, endDate, depotId, zoneId]);
 
-  // Promotions columns
   const promotionsColumns: TableColumn<any>[] = [
     {
       id: 'name',

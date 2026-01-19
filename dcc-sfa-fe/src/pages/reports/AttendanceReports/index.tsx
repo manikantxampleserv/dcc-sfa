@@ -1,7 +1,7 @@
-import { Box, Chip, MenuItem } from '@mui/material';
+import { Avatar, Box, Chip, MenuItem } from '@mui/material';
 import { usePermission } from 'hooks/usePermission';
 import { useAttendanceHistoryReport } from 'hooks/useReports';
-import { Clock, Download, MapPin, User, Users } from 'lucide-react';
+import { Clock, Download, MapPin, Users } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { exportAttendanceHistoryReport } from 'services/reports/attendance';
 import Button from 'shared/Button';
@@ -89,9 +89,18 @@ const AttendanceReports: React.FC = () => {
         if (!user) return <span className="text-sm text-gray-500">N/A</span>;
         return (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <User className="w-5 h-5 text-blue-600" />
-            </div>
+            <Avatar className="w-10 h-10 !rounded !bg-blue-100">
+              <span className="text-blue-600 font-semibold text-sm">
+                {user.name
+                  ? user.name
+                      .split(' ')
+                      .map((n: string) => n[0])
+                      .join('')
+                      .toUpperCase()
+                      .slice(0, 2)
+                  : 'U'}
+              </span>
+            </Avatar>
             <div className="flex flex-col">
               <span className="font-semibold text-sm">{user.name}</span>
               <span className="text-xs text-gray-500">

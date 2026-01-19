@@ -60,7 +60,7 @@ const PrivacyPolicy: React.FC = () => {
                 collect, use, and protect your information.
               </p>
               <div className="mt-6 text-sm text-blue-200">
-                Last updated: January 15, 2025
+                Last updated: January 15, {new Date().getFullYear()}
               </div>
             </div>
           </div>

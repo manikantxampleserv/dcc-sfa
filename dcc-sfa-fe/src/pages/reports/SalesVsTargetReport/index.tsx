@@ -12,6 +12,7 @@ import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import { exportSalesVsTargetReport } from 'services/reports/salesVsTarget';
+import { useCurrency } from 'hooks/useCurrency';
 
 const SalesVsTargetReport: React.FC = () => {
   const [startDate, setStartDate] = useState('');
@@ -20,6 +21,7 @@ const SalesVsTargetReport: React.FC = () => {
     undefined
   );
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+  const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
   const { data: reportData, isLoading } = useSalesVsTargetReport(
@@ -98,13 +100,13 @@ const SalesVsTargetReport: React.FC = () => {
       id: 'target_amount',
       label: 'Target',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'actual_sales',
       label: 'Actual Sales',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'achievement_percentage',
@@ -144,7 +146,7 @@ const SalesVsTargetReport: React.FC = () => {
             Number(value) >= 0 ? 'text-green-600' : 'text-red-600'
           }`}
         >
-          {Number(value) >= 0 ? '+' : ''}₹{Number(value).toLocaleString()}
+          {Number(value) >= 0 ? '+' : ''} {formatCurrency(Number(value))}
         </span>
       ),
     },
@@ -160,13 +162,13 @@ const SalesVsTargetReport: React.FC = () => {
       id: 'target_amount',
       label: 'Target',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'actual_sales',
       label: 'Actual Sales',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'achievement_percentage',
@@ -207,7 +209,7 @@ const SalesVsTargetReport: React.FC = () => {
             Number(value) >= 0 ? 'text-green-600' : 'text-red-600'
           }`}
         >
-          {Number(value) >= 0 ? '+' : ''}₹{Number(value).toLocaleString()}
+          {Number(value) >= 0 ? '+' : ''} {formatCurrency(Number(value))}
         </span>
       ),
     },
@@ -314,7 +316,7 @@ const SalesVsTargetReport: React.FC = () => {
       )}
 
       {isRead && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <StatsCard
             title="Sales Person"
             value={summary.total_salespeople}
@@ -331,23 +333,16 @@ const SalesVsTargetReport: React.FC = () => {
           />
           <StatsCard
             title="Target Amount"
-            value={`₹${summary.total_target_amount.toLocaleString()}`}
+            value={formatCurrency(summary.total_target_amount).toLocaleString()}
             icon={<Target className="w-6 h-6" />}
             color="orange"
             isLoading={isLoading}
           />
           <StatsCard
             title="Actual Sales"
-            value={`₹${summary.total_actual_sales.toLocaleString()}`}
+            value={formatCurrency(summary.total_actual_sales)}
             icon={<TrendingUp className="w-6 h-6" />}
             color="green"
-            isLoading={isLoading}
-          />
-          <StatsCard
-            title="Achievement"
-            value={`${summary.achievement_percentage.toFixed(1)}%`}
-            icon={<TrendingUp className="w-6 h-6" />}
-            color="emerald"
             isLoading={isLoading}
           />
         </div>
