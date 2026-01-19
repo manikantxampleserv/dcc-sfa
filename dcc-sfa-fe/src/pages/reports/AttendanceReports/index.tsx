@@ -11,7 +11,7 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
-import { formatDate, formatDateTime } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 
 const AttendanceReports: React.FC = () => {
   const [startDate, setStartDate] = useState('');
@@ -82,8 +82,9 @@ const AttendanceReports: React.FC = () => {
 
   const columns: TableColumn<any>[] = [
     {
-      id: 'employee',
+      id: 'attendance.user.name',
       label: 'Employee',
+      sortable: true,
       render: (_value, row) => {
         const user = row.attendance?.user;
         if (!user) return <span className="text-sm text-gray-500">N/A</span>;
@@ -111,17 +112,17 @@ const AttendanceReports: React.FC = () => {
         );
       },
     },
-    {
-      id: 'attendance_date',
-      label: 'Date',
-      render: (_value, row) => (
-        <span className="text-sm">
-          {row.attendance?.attendance_date
-            ? formatDate(row.attendance.attendance_date)
-            : 'N/A'}
-        </span>
-      ),
-    },
+    // {
+    //   id: 'attendance_date',
+    //   label: 'Date',
+    //   render: (_value, row) => (
+    //     <span className="text-sm">
+    //       {row.attendance?.attendance_date
+    //         ? formatDate(row.attendance.attendance_date)
+    //         : 'N/A'}
+    //     </span>
+    //   ),
+    // },
     {
       id: 'action_type',
       label: 'Action',
@@ -149,7 +150,7 @@ const AttendanceReports: React.FC = () => {
     },
     {
       id: 'action_time',
-      label: 'Action Time',
+      label: 'Date & Time',
       render: value => (
         <div className="flex flex-col">
           <span className="text-sm font-medium">
@@ -163,7 +164,7 @@ const AttendanceReports: React.FC = () => {
       id: 'address',
       label: 'Location',
       render: value => (
-        <div className="flex items-center gap-1 max-w-xs">
+        <div className="flex items-center gap-1 max-w-md">
           {value ? (
             <>
               <MapPin className="w-3 h-3 text-gray-500 flex-shrink-0" />
@@ -315,7 +316,6 @@ const AttendanceReports: React.FC = () => {
       </div>
 
       {/* Attendance History Table */}
-
       <Table
         columns={columns}
         actions={
