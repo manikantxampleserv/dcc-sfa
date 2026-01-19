@@ -69,8 +69,8 @@ const VanStockPage: React.FC = () => {
   );
 
   const vanInventory = vanInventoryResponse?.data || [];
-  const totalCount = vanInventoryResponse?.meta?.total_count || 0;
-  const currentPage = (vanInventoryResponse?.meta?.current_page || 1) - 1;
+  const totalCount = vanInventoryResponse?.meta?.total || 0;
+  const currentPage = (vanInventoryResponse?.meta?.page || 1) - 1;
 
   const deleteVanInventoryMutation = useDeleteVanInventory();
   const exportToExcelMutation = useExportToExcel();
@@ -230,8 +230,10 @@ const VanStockPage: React.FC = () => {
         <Chip
           label={getLoadingTypeLabel(row.loading_type || 'L')}
           size="small"
-          className="w-20"
-          color={row.loading_type === 'L' ? 'primary' : 'secondary'}
+          className="w-24"
+          variant="outlined"
+          color={row.loading_type === 'L' ? 'success' : 'error'}
+          icon={row.loading_type === 'L' ? <Upload /> : <Download />}
         />
       ),
     },
@@ -425,7 +427,7 @@ const VanStockPage: React.FC = () => {
                     <MenuItem value="load">Load</MenuItem>
                     <MenuItem value="unload">Unload</MenuItem>
                   </Select>
-                  <Box className="!w-64">
+                  <Box className="!w-70">
                     <UserSelect
                       label=""
                       placeholder="Select User"
