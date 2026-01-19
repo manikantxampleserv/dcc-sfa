@@ -4,7 +4,7 @@ import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 
 const generateCustomerCode = async (name: string) => {
-  const prefix = name.slice(0, 3).toUpperCase();
+  const prefix = name.toUpperCase();
   const lastCustomers = await prisma.customers.findFirst({
     orderBy: { id: 'desc' },
     select: { code: true },
@@ -677,8 +677,8 @@ export const customerController = {
 
                     if (!codeExists) break;
 
-                    const timestamp = Date.now().toString().slice(-4);
-                    uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+                    const timestamp = Date.now().toString();
+                    uniqueCode = `${uniqueCode}${timestamp}`;
                     attempts++;
                   }
 
@@ -1656,7 +1656,7 @@ export const customerController = {
 
                 if (!codeExists) break;
 
-                const timestamp = Date.now().toString().slice(-4);
+                const timestamp = Date.now().toString();
                 uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
                 attempts++;
               }
