@@ -1,6 +1,7 @@
 import { CheckCircle, Settings } from '@mui/icons-material';
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
+import { useCurrency } from 'hooks/useCurrency';
 import { useVisit } from 'hooks/useVisits';
 import {
   AlertTriangle,
@@ -19,6 +20,7 @@ import { formatDate } from 'utils/dateUtils';
 const VisitDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();
 
   const {
     data: visitResponse,
@@ -676,7 +678,7 @@ const VisitDetail: React.FC = () => {
                     variant="body2"
                     className="!font-semibold !text-primary-600"
                   >
-                    ₹{Number(visit.amount_collected).toLocaleString()}
+                    {formatCurrency(Number(visit.amount_collected))}
                   </Typography>
                 </div>
               )}
@@ -902,7 +904,7 @@ const VisitDetail: React.FC = () => {
                 variant="body2"
                 className="!font-semibold !text-gray-900"
               >
-                ₹{Number(visit.customer.credit_limit).toLocaleString()}
+                {formatCurrency(Number(visit.customer.credit_limit))}
               </Typography>
             </div>
 
@@ -917,7 +919,7 @@ const VisitDetail: React.FC = () => {
                 variant="body2"
                 className="!font-semibold !text-red-600"
               >
-                ₹{Number(visit.customer.outstanding_amount).toLocaleString()}
+                {formatCurrency(Number(visit.customer.outstanding_amount))}
               </Typography>
             </div>
 

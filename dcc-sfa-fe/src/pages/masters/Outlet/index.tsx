@@ -1,7 +1,15 @@
 import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
+import { useCurrencies } from 'hooks/useCurrencies';
 import { usePermission } from 'hooks/usePermission';
-import { CreditCard, DollarSign, MapPin, Store, UserCheck } from 'lucide-react';
+import { useSettings } from 'hooks/useSettings';
+import {
+  CreditCard,
+  MapPin,
+  Store,
+  UserCheck,
+  AlertCircle,
+} from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -38,6 +46,12 @@ const OutletsManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('outlet');
+
+  const { data: settingsResponse } = useSettings();
+  const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
+
+  const settings = settingsResponse?.data;
+  const defaultCurrencyId = settings?.currency_id || '';
 
   const {
     data: customersResponse,
@@ -140,11 +154,18 @@ const OutletsManagement: React.FC = () => {
     setPage(newPage + 1);
   };
 
+  const getCurrencyCode = (currencyId: string | number) => {
+    const currencies = currenciesResponse?.data || [];
+    const currency = currencies.find(c => c.id === Number(currencyId));
+    return currency?.code || 'USD';
+  };
+
   const formatCurrency = (amount: string | null | undefined) => {
     if (!amount) return 'N/A';
+    const currencyCode = getCurrencyCode(defaultCurrencyId);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currencyCode,
     }).format(parseFloat(amount));
   };
 
@@ -181,7 +202,7 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'customer_type',
+      id: 'customer_type.type_name',
       label: 'Outlet Type',
       render: (_value, row) => (
         <Chip
@@ -196,7 +217,7 @@ const OutletsManagement: React.FC = () => {
     },
 
     {
-      id: 'customer_channel',
+      id: 'customer_channel.channel_name',
       label: 'Outlet Channel',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
@@ -216,7 +237,7 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'location',
+      id: 'row.city',
       label: 'Location',
       render: (_value, row) => (
         <Box>
@@ -236,7 +257,7 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'route',
+      id: 'customer_routes.name',
       label: 'Route',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
@@ -247,7 +268,7 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'salesperson',
+      id: 'customer_users.name',
       label: 'Salesperson',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
@@ -269,7 +290,7 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'outstanding',
+      id: 'outstanding_amount',
       label: 'Outstanding',
       render: (_value, row) => (
         <Typography variant="body2" className="!text-red-600 !font-medium">
@@ -357,7 +378,7 @@ const OutletsManagement: React.FC = () => {
         <StatsCard
           title="Outstanding Amount"
           value={formatCurrency(totalOutstanding.toString())}
-          icon={<DollarSign className="w-6 h-6" />}
+          icon={<AlertCircle className="w-6 h-6" />}
           color="red"
           isLoading={isFetching}
         />

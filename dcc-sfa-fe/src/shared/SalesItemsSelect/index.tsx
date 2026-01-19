@@ -8,7 +8,7 @@ import {
 import type { FormikProps } from 'formik';
 import { useSalespersonInventoryItemsDropdown } from 'hooks/useVanInventoryItems';
 import type { SalespersonInventoryItemDropdown } from 'services/masters/VanInventoryItems';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 
 type SalesItem = SalespersonInventoryItemDropdown;
 
@@ -76,7 +76,7 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
     return () => clearTimeout(timer);
   }, [searchValue, isSelecting]);
 
-  const effectiveSearch = React.useMemo(() => {
+  const effectiveSearch = useMemo(() => {
     if (hasInitialized || inputValue) {
       return debouncedSearch;
     }
@@ -97,7 +97,7 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
       enabled: !disabled && !!salespersonId,
     });
 
-  const options = React.useMemo(() => {
+  const options = useMemo(() => {
     if (!salesItemsData?.data) return [];
     return salesItemsData.data;
   }, [salesItemsData]);
@@ -110,17 +110,9 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
       !isInitializingRef.current
     ) {
       isInitializingRef.current = true;
-      const found = options.find(p => String(p.product_id) === normalizedValue);
-      if (found) {
-        setSelectedItemData(found);
-      }
-      isInitializingRef.current = false;
-    }
-  }, [normalizedValue, options, selectedItemData]);
-
-  useEffect(() => {
-    if (normalizedValue && options.length > 0) {
-      const found = options.find(p => String(p.product_id) === normalizedValue);
+      const found = options.find(
+        p => String(p.product_id) === String(normalizedValue)
+      );
       if (found) {
         setSelectedItemData(found);
         if (!hasInitialized && !inputValue) {
@@ -128,18 +120,30 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
           setHasInitialized(true);
         }
       }
+      isInitializingRef.current = false;
     }
-  }, [options, normalizedValue, hasInitialized, inputValue]);
+  }, [normalizedValue, options, selectedItemData, hasInitialized, inputValue]);
 
-  const selectedItem = React.useMemo(() => {
+  const selectedItem = useMemo(() => {
     if (!normalizedValue) return null;
+
+    if (typeof value === 'number' && value > 0) {
+      const found = options.find(p => p.product_id === value);
+      if (found) return found;
+    }
+
     const found = options.find(p => String(p.product_id) === normalizedValue);
     if (found) return found;
-    if (selectedItemData && String(selectedItemData.id) === normalizedValue) {
+
+    if (
+      selectedItemData &&
+      String(selectedItemData.product_id) === normalizedValue
+    ) {
       return selectedItemData;
     }
+
     return null;
-  }, [normalizedValue, options, selectedItemData]);
+  }, [normalizedValue, options, selectedItemData, value]);
 
   useEffect(() => {
     if (!normalizedValue && (selectedItemData || inputValue)) {
@@ -150,13 +154,18 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
   }, [normalizedValue]);
 
   const handleChange = (event: any, newValue: SalesItem | null) => {
+    if (isSelecting) return;
+
     setIsSelecting(true);
     setSelectedItemData(newValue);
 
+    const productId = newValue?.product_id || 0;
+
     if (formik) {
-      formik.setFieldValue(name, newValue?.product_id || '');
+      formik.setFieldValue(name, productId, false);
+      formik.setFieldTouched(name, true, false);
     } else if (setValue) {
-      setValue(newValue?.product_id || '');
+      setValue(productId);
     }
 
     if (onChange) {
@@ -166,12 +175,12 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
     if (!newValue) {
       setInputValue('');
       setDebouncedSearch('');
+      setSearchValue('');
     } else {
       setInputValue(newValue.name);
     }
 
-    // Reset selecting state after a delay to allow render
-    setTimeout(() => setIsSelecting(false), 100);
+    setTimeout(() => setIsSelecting(false), 150);
   };
 
   const handleInputChange = (
@@ -180,17 +189,19 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
     reason: string
   ) => {
     if (reason === 'input') {
+      setInputValue(newInputValue);
       if (!isSelecting) {
-        setInputValue(newInputValue);
         setSearchValue(newInputValue);
-      } else {
-        setInputValue(newInputValue);
       }
     }
     if (reason === 'clear') {
       setInputValue('');
       setSearchValue('');
       setDebouncedSearch('');
+      setSelectedItemData(null);
+      if (formik) {
+        formik.setFieldValue(name, 0);
+      }
     }
   };
 
@@ -208,7 +219,11 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
       size={size}
       disabled={disabled}
       className={className}
-      isOptionEqualToValue={(option, value) => option.id === value.id}
+      isOptionEqualToValue={(option, val) => {
+        if (!val) return false;
+        if (typeof val === 'number') return option.product_id === val;
+        return option.product_id === val.product_id;
+      }}
       filterOptions={opts => opts}
       renderOption={(props, option: SalesItem) => (
         <Box

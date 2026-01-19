@@ -15,6 +15,7 @@ import {
   type OutletGroup,
 } from '../../../hooks/useOutletGroups';
 import ManageOutletGroup from './ManageOutletGroups';
+import { useCurrency } from 'hooks/useCurrency';
 
 const OutletGroupsManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -26,6 +27,8 @@ const OutletGroupsManagement: React.FC = () => {
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } =
     usePermission('outlet-group');
+
+  const { formatCurrency } = useCurrency();
 
   const {
     data: outletGroupsResponse,
@@ -98,7 +101,7 @@ const OutletGroupsManagement: React.FC = () => {
 
   const formatPercentage = (percentage: number | null | undefined) => {
     if (percentage === null || percentage === undefined) return 'N/A';
-    return `${Number(percentage || '0').toFixed(2)}%`;
+    return `${formatCurrency(Number(percentage || '0'))}%`;
   };
 
   const outletGroupColumns: TableColumn<OutletGroup>[] = [

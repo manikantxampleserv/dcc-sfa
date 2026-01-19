@@ -233,7 +233,7 @@ const Login: React.FC = () => {
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">
                     <div className="font-semibold text-gray-900 text-xs sm:text-sm">
-                      $245.50
+                      TZS 245.50
                     </div>
                     <div className="text-xs text-green-600">Delivered</div>
                   </div>
@@ -256,7 +256,7 @@ const Login: React.FC = () => {
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">
                     <div className="font-semibold text-gray-900 text-xs sm:text-sm">
-                      $189.75
+                      TZS 189.75
                     </div>
                     <div className="text-xs text-blue-600">Processing</div>
                   </div>
@@ -362,7 +362,8 @@ const Login: React.FC = () => {
         {/* Footer */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mt-8 sm:mt-12 text-xs text-gray-500">
           <span className="text-center sm:text-left">
-            Copyright © 2025 DCC Sales Force Automation System.
+            Copyright © {new Date().getFullYear()} DCC Sales Force Automation
+            System.
           </span>
           <MuiLink
             component={Link}

@@ -1,5 +1,6 @@
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
+import { useCurrency } from 'hooks/useCurrency';
 import { useSurveyResponse } from 'hooks/useSurveyResponses';
 import {
   AlertTriangle,
@@ -16,6 +17,7 @@ import { formatDate } from 'utils/dateUtils';
 const SurveyResponseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();
 
   const {
     data: response,
@@ -784,7 +786,7 @@ const SurveyResponseDetail: React.FC = () => {
                     variant="body2"
                     className="!font-semibold !text-gray-900"
                   >
-                    ₹{Number(customer.credit_limit).toLocaleString()}
+                    {formatCurrency(Number(customer.credit_limit))}
                   </Typography>
                 </div>
 
@@ -799,7 +801,7 @@ const SurveyResponseDetail: React.FC = () => {
                     variant="body2"
                     className="!font-semibold !text-red-600"
                   >
-                    ₹{Number(customer.outstanding_amount).toLocaleString()}
+                    {formatCurrency(Number(customer.outstanding_amount))}
                   </Typography>
                 </div>
 

@@ -1,6 +1,7 @@
 import { CheckCircle, Settings } from '@mui/icons-material';
 import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
+import { useCurrency } from 'hooks/useCurrency';
 import { useRoute } from 'hooks/useRoutes';
 import {
   AlertTriangle,
@@ -19,6 +20,7 @@ import { formatDate } from 'utils/dateUtils';
 const RouteDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();
 
   const {
     data: routeResponse,
@@ -1005,7 +1007,7 @@ const RouteDetail: React.FC = () => {
                         variant="body2"
                         className="!font-semibold !text-primary-600"
                       >
-                        ₹{Number(visit.amount_collected).toLocaleString()}
+                        {formatCurrency(Number(visit.amount_collected))}
                       </Typography>
                     </div>
                   )}

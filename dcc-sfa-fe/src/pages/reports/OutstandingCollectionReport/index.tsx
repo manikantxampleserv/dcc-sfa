@@ -1,16 +1,17 @@
 import { Box, Chip, MenuItem } from '@mui/material';
+import { useCurrency } from 'hooks/useCurrency';
 import { useCustomers } from 'hooks/useCustomers';
 import { usePermission } from 'hooks/usePermission';
 import { useOutstandingCollectionReport } from 'hooks/useReports';
 import {
-  Download,
-  Receipt,
-  Users,
-  TrendingUp,
-  Clock,
-  DollarSign,
-  FileText,
+  AlertCircle,
   CheckCircle,
+  Clock,
+  Download,
+  FileText,
+  Receipt,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { exportOutstandingCollectionReport } from 'services/reports/outstandingCollection';
@@ -26,6 +27,7 @@ const OutstandingCollectionReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const [invoiceStatus, setInvoiceStatus] = useState<string>('all');
+  const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
   const { data: reportData, isLoading } = useOutstandingCollectionReport(
@@ -107,7 +109,7 @@ const OutstandingCollectionReport: React.FC = () => {
       id: 'balance_due',
       label: 'Balance Due',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'days_overdue',
@@ -181,7 +183,7 @@ const OutstandingCollectionReport: React.FC = () => {
       id: 'total_outstanding',
       label: 'Total Outstanding',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'avg_days_overdue',
@@ -239,7 +241,7 @@ const OutstandingCollectionReport: React.FC = () => {
       id: 'amount',
       label: 'Amount',
       numeric: true,
-      render: value => `₹${Number(value).toLocaleString()}`,
+      render: value => formatCurrency(Number(value)),
     },
     {
       id: 'method',
@@ -343,11 +345,11 @@ const OutstandingCollectionReport: React.FC = () => {
                 Outstanding Amount
               </p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{summary.total_outstanding_amount.toLocaleString()}
+                {formatCurrency(summary.total_outstanding_amount)}
               </p>
             </div>
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-red-600" />
+              <AlertCircle className="w-6 h-6 text-red-600" />
             </div>
           </div>
         </div>
@@ -391,7 +393,7 @@ const OutstandingCollectionReport: React.FC = () => {
                 Total Collections
               </p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                ₹{summary.total_collections.toLocaleString()}
+                {formatCurrency(summary.total_collections)}
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">

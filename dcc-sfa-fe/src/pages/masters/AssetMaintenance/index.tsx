@@ -15,6 +15,7 @@ import {
 } from 'hooks/useAssetMaintenance';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
+import { useCurrency } from 'hooks/useCurrency';
 import { Calendar, FileText, Package, Wrench } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
@@ -37,6 +38,7 @@ const AssetMaintenanceManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { formatCurrency } = useCurrency();
 
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('maintenance');
 
@@ -216,7 +218,7 @@ const AssetMaintenanceManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <span className="text-xs">
             {row.cost ? (
-              `TZS ${row.cost.toFixed(2)}`
+              formatCurrency(Number(row.cost))
             ) : (
               <span className="italic">No Cost</span>
             )}

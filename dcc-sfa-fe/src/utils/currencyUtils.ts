@@ -22,7 +22,7 @@ export const getCurrencyCode = (
   currencyId: number
 ): string => {
   const currency = currencies.find(c => c.id === currencyId);
-  return currency?.code || 'USD';
+  return currency?.code || 'TZS';
 };
 
 /**
@@ -35,6 +35,7 @@ export const getCurrencySymbol = (currencyCode: string): string => {
     GBP: '£',
     JPY: '¥',
     INR: '₹',
+    TZS: 'TZS',
     CAD: 'C$',
     AUD: 'A$',
   };
@@ -53,6 +54,10 @@ export const formatCurrency = (
 ): string => {
   const currencyCode = getCurrencyCode(currencies, defaultCurrencyId);
   const currencySymbol = getCurrencySymbol(currencyCode);
+
+  if (currencyCode === 'TZS' && !currencies.length) {
+    return `TZS ${amount.toLocaleString()}`;
+  }
 
   if (formattedValue) {
     return formattedValue.replace(/[₹$€£¥]|[A-Z]{2,3}/g, match => {

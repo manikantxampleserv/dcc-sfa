@@ -340,11 +340,11 @@ const OrdersManagement: React.FC = () => {
             variant="outlined"
             size="small"
             icon={
-              row.approval_status === 'A' ? (
+              row.approval_status?.slice(0, 1)?.toUpperCase() === 'A' ? (
                 <CheckCircleIcon className="w-4 h-4" />
-              ) : row.approval_status === 'R' ? (
+              ) : row.approval_status?.slice(0, 1)?.toUpperCase() === 'R' ? (
                 <XCircle className="w-4 h-4" />
-              ) : row.approval_status === 'P' ? (
+              ) : row.approval_status?.slice(0, 1)?.toUpperCase() === 'P' ? (
                 <Clock className="w-4 h-4" />
               ) : (
                 <Clock className="w-4 h-4" />
@@ -411,7 +411,7 @@ const OrdersManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Orders"
           value={totalOrders}

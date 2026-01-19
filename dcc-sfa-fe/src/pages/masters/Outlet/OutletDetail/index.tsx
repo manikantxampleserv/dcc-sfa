@@ -6,7 +6,13 @@ import {
   Feedback,
   History,
   Inventory,
+  LocationOn,
+  MonetizationOn,
+  Person,
+  Phone,
   Receipt,
+  Schedule,
+  Star,
   Verified,
   Warning,
 } from '@mui/icons-material';
@@ -21,9 +27,17 @@ import {
   Typography,
 } from '@mui/material';
 import { useCustomer } from 'hooks/useCustomers';
-import { FileText, Package } from 'lucide-react';
+import {
+  FileText,
+  Package,
+  Building2,
+  Calendar,
+  CreditCard,
+  MapPin,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import { getBusinessTypeIcon } from '../utils';
@@ -125,6 +139,61 @@ const OutletDetail: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Detailed Information Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Contact Information Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <Skeleton
+              variant="text"
+              width={150}
+              height={24}
+              className="!mb-4"
+            />
+            <div className="space-y-3">
+              {[1, 2, 3].map(index => (
+                <div key={index} className="flex items-center gap-3">
+                  <Skeleton variant="circular" width={16} height={16} />
+                  <div className="flex-1">
+                    <Skeleton variant="text" width={80} height={16} />
+                    <Skeleton
+                      variant="text"
+                      width={120}
+                      height={20}
+                      className="!mt-1"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Business Information Skeleton */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <Skeleton
+              variant="text"
+              width={150}
+              height={24}
+              className="!mb-4"
+            />
+            <div className="space-y-3">
+              {[1, 2, 3].map(index => (
+                <div key={index} className="flex items-center gap-3">
+                  <Skeleton variant="circular" width={16} height={16} />
+                  <div className="flex-1">
+                    <Skeleton variant="text" width={80} height={16} />
+                    <Skeleton
+                      variant="text"
+                      width={120}
+                      height={20}
+                      className="!mt-1"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Tabs Skeleton */}
@@ -673,10 +742,12 @@ const OutletDetail: React.FC = () => {
   };
 
   const formatCurrency = (amount: string | null | undefined) => {
-    if (!amount) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
+    if (!amount) return '₹0';
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(parseFloat(amount));
   };
 
@@ -715,8 +786,147 @@ const OutletDetail: React.FC = () => {
         </Box>
       </Box>
 
+      {/* Info Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {/* Customer Type Card */}
+        <StatsCard
+          title="Customer Type"
+          value={customer.customer_type?.type_name || 'N/A'}
+          icon={<Building2 className="w-6 h-6" />}
+          color="blue"
+        />
+
+        {/* Category Card */}
+        <StatsCard
+          title="Category"
+          value={customer.customer_category?.category_name || 'N/A'}
+          icon={<Star className="w-6 h-6" />}
+          color="purple"
+        />
+
+        {/* Zone Card */}
+        <StatsCard
+          title="Zone"
+          value={customer.customer_zones?.name || 'N/A'}
+          icon={<LocationOn className="w-6 h-6" />}
+          color="green"
+        />
+
+        {/* Channel Card */}
+        <StatsCard
+          title="Channel"
+          value={customer.customer_channel?.channel_name || 'N/A'}
+          icon={<Schedule className="w-6 h-6" />}
+          color="orange"
+        />
+      </div>
+
+      {/* Detailed Information */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Contact Information */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <Typography
+            variant="h6"
+            className="!font-semibold !text-gray-900 !mb-4"
+          >
+            Contact Information
+          </Typography>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Person className="w-4 h-4 text-gray-400" />
+              <div>
+                <Typography variant="body2" className="!text-gray-500">
+                  Contact Person
+                </Typography>
+                <Typography variant="body1" className="!font-medium">
+                  {customer.contact_person || 'N/A'}
+                </Typography>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Phone className="w-4 h-4 text-gray-400" />
+              <div>
+                <Typography variant="body2" className="!text-gray-500">
+                  Phone Number
+                </Typography>
+                <Typography variant="body1" className="!font-medium">
+                  {customer.phone_number || 'N/A'}
+                </Typography>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <MapPin className="w-4 h-4 text-gray-400" />
+              <div>
+                <Typography variant="body2" className="!text-gray-500">
+                  Address
+                </Typography>
+                <Typography variant="body1" className="!font-medium">
+                  {customer.address || 'N/A'}
+                </Typography>
+                {customer.city && (
+                  <Typography variant="body2" className="!text-gray-600">
+                    {customer.city}, {customer.state} {customer.zipcode}
+                  </Typography>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Business Information */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <Typography
+            variant="h6"
+            className="!font-semibold !text-gray-900 !mb-4"
+          >
+            Business Information
+          </Typography>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <CreditCard className="w-4 h-4 text-gray-400" />
+              <div>
+                <Typography variant="body2" className="!text-gray-500">
+                  Credit Limit
+                </Typography>
+                <Typography variant="body1" className="!font-medium">
+                  {customer.credit_limit
+                    ? formatCurrency(customer.credit_limit)
+                    : 'Not Set'}
+                </Typography>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <MonetizationOn className="w-4 h-4 text-gray-400" />
+              <div>
+                <Typography variant="body2" className="!text-gray-500">
+                  Outstanding Amount
+                </Typography>
+                <Typography variant="body1" className="!font-medium">
+                  {customer.outstanding_amount
+                    ? formatCurrency(customer.outstanding_amount)
+                    : '₹0'}
+                </Typography>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <div>
+                <Typography variant="body2" className="!text-gray-500">
+                  Last Visit Date
+                </Typography>
+                <Typography variant="body1" className="!font-medium">
+                  {customer.last_visit_date
+                    ? formatDate(customer.last_visit_date)
+                    : 'No visits yet'}
+                </Typography>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border !border-b-none border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <Box>
           <Tabs
             value={tabValue}

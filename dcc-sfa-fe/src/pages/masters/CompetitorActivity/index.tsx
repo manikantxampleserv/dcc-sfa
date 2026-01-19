@@ -27,6 +27,7 @@ import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import ImportCompetitorActivity from './ImportCompetitorActivity';
 import ManageCompetitorActivity from './ManageCompetitorActivity';
+import { useCurrency } from 'hooks/useCurrency';
 
 const CompetitorActivityManagement: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -37,6 +38,7 @@ const CompetitorActivityManagement: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const { formatCurrency } = useCurrency();
 
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('competitor');
 
@@ -187,7 +189,7 @@ const CompetitorActivityManagement: React.FC = () => {
           <DollarSign className="w-3 h-3 text-gray-400" />
           <span className="text-xs font-medium">
             {row.observed_price
-              ? `${Number(row.observed_price).toFixed(2)}`
+              ? `${formatCurrency(Number(row.observed_price))}`
               : 'N/A'}
           </span>
         </Box>

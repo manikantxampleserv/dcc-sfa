@@ -17,6 +17,7 @@ import Button from 'shared/Button';
 import { formatDate } from 'utils/dateUtils';
 import PaymentLinesManager from '../PaymentLinesManager';
 import PaymentRefundsManager from '../PaymentRefundsManager';
+import { useCurrency } from 'hooks/useCurrency';
 
 const PaymentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ const PaymentDetail: React.FC = () => {
   const [paymentLinesDrawerOpen, setPaymentLinesDrawerOpen] = useState(false);
   const [paymentRefundsDrawerOpen, setPaymentRefundsDrawerOpen] =
     useState(false);
+  const { formatCurrency } = useCurrency();
 
   const { data: paymentResponse, isLoading, error } = usePayment(Number(id));
   const payment = paymentResponse?.data;
@@ -441,7 +443,7 @@ const PaymentDetail: React.FC = () => {
                   variant="body2"
                   className="!font-semibold !text-gray-900"
                 >
-                  ${payment.total_amount?.toFixed(2)}
+                  {formatCurrency(payment.total_amount || 0)}
                 </Typography>
               </div>
 
@@ -632,7 +634,7 @@ const PaymentDetail: React.FC = () => {
                         variant="body2"
                         className="!font-semibold !text-green-600"
                       >
-                        ${line.amount_applied?.toFixed(2)}
+                        {formatCurrency(line.amount_applied?.toFixed(2))}
                       </Typography>
                     </div>
                     {line.notes && (

@@ -1562,11 +1562,12 @@ export const ordersController = {
                     product_name: product.name,
                     unit: item.unit || 'pcs',
                     quantity: totalOrderedQty,
-                    unit_price: Number(item.unit_price || item.price),
+                    unit_price: Number(item.unit_price || item.price) || 0,
                     discount_amount: Number(item.discount_amount) || 0,
                     tax_amount: Number(item.tax_amount) || 0,
                     total_amount:
-                      totalOrderedQty * Number(item.unit_price || item.price),
+                      totalOrderedQty *
+                      (Number(item.unit_price || item.price) || 0),
                     notes: `Batches: ${batchData.map((b: any) => b.batch_lot_id).join(', ')}`,
                     is_free_gift: false,
                   },
@@ -1700,11 +1701,12 @@ export const ordersController = {
                     product_name: product.name,
                     unit: 'pcs',
                     quantity: serialData.length,
-                    unit_price: Number(item.unit_price || item.price),
+                    unit_price: Number(item.unit_price || item.price) || 0,
                     discount_amount: Number(item.discount_amount || 0),
                     tax_amount: Number(item.tax_amount || 0),
                     total_amount:
-                      serialData.length * Number(item.unit_price || item.price),
+                      serialData.length *
+                      (Number(item.unit_price || item.price) || 0),
                     notes: `Serials: ${serialData.map((s: any) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
                     is_free_gift: false,
                   },
@@ -1797,17 +1799,15 @@ export const ordersController = {
                     product_name: product.name,
                     unit: item.unit || 'pcs',
                     quantity: quantity,
-                    unit_price: Number(item.unit_price || item.price),
+                    unit_price: Number(item.unit_price || item.price) || 0,
                     discount_amount: Number(item.discount_amount) || 0,
                     tax_amount: Number(item.tax_amount) || 0,
                     total_amount:
-                      quantity * Number(item.unit_price || item.price),
+                      quantity * (Number(item.unit_price || item.price) || 0),
                     notes: item.notes || null,
                     is_free_gift: false,
                   },
                 });
-
-                console.log(` Sold ${quantity} units of ${product.name}`);
               }
             }
 
@@ -2422,14 +2422,14 @@ export const ordersController = {
             });
 
             const itemsToCreate = items.map((item: any) => {
-              const unitPrice = parseFloat(
-                item.unit_price || item.price || '0'
-              );
+              const unitPrice =
+                parseFloat(item.unit_price || item.price || '0') || 0;
               const quantity = parseInt(item.quantity) || 1;
-              const discountAmount = parseFloat(item.discount_amount || '0');
-              const taxAmount = parseFloat(item.tax_amount || '0');
+              const discountAmount =
+                parseFloat(item.discount_amount || '0') || 0;
+              const taxAmount = parseFloat(item.tax_amount || '0') || 0;
               const totalAmount = item.total_amount
-                ? parseFloat(item.total_amount)
+                ? parseFloat(item.total_amount) || 0
                 : unitPrice * quantity - discountAmount + taxAmount;
 
               return {

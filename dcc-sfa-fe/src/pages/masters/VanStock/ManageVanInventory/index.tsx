@@ -129,6 +129,10 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     enableReinitialize: true,
     onSubmit: async values => {
       try {
+        if (values.van_inventory_items.length === 0) {
+          toast.error('Please add at least one item to the van inventory.');
+          return;
+        }
         const invalidItems = values.van_inventory_items.filter(
           item =>
             item.batch_lot_id &&
@@ -151,6 +155,31 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
         if (incompleteItems.length > 0) {
           toast.error(
             'Please complete all fields (Product, Batch, and Quantity) for all items before submitting.'
+          );
+          return false;
+        }
+
+        const batchQuantityMismatch = values.van_inventory_items.some(
+          item =>
+            item.tracking_type?.toLowerCase() === 'batch' &&
+            item.product_batches &&
+            Array.isArray(item.product_batches) &&
+            item.product_batches.length > 0 &&
+            (!item.quantity || Number(item.quantity) === 0)
+        );
+
+        const serialQuantityMismatch = values.van_inventory_items.some(
+          item =>
+            item.tracking_type?.toLowerCase() === 'serial' &&
+            item.product_serials &&
+            Array.isArray(item.product_serials) &&
+            item.product_serials.length > 0 &&
+            (!item.quantity || Number(item.quantity) === 0)
+        );
+
+        if (batchQuantityMismatch || serialQuantityMismatch) {
+          toast.error(
+            'Please ensure all batch items have quantities greater than 0 and all serial items have at least one serial number.'
           );
           return false;
         }
@@ -218,6 +247,12 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       }
     },
   });
+
+  useEffect(() => {
+    if (formik.values.loading_type) {
+      formik.setFieldValue('van_inventory_items', []);
+    }
+  }, [formik.values.loading_type]);
 
   const userIdForInventory = formik.values.user_id
     ? Number(formik.values.user_id)
@@ -592,6 +627,17 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
                   onClick={() => {
                     if (!row.product_id) {
                       toast.error('Please select a product first');
+                      return;
+                    }
+                    if (
+                      formik.values.loading_type === 'L' &&
+                      (!row.quantity ||
+                        row.quantity === '' ||
+                        row.quantity === '0')
+                    ) {
+                      toast.error(
+                        'Please enter quantity before selecting batch/serial'
+                      );
                       return;
                     }
                     if (value && value.toLowerCase() === 'batch') {
