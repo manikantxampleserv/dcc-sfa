@@ -1659,7 +1659,7 @@ export const vanInventoryController = {
                           },
                         });
                         console.log(
-                          `✅ Updated serial ${serialNumber} status → in_van`
+                          ` Updated serial ${serialNumber} status → in_van`
                         );
                       } else {
                         existingSerial = await tx.serial_numbers.create({
