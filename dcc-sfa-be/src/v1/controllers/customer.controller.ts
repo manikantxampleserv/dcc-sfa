@@ -1385,4 +1385,445 @@ export const customerController = {
       });
     }
   },
+
+  async bulkCreateCustomers(req: any, res: any) {
+    try {
+      if (!req.body) {
+        return res.status(400).json({
+          success: false,
+          message: 'Request body is missing',
+        });
+      }
+
+      if (!req.body.customers) {
+        return res.status(400).json({
+          success: false,
+          message: 'customers field is required',
+        });
+      }
+
+      let customersData;
+      if (typeof req.body.customers === 'string') {
+        if (!req.body.customers.trim()) {
+          return res.status(400).json({
+            success: false,
+            message: 'customers field cannot be empty',
+          });
+        }
+        try {
+          customersData = JSON.parse(req.body.customers);
+        } catch (error: any) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid JSON format for customers field',
+          });
+        }
+      } else {
+        customersData = req.body.customers;
+      }
+
+      const uploadedFiles =
+        (req.files as {
+          outlet_images?: Express.Multer.File[];
+          profile_picture?: Express.Multer.File[];
+          customer_images?: Express.Multer.File[];
+          profile_pics?: Express.Multer.File[];
+        }) || {};
+
+      const customerImages =
+        uploadedFiles.outlet_images || uploadedFiles.customer_images || [];
+      const profilePics =
+        uploadedFiles.profile_picture || uploadedFiles.profile_pics || [];
+
+      if (!Array.isArray(customersData) || customersData.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid request. Expected an array of customers',
+        });
+      }
+
+      let imageMapping: Record<number, number[]> = {};
+      let profileMapping: Record<number, number> = {};
+
+      if (req.body.imageMapping) {
+        try {
+          imageMapping =
+            typeof req.body.imageMapping === 'string'
+              ? JSON.parse(req.body.imageMapping)
+              : req.body.imageMapping;
+        } catch (e) {
+          imageMapping = {};
+        }
+      }
+
+      if (req.body.profileMapping) {
+        try {
+          profileMapping =
+            typeof req.body.profileMapping === 'string'
+              ? JSON.parse(req.body.profileMapping)
+              : req.body.profileMapping;
+        } catch (e) {
+          profileMapping = {};
+        }
+      }
+
+      const hasImageMapping = Object.keys(imageMapping).length > 0;
+      const hasProfileMapping = Object.keys(profileMapping).length > 0;
+
+      if (!hasImageMapping && customerImages.length > 0) {
+        for (
+          let i = 0;
+          i < customersData.length && i < customerImages.length;
+          i++
+        ) {
+          imageMapping[i] = [i];
+        }
+      }
+
+      if (!hasProfileMapping && profilePics.length > 0) {
+        for (
+          let i = 0;
+          i < customersData.length && i < profilePics.length;
+          i++
+        ) {
+          profileMapping[i] = i;
+        }
+      }
+
+      const allowedFields = [
+        'code',
+        'name',
+        'type',
+        'contact_person',
+        'phone_number',
+        'email',
+        'address',
+        'city',
+        'state',
+        'zipcode',
+        'latitude',
+        'longitude',
+        'credit_limit',
+        'outstanding_amount',
+        'last_visit_date',
+        'is_active',
+        'log_inst',
+      ];
+
+      const results = {
+        created: [] as any[],
+        errors: [] as any[],
+      };
+
+      const uploadedImageUrls: string[] = [];
+      const uploadedProfileUrls: string[] = [];
+
+      try {
+        for (let i = 0; i < customerImages.length; i++) {
+          const file = customerImages[i];
+          const fileName = `customer-images/${Date.now()}-${i}-${file.originalname}`;
+
+          try {
+            const imageUrl = await uploadFile(
+              file.buffer,
+              fileName,
+              file.mimetype
+            );
+            uploadedImageUrls.push(imageUrl);
+          } catch (uploadError: any) {
+            console.error(`Error uploading customer image ${i}:`, uploadError);
+            uploadedImageUrls.push('');
+          }
+        }
+
+        for (let i = 0; i < profilePics.length; i++) {
+          const file = profilePics[i];
+          const fileName = `customer-profiles/${Date.now()}-${i}-${file.originalname}`;
+
+          try {
+            const profileUrl = await uploadFile(
+              file.buffer,
+              fileName,
+              file.mimetype
+            );
+            uploadedProfileUrls.push(profileUrl);
+          } catch (uploadError: any) {
+            console.error(`Error uploading profile pic ${i}:`, uploadError);
+            uploadedProfileUrls.push('');
+          }
+        }
+
+        // Process customers individually to avoid MSSQL transaction conflicts
+        for (
+          let customerIndex = 0;
+          customerIndex < customersData.length;
+          customerIndex++
+        ) {
+          const customerData = customersData[customerIndex];
+
+          try {
+            const zones_id = customerData.zones_id;
+            const route_id = customerData.route_id;
+            const salesperson_id = customerData.salesperson_id;
+            const customer_type_id = customerData.customer_type_id;
+            const customer_channel_id = customerData.customer_channel_id;
+
+            const cleanData: any = {};
+            Object.keys(customerData).forEach(key => {
+              if (allowedFields.includes(key)) {
+                if (
+                  [
+                    'credit_limit',
+                    'outstanding_amount',
+                    'latitude',
+                    'longitude',
+                  ].includes(key)
+                ) {
+                  cleanData[key] =
+                    customerData[key] === '' ? null : customerData[key];
+                } else {
+                  cleanData[key] = customerData[key];
+                }
+              }
+            });
+
+            if (profileMapping[customerIndex] !== undefined) {
+              const profileIndex = profileMapping[customerIndex];
+              if (
+                profileIndex < uploadedProfileUrls.length &&
+                uploadedProfileUrls[profileIndex]
+              ) {
+                cleanData.profile_picture = uploadedProfileUrls[profileIndex];
+              }
+            }
+
+            // Check if customer already exists - if so, skip creation
+            let whereConditions: any = {};
+            if (cleanData.email && cleanData.phone_number) {
+              whereConditions.OR = [
+                { email: cleanData.email },
+                { phone_number: cleanData.phone_number },
+              ];
+            } else if (cleanData.email) {
+              whereConditions.email = cleanData.email;
+            } else if (cleanData.phone_number) {
+              whereConditions.phone_number = cleanData.phone_number;
+            }
+
+            const existingCustomer = await prisma.customers.findFirst({
+              where: whereConditions,
+            });
+
+            if (existingCustomer) {
+              results.errors.push({
+                customer: {
+                  name: customerData.name,
+                  email: customerData.email,
+                  phone_number: customerData.phone_number,
+                },
+                reason:
+                  'Customer already exists with this email or phone number',
+              });
+              continue;
+            }
+
+            // Generate unique code if not provided
+            if (!cleanData.code) {
+              let uniqueCode = await generateCustomerCode(cleanData.name);
+              let attempts = 0;
+              const maxAttempts = 10;
+
+              while (attempts < maxAttempts) {
+                const codeExists = await prisma.customers.findUnique({
+                  where: { code: uniqueCode },
+                });
+
+                if (!codeExists) break;
+
+                const timestamp = Date.now().toString().slice(-4);
+                uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+                attempts++;
+              }
+
+              if (attempts >= maxAttempts) {
+                throw new Error('Failed to generate unique code');
+              }
+
+              cleanData.code = uniqueCode;
+            }
+
+            const createData: any = {
+              ...cleanData,
+              createdby: req.user?.id || 1,
+              log_inst: customerData.log_inst || 1,
+              createdate: new Date(),
+            };
+
+            if (zones_id !== undefined && zones_id !== null) {
+              const zoneExists = await prisma.zones.findUnique({
+                where: { id: zones_id },
+              });
+              if (zoneExists) {
+                createData.customer_zones = { connect: { id: zones_id } };
+              }
+            }
+
+            if (route_id !== undefined && route_id !== null) {
+              const routeExists = await prisma.routes.findUnique({
+                where: { id: route_id },
+              });
+              if (routeExists) {
+                createData.customer_routes = { connect: { id: route_id } };
+              }
+            }
+
+            if (salesperson_id !== undefined && salesperson_id !== null) {
+              const userExists = await prisma.users.findUnique({
+                where: { id: salesperson_id },
+              });
+              if (userExists) {
+                createData.customer_users = {
+                  connect: { id: salesperson_id },
+                };
+              }
+            }
+
+            if (customer_type_id !== undefined && customer_type_id !== null) {
+              const typeExists = await prisma.customer_type.findUnique({
+                where: { id: customer_type_id },
+              });
+              if (typeExists) {
+                createData.customer_type_customer = {
+                  connect: { id: customer_type_id },
+                };
+              }
+            }
+
+            if (
+              customer_channel_id !== undefined &&
+              customer_channel_id !== null
+            ) {
+              const channelExists = await prisma.customer_channel.findUnique({
+                where: { id: customer_channel_id },
+              });
+              if (channelExists) {
+                createData.customer_channel_customer = {
+                  connect: { id: customer_channel_id },
+                };
+              }
+            }
+
+            const newCustomer = await prisma.customers.create({
+              data: createData,
+            });
+            const customerId = newCustomer.id;
+
+            if (
+              imageMapping[customerIndex] &&
+              Array.isArray(imageMapping[customerIndex])
+            ) {
+              const fileIndices = imageMapping[customerIndex];
+
+              for (const fileIndex of fileIndices) {
+                if (
+                  fileIndex < uploadedImageUrls.length &&
+                  uploadedImageUrls[fileIndex]
+                ) {
+                  await prisma.customer_image.create({
+                    data: {
+                      customer_id: customerId,
+                      image_url: uploadedImageUrls[fileIndex],
+                      is_active: 'Y',
+                      createdby: req.user?.id || 1,
+                      createdate: new Date(),
+                      log_inst: 1,
+                    },
+                  });
+                }
+              }
+            }
+
+            const customerToSerialize = await prisma.customers.findUnique({
+              where: { id: customerId },
+              include: {
+                customer_zones: true,
+                customer_routes: true,
+                customer_users: true,
+                customer_type_customer: {
+                  select: {
+                    id: true,
+                    type_name: true,
+                    type_code: true,
+                  },
+                },
+                customer_channel_customer: {
+                  select: {
+                    id: true,
+                    channel_name: true,
+                    channel_code: true,
+                  },
+                },
+                outlet_images_customers: {
+                  where: { is_active: 'Y' },
+                  orderBy: { createdate: 'desc' },
+                  select: {
+                    id: true,
+                    image_url: true,
+                    createdate: true,
+                    createdby: true,
+                  },
+                },
+              },
+            });
+
+            const serialized = await serializeCustomer(customerToSerialize);
+            results.created.push(serialized);
+          } catch (error: any) {
+            console.error('Error processing customer:', error);
+            results.errors.push({
+              customer: {
+                name: customerData.name,
+                email: customerData.email,
+                phone_number: customerData.phone_number,
+              },
+              reason: error.message || 'Unknown error occurred',
+              error_code: error.code,
+            });
+          }
+        }
+
+        res.status(200).json({
+          success: true,
+          message: 'Bulk create completed',
+          summary: {
+            total: customersData.length,
+            created: results.created.length,
+            errors: results.errors.length,
+            outlet_images_uploaded: uploadedImageUrls.filter(url => url).length,
+            profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
+              .length,
+          },
+          data: results,
+        });
+      } catch (error: any) {
+        for (const imageUrl of [...uploadedImageUrls, ...uploadedProfileUrls]) {
+          if (imageUrl) {
+            try {
+              await deleteFile(imageUrl);
+            } catch (deleteError) {
+              console.error('Error cleaning up uploaded file:', deleteError);
+            }
+          }
+        }
+        throw error;
+      }
+    } catch (error: any) {
+      console.error('Bulk Create Error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message,
+      });
+    }
+  },
 };
