@@ -1007,7 +1007,7 @@ exports.requestsController = {
                     log_inst: 1,
                 });
                 return res.status(200).json({
-                    message: 'Request approved successfully.All',
+                    message: 'Request approved successfully.',
                 });
             }
             if (result.status === 'next_level' && result.nextApprover) {

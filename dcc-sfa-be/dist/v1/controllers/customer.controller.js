@@ -730,9 +730,27 @@ exports.customerController = {
                         });
                     }
                 }
+                if (results.errors.length > 0) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Bulk upsert completed with errors',
+                        summary: {
+                            total: customersData.length,
+                            created: results.created.length,
+                            updated: results.updated.length,
+                            skipped: results.skipped.length,
+                            errors: results.errors.length,
+                            outlet_images_uploaded: uploadedImageUrls.filter(url => url)
+                                .length,
+                            profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
+                                .length,
+                        },
+                        data: results,
+                    });
+                }
                 res.status(200).json({
                     success: true,
-                    message: 'Bulk upsert completed',
+                    message: 'Bulk upsert completed successfully',
                     summary: {
                         total: customersData.length,
                         created: results.created.length,
@@ -775,7 +793,6 @@ exports.customerController = {
             if (!data.name) {
                 return res.status(400).json({ message: 'Customer name is required' });
             }
-            // Handle decimal fields - convert empty strings to null
             const { credit_limit, outstanding_amount, latitude, longitude, ...otherData } = data;
             const processedData = {
                 ...otherData,

@@ -75,6 +75,7 @@ const MODULE_MAPPING = {
     'product-type': 'Product Type',
     'product-target-group': 'Product Target Group',
     'product-web-order': 'Product Web Order',
+    'inventory-items': 'Inventory Items',
     'cooler-type': 'Cooler Type',
     'cooler-sub-type': 'Cooler Sub Type',
     location: 'GPS Tracking',

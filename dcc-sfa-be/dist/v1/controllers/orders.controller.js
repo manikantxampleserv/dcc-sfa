@@ -86,6 +86,7 @@ const serializeOrder = (order) => ({
         total_amount: oi.total_amount ? Number(oi.total_amount) : undefined,
         notes: oi.notes,
         is_free_gift: oi.is_free_gift || false,
+        tracking_type: oi.products?.tracking_type || null,
     })) || [],
     invoices: order.invoices?.map((inv) => ({
         id: inv.id,
@@ -126,10 +127,10 @@ async function generateOrderNumber(tx) {
                 },
             });
             if (!exists) {
-                console.log(' Generated unique order number:', newOrderNumber);
+                console.log('Generated unique order number:', newOrderNumber);
                 return newOrderNumber;
             }
-            console.log(' Order number exists, retrying...', newOrderNumber);
+            console.log('Order number exists, retrying...', newOrderNumber);
             retryCount++;
         }
         catch (error) {
@@ -1265,7 +1266,7 @@ exports.ordersController = {
                                         updatedby: userId,
                                     },
                                 });
-                                console.log(`✅ Serial ${serialNumber} marked as SOLD`);
+                                console.log(` Serial ${serialNumber} marked as SOLD`);
                                 const inventoryStock = await tx.inventory_stock.findFirst({
                                     where: {
                                         product_id: product.id,
@@ -1347,7 +1348,7 @@ exports.ordersController = {
                                     is_free_gift: false,
                                 },
                             });
-                            console.log(`✅ Order item created for ${serialData.length} serials`);
+                            console.log(`Order item created for ${serialData.length} serials`);
                         }
                         else {
                             console.log(' Going to NONE branch');
@@ -1516,11 +1517,10 @@ exports.ordersController = {
     },
     async approveOrRejectOrder(req, res) {
         try {
-            const { id } = req.params; // Order ID
-            const { action, comments, approvedby } = req.body; // action: 'approved' or 'rejected'
+            const { id } = req.params;
+            const { action, comments, approvedby } = req.body;
             const userId = req.user?.id || 1;
-            // Validate action
-            if (!['approved', 'rejected'].includes(action)) {
+            if (!['A', 'R'].includes(action)) {
                 return res.status(400).json({
                     success: false,
                     message: 'Invalid action. Must be "approved" or "rejected"',
@@ -1539,22 +1539,20 @@ exports.ordersController = {
                     message: 'Order not found',
                 });
             }
-            // Check if order is pending approval
-            if (order.approval_status !== 'pending' &&
+            if (order.approval_status !== 'P' &&
                 order.approval_status !== 'submitted') {
                 return res.status(400).json({
                     success: false,
                     message: `Order is already ${order.approval_status}`,
                 });
             }
-            // Update order with approval/rejection
             const updatedOrder = await prisma_client_1.default.orders.update({
                 where: { id: Number(id) },
                 data: {
-                    approval_status: action, // 'approved' or 'rejected'
+                    approval_status: action,
                     approved_by: approvedby || userId,
                     approved_at: new Date(),
-                    status: action === 'approved' ? 'confirmed' : 'cancelled',
+                    status: action === 'A' ? 'C' : 'D',
                     updatedate: new Date(),
                     updatedby: userId,
                     log_inst: { increment: 1 },
@@ -1570,38 +1568,34 @@ exports.ordersController = {
                     invoices: true,
                 },
             });
-            // Update approval workflow if exists
             const workflow = await prisma_client_1.default.approval_workflows.findFirst({
                 where: {
                     reference_type: 'order',
                     reference_number: order.order_number,
-                    status: { in: ['pending', 'inprogress'] },
+                    status: { in: ['P'] },
                 },
             });
             if (workflow) {
-                // Update workflow with correct field names from schema
                 await prisma_client_1.default.approval_workflows.update({
                     where: { id: workflow.id },
                     data: {
-                        status: action === 'approved' ? 'approved' : 'rejected',
-                        final_approved_by: action === 'approved' ? approvedby || userId : undefined,
-                        final_approved_at: action === 'approved' ? new Date() : undefined,
-                        rejected_by: action === 'rejected' ? approvedby || userId : undefined,
-                        rejected_at: action === 'rejected' ? new Date() : undefined,
-                        rejection_reason: action === 'rejected' ? comments : undefined,
+                        status: action === 'A' ? 'C' : 'D',
+                        final_approved_by: action === 'A' ? approvedby || userId : undefined,
+                        final_approved_at: action === 'A' ? new Date() : undefined,
+                        rejected_by: action === 'R' ? approvedby || userId : undefined,
+                        rejected_at: action === 'R' ? new Date() : undefined,
+                        rejection_reason: action === 'R' ? comments : undefined,
                         updatedate: new Date(),
                         updatedby: userId,
                     },
                 });
-                // Update workflow steps - need to check workflow_steps schema for correct fields
                 await prisma_client_1.default.workflow_steps.updateMany({
                     where: {
                         workflow_id: workflow.id,
-                        status: 'pending',
+                        status: 'P',
                     },
                     data: {
-                        status: action === 'approved' ? 'completed' : 'rejected',
-                        // Remove completed_by and completed_at if they don't exist in schema
+                        status: action === 'A' ? 'A' : 'R',
                         updatedate: new Date(),
                     },
                 });
@@ -1617,7 +1611,7 @@ exports.ordersController = {
             }
             return res.json({
                 success: true,
-                message: `Order ${action === 'approved' ? 'approved' : 'rejected'} successfully`,
+                message: `Order ${action === 'A' ? 'A' : 'R'} successfully`,
                 data: serializeOrder(updatedOrder),
             });
         }
@@ -1711,7 +1705,18 @@ exports.ordersController = {
                         },
                     },
                     orders_salesperson_users: true,
-                    order_items: true,
+                    order_items: {
+                        include: {
+                            products: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    tracking_type: true,
+                                },
+                            },
+                        },
+                    },
                     invoices: true,
                     orders_promotion: {
                         select: {
@@ -1866,7 +1871,18 @@ exports.ordersController = {
                     orders_currencies: true,
                     orders_customers: true,
                     orders_salesperson_users: true,
-                    order_items: true,
+                    order_items: {
+                        include: {
+                            products: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    tracking_type: true,
+                                },
+                            },
+                        },
+                    },
                     invoices: true,
                 },
             });

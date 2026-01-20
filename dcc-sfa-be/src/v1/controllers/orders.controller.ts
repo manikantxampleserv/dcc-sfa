@@ -209,11 +209,11 @@ async function generateOrderNumber(tx: any): Promise<string> {
       });
 
       if (!exists) {
-        console.log(' Generated unique order number:', newOrderNumber);
+        console.log('Generated unique order number:', newOrderNumber);
         return newOrderNumber;
       }
 
-      console.log(' Order number exists, retrying...', newOrderNumber);
+      console.log('Order number exists, retrying...', newOrderNumber);
       retryCount++;
     } catch (error) {
       console.error('Error generating order number:', error);

@@ -159,6 +159,7 @@ const MODULE_DISPLAY_NAMES = {
     'product-type': 'Product Type',
     'product-target-group': 'Product Target Group',
     'product-web-order': 'Product Web Order',
+    'inventory-items': 'Inventory Items',
 };
 /**
  * @constant ACTION_DISPLAY_NAMES

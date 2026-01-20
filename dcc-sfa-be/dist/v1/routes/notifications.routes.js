@@ -45,16 +45,16 @@ router.put('/:id/read', notifications_controller_1.notificationsController.markA
  */
 router.put('/read-all', notifications_controller_1.notificationsController.markAllAsRead);
 /**
+ * @route DELETE /api/v1/notifications/clear-all
+ * @description Clear all notifications for authenticated user
+ * @access Private (requires authentication)
+ */
+router.delete('/clear-all', notifications_controller_1.notificationsController.clearAll);
+/**
  * @route DELETE /api/v1/notifications/:id
  * @description Delete a notification
  * @access Private (requires authentication)
  */
 router.delete('/:id', notifications_controller_1.notificationsController.deleteNotification);
-/**
- * @route DELETE /api/v1/notifications/clear-all
- * @description Clear all notifications for the authenticated user
- * @access Private (requires authentication)
- */
-router.delete('/clear-all', notifications_controller_1.notificationsController.clearAll);
 exports.default = router;
 //# sourceMappingURL=notifications.routes.js.map

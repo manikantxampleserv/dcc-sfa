@@ -1349,7 +1349,7 @@ exports.vanInventoryController = {
                                                     updatedby: userId,
                                                 },
                                             });
-                                            console.log(`✅ Updated serial ${serialNumber} status → in_van`);
+                                            console.log(` Updated serial ${serialNumber} status → in_van`);
                                         }
                                         else {
                                             existingSerial = await tx.serial_numbers.create({

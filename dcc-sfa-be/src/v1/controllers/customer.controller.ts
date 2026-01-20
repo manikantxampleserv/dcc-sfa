@@ -487,345 +487,358 @@ export const customerController = {
           const customerData = customersData[customerIndex];
 
           try {
-            await prisma.$transaction(async tx => {
-              const zones_id = customerData.zones_id;
-              const route_id = customerData.route_id;
-              const salesperson_id = customerData.salesperson_id;
-              const customer_type_id = customerData.customer_type_id;
-              const customer_channel_id = customerData.customer_channel_id;
+            await prisma.$transaction(
+              async tx => {
+                const zones_id = customerData.zones_id;
+                const route_id = customerData.route_id;
+                const salesperson_id = customerData.salesperson_id;
+                const customer_type_id = customerData.customer_type_id;
+                const customer_channel_id = customerData.customer_channel_id;
 
-              const cleanData: any = {};
-              Object.keys(customerData).forEach(key => {
-                if (allowedFields.includes(key)) {
+                const cleanData: any = {};
+                Object.keys(customerData).forEach(key => {
+                  if (allowedFields.includes(key)) {
+                    if (
+                      [
+                        'credit_limit',
+                        'outstanding_amount',
+                        'latitude',
+                        'longitude',
+                      ].includes(key)
+                    ) {
+                      cleanData[key] =
+                        customerData[key] === '' ? null : customerData[key];
+                    } else {
+                      cleanData[key] = customerData[key];
+                    }
+                  }
+                });
+
+                if (profileMapping[customerIndex] !== undefined) {
+                  const profileIndex = profileMapping[customerIndex];
                   if (
-                    [
-                      'credit_limit',
-                      'outstanding_amount',
-                      'latitude',
-                      'longitude',
-                    ].includes(key)
+                    profileIndex < uploadedProfileUrls.length &&
+                    uploadedProfileUrls[profileIndex]
                   ) {
-                    cleanData[key] =
-                      customerData[key] === '' ? null : customerData[key];
-                  } else {
-                    cleanData[key] = customerData[key];
+                    cleanData.profile_picture =
+                      uploadedProfileUrls[profileIndex];
                   }
                 }
-              });
 
-              if (profileMapping[customerIndex] !== undefined) {
-                const profileIndex = profileMapping[customerIndex];
-                if (
-                  profileIndex < uploadedProfileUrls.length &&
-                  uploadedProfileUrls[profileIndex]
-                ) {
-                  cleanData.profile_picture = uploadedProfileUrls[profileIndex];
+                let whereConditions: any = {};
+
+                if (cleanData.email && cleanData.phone_number) {
+                  whereConditions.OR = [
+                    { email: cleanData.email },
+                    { phone_number: cleanData.phone_number },
+                  ];
+                } else if (cleanData.email) {
+                  whereConditions.email = cleanData.email;
+                } else if (cleanData.phone_number) {
+                  whereConditions.phone_number = cleanData.phone_number;
                 }
-              }
 
-              let whereConditions: any = {};
+                const existingCustomer = await tx.customers.findFirst({
+                  where: whereConditions,
+                });
 
-              if (cleanData.email && cleanData.phone_number) {
-                whereConditions.OR = [
-                  { email: cleanData.email },
-                  { phone_number: cleanData.phone_number },
-                ];
-              } else if (cleanData.email) {
-                whereConditions.email = cleanData.email;
-              } else if (cleanData.phone_number) {
-                whereConditions.phone_number = cleanData.phone_number;
-              }
+                let customerId: number;
+                let oldProfilePic: string | null = null;
+                let isUpdate = false;
 
-              const existingCustomer = await tx.customers.findFirst({
-                where: whereConditions,
-              });
+                if (existingCustomer) {
+                  const hasChanged = checkIfCustomerChanged(
+                    existingCustomer,
+                    customerData
+                  );
+                  const hasNewImages = imageMapping[customerIndex]?.length > 0;
+                  const hasNewProfile =
+                    profileMapping[customerIndex] !== undefined;
 
-              let customerId: number;
-              let oldProfilePic: string | null = null;
-              let isUpdate = false;
+                  if (!hasChanged && !hasNewImages && !hasNewProfile) {
+                    results.skipped.push({
+                      code: existingCustomer.code,
+                      id: existingCustomer.id,
+                      name: existingCustomer.name,
+                      reason: 'No changes detected',
+                    });
+                    return;
+                  }
 
-              if (existingCustomer) {
-                const hasChanged = checkIfCustomerChanged(
-                  existingCustomer,
-                  customerData
-                );
-                const hasNewImages = imageMapping[customerIndex]?.length > 0;
-                const hasNewProfile =
-                  profileMapping[customerIndex] !== undefined;
+                  if (hasNewProfile && existingCustomer.profile_picture) {
+                    oldProfilePic = existingCustomer.profile_picture;
+                  }
 
-                if (!hasChanged && !hasNewImages && !hasNewProfile) {
-                  results.skipped.push({
-                    code: existingCustomer.code,
-                    id: existingCustomer.id,
-                    name: existingCustomer.name,
-                    reason: 'No changes detected',
+                  const updateData: any = {
+                    ...cleanData,
+                    updatedate: new Date(),
+                    updatedby: req.user?.id || 1,
+                  };
+
+                  if (zones_id !== undefined) {
+                    if (zones_id === null) {
+                      updateData.customer_zones = { disconnect: true };
+                    } else {
+                      const zoneExists = await tx.zones.findUnique({
+                        where: { id: zones_id },
+                      });
+                      if (zoneExists) {
+                        updateData.customer_zones = {
+                          connect: { id: zones_id },
+                        };
+                      }
+                    }
+                  }
+
+                  if (route_id !== undefined) {
+                    if (route_id === null) {
+                      updateData.customer_routes = { disconnect: true };
+                    } else {
+                      const routeExists = await tx.routes.findUnique({
+                        where: { id: route_id },
+                      });
+                      if (routeExists) {
+                        updateData.customer_routes = {
+                          connect: { id: route_id },
+                        };
+                      }
+                    }
+                  }
+
+                  if (salesperson_id !== undefined) {
+                    if (salesperson_id === null) {
+                      updateData.customer_users = { disconnect: true };
+                    } else {
+                      const userExists = await tx.users.findUnique({
+                        where: { id: salesperson_id },
+                      });
+                      if (userExists) {
+                        updateData.customer_users = {
+                          connect: { id: salesperson_id },
+                        };
+                      }
+                    }
+                  }
+
+                  if (customer_type_id !== undefined) {
+                    if (customer_type_id === null) {
+                      updateData.customer_type_customer = { disconnect: true };
+                    } else {
+                      const typeExists = await tx.customer_type.findUnique({
+                        where: { id: customer_type_id },
+                      });
+                      if (typeExists) {
+                        updateData.customer_type_customer = {
+                          connect: { id: customer_type_id },
+                        };
+                      }
+                    }
+                  }
+
+                  if (customer_channel_id !== undefined) {
+                    if (customer_channel_id === null) {
+                      updateData.customer_channel_customer = {
+                        disconnect: true,
+                      };
+                    } else {
+                      const channelExists =
+                        await tx.customer_channel.findUnique({
+                          where: { id: customer_channel_id },
+                        });
+                      if (channelExists) {
+                        updateData.customer_channel_customer = {
+                          connect: { id: customer_channel_id },
+                        };
+                      }
+                    }
+                  }
+
+                  await tx.customers.update({
+                    where: { id: existingCustomer.id },
+                    data: updateData,
                   });
-                  return;
-                }
 
-                if (hasNewProfile && existingCustomer.profile_picture) {
-                  oldProfilePic = existingCustomer.profile_picture;
-                }
+                  customerId = existingCustomer.id;
+                  isUpdate = true;
 
-                const updateData: any = {
-                  ...cleanData,
-                  updatedate: new Date(),
-                  updatedby: req.user?.id || 1,
-                };
+                  if (oldProfilePic) {
+                    try {
+                      await deleteFile(oldProfilePic);
+                    } catch (deleteError) {
+                      console.error(
+                        'Error deleting old profile pic:',
+                        deleteError
+                      );
+                    }
+                  }
+                } else {
+                  if (!cleanData.code) {
+                    let uniqueCode = await generateCustomerCode(cleanData.name);
+                    let attempts = 0;
+                    const maxAttempts = 10;
 
-                if (zones_id !== undefined) {
-                  if (zones_id === null) {
-                    updateData.customer_zones = { disconnect: true };
-                  } else {
+                    while (attempts < maxAttempts) {
+                      const codeExists = await tx.customers.findUnique({
+                        where: { code: uniqueCode },
+                      });
+
+                      if (!codeExists) break;
+
+                      const timestamp = Date.now().toString().slice(-4);
+                      uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+                      attempts++;
+                    }
+
+                    if (attempts >= maxAttempts) {
+                      throw new Error('Failed to generate unique code');
+                    }
+
+                    cleanData.code = uniqueCode;
+                  }
+
+                  const createData: any = {
+                    ...cleanData,
+                    createdby: req.user?.id || 1,
+                    log_inst: customerData.log_inst || 1,
+                    createdate: new Date(),
+                  };
+
+                  if (zones_id !== undefined && zones_id !== null) {
                     const zoneExists = await tx.zones.findUnique({
                       where: { id: zones_id },
                     });
                     if (zoneExists) {
-                      updateData.customer_zones = { connect: { id: zones_id } };
+                      createData.customer_zones = { connect: { id: zones_id } };
                     }
                   }
-                }
 
-                if (route_id !== undefined) {
-                  if (route_id === null) {
-                    updateData.customer_routes = { disconnect: true };
-                  } else {
+                  if (route_id !== undefined && route_id !== null) {
                     const routeExists = await tx.routes.findUnique({
                       where: { id: route_id },
                     });
                     if (routeExists) {
-                      updateData.customer_routes = {
+                      createData.customer_routes = {
                         connect: { id: route_id },
                       };
                     }
                   }
-                }
 
-                if (salesperson_id !== undefined) {
-                  if (salesperson_id === null) {
-                    updateData.customer_users = { disconnect: true };
-                  } else {
+                  if (salesperson_id !== undefined && salesperson_id !== null) {
                     const userExists = await tx.users.findUnique({
                       where: { id: salesperson_id },
                     });
                     if (userExists) {
-                      updateData.customer_users = {
+                      createData.customer_users = {
                         connect: { id: salesperson_id },
                       };
                     }
                   }
-                }
 
-                if (customer_type_id !== undefined) {
-                  if (customer_type_id === null) {
-                    updateData.customer_type_customer = { disconnect: true };
-                  } else {
+                  if (
+                    customer_type_id !== undefined &&
+                    customer_type_id !== null
+                  ) {
                     const typeExists = await tx.customer_type.findUnique({
                       where: { id: customer_type_id },
                     });
                     if (typeExists) {
-                      updateData.customer_type_customer = {
+                      createData.customer_type_customer = {
                         connect: { id: customer_type_id },
                       };
                     }
                   }
-                }
 
-                if (customer_channel_id !== undefined) {
-                  if (customer_channel_id === null) {
-                    updateData.customer_channel_customer = { disconnect: true };
-                  } else {
+                  if (
+                    customer_channel_id !== undefined &&
+                    customer_channel_id !== null
+                  ) {
                     const channelExists = await tx.customer_channel.findUnique({
                       where: { id: customer_channel_id },
                     });
                     if (channelExists) {
-                      updateData.customer_channel_customer = {
+                      createData.customer_channel_customer = {
                         connect: { id: customer_channel_id },
                       };
                     }
                   }
-                }
 
-                await tx.customers.update({
-                  where: { id: existingCustomer.id },
-                  data: updateData,
-                });
-
-                customerId = existingCustomer.id;
-                isUpdate = true;
-
-                if (oldProfilePic) {
-                  try {
-                    await deleteFile(oldProfilePic);
-                  } catch (deleteError) {
-                    console.error(
-                      'Error deleting old profile pic:',
-                      deleteError
-                    );
-                  }
-                }
-              } else {
-                if (!cleanData.code) {
-                  let uniqueCode = await generateCustomerCode(cleanData.name);
-                  let attempts = 0;
-                  const maxAttempts = 10;
-
-                  while (attempts < maxAttempts) {
-                    const codeExists = await tx.customers.findUnique({
-                      where: { code: uniqueCode },
-                    });
-
-                    if (!codeExists) break;
-
-                    const timestamp = Date.now().toString().slice(-4);
-                    uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
-                    attempts++;
-                  }
-
-                  if (attempts >= maxAttempts) {
-                    throw new Error('Failed to generate unique code');
-                  }
-
-                  cleanData.code = uniqueCode;
-                }
-
-                const createData: any = {
-                  ...cleanData,
-                  createdby: req.user?.id || 1,
-                  log_inst: customerData.log_inst || 1,
-                  createdate: new Date(),
-                };
-
-                if (zones_id !== undefined && zones_id !== null) {
-                  const zoneExists = await tx.zones.findUnique({
-                    where: { id: zones_id },
+                  const newCustomer = await tx.customers.create({
+                    data: createData,
                   });
-                  if (zoneExists) {
-                    createData.customer_zones = { connect: { id: zones_id } };
-                  }
-                }
-
-                if (route_id !== undefined && route_id !== null) {
-                  const routeExists = await tx.routes.findUnique({
-                    where: { id: route_id },
-                  });
-                  if (routeExists) {
-                    createData.customer_routes = { connect: { id: route_id } };
-                  }
-                }
-
-                if (salesperson_id !== undefined && salesperson_id !== null) {
-                  const userExists = await tx.users.findUnique({
-                    where: { id: salesperson_id },
-                  });
-                  if (userExists) {
-                    createData.customer_users = {
-                      connect: { id: salesperson_id },
-                    };
-                  }
+                  customerId = newCustomer.id;
+                  isUpdate = false;
                 }
 
                 if (
-                  customer_type_id !== undefined &&
-                  customer_type_id !== null
+                  imageMapping[customerIndex] &&
+                  Array.isArray(imageMapping[customerIndex])
                 ) {
-                  const typeExists = await tx.customer_type.findUnique({
-                    where: { id: customer_type_id },
-                  });
-                  if (typeExists) {
-                    createData.customer_type_customer = {
-                      connect: { id: customer_type_id },
-                    };
+                  const fileIndices = imageMapping[customerIndex];
+
+                  for (const fileIndex of fileIndices) {
+                    if (
+                      fileIndex < uploadedImageUrls.length &&
+                      uploadedImageUrls[fileIndex]
+                    ) {
+                      await tx.customer_image.create({
+                        data: {
+                          customer_id: customerId,
+                          image_url: uploadedImageUrls[fileIndex],
+                          is_active: 'Y',
+                          createdby: req.user?.id || 1,
+                          createdate: new Date(),
+                          log_inst: 1,
+                        },
+                      });
+                    }
                   }
                 }
 
-                if (
-                  customer_channel_id !== undefined &&
-                  customer_channel_id !== null
-                ) {
-                  const channelExists = await tx.customer_channel.findUnique({
-                    where: { id: customer_channel_id },
-                  });
-                  if (channelExists) {
-                    createData.customer_channel_customer = {
-                      connect: { id: customer_channel_id },
-                    };
-                  }
-                }
-
-                const newCustomer = await tx.customers.create({
-                  data: createData,
-                });
-                customerId = newCustomer.id;
-                isUpdate = false;
-              }
-
-              if (
-                imageMapping[customerIndex] &&
-                Array.isArray(imageMapping[customerIndex])
-              ) {
-                const fileIndices = imageMapping[customerIndex];
-
-                for (const fileIndex of fileIndices) {
-                  if (
-                    fileIndex < uploadedImageUrls.length &&
-                    uploadedImageUrls[fileIndex]
-                  ) {
-                    await tx.customer_image.create({
-                      data: {
-                        customer_id: customerId,
-                        image_url: uploadedImageUrls[fileIndex],
-                        is_active: 'Y',
-                        createdby: req.user?.id || 1,
-                        createdate: new Date(),
-                        log_inst: 1,
+                const customerToSerialize = await tx.customers.findUnique({
+                  where: { id: customerId },
+                  include: {
+                    customer_zones: true,
+                    customer_routes: true,
+                    customer_users: true,
+                    customer_type_customer: {
+                      select: {
+                        id: true,
+                        type_name: true,
+                        type_code: true,
                       },
-                    });
-                  }
+                    },
+                    customer_channel_customer: {
+                      select: {
+                        id: true,
+                        channel_name: true,
+                        channel_code: true,
+                      },
+                    },
+                    outlet_images_customers: {
+                      where: { is_active: 'Y' },
+                      orderBy: { createdate: 'desc' },
+                      select: {
+                        id: true,
+                        image_url: true,
+                        createdate: true,
+                        createdby: true,
+                      },
+                    },
+                  },
+                });
+
+                const serialized = await serializeCustomer(customerToSerialize);
+
+                if (isUpdate) {
+                  results.updated.push(serialized);
+                } else {
+                  results.created.push(serialized);
                 }
+              },
+              {
+                timeout: 36000,
               }
-
-              const customerToSerialize = await tx.customers.findUnique({
-                where: { id: customerId },
-                include: {
-                  customer_zones: true,
-                  customer_routes: true,
-                  customer_users: true,
-                  customer_type_customer: {
-                    select: {
-                      id: true,
-                      type_name: true,
-                      type_code: true,
-                    },
-                  },
-                  customer_channel_customer: {
-                    select: {
-                      id: true,
-                      channel_name: true,
-                      channel_code: true,
-                    },
-                  },
-                  outlet_images_customers: {
-                    where: { is_active: 'Y' },
-                    orderBy: { createdate: 'desc' },
-                    select: {
-                      id: true,
-                      image_url: true,
-                      createdate: true,
-                      createdby: true,
-                    },
-                  },
-                },
-              });
-
-              const serialized = await serializeCustomer(customerToSerialize);
-
-              if (isUpdate) {
-                results.updated.push(serialized);
-              } else {
-                results.created.push(serialized);
-              }
-            });
+            );
           } catch (error: any) {
             console.error('Error processing customer:', error);
             results.errors.push({

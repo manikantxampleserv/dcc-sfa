@@ -52,17 +52,17 @@ router.put('/:id/read', notificationsController.markAsRead);
 router.put('/read-all', notificationsController.markAllAsRead);
 
 /**
+ * @route DELETE /api/v1/notifications/clear-all
+ * @description Clear all notifications for authenticated user
+ * @access Private (requires authentication)
+ */
+router.delete('/clear-all', notificationsController.clearAll);
+
+/**
  * @route DELETE /api/v1/notifications/:id
  * @description Delete a notification
  * @access Private (requires authentication)
  */
 router.delete('/:id', notificationsController.deleteNotification);
-
-/**
- * @route DELETE /api/v1/notifications/clear-all
- * @description Clear all notifications for the authenticated user
- * @access Private (requires authentication)
- */
-router.delete('/clear-all', notificationsController.clearAll);
 
 export default router;

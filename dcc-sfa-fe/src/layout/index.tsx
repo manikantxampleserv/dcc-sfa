@@ -75,9 +75,9 @@ const Layout: React.FC = () => {
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
           <BreadCrumbs
+            id={location.pathname}
             navItem={getNavItem()}
             navLink={location.pathname}
-            id={location.pathname}
           />
           <main ref={mainRef} className="flex-1 overflow-auto p-5">
             <Outlet key={outletKey} />

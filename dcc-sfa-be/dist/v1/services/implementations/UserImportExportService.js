@@ -653,7 +653,6 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
                 };
             });
             if (user.is_active === 'N') {
-                // ✅ FIX: Changed from isactive to is_active
                 excelRow.getCell('is_active').font = {
                     color: { argb: 'FFFF0000' },
                     bold: true,
