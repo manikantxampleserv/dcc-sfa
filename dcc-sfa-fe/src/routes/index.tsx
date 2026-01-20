@@ -415,11 +415,19 @@ const router = createBrowserRouter(
         },
         {
           path: '/masters/inventory-items',
-          element: <InventoryItems />,
+          element: (
+            <PermissionGuard module="inventory-items" action="read">
+              <InventoryItems />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/inventory-items/:id',
-          element: <InventoryDetail />,
+          element: (
+            <PermissionGuard module="inventory-items" action="read">
+              <InventoryDetail />
+            </PermissionGuard>
+          ),
         },
         {
           path: '/masters/tax-master',

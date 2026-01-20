@@ -25,7 +25,7 @@ const InventoryItems: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
-  const { isRead } = usePermission('dashboard');
+  const { isRead } = usePermission('inventory-items');
   const { formatCurrency } = useCurrency();
 
   const { data: inventoryResponse, isLoading: isLoadingInventory } =

@@ -1,7 +1,7 @@
 /**
  * @fileoverview Auto-Generated Menu Permissions Hook
  * @description Generated automatically from menu items and backend modules
- * @generated-at 2025-12-17T12:26:29.173Z
+ * @generated-at 2026-01-20T06:43:31.789Z
  */
 
 import { useCallback, useMemo } from 'react';
