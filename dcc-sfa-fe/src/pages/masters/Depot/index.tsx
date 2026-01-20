@@ -88,7 +88,7 @@ const DepotsManagement: React.FC = () => {
   const inactiveDepots =
     depotsResponse?.stats?.inactive_depots ??
     depots.filter(d => d.is_active === 'N').length;
-  const uniqueCompanies = new Set(depots.map(d => d.company_name)).size;
+  const newDepots = depotsResponse?.stats?.new_depots ?? 0;
 
   const handleCreateDepot = useCallback(() => {
     setSelectedDepot(null);
@@ -313,8 +313,8 @@ const DepotsManagement: React.FC = () => {
           isLoading={isFetching}
         />
         <StatsCard
-          title="Unique Companies"
-          value={uniqueCompanies}
+          title="New This Month"
+          value={newDepots}
           icon={<Users className="w-6 h-6" />}
           color="purple"
           isLoading={isFetching}

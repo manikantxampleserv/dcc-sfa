@@ -1233,7 +1233,7 @@ export const requestsController = {
         });
 
         return res.status(200).json({
-          message: 'Request approved successfully.All',
+          message: 'Request approved successfully.',
         });
       }
 

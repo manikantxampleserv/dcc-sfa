@@ -295,7 +295,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
                 : isEdit
                   ? 'Update'
                   : 'Create'}{' '}
-              Depot
             </Button>
           </Box>
         </form>

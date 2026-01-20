@@ -1664,7 +1664,6 @@ export const customerController = {
               if (attempts >= maxAttempts) {
                 throw new Error('Failed to generate unique code');
               }
-
               cleanData.code = uniqueCode;
             }
 
