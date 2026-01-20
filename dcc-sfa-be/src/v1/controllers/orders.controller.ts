@@ -2339,6 +2339,7 @@ export const ordersController = {
       });
     }
   },
+
   async getOrdersById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -2348,7 +2349,18 @@ export const ordersController = {
           orders_currencies: true,
           orders_customers: true,
           orders_salesperson_users: true,
-          order_items: true,
+          order_items: {
+            include: {
+              products: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  tracking_type: true,
+                },
+              },
+            },
+          },
           invoices: true,
         },
       });
