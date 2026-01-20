@@ -180,7 +180,8 @@ export type Modules =
   | 'setting'
   | 'product-type'
   | 'product-target-group'
-  | 'product-web-order';
+  | 'product-web-order'
+  | 'inventory-items';
 
 /**
  * @type Actions
@@ -259,6 +260,7 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   'product-type': 'Product Type',
   'product-target-group': 'Product Target Group',
   'product-web-order': 'Product Web Order',
+  'inventory-items': 'Inventory Items',
 };
 
 /**

@@ -54,6 +54,7 @@ export const BACKEND_MODULES = [
   'stock-movement',
   'stock-transfer',
   'batch-lots',
+  'inventory-items',
   'inventory-management',
   'competitor',
   'customer-complaint',
