@@ -1989,7 +1989,7 @@ export const ordersController = {
         await prisma.approval_workflows.update({
           where: { id: workflow.id },
           data: {
-            status: action === 'A' ? 'A' : 'R',
+            status: action === 'A' ? 'C' : 'D',
             final_approved_by:
               action === 'A' ? approvedby || userId : undefined,
             final_approved_at: action === 'A' ? new Date() : undefined,
