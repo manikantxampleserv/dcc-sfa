@@ -1166,7 +1166,7 @@ export const requestsController = {
                 where: { id: request.reference_id },
                 data: {
                   approval_status: 'approved',
-                  status: 'approved',
+                  status: 'confirmed',
                   approved_by: userId,
                   approved_at: new Date(),
                   updatedby: userId,

@@ -151,16 +151,6 @@ const LoginHistoryPage: React.FC = () => {
       ),
     },
     {
-      id: 'logout_time',
-      label: 'Logout Time',
-      sortable: true,
-      render: value => (
-        <Typography variant="body2">
-          {value ? formatDateTime(value) : 'N/A'}
-        </Typography>
-      ),
-    },
-    {
       id: 'ip_address',
       label: 'IP Address',
       sortable: true,
