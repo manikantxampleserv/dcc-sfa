@@ -66,7 +66,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       const initialBatches = inventoryByProductId[productId].batches.map(
         batch => ({
           ...batch,
-          quantity: 0,
+          quantity: batch.batch_remaining_quantity || batch.quantity || 0,
         })
       );
       setProductBatches(initialBatches);
@@ -100,7 +100,6 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
 
           return updated;
         }
-
         updated[rowIndex] = {
           ...updated[rowIndex],
           [field]: value,

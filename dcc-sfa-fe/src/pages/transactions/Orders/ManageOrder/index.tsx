@@ -192,6 +192,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               const unitPrice = Number(item.unit_price) || 0;
               const quantity = Number(item.quantity) || 0;
               return {
+                tracking_type: item.tracking_type || null,
                 product_id: Number(item.product_id),
                 product_name: item.product_name || undefined,
                 unit: item.unit || undefined,
@@ -339,7 +340,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           product_id: item.product_id,
           product_name: item.product_name || null,
           unit: item.unit || null,
-          tracking_type: null,
+          tracking_type: item.tracking_type || null,
           quantity: item.quantity.toString(),
           unit_price: item.unit_price.toString(),
           notes: item.notes || '',
@@ -485,49 +486,16 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         const tracking = (row.tracking_type || '').toString().toLowerCase();
         const canManage =
           tracking === 'batch' || tracking === 'serial' ? tracking : null;
-        const quantity = Number(row.quantity) || 0;
-
-        let hasError = false;
-        let errorMessage = '';
-
-        if (canManage && quantity > 0) {
-          if (tracking === 'serial') {
-            const serials = (row.product_serials || []) as any[];
-            const selectedSerials = serials.filter(s => s.selected !== false);
-            hasError = selectedSerials.length !== quantity;
-            errorMessage = hasError
-              ? `${selectedSerials.length}/${quantity} serials`
-              : '';
-          } else if (tracking === 'batch') {
-            const batches = (row.product_batches || []) as any[];
-            const totalBatchQty = batches.reduce(
-              (sum, b) => sum + (Number(b.quantity) || 0),
-              0
-            );
-            hasError = totalBatchQty !== quantity;
-            errorMessage = hasError
-              ? `${totalBatchQty}/${quantity} allocated`
-              : '';
-          }
-        }
 
         return (
           <Box className="!flex !justify-between !items-center !min-w-52">
             <Typography
               variant="body2"
-              className={`!text-gray-700 !uppercase !text-xs ${hasError ? '!text-red-600 !font-semibold' : ''}`}
+              className={`!text-gray-700 !uppercase !text-xs`}
             >
               {tracking || 'none'}
             </Typography>
-            {hasError && (
-              <Typography
-                variant="caption"
-                className="!text-red-500 !text-xs"
-                title="Tracking incomplete"
-              >
-                {errorMessage}
-              </Typography>
-            )}
+
             {canManage && (
               <Button
                 type="button"
@@ -548,7 +516,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                     setIsSerialSelectorOpen(true);
                   }
                 }}
-                className={hasError ? '!text-red-600' : ''}
               >
                 {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
               </Button>

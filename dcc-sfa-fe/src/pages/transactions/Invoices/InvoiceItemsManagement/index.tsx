@@ -385,7 +385,7 @@ const InvoiceItemsManagement: React.FC<InvoiceItemsManagementProps> = ({
       open={open}
       setOpen={onClose}
       title={`Invoice Items - ${invoice?.invoice_number || 'N/A'}`}
-      size="larger"
+      size="large"
     >
       <Box className="!p-4">
         <Box className="!space-y-4">

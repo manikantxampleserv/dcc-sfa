@@ -117,7 +117,7 @@ const OrdersManagement: React.FC = () => {
     const colors = {
       draft: 'info',
       pending: 'warning',
-      confirmed: 'info',
+      confirmed: 'success',
       processing: 'warning',
       shipped: 'info',
       delivered: 'success',

@@ -2,6 +2,7 @@ import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
 interface OrderItem {
+  tracking_type: string | null;
   id?: number;
   parent_id?: number;
   product_id: number;

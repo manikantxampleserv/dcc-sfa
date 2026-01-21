@@ -176,7 +176,6 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
         setOpen={setOpen}
         title="Recent Requests"
         size="small"
-        anchor="right"
       >
         <div className="!p-2">
           {isLoading ? (
