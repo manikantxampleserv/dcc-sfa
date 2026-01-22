@@ -109,7 +109,6 @@ const TaxMasterPage: React.FC = () => {
               ? 'Y'
               : 'N',
       };
-
       await exportToExcelMutation.mutateAsync({
         tableName: 'tax_master',
         filters,
