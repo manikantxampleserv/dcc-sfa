@@ -62,8 +62,8 @@ const ProductCategoriesPage: React.FC = () => {
   );
 
   const productCategories = productCategoriesResponse?.data || [];
-  const totalCount = productCategoriesResponse?.meta?.total_count || 0;
-  const currentPage = (productCategoriesResponse?.meta?.current_page || 1) - 1;
+  const totalCount = productCategoriesResponse?.meta?.total || 0;
+  const currentPage = (productCategoriesResponse?.meta?.page || 1) - 1;
 
   const deleteProductCategoryMutation = useDeleteProductCategory();
   const exportToExcelMutation = useExportToExcel();

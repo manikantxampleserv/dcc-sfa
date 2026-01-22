@@ -55,8 +55,8 @@ const AssetMasterManagement: React.FC = () => {
   );
 
   const assetMaster = assetMasterResponse?.data || [];
-  const totalCount = assetMasterResponse?.meta?.total_count || 0;
-  const currentPage = (assetMasterResponse?.meta?.current_page || 1) - 1;
+  const totalCount = assetMasterResponse?.meta?.total || 0;
+  const currentPage = (assetMasterResponse?.meta?.page || 1) - 1;
 
   const deleteAssetMasterMutation = useDeleteAssetMaster();
   const exportToExcelMutation = useExportToExcel();

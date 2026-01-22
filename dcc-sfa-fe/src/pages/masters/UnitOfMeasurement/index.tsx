@@ -64,8 +64,8 @@ const UnitOfMeasurementPage: React.FC = () => {
   );
 
   const units = unitsResponse?.data || [];
-  const totalCount = unitsResponse?.meta?.total_count || 0;
-  const currentPage = (unitsResponse?.meta?.current_page || 1) - 1;
+  const totalCount = unitsResponse?.meta?.total || 0;
+  const currentPage = (unitsResponse?.meta?.page || 1) - 1;
 
   const deleteUnitMutation = useDeleteUnitOfMeasurement();
   const exportToExcelMutation = useExportToExcel();

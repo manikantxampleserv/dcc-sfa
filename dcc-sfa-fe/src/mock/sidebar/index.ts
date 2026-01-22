@@ -509,18 +509,18 @@ const menuItems: MenuItem[] = [
         icon: MdNotifications,
         href: '/workflows/approvals',
       },
-      {
-        id: 'route-exceptions',
-        label: 'Route Exceptions',
-        icon: MdRoute,
-        href: '/workflows/exceptions',
-      },
-      {
-        id: 'alerts-reminders',
-        label: 'Alerts & Reminders',
-        icon: MdNotifications,
-        href: '/workflows/alerts',
-      },
+      // {
+      //   id: 'route-exceptions',
+      //   label: 'Route Exceptions',
+      //   icon: MdRoute,
+      //   href: '/workflows/exceptions',
+      // },
+      // {
+      //   id: 'alerts-reminders',
+      //   label: 'Alerts & Reminders',
+      //   icon: MdNotifications,
+      //   href: '/workflows/alerts',
+      // },
     ],
   },
   {

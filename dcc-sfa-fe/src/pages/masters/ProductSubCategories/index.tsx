@@ -63,9 +63,8 @@ const ProductSubCategoriesPage: React.FC = () => {
   );
 
   const productSubCategories = productSubCategoriesResponse?.data || [];
-  const totalCount = productSubCategoriesResponse?.meta?.total_count || 0;
-  const currentPage =
-    (productSubCategoriesResponse?.meta?.current_page || 1) - 1;
+  const totalCount = productSubCategoriesResponse?.meta?.total || 0;
+  const currentPage = (productSubCategoriesResponse?.meta?.page || 1) - 1;
 
   const deleteProductSubCategoryMutation = useDeleteProductSubCategory();
   const exportToExcelMutation = useExportToExcel();

@@ -59,8 +59,8 @@ const AssetMaintenanceManagement: React.FC = () => {
   );
 
   const assetMaintenances = assetMaintenanceResponse?.data || [];
-  const totalCount = assetMaintenanceResponse?.meta?.total_count || 0;
-  const currentPage = (assetMaintenanceResponse?.meta?.current_page || 1) - 1;
+  const totalCount = assetMaintenanceResponse?.meta?.total || 0;
+  const currentPage = (assetMaintenanceResponse?.meta?.page || 1) - 1;
 
   const deleteAssetMaintenanceMutation = useDeleteAssetMaintenance();
   const exportToExcelMutation = useExportToExcel();

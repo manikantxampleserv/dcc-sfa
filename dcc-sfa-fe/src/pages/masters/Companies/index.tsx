@@ -316,7 +316,7 @@ const CompaniesManagement: React.FC = () => {
         getRowId={company => company.id}
         initialOrderBy="name"
         loading={isFetching}
-        totalCount={companiesData?.meta?.total_count || 0}
+        totalCount={companiesData?.meta?.total || 0}
         page={page - 1}
         rowsPerPage={limit}
         isPermission={isRead}

@@ -56,8 +56,8 @@ const BrandsPage: React.FC = () => {
   );
 
   const brands = brandsResponse?.data || [];
-  const totalCount = brandsResponse?.meta?.total_count || 0;
-  const currentPage = (brandsResponse?.meta?.current_page || 1) - 1;
+  const totalCount = brandsResponse?.meta?.total || 0;
+  const currentPage = (brandsResponse?.meta?.page || 1) - 1;
 
   const deleteBrandMutation = useDeleteBrand();
   const exportToExcelMutation = useExportToExcel();

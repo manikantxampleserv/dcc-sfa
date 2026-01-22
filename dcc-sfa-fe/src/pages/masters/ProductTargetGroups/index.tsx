@@ -56,8 +56,7 @@ const ProductTargetGroupsPage: React.FC = () => {
 
   const productTargetGroups = productTargetGroupsResponse?.data || [];
   const totalCount = productTargetGroupsResponse?.meta?.total_count || 0;
-  const currentPage =
-    (productTargetGroupsResponse?.meta?.current_page || 1) - 1;
+  const currentPage = (productTargetGroupsResponse?.meta?.page || 1) - 1;
 
   const deleteProductTargetGroupMutation = useDeleteProductTargetGroup();
   const exportToExcelMutation = useExportToExcel();

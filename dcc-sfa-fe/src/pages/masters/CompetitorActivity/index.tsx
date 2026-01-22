@@ -59,8 +59,8 @@ const CompetitorActivityManagement: React.FC = () => {
   );
 
   const competitorActivities = competitorActivityResponse?.data || [];
-  const totalCount = competitorActivityResponse?.meta?.total_count || 0;
-  const currentPage = (competitorActivityResponse?.meta?.current_page || 1) - 1;
+  const totalCount = competitorActivityResponse?.meta?.total || 0;
+  const currentPage = (competitorActivityResponse?.meta?.page || 1) - 1;
 
   const deleteCompetitorActivityMutation = useDeleteCompetitorActivity();
   const exportToExcelMutation = useExportToExcel();

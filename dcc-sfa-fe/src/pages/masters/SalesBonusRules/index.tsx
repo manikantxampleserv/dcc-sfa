@@ -96,8 +96,8 @@ const SalesBonusRulesManagement: React.FC = () => {
   };
 
   const rules = rulesResponse?.data || [];
-  const totalCount = rulesResponse?.pagination?.total_count || 0;
-  const currentPage = (rulesResponse?.pagination?.current_page || 1) - 1;
+  const totalCount = rulesResponse?.meta?.total || 0;
+  const currentPage = (rulesResponse?.meta?.page || 1) - 1;
 
   const deleteRuleMutation = useDeleteSalesBonusRule();
   const exportToExcelMutation = useExportToExcel();

@@ -179,6 +179,14 @@ const checkIfCustomerChanged = (existing, incoming) => {
     }
     return hasAnyChange;
 };
+const convertIsActive = (isActiveParam) => {
+    if (isActiveParam === undefined ||
+        isActiveParam === null ||
+        isActiveParam === '') {
+        return undefined;
+    }
+    return isActiveParam === '1' || isActiveParam === 1 ? 'Y' : 'N';
+};
 exports.customerController = {
     async uploadCustomerImages(req, res) {
         try {
@@ -190,6 +198,17 @@ exports.customerController = {
             }
             const profileFile = req.files?.profile_picture?.[0] || req.file;
             const outletFiles = req.files?.outlet_images || [];
+            const customerIsActive = convertIsActive(req.body.is_active);
+            if (customerIsActive !== undefined) {
+                await prisma_client_1.default.customers.update({
+                    where: { id: customerId },
+                    data: {
+                        is_active: customerIsActive,
+                        updatedate: new Date(),
+                        updatedby: req.user?.id || 1,
+                    },
+                });
+            }
             let profileUrl = null;
             if (profileFile) {
                 const customer = await prisma_client_1.default.customers.findUnique({

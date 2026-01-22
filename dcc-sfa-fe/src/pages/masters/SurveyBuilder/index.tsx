@@ -58,8 +58,8 @@ const SurveyBuilder: React.FC = () => {
   );
 
   const surveys = surveysResponse?.data || [];
-  const totalCount = surveysResponse?.meta?.total_count || 0;
-  const currentPage = (surveysResponse?.meta?.current_page || 1) - 1;
+  const totalCount = surveysResponse?.meta?.total || 0;
+  const currentPage = (surveysResponse?.meta?.page || 1) - 1;
 
   const deleteSurveyMutation = useDeleteSurvey();
   const exportToExcelMutation = useExportToExcel();

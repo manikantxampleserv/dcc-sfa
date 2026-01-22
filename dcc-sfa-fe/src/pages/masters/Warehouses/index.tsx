@@ -54,8 +54,8 @@ const WarehousesPage: React.FC = () => {
   );
 
   const warehouses = warehousesResponse?.data || [];
-  const totalCount = warehousesResponse?.meta?.total_count || 0;
-  const currentPage = (warehousesResponse?.meta?.current_page || 1) - 1;
+  const totalCount = warehousesResponse?.meta?.total || 0;
+  const currentPage = (warehousesResponse?.meta?.page || 1) - 1;
 
   const deleteWarehouseMutation = useDeleteWarehouse();
   const exportToExcelMutation = useExportToExcel();

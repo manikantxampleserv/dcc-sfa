@@ -56,8 +56,8 @@ const SurveyResponses: React.FC = () => {
   const surveys = surveysResponse?.data || [];
 
   const responses = responsesResponse?.data || [];
-  const totalCount = responsesResponse?.meta?.total_count || 0;
-  const currentPage = (responsesResponse?.meta?.current_page || 1) - 1;
+  const totalCount = responsesResponse?.meta?.total || 0;
+  const currentPage = (responsesResponse?.meta?.page || 1) - 1;
 
   const deleteResponseMutation = useDeleteSurveyResponse();
   const exportToExcelMutation = useExportToExcel();

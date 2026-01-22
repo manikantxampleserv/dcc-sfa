@@ -60,11 +60,8 @@ const SalesTargetsManagement: React.FC = () => {
   );
 
   const targets = targetsResponse?.data || [];
-  const totalCount =
-    targetsResponse?.meta?.total_count || targetsResponse?.meta?.total || 0;
-  const currentPage =
-    (targetsResponse?.meta?.current_page || targetsResponse?.meta?.page || 1) -
-    1;
+  const totalCount = targetsResponse?.meta?.total_count || 0;
+  const currentPage = targetsResponse?.meta?.current_page || 1;
 
   const deleteTargetMutation = useDeleteSalesTarget();
   const exportToExcelMutation = useExportToExcel();

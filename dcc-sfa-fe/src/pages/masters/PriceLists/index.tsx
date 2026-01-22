@@ -49,8 +49,8 @@ const PriceListsManagement: React.FC = () => {
   );
 
   const priceLists = priceListsResponse?.data || [];
-  const totalCount = priceListsResponse?.meta?.total_count || 0;
-  const currentPage = (priceListsResponse?.meta?.current_page || 1) - 1;
+  const totalCount = priceListsResponse?.meta?.total || 0;
+  const currentPage = (priceListsResponse?.meta?.page || 1) - 1;
   const stats = priceListsResponse?.stats || {};
 
   const deletePriceListMutation = useDeletePriceList();

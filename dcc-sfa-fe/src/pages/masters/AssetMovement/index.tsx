@@ -58,8 +58,8 @@ const AssetMovementManagement: React.FC = () => {
   );
 
   const assetMovements = assetMovementResponse?.data || [];
-  const totalCount = assetMovementResponse?.meta?.total_count || 0;
-  const currentPage = (assetMovementResponse?.meta?.current_page || 1) - 1;
+  const totalCount = assetMovementResponse?.meta?.total || 0;
+  const currentPage = (assetMovementResponse?.meta?.page || 1) - 1;
 
   const deleteAssetMovementMutation = useDeleteAssetMovement();
   const exportToExcelMutation = useExportToExcel();

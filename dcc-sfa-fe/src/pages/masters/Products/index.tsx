@@ -64,8 +64,8 @@ const ProductsManagement: React.FC = () => {
   );
 
   const products = productsResponse?.data || [];
-  const totalCount = productsResponse?.meta?.total_count || 0;
-  const currentPage = (productsResponse?.meta?.current_page || 1) - 1;
+  const totalCount = productsResponse?.meta?.total || 0;
+  const currentPage = (productsResponse?.meta?.page || 1) - 1;
 
   const deleteProductMutation = useDeleteProduct();
   const exportToExcelMutation = useExportToExcel();

@@ -53,8 +53,8 @@ const RouteTypesManagement: React.FC = () => {
   );
 
   const routeTypes = routeTypesResponse?.data || [];
-  const totalCount = routeTypesResponse?.meta?.total_count || 0;
-  const currentPage = (routeTypesResponse?.meta?.current_page || 1) - 1;
+  const totalCount = routeTypesResponse?.meta?.total || 0;
+  const currentPage = (routeTypesResponse?.meta?.page || 1) - 1;
 
   const deleteRouteTypeMutation = useDeleteRouteType();
   const exportToExcelMutation = useExportToExcel();
