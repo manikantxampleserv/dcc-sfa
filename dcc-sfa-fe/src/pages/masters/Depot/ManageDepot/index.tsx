@@ -1,19 +1,19 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import React from 'react';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import UserSelect from 'shared/UserSelect';
 import {
   useCreateDepot,
   useUpdateDepot,
   type Depot,
 } from '../../../../hooks/useDepots';
-import type { Company } from '../../../../services/masters/Companies';
-import type { User } from '../../../../services/masters/Users';
 import { depotValidationSchema } from '../../../../schemas/depot.schema';
-import ActiveInactiveField from 'shared/ActiveInactiveField';
+import type { Company } from '../../../../services/masters/Companies';
 
 interface ManageDepotProps {
   selectedDepot?: Depot | null;
@@ -21,7 +21,6 @@ interface ManageDepotProps {
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
   companies: Company[];
-  users: User[];
 }
 
 const ManageDepot: React.FC<ManageDepotProps> = ({
@@ -30,7 +29,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
   drawerOpen,
   setDrawerOpen,
   companies,
-  users,
 }) => {
   const isEdit = !!selectedDepot;
 
@@ -101,10 +99,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
     },
   });
 
-  const managers = users;
-  const supervisors = users;
-  const coordinators = users;
-
   return (
     <CustomDrawer
       open={drawerOpen}
@@ -172,32 +166,17 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               type="tel"
             />
 
-            <Select name="manager_id" label="Manager" formik={formik}>
-              {managers.map(manager => (
-                <MenuItem key={manager.id} value={manager.id.toString()}>
-                  {manager.name}
-                </MenuItem>
-              ))}
-            </Select>
-
-            <Select name="supervisor_id" label="Supervisor" formik={formik}>
-              {supervisors.map(supervisor => (
-                <MenuItem key={supervisor.id} value={supervisor.id.toString()}>
-                  {supervisor.name}
-                </MenuItem>
-              ))}
-            </Select>
-
-            <Select name="coordinator_id" label="Coordinator" formik={formik}>
-              {coordinators.map(coordinator => (
-                <MenuItem
-                  key={coordinator.id}
-                  value={coordinator.id.toString()}
-                >
-                  {coordinator.name}
-                </MenuItem>
-              ))}
-            </Select>
+            <UserSelect name="manager_id" label="Manager" formik={formik} />
+            <UserSelect
+              name="supervisor_id"
+              label="Supervisor"
+              formik={formik}
+            />
+            <UserSelect
+              name="coordinator_id"
+              label="Coordinator"
+              formik={formik}
+            />
 
             <Input
               name="latitude"

@@ -129,8 +129,8 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
             <Input
               name="year"
               label="Year"
-              placeholder="Enter manufacturing year"
-              type="number"
+              placeholder="Select manufacturing year"
+              type="year"
               formik={formik}
             />
 

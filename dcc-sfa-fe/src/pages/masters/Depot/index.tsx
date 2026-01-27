@@ -10,7 +10,6 @@ import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useCompanies } from 'hooks/useCompanies';
 import { useDeleteDepot, useDepots, type Depot } from 'hooks/useDepots';
 import { useExportToExcel } from 'hooks/useImportExport';
-import { useUsers } from 'hooks/useUsers';
 import { usePermission } from 'hooks/usePermission';
 import {
   Building2,
@@ -70,11 +69,8 @@ const DepotsManagement: React.FC = () => {
 
   const { data: companiesResponse } = useCompanies({ page: 1, limit: 100 });
 
-  const { data: usersResponse } = useUsers({ page: 1, limit: 1000 });
-
   const depots = depotsResponse?.data || [];
   const companies = companiesResponse?.data || [];
-  const users = usersResponse?.data || [];
   const totalCount = depotsResponse?.meta?.total_count || 0;
   const currentPage = (depotsResponse?.meta?.current_page || 1) - 1;
 
@@ -443,7 +439,6 @@ const DepotsManagement: React.FC = () => {
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
         companies={companies}
-        users={users}
       />
 
       <ImportDepot

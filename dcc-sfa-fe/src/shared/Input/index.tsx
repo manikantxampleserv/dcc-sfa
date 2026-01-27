@@ -2,9 +2,10 @@
  * ## Input
  *
  * Custom input component with formik integration and optional visibility toggle for password fields.
+ * Supports text, number, email, password, search, date, time, datetime-local, and year types.
  * Easy to handle when you have using formik, handles errors etc.
  *
- * @param {InputProps} props - Props for the Input component.
+ * @param {InputProps} props - Props for Input component.
  *
  * #### Example
  *
@@ -16,6 +17,7 @@
  *   const formik = useFormik({
  *     initialValues: {
  *       username: "",
+ *       birthYear: "",
  *     },
  *     onSubmit: (values) => {
  *       console.log(values);
@@ -28,6 +30,12 @@
  *         name="username"
  *         label="Username"
  *         placeholder="Enter Your Username"
+ *         formik={formik}
+ *       />
+ *       <Input
+ *         name="birthYear"
+ *         label="Birth Year"
+ *         type="year"
  *         formik={formik}
  *       />
  *     </div>
@@ -131,6 +139,44 @@ const Input: React.FC<InputProps> = ({
     currentValue.includes(':')
       ? dayjs(currentValue, 'HH:mm')
       : null;
+
+  if (type === 'year') {
+    return (
+      <DatePicker
+        label={label}
+        value={dateValue}
+        onChange={handleDateChange}
+        views={['year']}
+        format="YYYY"
+        disabled={rest.disabled}
+        slotProps={{
+          desktopPaper: {
+            elevation: 0,
+            className: '!shadow-lg',
+          },
+          textField: {
+            fullWidth,
+            size,
+            error: !!error,
+            helperText: errorMessage,
+            name,
+            disabled: rest.disabled,
+            slotProps: {
+              htmlInput: {
+                required: false,
+              },
+            },
+            onBlur: formik?.handleBlur || onBlur,
+            InputLabelProps: {
+              shrink: true,
+            },
+            className: rest.className,
+            ...rest,
+          },
+        }}
+      />
+    );
+  }
 
   if (type === 'date') {
     return (

@@ -3,9 +3,9 @@ import * as yup from 'yup';
 export const customerValidationSchema = yup.object().shape({
   name: yup
     .string()
-    .required('Customer name is required')
-    .min(2, 'Customer name must be at least 2 characters')
-    .max(100, 'Customer name must be at most 100 characters'),
+    .required('Outlet name is required')
+    .min(2, 'Outlet name must be at least 2 characters')
+    .max(100, 'Outlet name must be at most 100 characters'),
   zones_id: yup.string().nullable(),
   type: yup.string().nullable(),
   contact_person: yup

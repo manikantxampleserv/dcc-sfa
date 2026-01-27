@@ -78,11 +78,13 @@ const OutletsManagement: React.FC = () => {
   const { data: routesResponse } = useRoutes({
     page: 1,
     limit: 100,
+    status: 'active',
   });
 
   const { data: zonesResponse } = useZones({
     page: 1,
     limit: 100,
+    isActive: 'Y',
   });
 
   const customers = customersResponse?.data || [];
@@ -477,7 +479,7 @@ const OutletsManagement: React.FC = () => {
                     startIcon={<Add />}
                     onClick={handleCreateOutlet}
                   >
-                    Add Outlet
+                    Create
                   </Button>
                 </div>
               )}

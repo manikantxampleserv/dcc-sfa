@@ -163,6 +163,16 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
       return;
     }
 
+    const isDuplicate = conditions.some(
+      cond =>
+        cond.condition_type === conditionInput.condition_type &&
+        cond.condition_operator === conditionInput.condition_operator
+    );
+    if (isDuplicate) {
+      toast.error('A condition with this type and operator already exists');
+      return;
+    }
+
     const newCondition: ConditionFormData = {
       _index: conditions.length,
       condition_type: conditionInput.condition_type,
@@ -197,6 +207,17 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
   };
 
   const updateCondition = (index: number) => {
+    const isDuplicate = conditions.some(
+      (cond, i) =>
+        i !== index &&
+        cond.condition_type === conditionInput.condition_type &&
+        cond.condition_operator === conditionInput.condition_operator
+    );
+    if (isDuplicate) {
+      toast.error('A condition with this type and operator already exists');
+      return;
+    }
+
     const updated = [...conditions];
     updated[index] = {
       ...conditionInput,

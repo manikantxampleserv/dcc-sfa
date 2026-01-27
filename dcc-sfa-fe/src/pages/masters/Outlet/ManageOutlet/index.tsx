@@ -1,22 +1,22 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
+import { useCustomerChannels } from 'hooks/useCustomerChannel';
 import {
   useCreateCustomer,
   useUpdateCustomer,
   type Customer,
 } from 'hooks/useCustomers';
 import { useCustomerTypes } from 'hooks/useCustomerType';
-import { useCustomerChannels } from 'hooks/useCustomerChannel';
 import React from 'react';
 import { customerValidationSchema } from 'schemas/customer.schema';
 import type { Route } from 'services/masters/Routes';
 import type { Zone } from 'services/masters/Zones';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
-import ActiveInactiveField from 'shared/ActiveInactiveField';
 
 interface ManageOutletProps {
   selectedOutlet?: Customer | null;
@@ -46,9 +46,13 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
   const createCustomerMutation = useCreateCustomer();
   const updateCustomerMutation = useUpdateCustomer();
 
-  const { data: customerTypesResponse } = useCustomerTypes({ limit: 1000 });
+  const { data: customerTypesResponse } = useCustomerTypes({
+    limit: 1000,
+    is_active: 'Y',
+  });
   const { data: customerChannelsResponse } = useCustomerChannels({
     limit: 1000,
+    is_active: 'Y',
   });
 
   const customerTypes = customerTypesResponse?.data || [];
@@ -164,7 +168,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
             />
 
             <Select name="zones_id" label="Zone" formik={formik}>
-              <MenuItem value="">Select Zone</MenuItem>
               {zones.map(zone => (
                 <MenuItem key={zone.id} value={zone.id.toString()}>
                   {zone.name}
@@ -177,7 +180,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               label="Customer Type"
               formik={formik}
             >
-              <MenuItem value="">Select Customer Type</MenuItem>
               {customerTypes.map(ct => (
                 <MenuItem key={ct.id} value={ct.id.toString()}>
                   {ct.type_name}
@@ -190,7 +192,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               label="Customer Channel"
               formik={formik}
             >
-              <MenuItem value="">Select Customer Channel</MenuItem>
               {customerChannels.map(cc => (
                 <MenuItem key={cc.id} value={cc.id.toString()}>
                   {cc.channel_name}
@@ -235,7 +236,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
             />
 
             <Select name="route_id" label="Route" formik={formik}>
-              <MenuItem value="">Select Route</MenuItem>
               {routes.map(route => (
                 <MenuItem key={route.id} value={route.id.toString()}>
                   {route.name} ({route.code})
