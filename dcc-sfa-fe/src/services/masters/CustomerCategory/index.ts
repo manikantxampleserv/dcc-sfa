@@ -81,7 +81,18 @@ export const createCustomerCategory = async (
 ): Promise<CustomerCategory> => {
   try {
     const response = await api.post('/customer-category/bulk', data);
-    return response.data.results.created[0] || response.data.results.updated[0];
+    
+    if (response.data?.results?.created?.[0]) {
+      return response.data.results.created[0];
+    } else if (response.data?.results?.updated?.[0]) {
+      return response.data.results.updated[0];
+    } else if (response.data?.data) {
+      return response.data.data;
+    } else if (response.data) {
+      return response.data;
+    } else {
+      throw new Error('Invalid response structure from API');
+    }
   } catch (error: any) {
     console.error('Error creating customer category:', error);
     throw new Error(
@@ -96,7 +107,19 @@ export const updateCustomerCategory = async (
 ): Promise<CustomerCategory> => {
   try {
     const response = await api.post('/customer-category/bulk', { id, ...data });
-    return response.data.results.updated[0];
+    
+    // Handle different response structures
+    if (response.data?.results?.updated?.[0]) {
+      return response.data.results.updated[0];
+    } else if (response.data?.results?.created?.[0]) {
+      return response.data.results.created[0];
+    } else if (response.data?.data) {
+      return response.data.data;
+    } else if (response.data) {
+      return response.data;
+    } else {
+      throw new Error('Invalid response structure from API');
+    }
   } catch (error: any) {
     console.error('Error updating customer category:', error);
     throw new Error(

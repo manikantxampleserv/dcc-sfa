@@ -28,6 +28,12 @@ interface VanInventoryItem {
   batch_total_remaining_quantity?: number | null;
   unit?: string | null;
   expiry_date?: string | null;
+  product_serials?: Array<{
+    id: number;
+    serial_number: string;
+    status: string;
+    warranty_expiry?: string | null;
+  }> | null;
 }
 
 interface VanInventory {

@@ -15,7 +15,7 @@ import {
 import { useFormik } from 'formik';
 import { usePermissionsByModule } from 'hooks/usePermissions';
 import { useCreateRole, useUpdateRole, type Role } from 'hooks/useRoles';
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import validationSchema from 'schemas/masters/RolePersmissions';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
@@ -36,6 +36,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   setDrawerOpen,
 }) => {
   const isEdit = !!selectedRole;
+  const [searchTerm, setSearchTerm] = useState('');
 
   const {
     data: permissionsResponse,
@@ -44,6 +45,23 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   } = usePermissionsByModule();
 
   const permissionsData = permissionsResponse?.data || [];
+
+  // Filter permissions based on search term
+  const filteredPermissionsData = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return permissionsData;
+    }
+
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return permissionsData
+      .map(module => ({
+        ...module,
+        permissions: module.permissions.filter(permission =>
+          permission.name.toLowerCase().includes(lowerSearchTerm)
+        ),
+      }))
+      .filter(module => module.permissions.length > 0); // Only show modules with matching permissions
+  }, [permissionsData, searchTerm]);
 
   const createRoleMutation = useCreateRole({
     onSuccess: () => {
@@ -163,7 +181,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
 
   const getUniqueActions = () => {
     const actions = new Set<string>();
-    permissionsData.forEach(module => {
+    filteredPermissionsData.forEach(module => {
       module.permissions.forEach(permission => {
         actions.add(permission.action);
       });
@@ -172,7 +190,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   };
 
   const isAllPermissionsSelected = () => {
-    const allPermissionIds = permissionsData.flatMap(module =>
+    const allPermissionIds = filteredPermissionsData.flatMap(module =>
       module.permissions.map(p => p.id)
     );
     return (
@@ -182,7 +200,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   };
 
   const isSomePermissionsSelected = () => {
-    const allPermissionIds = permissionsData.flatMap(module =>
+    const allPermissionIds = filteredPermissionsData.flatMap(module =>
       module.permissions.map(p => p.id)
     );
     const selectedCount = allPermissionIds.filter(id =>
@@ -195,7 +213,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     if (event.target.checked) {
-      const allPermissionIds = permissionsData.flatMap(module =>
+      const allPermissionIds = filteredPermissionsData.flatMap(module =>
         module.permissions.map(p => p.id)
       );
       formik.setFieldValue('permissions', allPermissionIds);
@@ -255,7 +273,21 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
 
           {/* Permissions Section */}
           <Box className="mb-6">
-            <p className="!font-semibold !mb-4 !text-gray-900">Permissions</p>
+            <div className="flex items-center justify-between py-3 mb-2">
+              <p className="!font-semibold !text-gray-900">Permissions</p>
+
+              {/* Search Permissions */}
+              <Box>
+                <Input
+                  name="permissionSearch"
+                  label="Search Permissions"
+                  placeholder="Search by permission name..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="!w-full"
+                />
+              </Box>
+            </div>
 
             {formik.errors.permissions && formik.touched.permissions && (
               <Alert severity="error" className="!mb-4">
@@ -308,61 +340,81 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {permissionsData.map(module => (
-                    <TableRow key={module.module} className="hover:!bg-gray-50">
-                      <TableCell className="!py-1">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            size="small"
-                            checked={isModuleFullySelected(module.permissions)}
-                            indeterminate={isModulePartiallySelected(
-                              module.permissions
-                            )}
-                            onChange={e =>
-                              handleModuleSelectAll(
-                                module.permissions,
-                                e.target.checked
-                              )
-                            }
-                            className="!text-primary-600"
-                          />
-                          <span className="!font-medium !text-gray-900 !capitalize">
-                            {module.module}
-                          </span>
-                        </div>
+                  {filteredPermissionsData.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={getUniqueActions().length + 1}
+                        className="!text-center !py-8"
+                      >
+                        <p className="!text-gray-500">
+                          {searchTerm.trim()
+                            ? `No permissions found matching "${searchTerm}"`
+                            : 'No permissions available'}
+                        </p>
                       </TableCell>
-                      {getUniqueActions().map(action => {
-                        const permission = module.permissions.find(
-                          p => p.action === action
-                        );
-                        return (
-                          <TableCell
-                            key={action}
-                            align="center"
-                            className="!py-2"
-                          >
-                            {permission ? (
-                              <Switch
-                                size="small"
-                                checked={formik.values.permissions.includes(
-                                  permission.id
-                                )}
-                                onChange={e =>
-                                  handlePermissionChange(
-                                    permission.id,
-                                    e.target.checked
-                                  )
-                                }
-                                className="!text-primary-600"
-                              />
-                            ) : (
-                              <span className="text-gray-300">—</span>
-                            )}
-                          </TableCell>
-                        );
-                      })}
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredPermissionsData.map(module => (
+                      <TableRow
+                        key={module.module}
+                        className="hover:!bg-gray-50"
+                      >
+                        <TableCell className="!py-1">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              size="small"
+                              checked={isModuleFullySelected(
+                                module.permissions
+                              )}
+                              indeterminate={isModulePartiallySelected(
+                                module.permissions
+                              )}
+                              onChange={e =>
+                                handleModuleSelectAll(
+                                  module.permissions,
+                                  e.target.checked
+                                )
+                              }
+                              className="!text-primary-600"
+                            />
+                            <span className="!font-medium !text-gray-900 !capitalize">
+                              {module.module}
+                            </span>
+                          </div>
+                        </TableCell>
+                        {getUniqueActions().map(action => {
+                          const permission = module.permissions.find(
+                            p => p.action === action
+                          );
+                          return (
+                            <TableCell
+                              key={action}
+                              align="center"
+                              className="!py-2"
+                            >
+                              {permission ? (
+                                <Switch
+                                  size="small"
+                                  checked={formik.values.permissions.includes(
+                                    permission.id
+                                  )}
+                                  onChange={e =>
+                                    handlePermissionChange(
+                                      permission.id,
+                                      e.target.checked
+                                    )
+                                  }
+                                  className="!text-primary-600"
+                                />
+                              ) : (
+                                <span className="text-gray-300">—</span>
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>

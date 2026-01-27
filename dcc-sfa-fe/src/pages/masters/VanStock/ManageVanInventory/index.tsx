@@ -107,9 +107,17 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     selectedVanInventory?.id || 0
   );
 
-  const { data: productsResponse } = useProducts({ limit: 1000 });
-  const { data: vehiclesResponse } = useVehicles({ limit: 1000 });
-  const { data: depotsResponse } = useDepots({ limit: 1000 });
+  const { data: productsResponse } = useProducts({
+    limit: 1000,
+    status: 'active',
+  });
+
+  const { data: vehiclesResponse } = useVehicles({
+    limit: 1000,
+    isActive: 'Y',
+  });
+
+  const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' });
 
   const formik = useFormik<VanInventoryFormValues>({
     initialValues: {

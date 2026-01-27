@@ -1,9 +1,8 @@
 import dotenv from 'dotenv';
 import { createApp } from './app';
 import logger from './configs/logger';
-import { killPort, isPortInUse } from './utils/killPort';
+import { isPortInUse, killPort } from './utils/killPort';
 import { AttendanceCronService } from './v1/services/attendance.cron.service';
-import { getPrisma } from './configs/prisma.client';
 dotenv.config({ quiet: true });
 
 const port = process.env.PORT || 4000;
