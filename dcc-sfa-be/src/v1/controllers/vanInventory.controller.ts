@@ -140,35 +140,6 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         }
       }
 
-      const itemRecord = {
-        id: it.id,
-        parent_id: it.parent_id,
-        product_id: it.product_id,
-        product_name: it.product_name,
-        unit: it.unit,
-        quantity: it.quantity,
-        unit_price: it.unit_price ? String(it.unit_price) : null,
-        discount_amount: it.discount_amount ? String(it.discount_amount) : null,
-        tax_amount: it.tax_amount ? String(it.tax_amount) : null,
-        total_amount: it.total_amount ? String(it.total_amount) : null,
-        notes: it.notes,
-        batch_lot_id: it.batch_lot_id,
-        batch_number: batchLot?.batch_number || null,
-        lot_number: batchLot?.lot_number || null,
-        expiry_date: batchLot?.expiry_date || null,
-        product_remaining_quantity: productBatch?.quantity ?? null,
-        batch_total_remaining_quantity: batchLot?.remaining_quantity ?? null,
-        tracking_type: trackingType,
-        serial_number:
-          serialNumbers && serialNumbers.length > 0
-            ? serialNumbers.map((sn: any) => sn.serial_number)
-            : null,
-        product_serials: null,
-        product_batches: null,
-      };
-
-      processedItems.push(itemRecord);
-
       totalQuantity += it.quantity || 0;
       totalAmount += parseFloat(it.total_amount || 0);
 
@@ -278,14 +249,39 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
     summary.total_batches += batches.length;
     summary.total_serials += serials.length;
 
-    processedItems.forEach(item => {
-      if (item.product_id === productId) {
-        item.product_serials =
-          productSerials.length > 0 ? productSerials : null;
-        item.product_batches =
-          productBatches.length > 0 ? productBatches : null;
-      }
-    });
+    // Create only one item per product with aggregated data
+    const aggregatedItem = {
+      id: firstItem.id,
+      parent_id: firstItem.parent_id,
+      product_id: productId,
+      product_name: product?.name || firstItem.product_name,
+      unit: firstItem.unit,
+      quantity: totalQuantity,
+      unit_price: firstItem.unit_price ? String(firstItem.unit_price) : null,
+      discount_amount: firstItem.discount_amount
+        ? String(firstItem.discount_amount)
+        : null,
+      tax_amount: firstItem.tax_amount ? String(firstItem.tax_amount) : null,
+      total_amount: String(totalAmount),
+      notes: firstItem.notes,
+      batch_lot_id: trackingType === 'batch' ? firstItem.batch_lot_id : null,
+      batch_number: trackingType === 'batch' ? firstItem.batch_number : null,
+      lot_number: trackingType === 'batch' ? firstItem.lot_number : null,
+      expiry_date: trackingType === 'batch' ? firstItem.expiry_date : null,
+      product_remaining_quantity:
+        trackingType === 'batch' ? firstItem.product_remaining_quantity : null,
+      batch_total_remaining_quantity:
+        trackingType === 'batch'
+          ? firstItem.batch_total_remaining_quantity
+          : null,
+      tracking_type: trackingType,
+      serial_number:
+        serials.length > 0 ? serials.map((sn: any) => sn.serial_number) : null,
+      product_serials: productSerials.length > 0 ? productSerials : null,
+      product_batches: productBatches.length > 0 ? productBatches : null,
+    };
+
+    processedItems.push(aggregatedItem);
   });
 
   const summary = {
