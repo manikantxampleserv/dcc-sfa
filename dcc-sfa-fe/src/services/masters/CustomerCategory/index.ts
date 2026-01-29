@@ -81,7 +81,6 @@ export const createCustomerCategory = async (
 ): Promise<CustomerCategory> => {
   try {
     const response = await api.post('/customer-category/bulk', data);
-    
     if (response.data?.results?.created?.[0]) {
       return response.data.results.created[0];
     } else if (response.data?.results?.updated?.[0]) {
@@ -95,9 +94,7 @@ export const createCustomerCategory = async (
     }
   } catch (error: any) {
     console.error('Error creating customer category:', error);
-    throw new Error(
-      error.response?.data?.message || 'Failed to create customer category'
-    );
+    throw new Error(error.response?.data?.message);
   }
 };
 
@@ -107,8 +104,7 @@ export const updateCustomerCategory = async (
 ): Promise<CustomerCategory> => {
   try {
     const response = await api.post('/customer-category/bulk', { id, ...data });
-    
-    // Handle different response structures
+
     if (response.data?.results?.updated?.[0]) {
       return response.data.results.updated[0];
     } else if (response.data?.results?.created?.[0]) {

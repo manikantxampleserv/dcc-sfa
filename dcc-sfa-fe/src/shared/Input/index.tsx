@@ -114,6 +114,21 @@ const Input: React.FC<InputProps> = ({
     }
   };
 
+  const handleDateBlur = () => {
+    const syntheticEvent = {
+      target: {
+        name: name,
+        id: name,
+      },
+    } as React.FocusEvent<HTMLInputElement>;
+
+    if (formik?.handleBlur && name) {
+      formik.handleBlur(syntheticEvent);
+    } else if (onBlur) {
+      onBlur(syntheticEvent);
+    }
+  };
+
   const handleDateTimeChange = (newValue: Dayjs | null) => {
     const dateTimeValue = newValue ? newValue.format('YYYY-MM-DDTHH:mm') : '';
     if (formik) {
@@ -146,6 +161,7 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateChange}
+        onClose={handleDateBlur}
         views={['year']}
         format="YYYY"
         disabled={rest.disabled}
@@ -160,13 +176,13 @@ const Input: React.FC<InputProps> = ({
             error: !!error,
             helperText: errorMessage,
             name,
+            id: name,
             disabled: rest.disabled,
             slotProps: {
               htmlInput: {
                 required: false,
               },
             },
-            onBlur: formik?.handleBlur || onBlur,
             InputLabelProps: {
               shrink: true,
             },
@@ -184,6 +200,7 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateChange}
+        onClose={handleDateBlur}
         format="DD/MM/YYYY"
         disabled={rest.disabled}
         slotProps={{
@@ -197,13 +214,13 @@ const Input: React.FC<InputProps> = ({
             error: !!error,
             helperText: errorMessage,
             name,
+            id: name,
             disabled: rest.disabled,
             slotProps: {
               htmlInput: {
                 required: false,
               },
             },
-            onBlur: formik?.handleBlur || onBlur,
             InputLabelProps: {
               shrink: true,
             },
@@ -221,6 +238,7 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={timeValue}
         onChange={handleTimeChange}
+        onClose={handleDateBlur}
         disabled={rest.disabled}
         slotProps={{
           textField: {
@@ -229,13 +247,13 @@ const Input: React.FC<InputProps> = ({
             error: !!error,
             helperText: errorMessage,
             name,
+            id: name,
             disabled: rest.disabled,
             slotProps: {
               htmlInput: {
                 required: false,
               },
             },
-            onBlur: formik?.handleBlur || onBlur,
             InputLabelProps: {
               shrink: true,
             },
@@ -252,6 +270,7 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateTimeChange}
+        onClose={handleDateBlur}
         disabled={rest.disabled}
         slotProps={{
           textField: {
@@ -260,13 +279,13 @@ const Input: React.FC<InputProps> = ({
             error: !!error,
             helperText: errorMessage,
             name,
+            id: name,
             disabled: rest.disabled,
             slotProps: {
               htmlInput: {
                 required: false,
               },
             },
-            onBlur: formik?.handleBlur || onBlur,
             InputLabelProps: {
               shrink: true,
             },

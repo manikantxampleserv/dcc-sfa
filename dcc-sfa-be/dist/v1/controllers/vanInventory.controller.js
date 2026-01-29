@@ -1186,7 +1186,7 @@ exports.vanInventoryController = {
                                             movement_type: 'VAN_LOAD',
                                             reference_type: 'VAN_INVENTORY',
                                             reference_id: inventory.id,
-                                            from_location_id: inventoryData.location_id || null,
+                                            from_location_id: null,
                                             to_location_id: null,
                                             quantity: batchQty,
                                             remarks: `Loaded to van - Batch ${batchLot.batch_number}`,
@@ -1423,7 +1423,7 @@ exports.vanInventoryController = {
                                             movement_type: 'VAN_LOAD',
                                             reference_type: 'VAN_INVENTORY',
                                             reference_id: inventory.id,
-                                            from_location_id: inventoryData.location_id || null,
+                                            from_location_id: null,
                                             to_location_id: null,
                                             quantity: 1,
                                             remarks: `Loaded serial ${serialNumber} to van`,
@@ -1479,10 +1479,10 @@ exports.vanInventoryController = {
                                     product_id: product.id,
                                     batch_id: null,
                                     serial_id: null,
-                                    movement_type: 'VANLOAD',
-                                    reference_type: 'VANINVENTORY',
+                                    movement_type: 'VAN_LOAD',
+                                    reference_type: 'VAN_INVENTORY',
                                     reference_id: inventory.id,
-                                    from_location_id: inventoryData.location_id || null,
+                                    from_location_id: null,
                                     to_location_id: null,
                                     quantity: qty,
                                     remarks: `Loaded ${qty} units to van`,
@@ -2065,20 +2065,23 @@ exports.vanInventoryController = {
                                             },
                                         });
                                     }
-                                    await createStockMovement(tx, {
-                                        product_id: product.id,
-                                        batch_id: batchLot.id,
-                                        serial_id: null,
-                                        movement_type: 'VAN_UNLOAD',
-                                        reference_type: 'VAN_INVENTORY',
-                                        reference_id: inventory.id,
-                                        from_location_id: null,
-                                        to_location_id: inventoryData.location_id || null,
-                                        quantity: batchQty,
-                                        remarks: `Sold from van - Batch ${batchLot.batch_number}`,
-                                        van_inventory_id: inventory.id,
-                                        createdby: userId,
-                                    });
+                                    //       await createStockMovement(tx, {
+                                    //         product_id: product.id,
+                                    //         batch_id: batchLot.id,
+                                    //         serial_id: null,
+                                    //         movement_type: 'VAN_SOLD',
+                                    //         reference_type: 'VAN_INVENTORY',
+                                    //         reference_id: inventory.id,
+                                    //         from_location_id: null,
+                                    //         to_location_id: null,
+                                    //         quantity: batchQty,
+                                    //         remarks: `Sold from van - Batch ${batchLot.batch_number}`,
+                                    //         van_inventory_id: inventory.id,
+                                    //         createdby: userId,
+                                    //       });
+                                    //     }
+                                    //   } else if (trackingType === 'SERIAL') {
+                                    //     const serialData = item.serials || item.product_serials;
                                 }
                             }
                             else if (trackingType === 'SERIAL') {
@@ -2134,7 +2137,7 @@ exports.vanInventoryController = {
                                         reference_type: 'VAN_INVENTORY',
                                         reference_id: inventory.id,
                                         from_location_id: null,
-                                        to_location_id: inventoryData.location_id,
+                                        to_location_id: null,
                                         quantity: 1,
                                         remarks: `Sold serial ${serialNumber}`,
                                         van_inventory_id: inventory.id,
@@ -2190,7 +2193,7 @@ exports.vanInventoryController = {
                                     reference_type: 'VAN_INVENTORY',
                                     reference_id: inventory.id,
                                     from_location_id: null,
-                                    to_location_id: inventoryData.location_id || null,
+                                    to_location_id: null,
                                     quantity: qty,
                                     remarks: `Sold ${qty} units from van`,
                                     van_inventory_id: inventory.id,
