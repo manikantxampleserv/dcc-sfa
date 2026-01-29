@@ -90,6 +90,10 @@ export const zonesController = {
         return res.status(400).json({ message: 'Zone name is required' });
       }
 
+      if (data.depot_id && !data.parent_id) {
+        data.parent_id = data.depot_id;
+      }
+
       const newCode = await generateZoneCode(data.name);
       const zone = await prisma.zones.create({
         data: {
@@ -243,6 +247,8 @@ export const zonesController = {
 
       const data = {
         ...req.body,
+        ...(req.body.depot_id &&
+          !req.body.parent_id && { parent_id: req.body.depot_id }),
         updatedate: new Date(),
         updatedby: req.user?.id,
       };
@@ -289,6 +295,60 @@ export const zonesController = {
       res.json({ message: 'Zone deleted successfully' });
     } catch (error: any) {
       console.error('Delete Zone Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getSupervisors(req: Request, res: Response) {
+    try {
+      const { search = '' } = req.query;
+      const searchLower = (search as string).toLowerCase().trim();
+
+      const supervisors = await prisma.users.findMany({
+        where: {
+          is_active: 'Y',
+          user_role: {
+            name: 'Area Sales Supervisor',
+            is_active: 'Y',
+          },
+          ...(searchLower && {
+            OR: [
+              {
+                name: {
+                  contains: searchLower,
+                },
+              },
+              {
+                email: {
+                  contains: searchLower,
+                },
+              },
+              {
+                employee_id: {
+                  contains: searchLower,
+                },
+              },
+            ],
+          }),
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          employee_id: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+        take: 50,
+      });
+
+      res.json({
+        message: 'Supervisors retrieved successfully',
+        data: supervisors,
+      });
+    } catch (error: any) {
+      console.error('Get Supervisors Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
