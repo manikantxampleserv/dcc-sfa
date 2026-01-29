@@ -163,8 +163,8 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
           serialNumbers && serialNumbers.length > 0
             ? serialNumbers.map((sn: any) => sn.serial_number)
             : null,
-        product_serials: null, // Will be set after aggregation
-        product_batches: null, // Will be set after aggregation
+        product_serials: null,
+        product_batches: null,
       };
 
       processedItems.push(itemRecord);
@@ -172,7 +172,6 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
       totalQuantity += it.quantity || 0;
       totalAmount += parseFloat(it.total_amount || 0);
 
-      // Collect data for aggregation
       if (trackingType === 'batch' && batchLot) {
         const batchInfo = {
           batch_lot_id: batchLot.id,
@@ -190,13 +189,15 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         serialNumbers &&
         serialNumbers.length > 0
       ) {
-        serials.push(...serialNumbers);
+        serialNumbers.forEach(sn => {
+          if (!serials.find(existing => existing.id === sn.id)) {
+            serials.push(sn);
+          }
+        });
       }
     });
 
-    // Create aggregated product_serials and product_batches based on tracking type
     if (trackingType === 'batch') {
-      // For batch tracking, create product_batches entries
       batches.forEach(batch => {
         const batchItems = items.filter(
           it => it.batch_lot_id === batch.batch_lot_id
@@ -222,7 +223,6 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         });
       });
     } else if (trackingType === 'serial') {
-      // For serial tracking, create product_serials entries
       if (serials.length > 0) {
         productSerials.push(
           ...serials.map((sn: any) => ({
@@ -240,7 +240,6 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         });
       }
     } else if (trackingType === 'none') {
-      // For none tracking, create product_serials entry
       productSerials.push({
         type: 'none',
         quantity: totalQuantity,
