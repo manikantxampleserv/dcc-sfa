@@ -53,4 +53,11 @@ router.delete(
   zonesController.deleteZone
 );
 
+router.get(
+  '/zone/supervisors',
+  authenticateToken,
+  requirePermission([{ module: 'zone', action: 'read' }]),
+  zonesController.getSupervisors
+);
+
 export default router;
