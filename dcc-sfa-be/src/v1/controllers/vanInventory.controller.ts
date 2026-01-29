@@ -28,11 +28,22 @@ interface VanInventoryItemSerialized {
   product_remaining_quantity?: number | null;
   batch_total_remaining_quantity?: number | null;
   tracking_type?: string | null;
+  serial_number?: string[] | null;
   product_serials?: Array<{
     id: number;
     serial_number: string;
     status: string;
     warranty_expiry?: Date | null;
+  }> | null;
+  product_batches?: Array<{
+    batch_lot_id: number;
+    batch_number: string;
+    lot_number: string;
+    expiry_date: Date;
+    quantity: number;
+    remaining_quantity: number;
+    unit_price: string;
+    total_amount: string;
   }> | null;
 }
 
@@ -84,6 +95,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
     const batches: any[] = [];
     const serials: any[] = [];
     let productSerials: any[] = [];
+    let productBatches: any[] = [];
 
     items.forEach((it: any) => {
       let productBatch = null;
@@ -147,8 +159,12 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         product_remaining_quantity: productBatch?.quantity ?? null,
         batch_total_remaining_quantity: batchLot?.remaining_quantity ?? null,
         tracking_type: trackingType,
-        product_serials:
-          serialNumbers && serialNumbers.length > 0 ? serialNumbers : null,
+        serial_number:
+          serialNumbers && serialNumbers.length > 0
+            ? serialNumbers.map((sn: any) => sn.serial_number)
+            : null,
+        product_serials: null,
+        product_batches: null,
       };
 
       processedItems.push(itemRecord);
@@ -168,44 +184,69 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         if (!batches.find(b => b.batch_lot_id === batchLot.id)) {
           batches.push(batchInfo);
         }
-
-        productSerials.push({
-          type: 'batch',
-          batch_lot_id: batchLot.id,
-          batch_number: batchLot.batch_number,
-          lot_number: batchLot.lot_number,
-          expiry_date: batchLot.expiry_date,
-          quantity: it.quantity,
-          remaining_quantity: batchLot.remaining_quantity,
-        });
-      } else if (trackingType === 'serial') {
-        if (serialNumbers && serialNumbers.length > 0) {
-          serials.push(...serialNumbers);
-
-          productSerials.push(
-            ...serialNumbers.map((sn: any) => ({
-              type: 'serial',
-              ...sn,
-            }))
-          );
-        } else {
-          productSerials.push({
-            type: 'serial',
-            quantity: it.quantity,
-            unit_price: it.unit_price,
-            total_amount: it.total_amount,
-            note: 'No serial numbers created yet',
-          });
-        }
-      } else if (trackingType === 'none') {
-        productSerials.push({
-          type: 'none',
-          quantity: it.quantity,
-          unit_price: it.unit_price,
-          total_amount: it.total_amount,
+      } else if (
+        trackingType === 'serial' &&
+        serialNumbers &&
+        serialNumbers.length > 0
+      ) {
+        serialNumbers.forEach((sn: any) => {
+          if (!serials.find(existing => existing.id === sn.id)) {
+            serials.push(sn);
+          }
         });
       }
     });
+
+    if (trackingType === 'batch') {
+      batches.forEach(batch => {
+        const batchItems = items.filter(
+          it => it.batch_lot_id === batch.batch_lot_id
+        );
+        const batchQuantity = batchItems.reduce(
+          (sum, it) => sum + (it.quantity || 0),
+          0
+        );
+        const batchAmount = batchItems.reduce(
+          (sum, it) => sum + parseFloat(it.total_amount || 0),
+          0
+        );
+
+        productBatches.push({
+          batch_lot_id: batch.batch_lot_id,
+          batch_number: batch.batch_number,
+          lot_number: batch.lot_number,
+          expiry_date: batch.expiry_date,
+          quantity: batchQuantity,
+          remaining_quantity: batch.remaining_quantity,
+          unit_price: batchItems[0]?.unit_price || '0',
+          total_amount: String(batchAmount),
+        });
+      });
+    } else if (trackingType === 'serial') {
+      if (serials.length > 0) {
+        productSerials.push(
+          ...serials.map((sn: any) => ({
+            type: 'serial',
+            ...sn,
+          }))
+        );
+      } else {
+        productSerials.push({
+          type: 'serial',
+          quantity: totalQuantity,
+          unit_price: items[0]?.unit_price || '0',
+          total_amount: String(totalAmount),
+          note: 'No serial numbers created yet',
+        });
+      }
+    } else if (trackingType === 'none') {
+      productSerials.push({
+        type: 'none',
+        quantity: totalQuantity,
+        unit_price: items[0]?.unit_price || '0',
+        total_amount: String(totalAmount),
+      });
+    }
 
     const groupedProduct = {
       product_id: productId,
@@ -239,7 +280,10 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
 
     processedItems.forEach(item => {
       if (item.product_id === productId) {
-        item.product_serials = productSerials;
+        item.product_serials =
+          productSerials.length > 0 ? productSerials : null;
+        item.product_batches =
+          productBatches.length > 0 ? productBatches : null;
       }
     });
   });
@@ -2927,6 +2971,11 @@ export const vanInventoryController = {
                     },
                     include: {
                       batch_lot_product_batches: true,
+                    },
+                  },
+                  serial_numbers_products: {
+                    include: {
+                      serial_numbers_customers: true,
                     },
                   },
                 },

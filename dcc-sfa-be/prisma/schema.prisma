@@ -17,7 +17,7 @@ model users {
   zone_id                                                           Int?
   phone_number                                                      String?                      @db.NVarChar(20)
   address                                                           String?                      @db.NVarChar(500)
-  employee_id                                                       String?                      @db.NVarChar(50)
+  employee_id                                                       String                       @db.NVarChar(50)
   joining_date                                                      DateTime?                    @db.Date
   reporting_to                                                      Int?
   profile_image                                                     String?                      @db.NVarChar(500)
