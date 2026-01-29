@@ -189,7 +189,7 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
         serialNumbers &&
         serialNumbers.length > 0
       ) {
-        serialNumbers.forEach(sn => {
+        serialNumbers.forEach((sn: any) => {
           if (!serials.find(existing => existing.id === sn.id)) {
             serials.push(sn);
           }
