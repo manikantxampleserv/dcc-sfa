@@ -27,6 +27,7 @@ interface VanInventoryItemSerialized {
   expiry_date?: Date | null;
   product_remaining_quantity?: number | null;
   batch_total_remaining_quantity?: number | null;
+  tracking_type?: string | null;
   product_serials?: Array<{
     id: number;
     serial_number: string;
@@ -55,9 +56,210 @@ interface VanInventorySerialized {
   vehicle?: { id: number; vehicle_number: string; type: string } | null;
   depot?: { id: number; name: string; code: string } | null;
   items?: VanInventoryItemSerialized[] | null;
+  summary?: any | null;
 }
 
 const serializeVanInventory = (item: any): VanInventorySerialized => {
+  const productGroups = new Map<number, any[]>();
+
+  item.van_inventory_items_inventory?.forEach((it: any) => {
+    const productId = it.product_id;
+    if (!productGroups.has(productId)) {
+      productGroups.set(productId, []);
+    }
+    productGroups.get(productId)!.push(it);
+  });
+
+  const processedItems: any[] = [];
+  const groupedProducts: any[] = [];
+  const trackingTypeSummary = new Map<string, any>();
+
+  productGroups.forEach((items, productId) => {
+    const firstItem = items[0];
+    const product = firstItem.van_inventory_items_products;
+    const trackingType = product?.tracking_type?.toLowerCase() || 'none';
+
+    let totalQuantity = 0;
+    let totalAmount = 0;
+    const batches: any[] = [];
+    const serials: any[] = [];
+    let productSerials: any[] = [];
+
+    items.forEach((it: any) => {
+      let productBatch = null;
+      let batchLot = null;
+      let serialNumbers = null;
+
+      if (
+        it.batch_lot_id &&
+        it.van_inventory_items_products?.product_product_batches
+      ) {
+        productBatch =
+          it.van_inventory_items_products.product_product_batches.find(
+            (pb: any) => pb.batch_lot_id === it.batch_lot_id
+          );
+
+        if (productBatch?.batch_lot_product_batches) {
+          batchLot = productBatch.batch_lot_product_batches;
+        }
+      }
+
+      if (it.van_inventory_items_products?.serial_numbers_products) {
+        const serialsData =
+          it.van_inventory_items_products.serial_numbers_products;
+        if (serialsData && serialsData.length > 0) {
+          serialNumbers = serialsData.map((sn: any) => ({
+            id: sn.id,
+            serial_number: sn.serial_number,
+            status: sn.status,
+            warranty_expiry: sn.warranty_expiry || null,
+            batch_id: sn.batch_id || null,
+            customer_id: sn.customer_id || null,
+            customer: sn.serial_numbers_customers
+              ? {
+                  id: sn.serial_numbers_customers.id,
+                  name: sn.serial_numbers_customers.name,
+                  email: sn.serial_numbers_customers.email,
+                }
+              : null,
+            sold_date: sn.sold_date || null,
+            created_date: sn.createdate || null,
+          }));
+        }
+      }
+
+      const itemRecord = {
+        id: it.id,
+        parent_id: it.parent_id,
+        product_id: it.product_id,
+        product_name: it.product_name,
+        unit: it.unit,
+        quantity: it.quantity,
+        unit_price: it.unit_price ? String(it.unit_price) : null,
+        discount_amount: it.discount_amount ? String(it.discount_amount) : null,
+        tax_amount: it.tax_amount ? String(it.tax_amount) : null,
+        total_amount: it.total_amount ? String(it.total_amount) : null,
+        notes: it.notes,
+        batch_lot_id: it.batch_lot_id,
+        batch_number: batchLot?.batch_number || null,
+        lot_number: batchLot?.lot_number || null,
+        expiry_date: batchLot?.expiry_date || null,
+        product_remaining_quantity: productBatch?.quantity ?? null,
+        batch_total_remaining_quantity: batchLot?.remaining_quantity ?? null,
+        tracking_type: trackingType,
+        product_serials:
+          serialNumbers && serialNumbers.length > 0 ? serialNumbers : null,
+      };
+
+      processedItems.push(itemRecord);
+
+      totalQuantity += it.quantity || 0;
+      totalAmount += parseFloat(it.total_amount || 0);
+
+      if (trackingType === 'batch' && batchLot) {
+        const batchInfo = {
+          batch_lot_id: batchLot.id,
+          batch_number: batchLot.batch_number,
+          lot_number: batchLot.lot_number,
+          expiry_date: batchLot.expiry_date,
+          remaining_quantity: batchLot.remaining_quantity,
+        };
+
+        if (!batches.find(b => b.batch_lot_id === batchLot.id)) {
+          batches.push(batchInfo);
+        }
+
+        productSerials.push({
+          type: 'batch',
+          batch_lot_id: batchLot.id,
+          batch_number: batchLot.batch_number,
+          lot_number: batchLot.lot_number,
+          expiry_date: batchLot.expiry_date,
+          quantity: it.quantity,
+          remaining_quantity: batchLot.remaining_quantity,
+        });
+      } else if (trackingType === 'serial') {
+        if (serialNumbers && serialNumbers.length > 0) {
+          serials.push(...serialNumbers);
+
+          productSerials.push(
+            ...serialNumbers.map((sn: any) => ({
+              type: 'serial',
+              ...sn,
+            }))
+          );
+        } else {
+          productSerials.push({
+            type: 'serial',
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            total_amount: it.total_amount,
+            note: 'No serial numbers created yet',
+          });
+        }
+      } else if (trackingType === 'none') {
+        productSerials.push({
+          type: 'none',
+          quantity: it.quantity,
+          unit_price: it.unit_price,
+          total_amount: it.total_amount,
+        });
+      }
+    });
+
+    const groupedProduct = {
+      product_id: productId,
+      product_name: product?.name || firstItem.product_name,
+      unit: firstItem.unit,
+      tracking_type: trackingType,
+      quantity: totalQuantity,
+      total_amount: String(totalAmount),
+      batches: batches,
+      serials: serials,
+      unit_price: firstItem.unit_price,
+    };
+
+    groupedProducts.push(groupedProduct);
+
+    if (!trackingTypeSummary.has(trackingType)) {
+      trackingTypeSummary.set(trackingType, {
+        tracking_type: trackingType,
+        product_count: 0,
+        total_quantity: 0,
+        total_batches: 0,
+        total_serials: 0,
+      });
+    }
+
+    const summary = trackingTypeSummary.get(trackingType);
+    summary.product_count++;
+    summary.total_quantity += totalQuantity;
+    summary.total_batches += batches.length;
+    summary.total_serials += serials.length;
+
+    processedItems.forEach(item => {
+      if (item.product_id === productId) {
+        item.product_serials = productSerials;
+      }
+    });
+  });
+
+  const summary = {
+    total_products: productGroups.size,
+    total_quantity: Array.from(trackingTypeSummary.values()).reduce(
+      (sum, type) => sum + type.total_quantity,
+      0
+    ),
+    total_batches: Array.from(trackingTypeSummary.values()).reduce(
+      (sum, type) => sum + type.total_batches,
+      0
+    ),
+    total_serials: Array.from(trackingTypeSummary.values()).reduce(
+      (sum, type) => sum + type.total_serials,
+      0
+    ),
+  };
+
   return {
     id: item.id,
     user_id: item.user_id,
@@ -95,76 +297,8 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
           code: item.van_inventory_depot.code,
         }
       : null,
-    items:
-      item.van_inventory_items_inventory?.map((it: any) => {
-        let productBatch = null;
-        let batchLot = null;
-        let serialNumbers = null;
-
-        if (
-          it.batch_lot_id &&
-          it.van_inventory_items_products?.product_product_batches
-        ) {
-          productBatch =
-            it.van_inventory_items_products.product_product_batches.find(
-              (pb: any) => pb.batch_lot_id === it.batch_lot_id
-            );
-
-          if (productBatch?.batch_lot_product_batches) {
-            batchLot = productBatch.batch_lot_product_batches;
-          }
-        }
-
-        if (it.van_inventory_items_products?.serial_numbers_products) {
-          const serials =
-            it.van_inventory_items_products.serial_numbers_products;
-          if (serials && serials.length > 0) {
-            serialNumbers = serials.map((sn: any) => ({
-              id: sn.id,
-              serial_number: sn.serial_number,
-              status: sn.status,
-              warranty_expiry: sn.warranty_expiry || null,
-              batch_id: sn.batch_id || null,
-              customer_id: sn.customer_id || null,
-              customer: sn.serial_numbers_customers
-                ? {
-                    id: sn.serial_numbers_customers.id,
-                    name: sn.serial_numbers_customers.name,
-                    email: sn.serial_numbers_customers.email,
-                  }
-                : null,
-              sold_date: sn.sold_date || null,
-              created_date: sn.createdate || null,
-            }));
-          }
-        }
-
-        const result = {
-          id: it.id,
-          parent_id: it.parent_id,
-          product_id: it.product_id,
-          product_name: it.product_name,
-          unit: it.unit,
-          quantity: it.quantity,
-          unit_price: it.unit_price ? String(it.unit_price) : null,
-          discount_amount: it.discount_amount
-            ? String(it.discount_amount)
-            : null,
-          tax_amount: it.tax_amount ? String(it.tax_amount) : null,
-          total_amount: it.total_amount ? String(it.total_amount) : null,
-          notes: it.notes,
-          batch_lot_id: it.batch_lot_id,
-          batch_number: batchLot?.batch_number || null,
-          lot_number: batchLot?.lot_number || null,
-          expiry_date: batchLot?.expiry_date || null,
-          product_remaining_quantity: productBatch?.quantity ?? null,
-          batch_total_remaining_quantity: batchLot?.remaining_quantity ?? null,
-          product_serials:
-            serialNumbers && serialNumbers.length > 0 ? serialNumbers : null,
-        };
-
-        return result;
-      }) || [],
+    items: processedItems,
+    summary: summary,
   };
 };
 
@@ -385,78 +519,6 @@ async function createOrGetBatchForProduct(
   );
   return newBatch;
 }
-
-// async function updateInventoryStock(
-//   tx: any,
-//   productId: number,
-//   locationId: number | null,
-//   quantity: number,
-//   loadingType: string,
-//   batchId?: number | null,
-//   serialId?: number | null,
-//   userId?: number
-// ): Promise<void> {
-//   const whereClause: any = {
-//     product_id: productId,
-//     location_id: locationId ?? 1,
-//   };
-
-//   if (batchId !== null) whereClause.batch_id = batchId;
-//   if (serialId !== null) whereClause.serial_number_id = serialId;
-
-//   const existingStock = await tx.inventory_stock.findFirst({
-//     where: whereClause,
-//   });
-
-//   let newCurrentStock: number;
-
-//   if (loadingType === 'U') {
-//     newCurrentStock = existingStock
-//       ? existingStock.current_stock - quantity
-//       : -quantity;
-//     if (newCurrentStock < 0) {
-//       throw new Error(
-//         `Insufficient inventory stock. Available: ${existingStock?.current_stock || 0}, Requested: ${quantity}`
-//       );
-//     }
-//   } else if (loadingType === 'L') {
-//     newCurrentStock = existingStock
-//       ? existingStock.current_stock + quantity
-//       : quantity;
-//   } else {
-//     throw new Error(`Invalid loading type: ${loadingType}`);
-//   }
-
-//   if (existingStock) {
-//     await tx.inventory_stock.update({
-//       where: { id: existingStock.id },
-//       data: {
-//         current_stock: newCurrentStock,
-//         available_stock: newCurrentStock,
-//         updatedate: new Date(),
-//         updatedby: userId,
-//       },
-//     });
-//   } else {
-//     await tx.inventory_stock.create({
-//       data: {
-//         product_id: productId,
-//         location_id: locationId || 1,
-//         current_stock: newCurrentStock,
-//         reserved_stock: 0,
-//         available_stock: newCurrentStock,
-//         minimum_stock: 0,
-//         maximum_stock: 0,
-//         batch_id: batchId || null,
-//         serial_number_id: serialId || null,
-//         is_active: 'Y',
-//         createdate: new Date(),
-//         createdby: userId || 1,
-//         log_inst: 1,
-//       },
-//     });
-//   }
-// }
 
 async function updateInventoryStock(
   tx: any,
@@ -2510,23 +2572,23 @@ export const vanInventoryController = {
                       });
                     }
 
-//       await createStockMovement(tx, {
-//         product_id: product.id,
-//         batch_id: batchLot.id,
-//         serial_id: null,
-//         movement_type: 'VAN_SOLD',
-//         reference_type: 'VAN_INVENTORY',
-//         reference_id: inventory.id,
-//         from_location_id: null,
-//         to_location_id: null,
-//         quantity: batchQty,
-//         remarks: `Sold from van - Batch ${batchLot.batch_number}`,
-//         van_inventory_id: inventory.id,
-//         createdby: userId,
-//       });
-//     }
-//   } else if (trackingType === 'SERIAL') {
-//     const serialData = item.serials || item.product_serials;
+                    //       await createStockMovement(tx, {
+                    //         product_id: product.id,
+                    //         batch_id: batchLot.id,
+                    //         serial_id: null,
+                    //         movement_type: 'VAN_SOLD',
+                    //         reference_type: 'VAN_INVENTORY',
+                    //         reference_id: inventory.id,
+                    //         from_location_id: null,
+                    //         to_location_id: null,
+                    //         quantity: batchQty,
+                    //         remarks: `Sold from van - Batch ${batchLot.batch_number}`,
+                    //         van_inventory_id: inventory.id,
+                    //         createdby: userId,
+                    //       });
+                    //     }
+                    //   } else if (trackingType === 'SERIAL') {
+                    //     const serialData = item.serials || item.product_serials;
                   }
                 } else if (trackingType === 'SERIAL') {
                   const serialData = item.serials || item.product_serials;
