@@ -21,11 +21,10 @@ export const depotValidationSchema = Yup.object({
   address: Yup.string().max(255, 'Address must be less than 255 characters'),
   city: Yup.string().max(50, 'City must be less than 50 characters'),
   state: Yup.string().max(50, 'State must be less than 50 characters'),
-  zipcode: Yup.string().matches(/^[0-9]{5,6}$/, 'Invalid zip code format'),
-  phone_number: Yup.string().matches(
-    /^[0-9+\-\s()]+$/,
-    'Invalid phone number format'
-  ),
+  phone_number: Yup.string()
+    .matches(/^[0-9+\-\s()]+$/, 'Invalid phone number format')
+    .min(8, 'Phone number must be at least 8 digits')
+    .max(16, 'Phone number is too long'),
   email: Yup.string().email('Invalid email format'),
   manager_id: Yup.number().positive('Invalid manager'),
   supervisor_id: Yup.number().positive('Invalid supervisor'),

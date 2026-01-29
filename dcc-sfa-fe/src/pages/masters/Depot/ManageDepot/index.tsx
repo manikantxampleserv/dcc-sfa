@@ -52,7 +52,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
       phone_number: selectedDepot?.phone_number || '',
       email: selectedDepot?.email || '',
       manager_id: selectedDepot?.manager_id?.toString() || '',
-      supervisor_id: selectedDepot?.supervisor_id?.toString() || '',
+      supervisor_id: '',
       coordinator_id: selectedDepot?.coordinator_id?.toString() || '',
       latitude: selectedDepot?.latitude?.toString() || '',
       longitude: selectedDepot?.longitude?.toString() || '',
@@ -72,9 +72,6 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
           phone_number: values.phone_number,
           email: values.email,
           manager_id: values.manager_id ? Number(values.manager_id) : undefined,
-          supervisor_id: values.supervisor_id
-            ? Number(values.supervisor_id)
-            : undefined,
           coordinator_id: values.coordinator_id
             ? Number(values.coordinator_id)
             : undefined,
@@ -152,6 +149,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
             />
 
             <Input
+              type="number"
               name="zipcode"
               label="Zip Code"
               placeholder="Enter zip code"
@@ -163,15 +161,10 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               label="Phone Number"
               placeholder="Enter phone number"
               formik={formik}
-              type="tel"
+              type="number"
             />
 
             <UserSelect name="manager_id" label="Manager" formik={formik} />
-            <UserSelect
-              name="supervisor_id"
-              label="Supervisor"
-              formik={formik}
-            />
             <UserSelect
               name="coordinator_id"
               label="Coordinator"

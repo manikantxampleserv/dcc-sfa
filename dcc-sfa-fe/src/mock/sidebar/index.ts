@@ -193,21 +193,20 @@ const menuItems: MenuItem[] = [
             href: '/masters/product-web-orders',
           },
           {
-            id: 'product-catalog',
-            label: 'Product Catalog',
-            href: '/masters/products',
-          },
-
-          {
-            id: 'batch-lots',
-            label: 'Batch & Lot Management',
-            href: '/masters/batch-lots',
-          },
-          {
             id: 'tax-master',
             label: 'Tax Master',
             href: '/masters/tax-master',
           },
+          {
+            id: 'product-catalog',
+            label: 'Product Catalog',
+            href: '/masters/products',
+          },
+          // {
+          //   id: 'batch-lots',
+          //   label: 'Batch & Lot Management',
+          //   href: '/masters/batch-lots',
+          // },
           // {
           //   id: 'pricelists',
           //   label: 'Pricelists',
