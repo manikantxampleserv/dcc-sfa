@@ -163,6 +163,11 @@ const menuItems: MenuItem[] = [
             href: '/masters/unit-of-measurement',
           },
           {
+            id: 'sub-unit-of-measurement',
+            label: 'Sub Unit of Measurement',
+            href: '/masters/sub-unit-of-measurement',
+          },
+          {
             id: 'product-flavours',
             label: 'Flavours',
             href: '/masters/product-flavours',

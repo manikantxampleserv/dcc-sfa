@@ -55,6 +55,7 @@ import StockTransferRequestsManagement from 'pages/masters/StockTransferRequests
 import SurveyBuilder from 'pages/masters/SurveyBuilder';
 import SurveyDetail from 'pages/masters/SurveyBuilder/SurveyDetail';
 import UnitOfMeasurementManagement from 'pages/masters/UnitOfMeasurement';
+import SubUnitOfMeasurementManagement from 'pages/masters/SubUnitOfMeasurement';
 import Users from 'pages/masters/Users';
 import UserDetail from 'pages/masters/Users/UserDetail';
 import VanStockManagement from 'pages/masters/VanStock';
@@ -362,6 +363,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="unit-of-measurement" action="read">
               <UnitOfMeasurementManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/sub-unit-of-measurement',
+          element: (
+            <PermissionGuard module="unit-of-measurement" action="read">
+              <SubUnitOfMeasurementManagement />
             </PermissionGuard>
           ),
         },
