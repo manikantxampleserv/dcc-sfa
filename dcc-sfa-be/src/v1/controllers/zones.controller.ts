@@ -90,6 +90,20 @@ export const zonesController = {
         return res.status(400).json({ message: 'Zone name is required' });
       }
 
+      const existingZone = await prisma.zones.findFirst({
+        where: {
+          name: {
+            equals: data.name.trim(),
+          },
+        },
+      });
+
+      if (existingZone) {
+        return res
+          .status(400)
+          .json({ message: 'Zone with this name already exists' });
+      }
+
       if (data.depot_id && !data.parent_id) {
         data.parent_id = data.depot_id;
       }
