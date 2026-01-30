@@ -2,7 +2,6 @@ import { Box, MenuItem } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useFormik } from 'formik';
 import { useBrands, type Brand } from 'hooks/useBrands';
-import { useOutletGroups, type OutletGroup } from 'hooks/useOutletGroups';
 import {
   useProductSubCategories,
   type ProductSubCategory,
@@ -105,11 +104,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
     status: 'active',
   });
 
-  const { data: outletGroupsResponse } = useOutletGroups({
-    limit: 1000,
-    isActive: 'active',
-  });
-
   const { data: taxMastersResponse } = useTaxMasters({
     limit: 1000,
     isActive: 'Y',
@@ -119,7 +113,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const brands = brandsResponse?.data || [];
   const units = unitsResponse?.data || [];
   const routeTypes = routeTypesResponse?.data || [];
-  const outletGroups = outletGroupsResponse?.data || [];
   const taxMasters = taxMastersResponse?.data || [];
 
   const { data: productTypesResponse } = useQuery({
@@ -336,14 +329,6 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               {routeTypes.map((routeType: RouteType) => (
                 <MenuItem key={routeType.id} value={routeType.id}>
                   {routeType.name}
-                </MenuItem>
-              ))}
-            </Select>
-
-            <Select name="outlet_group_id" label="Outlet Group" formik={formik}>
-              {outletGroups.map((outletGroup: OutletGroup) => (
-                <MenuItem key={outletGroup.id} value={outletGroup.id}>
-                  {outletGroup.name}
                 </MenuItem>
               ))}
             </Select>

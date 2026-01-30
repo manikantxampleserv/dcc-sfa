@@ -1,4 +1,4 @@
-import { Add } from '@mui/icons-material';
+import { Add, InfoOutline } from '@mui/icons-material';
 import { Box, MenuItem, Skeleton, Typography } from '@mui/material';
 import { useFormik } from 'formik';
 import {
@@ -9,16 +9,16 @@ import {
 } from 'hooks/useCustomerCategory';
 import { useProductCategories } from 'hooks/useProductCategories';
 import React, { useEffect, useState } from 'react';
-import * as Yup from 'yup';
+import { toast } from 'react-toastify';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import ProductCategorySelect from 'shared/ProductCategorySelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
-import ActiveInactiveField from 'shared/ActiveInactiveField';
-import { toast } from 'react-toastify';
+import * as Yup from 'yup';
 
 interface ManageCustomerCategoryProps {
   selectedCustomerCategory?: CustomerCategory | null;
@@ -55,12 +55,19 @@ const customerCategoryValidationSchema = Yup.object({
 });
 
 const CONDITION_TYPES = [
-  'Sales Amount',
-  'Sales Quantity',
-  'Order Frequency',
-  'Payment Terms',
-  'Credit Limit',
-  'Purchase History',
+  'Monthly Sales Amount (₹)',
+  'Quarterly Sales Amount (₹)',
+  'Monthly Sales Quantity (Crates)',
+  'Monthly Sales Quantity (Cases)',
+  'Monthly Sales Quantity (Units)',
+  'Quarterly Sales Quantity (Crates)',
+  'Order Frequency per Month',
+  'Order Frequency per Quarter',
+  'Payment Terms (Days)',
+  'Credit Limit (₹)',
+  'Purchase History (Months Active)',
+  'Average Order Value (₹)',
+  'Last Order Days Ago',
 ];
 
 const CONDITION_OPERATORS = [
@@ -71,6 +78,64 @@ const CONDITION_OPERATORS = [
   { value: '=', label: 'Equal (=)' },
   { value: '!=', label: 'Not equal (!=)' },
 ];
+
+// Helper functions for threshold input guidance
+const getThresholdPlaceholder = (conditionType: string): string => {
+  switch (conditionType) {
+    case 'Monthly Sales Amount (₹)':
+    case 'Quarterly Sales Amount (₹)':
+    case 'Average Order Value (₹)':
+    case 'Credit Limit (₹)':
+      return 'e.g., 50000';
+    case 'Monthly Sales Quantity (Crates)':
+    case 'Monthly Sales Quantity (Cases)':
+    case 'Monthly Sales Quantity (Units)':
+    case 'Quarterly Sales Quantity (Crates)':
+      return 'e.g., 1';
+    case 'Order Frequency per Month':
+    case 'Order Frequency per Quarter':
+    case 'Purchase History (Months Active)':
+      return 'e.g., 4';
+    case 'Payment Terms (Days)':
+    case 'Last Order Days Ago':
+      return 'e.g., 30';
+    default:
+      return 'Enter threshold value';
+  }
+};
+
+const getThresholdHelperText = (conditionType: string): string => {
+  switch (conditionType) {
+    case 'Monthly Sales Amount (₹)':
+      return 'Enter amount in rupees (e.g., 50000 for ₹50,000)';
+    case 'Quarterly Sales Amount (₹)':
+      return 'Enter amount in rupees for 3 months (e.g., 150000 for ₹1.5L)';
+    case 'Monthly Sales Quantity (Crates)':
+      return 'Enter number of crates per month (e.g., 1 for 1 crate/month)';
+    case 'Monthly Sales Quantity (Cases)':
+      return 'Enter number of cases per month (e.g., 24 for 24 cases/month)';
+    case 'Monthly Sales Quantity (Units)':
+      return 'Enter number of individual units per month';
+    case 'Quarterly Sales Quantity (Crates)':
+      return 'Enter number of crates for 3 months';
+    case 'Order Frequency per Month':
+      return 'Enter number of orders per month (e.g., 4 for weekly orders)';
+    case 'Order Frequency per Quarter':
+      return 'Enter number of orders for 3 months';
+    case 'Payment Terms (Days)':
+      return 'Enter credit period in days (e.g., 30 for 30-day credit)';
+    case 'Credit Limit (₹)':
+      return 'Enter credit limit in rupees';
+    case 'Purchase History (Months Active)':
+      return 'Enter months since first purchase';
+    case 'Average Order Value (₹)':
+      return 'Enter average order value in rupees';
+    case 'Last Order Days Ago':
+      return 'Enter days since last order (e.g., 7 for last week)';
+    default:
+      return '';
+  }
+};
 
 const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
   selectedCustomerCategory,
@@ -159,7 +224,33 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
     }
 
     if (!conditionInput.threshold_value.trim()) {
-      toast.error('Threshold value is required');
+      toast.error(
+        `Threshold value is required for ${conditionInput.condition_type}`
+      );
+      return;
+    }
+
+    // Validate threshold value based on condition type
+    const thresholdValue = parseFloat(conditionInput.threshold_value);
+    if (isNaN(thresholdValue) || thresholdValue < 0) {
+      toast.error('Please enter a valid positive number for threshold value');
+      return;
+    }
+
+    // Additional validation for specific condition types
+    if (
+      conditionInput.condition_type.includes('Days') &&
+      thresholdValue > 365
+    ) {
+      toast.error('Days cannot exceed 365 for this condition type');
+      return;
+    }
+
+    if (
+      conditionInput.condition_type.includes('Months') &&
+      thresholdValue > 12
+    ) {
+      toast.error('Months cannot exceed 12 for this condition type');
       return;
     }
 
@@ -193,6 +284,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
       is_active: 'Y',
     });
     setSelectedConditionIndex(null);
+    toast.success('Condition added successfully');
   };
 
   const removeCondition = (index: number) => {
@@ -443,7 +535,6 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
                 size="small"
                 fullWidth
               >
-                <MenuItem value="">Select Condition Type</MenuItem>
                 {CONDITION_TYPES.map(type => (
                   <MenuItem key={type} value={type}>
                     {type}
@@ -479,7 +570,12 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
                   })
                 }
                 label="Threshold Value"
-                placeholder="Enter threshold value"
+                placeholder={getThresholdPlaceholder(
+                  conditionInput.condition_type
+                )}
+                helperText={getThresholdHelperText(
+                  conditionInput.condition_type
+                )}
                 type="number"
                 size="small"
                 fullWidth
@@ -497,6 +593,27 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
                 size="small"
                 fullWidth
               />
+              {/* Information Section */}
+              <Box className="!bg-blue-50 col-span-2 !border !border-blue-200 !rounded-lg !p-4">
+                <Typography
+                  variant="subtitle2"
+                  className="!font-semibold !text-blue-900 !mb-2"
+                >
+                  <InfoOutline fontSize="small" /> How Conditions Work:
+                </Typography>
+                <Typography variant="body2" className="!text-blue-800 !mb-2">
+                  <strong>Example 1:</strong> "Monthly Sales Quantity (Crates) ≥
+                  1" → Customers who buy at least 1 crate per month
+                </Typography>
+                <Typography variant="body2" className="!text-blue-800 !mb-2">
+                  <strong>Example 2:</strong> "Monthly Sales Amount (₹) ≥ 50000"
+                  → Customers with monthly sales of ₹50,000 or more
+                </Typography>
+                <Typography variant="body2" className="!text-blue-800">
+                  <strong>Note:</strong> All conditions are evaluated based on
+                  customer's purchase history and behavior patterns.
+                </Typography>
+              </Box>
 
               <Box className="md:!col-span-2 !flex !items-center !gap-4">
                 {selectedConditionIndex !== null && (
