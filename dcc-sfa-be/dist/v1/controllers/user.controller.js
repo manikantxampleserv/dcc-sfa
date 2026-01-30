@@ -71,7 +71,7 @@ exports.userController = {
             }
             const { email, password, name, role_id, parent_id, depot_id, zone_id, phone_number, address, employee_id, joining_date, reporting_to, is_active, } = req.body;
             const existingUser = await prisma_client_1.default.users.findFirst({
-                where: { email, is_active: 'Y' },
+                where: { email },
             });
             if (existingUser) {
                 res.error('Email already exists', 400);
@@ -79,7 +79,7 @@ exports.userController = {
             }
             if (employee_id) {
                 const existingEmployee = await prisma_client_1.default.users.findFirst({
-                    where: { employee_id, is_active: 'Y' },
+                    where: { employee_id },
                 });
                 if (existingEmployee) {
                     res.error('Employee ID already exists', 400);
@@ -309,10 +309,31 @@ exports.userController = {
                 return;
             }
             const { createdate, updatedate, password, id, is_active, ...userData } = req.body;
-            // const restrictedFields = ['role_id', 'employee_id', 'email'];
-            // restrictedFields.forEach(field => {
-            //   if (field in userData) delete userData[field];
-            // });
+            if (userData.email && userData.email !== existingUser.email) {
+                const existingEmail = await prisma_client_1.default.users.findFirst({
+                    where: {
+                        email: userData.email,
+                        id: { not: targetUserId },
+                    },
+                });
+                if (existingEmail) {
+                    res.error('Email already exists', 400);
+                    return;
+                }
+            }
+            if (userData.employee_id &&
+                userData.employee_id !== existingUser.employee_id) {
+                const existingEmployeeId = await prisma_client_1.default.users.findFirst({
+                    where: {
+                        employee_id: userData.employee_id,
+                        id: { not: targetUserId },
+                    },
+                });
+                if (existingEmployeeId) {
+                    res.error('Employee ID already exists', 400);
+                    return;
+                }
+            }
             let profile_image_url;
             const uploadedFile = req.file;
             if (uploadedFile) {

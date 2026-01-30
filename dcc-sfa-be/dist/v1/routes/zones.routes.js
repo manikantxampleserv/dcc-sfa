@@ -12,5 +12,6 @@ router.get('/zones/:id', auth_middleware_1.authenticateToken, (0, auth_middlewar
 router.get('/zones', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'zone', action: 'read' }]), zones_controller_1.zonesController.getZones);
 router.put('/zones/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditUpdate)('zones'), (0, auth_middleware_1.requirePermission)([{ module: 'zone', action: 'update' }]), zones_controller_1.zonesController.updateZone);
 router.delete('/zones/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditDelete)('zones'), (0, auth_middleware_1.requirePermission)([{ module: 'zone', action: 'delete' }]), zones_controller_1.zonesController.deleteZone);
+router.get('/zone/supervisors', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'zone', action: 'read' }]), zones_controller_1.zonesController.getSupervisors);
 exports.default = router;
 //# sourceMappingURL=zones.routes.js.map

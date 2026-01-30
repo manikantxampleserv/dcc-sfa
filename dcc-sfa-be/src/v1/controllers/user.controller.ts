@@ -89,7 +89,7 @@ export const userController = {
       } = req.body;
 
       const existingUser = await prisma.users.findFirst({
-        where: { email, is_active: 'Y' },
+        where: { email },
       });
       if (existingUser) {
         res.error('Email already exists', 400);
@@ -98,7 +98,7 @@ export const userController = {
 
       if (employee_id) {
         const existingEmployee = await prisma.users.findFirst({
-          where: { employee_id, is_active: 'Y' },
+          where: { employee_id },
         });
         if (existingEmployee) {
           res.error('Employee ID already exists', 400);
@@ -370,10 +370,34 @@ export const userController = {
       const { createdate, updatedate, password, id, is_active, ...userData } =
         req.body;
 
-      // const restrictedFields = ['role_id', 'employee_id', 'email'];
-      // restrictedFields.forEach(field => {
-      //   if (field in userData) delete userData[field];
-      // });
+      if (userData.email && userData.email !== existingUser.email) {
+        const existingEmail = await prisma.users.findFirst({
+          where: {
+            email: userData.email,
+            id: { not: targetUserId },
+          },
+        });
+        if (existingEmail) {
+          res.error('Email already exists', 400);
+          return;
+        }
+      }
+
+      if (
+        userData.employee_id &&
+        userData.employee_id !== existingUser.employee_id
+      ) {
+        const existingEmployeeId = await prisma.users.findFirst({
+          where: {
+            employee_id: userData.employee_id,
+            id: { not: targetUserId },
+          },
+        });
+        if (existingEmployeeId) {
+          res.error('Employee ID already exists', 400);
+          return;
+        }
+      }
 
       let profile_image_url: string | undefined;
 

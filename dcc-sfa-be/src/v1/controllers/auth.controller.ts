@@ -13,6 +13,7 @@ const generateTokens = (user: any) => {
   const payload = {
     id: user.id,
     email: user.email,
+    employee_id: user.employee_id,
     role: user.user_role?.name || user.role,
     parent_id: user.parent_id,
     depot_id: user.depot_id,
@@ -32,11 +33,20 @@ const generateTokens = (user: any) => {
 
 export const register = async (req: any, res: any) => {
   try {
-    const { email, password, name, role_id, parent_id } = req.body;
+    const { email, password, name, role_id, parent_id, employee_id } = req.body;
 
     const existing = await prisma.users.findFirst({ where: { email } });
     if (existing) {
       return res.error('Email already exists', 400);
+    }
+
+    if (employee_id) {
+      const existingEmployeeId = await prisma.users.findFirst({
+        where: { employee_id },
+      });
+      if (existingEmployeeId) {
+        return res.error('Employee ID already exists', 400);
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -48,6 +58,7 @@ export const register = async (req: any, res: any) => {
         name,
         role_id: role_id || 1,
         parent_id: parent_id ?? null,
+        employee_id: employee_id || null,
         createdby: 0,
         createdate: new Date(),
         is_active: 'Y',
@@ -75,18 +86,20 @@ export const register = async (req: any, res: any) => {
 
 export const login = async (req: any, res: any) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    if (!email || !password) {
-      return res.error('Email and password are required', 400);
+    if (!username || !password) {
+      return res.error('Username and password are required', 400);
     }
 
-    if (typeof email !== 'string' || typeof password !== 'string') {
-      return res.error('Email and password must be strings', 400);
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return res.error('Username and password must be strings', 400);
     }
 
     const user = await prisma.users.findFirst({
-      where: { email },
+      where: {
+        OR: [{ email: username }, { employee_id: username }],
+      },
       include: {
         user_role: true,
       },
@@ -94,7 +107,7 @@ export const login = async (req: any, res: any) => {
 
     if (!user) {
       console.log(
-        `Failed login attempt for unknown user: ${email} from IP: ${getClientIP(req)}`
+        `Failed login attempt for unknown user: ${username} from IP: ${getClientIP(req)}`
       );
       return res.error('User not found', 404);
     }
@@ -226,8 +239,8 @@ export const login = async (req: any, res: any) => {
       return res.error('Database record not found. Please try again.', 404);
     }
 
-    if (!req.body?.email || !req.body?.password) {
-      return res.error('Email and password are required', 400);
+    if (!req.body?.username || !req.body?.password) {
+      return res.error('Username and password are required', 400);
     }
 
     const errorMessage =
