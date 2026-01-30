@@ -86,19 +86,29 @@ export const register = async (req: any, res: any) => {
 
 export const login = async (req: any, res: any) => {
   try {
-    const { username, password } = req.body;
+    const { email, username, password } = req.body;
 
-    if (!username || !password) {
-      return res.error('Username and password are required', 400);
+    if (!password) {
+      return res.error('Password is required', 400);
     }
 
-    if (typeof username !== 'string' || typeof password !== 'string') {
-      return res.error('Username and password must be strings', 400);
+    const identifier = email || username;
+
+    if (!identifier) {
+      return res.error('Email or username is required', 400);
+    }
+
+    if (typeof identifier !== 'string') {
+      return res.error('Email/username must be a string', 400);
+    }
+
+    if (typeof password !== 'string') {
+      return res.error('Password must be a string', 400);
     }
 
     const user = await prisma.users.findFirst({
       where: {
-        OR: [{ email: username }, { employee_id: username }],
+        OR: [{ email: identifier }, { employee_id: identifier }],
       },
       include: {
         user_role: true,
@@ -107,7 +117,7 @@ export const login = async (req: any, res: any) => {
 
     if (!user) {
       console.log(
-        `Failed login attempt for unknown user: ${username} from IP: ${getClientIP(req)}`
+        `Failed login attempt for unknown user: ${identifier} from IP: ${getClientIP(req)}`
       );
       return res.error('User not found', 404);
     }
@@ -239,8 +249,8 @@ export const login = async (req: any, res: any) => {
       return res.error('Database record not found. Please try again.', 404);
     }
 
-    if (!req.body?.username || !req.body?.password) {
-      return res.error('Username and password are required', 400);
+    if (!req.body?.password) {
+      return res.error('Password is required', 400);
     }
 
     const errorMessage =
