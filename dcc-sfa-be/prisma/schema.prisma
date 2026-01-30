@@ -17,7 +17,7 @@ model users {
   zone_id                                                           Int?
   phone_number                                                      String?                      @db.NVarChar(20)
   address                                                           String?                      @db.NVarChar(500)
-  employee_id                                                       String                       @unique(map: "UQ__users__employee_id__12345678") @db.NVarChar(50)
+  employee_id                                                       String                       @db.NVarChar(50)
   joining_date                                                      DateTime?                    @db.Date
   reporting_to                                                      Int?
   profile_image                                                     String?                      @db.NVarChar(500)
@@ -1361,6 +1361,7 @@ model products {
   depot_price_overrides            depot_price_overrides[]
   product_product_batches          product_batches[]
   batchLots                        batch_lots[]
+  subunits_products                subunits[]
 }
 
 model tax_master {
@@ -1395,18 +1396,19 @@ model brands {
 }
 
 model unit_of_measurement {
-  id                          Int        @id @default(autoincrement())
-  name                        String     @db.NVarChar(255)
-  description                 String?    @db.NVarChar(500)
-  category                    String?    @db.NVarChar(50)
-  symbol                      String?    @db.NVarChar(10)
-  is_active                   String     @default("Y") @db.Char(1)
-  createdate                  DateTime?  @default(now()) @db.DateTime
-  createdby                   Int
-  updatedate                  DateTime?  @db.DateTime
-  updatedby                   Int?
-  log_inst                    Int?
-  product_unit_of_measurement products[]
+  id                           Int        @id @default(autoincrement())
+  name                         String     @db.NVarChar(255)
+  description                  String?    @db.NVarChar(500)
+  category                     String?    @db.NVarChar(50)
+  symbol                       String?    @db.NVarChar(10)
+  is_active                    String     @default("Y") @db.Char(1)
+  createdate                   DateTime?  @default(now()) @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime?  @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  product_unit_of_measurement  products[]
+  subunits_unit_of_measurement subunits[]
 }
 
 model promotion_customer_types {
@@ -2670,4 +2672,21 @@ model product_batches {
   @@unique([product_id, batch_lot_id])
   @@index([product_id])
   @@index([batch_lot_id])
+}
+
+model subunits {
+  id                           Int                 @id @default(autoincrement())
+  name                         String              @db.NVarChar(255)
+  code                         String              @unique @db.NVarChar(100)
+  description                  String?             @db.NVarChar(500)
+  unit_of_measurement_id       Int
+  product_id                   Int
+  is_active                    String              @default("Y") @db.Char(1)
+  createdate                   DateTime?           @default(now()) @db.DateTime
+  createdby                    Int
+  updatedate                   DateTime?           @db.DateTime
+  updatedby                    Int?
+  log_inst                     Int?
+  subunits_unit_of_measurement unit_of_measurement @relation(fields: [unit_of_measurement_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  subunits_products            products            @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
 }
