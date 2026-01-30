@@ -370,7 +370,6 @@ export const userController = {
       const { createdate, updatedate, password, id, is_active, ...userData } =
         req.body;
 
-      // Check email uniqueness if email is being updated
       if (userData.email && userData.email !== existingUser.email) {
         const existingEmail = await prisma.users.findFirst({
           where: {
@@ -384,7 +383,6 @@ export const userController = {
         }
       }
 
-      // Check employee_id uniqueness if employee_id is being updated
       if (
         userData.employee_id &&
         userData.employee_id !== existingUser.employee_id
