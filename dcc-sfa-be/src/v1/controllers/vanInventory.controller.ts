@@ -249,7 +249,6 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
     summary.total_batches += batches.length;
     summary.total_serials += serials.length;
 
-    // Create only one item per product with aggregated data
     const aggregatedItem = {
       id: firstItem.id,
       parent_id: firstItem.parent_id,
