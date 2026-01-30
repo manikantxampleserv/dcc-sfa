@@ -79,23 +79,30 @@ const register = async (req, res) => {
 exports.register = register;
 const login = async (req, res) => {
     try {
-        const { username, password } = req.body;
-        if (!username || !password) {
-            return res.error('Username and password are required', 400);
+        const { email, username, password } = req.body;
+        if (!password) {
+            return res.error('Password is required', 400);
         }
-        if (typeof username !== 'string' || typeof password !== 'string') {
-            return res.error('Username and password must be strings', 400);
+        const identifier = email || username;
+        if (!identifier) {
+            return res.error('Email or username is required', 400);
+        }
+        if (typeof identifier !== 'string') {
+            return res.error('Email/username must be a string', 400);
+        }
+        if (typeof password !== 'string') {
+            return res.error('Password must be a string', 400);
         }
         const user = await prisma_client_1.default.users.findFirst({
             where: {
-                OR: [{ email: username }, { employee_id: username }],
+                OR: [{ email: identifier }, { employee_id: identifier }],
             },
             include: {
                 user_role: true,
             },
         });
         if (!user) {
-            console.log(`Failed login attempt for unknown user: ${username} from IP: ${(0, ipUtils_1.getClientIP)(req)}`);
+            console.log(`Failed login attempt for unknown user: ${identifier} from IP: ${(0, ipUtils_1.getClientIP)(req)}`);
             return res.error('User not found', 404);
         }
         if (user.is_active !== 'Y') {
@@ -208,8 +215,8 @@ const login = async (req, res) => {
         if (error?.code === 'P2025') {
             return res.error('Database record not found. Please try again.', 404);
         }
-        if (!req.body?.username || !req.body?.password) {
-            return res.error('Username and password are required', 400);
+        if (!req.body?.password) {
+            return res.error('Password is required', 400);
         }
         const errorMessage = error?.message || 'An unexpected error occurred during login';
         return res.error(`Login failed: ${errorMessage}`, 500);
