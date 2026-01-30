@@ -13,6 +13,7 @@ const generateTokens = (user: any) => {
   const payload = {
     id: user.id,
     email: user.email,
+    employee_id: user.employee_id,
     role: user.user_role?.name || user.role,
     parent_id: user.parent_id,
     depot_id: user.depot_id,
