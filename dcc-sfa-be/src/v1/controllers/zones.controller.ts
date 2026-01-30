@@ -308,7 +308,15 @@ export const zonesController = {
         where: {
           is_active: 'Y',
           user_role: {
-            name: 'Area Sales Supervisor',
+            name: {
+              in: [
+                'area sales supervisor',
+                'Area Sales Supervisor',
+                'AREA SALES SUPERVISOR',
+                'areaSalesSupervisor',
+                'AreaSalesSupervisor',
+              ],
+            },
             is_active: 'Y',
           },
           ...(searchLower && {

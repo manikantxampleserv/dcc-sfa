@@ -8,7 +8,7 @@ datasource db {
 
 model users {
   id                                                                Int                          @id(map: "PK__users__3213E83F0D3B3A05") @default(autoincrement())
-  email                                                             String                       @unique(map: "UQ__users__AB6E616419303B34") @db.NVarChar(255)
+  email                                                             String                       @db.NVarChar(255)
   role_id                                                           Int
   password_hash                                                     String                       @db.NVarChar(255)
   name                                                              String                       @db.NVarChar(255)
@@ -17,7 +17,7 @@ model users {
   zone_id                                                           Int?
   phone_number                                                      String?                      @db.NVarChar(20)
   address                                                           String?                      @db.NVarChar(500)
-  employee_id                                                       String                       @db.NVarChar(50)
+  employee_id                                                       String                       @unique(map: "UQ__users__employee_id__12345678") @db.NVarChar(50)
   joining_date                                                      DateTime?                    @db.Date
   reporting_to                                                      Int?
   profile_image                                                     String?                      @db.NVarChar(500)
