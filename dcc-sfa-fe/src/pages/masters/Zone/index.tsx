@@ -20,7 +20,6 @@ import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 import { useDepots } from '../../../hooks/useDepots';
-import { useUsers } from '../../../hooks/useUsers';
 import { useDeleteZone, useZones, type Zone } from '../../../hooks/useZones';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import ManageZone from './ManageZone';
@@ -60,11 +59,9 @@ const ZonesManagement: React.FC = () => {
   );
 
   const { data: depotsResponse } = useDepots({ page: 1, limit: 100 });
-  const { data: usersResponse } = useUsers({ page: 1, limit: 100 });
 
   const zones = zonesResponse?.data || [];
   const depots = depotsResponse?.data || [];
-  const users = usersResponse?.data || [];
   const totalCount = zonesResponse?.meta?.total || 0;
   const currentPage = (zonesResponse?.meta?.page || 1) - 1;
 
@@ -420,7 +417,6 @@ const ZonesManagement: React.FC = () => {
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
         depots={depots}
-        users={users}
       />
 
       <ImportZone

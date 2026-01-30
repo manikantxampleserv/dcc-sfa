@@ -8,6 +8,13 @@
 import api from 'configs/axio.config';
 import type { ApiResponse } from 'types/api.types';
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  employee_id?: string;
+}
+
 interface Zone {
   id: number;
   parent_id: number;
@@ -151,10 +158,32 @@ export const deleteZone = async (id: number): Promise<ApiResponse<void>> => {
   }
 };
 
+/**
+ * Fetch zone supervisors (Area Sales Supervisor role only)
+ * @param search - Optional search term for filtering supervisors
+ * @returns Promise<ApiResponse<User[]>>
+ */
+export const fetchSupervisors = async (
+  search?: string
+): Promise<ApiResponse<User[]>> => {
+  try {
+    const response = await api.get('/zone/supervisors', {
+      params: search ? { search } : {},
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching supervisors:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to fetch supervisors'
+    );
+  }
+};
+
 export type {
   GetZonesParams,
   ManageZonePayload,
   UpdateZonePayload,
   PaginationMeta,
   Zone,
+  User,
 };

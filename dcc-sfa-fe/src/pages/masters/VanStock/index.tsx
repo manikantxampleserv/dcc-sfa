@@ -9,7 +9,7 @@ import {
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { TrendingUp, Truck } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
@@ -87,10 +87,10 @@ const VanStockPage: React.FC = () => {
     setDrawerOpen(true);
   }, []);
 
-  const handleEditVanInventory = useCallback((vanInventory: VanInventory) => {
-    setSelectedVanInventory(vanInventory);
-    setDrawerOpen(true);
-  }, []);
+  // const handleEditVanInventory = useCallback((vanInventory: VanInventory) => {
+  //   setSelectedVanInventory(vanInventory);
+  //   setDrawerOpen(true);
+  // }, []);
 
   const handleManageItems = useCallback((vanInventory: VanInventory) => {
     setSelectedVanInventory(vanInventory);
@@ -319,12 +319,12 @@ const VanStockPage: React.FC = () => {
                     />
                   </>
                 )}
-                {isUpdate && (
+                {/* {isUpdate && (
                   <EditButton
                     onClick={() => handleEditVanInventory(row)}
                     tooltip={`Edit Van Inventory #${row.id}`}
                   />
-                )}
+                )} */}
                 {isDelete && (
                   <DeleteButton
                     onClick={() => handleDeleteVanInventory(row.id)}

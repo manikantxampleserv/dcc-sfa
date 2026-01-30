@@ -38,6 +38,7 @@ interface ManageBatchProps {
 
 const INITIAL_BATCH: ProductBatch = {
   remaining_quantity: 0,
+  total_quantity: 0,
   batch_number: '',
   lot_number: '',
   manufacturing_date: '',
@@ -58,8 +59,9 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
   const [productBatches, setProductBatches] = useState<ProductBatch[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Load batches when dialog opens or row changes
   useEffect(() => {
-    if (selectedRowIndex === null) {
+    if (!isOpen || selectedRowIndex === null) {
       return;
     }
 
@@ -69,9 +71,11 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
       return;
     }
 
+    // If item already has batches, use them
     const existing = (item.product_batches as ProductBatch[] | undefined) || [];
 
     if (existing.length > 0) {
+      console.log('ManageBatch - Loading existing batches:', existing);
       setProductBatches(existing);
       return;
     }
@@ -90,17 +94,14 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
           quantity: 0,
         })
       );
+      console.log('ManageBatch - Initializing unload batches:', initialBatches);
       setProductBatches(initialBatches);
       return;
     }
 
+    // Otherwise start with empty array
     setProductBatches([]);
-  }, [
-    selectedRowIndex,
-    formik.values.van_inventory_items,
-    inventoryByProductId,
-    isUnloadType,
-  ]);
+  }, [isOpen, selectedRowIndex]); // FIXED: Removed dependencies that cause loops
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -222,7 +223,7 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
     console.log('ManageBatch - Saving batch data:', {
       selectedRowIndex,
       isUnloadType,
-      productBatches,
+      totalQty,
       mappedBatches,
     });
 
@@ -235,30 +236,7 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
       product_batches: mappedBatches,
     };
 
-    console.log('ManageBatch - Before formik.setFieldValue:');
-    console.log('- selectedRowIndex:', selectedRowIndex);
-    console.log('- mappedBatches:', mappedBatches);
-    console.log('- Updated item:', updatedItems[selectedRowIndex]);
-    console.log('- Current formik items:', formik.values.van_inventory_items);
-
     formik.setFieldValue('van_inventory_items', updatedItems);
-
-    setTimeout(() => {
-      console.log('ManageBatch - After formik.setFieldValue:');
-      console.log(
-        '- Formik items count:',
-        formik.values.van_inventory_items.length
-      );
-      console.log(
-        '- Specific item product_batches:',
-        formik.values.van_inventory_items[selectedRowIndex]?.product_batches
-      );
-      console.log(
-        '- Full item:',
-        formik.values.van_inventory_items[selectedRowIndex]
-      );
-    }, 100);
-
     handleClose();
   }, [
     selectedRowIndex,
