@@ -13,12 +13,14 @@ import {
 import {
   createZone,
   deleteZone,
+  fetchSupervisors,
   fetchZoneById,
   fetchZones,
   updateZone,
   type GetZonesParams,
   type ManageZonePayload,
   type UpdateZonePayload,
+  type User,
   type Zone,
 } from '../services/masters/Zones';
 import type { ApiResponse } from '../types/api.types';
@@ -31,6 +33,8 @@ export const zoneKeys = {
   list: (params: GetZonesParams) => [...zoneKeys.lists(), params] as const,
   details: () => [...zoneKeys.all, 'detail'] as const,
   detail: (id: number) => [...zoneKeys.details(), id] as const,
+  supervisors: () => [...zoneKeys.all, 'supervisors'] as const,
+  supervisor: (search: string) => [...zoneKeys.supervisors(), search] as const,
 };
 
 /**
@@ -57,6 +61,17 @@ export const useZone = (id: number) => {
     queryFn: () => fetchZoneById(id),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+/**
+ * Hook to fetch zone supervisors (Area Sales Supervisor role only)
+ */
+export const useSupervisors = (search?: string) => {
+  return useQuery({
+    queryKey: zoneKeys.supervisor(search || ''),
+    queryFn: () => fetchSupervisors(search),
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes since supervisors rarely change
   });
 };
 
@@ -130,4 +145,10 @@ export const useDeleteZone = (options?: {
   });
 };
 
-export type { GetZonesParams, ManageZonePayload, UpdateZonePayload, Zone };
+export type {
+  GetZonesParams,
+  ManageZonePayload,
+  UpdateZonePayload,
+  User,
+  Zone,
+};

@@ -6,51 +6,13 @@
  * Easy to handle when you have using formik, handles errors etc.
  *
  * @param {InputProps} props - Props for Input component.
- *
- * #### Example
- *
- * ```js
- * import React from "react";
- * import { Input } from "react-mkx-components";
- * import { useFormik } from "formik";
- * const MyComponent = () => {
- *   const formik = useFormik({
- *     initialValues: {
- *       username: "",
- *       birthYear: "",
- *     },
- *     onSubmit: (values) => {
- *       console.log(values);
- *     },
- *   });
- *
- *   return (
- *     <div>
- *       <Input
- *         name="username"
- *         label="Username"
- *         placeholder="Enter Your Username"
- *         formik={formik}
- *       />
- *       <Input
- *         name="birthYear"
- *         label="Birth Year"
- *         type="year"
- *         formik={formik}
- *       />
- *     </div>
- *   );
- * };
- *
- * export default MyComponent;
- * ```
  */
 import { Search, Visibility, VisibilityOff } from '@mui/icons-material';
 import { IconButton, TextField, type TextFieldProps } from '@mui/material';
 import { DatePicker, DateTimePicker, TimePicker } from '@mui/x-date-pickers';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { FormikProps } from 'formik';
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 
 interface InputProps extends Omit<TextFieldProps, 'onChange'> {
   formik?: FormikProps<any>;
@@ -78,43 +40,51 @@ const Input: React.FC<InputProps> = ({
     [name || '']: false,
   });
 
-  const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const newValue = event.target.value;
-    if (formik) {
-      formik.setFieldValue(name as string, newValue);
-    } else if (setValue) {
-      setValue(newValue);
-    } else if (onChange) {
-      onChange(event);
-    }
-  };
+  // FIXED: Use useCallback to memoize handlers
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const newValue = event.target.value;
+      if (formik && name) {
+        formik.setFieldValue(name as string, newValue);
+      } else if (setValue) {
+        setValue(newValue);
+      } else if (onChange) {
+        onChange(event);
+      }
+    },
+    [formik, name, setValue, onChange]
+  ); // FIXED: Proper dependencies
 
-  const handleDateChange = (newValue: Dayjs | null) => {
-    const dateValue = newValue ? newValue.format('YYYY-MM-DD') : '';
-    if (formik) {
-      formik.setFieldValue(name as string, dateValue);
-    } else if (setValue) {
-      setValue(dateValue);
-    } else if (onChange) {
-      const syntheticEvent = {
-        target: { value: dateValue },
-      } as React.ChangeEvent<HTMLInputElement>;
-      onChange(syntheticEvent);
-    }
-  };
+  const handleDateChange = useCallback(
+    (newValue: Dayjs | null) => {
+      const dateValue = newValue ? newValue.format('YYYY-MM-DD') : '';
+      if (formik && name) {
+        formik.setFieldValue(name as string, dateValue);
+      } else if (setValue) {
+        setValue(dateValue);
+      } else if (onChange) {
+        const syntheticEvent = {
+          target: { value: dateValue },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
+      }
+    },
+    [formik, name, setValue, onChange]
+  );
 
-  const handleTimeChange = (newValue: Dayjs | null) => {
-    const timeValue = newValue ? newValue.format('HH:mm') : '';
-    if (formik) {
-      formik.setFieldValue(name as string, timeValue);
-    } else if (setValue) {
-      setValue(timeValue);
-    }
-  };
+  const handleTimeChange = useCallback(
+    (newValue: Dayjs | null) => {
+      const timeValue = newValue ? newValue.format('HH:mm') : '';
+      if (formik && name) {
+        formik.setFieldValue(name as string, timeValue);
+      } else if (setValue) {
+        setValue(timeValue);
+      }
+    },
+    [formik, name, setValue]
+  );
 
-  const handleDateBlur = () => {
+  const handleDateBlur = useCallback(() => {
     const syntheticEvent = {
       target: {
         name: name,
@@ -127,33 +97,56 @@ const Input: React.FC<InputProps> = ({
     } else if (onBlur) {
       onBlur(syntheticEvent);
     }
-  };
+  }, [formik, name, onBlur]);
 
-  const handleDateTimeChange = (newValue: Dayjs | null) => {
-    const dateTimeValue = newValue ? newValue.format('YYYY-MM-DDTHH:mm') : '';
-    if (formik) {
-      formik.setFieldValue(name as string, dateTimeValue);
-    } else if (setValue) {
-      setValue(dateTimeValue);
-    }
-  };
+  const handleDateTimeChange = useCallback(
+    (newValue: Dayjs | null) => {
+      const dateTimeValue = newValue ? newValue.format('YYYY-MM-DDTHH:mm') : '';
+      if (formik && name) {
+        formik.setFieldValue(name as string, dateTimeValue);
+      } else if (setValue) {
+        setValue(dateTimeValue);
+      }
+    },
+    [formik, name, setValue]
+  );
 
-  const error =
-    formik?.touched?.[name as string] && formik?.errors?.[name as string];
+  // FIXED: Extract error state without watching entire formik
+  const error = useMemo(() => {
+    if (!formik || !name) return false;
+    return formik.touched?.[name as string] && formik.errors?.[name as string];
+  }, [
+    formik?.touched?.[name as string],
+    formik?.errors?.[name as string],
+    name,
+  ]);
 
   const errorMessage = typeof error === 'string' ? error : undefined;
 
-  const currentValue = value || formik?.values[name as string];
+  // FIXED: Extract only the specific field value instead of watching entire formik object
+  const currentValue = useMemo(() => {
+    if (value !== undefined) return value;
+    if (formik && name) return formik.values[name as string];
+    return '';
+  }, [value, formik?.values[name as string], name]); // Only watch the specific field
 
-  const dateValue =
-    currentValue && dayjs(currentValue).isValid() ? dayjs(currentValue) : null;
+  const dateValue = useMemo(
+    () =>
+      currentValue && dayjs(currentValue).isValid()
+        ? dayjs(currentValue)
+        : null,
+    [currentValue]
+  );
 
-  const timeValue =
-    currentValue &&
-    typeof currentValue === 'string' &&
-    currentValue.includes(':')
-      ? dayjs(currentValue, 'HH:mm')
-      : null;
+  const timeValue = useMemo(
+    () =>
+      currentValue &&
+      typeof currentValue === 'string' &&
+      currentValue.includes(':')
+        ? dayjs(currentValue, 'HH:mm')
+        : null,
+    [currentValue]
+  );
 
   if (type === 'year') {
     return (
@@ -296,6 +289,18 @@ const Input: React.FC<InputProps> = ({
     );
   }
 
+  const handleBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      if (formik?.handleBlur) {
+        formik.handleBlur(e);
+      }
+      if (onBlur) {
+        onBlur(e);
+      }
+    },
+    [formik, onBlur]
+  );
+
   return (
     <TextField
       fullWidth={fullWidth}
@@ -334,7 +339,7 @@ const Input: React.FC<InputProps> = ({
       }}
       helperText={errorMessage}
       error={!!error}
-      onBlur={formik?.handleBlur || onBlur}
+      onBlur={handleBlur}
       value={currentValue}
       onChange={handleChange}
       {...rest}

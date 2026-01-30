@@ -1,10 +1,14 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
-import { useCreateZone, useUpdateZone, type Zone } from 'hooks/useZones';
+import {
+  useCreateZone,
+  useSupervisors,
+  useUpdateZone,
+  type Zone,
+} from 'hooks/useZones';
 import React from 'react';
 import { zoneValidationSchema } from 'schemas/zone.schema';
 import type { Depot } from 'services/masters/Depots';
-import type { User } from 'services/masters/Users';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -17,7 +21,6 @@ interface ManageZoneProps {
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
   depots: Depot[];
-  users: User[];
 }
 
 const ManageZone: React.FC<ManageZoneProps> = ({
@@ -26,9 +29,13 @@ const ManageZone: React.FC<ManageZoneProps> = ({
   drawerOpen,
   setDrawerOpen,
   depots,
-  users,
 }) => {
   const isEdit = !!selectedZone;
+
+  // Fetch only Area Sales Supervisors
+  const { data: supervisorsData, isLoading: supervisorsLoading } =
+    useSupervisors();
+  const supervisors = supervisorsData?.data || [];
 
   const handleCancel = () => {
     setSelectedZone(null);
@@ -77,8 +84,6 @@ const ManageZone: React.FC<ManageZoneProps> = ({
     },
   });
 
-  const supervisors = users;
-
   return (
     <CustomDrawer
       open={drawerOpen}
@@ -89,7 +94,6 @@ const ManageZone: React.FC<ManageZoneProps> = ({
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             <Select name="parent_id" label="Depot" formik={formik} required>
-              <MenuItem value="">Select Depot</MenuItem>
               {depots.map(depot => (
                 <MenuItem key={depot.id} value={depot.id.toString()}>
                   {depot.name} ({depot.code})
@@ -109,11 +113,12 @@ const ManageZone: React.FC<ManageZoneProps> = ({
               name="supervisor_id"
               label="Zone Supervisor"
               formik={formik}
+              disabled={supervisorsLoading}
             >
-              <MenuItem value="">Select Supervisor</MenuItem>
               {supervisors.map(supervisor => (
                 <MenuItem key={supervisor.id} value={supervisor.id.toString()}>
-                  {supervisor.name}
+                  {supervisor.name}{' '}
+                  {supervisor.employee_id && `(${supervisor.employee_id})`}
                 </MenuItem>
               ))}
             </Select>

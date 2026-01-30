@@ -282,19 +282,58 @@ export const zonesController = {
   async deleteZone(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const zoneId = Number(id);
+
       const existingZone = await prisma.zones.findUnique({
-        where: { id: Number(id) },
+        where: { id: zoneId },
       });
 
       if (!existingZone) {
         return res.status(404).json({ message: 'Zone not found' });
       }
 
-      await prisma.zones.delete({ where: { id: Number(id) } });
+      // Check for dependent records
+      const dependentCustomers = await prisma.customers.count({
+        where: { zones_id: zoneId },
+      });
+
+      const dependentUsers = await prisma.users.count({
+        where: { zone_id: zoneId },
+      });
+
+      const dependentRoutes = await prisma.routes_zones.count({
+        where: { zone_id: zoneId },
+      });
+
+      if (dependentCustomers > 0 || dependentUsers > 0 || dependentRoutes > 0) {
+        return res.status(400).json({
+          message: 'Cannot delete zone. It is referenced by other records.',
+          details: {
+            customers: dependentCustomers,
+            users: dependentUsers,
+            routes: dependentRoutes,
+          },
+          suggestion:
+            'Please update or delete the dependent records first, or consider setting the zone as inactive instead.',
+        });
+      }
+
+      // If no dependencies, proceed with deletion
+      await prisma.zones.delete({ where: { id: zoneId } });
 
       res.json({ message: 'Zone deleted successfully' });
     } catch (error: any) {
       console.error('Delete Zone Error:', error);
+
+      // Handle Prisma foreign key constraint error
+      if (error.code === 'P2003') {
+        return res.status(400).json({
+          message: 'Cannot delete zone. It is referenced by other records.',
+          suggestion:
+            'Please update or delete the dependent records first, or consider setting the zone as inactive instead.',
+        });
+      }
+
       res.status(500).json({ message: error.message });
     }
   },
@@ -314,6 +353,7 @@ export const zonesController = {
                 'Area Sales Supervisor',
                 'AREA SALES SUPERVISOR',
                 'areaSalesSupervisor',
+                'AreaSalesSupervisor',
                 'AreaSalesSupervisor',
               ],
             },

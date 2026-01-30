@@ -260,63 +260,6 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     },
   });
 
-  const vanInventoryKey = useMemo(
-    () =>
-      drawerOpen && selectedVanInventory?.id
-        ? `van-inventory-${selectedVanInventory.id}`
-        : drawerOpen
-          ? 'new-van-inventory'
-          : 'closed',
-    [drawerOpen, selectedVanInventory?.id]
-  );
-
-  useEffect(() => {
-    if (!drawerOpen) {
-      if (hasLoadedItemsRef.current !== null) {
-        hasLoadedItemsRef.current = null;
-      }
-      return;
-    }
-
-    const vanInventoryId = selectedVanInventory?.id;
-    const responseId = vanInventoryResponse?.data?.id;
-    const hasVanInventoryData =
-      vanInventoryId && responseId && vanInventoryResponse?.data;
-
-    if (
-      hasVanInventoryData &&
-      hasLoadedItemsRef.current !== vanInventoryId &&
-      vanInventoryResponse.data
-    ) {
-      const items =
-        vanInventoryResponse.data.items?.map(item => ({
-          product_id: item.product_id,
-          product_name: item.product_name || null,
-          quantity: item.quantity?.toString() || '0',
-          notes: item.notes || null,
-          batch_lot_id: item.batch_lot_id || null,
-          batch_number: item.batch_number || null,
-          tracking_type: (item as any).tracking_type || null,
-          lot_number: item.lot_number || null,
-          remaining_quantity: item.remaining_quantity || null,
-          total_quantity: item.total_quantity || null,
-          product_batches: [],
-          product_serials: [],
-          id: item.id || null,
-        })) || [];
-
-      hasLoadedItemsRef.current = vanInventoryId;
-      formik.setFieldValue('van_inventory_items', items);
-    } else if (
-      !hasVanInventoryData &&
-      hasLoadedItemsRef.current !== null &&
-      !vanInventoryId
-    ) {
-      hasLoadedItemsRef.current = null;
-      formik.setFieldValue('van_inventory_items', []);
-    }
-  }, [vanInventoryKey, vanInventoryResponse?.data?.id, drawerOpen]);
-
   const userIdForInventory = formik.values.user_id
     ? Number(formik.values.user_id)
     : 0;
@@ -374,6 +317,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     (salespersonData.products || []).forEach(product => {
       const batches: ProductBatch[] = (product.batches || []).map(batch => ({
         batch_lot_id: batch.batch_lot_id,
+        total_quantity: batch.total_quantity,
         batch_number: batch.batch_number,
         lot_number: batch.lot_number,
         manufacturing_date: batch.manufacturing_date,
@@ -415,51 +359,72 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
     hasLoadedItemsRef.current = null;
   };
 
+  // Load van inventory items when editing - FIXED: removed formik from dependencies
   useEffect(() => {
-    if (
-      isEdit &&
-      vanInventoryData &&
-      vanInventoryId &&
-      !hasLoadedItemsRef.current
-    ) {
-      const groupedItems = new Map<number, any>();
+    if (!drawerOpen) {
+      hasLoadedItemsRef.current = null;
+      return;
+    }
+
+    // Skip if already loaded this inventory
+    if (hasLoadedItemsRef.current === vanInventoryId) {
+      return;
+    }
+
+    if (isEdit && vanInventoryData && vanInventoryId) {
+      console.log('Loading van inventory items:', vanInventoryData);
+
+      // Group items by product_id
+      const groupedItems = new Map<number, VanInventoryItemFormData>();
 
       vanInventoryData.items?.forEach(item => {
         const existing = groupedItems.get(item.product_id);
-        if (existing) {
-          existing.quantity = (existing.quantity || 0) + (item.quantity ?? 0);
-          existing.remaining_quantity =
-            (existing.remaining_quantity || 0) +
-            (item.product_remaining_quantity ?? 0);
-          existing.total_quantity =
-            (existing.total_quantity || 0) +
-            (item.batch_total_remaining_quantity ?? 0);
-          if (!existing.product_batches) existing.product_batches = [];
-          if (!existing.product_serials) existing.product_serials = [];
 
-          // Handle batch data
-          if (item.batch_lot_id) {
+        // Get product info to determine tracking type
+        const product = products.find(p => p.id === item.product_id);
+        const trackingType =
+          item.tracking_type || product?.tracking_type || null;
+
+        if (existing) {
+          // Merge quantities
+          existing.quantity =
+            (Number(existing.quantity) || 0) + (item.quantity ?? 0);
+
+          // Merge batches
+          if (trackingType === 'batch' && item.batch_lot_id) {
+            if (!existing.product_batches) existing.product_batches = [];
             existing.product_batches.push({
-              id: item.id,
               batch_lot_id: item.batch_lot_id,
-              batch_number: item.batch_number,
-              lot_number: item.lot_number,
-              quantity: item.quantity,
-              remaining_quantity: item.product_remaining_quantity,
-              total_quantity: item.batch_total_remaining_quantity,
-              expiry_date: item.expiry_date,
+              batch_number: item.batch_number || '',
+              lot_number: item.lot_number || '',
+              quantity: item.quantity ?? 0,
+              remaining_quantity: item.product_remaining_quantity ?? 0,
+              total_quantity: item.batch_total_remaining_quantity ?? 0,
+              manufacturing_date: '',
+              expiry_date: item.expiry_date || '',
             });
           }
 
-          // Handle serial data
-          if (item.product_serials && Array.isArray(item.product_serials)) {
-            existing.product_serials.push(...item.product_serials);
+          // Merge serials
+          if (
+            trackingType === 'serial' &&
+            item.product_serials &&
+            Array.isArray(item.product_serials)
+          ) {
+            if (!existing.product_serials) existing.product_serials = [];
+            existing.product_serials.push(
+              ...item.product_serials.map(s => ({
+                id: s.id,
+                product_id: item.product_id,
+                serial_number: s.serial_number,
+                quantity: 1,
+                selected: true,
+              }))
+            );
           }
         } else {
-          // Get product tracking type from available products
-          const product = availableProducts.find(p => p.id === item.product_id);
-
-          groupedItems.set(item.product_id, {
+          // Create new entry
+          const newItem: VanInventoryItemFormData = {
             product_id: item.product_id,
             product_name: item.product_name || null,
             quantity: item.quantity ?? null,
@@ -469,47 +434,64 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
             lot_number: item.lot_number || null,
             remaining_quantity: item.product_remaining_quantity ?? null,
             total_quantity: item.batch_total_remaining_quantity ?? null,
-            tracking_type: product?.tracking_type || null,
+            tracking_type: trackingType,
             id: item.id,
-            tempId: item.id ? `edit-${item.id}` : generateTempId(),
-            product_batches: item.batch_lot_id
-              ? [
-                  {
-                    id: item.id,
-                    batch_lot_id: item.batch_lot_id,
-                    batch_number: item.batch_number,
-                    lot_number: item.lot_number,
-                    quantity: item.quantity,
-                    remaining_quantity: item.product_remaining_quantity,
-                    total_quantity: item.batch_total_remaining_quantity,
-                    expiry_date: item.expiry_date,
-                  },
-                ]
-              : [],
-            product_serials:
-              item.product_serials && Array.isArray(item.product_serials)
-                ? item.product_serials
-                : [],
-          });
+            tempId: `edit-${item.id}`,
+            product_batches: [],
+            product_serials: [],
+          };
+
+          // Add batch if exists
+          if (trackingType === 'batch' && item.batch_lot_id) {
+            newItem.product_batches = [
+              {
+                batch_lot_id: item.batch_lot_id,
+                batch_number: item.batch_number || '',
+                lot_number: item.lot_number || '',
+                quantity: item.quantity ?? 0,
+                remaining_quantity: item.product_remaining_quantity ?? 0,
+                total_quantity: item.batch_total_remaining_quantity ?? 0,
+                manufacturing_date: '',
+                expiry_date: item.expiry_date || '',
+              },
+            ];
+          }
+
+          // Add serials if exist
+          if (
+            trackingType === 'serial' &&
+            item.product_serials &&
+            Array.isArray(item.product_serials)
+          ) {
+            newItem.product_serials = item.product_serials.map(s => ({
+              id: s.id,
+              product_id: item.product_id,
+              serial_number: s.serial_number,
+              quantity: 1,
+              selected: true,
+            }));
+          }
+
+          groupedItems.set(item.product_id, newItem);
         }
       });
 
       const items: VanInventoryItemFormData[] = Array.from(
         groupedItems.values()
       );
-      formik.setFieldValue('van_inventory_items', items);
-      hasLoadedItemsRef.current = vanInventoryId || 0;
-    } else if (!isEdit && !hasLoadedItemsRef.current) {
-      formik.setFieldValue('van_inventory_items', []);
-      hasLoadedItemsRef.current = 0;
-    }
-  }, [isEdit, vanInventoryId, vanInventoryData, formik, availableProducts]);
 
-  useEffect(() => {
-    if (!drawerOpen) {
-      hasLoadedItemsRef.current = 0;
+      console.log('Processed items for form:', items);
+
+      formik.setFieldValue('van_inventory_items', items);
+      hasLoadedItemsRef.current = vanInventoryId;
+    } else if (!isEdit) {
+      // New inventory - clear items
+      if (hasLoadedItemsRef.current !== 0) {
+        formik.setFieldValue('van_inventory_items', []);
+        hasLoadedItemsRef.current = 0;
+      }
     }
-  }, [drawerOpen]);
+  }, [drawerOpen, isEdit, vanInventoryId, vanInventoryData, products]); // FIXED: removed formik
 
   useEffect(() => {
     if (isUnloadType && userIdForInventory > 0 && drawerOpen) {
@@ -814,6 +796,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       handleSelectBatch,
       handleSelectSerial,
       isUnloadType,
+      isLoadingInventory,
     ]
   );
 
@@ -950,15 +933,7 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
       </Box>
       <ManageBatch
         isOpen={isBatchSelectorOpen}
-        setIsOpen={isOpen => {
-          setIsBatchSelectorOpen(isOpen);
-          if (!isOpen && selectedRowIndex !== null) {
-            setTimeout(() => {
-              const item = formik.values.van_inventory_items[selectedRowIndex];
-              console.log('After batch dialog closed, item data:', item);
-            }, 100);
-          }
-        }}
+        setIsOpen={setIsBatchSelectorOpen}
         selectedRowIndex={selectedRowIndex}
         setSelectedRowIndex={setSelectedRowIndex}
         formik={formik}

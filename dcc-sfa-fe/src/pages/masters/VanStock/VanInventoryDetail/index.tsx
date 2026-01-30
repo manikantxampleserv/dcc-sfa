@@ -1,5 +1,4 @@
-import { WarningAmberRounded } from '@mui/icons-material';
-import { Avatar, Chip, Skeleton, Tooltip, Typography } from '@mui/material';
+import { Avatar, Chip, Skeleton, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useVanInventoryById, type VanInventory } from 'hooks/useVanInventory';
 import {
@@ -281,42 +280,11 @@ const VanInventoryDetail: React.FC<VanInventoryDetailProps> = ({
               : row.batch_number || row.batch_lot_id
                 ? 'batch'
                 : '';
-
-        const serialCount = Array.isArray(row.product_serials)
-          ? row.product_serials.length
-          : 0;
-        const batchQty = Array.isArray(row.product_batches)
-          ? row.product_batches.reduce(
-              (acc: number, b: any) => acc + Number(b?.quantity || 0),
-              0
-            )
-          : 0;
-        const qty = Number(row.quantity);
-
-        const isMismatch =
-          normalizedTrackingType === 'serial'
-            ? Number.isFinite(qty) && serialCount !== qty
-            : normalizedTrackingType === 'batch'
-              ? Number.isFinite(qty) &&
-                Array.isArray(row.product_batches) &&
-                batchQty !== qty
-              : false;
-
-        const mismatchTitle =
-          normalizedTrackingType === 'serial'
-            ? `Mismatch: ${serialCount} serial number(s) assigned, but quantity is ${row.quantity}.`
-            : `Mismatch: ${batchQty} units in batches, but quantity is ${row.quantity}.`;
-
         return (
           <div className="flex items-center gap-2">
             <Typography variant="body2" className="!text-gray-700 uppercase">
               {normalizedTrackingType || 'None'}
             </Typography>
-            {isMismatch && (
-              <Tooltip placement="top" title={mismatchTitle} arrow>
-                <WarningAmberRounded color="error" fontSize="small" />
-              </Tooltip>
-            )}
           </div>
         );
       },

@@ -108,12 +108,7 @@ const ImportZone: React.FC<ImportZoneProps> = ({
   };
 
   return (
-    <CustomDrawer
-      open={drawerOpen}
-      setOpen={handleCancel}
-      title="Import Zones"
-      size="large"
-    >
+    <CustomDrawer open={drawerOpen} setOpen={handleCancel} title="Import Zones">
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">

@@ -5,51 +5,6 @@
  * Easy to handle when you have using formik, handles errors etc.
  *
  * @param {CustomSelectProps} props - Props for the Select component.
- *
- * #### Example
- *
- * ```ts
- *import { Button, MenuItem } from '@mui/material'
- *import { useFormik } from 'formik'
- *import React from 'react'
- *import Select from 'react-mkx-components'
- *import * as Yup from 'yup'
- *
- *const MyComponent: React.FC = () => {
- *  const formik = useFormik({
- *    initialValues: {
- *      value: '',
- *    },
- *    validationSchema: Yup.object({
- *      value: Yup.string().required(),
- *    }),
- *    onSubmit: (values) => {
- *      console.log(values)
- *    },
- *  })
- *
- *  return (
- *    <form onSubmit={formik.handleSubmit}>
- *      <Select
- *        name="value"
- *        className="w-72"
- *        label="Test"
- *        formik={formik}
- *      >
- *        <MenuItem value="Item 1">Item 1</MenuItem>
- *        <MenuItem value="Item 2">Item 2</MenuItem>
- *        <MenuItem value="Item 3">Item 3</MenuItem>
- *        <MenuItem value="Item 4">Item 4</MenuItem>
- *        <MenuItem value="Item 5">Item 5</MenuItem>
- *      </Select>
- *      <Button type="submit">Submit</Button>
- *    </form>
- *  )
- *}
- *
- *export default MyComponent
- *
- * ```
  */
 
 import {
@@ -59,7 +14,7 @@ import {
   TextField,
   type AutocompleteProps,
 } from '@mui/material';
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import type { FormikProps } from 'formik';
 
 interface Option {
@@ -158,8 +113,12 @@ const Select: React.FC<CustomSelectProps> = ({
     return parsedOptions;
   }, [children]);
 
-  const currentValue =
-    value !== undefined ? value : formik?.values[name] || null;
+  // FIXED: Extract only the specific field value instead of watching entire formik object
+  const currentValue = useMemo(() => {
+    if (value !== undefined) return value;
+    if (formik && name) return formik.values[name] || null;
+    return null;
+  }, [value, formik?.values[name], name]); // Only watch the specific field
 
   const selectedOption = useMemo(() => {
     if (
@@ -177,38 +136,47 @@ const Select: React.FC<CustomSelectProps> = ({
     return found || null;
   }, [currentValue, options]);
 
-  const handleChange = (_event: any, newValue: Option | null) => {
-    const newValueToSet = newValue?.value ?? null;
-    if (formik) {
-      formik.setFieldValue(name, newValueToSet);
-    } else if (setValue) {
-      setValue(newValueToSet);
-    } else if (onChange) {
-      const syntheticEvent = {
-        target: {
-          name: name,
-          value: newValueToSet,
-        },
-        currentTarget: {
-          name: name,
-          value: newValueToSet,
-        },
-      } as React.ChangeEvent<HTMLInputElement>;
-      onChange(syntheticEvent);
-    }
-  };
+  // FIXED: Use useCallback to memoize handlers
+  const handleChange = useCallback(
+    (_event: any, newValue: Option | null) => {
+      const newValueToSet = newValue?.value ?? null;
+      if (formik && name) {
+        formik.setFieldValue(name, newValueToSet);
+      } else if (setValue) {
+        setValue(newValueToSet);
+      } else if (onChange) {
+        const syntheticEvent = {
+          target: {
+            name: name,
+            value: newValueToSet,
+          },
+          currentTarget: {
+            name: name,
+            value: newValueToSet,
+          },
+        } as React.ChangeEvent<HTMLInputElement>;
+        onChange(syntheticEvent);
+      }
+    },
+    [formik, name, setValue, onChange]
+  ); // FIXED: Proper dependencies
 
-  const handleBlur = () => {
-    if (formik) {
+  const handleBlur = useCallback(() => {
+    if (formik && name) {
       formik.setFieldTouched(name, true);
       formik.handleBlur({ target: { name } } as any);
     }
     if (onBlur) {
       onBlur({ target: { name } } as any);
     }
-  };
+  }, [formik, name, onBlur]); // FIXED: Proper dependencies
 
-  const error = formik?.touched?.[name] && formik?.errors?.[name];
+  // FIXED: Extract error state without watching entire formik
+  const error = useMemo(() => {
+    if (!formik || !name) return false;
+    return formik.touched?.[name] && formik.errors?.[name];
+  }, [formik?.touched?.[name], formik?.errors?.[name], name]);
+
   const errorMessage = typeof error === 'string' ? error : undefined;
 
   return (

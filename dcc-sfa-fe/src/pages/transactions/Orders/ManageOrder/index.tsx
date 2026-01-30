@@ -274,6 +274,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       const batches: ProductBatch[] = (product.batches || []).map(batch => ({
         batch_lot_id: batch.batch_lot_id,
         batch_number: batch.batch_number,
+        total_quantity: batch.total_quantity,
         lot_number: batch.lot_number,
         remaining_quantity: batch.remaining_quantity || 0,
         manufacturing_date: batch.manufacturing_date,

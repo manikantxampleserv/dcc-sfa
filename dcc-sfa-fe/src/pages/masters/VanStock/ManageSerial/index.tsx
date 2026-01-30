@@ -57,15 +57,21 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
     []
   );
 
+  // Load serials when dialog opens or row changes
   useEffect(() => {
-    if (!isOpen || selectedRowIndex === null) return;
+    if (!isOpen || selectedRowIndex === null) {
+      return;
+    }
 
     const item = formik.values.van_inventory_items[selectedRowIndex];
-    if (!item) return;
+    if (!item) {
+      setProductSerials([]);
+      return;
+    }
 
     let rawSerials = (item.product_serials || []) as ExtendedProductSerial[];
 
-    // For Unload type, initialize with available inventory serials
+    // For Unload type, initialize with available inventory serials if no serials exist
     if (
       rawSerials.length === 0 &&
       isUnloadType &&
@@ -83,12 +89,21 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
 
     if (isUnloadType) {
       // For unload, show all available serials with selection state
+      console.log('ManageSerial - Loading unload serials:', rawSerials);
       setProductSerials(rawSerials);
     } else {
-      // For load, create new serials based on quantity
+      // For load, prioritize existing serials count over quantity for edit mode
+      const existingSerialsCount = rawSerials.length;
       const qty = Number(quantity);
+
+      // If we have existing serials (edit mode), use their count
+      // Otherwise, create new serials based on quantity
       const desiredCount =
-        Number.isFinite(qty) && qty > 0 ? qty : rawSerials.length;
+        existingSerialsCount > 0
+          ? existingSerialsCount
+          : Number.isFinite(qty) && qty > 0
+            ? qty
+            : 0;
 
       const normalizedSerials: ExtendedProductSerial[] = Array.from(
         { length: desiredCount },
@@ -104,16 +119,15 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
         }
       );
 
+      console.log('ManageSerial - Loading load serials:', {
+        desiredCount,
+        existingSerialsCount,
+        quantity: qty,
+        normalizedSerials,
+      });
       setProductSerials(normalizedSerials);
     }
-  }, [
-    isOpen,
-    selectedRowIndex,
-    formik.values.van_inventory_items,
-    quantity,
-    inventoryByProductId,
-    isUnloadType,
-  ]);
+  }, [isOpen, selectedRowIndex]); // FIXED: Removed dependencies that cause loops
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -187,6 +201,12 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
         return;
       }
 
+      console.log('ManageSerial - Saving unload serials:', {
+        selectedRowIndex,
+        selectedCount: selectedSerials.length,
+        serials: selectedSerials,
+      });
+
       const updatedItems = [...formik.values.van_inventory_items];
       updatedItems[selectedRowIndex] = {
         ...updatedItems[selectedRowIndex],
@@ -236,6 +256,11 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
       );
       return;
     }
+
+    console.log('ManageSerial - Saving load serials:', {
+      selectedRowIndex,
+      serials: productSerials,
+    });
 
     const updatedItems = [...formik.values.van_inventory_items];
     updatedItems[selectedRowIndex] = {
