@@ -254,17 +254,47 @@ exports.zonesController = {
     async deleteZone(req, res) {
         try {
             const { id } = req.params;
+            const zoneId = Number(id);
             const existingZone = await prisma_client_1.default.zones.findUnique({
-                where: { id: Number(id) },
+                where: { id: zoneId },
             });
             if (!existingZone) {
                 return res.status(404).json({ message: 'Zone not found' });
             }
-            await prisma_client_1.default.zones.delete({ where: { id: Number(id) } });
+            // Check for dependent records
+            const dependentCustomers = await prisma_client_1.default.customers.count({
+                where: { zones_id: zoneId },
+            });
+            const dependentUsers = await prisma_client_1.default.users.count({
+                where: { zone_id: zoneId },
+            });
+            const dependentRoutes = await prisma_client_1.default.routes_zones.count({
+                where: { zone_id: zoneId },
+            });
+            if (dependentCustomers > 0 || dependentUsers > 0 || dependentRoutes > 0) {
+                return res.status(400).json({
+                    message: 'Cannot delete zone. It is referenced by other records.',
+                    details: {
+                        customers: dependentCustomers,
+                        users: dependentUsers,
+                        routes: dependentRoutes,
+                    },
+                    suggestion: 'Please update or delete the dependent records first, or consider setting the zone as inactive instead.',
+                });
+            }
+            // If no dependencies, proceed with deletion
+            await prisma_client_1.default.zones.delete({ where: { id: zoneId } });
             res.json({ message: 'Zone deleted successfully' });
         }
         catch (error) {
             console.error('Delete Zone Error:', error);
+            // Handle Prisma foreign key constraint error
+            if (error.code === 'P2003') {
+                return res.status(400).json({
+                    message: 'Cannot delete zone. It is referenced by other records.',
+                    suggestion: 'Please update or delete the dependent records first, or consider setting the zone as inactive instead.',
+                });
+            }
             res.status(500).json({ message: error.message });
         }
     },
@@ -282,6 +312,7 @@ exports.zonesController = {
                                 'Area Sales Supervisor',
                                 'AREA SALES SUPERVISOR',
                                 'areaSalesSupervisor',
+                                'AreaSalesSupervisor',
                                 'AreaSalesSupervisor',
                             ],
                         },
