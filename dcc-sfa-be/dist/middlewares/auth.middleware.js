@@ -72,6 +72,7 @@ const authenticateToken = async (req, res, next) => {
         req.user = {
             id: user.id,
             email: user.email,
+            employee_id: user.employee_id,
             name: user.name,
             role: user.user_role.name,
             permissions: user.user_role.roles_permission
@@ -177,6 +178,7 @@ const authenticateApiToken = async (req, res, next) => {
         req.user = {
             id: user.id,
             email: user.email,
+            employee_id: user.employee_id,
             name: user.name,
             role: user.user_role.name,
             permissions: user.user_role.roles_permission

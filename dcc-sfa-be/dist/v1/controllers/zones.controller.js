@@ -67,6 +67,21 @@ exports.zonesController = {
             if (!data.name) {
                 return res.status(400).json({ message: 'Zone name is required' });
             }
+            const existingZone = await prisma_client_1.default.zones.findFirst({
+                where: {
+                    name: {
+                        equals: data.name.trim(),
+                    },
+                },
+            });
+            if (existingZone) {
+                return res
+                    .status(400)
+                    .json({ message: 'Zone with this name already exists' });
+            }
+            if (data.depot_id && !data.parent_id) {
+                data.parent_id = data.depot_id;
+            }
             const newCode = await generateZoneCode(data.name);
             const zone = await prisma_client_1.default.zones.create({
                 data: {
@@ -205,6 +220,8 @@ exports.zonesController = {
             }
             const data = {
                 ...req.body,
+                ...(req.body.depot_id &&
+                    !req.body.parent_id && { parent_id: req.body.depot_id }),
                 updatedate: new Date(),
                 updatedby: req.user?.id,
             };
@@ -248,6 +265,66 @@ exports.zonesController = {
         }
         catch (error) {
             console.error('Delete Zone Error:', error);
+            res.status(500).json({ message: error.message });
+        }
+    },
+    async getSupervisors(req, res) {
+        try {
+            const { search = '' } = req.query;
+            const searchLower = search.toLowerCase().trim();
+            const supervisors = await prisma_client_1.default.users.findMany({
+                where: {
+                    is_active: 'Y',
+                    user_role: {
+                        name: {
+                            in: [
+                                'area sales supervisor',
+                                'Area Sales Supervisor',
+                                'AREA SALES SUPERVISOR',
+                                'areaSalesSupervisor',
+                                'AreaSalesSupervisor',
+                            ],
+                        },
+                        is_active: 'Y',
+                    },
+                    ...(searchLower && {
+                        OR: [
+                            {
+                                name: {
+                                    contains: searchLower,
+                                },
+                            },
+                            {
+                                email: {
+                                    contains: searchLower,
+                                },
+                            },
+                            {
+                                employee_id: {
+                                    contains: searchLower,
+                                },
+                            },
+                        ],
+                    }),
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    employee_id: true,
+                },
+                orderBy: {
+                    name: 'asc',
+                },
+                take: 50,
+            });
+            res.json({
+                message: 'Supervisors retrieved successfully',
+                data: supervisors,
+            });
+        }
+        catch (error) {
+            console.error('Get Supervisors Error:', error);
             res.status(500).json({ message: error.message });
         }
     },

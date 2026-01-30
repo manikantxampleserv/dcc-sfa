@@ -86,34 +86,19 @@ export const register = async (req: any, res: any) => {
 
 export const login = async (req: any, res: any) => {
   try {
-    const { email, employee_id, password } = req.body;
+    const { username, password } = req.body;
 
-    if (!password) {
-      return res.error('Password is required', 400);
+    if (!username || !password) {
+      return res.error('Username and password are required', 400);
     }
 
-    if (!email && !employee_id) {
-      return res.error('Email or Employee ID is required', 400);
-    }
-
-    if (typeof password !== 'string') {
-      return res.error('Password must be a string', 400);
-    }
-
-    if (email && typeof email !== 'string') {
-      return res.error('Email must be a string', 400);
-    }
-
-    if (employee_id && typeof employee_id !== 'string') {
-      return res.error('Employee ID must be a string', 400);
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return res.error('Username and password must be strings', 400);
     }
 
     const user = await prisma.users.findFirst({
       where: {
-        OR: [
-          ...(email ? [{ email }] : []),
-          ...(employee_id ? [{ employee_id }] : []),
-        ],
+        OR: [{ email: username }, { employee_id: username }],
       },
       include: {
         user_role: true,
@@ -122,7 +107,7 @@ export const login = async (req: any, res: any) => {
 
     if (!user) {
       console.log(
-        `Failed login attempt for unknown user: ${email || employee_id} from IP: ${getClientIP(req)}`
+        `Failed login attempt for unknown user: ${username} from IP: ${getClientIP(req)}`
       );
       return res.error('User not found', 404);
     }
@@ -254,8 +239,8 @@ export const login = async (req: any, res: any) => {
       return res.error('Database record not found. Please try again.', 404);
     }
 
-    if (!req.body?.password || (!req.body?.email && !req.body?.employee_id)) {
-      return res.error('Password and Email/Employee ID are required', 400);
+    if (!req.body?.username || !req.body?.password) {
+      return res.error('Username and password are required', 400);
     }
 
     const errorMessage =
