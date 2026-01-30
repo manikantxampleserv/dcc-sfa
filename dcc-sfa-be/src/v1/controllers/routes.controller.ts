@@ -464,6 +464,45 @@ export const routesController = {
         };
       }
 
+      // Handle salespersons - disconnect existing and connect new ones
+      const salespersonsData = data.salespersons || data.salesperson_id;
+
+      if (salespersonsData !== undefined) {
+        // First, disconnect all existing salespersons
+        await prisma.routes.update({
+          where: { id: Number(id) },
+          data: {
+            salespersons: {
+              deleteMany: {},
+            },
+          },
+        });
+
+        // Then connect the new salespersons
+        if (salespersonsData.length > 0) {
+          // Handle both array of objects and array of IDs
+          const salespersonsToCreate = salespersonsData.map((sp: any) => {
+            if (typeof sp === 'number' || typeof sp === 'string') {
+              // If it's just an ID, create the object structure
+              return {
+                user_id: parseInt(sp.toString()),
+                role: 'PRIMARY',
+              };
+            } else {
+              // If it's already an object, use it as-is
+              return {
+                user_id: sp.user_id,
+                role: sp.role || 'PRIMARY',
+              };
+            }
+          });
+
+          updateData.salespersons = {
+            create: salespersonsToCreate,
+          };
+        }
+      }
+
       const route = await prisma.routes.update({
         where: { id: Number(id) },
         data: updateData,

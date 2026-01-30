@@ -35,7 +35,7 @@ const serializeVehicle = (vehicle: any): VehicleSerialized => ({
   type: vehicle.type,
   make: vehicle.make,
   model: vehicle.model,
-  year: vehicle.year,
+  year: vehicle.year ? parseInt(vehicle.year.toString()) : null,
   capacity: vehicle.capacity ? parseFloat(vehicle.capacity.toString()) : null,
   fuel_type: vehicle.fuel_type,
   current_latitude: vehicle.current_latitude
