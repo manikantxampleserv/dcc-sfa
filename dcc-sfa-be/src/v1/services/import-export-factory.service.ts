@@ -54,6 +54,7 @@ import { BatchLotsImportExportService } from './implementations/batchLots-import
 import { UserImportExportService } from './implementations/UserImportExportService';
 import { RoleImportExportService } from './implementations/role.import-export.service';
 import { RouteImportExportService } from './implementations/route-import-export.service';
+import { SubunitsImportExportService } from './implementations/subunits.import-export.service';
 
 type ServiceConstructor = new () => ImportExportService<any>;
 
@@ -118,6 +119,7 @@ export class ImportExportFactory {
     ['users', UserImportExportService],
     ['roles', RoleImportExportService],
     ['routes', RouteImportExportService],
+    ['subunits', SubunitsImportExportService],
   ]);
 
   static getService(tableName: string): ImportExportService<any> | null {
