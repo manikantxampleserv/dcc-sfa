@@ -53,4 +53,11 @@ router.delete(
   unitMeasurementController.deleteUnitMeasurement
 );
 
+router.get(
+  '/unit-measurnments/:id/subunits',
+  authenticateToken,
+  requirePermission([{ module: 'unit-of-measurement', action: 'read' }]),
+  unitMeasurementController.getSubunitsByUnitMeasurement
+);
+
 export default router;

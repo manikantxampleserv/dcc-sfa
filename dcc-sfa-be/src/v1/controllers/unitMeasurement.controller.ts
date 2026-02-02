@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { parse } from 'path';
 
 interface UnitSerialized {
   id: number;
@@ -233,6 +234,95 @@ export const unitMeasurementController = {
     }
   },
 
+  async getSubunitsByUnitMeasurement(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { page, limit, search, isActive } = req.query;
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 10;
+      const searchLower = search ? (search as String).toLowerCase() : '';
+      const unit = await prisma.unit_of_measurement.findUnique({
+        where: { id: Number(id) },
+      });
+      if (!unit) {
+        return res
+          .status(404)
+          .json({ message: 'Unit of measurement not found' });
+      }
+      const filters: any = {
+        unit_of_measurement_id: Number(id),
+        ...(searchLower && {
+          OR: [
+            { name: { contains: searchLower } },
+            { code: { contains: searchLower } },
+            { description: { contains: searchLower } },
+          ],
+        }),
+        ...(isActive && { is_active: isActive as string }),
+      };
+
+      const { data, pagination } = await paginate({
+        model: prisma.subunits,
+        filters,
+        page: pageNum,
+        limit: limitNum,
+        orderBy: { createdate: 'desc' },
+        include: {
+          subunits_unit_of_measurement: true,
+        },
+      });
+
+      // Get statistics
+      const totalSubunits = await prisma.subunits.count({
+        where: { unit_of_measurement_id: Number(id) },
+      });
+      const activeSubunits = await prisma.subunits.count({
+        where: {
+          unit_of_measurement_id: Number(id),
+          is_active: 'Y',
+        },
+      });
+      const inactiveSubunits = await prisma.subunits.count({
+        where: {
+          unit_of_measurement_id: Number(id),
+          is_active: 'N',
+        },
+      });
+
+      res.success(
+        'Subunits retrieved successfully',
+        data.map((subunit: any) => ({
+          id: subunit.id,
+          name: subunit.name,
+          code: subunit.code,
+          description: subunit.description,
+          unit_of_measurement_id: subunit.unit_of_measurement_id,
+          is_active: subunit.is_active,
+          createdate: subunit.createdate,
+          createdby: subunit.createdby,
+          updatedate: subunit.updatedate,
+          updatedby: subunit.updatedby,
+          log_inst: subunit.log_inst,
+          subunits_unit_of_measurement: subunit.subunits_unit_of_measurement,
+        })),
+        200,
+        pagination,
+        {
+          unit_of_measurement: {
+            id: unit.id,
+            name: unit.name,
+            symbol: unit.symbol,
+          },
+          total_subunits: totalSubunits,
+          active_subunits: activeSubunits,
+          inactive_subunits: inactiveSubunits,
+        }
+      );
+    } catch (error: any) {
+      console.error('Get Subunits by Unit Measurement Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
   async deleteUnitMeasurement(req: Request, res: Response) {
     try {
       const { id } = req.params;
