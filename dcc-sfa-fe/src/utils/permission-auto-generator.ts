@@ -31,6 +31,7 @@ export const BACKEND_MODULES = [
   'product-category',
   'product-sub-category',
   'unit-of-measurement',
+  'subunit-of-measurement',
   'product',
   'pricelist',
   'sales-target-group',
