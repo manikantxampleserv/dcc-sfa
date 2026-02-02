@@ -126,7 +126,8 @@ export class ImportExportFactory {
     ['outlet_types', OutletTypesImportExportService],
     ['customer_type', OutletTypesImportExportService],
     ['outlet_channels', CustomerChannelsImportExportService],
-    ['outlet_categories', OutletCategoriesImportExportService],
+    ['customer_channel', CustomerChannelsImportExportService],
+    ['customer_category', OutletCategoriesImportExportService],
   ]);
 
   static getService(tableName: string): ImportExportService<any> | null {
