@@ -114,6 +114,7 @@ const MODULE_DISPLAY_NAMES = {
     'product-category': 'Product Category',
     'product-sub-category': 'Product Sub Category',
     'unit-of-measurement': 'Unit Of Measurement',
+    'sub-unit-of-measurement': 'Sub Unit Of Measurement',
     'product-flavour': 'Product Flavour',
     'product-volume': 'Product Volume',
     'product-shelf-life': 'Product Shelf Life',

@@ -154,6 +154,14 @@ export const subunitsController = {
         },
       });
 
+      const meta = {
+        total: pagination.total_count,
+        page: pagination.current_page,
+        totalPages: pagination.total_pages,
+        hasNext: pagination.has_next,
+        hasPrev: pagination.has_previous,
+      };
+
       const totalSubunits = await prisma.subunits.count();
       const activeSubunits = await prisma.subunits.count({
         where: { is_active: 'Y' },
@@ -174,18 +182,18 @@ export const subunitsController = {
         },
       });
 
-      res.success(
-        'Subunits retrieved successfully',
-        data.map((subunit: any) => serializeSubunit(subunit)),
-        200,
-        pagination,
-        {
-          totalSubunits,
-          active_subunits: activeSubunits,
-          inactive_subunits: inactiveSubunits,
-          new_subunits: newSubunitsThisMonth,
-        }
-      );
+      res.json({
+        success: true,
+        message: 'Subunits retrieved successfully',
+        data: data.map((subunit: any) => serializeSubunit(subunit)),
+        meta,
+        stats: {
+          total_sub_units: totalSubunits,
+          active_sub_units: activeSubunits,
+          inactive_sub_units: inactiveSubunits,
+          new_sub_units_this_month: newSubunitsThisMonth,
+        },
+      });
     } catch (error: any) {
       console.error('Get Subunits Error:', error);
       res.status(500).json({ message: error.message });

@@ -379,6 +379,98 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
             transform: value => (value ? Number(value) : null),
             description: 'ID of the product shelf life (optional, must exist in system)',
         },
+        {
+            key: 'subunit_id',
+            header: 'Subunit ID',
+            width: 15,
+            type: 'number',
+            validation: value => {
+                if (value !== null && value !== undefined && value !== '') {
+                    const numValue = Number(value);
+                    if (isNaN(numValue))
+                        return 'Subunit ID must be a valid number';
+                    if (numValue < 1)
+                        return 'Subunit ID must be greater than 0';
+                }
+                return true;
+            },
+            transform: value => (value ? Number(value) : null),
+            description: 'ID of the subunit (optional, must exist in system)',
+        },
+        {
+            key: 'tax_id',
+            header: 'Tax ID',
+            width: 12,
+            type: 'number',
+            validation: value => {
+                if (value !== null && value !== undefined && value !== '') {
+                    const numValue = Number(value);
+                    if (isNaN(numValue))
+                        return 'Tax ID must be a valid number';
+                    if (numValue < 1)
+                        return 'Tax ID must be greater than 0';
+                }
+                return true;
+            },
+            transform: value => (value ? Number(value) : null),
+            description: 'ID of the tax master (optional, must exist in system)',
+        },
+        {
+            key: 'vat_percentage',
+            header: 'VAT Percentage (%)',
+            width: 18,
+            type: 'number',
+            validation: value => {
+                if (value !== null && value !== undefined && value !== '') {
+                    const numValue = Number(value);
+                    if (isNaN(numValue))
+                        return 'VAT percentage must be a valid number';
+                    if (numValue < 0)
+                        return 'VAT percentage must be at least 0';
+                    if (numValue > 100)
+                        return 'VAT percentage cannot exceed 100%';
+                }
+                return true;
+            },
+            transform: value => (value ? Number(value) : null),
+            description: 'VAT percentage (optional, 0-100)',
+        },
+        {
+            key: 'weight_in_grams',
+            header: 'Weight (grams)',
+            width: 15,
+            type: 'number',
+            validation: value => {
+                if (value !== null && value !== undefined && value !== '') {
+                    const numValue = Number(value);
+                    if (isNaN(numValue))
+                        return 'Weight must be a valid number';
+                    if (numValue < 0)
+                        return 'Weight must be at least 0';
+                }
+                return true;
+            },
+            transform: value => (value ? Number(value) : null),
+            description: 'Weight in grams (optional, must be >= 0)',
+        },
+        {
+            key: 'volume_in_liters',
+            header: 'Volume (liters)',
+            width: 15,
+            type: 'number',
+            validation: value => {
+                if (value !== null && value !== undefined && value !== '') {
+                    const numValue = Number(value);
+                    if (isNaN(numValue))
+                        return 'Volume must be a valid number';
+                    if (numValue < 0)
+                        return 'Volume must be at least 0';
+                }
+                return true;
+            },
+            transform: value => (value ? Number(value) : null),
+            description: 'Volume in liters (optional, must be >= 0)',
+        },
     ];
     async getSampleData() {
         const category = await prisma_client_1.default.product_categories.findFirst({
@@ -429,11 +521,19 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
             orderBy: { id: 'asc' },
             select: { id: true },
         });
+        const subunit = await prisma_client_1.default.subunits.findFirst({
+            orderBy: { id: 'asc' },
+            select: { id: true },
+        });
+        const tax = await prisma_client_1.default.tax_master.findFirst({
+            orderBy: { id: 'asc' },
+            select: { id: true },
+        });
         return [
             {
                 name: 'Coca Cola Classic',
                 code: '',
-                description: 'Classic Coca Cola soft drink',
+                description: 'Classic Coca Cola soft drink - 355ml can',
                 category_id: category?.id || '',
                 sub_category_id: subCategory?.id || '',
                 brand_id: brand?.id || '',
@@ -443,18 +543,23 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
                 is_active: 'Y',
                 route_type_id: routeType?.id || '',
                 outlet_group_id: outletGroup?.id || '',
-                tracking_type: '',
+                tracking_type: 'BATCH',
                 product_type_id: productType?.id || '',
                 product_target_group_id: productTargetGroup?.id || '',
                 product_web_order_id: productWebOrder?.id || '',
                 volume_id: volume?.id || '',
                 flavour_id: flavour?.id || '',
                 shelf_life_id: shelfLife?.id || '',
+                subunit_id: subunit?.id || '',
+                tax_id: tax?.id || '',
+                vat_percentage: 5.0,
+                weight_in_grams: 355,
+                volume_in_liters: 0.355,
             },
             {
-                name: 'Potato Chips',
+                name: 'Potato Chips - Sour Cream & Onion',
                 code: 'POT001',
-                description: 'Crispy potato chips snack',
+                description: 'Crispy potato chips with sour cream and onion flavoring - 200g bag',
                 category_id: category?.id || '',
                 sub_category_id: subCategory?.id || '',
                 brand_id: brand?.id || '',
@@ -471,10 +576,15 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
                 volume_id: volume?.id || '',
                 flavour_id: flavour?.id || '',
                 shelf_life_id: shelfLife?.id || '',
+                subunit_id: subunit?.id || '',
+                tax_id: tax?.id || '',
+                vat_percentage: 12.0,
+                weight_in_grams: 200,
+                volume_in_liters: 0.8,
             },
             {
-                name: 'iPhone 15 Pro',
-                description: 'Latest Apple iPhone with advanced camera system',
+                name: 'iPhone 15 Pro 256GB',
+                description: 'Latest Apple iPhone with advanced camera system, 256GB storage - Titanium Blue',
                 category_id: category?.id || '',
                 sub_category_id: subCategory?.id || '',
                 brand_id: brand?.id || '',
@@ -484,17 +594,22 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
                 is_active: 'Y',
                 route_type_id: routeType?.id || '',
                 outlet_group_id: outletGroup?.id || '',
-                tracking_type: '',
+                tracking_type: 'SERIAL',
                 product_type_id: productType?.id || '',
                 product_target_group_id: productTargetGroup?.id || '',
                 product_web_order_id: productWebOrder?.id || '',
                 volume_id: volume?.id || '',
                 flavour_id: flavour?.id || '',
                 shelf_life_id: shelfLife?.id || '',
+                subunit_id: subunit?.id || '',
+                tax_id: tax?.id || '',
+                vat_percentage: 8.5,
+                weight_in_grams: 221,
+                volume_in_liters: 0.00015,
             },
             {
-                name: 'Nike Running Shoes',
-                description: 'High-performance running shoes',
+                name: 'Nike Air Zoom Pegasus 40',
+                description: 'High-performance running shoes with responsive cushioning - Size 10, Black/White',
                 category_id: category?.id || '',
                 sub_category_id: subCategory?.id || '',
                 brand_id: brand?.id || '',
@@ -504,17 +619,22 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
                 is_active: 'Y',
                 route_type_id: routeType?.id || '',
                 outlet_group_id: outletGroup?.id || '',
-                tracking_type: '',
+                tracking_type: 'BATCH',
                 product_type_id: productType?.id || '',
                 product_target_group_id: productTargetGroup?.id || '',
                 product_web_order_id: productWebOrder?.id || '',
                 volume_id: volume?.id || '',
                 flavour_id: flavour?.id || '',
                 shelf_life_id: shelfLife?.id || '',
+                subunit_id: subunit?.id || '',
+                tax_id: tax?.id || '',
+                vat_percentage: 8.0,
+                weight_in_grams: 280,
+                volume_in_liters: 0.001,
             },
             {
-                name: 'Office Chair',
-                description: 'Ergonomic office chair with lumbar support',
+                name: 'Ergonomic Office Chair - Executive Model',
+                description: 'Premium ergonomic office chair with lumbar support, adjustable armrests, and breathable mesh back - Black',
                 category_id: category?.id || '',
                 sub_category_id: subCategory?.id || '',
                 brand_id: brand?.id || '',
@@ -524,13 +644,18 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
                 is_active: 'N',
                 route_type_id: routeType?.id || '',
                 outlet_group_id: outletGroup?.id || '',
-                tracking_type: '',
+                tracking_type: 'NONE',
                 product_type_id: productType?.id || '',
                 product_target_group_id: productTargetGroup?.id || '',
                 product_web_order_id: productWebOrder?.id || '',
                 volume_id: volume?.id || '',
                 flavour_id: flavour?.id || '',
                 shelf_life_id: shelfLife?.id || '',
+                subunit_id: subunit?.id || '',
+                tax_id: tax?.id || '',
+                vat_percentage: 15.0,
+                weight_in_grams: 15000,
+                volume_in_liters: 0.05,
             },
         ];
     }
@@ -560,10 +685,15 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
 - **Volume ID**: ID of the product volume (must exist in system)
 - **Flavour ID**: ID of the product flavour (must exist in system)
 - **Shelf Life ID**: ID of the product shelf life (must exist in system)
+- **Subunit ID**: ID of the subunit (must exist in system)
+- **Tax ID**: ID of the tax master (must exist in system)
+- **VAT Percentage (%)**: VAT percentage (0-100)
+- **Weight (grams)**: Weight in grams (must be >= 0)
+- **Volume (liters)**: Volume in liters (must be >= 0)
 
 ## Notes:
 - Product names must be unique across the system.
-- All ID fields (Category, Sub-Category, Brand, Unit, Route Type, Outlet Group, Product Type, Product Target Group, Product Web Order, Volume, Flavour, Shelf Life) must match existing records in the system.
+- All ID fields (Category, Sub-Category, Brand, Unit, Route Type, Outlet Group, Product Type, Product Target Group, Product Web Order, Volume, Flavour, Shelf Life, Subunit, Tax) must match existing records in the system.
 - Base price and tax rate are optional but must be valid numbers if provided.
 - Active products are available for orders and sales.
 - Inactive products are hidden but preserved for historical data.
@@ -591,6 +721,11 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
             volume_id: product.volume_id || '',
             flavour_id: product.flavour_id || '',
             shelf_life_id: product.shelf_life_id || '',
+            subunit_id: product.subunit_id || '',
+            tax_id: product.tax_id || '',
+            vat_percentage: product.vat_percentage || '',
+            weight_in_grams: product.weight_in_grams || '',
+            volume_in_liters: product.volume_in_liters || '',
             createdate: product.createdate?.toISOString().split('T')[0] || '',
             createdby: product.createdby || '',
             updatedate: product.updatedate?.toISOString().split('T')[0] || '',
@@ -620,35 +755,38 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
         return null;
     }
     async transformDataForImport(data, userId) {
-        const category = await prisma_client_1.default.product_categories.findFirst({
-            where: {
-                id: data.category_id,
-            },
-        });
+        // Batch validate required fields for better performance
+        const requiredValidations = (await Promise.race([
+            Promise.all([
+                prisma_client_1.default.product_categories.findFirst({
+                    where: { id: data.category_id },
+                    select: { id: true },
+                }),
+                prisma_client_1.default.product_sub_categories.findFirst({
+                    where: { id: data.sub_category_id },
+                    select: { id: true },
+                }),
+                prisma_client_1.default.brands.findFirst({
+                    where: { id: data.brand_id },
+                    select: { id: true },
+                }),
+                prisma_client_1.default.unit_of_measurement.findFirst({
+                    where: { id: data.unit_of_measurement },
+                    select: { id: true },
+                }),
+            ]),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Required fields validation timeout')), 8000)),
+        ]));
+        const [category, subCategory, brand, unit] = requiredValidations;
         if (!category) {
             throw new Error(`Category with ID "${data.category_id}" not found`);
         }
-        const subCategory = await prisma_client_1.default.product_sub_categories.findFirst({
-            where: {
-                id: data.sub_category_id,
-            },
-        });
         if (!subCategory) {
             throw new Error(`Sub-category with ID "${data.sub_category_id}" not found`);
         }
-        const brand = await prisma_client_1.default.brands.findFirst({
-            where: {
-                id: data.brand_id,
-            },
-        });
         if (!brand) {
             throw new Error(`Brand with ID "${data.brand_id}" not found`);
         }
-        const unit = await prisma_client_1.default.unit_of_measurement.findFirst({
-            where: {
-                id: data.unit_of_measurement,
-            },
-        });
         if (!unit) {
             throw new Error(`Unit of measurement with ID "${data.unit_of_measurement}" not found`);
         }
@@ -692,54 +830,125 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
                 throw new Error(`Product web order with ID "${data.product_web_order_id}" not found`);
             }
         }
+        // Batch validation queries for better performance
+        const validationPromises = [];
         if (data.volume_id) {
-            const volume = await prisma_client_1.default.product_volumes.findFirst({
+            validationPromises.push(prisma_client_1.default.product_volumes
+                .findFirst({
                 where: { id: data.volume_id },
-            });
-            if (!volume) {
-                throw new Error(`Volume with ID "${data.volume_id}" not found`);
-            }
+                select: { id: true },
+            })
+                .then(volume => {
+                if (!volume)
+                    throw new Error(`Volume with ID "${data.volume_id}" not found`);
+            }));
         }
         if (data.flavour_id) {
-            const flavour = await prisma_client_1.default.product_flavours.findFirst({
+            validationPromises.push(prisma_client_1.default.product_flavours
+                .findFirst({
                 where: { id: data.flavour_id },
-            });
-            if (!flavour) {
-                throw new Error(`Flavour with ID "${data.flavour_id}" not found`);
-            }
+                select: { id: true },
+            })
+                .then(flavour => {
+                if (!flavour)
+                    throw new Error(`Flavour with ID "${data.flavour_id}" not found`);
+            }));
         }
         if (data.shelf_life_id) {
-            const shelfLife = await prisma_client_1.default.product_shelf_life.findFirst({
+            validationPromises.push(prisma_client_1.default.product_shelf_life
+                .findFirst({
                 where: { id: data.shelf_life_id },
-            });
-            if (!shelfLife) {
-                throw new Error(`Shelf life with ID "${data.shelf_life_id}" not found`);
+                select: { id: true },
+            })
+                .then(shelfLife => {
+                if (!shelfLife)
+                    throw new Error(`Shelf life with ID "${data.shelf_life_id}" not found`);
+            }));
+        }
+        if (data.subunit_id) {
+            validationPromises.push(prisma_client_1.default.subunits
+                .findFirst({
+                where: { id: data.subunit_id },
+                select: { id: true },
+            })
+                .then(subunit => {
+                if (!subunit)
+                    throw new Error(`Subunit with ID "${data.subunit_id}" not found`);
+            }));
+        }
+        if (data.tax_id) {
+            validationPromises.push(prisma_client_1.default.tax_master
+                .findFirst({
+                where: { id: data.tax_id },
+                select: { id: true },
+            })
+                .then(tax => {
+                if (!tax)
+                    throw new Error(`Tax master with ID "${data.tax_id}" not found`);
+            }));
+        }
+        // Execute all validations in parallel with timeout
+        if (validationPromises.length > 0) {
+            try {
+                await Promise.race([
+                    Promise.all(validationPromises),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Validation timeout')), 10000)),
+                ]);
+            }
+            catch (error) {
+                throw error;
             }
         }
         let productCode = data.code && data.code.trim() !== '' ? data.code.trim() : null;
         if (!productCode) {
             const prefix = data.name.slice(0, 3).toUpperCase();
-            const lastProduct = await prisma_client_1.default.products.findFirst({
-                orderBy: { id: 'desc' },
-                select: { code: true },
-            });
-            let newNumber = 1;
-            if (lastProduct && lastProduct.code) {
-                const match = lastProduct.code.match(/(\d+)$/);
-                if (match) {
-                    newNumber = parseInt(match[1], 10) + 1;
+            try {
+                // Use a simple query with timeout instead of transaction
+                const lastProductPromise = prisma_client_1.default.products.findFirst({
+                    orderBy: { id: 'desc' },
+                    select: { code: true },
+                });
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Query timeout')), 3000));
+                const lastProduct = (await Promise.race([
+                    lastProductPromise,
+                    timeoutPromise,
+                ]));
+                let newNumber = 1;
+                if (lastProduct && lastProduct.code) {
+                    const match = lastProduct.code.match(/(\d+)$/);
+                    if (match) {
+                        newNumber = parseInt(match[1], 10) + 1;
+                    }
+                }
+                // Generate unique code with retry logic
+                let attempts = 0;
+                while (attempts < 10) {
+                    productCode = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+                    try {
+                        const existingCheckPromise = prisma_client_1.default.products.findUnique({
+                            where: { code: productCode },
+                            select: { id: true },
+                        });
+                        const checkTimeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Duplicate check timeout')), 1000));
+                        const existing = (await Promise.race([
+                            existingCheckPromise,
+                            checkTimeoutPromise,
+                        ]));
+                        if (!existing)
+                            break;
+                        newNumber++;
+                        attempts++;
+                    }
+                    catch (error) {
+                        // If check fails, continue with generated code
+                        break;
+                    }
                 }
             }
-            let attempts = 0;
-            while (attempts < 10) {
-                productCode = `${prefix}${newNumber.toString().padStart(3, '0')}`;
-                const existing = await prisma_client_1.default.products.findUnique({
-                    where: { code: productCode },
-                });
-                if (!existing)
-                    break;
-                newNumber++;
-                attempts++;
+            catch (error) {
+                // Fallback to timestamp-based code if database query fails
+                const timestamp = Date.now().toString().slice(-4);
+                productCode = `${prefix}${timestamp}`;
             }
         }
         return {
@@ -762,6 +971,11 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
             volume_id: data.volume_id || null,
             flavour_id: data.flavour_id || null,
             shelf_life_id: data.shelf_life_id || null,
+            subunit_id: data.subunit_id || null,
+            tax_id: data.tax_id || null,
+            vat_percentage: data.vat_percentage || null,
+            weight_in_grams: data.weight_in_grams || null,
+            volume_in_liters: data.volume_in_liters || null,
             createdate: new Date(),
             createdby: userId,
             log_inst: 1,
@@ -857,6 +1071,22 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
                 errors.push(`Shelf life with ID "${data.shelf_life_id}" not found`);
             }
         }
+        if (data.subunit_id) {
+            const subunit = await prisma_client_1.default.subunits.findFirst({
+                where: { id: data.subunit_id },
+            });
+            if (!subunit) {
+                errors.push(`Subunit with ID "${data.subunit_id}" not found`);
+            }
+        }
+        if (data.tax_id) {
+            const tax = await prisma_client_1.default.tax_master.findFirst({
+                where: { id: data.tax_id },
+            });
+            if (!tax) {
+                errors.push(`Tax master with ID "${data.tax_id}" not found`);
+            }
+        }
         return errors.length > 0 ? errors.join('; ') : null;
     }
     async prepareDataForImport(data, userId) {
@@ -884,6 +1114,11 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
             volume_id: data.volume_id || null,
             flavour_id: data.flavour_id || null,
             shelf_life_id: data.shelf_life_id || null,
+            subunit_id: data.subunit_id || null,
+            tax_id: data.tax_id || null,
+            vat_percentage: data.vat_percentage || null,
+            weight_in_grams: data.weight_in_grams || null,
+            volume_in_liters: data.volume_in_liters || null,
             updatedby: userId,
             updatedate: new Date(),
         };

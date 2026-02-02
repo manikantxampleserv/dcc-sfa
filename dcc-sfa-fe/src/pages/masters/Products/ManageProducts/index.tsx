@@ -17,6 +17,10 @@ import {
   useUnitOfMeasurement,
   type UnitOfMeasurement,
 } from 'hooks/useUnitOfMeasurement';
+import {
+  useSubUnitOfMeasurements,
+  type SubUnitOfMeasurement,
+} from 'hooks/useSubUnitOfMeasurement';
 import React, { useRef, useState } from 'react';
 import { productValidationSchema } from 'schemas/product.schema';
 import {
@@ -160,6 +164,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
       sub_category_id: selectedProduct?.sub_category_id || '',
       brand_id: selectedProduct?.brand_id || '',
       unit_of_measurement: selectedProduct?.unit_of_measurement || '',
+      subunit_id: selectedProduct?.subunit_id || '',
       base_price: selectedProduct?.base_price
         ? Number(selectedProduct.base_price)
         : '',
@@ -192,6 +197,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
           sub_category_id: Number(values.sub_category_id),
           brand_id: Number(values.brand_id),
           unit_of_measurement: Number(values.unit_of_measurement),
+          subunit_id: Number(values.subunit_id),
           base_price: values.base_price ? Number(values.base_price) : undefined,
           tax_id: values.tax_id ? Number(values.tax_id) : undefined,
           route_type_id: values.route_type_id
@@ -250,6 +256,28 @@ const ManageProduct: React.FC<ManageProductProps> = ({
     },
   });
 
+  // Sub Units hook that depends on selected unit of measurement
+  const { data: subUnitsResponse } = useSubUnitOfMeasurements(
+    formik.values.unit_of_measurement
+      ? {
+          limit: 1000,
+          isActive: 'Y',
+          unitOfMeasurementId: Number(formik.values.unit_of_measurement),
+        }
+      : {
+          limit: 1000,
+          isActive: 'Y',
+        }
+  );
+
+  const subUnits = subUnitsResponse?.data || [];
+
+  const handleUnitChange = (event: any) => {
+    const newUnitId = event.target.value;
+    formik.setFieldValue('unit_of_measurement', newUnitId);
+    formik.setFieldValue('subunit_id', '');
+  };
+
   return (
     <CustomDrawer
       open={drawerOpen}
@@ -300,10 +328,25 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               label="Unit of Measurement"
               formik={formik}
               required
+              onChange={handleUnitChange}
             >
               {units.map((unit: UnitOfMeasurement) => (
                 <MenuItem key={unit.id} value={unit.id}>
                   {unit.name} {unit.symbol && `(${unit.symbol})`}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="subunit_id"
+              label="Sub Unit of Measurement"
+              formik={formik}
+              disabled={!formik.values.unit_of_measurement}
+              loading={subUnitsResponse === undefined}
+            >
+              {subUnits.map((subUnit: SubUnitOfMeasurement) => (
+                <MenuItem key={subUnit.id} value={subUnit.id}>
+                  {subUnit.name} {subUnit.code && `(${subUnit.code})`}
                 </MenuItem>
               ))}
             </Select>

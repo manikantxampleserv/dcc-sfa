@@ -1,6 +1,6 @@
 /**
  * @fileoverview Users Seeder
- * @description Creates 11 sample users for testing and development
+ * @description Creates 5 sample users (1 admin + 4 mock users) for testing and development
  * @author DCC-SFA Team
  * @version 1.0.0
  */
@@ -13,7 +13,7 @@ interface MockUser {
     depot_id?: number;
     zone_id?: number;
     address?: string;
-    employee_id?: string;
+    employee_id: string;
     joining_date?: Date;
     reporting_to?: number;
     is_active: string;

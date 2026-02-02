@@ -4,6 +4,7 @@ export declare const unitMeasurementController: {
     getAllUnitMeasurement(req: any, res: any): Promise<void>;
     getUnitMeasurementById(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     updateUnitMeasurement(req: any, res: any): Promise<any>;
+    getSubunitsByUnitMeasurement(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     deleteUnitMeasurement(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
 };
 //# sourceMappingURL=unitMeasurement.controller.d.ts.map

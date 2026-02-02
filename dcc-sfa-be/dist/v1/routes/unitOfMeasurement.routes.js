@@ -12,5 +12,6 @@ router.get('/unit-measurement', auth_middleware_1.authenticateToken, (0, auth_mi
 router.put('/unit-measurement/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditUpdate)('units_of_measurement'), (0, auth_middleware_1.requirePermission)([{ module: 'unit-of-measurement', action: 'update' }]), unitMeasurement_controller_1.unitMeasurementController.updateUnitMeasurement);
 router.get('/unit-measurement/:id', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'unit-of-measurement', action: 'read' }]), unitMeasurement_controller_1.unitMeasurementController.getUnitMeasurementById);
 router.delete('/unit-measurement/:id', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditDelete)('units_of_measurement'), (0, auth_middleware_1.requirePermission)([{ module: 'unit-of-measurement', action: 'delete' }]), unitMeasurement_controller_1.unitMeasurementController.deleteUnitMeasurement);
+router.get('/unit-measurnments/:id/subunits', auth_middleware_1.authenticateToken, (0, auth_middleware_1.requirePermission)([{ module: 'unit-of-measurement', action: 'read' }]), unitMeasurement_controller_1.unitMeasurementController.getSubunitsByUnitMeasurement);
 exports.default = router;
 //# sourceMappingURL=unitOfMeasurement.routes.js.map

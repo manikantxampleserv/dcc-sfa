@@ -1,7 +1,7 @@
 "use strict";
 /**
  * @fileoverview Users Seeder
- * @description Creates 11 sample users for testing and development
+ * @description Creates 5 sample users (1 admin + 4 mock users) for testing and development
  * @author DCC-SFA Team
  * @version 1.0.0
  */
@@ -64,7 +64,7 @@ exports.mockUsers = mockUsers;
 async function createAdminUser() {
     try {
         logger_1.default.info('Creating admin user...');
-        const existingAdmin = await prisma_client_1.default.users.findUnique({
+        const existingAdmin = await prisma_client_1.default.users.findFirst({
             where: { email: 'admin@dcc.com' },
         });
         if (existingAdmin) {

@@ -14,7 +14,6 @@ import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import SubUnitProductSelect from 'shared/SubUnitProductSelect';
 import UnitOfMeasurementSelect from 'shared/UnitOfMeasurementSelect';
 
 interface ManageSubUnitOfMeasurementProps {
@@ -51,12 +50,11 @@ const ManageSubUnitOfMeasurement: React.FC<ManageSubUnitOfMeasurementProps> = ({
       code: selectedSubUnit?.code || '',
       description: selectedSubUnit?.description || '',
       unit_of_measurement_id: selectedSubUnit?.unit_of_measurement_id || 0,
-      product_id: selectedSubUnit?.product_id || 0,
       is_active: (selectedSubUnit?.is_active || 'Y') as 'Y' | 'N',
     },
     validationSchema: subUnitOfMeasurementValidationSchema,
     enableReinitialize: true,
-    onSubmit: async (values, { resetForm }) => {
+    onSubmit: async values => {
       try {
         if (isEdit && selectedSubUnit) {
           await updateSubUnitOfMeasurementMutation.mutateAsync({
@@ -68,7 +66,6 @@ const ManageSubUnitOfMeasurement: React.FC<ManageSubUnitOfMeasurementProps> = ({
         }
         handleCancel();
       } catch (error) {
-        // Error is handled by the mutation hook
         console.error('Error saving sub unit of measurement:', error);
       }
     },
@@ -116,14 +113,6 @@ const ManageSubUnitOfMeasurement: React.FC<ManageSubUnitOfMeasurementProps> = ({
               <UnitOfMeasurementSelect
                 name="unit_of_measurement_id"
                 label="Unit of Measurement"
-                formik={formik}
-              />
-            </Box>
-
-            <Box className="md:!col-span-2">
-              <SubUnitProductSelect
-                name="product_id"
-                label="Product"
                 formik={formik}
               />
             </Box>

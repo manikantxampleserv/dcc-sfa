@@ -64,7 +64,8 @@ const SubUnitOfMeasurementPage: React.FC = () => {
   const exportToExcelMutation = useExportToExcel();
 
   const subUnits = subUnitsResponse?.data || [];
-  const totalCount = subUnitsResponse?.pagination?.total_count || 0;
+  const totalCount = subUnitsResponse?.meta?.total || 0;
+  const currentPage = (subUnitsResponse?.meta?.page || 1) - 1;
   const stats = subUnitsResponse?.stats;
 
   const handleSearchChange = useCallback((value: string) => {
@@ -86,7 +87,6 @@ const SubUnitOfMeasurementPage: React.FC = () => {
       try {
         await deleteSubUnitMutation.mutateAsync(subUnit.id);
       } catch (error) {
-        // Error is handled by the mutation hook
         console.error('Error deleting sub unit of measurement:', error);
       }
     },
@@ -111,7 +111,7 @@ const SubUnitOfMeasurementPage: React.FC = () => {
       };
 
       await exportToExcelMutation.mutateAsync({
-        tableName: 'sub_unit_of_measurements', // Assuming this is the table name
+        tableName: 'subunits',
         filters,
       });
     } catch (error) {
@@ -183,18 +183,6 @@ const SubUnitOfMeasurementPage: React.FC = () => {
       ),
     },
     {
-      id: 'product_id',
-      label: 'Product',
-      render: (_value, row) => (
-        <Chip
-          label={row.subunits_products?.name || '-'}
-          size="small"
-          color="secondary"
-          variant="outlined"
-        />
-      ),
-    },
-    {
       id: 'is_active',
       label: 'Status',
       render: is_active => (
@@ -256,15 +244,12 @@ const SubUnitOfMeasurementPage: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <Typography
-            variant="h5"
-            className="!font-bold !text-xl !text-gray-900"
-          >
-            Sub Units of Measurement
-          </Typography>
-          <Typography variant="body2" className="!text-gray-500 !text-sm">
-            Manage sub units of measurement for products
-          </Typography>
+          <p className="!font-bold text-xl !text-gray-900">
+            Sub Units of Measurement Management
+          </p>
+          <p className="!text-gray-500 text-sm">
+            Manage sub units of measurement for your organization
+          </p>
         </Box>
       </Box>
 
@@ -302,7 +287,7 @@ const SubUnitOfMeasurementPage: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          {error.message || 'Failed to load sub units of measurement'}
+          Failed to load sub units of measurement. Please try again.
         </Alert>
       )}
 
@@ -386,14 +371,14 @@ const SubUnitOfMeasurementPage: React.FC = () => {
             false
           )
         }
-        loading={isFetching}
-        pagination={true}
-        totalCount={totalCount}
-        page={page - 1}
-        rowsPerPage={limit}
-        onPageChange={handlePageChange}
         getRowId={row => row.id}
         initialOrderBy="name"
+        loading={isFetching}
+        totalCount={totalCount}
+        page={currentPage}
+        rowsPerPage={limit}
+        isPermission={isRead}
+        onPageChange={handlePageChange}
         emptyMessage={
           search
             ? 'No sub units found matching your search criteria.'
@@ -411,8 +396,8 @@ const SubUnitOfMeasurementPage: React.FC = () => {
 
       {/* Import Modal */}
       <ImportSubUnitOfMeasurement
-        open={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
+        drawerOpen={importModalOpen}
+        setDrawerOpen={setImportModalOpen}
       />
     </>
   );

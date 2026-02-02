@@ -19,6 +19,7 @@ const productInclude = {
     product_unit_of_measurement: true,
     product_categories_products: true,
     product_sub_categories_products: true,
+    products_subunits: true,
     products_route_type: true,
     products_outlet_group: true,
     product_tax_master: true,
@@ -57,6 +58,7 @@ const serializeProduct = (product) => ({
     description: product.description,
     category_id: product.category_id,
     sub_category_id: product.sub_category_id,
+    subunit_id: product.subunit_id,
     brand_id: product.brand_id,
     unit_of_measurement: product.unit_of_measurement,
     base_price: product.base_price ? Number(product.base_price) : null,
@@ -130,6 +132,13 @@ const serializeProduct = (product) => ({
         id: product.product_sub_categories_products?.id,
         sub_category_name: product.product_sub_categories_products?.sub_category_name,
     },
+    product_subunit: product.products_subunits
+        ? {
+            id: product.products_subunits.id,
+            name: product.products_subunits.name,
+            code: product.products_subunits.code,
+        }
+        : null,
     route_type: product.products_route_type
         ? {
             id: product.products_route_type.id,
@@ -382,6 +391,7 @@ exports.productsController = {
                         description: data.description || null,
                         category_id: data.category_id,
                         sub_category_id: data.sub_category_id,
+                        subunit_id: data.subunit_id || null,
                         brand_id: data.brand_id,
                         unit_of_measurement: data.unit_of_measurement,
                         base_price: data.base_price || null,
@@ -475,6 +485,7 @@ exports.productsController = {
                     product_unit_of_measurement: true,
                     product_categories_products: true,
                     product_sub_categories_products: true,
+                    products_subunits: true,
                     products_route_type: true,
                     products_outlet_group: true,
                     product_tax_master: true,
@@ -534,6 +545,7 @@ exports.productsController = {
                     product_unit_of_measurement: true,
                     product_categories_products: true,
                     product_sub_categories_products: true,
+                    products_subunits: true,
                     products_route_type: true,
                     products_outlet_group: true,
                     product_tax_master: true,
@@ -635,19 +647,15 @@ exports.productsController = {
                     }
                 }
             }
-            // Handle inventory_stock for NONE tracking products
             if (updateData.tracking_type === 'NONE') {
-                // Check if inventory_stock already exists for this product
                 const existingInventoryStock = await prisma_client_1.default.inventory_stock.findFirst({
                     where: { product_id: Number(id) },
                 });
                 if (!existingInventoryStock) {
-                    // Fetch all active depots
                     const depots = await prisma_client_1.default.depots.findMany({
                         where: { is_active: 'Y' },
                         select: { id: true },
                     });
-                    // Get stock values from frontend or use defaults
                     const stockData = req.body.inventory_stock || {};
                     const defaultStock = {
                         current_stock: 0,
@@ -692,6 +700,7 @@ exports.productsController = {
                     product_unit_of_measurement: true,
                     product_categories_products: true,
                     product_sub_categories_products: true,
+                    products_subunits: true,
                     products_route_type: true,
                     products_outlet_group: true,
                     product_tax_master: true,

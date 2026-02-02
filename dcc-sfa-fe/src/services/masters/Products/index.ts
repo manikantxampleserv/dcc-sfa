@@ -10,6 +10,7 @@ interface Product {
   sub_category_id: number;
   brand_id: number;
   unit_of_measurement: number;
+  subunit_id: number;
   base_price?: number | null;
   tax_rate?: number | null;
   tax_id?: number | null;
@@ -47,6 +48,7 @@ interface Product {
   }[];
   product_brand: { id: number; name: string; code: string; logo: string };
   product_unit: { id: number; name: string };
+  product_subunit?: { id: number; name: string; code: string } | null;
   product_category: { id: number; category_name: string };
   product_sub_category: { id: number; sub_category_name: string };
   route_type?: { id: number; name: string } | null;

@@ -220,6 +220,15 @@ const ProductsManagement: React.FC = () => {
       ),
     },
     {
+      id: 'product_subunit.name',
+      label: 'Sub Unit',
+      render: (_value, row) => (
+        <Typography variant="body2" className="!text-gray-700">
+          {row.product_subunit?.name || 'N/A'}
+        </Typography>
+      ),
+    },
+    {
       id: 'product_type',
       label: 'Product Type',
       render: (_value, row) => (

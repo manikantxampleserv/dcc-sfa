@@ -56,6 +56,7 @@ const batchLots_import_export_service_1 = require("./implementations/batchLots-i
 const UserImportExportService_1 = require("./implementations/UserImportExportService");
 const role_import_export_service_1 = require("./implementations/role.import-export.service");
 const route_import_export_service_1 = require("./implementations/route-import-export.service");
+const subunits_import_export_service_1 = require("./implementations/subunits.import-export.service");
 class ImportExportFactory {
     static services = new Map([
         ['zones', zones_import_export_service_1.ZonesImportExportService],
@@ -114,6 +115,7 @@ class ImportExportFactory {
         ['users', UserImportExportService_1.UserImportExportService],
         ['roles', role_import_export_service_1.RoleImportExportService],
         ['routes', route_import_export_service_1.RouteImportExportService],
+        ['subunits', subunits_import_export_service_1.SubunitsImportExportService],
     ]);
     static getService(tableName) {
         const ServiceClass = this.services.get(tableName);

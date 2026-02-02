@@ -26,6 +26,17 @@ interface UnitOfMeasurementSelectProps {
 /**
  * UnitOfMeasurementSelect component for selecting units of measurement
  * Uses MUI Autocomplete with search functionality
+ *
+ * @component
+ * @example
+ * ```tsx
+ * <UnitOfMeasurementSelect
+ *   name="unit_of_measurement_id"
+ *   label="Unit of Measurement"
+ *   formik={formik}
+ *   required
+ * />
+ * ```
  */
 export const UnitOfMeasurementSelect = ({
   formik,
@@ -45,7 +56,7 @@ export const UnitOfMeasurementSelect = ({
   // Convert units to SearchSelectOption format
   const options: SearchSelectOption[] = units.map((unit: any) => ({
     value: unit.id,
-    label: `${unit.name} (${unit.code})`,
+    label: `${unit.name}`,
     disabled: false,
   }));
 
