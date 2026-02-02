@@ -8,7 +8,6 @@ interface SubunitSerialized {
   code: string;
   description?: string | null;
   unit_of_measurement_id: number;
-  product_id: number;
   is_active: string;
   createdby: number;
   createdate?: Date | null;
@@ -16,11 +15,6 @@ interface SubunitSerialized {
   updatedby?: number | null;
   log_inst?: number | null;
   subunits_unit_of_measurement?: {
-    id: number;
-    name: string;
-    code: string;
-  };
-  subunits_products?: {
     id: number;
     name: string;
     code: string;
@@ -53,7 +47,6 @@ const serializeSubunit = (subunit: any): SubunitSerialized => ({
   code: subunit.code,
   description: subunit.description,
   unit_of_measurement_id: subunit.unit_of_measurement_id,
-  product_id: subunit.product_id,
   is_active: subunit.is_active,
   createdby: subunit.createdby,
   createdate: subunit.createdate,
@@ -61,7 +54,6 @@ const serializeSubunit = (subunit: any): SubunitSerialized => ({
   updatedby: subunit.updatedby,
   log_inst: subunit.log_inst,
   subunits_unit_of_measurement: subunit.subunits_unit_of_measurement,
-  subunits_products: subunit.subunits_products,
 });
 
 export const subunitsController = {
@@ -76,10 +68,6 @@ export const subunitsController = {
         return res
           .status(400)
           .json({ message: 'Unit of measurement is required' });
-      }
-
-      if (!data.product_id) {
-        return res.status(400).json({ message: 'Product is required' });
       }
 
       const existingSubunit = await prisma.subunits.findFirst({
@@ -117,7 +105,6 @@ export const subunitsController = {
         },
         include: {
           subunits_unit_of_measurement: true,
-          subunits_products: true,
         },
       });
 
@@ -133,15 +120,8 @@ export const subunitsController = {
 
   async getSubunits(req: any, res: any) {
     try {
-      const {
-        page,
-        limit,
-        search,
-        name,
-        isActive,
-        productId,
-        unitOfMeasurementId,
-      } = req.query;
+      const { page, limit, search, name, isActive, unitOfMeasurementId } =
+        req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -158,7 +138,6 @@ export const subunitsController = {
           name: { contains: (name as string).toLowerCase() },
         }),
         ...(isActive && { is_active: isActive as string }),
-        ...(productId && { product_id: parseInt(productId as string, 10) }),
         ...(unitOfMeasurementId && {
           unit_of_measurement_id: parseInt(unitOfMeasurementId as string, 10),
         }),
@@ -172,7 +151,6 @@ export const subunitsController = {
         orderBy: { createdate: 'desc' },
         include: {
           subunits_unit_of_measurement: true,
-          subunits_products: true,
         },
       });
 
@@ -221,7 +199,6 @@ export const subunitsController = {
         where: { id: Number(id) },
         include: {
           subunits_unit_of_measurement: true,
-          subunits_products: true,
         },
       });
 
@@ -273,7 +250,6 @@ export const subunitsController = {
         data,
         include: {
           subunits_unit_of_measurement: true,
-          subunits_products: true,
         },
       });
 

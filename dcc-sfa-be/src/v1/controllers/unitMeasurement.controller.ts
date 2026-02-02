@@ -15,6 +15,17 @@ interface UnitSerialized {
   updatedby?: number | null;
   log_inst?: number | null;
   product_unit_of_measurement?: { id: number; name: string }[];
+  subunits?: {
+    id: number;
+    name: string;
+    code: string;
+    description?: string | null;
+    subunits_products?: {
+      id: number;
+      name: string;
+      code: string;
+    } | null;
+  }[];
 }
 
 const serializeUnit = (unit: any): UnitSerialized => ({
@@ -33,6 +44,20 @@ const serializeUnit = (unit: any): UnitSerialized => ({
     unit.product_unit_of_measurement?.map((p: any) => ({
       id: p.id,
       name: p.name,
+    })) || [],
+  subunits:
+    unit.subunits_unit_of_measurement?.map((subunit: any) => ({
+      id: subunit.id,
+      name: subunit.name,
+      code: subunit.code,
+      description: subunit.description,
+      subunits_products: subunit.subunits_products
+        ? {
+            id: subunit.subunits_products.id,
+            name: subunit.subunits_products.name,
+            code: subunit.subunits_products.code,
+          }
+        : null,
     })) || [],
 });
 
@@ -96,6 +121,11 @@ export const unitMeasurementController = {
         orderBy: { createdate: 'desc' },
         include: {
           product_unit_of_measurement: true,
+          subunits_unit_of_measurement: {
+            include: {
+              subunits_products: true,
+            },
+          },
         },
       });
 
@@ -142,7 +172,14 @@ export const unitMeasurementController = {
       const { id } = req.params;
       const unit = await prisma.unit_of_measurement.findUnique({
         where: { id: Number(id) },
-        include: { product_unit_of_measurement: true },
+        include: {
+          product_unit_of_measurement: true,
+          subunits_unit_of_measurement: {
+            include: {
+              subunits_products: true,
+            },
+          },
+        },
       });
 
       if (!unit) return res.status(404).json({ message: 'Unit not found' });
@@ -176,7 +213,14 @@ export const unitMeasurementController = {
       const unit = await prisma.unit_of_measurement.update({
         where: { id: Number(id) },
         data,
-        include: { product_unit_of_measurement: true },
+        include: {
+          product_unit_of_measurement: true,
+          subunits_unit_of_measurement: {
+            include: {
+              subunits_products: true,
+            },
+          },
+        },
       });
 
       res.json({

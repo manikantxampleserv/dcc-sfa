@@ -1303,6 +1303,7 @@ model products {
   code                             String                         @unique @db.NVarChar(100)
   description                      String?
   category_id                      Int
+  subunit_id                       Int?
   sub_category_id                  Int
   brand_id                         Int
   unit_of_measurement              Int
@@ -1361,7 +1362,7 @@ model products {
   depot_price_overrides            depot_price_overrides[]
   product_product_batches          product_batches[]
   batchLots                        batch_lots[]
-  subunits_products                subunits[]
+  products_subunits                subunits?                      @relation(fields: [subunit_id], references: [id], onUpdate: NoAction)
 }
 
 model tax_master {
@@ -2680,7 +2681,6 @@ model subunits {
   code                         String              @unique @db.NVarChar(100)
   description                  String?             @db.NVarChar(500)
   unit_of_measurement_id       Int
-  product_id                   Int
   is_active                    String              @default("Y") @db.Char(1)
   createdate                   DateTime?           @default(now()) @db.DateTime
   createdby                    Int
@@ -2688,5 +2688,5 @@ model subunits {
   updatedby                    Int?
   log_inst                     Int?
   subunits_unit_of_measurement unit_of_measurement @relation(fields: [unit_of_measurement_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  subunits_products            products            @relation(fields: [product_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  subunits_products            products[]
 }

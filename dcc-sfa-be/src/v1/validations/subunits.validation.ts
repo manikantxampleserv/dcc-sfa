@@ -25,11 +25,9 @@ export const createSubunitValidation = [
 
   body('unit_of_measurement_id')
     .isInt({ min: 1 })
-    .withMessage('Unit of measurement ID is required and must be a positive integer'),
-
-  body('product_id')
-    .isInt({ min: 1 })
-    .withMessage('Product ID is required and must be a positive integer'),
+    .withMessage(
+      'Unit of measurement ID is required and must be a positive integer'
+    ),
 
   body('is_active')
     .optional()
@@ -68,11 +66,6 @@ export const updateSubunitValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Unit of measurement ID must be a positive integer'),
-
-  body('product_id')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Product ID must be a positive integer'),
 
   body('is_active')
     .optional()

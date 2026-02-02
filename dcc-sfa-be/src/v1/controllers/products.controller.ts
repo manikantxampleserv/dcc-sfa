@@ -14,6 +14,7 @@ interface ProductSerialized {
   description?: string | null;
   category_id: number;
   sub_category_id: number;
+  subunit_id?: number | null;
   brand_id: number;
   unit_of_measurement: number;
   base_price?: number | null;
@@ -64,6 +65,7 @@ interface ProductSerialized {
   product_unit: { id: number; name: string };
   product_category: { id: number; category_name: string };
   product_sub_category: { id: number; sub_category_name: string };
+  product_subunit?: { id: number; name: string; code: string } | null;
   route_type?: { id: number; name: string } | null;
   outlet_group?: { id: number; name: string; code: string } | null;
   tax_master?: {
@@ -93,6 +95,7 @@ const productInclude = {
   product_unit_of_measurement: true,
   product_categories_products: true,
   product_sub_categories_products: true,
+  products_subunits: true,
   products_route_type: true,
   products_outlet_group: true,
   product_tax_master: true,
@@ -136,6 +139,7 @@ const serializeProduct = (product: any): ProductSerialized => ({
   description: product.description,
   category_id: product.category_id,
   sub_category_id: product.sub_category_id,
+  subunit_id: product.subunit_id,
   brand_id: product.brand_id,
   unit_of_measurement: product.unit_of_measurement,
   base_price: product.base_price ? Number(product.base_price) : null,
@@ -224,6 +228,14 @@ const serializeProduct = (product: any): ProductSerialized => ({
     sub_category_name:
       product.product_sub_categories_products?.sub_category_name,
   },
+
+  product_subunit: product.products_subunits
+    ? {
+        id: product.products_subunits.id,
+        name: product.products_subunits.name,
+        code: product.products_subunits.code,
+      }
+    : null,
 
   route_type: product.products_route_type
     ? {
@@ -516,6 +528,7 @@ export const productsController = {
             description: data.description || null,
             category_id: data.category_id,
             sub_category_id: data.sub_category_id,
+            subunit_id: data.subunit_id || null,
             brand_id: data.brand_id,
             unit_of_measurement: data.unit_of_measurement,
             base_price: data.base_price || null,
@@ -621,6 +634,7 @@ export const productsController = {
           product_unit_of_measurement: true,
           product_categories_products: true,
           product_sub_categories_products: true,
+          products_subunits: true,
           products_route_type: true,
           products_outlet_group: true,
           product_tax_master: true,
@@ -687,6 +701,7 @@ export const productsController = {
           product_unit_of_measurement: true,
           product_categories_products: true,
           product_sub_categories_products: true,
+          products_subunits: true,
           products_route_type: true,
           products_outlet_group: true,
           product_tax_master: true,
@@ -808,21 +823,17 @@ export const productsController = {
         }
       }
 
-      // Handle inventory_stock for NONE tracking products
       if (updateData.tracking_type === 'NONE') {
-        // Check if inventory_stock already exists for this product
         const existingInventoryStock = await prisma.inventory_stock.findFirst({
           where: { product_id: Number(id) },
         });
 
         if (!existingInventoryStock) {
-          // Fetch all active depots
           const depots = await prisma.depots.findMany({
             where: { is_active: 'Y' },
             select: { id: true },
           });
 
-          // Get stock values from frontend or use defaults
           const stockData = req.body.inventory_stock || {};
           const defaultStock = {
             current_stock: 0,
@@ -873,6 +884,7 @@ export const productsController = {
           product_unit_of_measurement: true,
           product_categories_products: true,
           product_sub_categories_products: true,
+          products_subunits: true,
           products_route_type: true,
           products_outlet_group: true,
           product_tax_master: true,
