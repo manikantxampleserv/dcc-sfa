@@ -57,6 +57,7 @@ import { RouteImportExportService } from './implementations/route-import-export.
 import { SubunitsImportExportService } from './implementations/subunits.import-export.service';
 import { OutletTypesImportExportService } from './implementations/outletTypes-import-export.service';
 import { CustomerChannelsImportExportService } from './implementations/customerChannels-import-export.service';
+import { OutletCategoriesImportExportService } from './implementations/outletCategories-import-export.service';
 
 type ServiceConstructor = new () => ImportExportService<any>;
 
@@ -124,6 +125,7 @@ export class ImportExportFactory {
     ['subunits', SubunitsImportExportService],
     ['outlet_types', OutletTypesImportExportService],
     ['outlet_channels', CustomerChannelsImportExportService],
+    ['outlet_categories', OutletCategoriesImportExportService],
   ]);
 
   static getService(tableName: string): ImportExportService<any> | null {
