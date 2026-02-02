@@ -11,7 +11,7 @@ import {
   type ImportResult,
 } from '../../../../hooks/useImportExport';
 
-interface ImportCustomerTypeProps {
+interface ImportCustomerChannelProps {
   drawerOpen: boolean;
   setDrawerOpen: (open: boolean) => void;
 }
@@ -20,7 +20,7 @@ const importValidationSchema = Yup.object({
   file: Yup.mixed().required('Please select a file to import'),
 });
 
-const ImportCustomerType: React.FC<ImportCustomerTypeProps> = ({
+const ImportCustomerChannel: React.FC<ImportCustomerChannelProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
@@ -60,7 +60,7 @@ const ImportCustomerType: React.FC<ImportCustomerTypeProps> = ({
 
   const handleDownloadSample = async () => {
     try {
-      await downloadTemplateMutation.mutateAsync('customer_type');
+      await downloadTemplateMutation.mutateAsync('customer_channel');
     } catch (error) {
       console.error('Failed to download template:', error);
     }
@@ -85,7 +85,7 @@ const ImportCustomerType: React.FC<ImportCustomerTypeProps> = ({
 
     try {
       await importDataMutation.mutateAsync({
-        tableName: 'customer_type',
+        tableName: 'customer_channel',
         file: uploadedFile,
         options: {
           batchSize: 100,
@@ -113,13 +113,13 @@ const ImportCustomerType: React.FC<ImportCustomerTypeProps> = ({
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
-      title="Import Customer Types"
+      title="Import Outlet Channels"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">
             <Typography variant="body2">
-              Upload an Excel file to import multiple customer types. Download
+              Upload an Excel file to import multiple outlet channels. Download
               the sample file to see the required format.
             </Typography>
           </Alert>
@@ -340,4 +340,4 @@ const ImportCustomerType: React.FC<ImportCustomerTypeProps> = ({
   );
 };
 
-export default ImportCustomerType;
+export default ImportCustomerChannel;
