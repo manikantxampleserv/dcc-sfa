@@ -1,7 +1,6 @@
-import { ImportExportService } from '../base/import-export.service';
-import { ColumnDefinition } from '../../../types/import-export.types';
-import { Prisma } from '@prisma/client';
 import prisma from '../../../configs/prisma.client';
+import { ColumnDefinition } from '../../../types/import-export.types';
+import { ImportExportService } from '../base/import-export.service';
 
 export class OutletTypesImportExportService extends ImportExportService<any> {
   protected modelName = 'customer_type' as const;

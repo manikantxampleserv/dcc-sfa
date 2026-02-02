@@ -122,6 +122,7 @@ export class ImportExportFactory {
     ['routes', RouteImportExportService],
     ['subunits', SubunitsImportExportService],
     ['outlet_types', OutletTypesImportExportService],
+    ['customer_type', OutletTypesImportExportService],
   ]);
 
   static getService(tableName: string): ImportExportService<any> | null {
