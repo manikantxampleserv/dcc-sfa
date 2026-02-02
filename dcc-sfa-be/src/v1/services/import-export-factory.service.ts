@@ -124,6 +124,7 @@ export class ImportExportFactory {
     ['routes', RouteImportExportService],
     ['subunits', SubunitsImportExportService],
     ['outlet_types', OutletTypesImportExportService],
+    ['customer_type', OutletTypesImportExportService],
     ['outlet_channels', CustomerChannelsImportExportService],
     ['outlet_categories', OutletCategoriesImportExportService],
   ]);

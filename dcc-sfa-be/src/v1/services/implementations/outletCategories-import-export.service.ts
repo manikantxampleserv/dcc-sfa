@@ -165,7 +165,6 @@ export class OutletCategoriesImportExportService extends ImportExportService<any
     data: any,
     tx?: any
   ): Promise<string | null> {
-    // No foreign keys to validate for outlet categories
     return null;
   }
 
