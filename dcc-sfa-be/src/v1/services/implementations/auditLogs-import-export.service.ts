@@ -334,7 +334,6 @@ export class AuditLogsImportExportService extends ImportExportService<any> {
         };
       });
 
-      // Color code actions
       const actionCell = excelRow.getCell('action');
       if (action === 'CREATE') {
         actionCell.font = { color: { argb: 'FF008000' }, bold: true };
@@ -343,12 +342,8 @@ export class AuditLogsImportExportService extends ImportExportService<any> {
       } else if (action === 'DELETE') {
         actionCell.font = { color: { argb: 'FFFF0000' }, bold: true };
       }
-
-      // Keep changed_data as raw data (no JSON formatting)
-      // The data will display exactly as it appears in the frontend
     });
 
-    // Add auto filter
     if (data.length > 0) {
       worksheet.autoFilter = {
         from: 'A1',
@@ -356,10 +351,8 @@ export class AuditLogsImportExportService extends ImportExportService<any> {
       };
     }
 
-    // Freeze header row
     worksheet.views = [{ state: 'frozen', ySplit: 1 }];
 
-    // Create summary sheet
     const summarySheet = workbook.addWorksheet('Summary');
     summarySheet.columns = [
       { header: 'Metric', key: 'metric', width: 35 },
@@ -374,7 +367,6 @@ export class AuditLogsImportExportService extends ImportExportService<any> {
       fgColor: { argb: 'FF4472C4' },
     };
 
-    // Summary statistics
     summarySheet.addRow({
       metric: 'Total Audit Logs',
       value: totalLogs,
@@ -393,7 +385,6 @@ export class AuditLogsImportExportService extends ImportExportService<any> {
     });
     summarySheet.addRow({ metric: '', value: '' });
 
-    // Action breakdown
     summarySheet.addRow({ metric: 'Action Breakdown', value: '' });
     Object.keys(actionCount)
       .sort()
@@ -419,7 +410,7 @@ export class AuditLogsImportExportService extends ImportExportService<any> {
     summarySheet.addRow({ metric: 'User Activity', value: '' });
     Object.keys(userCount)
       .sort((a, b) => userCount[b] - userCount[a])
-      .slice(0, 10) // Top 10 users
+      .slice(0, 10)
       .forEach(userId => {
         const user = data.find(
           (audit: any) => audit.changed_by === parseInt(userId)
