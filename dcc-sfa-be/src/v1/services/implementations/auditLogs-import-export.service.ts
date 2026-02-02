@@ -1,4 +1,3 @@
-import prisma from '../../../configs/prisma.client';
 import { ColumnDefinition } from '../../../types/import-export.types';
 import { ImportExportService } from '../base/import-export.service';
 
