@@ -178,6 +178,15 @@ const serializeVanInventory = (item) => {
                 : null,
             tracking_type: trackingType,
             serial_number: serials.length > 0 ? serials.map((sn) => sn.serial_number) : null,
+            tax_details: product?.product_tax_master
+                ? {
+                    id: product.product_tax_master.id,
+                    name: product.product_tax_master.name,
+                    code: product.product_tax_master.code,
+                    tax_rate: Number(product.product_tax_master.tax_rate),
+                    description: product.product_tax_master.description,
+                }
+                : null,
             product_serials: productSerials.length > 0 ? productSerials : null,
             product_batches: productBatches.length > 0 ? productBatches : null,
         };
@@ -553,7 +562,21 @@ exports.vanInventoryController = {
                 },
                 include: {
                     van_inventory_items_products: {
-                        select: { id: true, name: true, code: true, tracking_type: true },
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            tracking_type: true,
+                            product_tax_master: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    tax_rate: true,
+                                    description: true,
+                                },
+                            },
+                        },
                     },
                     van_inventory_items_batch_lot: {
                         select: {
@@ -584,6 +607,15 @@ exports.vanInventoryController = {
                 total_amount: Number(it.total_amount || 0),
                 notes: it.notes || null,
                 batch_lot_id: it.batch_lot_id || null,
+                tax_details: it.van_inventory_items_products?.product_tax_master
+                    ? {
+                        id: it.van_inventory_items_products.product_tax_master.id,
+                        name: it.van_inventory_items_products.product_tax_master.name,
+                        code: it.van_inventory_items_products.product_tax_master.code,
+                        tax_rate: Number(it.van_inventory_items_products.product_tax_master.tax_rate),
+                        description: it.van_inventory_items_products.product_tax_master.description,
+                    }
+                    : null,
                 batch: it.van_inventory_items_batch_lot
                     ? {
                         id: it.van_inventory_items_batch_lot.id,
@@ -649,6 +681,15 @@ exports.vanInventoryController = {
                             code: true,
                             base_price: true,
                             tracking_type: true,
+                            product_tax_master: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    tax_rate: true,
+                                    description: true,
+                                },
+                            },
                         },
                     },
                 },
@@ -667,6 +708,15 @@ exports.vanInventoryController = {
                             unit_price: Number(p.base_price || 0),
                             product_id: p.id,
                             tracking_type: p.tracking_type || null,
+                            tax_details: p.product_tax_master
+                                ? {
+                                    id: p.product_tax_master.id,
+                                    name: p.product_tax_master.name,
+                                    code: p.product_tax_master.code,
+                                    tax_rate: Number(p.product_tax_master.tax_rate),
+                                    description: p.product_tax_master.description,
+                                }
+                                : null,
                         });
                     }
                 }
@@ -2284,6 +2334,7 @@ exports.vanInventoryController = {
                                                 serial_numbers_customers: true,
                                             },
                                         },
+                                        product_tax_master: true,
                                     },
                                 },
                                 van_inventory_items_batch_lot: true,
@@ -2370,6 +2421,7 @@ exports.vanInventoryController = {
                                             batch_lot_product_batches: true,
                                         },
                                     },
+                                    product_tax_master: true,
                                 },
                             },
                         },
@@ -2430,6 +2482,7 @@ exports.vanInventoryController = {
                                             serial_numbers_customers: true,
                                         },
                                     },
+                                    product_tax_master: true,
                                 },
                             },
                         },
@@ -2623,6 +2676,7 @@ exports.vanInventoryController = {
                     van_inventory_items_products: {
                         include: {
                             product_unit_of_measurement: true,
+                            product_tax_master: true,
                         },
                     },
                 },
@@ -2671,7 +2725,11 @@ exports.vanInventoryController = {
                     notes: data.notes !== undefined ? data.notes : undefined,
                 },
                 include: {
-                    van_inventory_items_products: true,
+                    van_inventory_items_products: {
+                        include: {
+                            product_tax_master: true,
+                        },
+                    },
                 },
             });
             res.json({
@@ -3648,6 +3706,15 @@ exports.vanInventoryController = {
                                 batches: [],
                                 serials: [],
                                 van_inventories: [],
+                                tax_details: product?.product_tax_master
+                                    ? {
+                                        id: product.product_tax_master.id,
+                                        name: product.product_tax_master.name,
+                                        code: product.product_tax_master.code,
+                                        tax_rate: Number(product.product_tax_master.tax_rate),
+                                        description: product.product_tax_master.description,
+                                    }
+                                    : null,
                             });
                         }
                         const productData = products.get(productId);
@@ -3782,6 +3849,15 @@ exports.vanInventoryController = {
                                             name: true,
                                             code: true,
                                             tracking_type: true,
+                                            product_tax_master: {
+                                                select: {
+                                                    id: true,
+                                                    name: true,
+                                                    code: true,
+                                                    tax_rate: true,
+                                                    description: true,
+                                                },
+                                            },
                                             serial_numbers_products: {
                                                 where: {
                                                     is_active: 'Y',
@@ -4186,6 +4262,15 @@ exports.vanInventoryController = {
                                 quantity: 0,
                                 batches: [],
                                 serials: [],
+                                tax_details: product?.product_tax_master
+                                    ? {
+                                        id: product.product_tax_master.id,
+                                        name: product.product_tax_master.name,
+                                        code: product.product_tax_master.code,
+                                        tax_rate: Number(product.product_tax_master.tax_rate),
+                                        description: product.product_tax_master.description,
+                                    }
+                                    : null,
                             });
                         }
                         const productData = products.get(productId);
@@ -4319,6 +4404,15 @@ exports.vanInventoryController = {
                                             name: true,
                                             code: true,
                                             tracking_type: true,
+                                            product_tax_master: {
+                                                select: {
+                                                    id: true,
+                                                    name: true,
+                                                    code: true,
+                                                    tax_rate: true,
+                                                    description: true,
+                                                },
+                                            },
                                             serial_numbers_products: {
                                                 where: {
                                                     is_active: 'Y',

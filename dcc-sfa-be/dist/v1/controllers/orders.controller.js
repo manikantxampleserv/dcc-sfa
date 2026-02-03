@@ -1562,10 +1562,34 @@ exports.ordersController = {
                 },
                 include: {
                     orders_currencies: true,
-                    orders_customers: true,
+                    orders_customers: {
+                        include: {
+                            customer_routes: true,
+                        },
+                    },
                     orders_salesperson_users: true,
-                    order_items: true,
+                    order_items: {
+                        include: {
+                            products: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    tracking_type: true,
+                                },
+                            },
+                        },
+                    },
                     invoices: true,
+                    orders_promotion: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            type: true,
+                            description: true,
+                        },
+                    },
                 },
             });
             const workflow = await prisma_client_1.default.approval_workflows.findFirst({
@@ -1612,7 +1636,27 @@ exports.ordersController = {
             return res.json({
                 success: true,
                 message: `Order ${action === 'A' ? 'A' : 'R'} successfully`,
-                data: serializeOrder(updatedOrder),
+                data: (() => {
+                    const serialized = serializeOrder(updatedOrder);
+                    if (updatedOrder.promotion_id && updatedOrder.orders_promotion) {
+                        serialized.promotion_applied = {
+                            promotion_id: updatedOrder.orders_promotion.id,
+                            promotion_name: updatedOrder.orders_promotion.name,
+                            promotion_code: updatedOrder.orders_promotion.code,
+                            discount_amount: updatedOrder.discount_amount
+                                ? Number(updatedOrder.discount_amount)
+                                : 0,
+                            free_products: updatedOrder.order_items
+                                ?.filter((item) => item.is_free_gift === true)
+                                .map((item) => ({
+                                product_id: item.product_id,
+                                product_name: item.product_name,
+                                quantity: item.quantity,
+                            })) || [],
+                        };
+                    }
+                    return serialized;
+                })(),
             });
         }
         catch (error) {
@@ -1869,7 +1913,11 @@ exports.ordersController = {
                 where: { id: Number(id) },
                 include: {
                     orders_currencies: true,
-                    orders_customers: true,
+                    orders_customers: {
+                        include: {
+                            customer_routes: true,
+                        },
+                    },
                     orders_salesperson_users: true,
                     order_items: {
                         include: {
@@ -1884,13 +1932,40 @@ exports.ordersController = {
                         },
                     },
                     invoices: true,
+                    orders_promotion: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            type: true,
+                            description: true,
+                        },
+                    },
                 },
             });
             if (!order)
                 return res.status(404).json({ message: 'Order not found' });
+            const serialized = serializeOrder(order);
+            if (order.promotion_id && order.orders_promotion) {
+                serialized.promotion_applied = {
+                    promotion_id: order.orders_promotion.id,
+                    promotion_name: order.orders_promotion.name,
+                    promotion_code: order.orders_promotion.code,
+                    discount_amount: order.discount_amount
+                        ? Number(order.discount_amount)
+                        : 0,
+                    free_products: order.order_items
+                        ?.filter((item) => item.is_free_gift === true)
+                        .map((item) => ({
+                        product_id: item.product_id,
+                        product_name: item.product_name,
+                        quantity: item.quantity,
+                    })) || [],
+                };
+            }
             res.json({
                 message: 'Order fetched successfully',
-                data: serializeOrder(order),
+                data: serialized,
             });
         }
         catch (error) {
@@ -1976,10 +2051,34 @@ exports.ordersController = {
                     where: { id: order.id },
                     include: {
                         orders_currencies: true,
-                        orders_customers: true,
+                        orders_customers: {
+                            include: {
+                                customer_routes: true,
+                            },
+                        },
                         orders_salesperson_users: true,
-                        order_items: true,
+                        order_items: {
+                            include: {
+                                products: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        code: true,
+                                        tracking_type: true,
+                                    },
+                                },
+                            },
+                        },
                         invoices: true,
+                        orders_promotion: {
+                            select: {
+                                id: true,
+                                name: true,
+                                code: true,
+                                type: true,
+                                description: true,
+                            },
+                        },
                     },
                 });
                 return finalOrder;
@@ -2095,7 +2194,27 @@ exports.ordersController = {
             }
             res.json({
                 message: 'Order updated successfully',
-                data: serializeOrder(result),
+                data: (() => {
+                    const serialized = serializeOrder(result);
+                    if (result?.promotion_id && result?.orders_promotion) {
+                        serialized.promotion_applied = {
+                            promotion_id: result.orders_promotion.id,
+                            promotion_name: result.orders_promotion.name,
+                            promotion_code: result.orders_promotion.code,
+                            discount_amount: result.discount_amount
+                                ? Number(result.discount_amount)
+                                : 0,
+                            free_products: result.order_items
+                                ?.filter((item) => item.is_free_gift === true)
+                                .map((item) => ({
+                                product_id: item.product_id,
+                                product_name: item.product_name,
+                                quantity: item.quantity,
+                            })) || [],
+                        };
+                    }
+                    return serialized;
+                })(),
             });
         }
         catch (error) {
