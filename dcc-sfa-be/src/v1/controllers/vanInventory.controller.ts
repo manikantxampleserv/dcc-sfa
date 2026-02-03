@@ -29,6 +29,13 @@ interface VanInventoryItemSerialized {
   batch_total_remaining_quantity?: number | null;
   tracking_type?: string | null;
   serial_number?: string[] | null;
+  tax_details?: {
+    id: number;
+    name: string;
+    code: string;
+    tax_rate: number;
+    description?: string | null;
+  } | null;
   product_serials?: Array<{
     id: number;
     serial_number: string;
@@ -276,6 +283,15 @@ const serializeVanInventory = (item: any): VanInventorySerialized => {
       tracking_type: trackingType,
       serial_number:
         serials.length > 0 ? serials.map((sn: any) => sn.serial_number) : null,
+      tax_details: product?.product_tax_master
+        ? {
+            id: product.product_tax_master.id,
+            name: product.product_tax_master.name,
+            code: product.product_tax_master.code,
+            tax_rate: Number(product.product_tax_master.tax_rate),
+            description: product.product_tax_master.description,
+          }
+        : null,
       product_serials: productSerials.length > 0 ? productSerials : null,
       product_batches: productBatches.length > 0 ? productBatches : null,
     };
@@ -774,7 +790,21 @@ export const vanInventoryController = {
         },
         include: {
           van_inventory_items_products: {
-            select: { id: true, name: true, code: true, tracking_type: true },
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              tracking_type: true,
+              product_tax_master: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  tax_rate: true,
+                  description: true,
+                },
+              },
+            },
           },
           van_inventory_items_batch_lot: {
             select: {
@@ -806,6 +836,18 @@ export const vanInventoryController = {
         total_amount: Number(it.total_amount || 0),
         notes: it.notes || null,
         batch_lot_id: it.batch_lot_id || null,
+        tax_details: it.van_inventory_items_products?.product_tax_master
+          ? {
+              id: it.van_inventory_items_products.product_tax_master.id,
+              name: it.van_inventory_items_products.product_tax_master.name,
+              code: it.van_inventory_items_products.product_tax_master.code,
+              tax_rate: Number(
+                it.van_inventory_items_products.product_tax_master.tax_rate
+              ),
+              description:
+                it.van_inventory_items_products.product_tax_master.description,
+            }
+          : null,
         batch: it.van_inventory_items_batch_lot
           ? {
               id: it.van_inventory_items_batch_lot.id,
@@ -871,6 +913,15 @@ export const vanInventoryController = {
               code: true,
               base_price: true,
               tracking_type: true,
+              product_tax_master: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  tax_rate: true,
+                  description: true,
+                },
+              },
             },
           },
         },
@@ -884,6 +935,13 @@ export const vanInventoryController = {
           unit_price: number;
           product_id: number;
           tracking_type: string | null;
+          tax_details?: {
+            id: number;
+            name: string;
+            code: string;
+            tax_rate: number;
+            description?: string | null;
+          } | null;
         }
       >();
       items.forEach(it => {
@@ -901,6 +959,15 @@ export const vanInventoryController = {
               unit_price: Number(p.base_price || 0),
               product_id: p.id,
               tracking_type: p.tracking_type || null,
+              tax_details: p.product_tax_master
+                ? {
+                    id: p.product_tax_master.id,
+                    name: p.product_tax_master.name,
+                    code: p.product_tax_master.code,
+                    tax_rate: Number(p.product_tax_master.tax_rate),
+                    description: p.product_tax_master.description,
+                  }
+                : null,
             });
           }
         }
@@ -2799,6 +2866,7 @@ export const vanInventoryController = {
                           serial_numbers_customers: true,
                         },
                       },
+                      product_tax_master: true,
                     },
                   },
                   van_inventory_items_batch_lot: true,
@@ -2895,6 +2963,7 @@ export const vanInventoryController = {
                       batch_lot_product_batches: true,
                     },
                   },
+                  product_tax_master: true,
                 },
               },
             },
@@ -2973,6 +3042,7 @@ export const vanInventoryController = {
                       serial_numbers_customers: true,
                     },
                   },
+                  product_tax_master: true,
                 },
               },
             },
@@ -3188,6 +3258,7 @@ export const vanInventoryController = {
           van_inventory_items_products: {
             include: {
               product_unit_of_measurement: true,
+              product_tax_master: true,
             },
           },
         },
@@ -3243,7 +3314,11 @@ export const vanInventoryController = {
           notes: data.notes !== undefined ? data.notes : undefined,
         },
         include: {
-          van_inventory_items_products: true,
+          van_inventory_items_products: {
+            include: {
+              product_tax_master: true,
+            },
+          },
         },
       });
 
@@ -4359,6 +4434,15 @@ export const vanInventoryController = {
                 batches: [],
                 serials: [],
                 van_inventories: [],
+                tax_details: product?.product_tax_master
+                  ? {
+                      id: product.product_tax_master.id,
+                      name: product.product_tax_master.name,
+                      code: product.product_tax_master.code,
+                      tax_rate: Number(product.product_tax_master.tax_rate),
+                      description: product.product_tax_master.description,
+                    }
+                  : null,
               });
             }
 
@@ -4515,6 +4599,15 @@ export const vanInventoryController = {
                       name: true,
                       code: true,
                       tracking_type: true,
+                      product_tax_master: {
+                        select: {
+                          id: true,
+                          name: true,
+                          code: true,
+                          tax_rate: true,
+                          description: true,
+                        },
+                      },
                       serial_numbers_products: {
                         where: {
                           is_active: 'Y',
@@ -4982,6 +5075,15 @@ export const vanInventoryController = {
                   quantity: 0,
                   batches: [],
                   serials: [],
+                  tax_details: product?.product_tax_master
+                    ? {
+                        id: product.product_tax_master.id,
+                        name: product.product_tax_master.name,
+                        code: product.product_tax_master.code,
+                        tax_rate: Number(product.product_tax_master.tax_rate),
+                        description: product.product_tax_master.description,
+                      }
+                    : null,
                 });
               }
 
@@ -5131,6 +5233,15 @@ export const vanInventoryController = {
                       name: true,
                       code: true,
                       tracking_type: true,
+                      product_tax_master: {
+                        select: {
+                          id: true,
+                          name: true,
+                          code: true,
+                          tax_rate: true,
+                          description: true,
+                        },
+                      },
                       serial_numbers_products: {
                         where: {
                           is_active: 'Y',
