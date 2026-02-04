@@ -4544,8 +4544,16 @@ export const vanInventoryController = {
               }
 
               if (serials.length > 0) {
-                productData.serials.push(...serials);
-                totalSerials += serials.length;
+                serials.forEach((serial: any) => {
+                  if (
+                    !productData.serials.find(
+                      (existing: any) => existing.serial_id === serial.serial_id
+                    )
+                  ) {
+                    productData.serials.push(serial);
+                    totalSerials++;
+                  }
+                });
               }
             }
 
