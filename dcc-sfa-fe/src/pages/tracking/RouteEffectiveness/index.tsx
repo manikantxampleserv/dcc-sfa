@@ -2,7 +2,6 @@ import { Box, Chip, MenuItem } from '@mui/material';
 import { useDepots } from 'hooks/useDepots';
 import { useRouteEffectiveness } from 'hooks/useGPSTracking';
 import { usePermission } from 'hooks/usePermission';
-import { useUsers } from 'hooks/useUsers';
 import {
   Activity,
   AlertCircle,
@@ -17,6 +16,7 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import UserSelect from 'shared/UserSelect';
 
 const RouteEffectiveness: React.FC = () => {
   const [startDate, setStartDate] = useState('');
@@ -39,10 +39,8 @@ const RouteEffectiveness: React.FC = () => {
     }
   );
 
-  const { data: usersData } = useUsers();
-  const { data: depotsData } = useDepots();
+  const { data: depotsData } = useDepots({ isActive: 'Y' });
 
-  const users = usersData?.data || [];
   const depots = depotsData?.data || [];
 
   const summary = reportData?.summary || {
@@ -176,25 +174,13 @@ const RouteEffectiveness: React.FC = () => {
                 label="End Date"
               />
             </div>
-            <Select
-              label="Salesperson"
+
+            <UserSelect
+              label="Sales Person"
               value={salespersonId?.toString() || 'all'}
-              onChange={e =>
-                setSalespersonId(
-                  e.target.value && e.target.value !== 'all'
-                    ? parseInt(e.target.value)
-                    : undefined
-                )
-              }
-              disableClearable
-            >
-              <MenuItem value="all">All Salespersons</MenuItem>
-              {users.map((user: any) => (
-                <MenuItem key={user.id} value={user.id.toString()}>
-                  {user.name}
-                </MenuItem>
-              ))}
-            </Select>
+              setValue={setSalespersonId}
+            />
+
             <Select
               label="Depot"
               value={depotId?.toString() || 'all'}
@@ -335,16 +321,6 @@ const RouteEffectiveness: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {isRead && routes.length === 0 && !isLoading && (
-        <div className="col-span-full text-center py-12">
-          <Navigation className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">No route data available</p>
-          <p className="text-gray-400 text-sm mt-2">
-            Please adjust your filters to view route performance metrics
-          </p>
         </div>
       )}
     </div>

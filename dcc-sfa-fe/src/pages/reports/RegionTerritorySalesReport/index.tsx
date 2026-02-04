@@ -39,8 +39,8 @@ const RegionTerritorySalesReport: React.FC = () => {
     }
   );
 
-  const { data: depotsData } = useDepots();
-  const { data: zonesData } = useZones();
+  const { data: depotsData } = useDepots({ limit: 1000, isActive: 'Y' });
+  const { data: zonesData } = useZones({ limit: 1000, isActive: 'Y' });
 
   const depots = depotsData?.data || [];
   const zones = zonesData?.data || [];

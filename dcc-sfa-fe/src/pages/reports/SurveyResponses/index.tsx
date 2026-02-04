@@ -7,13 +7,13 @@ import {
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
-import { useSurveys } from 'hooks/useSurveys';
 import {
   useDeleteSurveyResponse,
   useSurveyResponses,
   type SurveyResponse,
 } from 'hooks/useSurveyResponses';
-import { BarChart3, Calendar, FileText, MapPin, User } from 'lucide-react';
+import { useSurveys } from 'hooks/useSurveys';
+import { BarChart3, Calendar, FileText, MapPin } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton } from 'shared/ActionButton';
@@ -21,6 +21,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 
@@ -126,7 +127,7 @@ const SurveyResponses: React.FC = () => {
           </Avatar>
           <Box>
             <Typography
-              variant="body1"
+              variant="body2"
               className="!text-gray-900 !leading-tight !font-semibold"
             >
               {row.survey?.name || `Survey #${row.parent_id}`}
@@ -164,29 +165,25 @@ const SurveyResponses: React.FC = () => {
           );
         }
         return (
-          <Box className="flex items-center gap-2">
-            <User className="w-4 h-4 text-gray-400" />
+          <Box className="!flex !gap-2 !items-center">
+            <Avatar
+              alt={customer.name || 'Survey'}
+              src="mkx"
+              className="!rounded !bg-primary-100 !text-primary-500"
+            />
             <Box>
               <Typography
                 variant="body2"
-                className="!font-semibold !text-gray-900"
+                className="!leading-tight !font-semibold"
               >
                 {customer.name}
               </Typography>
               {customer.code && (
                 <Typography
                   variant="caption"
-                  className="!text-gray-500 !text-xs"
+                  className="!text-gray-500 !text-xs !block !mt-0.5"
                 >
                   {customer.code}
-                </Typography>
-              )}
-              {customer.email && (
-                <Typography
-                  variant="caption"
-                  className="!text-gray-500 !text-xs !block"
-                >
-                  {customer.email}
                 </Typography>
               )}
             </Box>
@@ -198,17 +195,24 @@ const SurveyResponses: React.FC = () => {
       id: 'submitted_user',
       label: 'Submitted By',
       render: (_value, row) => (
-        <Box className="flex items-center gap-2">
-          <User className="w-4 h-4 text-gray-400" />
+        <Box className="!flex !gap-2 !items-center">
+          <Avatar
+            alt={row.submitted_user?.name || 'Survey'}
+            src="mkx"
+            className="!rounded !bg-primary-100 !text-primary-500"
+          />
           <Box>
             <Typography
               variant="body2"
-              className="!font-semibold !text-gray-900"
+              className="!text-gray-900 !leading-tight !font-semibold"
             >
-              {row.submitted_user?.name || `User #${row.submitted_by}`}
+              {row.submitted_user?.name}
             </Typography>
-            {row.submitted_user?.email && (
-              <Typography variant="caption" className="!text-gray-500 !text-xs">
+            {row?.submitted_user?.email && (
+              <Typography
+                variant="caption"
+                className="!text-gray-500 !text-xs !block !mt-0.5"
+              >
                 {row.submitted_user.email}
               </Typography>
             )}
@@ -313,77 +317,38 @@ const SurveyResponses: React.FC = () => {
       </Box>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-primary-500">
-                Total Responses
-              </p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-primary-500">
-                  {totalResponses}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <FileText className="w-6 h-6 text-primary-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-500">Active</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-green-500">
-                  {activeResponses}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-500">Inactive</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-red-500">
-                  {inactiveResponses}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <FileText className="w-6 h-6 text-red-500" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-teal-600">This Month</p>
-              {isLoading ? (
-                <div className="h-7 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
-              ) : (
-                <p className="text-2xl font-bold text-teal-600">
-                  {responsesThisMonth}
-                </p>
-              )}
-            </div>
-            <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-teal-600" />
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <StatsCard
+          title="Total Responses"
+          value={totalResponses}
+          icon={<FileText className="w-6 h-6" />}
+          color="blue"
+          isLoading={isLoading}
+        />
+
+        <StatsCard
+          title="Active"
+          value={activeResponses}
+          icon={<CheckCircle className="w-6 h-6" />}
+          color="green"
+          isLoading={isLoading}
+        />
+
+        <StatsCard
+          title="Inactive"
+          value={inactiveResponses}
+          icon={<FileText className="w-6 h-6" />}
+          color="red"
+          isLoading={isLoading}
+        />
+
+        <StatsCard
+          title="This Month"
+          value={responsesThisMonth}
+          icon={<Calendar className="w-6 h-6" />}
+          color="teal"
+          isLoading={isLoading}
+        />
       </div>
 
       {error && (

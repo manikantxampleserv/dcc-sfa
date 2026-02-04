@@ -1,9 +1,7 @@
 import { Chip, MenuItem, Skeleton, Tooltip, Typography } from '@mui/material';
 import { useAuditLogs } from 'hooks/useAuditLogs';
 import { usePermission } from 'hooks/usePermission';
-import { useUsers } from 'hooks/useUsers';
 import {
-  AlertCircle,
   Database,
   Download,
   FileText,
@@ -14,10 +12,12 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import Button from 'shared/Button';
-import Input from 'shared/Input';
 import { PopConfirm } from 'shared/DeleteConfirmation';
+import Input from 'shared/Input';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import UserSelect from 'shared/UserSelect';
 import { formatDateTime } from 'utils/dateUtils';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 
@@ -43,9 +43,6 @@ const ActivityLogs: React.FC = () => {
       enabled: isRead,
     }
   );
-
-  const { data: usersData } = useUsers();
-  const users = usersData?.data || [];
 
   const exportToExcelMutation = useExportToExcel();
 
@@ -284,19 +281,11 @@ const ActivityLogs: React.FC = () => {
               <MenuItem value="UPDATE">Update</MenuItem>
               <MenuItem value="DELETE">Delete</MenuItem>
             </Select>
-            <Select
+            <UserSelect
               label="User"
               value={userId || 'all'}
-              onChange={e => setUserId(e.target.value ? e.target.value : 'all')}
-              disableClearable
-            >
-              <MenuItem value="all">All Users</MenuItem>
-              {users.map((user: any) => (
-                <MenuItem key={user.id} value={user.id.toString()}>
-                  {user.name}
-                </MenuItem>
-              ))}
-            </Select>
+              setValue={setUserId}
+            />
           </div>
         </div>
       )}
@@ -306,61 +295,33 @@ const ActivityLogs: React.FC = () => {
         <SummaryStatsSkeleton />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Total Logs</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {statistics.total_logs}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <History className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
+          <StatsCard
+            title="Total Logs"
+            value={statistics.total_logs}
+            icon={<History className="w-6 h-6" />}
+            color="blue"
+          />
 
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Created</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {statistics.by_action.CREATE}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <FileText className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
+          <StatsCard
+            title="Created"
+            value={statistics.by_action.CREATE}
+            icon={<FileText className="w-6 h-6" />}
+            color="green"
+          />
 
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Updated</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {statistics.by_action.UPDATE}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Shuffle className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
+          <StatsCard
+            title="Updated"
+            value={statistics.by_action.UPDATE}
+            icon={<Shuffle className="w-6 h-6" />}
+            color="blue"
+          />
 
-          <div className="bg-white shadow-sm p-6 rounded-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Deleted</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {statistics.by_action.DELETE}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-          </div>
+          <StatsCard
+            title="Deleted"
+            value={statistics.by_action.DELETE}
+            icon={<Trash2 className="w-6 h-6" />}
+            color="red"
+          />
         </div>
       )}
 
@@ -377,16 +338,6 @@ const ActivityLogs: React.FC = () => {
         onPageChange={(newPage: number) => setPage(newPage + 1)}
         isPermission={isRead}
       />
-
-      {logs.length === 0 && !isLoading && (
-        <div className="text-center py-12">
-          <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">No audit logs found</p>
-          <p className="text-gray-400 text-sm mt-2">
-            Please adjust your filters to view audit logs
-          </p>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,15 +1,15 @@
-import { Box, Chip, MenuItem } from '@mui/material';
+import { Box, Chip } from '@mui/material';
 import { useCurrency } from 'hooks/useCurrency';
-import { useCustomers } from 'hooks/useCustomers';
 import { usePermission } from 'hooks/usePermission';
 import { useCompetitorAnalysisReport } from 'hooks/useReports';
 import { AlertCircle, Download, Eye, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { exportCompetitorAnalysisReport } from 'services/reports/competitorAnalysis';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 
 const CompetitorAnalysisReport: React.FC = () => {
@@ -31,10 +31,6 @@ const CompetitorAnalysisReport: React.FC = () => {
       enabled: isRead,
     }
   );
-
-  const { data: customersData } = useCustomers();
-
-  const customers = customersData?.data || [];
 
   const summary = reportData?.summary || {
     total_observations: 0,
@@ -225,25 +221,13 @@ const CompetitorAnalysisReport: React.FC = () => {
             value={endDate}
             setValue={setEndDate}
           />
-          <Select
+
+          <CustomerSelect
+            name="customer_id"
             label="Customer"
             value={customerId?.toString() || 'all'}
-            onChange={e =>
-              setCustomerId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
-            }
-            disableClearable
-          >
-            <MenuItem value="all">All Customers</MenuItem>
-            {customers.map((customer: any) => (
-              <MenuItem key={customer.id} value={customer.id.toString()}>
-                {customer.name}
-              </MenuItem>
-            ))}
-          </Select>
+            setValue={setCustomerId}
+          />
           <Input
             label="Brand Name"
             value={brandName}
@@ -254,65 +238,33 @@ const CompetitorAnalysisReport: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Observations
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_observations}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Eye className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Observations"
+          value={summary.total_observations}
+          icon={<Eye className="w-6 h-6" />}
+          color="blue"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Unique Brands</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.unique_brands}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Unique Brands"
+          value={summary.unique_brands}
+          icon={<AlertCircle className="w-6 h-6" />}
+          color="orange"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Customers</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.unique_customers}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Customers"
+          value={summary.unique_customers}
+          icon={<TrendingUp className="w-6 h-6" />}
+          color="purple"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Avg Visibility
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.avg_visibility_score.toFixed(1)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Avg Visibility"
+          value={summary.avg_visibility_score.toFixed(1)}
+          icon={<TrendingUp className="w-6 h-6" />}
+          color="green"
+        />
       </div>
 
       <Table

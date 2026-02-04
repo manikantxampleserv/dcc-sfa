@@ -43,7 +43,7 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
       type: selectedVehicle?.type || '',
       make: selectedVehicle?.make || '',
       model: selectedVehicle?.model || '',
-      year: selectedVehicle?.year || '',
+      year: selectedVehicle?.year ? selectedVehicle.year.toString() : '',
       capacity: selectedVehicle?.capacity || '',
       fuel_type: selectedVehicle?.fuel_type || '',
       status: selectedVehicle?.status || 'available',
@@ -59,9 +59,7 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
           type: values.type,
           make: values.make,
           model: values.model,
-          year: values.year
-            ? Number((values.year as string)?.slice(0, 4))
-            : undefined,
+          year: values.year ? Number(values.year) : undefined,
           capacity: values.capacity ? Number(values.capacity) : undefined,
           fuel_type: values.fuel_type,
           status: values.status,

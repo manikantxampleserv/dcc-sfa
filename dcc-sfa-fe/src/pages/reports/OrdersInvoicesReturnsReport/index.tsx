@@ -64,8 +64,6 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
     return_rate: 0,
   };
 
-  console.log(startDate, endDate, customerId, status);
-
   const handleExportToExcel = useCallback(async () => {
     try {
       await exportOrdersInvoicesReturnsReport({

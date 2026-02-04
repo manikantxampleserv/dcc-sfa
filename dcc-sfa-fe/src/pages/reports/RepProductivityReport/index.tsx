@@ -4,7 +4,6 @@ import { useCurrency } from 'hooks/useCurrency';
 import { useDepots } from 'hooks/useDepots';
 import { usePermission } from 'hooks/usePermission';
 import { useRepProductivityReport } from 'hooks/useReports';
-import { useUsers } from 'hooks/useUsers';
 import {
   Activity,
   Calendar,
@@ -19,7 +18,9 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import UserSelect from 'shared/UserSelect';
 
 const RepProductivityReport: React.FC = () => {
   const [startDate, setStartDate] = useState('');
@@ -43,10 +44,8 @@ const RepProductivityReport: React.FC = () => {
     }
   );
 
-  const { data: usersData } = useUsers();
-  const { data: depotsData } = useDepots();
+  const { data: depotsData } = useDepots({ limit: 1000, isActive: 'Y' });
 
-  const users = usersData?.data || [];
   const depots = depotsData?.data || [];
 
   const summary = reportData?.summary || {
@@ -57,6 +56,8 @@ const RepProductivityReport: React.FC = () => {
     total_order_value: 0,
     total_collection: 0,
   };
+
+  console.log(salespersonId);
 
   const reps = reportData?.data?.reps || [];
 
@@ -191,25 +192,12 @@ const RepProductivityReport: React.FC = () => {
             value={endDate}
             onChange={e => setEndDate(e.target.value)}
           />
-          <Select
+          <UserSelect
             label="Sales Rep"
             value={salespersonId?.toString() || 'all'}
-            onChange={e =>
-              setSalespersonId(
-                e.target.value && e.target.value !== 'all'
-                  ? parseInt(e.target.value)
-                  : undefined
-              )
-            }
-            disableClearable
-          >
-            <MenuItem value="all">All Reps</MenuItem>
-            {users.map((user: any) => (
-              <MenuItem key={user.id} value={user.id.toString()}>
-                {user.name}
-              </MenuItem>
-            ))}
-          </Select>
+            setValue={setSalespersonId}
+          />
+
           <Select
             label="Depot"
             value={depotId?.toString() || 'all'}
@@ -233,93 +221,47 @@ const RepProductivityReport: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Reps</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_reps}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Reps"
+          value={summary.total_reps}
+          icon={<User className="w-6 h-6" />}
+          color="blue"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Visits</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_visits}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Visits"
+          value={summary.total_visits}
+          icon={<Calendar className="w-6 h-6" />}
+          color="purple"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Orders</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_orders}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Orders"
+          value={summary.total_orders}
+          icon={<ShoppingCart className="w-6 h-6" />}
+          color="green"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Completed Tasks
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.completed_tasks}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-emerald-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Completed Tasks"
+          value={summary.completed_tasks}
+          icon={<CheckCircle className="w-6 h-6" />}
+          color="emerald"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Order Value</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {formatCurrency(summary.total_order_value)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Order Value"
+          value={formatCurrency(summary.total_order_value)}
+          icon={<TrendingUp className="w-6 h-6" />}
+          color="orange"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-和技术 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Collection
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {formatCurrency(summary.total_collection)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-              <Activity className="w-6 h-6 text-teal-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Collection"
+          value={formatCurrency(summary.total_collection)}
+          icon={<Activity className="w-6 h-6" />}
+          color="teal"
+        />
       </div>
 
       <Table

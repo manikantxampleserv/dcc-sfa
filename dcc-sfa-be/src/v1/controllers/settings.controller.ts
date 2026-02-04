@@ -52,20 +52,6 @@ const serializeSettings = (
         is_base: settings.companies_currencies.is_base,
       }
     : null,
-  users: settings.users
-    ? settings.users.map((u: any) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-      }))
-    : [],
-  depot_companies: settings.depot_companies
-    ? settings.depot_companies.map((d: any) => ({
-        id: d.id,
-        parent_id: d.parent_id,
-        name: d.name,
-      }))
-    : [],
 });
 
 export const settingsController = {
@@ -74,8 +60,6 @@ export const settingsController = {
       const firstCompany = await prisma.companies.findFirst({
         orderBy: { id: 'asc' },
         include: {
-          depot_companies: true,
-          users: true,
           companies_currencies: true,
         },
       });

@@ -18,6 +18,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 
@@ -40,8 +41,8 @@ const PromoEffectivenessReport: React.FC = () => {
     }
   );
 
-  const { data: depotsData } = useDepots();
-  const { data: zonesData } = useZones();
+  const { data: depotsData } = useDepots({ limit: 1000, isActive: 'Y' });
+  const { data: zonesData } = useZones({ limit: 1000, isActive: 'Y' });
 
   const depots = depotsData?.data || [];
   const zones = zonesData?.data || [];
@@ -307,63 +308,33 @@ const PromoEffectivenessReport: React.FC = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Promotions
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_promotions}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Tag className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Promotions"
+          value={summary.total_promotions}
+          icon={<Tag className="w-6 h-6" />}
+          color="purple"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.active_promotions}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Active"
+          value={summary.active_promotions}
+          icon={<CheckCircle className="w-6 h-6" />}
+          color="green"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Upcoming</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.upcoming_promotions}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Clock className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Upcoming"
+          value={summary.upcoming_promotions}
+          icon={<Clock className="w-6 h-6" />}
+          color="blue"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Expired</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.expired_promotions}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <XCircle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Expired"
+          value={summary.expired_promotions}
+          icon={<XCircle className="w-6 h-6" />}
+          color="red"
+        />
       </div>
 
       {/* Promotions Table */}
