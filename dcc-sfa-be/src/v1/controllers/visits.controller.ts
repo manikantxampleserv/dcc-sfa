@@ -2068,21 +2068,17 @@ export const visitsController = {
       }
       await prisma.visits.delete({ where: { id: Number(id) } });
     } catch (error: any) {
-      // catch (error: any) {
-      //   console.log('Delete Visit Error:', error);
-      //   res.status(500).json({ message: error.message });
-      // }
-      {
-        if (error.code === 'P2003') {
-          res
-            .status(500)
-            .json(
-              'This record is connected to other data. Please remove that first.'
-            );
-        } else {
-          res.status(500).json({ message: error.message });
-        }
+      console.error('Delete Zone Error:', error);
+
+      if (error.code === 'P2003') {
+        return res.status(400).json({
+          message: 'Cannot delete Visits. It is referenced by other records.',
+          suggestion:
+            'Please update or delete the dependent records first, or consider setting the visits as inactive instead.',
+        });
       }
+
+      res.status(500).json({ message: error.message });
     }
   },
 
