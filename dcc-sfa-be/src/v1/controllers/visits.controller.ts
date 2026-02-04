@@ -2068,8 +2068,21 @@ export const visitsController = {
       }
       await prisma.visits.delete({ where: { id: Number(id) } });
     } catch (error: any) {
-      console.log('Delete Visit Error:', error);
-      res.status(500).json({ message: error.message });
+      // catch (error: any) {
+      //   console.log('Delete Visit Error:', error);
+      //   res.status(500).json({ message: error.message });
+      // }
+      {
+        if (error.code === 'P2003') {
+          res
+            .status(500)
+            .json(
+              'This record is connected to other data. Please remove that first.'
+            );
+        } else {
+          res.status(500).json({ message: error.message });
+        }
+      }
     }
   },
 
