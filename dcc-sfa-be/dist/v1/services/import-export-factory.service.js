@@ -58,6 +58,9 @@ const role_import_export_service_1 = require("./implementations/role.import-expo
 const route_import_export_service_1 = require("./implementations/route-import-export.service");
 const subunits_import_export_service_1 = require("./implementations/subunits.import-export.service");
 const outletTypes_import_export_service_1 = require("./implementations/outletTypes-import-export.service");
+const customerChannels_import_export_service_1 = require("./implementations/customerChannels-import-export.service");
+const outletCategories_import_export_service_1 = require("./implementations/outletCategories-import-export.service");
+const auditLogs_import_export_service_1 = require("./implementations/auditLogs-import-export.service");
 class ImportExportFactory {
     static services = new Map([
         ['zones', zones_import_export_service_1.ZonesImportExportService],
@@ -119,6 +122,10 @@ class ImportExportFactory {
         ['subunits', subunits_import_export_service_1.SubunitsImportExportService],
         ['outlet_types', outletTypes_import_export_service_1.OutletTypesImportExportService],
         ['customer_type', outletTypes_import_export_service_1.OutletTypesImportExportService],
+        ['outlet_channels', customerChannels_import_export_service_1.CustomerChannelsImportExportService],
+        ['customer_channel', customerChannels_import_export_service_1.CustomerChannelsImportExportService],
+        ['customer_category', outletCategories_import_export_service_1.OutletCategoriesImportExportService],
+        ['audit_logs', auditLogs_import_export_service_1.AuditLogsImportExportService],
     ]);
     static getService(tableName) {
         const ServiceClass = this.services.get(tableName);

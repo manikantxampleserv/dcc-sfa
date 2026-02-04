@@ -5,17 +5,21 @@ import { useUsers } from 'hooks/useUsers';
 import {
   AlertCircle,
   Database,
+  Download,
   FileText,
   History,
   Info,
   Shuffle,
   Trash2,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import Button from 'shared/Button';
 import Input from 'shared/Input';
+import { PopConfirm } from 'shared/DeleteConfirmation';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDateTime } from 'utils/dateUtils';
+import { useExportToExcel } from '../../../hooks/useImportExport';
 
 const ActivityLogs: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -43,6 +47,8 @@ const ActivityLogs: React.FC = () => {
   const { data: usersData } = useUsers();
   const users = usersData?.data || [];
 
+  const exportToExcelMutation = useExportToExcel();
+
   const logs = auditData?.logs || [];
   const statistics = auditData?.statistics || {
     total_logs: 0,
@@ -58,6 +64,24 @@ const ActivityLogs: React.FC = () => {
     total: 0,
     total_pages: 0,
   };
+
+  const handleExportToExcel = useCallback(async () => {
+    try {
+      const filters = {
+        start_date: startDate === '' ? undefined : startDate,
+        end_date: endDate === '' ? undefined : endDate,
+        action: action === 'all' ? undefined : action,
+        user_id: userId === 'all' ? undefined : parseInt(userId as string),
+      };
+
+      await exportToExcelMutation.mutateAsync({
+        tableName: 'audit_logs',
+        filters,
+      });
+    } catch (error) {
+      console.error('Error exporting audit logs:', error);
+    }
+  }, [exportToExcelMutation, startDate, endDate, action, userId]);
 
   const SummaryStatsSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -94,8 +118,8 @@ const ActivityLogs: React.FC = () => {
       label: 'User',
       render: (_value, row) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-            <span className="text-xs font-semibold text-blue-600">
+          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <span className="text-lg text-blue-600">
               {row.user_name?.charAt(0).toUpperCase() || 'U'}
             </span>
           </div>
@@ -206,6 +230,25 @@ const ActivityLogs: React.FC = () => {
             Track and monitor all system activities and changes
           </p>
         </div>
+        {isRead && (
+          <PopConfirm
+            title="Export Audit Logs"
+            description="Are you sure you want to export the current audit logs data to Excel? This will include all filtered results."
+            onConfirm={handleExportToExcel}
+            confirmText="Export"
+            cancelText="Cancel"
+            placement="top"
+          >
+            <Button
+              variant="outlined"
+              className="!capitalize"
+              startIcon={<Download />}
+              disabled={exportToExcelMutation.isPending}
+            >
+              {exportToExcelMutation.isPending ? 'Exporting...' : 'Export'}
+            </Button>
+          </PopConfirm>
+        )}
       </div>
 
       {isRead && (
