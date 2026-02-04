@@ -19,6 +19,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 
@@ -338,101 +339,47 @@ const OutstandingCollectionReport: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Outstanding Amount
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {formatCurrency(summary.total_outstanding_amount)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Outstanding Amount"
+          value={formatCurrency(summary.total_outstanding_amount)}
+          icon={<AlertCircle className="w-6 h-6" />}
+          color="red"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Outstanding Invoices
-              </p>
-              <p className="text-2xl font-bold Subsequently text-gray-900 mt-1">
-                {summary.total_outstanding_invoices}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <Receipt className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Outstanding Invoices"
+          value={summary.total_outstanding_invoices}
+          icon={<Receipt className="w-6 h-6" />}
+          color="orange"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Customers with Outstanding
-              </p>
-              <p className="text-2phansxl font-bold text-gray-900 mt-1">
-                {summary.total_customers_with_outstanding}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Customers with Outstanding"
+          value={summary.total_customers_with_outstanding}
+          icon={<Users className="w-6 h-6" />}
+          color="purple"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Collections
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {formatCurrency(summary.total_collections)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Collections"
+          value={formatCurrency(summary.total_collections)}
+          icon={<TrendingUp className="w-6 h-6" />}
+          color="green"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Collection Count
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_collection_count}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <FileText className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Collection Count"
+          value={summary.total_collection_count}
+          icon={<FileText className="w-6 h-6" />}
+          color="blue"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Avg Days Overdue
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.avg_days_overdue.toFixed(1)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Avg Days Overdue"
+          value={summary.avg_days_overdue.toFixed(1)}
+          icon={<Clock className="w-6 h-6" />}
+          color="yellow"
+        />
       </div>
 
       <Table

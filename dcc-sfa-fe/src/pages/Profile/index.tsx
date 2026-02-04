@@ -20,7 +20,6 @@ const Profile: React.FC = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Fetch current user data
   const {
     data: user,
     isLoading: userLoading,
@@ -28,13 +27,12 @@ const Profile: React.FC = () => {
     refetch,
   } = useCurrentUser();
 
-  // Update profile mutation
   const updateProfileMutation = useUpdateUserProfile({
     onSuccess: () => {
       setIsEditing(false);
       setUploadedFile(null);
       setPreviewUrl(null);
-      refetch(); // Refresh user data
+      refetch();
     },
   });
 
@@ -78,7 +76,6 @@ const Profile: React.FC = () => {
     const file = event.target.files?.[0];
     if (file) {
       setUploadedFile(file);
-      // Create preview URL
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
     }
@@ -86,7 +83,6 @@ const Profile: React.FC = () => {
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Cancel editing - reset form
       formik.resetForm();
       setUploadedFile(null);
       setPreviewUrl(null);

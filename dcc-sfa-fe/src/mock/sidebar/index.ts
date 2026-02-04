@@ -15,7 +15,6 @@ import {
   MdNotifications,
   MdPayment,
   MdPeople,
-  MdPerson,
   MdReceipt,
   MdRoute,
   MdSettings,
@@ -531,12 +530,12 @@ const menuItems: MenuItem[] = [
     id: 'settings',
     label: 'Settings',
     children: [
-      {
-        id: 'profile',
-        label: 'My Profile',
-        icon: MdPerson,
-        href: '/profile',
-      },
+      // {
+      //   id: 'profile',
+      //   label: 'My Profile',
+      //   icon: MdPerson,
+      //   href: '/profile',
+      // },
       {
         id: 'login-history',
         label: 'Login History',
