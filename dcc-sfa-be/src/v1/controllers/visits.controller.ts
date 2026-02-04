@@ -982,6 +982,23 @@ export const visitsController = {
                           if (item.item_id || (item as any).id) {
                             const itemIdToUpdate =
                               (item as any).id || item.item_id;
+
+                            console.log(
+                              `Attempting to update order item ${itemIdToUpdate} for order ${createdOrder.id}`
+                            );
+
+                            // Check if item exists
+                            const existingItem = await tx.order_items.findFirst(
+                              {
+                                where: { id: itemIdToUpdate },
+                              }
+                            );
+
+                            console.log(`Order item exists: ${!!existingItem}`);
+                            if (existingItem) {
+                              console.log(`Item details:`, existingItem);
+                            }
+
                             await tx.order_items.update({
                               where: { id: itemIdToUpdate },
                               data: itemData,
