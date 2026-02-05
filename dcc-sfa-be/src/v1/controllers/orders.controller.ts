@@ -2029,6 +2029,7 @@ export const ordersController = {
             is_active: orderData.is_active,
             updatedate: new Date(),
             updatedby: userId,
+
             log_inst: { increment: 1 },
           };
 
