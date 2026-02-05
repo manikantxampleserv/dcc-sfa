@@ -48,14 +48,7 @@ const RepLocationTracking: React.FC = () => {
       enabled: isRead,
     });
   const { data: trackingData, isLoading: isLoadingTracking } =
-    useGPSTrackingData(
-      {
-        user_id: undefined,
-      },
-      {
-        enabled: isRead,
-      }
-    );
+    useGPSTrackingData({ user_id: undefined }, { enabled: isRead });
 
   const createGPSLog = useCreateGPSLog();
 

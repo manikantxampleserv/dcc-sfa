@@ -188,22 +188,44 @@ const LocationDetail: React.FC<LocationDetailProps> = ({
           </div>
         </div>
 
-        {/* Map Link Note */}
-        <div
-          className="bg-blue-50 p-4 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors"
-          onClick={() =>
-            onOpenMaps(Number(rep.latitude), Number(rep.longitude))
-          }
-        >
-          <div className="flex items-start gap-3">
-            <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1 text-sm text-blue-800">
-              <p className="font-medium mb-1">Click to Open Google Maps</p>
-              <p className="text-blue-600">
-                Coordinates: {Number(rep.latitude).toFixed(6)},{' '}
-                {Number(rep.longitude).toFixed(6)}
-              </p>
+        {/* Embedded Map */}
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <h4 className="font-semibold text-gray-700">Live Location Map</h4>
             </div>
+          </div>
+          <div className="relative">
+            <iframe
+              src={`https://maps.google.com/maps?q=${Number(rep.latitude)},${Number(rep.longitude)}&z=16&output=embed`}
+              width="100%"
+              height="300"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Location Map"
+              className="w-full"
+            />
+            <div
+              className="absolute bottom-4 right-4 bg-white p-2 rounded-lg shadow-md border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() =>
+                onOpenMaps(Number(rep.latitude), Number(rep.longitude))
+              }
+            >
+              <MapPin className="w-4 h-4 text-blue-600" />
+              <span className="text-xs text-blue-600 ml-1">Open in Maps</span>
+            </div>
+          </div>
+          <div className="p-3 bg-gray-50 text-sm text-gray-600">
+            <p className="flex items-center gap-2">
+              <span className="font-medium">Coordinates:</span>
+              <span className="font-mono text-xs">
+                {Number(rep.latitude).toFixed(6)},{' '}
+                {Number(rep.longitude).toFixed(6)}
+              </span>
+            </p>
           </div>
         </div>
       </div>

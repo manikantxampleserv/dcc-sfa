@@ -50,20 +50,6 @@ const serializeSettings = (settings, includeCreatedAt = false, includeUpdatedAt 
             is_base: settings.companies_currencies.is_base,
         }
         : null,
-    users: settings.users
-        ? settings.users.map((u) => ({
-            id: u.id,
-            name: u.name,
-            email: u.email,
-        }))
-        : [],
-    depot_companies: settings.depot_companies
-        ? settings.depot_companies.map((d) => ({
-            id: d.id,
-            parent_id: d.parent_id,
-            name: d.name,
-        }))
-        : [],
 });
 exports.settingsController = {
     async getAllSettings(req, res) {
@@ -71,8 +57,6 @@ exports.settingsController = {
             const firstCompany = await prisma_client_1.default.companies.findFirst({
                 orderBy: { id: 'asc' },
                 include: {
-                    depot_companies: true,
-                    users: true,
                     companies_currencies: true,
                 },
             });
