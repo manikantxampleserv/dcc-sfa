@@ -60,6 +60,14 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             .filter((rp) => rp.is_active === 'Y' && rp.permission?.is_active === 'Y')
             .map((rp) => rp.permission.name)
         : [],
+    currency: user.companies?.companies_currencies
+        ? {
+            id: user.companies.companies_currencies.id,
+            code: user.companies.companies_currencies.code,
+            name: user.companies.companies_currencies.name,
+            symbol: user.companies.companies_currencies.symbol,
+        }
+        : null,
 });
 exports.userController = {
     async createUser(req, res) {
@@ -507,7 +515,11 @@ exports.userController = {
                             },
                         },
                     },
-                    companies: true,
+                    companies: {
+                        include: {
+                            companies_currencies: true,
+                        },
+                    },
                     user_depot: true,
                     users: {
                         select: {
