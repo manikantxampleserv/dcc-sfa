@@ -2093,88 +2093,34 @@ exports.vanInventoryController = {
                                     const batchQty = parseInt(batchInput.quantity, 10) || 0;
                                     const batchLot = await tx.batch_lots.findFirst({
                                         where: {
-                                            batch_number: batchInput.batch_number,
-                                            is_active: 'Y',
-                                        },
+                                            await: tx.inventory_stock.update({
+                                                where: { id: inventoryStock.id },
+                                                data: {
+                                                    current_stock: (inventoryStock.current_stock || 0) - batchQty,
+                                                    available_stock: (inventoryStock.available_stock || 0) - batchQty,
+                                                    updatedate: new Date(),
+                                                    updatedby: userId,
+                                                },
+                                            })
+                                        }
+                                        //       await createStockMovement(tx, {
+                                        //         product_id: product.id,
+                                        //         batch_id: batchLot.id,
+                                        //         serial_id: null,
+                                        //         movement_type: 'VAN_SOLD',
+                                        //         reference_type: 'VAN_INVENTORY',
+                                        //         reference_id: inventory.id,
+                                        //         from_location_id: null,
+                                        //         to_location_id: null,
+                                        //         quantity: batchQty,
+                                        //         remarks: `Sold from van - Batch ${batchLot.batch_number}`,
+                                        //         van_inventory_id: inventory.id,
+                                        //         createdby: userId,
+                                        //       });
+                                        //     }
+                                        //   } else if (trackingType === 'SERIAL') {
+                                        //     const serialData = item.serials || item.product_serials;
                                     });
-                                    if (!batchLot)
-                                        throw new Error(`Batch ${batchInput.batch_number} not found`);
-                                    const vanItem = await tx.van_inventory_items.findFirst({
-                                        where: {
-                                            product_id: product.id,
-                                            batch_lot_id: batchLot.id,
-                                        },
-                                    });
-                                    if (!vanItem)
-                                        throw new Error(`Batch not found in van`);
-                                    if (vanItem.quantity < batchQty)
-                                        throw new Error(`Insufficient van quantity`);
-                                    await tx.van_inventory_items.update({
-                                        where: { id: vanItem.id },
-                                        data: {
-                                            quantity: vanItem.quantity - batchQty,
-                                            total_amount: (vanItem.quantity - batchQty) *
-                                                Number(vanItem.unit_price || 0),
-                                        },
-                                    });
-                                    await tx.batch_lots.update({
-                                        where: { id: batchLot.id },
-                                        data: {
-                                            remaining_quantity: batchLot.remaining_quantity - batchQty,
-                                            updatedate: new Date(),
-                                        },
-                                    });
-                                    const productBatch = await tx.product_batches.findFirst({
-                                        where: {
-                                            product_id: product.id,
-                                            batch_lot_id: batchLot.id,
-                                            is_active: 'Y',
-                                        },
-                                    });
-                                    if (productBatch) {
-                                        await tx.product_batches.update({
-                                            where: { id: productBatch.id },
-                                            data: {
-                                                quantity: productBatch.quantity - batchQty,
-                                                updatedate: new Date(),
-                                            },
-                                        });
-                                    }
-                                    const inventoryStock = await tx.inventory_stock.findFirst({
-                                        where: {
-                                            product_id: product.id,
-                                            location_id: inventoryData.location_id || 1,
-                                            batch_id: batchLot.id,
-                                        },
-                                    });
-                                    if (inventoryStock) {
-                                        await tx.inventory_stock.update({
-                                            where: { id: inventoryStock.id },
-                                            data: {
-                                                current_stock: (inventoryStock.current_stock || 0) - batchQty,
-                                                available_stock: (inventoryStock.available_stock || 0) - batchQty,
-                                                updatedate: new Date(),
-                                                updatedby: userId,
-                                            },
-                                        });
-                                    }
-                                    //       await createStockMovement(tx, {
-                                    //         product_id: product.id,
-                                    //         batch_id: batchLot.id,
-                                    //         serial_id: null,
-                                    //         movement_type: 'VAN_SOLD',
-                                    //         reference_type: 'VAN_INVENTORY',
-                                    //         reference_id: inventory.id,
-                                    //         from_location_id: null,
-                                    //         to_location_id: null,
-                                    //         quantity: batchQty,
-                                    //         remarks: `Sold from van - Batch ${batchLot.batch_number}`,
-                                    //         van_inventory_id: inventory.id,
-                                    //         createdby: userId,
-                                    //       });
-                                    //     }
-                                    //   } else if (trackingType === 'SERIAL') {
-                                    //     const serialData = item.serials || item.product_serials;
                                 }
                             }
                             else if (trackingType === 'SERIAL') {
@@ -2565,23 +2511,82 @@ exports.vanInventoryController = {
             if (!existing)
                 return res.status(404).json({ message: 'Van inventory not found' });
             await prisma_client_1.default.$transaction(async (tx) => {
-                if (existing.van_inventory_stock_movements?.length > 0) {
-                    await tx.stock_movements.deleteMany({
-                        where: {
-                            van_inventory_id: Number(id),
-                        },
+                console.log(`Deleting van inventory ${id}...`);
+                console.log(`Stock movements to delete: ${existing.van_inventory_stock_movements?.length || 0}`);
+                console.log(`Van inventory items to delete: ${existing.van_inventory_items_inventory?.length || 0}`);
+                try {
+                    if (existing.van_inventory_stock_movements?.length > 0) {
+                        const deletedMovements = await tx.stock_movements.deleteMany({
+                            where: {
+                                van_inventory_id: Number(id),
+                            },
+                        });
+                        console.log(`Deleted ${deletedMovements.count} stock movements`);
+                    }
+                    if (existing.van_inventory_items_inventory?.length > 0) {
+                        // Collect batch and serial IDs to delete from main tables
+                        const batchIdsToDelete = existing.van_inventory_items_inventory
+                            .filter(item => item.batch_lot_id)
+                            .map(item => item.batch_lot_id);
+                        const serialIdsToDelete = existing.van_inventory_items_inventory
+                            .filter(item => item.serial_id)
+                            .map(item => item.serial_id);
+                        // Delete from inventory_stock first
+                        if (batchIdsToDelete.length > 0) {
+                            await tx.inventory_stock.deleteMany({
+                                where: {
+                                    batch_id: { in: batchIdsToDelete },
+                                },
+                            });
+                        }
+                        if (serialIdsToDelete.length > 0) {
+                            await tx.inventory_stock.deleteMany({
+                                where: {
+                                    serial_number_id: { in: serialIdsToDelete },
+                                },
+                            });
+                        }
+                        // Delete van_inventory_items FIRST before deleting batch_lots and serial_numbers
+                        const deletedItems = await tx.van_inventory_items.deleteMany({
+                            where: {
+                                parent_id: Number(id),
+                            },
+                        });
+                        console.log(`Deleted ${deletedItems.count} van inventory items`);
+                        // Now delete batches from batch_lots table if they're only used by this van inventory
+                        if (batchIdsToDelete.length > 0) {
+                            // First delete product_batches that reference these batch_lots
+                            await tx.product_batches.deleteMany({
+                                where: {
+                                    batch_lot_id: { in: batchIdsToDelete },
+                                },
+                            });
+                            // Then delete the batch_lots
+                            await tx.batch_lots.deleteMany({
+                                where: {
+                                    id: { in: batchIdsToDelete },
+                                },
+                            });
+                        }
+                        // Delete serials from serial_numbers table
+                        if (serialIdsToDelete.length > 0) {
+                            await tx.serial_numbers.deleteMany({
+                                where: {
+                                    id: { in: serialIdsToDelete },
+                                },
+                            });
+                        }
+                    }
+                    // Finally delete the van inventory
+                    await tx.van_inventory.delete({
+                        where: { id: Number(id) },
                     });
+                    console.log(`Van inventory ${id} deleted successfully`);
                 }
-                if (existing.van_inventory_items_inventory?.length > 0) {
-                    await tx.van_inventory_items.deleteMany({
-                        where: {
-                            parent_id: Number(id),
-                        },
-                    });
+                catch (txError) {
+                    console.error('Transaction error during deletion:', txError);
+                    throw txError;
                 }
-                await tx.van_inventory.delete({
-                    where: { id: Number(id) },
-                });
             });
             res.json({ message: 'Van inventory deleted successfully' });
         }
