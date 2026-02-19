@@ -257,11 +257,6 @@ const ManageSerial: React.FC<ManageSerialProps> = ({
       return;
     }
 
-    console.log('ManageSerial - Saving load serials:', {
-      selectedRowIndex,
-      serials: productSerials,
-    });
-
     const updatedItems = [...formik.values.van_inventory_items];
     updatedItems[selectedRowIndex] = {
       ...updatedItems[selectedRowIndex],

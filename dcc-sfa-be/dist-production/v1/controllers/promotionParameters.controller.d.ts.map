@@ -1,0 +1,1 @@
+{"version":3,"file":"promotionParameters.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/promotionParameters.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AA0C5C,eAAO,MAAM,6BAA6B;kCACJ,OAAO,OAAO,QAAQ;mCAgCrB,GAAG,OAAO,GAAG;mCAqEb,OAAO,OAAO,QAAQ;kCAuBvB,GAAG,OAAO,GAAG;kCAkCb,OAAO,OAAO,QAAQ;CAoB3D,CAAC"}

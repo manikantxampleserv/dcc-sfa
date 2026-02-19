@@ -113,7 +113,6 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Asset Types"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -307,7 +306,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
             )}
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center gap-2">
             <Button
               type="button"
               variant="outlined"
@@ -324,7 +323,7 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 
