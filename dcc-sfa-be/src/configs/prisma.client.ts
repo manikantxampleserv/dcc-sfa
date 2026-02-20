@@ -1,10 +1,24 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaMssql } from '@prisma/adapter-mssql';
-import { config } from 'mssql';
+import { config as MssqlConfig } from 'mssql';
+import { config as appConfig } from './env';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
+dotenv.config({
+  path: path.resolve(
+    process.cwd(),
+    `.env.${process.env.NODE_ENV || 'development'}`
+  ),
+  override: true,
+  quiet: true,
+});
+
 
 let prisma: PrismaClient | null = null;
 
-const parseConnectionString = (connectionString: string): config => {
+const parseConnectionString = (connectionString: string): MssqlConfig => {
   const params = Object.fromEntries(
     connectionString
       .split(';')
@@ -62,11 +76,9 @@ const parseConnectionString = (connectionString: string): config => {
 
 export const getPrisma = (): PrismaClient => {
   if (!prisma) {
-    const databaseUrl = process.env.DATABASE_URL;
+    const databaseUrl = appConfig.database.url;
     if (!databaseUrl) {
-      throw new Error(
-        'DATABASE_URL environment variable is not set. Please create a .env file with DATABASE_URL configured.'
-      );
+      throw new Error('DATABASE_URL is not configured in environment');
     }
     const connectionConfig = parseConnectionString(databaseUrl);
     const adapter = new PrismaMssql(connectionConfig);

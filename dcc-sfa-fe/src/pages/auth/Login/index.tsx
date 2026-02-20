@@ -220,7 +220,7 @@ const Login: React.FC = () => {
                 <div className="flex justify-between items-center bg-white rounded p-2">
                   <div className="flex items-center space-x-2 min-w-0 flex-1">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-blue-600 font-bold text-xs">B</span>
+                      <span className="text-blue-600 font-bold">B</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium text-gray-900 text-xs sm:text-sm truncate">
@@ -241,7 +241,7 @@ const Login: React.FC = () => {
                 <div className="flex justify-between items-center bg-white rounded p-2">
                   <div className="flex items-center space-x-2 min-w-0 flex-1">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-orange-600 font-bold text-xs">
+                      <span className="text-orange-600 text-lg font-bold">
                         S
                       </span>
                     </div>

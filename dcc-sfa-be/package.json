@@ -7,9 +7,9 @@
   "type": "commonjs",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "build:staging": "tsc --project tsconfig.staging.json",
-    "build:production": "tsc --project tsconfig.production.json",
+    "build": "tsc && node scripts/copy-webconfig.js",
+    "build:staging": "tsc --project tsconfig.staging.json && node scripts/copy-webconfig.js",
+    "build:production": "tsc --project tsconfig.production.json && node scripts/copy-webconfig.js",
     "start": "cross-env NODE_ENV=development node dist/index.js",
     "start:staging": "cross-env NODE_ENV=development node dist-staging/index.js",
     "start:production": "cross-env NODE_ENV=production node dist-production/index.js",

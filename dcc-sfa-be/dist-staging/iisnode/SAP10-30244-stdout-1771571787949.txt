@@ -1,8 +1,0 @@
-[dotenv@17.2.3] injecting env (0) from .env -- tip: 📡 add observability to secrets: https://dotenvx.com/ops
-[dotenv@17.2.3] injecting env (0) from .env.development -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
-[34m[info] Customer Category Assignment cronjob scheduled[0m
-[34m[info] Attendance cron jobs started[0m
-[32m[success] Server running at http://localhost:\\.\pipe\7f5c845d-5ef8-409e-bb41-d6528117e109[0m
-0
-0
-0

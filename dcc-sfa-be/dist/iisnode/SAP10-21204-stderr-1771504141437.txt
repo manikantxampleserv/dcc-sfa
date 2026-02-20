@@ -1,5 +1,0 @@
-(node:21204) [DEP0123] DeprecationWarning: Setting the TLS ServerName to an IP address is not permitted by RFC 6066. This will be ignored in a future version.
-(Use `node --trace-deprecation ...` to show where the warning was created)
-DeprecationWarning Setting the TLS ServerName to an IP address is not permitted by RFC 6066. This will be ignored in a future version.
-(node:21204) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
-DeprecationWarning Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.

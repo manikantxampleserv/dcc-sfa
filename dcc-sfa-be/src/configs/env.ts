@@ -1,12 +1,15 @@
 import dotenv from 'dotenv';
 import path from 'path';
-const envPath = path.resolve(__dirname, '../../.env');
-const result = dotenv.config({ path: envPath, quiet: true });
 
-if (result.error) {
-  console.error(' Error loading .env file:', result.error);
-  throw result.error;
-}
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
+dotenv.config({
+  path: path.resolve(
+    process.cwd(),
+    `.env.${process.env.NODE_ENV || 'development'}`
+  ),
+  override: true,
+  quiet: true,
+});
 
 const validateB2Config = () => {
   const required = {

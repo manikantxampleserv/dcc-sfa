@@ -4,14 +4,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startServer = void 0;
-const dotenv_1 = __importDefault(require("dotenv"));
 const app_1 = require("./app");
 const logger_1 = __importDefault(require("./configs/logger"));
 const killPort_1 = require("./utils/killPort");
 const attendance_cron_service_1 = require("./v1/services/attendance.cron.service");
-dotenv_1.default.config({ quiet: true });
-const port = process.env.PORT || 4000;
 const startServer = async () => {
+    const port = process.env.PORT || 4000;
     try {
         const app = (0, app_1.createApp)();
         if (await (0, killPort_1.isPortInUse)(port)) {

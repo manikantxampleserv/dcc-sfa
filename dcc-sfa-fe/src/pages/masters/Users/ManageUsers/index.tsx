@@ -173,18 +173,15 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               placeholder="Enter full name"
               required
             />
-             <Input
+            <Input
               name="employee_id"
               formik={formik}
               label="Employee Code"
               placeholder="Enter employee code"
             />
-             <Input
-              name="employee_id"
-              formik={formik}
-              label="Employee Code"
-              placeholder="Enter employee code"
-            />
+          </div>
+
+          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
             <Input
               name="email"
               formik={formik}
@@ -192,9 +189,6 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               placeholder="Enter email address"
               type="email"
             />
-          </div>
-
-          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
             <Select
               name="role_id"
               formik={formik}
@@ -212,29 +206,28 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                 ))
               )}
             </Select>
+          </div>
+
+          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
             <Input
               name="phone_number"
               formik={formik}
               label="Phone Number"
               placeholder="Enter phone number"
             />
-          </div>
-
-          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
-           
             <Input
               name="joining_date"
               formik={formik}
               label="Joining Date"
               type="date"
             />
-            <UserSelect
-              name="reporting_to"
-              label="Reporting Manager"
-              formik={formik}
-              required
-            />
           </div>
+          <UserSelect
+            name="reporting_to"
+            label="Reporting Manager"
+            formik={formik}
+            required
+          />
           <Box className="md:!col-span-2">
             <ActiveInactiveField name="is_active" formik={formik} required />
           </Box>

@@ -1,13 +1,11 @@
-import dotenv from 'dotenv';
 import { createApp } from './app';
 import logger from './configs/logger';
 import { isPortInUse, killPort } from './utils/killPort';
 import { AttendanceCronService } from './v1/services/attendance.cron.service';
-dotenv.config({ quiet: true });
-
-const port = process.env.PORT || 4000;
 
 export const startServer = async () => {
+  const port = process.env.PORT || 4000;
+
   try {
     const app = createApp();
 
