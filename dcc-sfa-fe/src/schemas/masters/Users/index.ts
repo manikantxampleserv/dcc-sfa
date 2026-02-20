@@ -5,15 +5,16 @@ const validationSchema = Yup.object({
     .required('Name is required')
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name must not exceed 100 characters'),
-  email: Yup.string()
-    .required('Email is required')
-    .email('Invalid email format'),
   role_id: Yup.number()
     .required('Role is required')
     .positive('Please select a valid role'),
   phone_number: Yup.string().matches(
     /^[0-9+\-\s()]+$/,
     'Invalid phone number format'
+  ),
+  employee_id: Yup.string().max(
+    50,
+    'Employee Code must not exceed 50 characters'
   ),
   reporting_to: Yup.number().required('Reporting to is required'),
   password: Yup.string().when('isEdit', {

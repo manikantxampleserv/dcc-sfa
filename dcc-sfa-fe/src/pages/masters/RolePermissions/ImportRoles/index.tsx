@@ -108,12 +108,7 @@ const ImportRoles: React.FC<ImportRolesProps> = ({
   };
 
   return (
-    <CustomDrawer
-      open={drawerOpen}
-      setOpen={handleCancel}
-      title="Import Roles"
-      size="large"
-    >
+    <CustomDrawer open={drawerOpen} setOpen={handleCancel} title="Import Roles">
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Alert severity="info" className="!mb-4">

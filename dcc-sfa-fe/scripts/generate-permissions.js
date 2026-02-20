@@ -43,7 +43,6 @@ function extractBackendModules() {
       return match ? match[1] : null;
     })
     .filter(Boolean);
-
   return modules;
 }
 

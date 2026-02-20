@@ -1,7 +1,7 @@
 /**
  * @fileoverview Auto-Generated Menu Permissions Hook
  * @description Generated automatically from menu items and backend modules
- * @generated-at 2026-01-20T06:43:31.789Z
+ * @generated-at 2026-02-02T12:59:21.816Z
  */
 
 import { useCallback, useMemo } from 'react';
@@ -29,14 +29,27 @@ export const useMenuPermissions = () => {
   const warehousePerms = usePermission('warehouse' as BackendModule);
   const vehiclePerms = usePermission('vehicle' as BackendModule);
   const brandPerms = usePermission('brand' as BackendModule);
-  const productCategoryPerms = usePermission('product-category' as BackendModule);
-  const productSubCategoryPerms = usePermission('product-sub-category' as BackendModule);
-  const unitOfMeasurementPerms = usePermission('unit-of-measurement' as BackendModule);
+  const productCategoryPerms = usePermission(
+    'product-category' as BackendModule
+  );
+  const productSubCategoryPerms = usePermission(
+    'product-sub-category' as BackendModule
+  );
+  const unitOfMeasurementPerms = usePermission(
+    'unit-of-measurement' as BackendModule
+  );
+  const subunitOfMeasurementPerms = usePermission(
+    'subunit-of-measurement' as BackendModule
+  );
   const productPerms = usePermission('product' as BackendModule);
   const pricelistPerms = usePermission('pricelist' as BackendModule);
-  const salesTargetGroupPerms = usePermission('sales-target-group' as BackendModule);
+  const salesTargetGroupPerms = usePermission(
+    'sales-target-group' as BackendModule
+  );
   const salesTargetPerms = usePermission('sales-target' as BackendModule);
-  const salesBonusRulePerms = usePermission('sales-bonus-rule' as BackendModule);
+  const salesBonusRulePerms = usePermission(
+    'sales-bonus-rule' as BackendModule
+  );
   const kpiTargetPerms = usePermission('kpi-target' as BackendModule);
   const surveyPerms = usePermission('survey' as BackendModule);
   const promotionsPerms = usePermission('promotions' as BackendModule);
@@ -55,23 +68,40 @@ export const useMenuPermissions = () => {
   const stockMovementPerms = usePermission('stock-movement' as BackendModule);
   const stockTransferPerms = usePermission('stock-transfer' as BackendModule);
   const batchLotsPerms = usePermission('batch-lots' as BackendModule);
-  const inventoryManagementPerms = usePermission('inventory-management' as BackendModule);
+  const inventoryItemsPerms = usePermission('inventory-items' as BackendModule);
+  const inventoryManagementPerms = usePermission(
+    'inventory-management' as BackendModule
+  );
   const competitorPerms = usePermission('competitor' as BackendModule);
-  const customerComplaintPerms = usePermission('customer-complaint' as BackendModule);
-  const customerCategoryPerms = usePermission('customer-category' as BackendModule);
+  const customerComplaintPerms = usePermission(
+    'customer-complaint' as BackendModule
+  );
+  const customerCategoryPerms = usePermission(
+    'customer-category' as BackendModule
+  );
   const customerTypePerms = usePermission('customer-type' as BackendModule);
-  const customerChannelPerms = usePermission('customer-channel' as BackendModule);
+  const customerChannelPerms = usePermission(
+    'customer-channel' as BackendModule
+  );
   const productFlavourPerms = usePermission('product-flavour' as BackendModule);
   const productVolumePerms = usePermission('product-volume' as BackendModule);
-  const productShelfLifePerms = usePermission('product-shelf-life' as BackendModule);
+  const productShelfLifePerms = usePermission(
+    'product-shelf-life' as BackendModule
+  );
   const productTypePerms = usePermission('product-type' as BackendModule);
-  const productTargetGroupPerms = usePermission('product-target-group' as BackendModule);
-  const productWebOrderPerms = usePermission('product-web-order' as BackendModule);
+  const productTargetGroupPerms = usePermission(
+    'product-target-group' as BackendModule
+  );
+  const productWebOrderPerms = usePermission(
+    'product-web-order' as BackendModule
+  );
   const coolerTypePerms = usePermission('cooler-type' as BackendModule);
   const coolerSubTypePerms = usePermission('cooler-sub-type' as BackendModule);
   const taxMasterPerms = usePermission('tax-master' as BackendModule);
   const locationPerms = usePermission('location' as BackendModule);
-  const routeEffectivenessPerms = usePermission('route-effectiveness' as BackendModule);
+  const routeEffectivenessPerms = usePermission(
+    'route-effectiveness' as BackendModule
+  );
   const erpSyncPerms = usePermission('erp-sync' as BackendModule);
   const reportPerms = usePermission('report' as BackendModule);
   const approvalPerms = usePermission('approval' as BackendModule);
@@ -82,155 +112,163 @@ export const useMenuPermissions = () => {
   const tokenPerms = usePermission('token' as BackendModule);
   const settingPerms = usePermission('setting' as BackendModule);
 
-  const permissions = useMemo(() => ({
-    'dashboard': dashboardPerms,
-    'company': companyPerms,
-    'user': userPerms,
-    'role': rolePerms,
-    'depot': depotPerms,
-    'zone': zonePerms,
-    'currency': currencyPerms,
-    'route': routePerms,
-    'route-type': routeTypePerms,
-    'outlet': outletPerms,
-    'outlet-group': outletGroupPerms,
-    'asset-type': assetTypePerms,
-    'asset-master': assetMasterPerms,
-    'warehouse': warehousePerms,
-    'vehicle': vehiclePerms,
-    'brand': brandPerms,
-    'product-category': productCategoryPerms,
-    'product-sub-category': productSubCategoryPerms,
-    'unit-of-measurement': unitOfMeasurementPerms,
-    'product': productPerms,
-    'pricelist': pricelistPerms,
-    'sales-target-group': salesTargetGroupPerms,
-    'sales-target': salesTargetPerms,
-    'sales-bonus-rule': salesBonusRulePerms,
-    'kpi-target': kpiTargetPerms,
-    'survey': surveyPerms,
-    'promotions': promotionsPerms,
-    'order': orderPerms,
-    'delivery': deliveryPerms,
-    'return': returnPerms,
-    'payment': paymentPerms,
-    'invoice': invoicePerms,
-    'credit-note': creditNotePerms,
-    'visit': visitPerms,
-    'asset-movement': assetMovementPerms,
-    'maintenance': maintenancePerms,
-    'installation': installationPerms,
-    'inspection': inspectionPerms,
-    'van-stock': vanStockPerms,
-    'stock-movement': stockMovementPerms,
-    'stock-transfer': stockTransferPerms,
-    'batch-lots': batchLotsPerms,
-    'inventory-management': inventoryManagementPerms,
-    'competitor': competitorPerms,
-    'customer-complaint': customerComplaintPerms,
-    'customer-category': customerCategoryPerms,
-    'customer-type': customerTypePerms,
-    'customer-channel': customerChannelPerms,
-    'product-flavour': productFlavourPerms,
-    'product-volume': productVolumePerms,
-    'product-shelf-life': productShelfLifePerms,
-    'product-type': productTypePerms,
-    'product-target-group': productTargetGroupPerms,
-    'product-web-order': productWebOrderPerms,
-    'cooler-type': coolerTypePerms,
-    'cooler-sub-type': coolerSubTypePerms,
-    'tax-master': taxMasterPerms,
-    'location': locationPerms,
-    'route-effectiveness': routeEffectivenessPerms,
-    'erp-sync': erpSyncPerms,
-    'report': reportPerms,
-    'approval': approvalPerms,
-    'exception': exceptionPerms,
-    'alert': alertPerms,
-    'profile': profilePerms,
-    'login-history': loginHistoryPerms,
-    'token': tokenPerms,
-    'setting': settingPerms,
-  }), [
-    dashboardPerms,
-    companyPerms,
-    userPerms,
-    rolePerms,
-    depotPerms,
-    zonePerms,
-    currencyPerms,
-    routePerms,
-    routeTypePerms,
-    outletPerms,
-    outletGroupPerms,
-    assetTypePerms,
-    assetMasterPerms,
-    warehousePerms,
-    vehiclePerms,
-    brandPerms,
-    productCategoryPerms,
-    productSubCategoryPerms,
-    unitOfMeasurementPerms,
-    productPerms,
-    pricelistPerms,
-    salesTargetGroupPerms,
-    salesTargetPerms,
-    salesBonusRulePerms,
-    kpiTargetPerms,
-    surveyPerms,
-    promotionsPerms,
-    orderPerms,
-    deliveryPerms,
-    returnPerms,
-    paymentPerms,
-    invoicePerms,
-    creditNotePerms,
-    visitPerms,
-    assetMovementPerms,
-    maintenancePerms,
-    installationPerms,
-    inspectionPerms,
-    vanStockPerms,
-    stockMovementPerms,
-    stockTransferPerms,
-    batchLotsPerms,
-    inventoryManagementPerms,
-    competitorPerms,
-    customerComplaintPerms,
-    customerCategoryPerms,
-    customerTypePerms,
-    customerChannelPerms,
-    productFlavourPerms,
-    productVolumePerms,
-    productShelfLifePerms,
-    productTypePerms,
-    productTargetGroupPerms,
-    productWebOrderPerms,
-    coolerTypePerms,
-    coolerSubTypePerms,
-    taxMasterPerms,
-    locationPerms,
-    routeEffectivenessPerms,
-    erpSyncPerms,
-    reportPerms,
-    approvalPerms,
-    exceptionPerms,
-    alertPerms,
-    profilePerms,
-    loginHistoryPerms,
-    tokenPerms,
-    settingPerms,
-  ]);
+  const permissions = useMemo(
+    () => ({
+      dashboard: dashboardPerms,
+      company: companyPerms,
+      user: userPerms,
+      role: rolePerms,
+      depot: depotPerms,
+      zone: zonePerms,
+      currency: currencyPerms,
+      route: routePerms,
+      'route-type': routeTypePerms,
+      outlet: outletPerms,
+      'outlet-group': outletGroupPerms,
+      'asset-type': assetTypePerms,
+      'asset-master': assetMasterPerms,
+      warehouse: warehousePerms,
+      vehicle: vehiclePerms,
+      brand: brandPerms,
+      'product-category': productCategoryPerms,
+      'product-sub-category': productSubCategoryPerms,
+      'unit-of-measurement': unitOfMeasurementPerms,
+      'subunit-of-measurement': subunitOfMeasurementPerms,
+      product: productPerms,
+      pricelist: pricelistPerms,
+      'sales-target-group': salesTargetGroupPerms,
+      'sales-target': salesTargetPerms,
+      'sales-bonus-rule': salesBonusRulePerms,
+      'kpi-target': kpiTargetPerms,
+      survey: surveyPerms,
+      promotions: promotionsPerms,
+      order: orderPerms,
+      delivery: deliveryPerms,
+      return: returnPerms,
+      payment: paymentPerms,
+      invoice: invoicePerms,
+      'credit-note': creditNotePerms,
+      visit: visitPerms,
+      'asset-movement': assetMovementPerms,
+      maintenance: maintenancePerms,
+      installation: installationPerms,
+      inspection: inspectionPerms,
+      'van-stock': vanStockPerms,
+      'stock-movement': stockMovementPerms,
+      'stock-transfer': stockTransferPerms,
+      'batch-lots': batchLotsPerms,
+      'inventory-items': inventoryItemsPerms,
+      'inventory-management': inventoryManagementPerms,
+      competitor: competitorPerms,
+      'customer-complaint': customerComplaintPerms,
+      'customer-category': customerCategoryPerms,
+      'customer-type': customerTypePerms,
+      'customer-channel': customerChannelPerms,
+      'product-flavour': productFlavourPerms,
+      'product-volume': productVolumePerms,
+      'product-shelf-life': productShelfLifePerms,
+      'product-type': productTypePerms,
+      'product-target-group': productTargetGroupPerms,
+      'product-web-order': productWebOrderPerms,
+      'cooler-type': coolerTypePerms,
+      'cooler-sub-type': coolerSubTypePerms,
+      'tax-master': taxMasterPerms,
+      location: locationPerms,
+      'route-effectiveness': routeEffectivenessPerms,
+      'erp-sync': erpSyncPerms,
+      report: reportPerms,
+      approval: approvalPerms,
+      exception: exceptionPerms,
+      alert: alertPerms,
+      profile: profilePerms,
+      'login-history': loginHistoryPerms,
+      token: tokenPerms,
+      setting: settingPerms,
+    }),
+    [
+      dashboardPerms,
+      companyPerms,
+      userPerms,
+      rolePerms,
+      depotPerms,
+      zonePerms,
+      currencyPerms,
+      routePerms,
+      routeTypePerms,
+      outletPerms,
+      outletGroupPerms,
+      assetTypePerms,
+      assetMasterPerms,
+      warehousePerms,
+      vehiclePerms,
+      brandPerms,
+      productCategoryPerms,
+      productSubCategoryPerms,
+      unitOfMeasurementPerms,
+      subunitOfMeasurementPerms,
+      productPerms,
+      pricelistPerms,
+      salesTargetGroupPerms,
+      salesTargetPerms,
+      salesBonusRulePerms,
+      kpiTargetPerms,
+      surveyPerms,
+      promotionsPerms,
+      orderPerms,
+      deliveryPerms,
+      returnPerms,
+      paymentPerms,
+      invoicePerms,
+      creditNotePerms,
+      visitPerms,
+      assetMovementPerms,
+      maintenancePerms,
+      installationPerms,
+      inspectionPerms,
+      vanStockPerms,
+      stockMovementPerms,
+      stockTransferPerms,
+      batchLotsPerms,
+      inventoryItemsPerms,
+      inventoryManagementPerms,
+      competitorPerms,
+      customerComplaintPerms,
+      customerCategoryPerms,
+      customerTypePerms,
+      customerChannelPerms,
+      productFlavourPerms,
+      productVolumePerms,
+      productShelfLifePerms,
+      productTypePerms,
+      productTargetGroupPerms,
+      productWebOrderPerms,
+      coolerTypePerms,
+      coolerSubTypePerms,
+      taxMasterPerms,
+      locationPerms,
+      routeEffectivenessPerms,
+      erpSyncPerms,
+      reportPerms,
+      approvalPerms,
+      exceptionPerms,
+      alertPerms,
+      profilePerms,
+      loginHistoryPerms,
+      tokenPerms,
+      settingPerms,
+    ]
+  );
 
   const hasPermission = useCallback(
     (menuId: string): boolean => {
       const requiredModule = AUTO_PERMISSION_MAPPINGS[menuId];
-      
+
       if (!requiredModule) {
         return true;
       }
-      
-      const modulePermission = permissions[requiredModule as keyof typeof permissions];
+
+      const modulePermission =
+        permissions[requiredModule as keyof typeof permissions];
       return (
         modulePermission?.isRead ||
         modulePermission?.isCreate ||
@@ -248,13 +286,13 @@ export const useMenuPermissions = () => {
         .map(item => {
           if (item.children && item.children.length > 0) {
             const filteredChildren = filterMenuItems(item.children);
-            
+
             if (filteredChildren.length > 0) {
               return { ...item, children: filteredChildren };
             }
             return null;
           }
-          
+
           return hasPermission(item.id) ? item : null;
         })
         .filter((item): item is MenuItem => item !== null);

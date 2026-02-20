@@ -44,6 +44,7 @@ const MODULE_MAPPING: Record<string, string> = {
   'product-category': 'Product Category',
   'product-sub-category': 'Product Sub Category',
   'unit-of-measurement': 'Unit Of Measurement',
+  'subunit-of-measurement': 'Subunit Of Measurement',
   product: 'Product',
   // pricelist: 'Price List',
   'sales-target-group': 'Sales Target Group',

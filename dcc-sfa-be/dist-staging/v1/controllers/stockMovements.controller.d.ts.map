@@ -1,0 +1,1 @@
+{"version":3,"file":"stockMovements.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/stockMovements.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AA0F5C,eAAO,MAAM,wBAAwB;6BACJ,GAAG,OAAO,QAAQ;8BA2DjB,GAAG,OAAO,GAAG;8BA8Fb,OAAO,OAAO,QAAQ;6BAmCvB,GAAG,OAAO,QAAQ;6BAiDlB,OAAO,OAAO,QAAQ;CAkBtD,CAAC"}

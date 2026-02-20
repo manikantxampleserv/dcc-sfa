@@ -7,8 +7,8 @@ import { exportAttendanceHistoryReport } from 'services/reports/attendance';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Input from 'shared/Input';
-import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import UserSelect from 'shared/UserSelect';
 import { formatDateTime } from 'utils/dateUtils';
@@ -18,7 +18,6 @@ const AttendanceReports: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [userId, setUserId] = useState<number | undefined>(undefined);
   const [actionType, setActionType] = useState('all');
-  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isRead } = usePermission('report');
@@ -31,7 +30,6 @@ const AttendanceReports: React.FC = () => {
       end_date: endDate,
       user_id: userId,
       action_type: actionType === 'all' ? undefined : actionType,
-      search: search,
     },
     {
       enabled: isRead,
@@ -64,12 +62,11 @@ const AttendanceReports: React.FC = () => {
         end_date: endDate,
         user_id: userId,
         action_type: actionType === 'all' ? undefined : actionType,
-        search: search,
       });
     } catch (error) {
       console.error('Error exporting report to Excel:', error);
     }
-  }, [startDate, endDate, userId, actionType, search]);
+  }, [startDate, endDate, userId, actionType]);
 
   const handleUserChange = useCallback((_event: any, user: any) => {
     setUserId(user?.id || undefined);
@@ -256,82 +253,38 @@ const AttendanceReports: React.FC = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total History Records
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_history_records}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total History Records"
+          value={summary.total_history_records}
+          icon={<Users className="w-6 h-6" />}
+          color="blue"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Punch In</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.punch_in_count}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Clock className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Punch In"
+          value={summary.punch_in_count}
+          icon={<Clock className="w-6 h-6" />}
+          color="green"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Punch Out</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.punch_out_count}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Clock className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Punch Out"
+          value={summary.punch_out_count}
+          icon={<Clock className="w-6 h-6" />}
+          color="purple"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">This Month</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.history_this_month}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <Clock className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="This Month"
+          value={summary.history_this_month}
+          icon={<Clock className="w-6 h-6" />}
+          color="orange"
+        />
       </div>
 
       {/* Attendance History Table */}
       <Table
         columns={columns}
-        actions={
-          <div className="flex justify-between gap-3 items-center flex-wrap">
-            <SearchInput
-              placeholder="Search by action type, address..."
-              value={search}
-              className="!w-80"
-              onChange={value => {
-                setSearch(value);
-                handleFilterChange();
-              }}
-              debounceMs={400}
-            />
-          </div>
-        }
         data={reportData?.data || []}
         loading={isLoading}
         totalCount={pagination.total_count || 0}

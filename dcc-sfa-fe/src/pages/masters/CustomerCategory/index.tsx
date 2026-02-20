@@ -1,4 +1,4 @@
-import { Add, Block, CheckCircle, Download } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { Users, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
@@ -18,6 +18,7 @@ import { useExportToExcel } from '../../../hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import { formatDate } from '../../../utils/dateUtils';
 import ManageCustomerCategory from './ManageCustomerCategory';
+import ImportCustomerCategory from './ImportCustomerCategory';
 
 const CustomerCategoryPage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -25,6 +26,7 @@ const CustomerCategoryPage: React.FC = () => {
   const [selectedCustomerCategory, setSelectedCustomerCategory] =
     useState<CustomerCategory | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } =
@@ -71,6 +73,10 @@ const CustomerCategoryPage: React.FC = () => {
   const handleCreateCustomerCategory = useCallback(() => {
     setSelectedCustomerCategory(null);
     setDrawerOpen(true);
+  }, []);
+
+  const handleImportCustomerCategory = useCallback(() => {
+    setImportDrawerOpen(true);
   }, []);
 
   const handleEditCustomerCategory = useCallback(
@@ -323,15 +329,25 @@ const CustomerCategoryPage: React.FC = () => {
                   </PopConfirm>
                 )}
                 {isCreate && (
-                  <Button
-                    variant="contained"
-                    className="!capitalize"
-                    disableElevation
-                    startIcon={<Add />}
-                    onClick={handleCreateCustomerCategory}
-                  >
-                    Create
-                  </Button>
+                  <>
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Upload />}
+                      onClick={handleImportCustomerCategory}
+                    >
+                      Import
+                    </Button>
+                    <Button
+                      variant="contained"
+                      className="!capitalize"
+                      disableElevation
+                      startIcon={<Add />}
+                      onClick={handleCreateCustomerCategory}
+                    >
+                      Create
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -359,6 +375,11 @@ const CustomerCategoryPage: React.FC = () => {
         setSelectedCustomerCategory={setSelectedCustomerCategory}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
+      />
+
+      <ImportCustomerCategory
+        drawerOpen={importDrawerOpen}
+        setDrawerOpen={setImportDrawerOpen}
       />
     </>
   );

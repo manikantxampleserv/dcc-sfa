@@ -61,6 +61,14 @@ const serializeUser = (
         )
         .map((rp: any) => rp.permission!.name)
     : [],
+  currency: user.companies?.companies_currencies
+    ? {
+        id: user.companies.companies_currencies.id,
+        code: user.companies.companies_currencies.code,
+        name: user.companies.companies_currencies.name,
+        symbol: user.companies.companies_currencies.symbol,
+      }
+    : null,
 });
 
 export const userController = {
@@ -616,7 +624,11 @@ export const userController = {
               },
             },
           },
-          companies: true,
+          companies: {
+            include: {
+              companies_currencies: true,
+            },
+          },
           user_depot: true,
           users: {
             select: {

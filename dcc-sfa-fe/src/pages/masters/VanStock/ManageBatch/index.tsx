@@ -220,13 +220,6 @@ const ManageBatch: React.FC<ManageBatchProps> = ({
       expiry_date: (b.expiry_date || '').trim(),
     }));
 
-    console.log('ManageBatch - Saving batch data:', {
-      selectedRowIndex,
-      isUnloadType,
-      totalQty,
-      mappedBatches,
-    });
-
     const updatedItems = [...formik.values.van_inventory_items];
     updatedItems[selectedRowIndex] = {
       ...updatedItems[selectedRowIndex],

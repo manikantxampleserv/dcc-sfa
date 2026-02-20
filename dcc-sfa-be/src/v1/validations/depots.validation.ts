@@ -23,8 +23,13 @@ export const createDepotValidation = [
     .optional()
     .isString()
     .withMessage('Phone number must be a string'),
-
-  body('email').optional().isEmail().withMessage('Enter a valid email'),
+  body('email')
+    .optional()
+    .custom(value => {
+      if (!value || value.trim() === '') return true;
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    })
+    .withMessage('Enter a valid email'),
 
   body('manager_id')
     .optional()

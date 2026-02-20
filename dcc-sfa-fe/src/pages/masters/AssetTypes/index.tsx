@@ -154,7 +154,6 @@ const AssetTypesPage: React.FC = () => {
                 <Typography
                   variant="caption"
                   className="!text-gray-500 !text-xs !block !mt-0.5"
-                  title={row.description}
                   sx={{
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',

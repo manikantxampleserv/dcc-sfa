@@ -51,6 +51,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     email: selectedUser?.email || '',
     role_id: selectedUser?.role_id || '',
     phone_number: selectedUser?.phone_number || '',
+    employee_id: selectedUser?.employee_id || '',
     address: selectedUser?.address || '',
     joining_date: formatForDateInput(selectedUser?.joining_date),
     reporting_to: selectedUser?.reporting_to || '',
@@ -70,6 +71,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
         formData.append('email', values.email);
         formData.append('role_id', values.role_id.toString());
         formData.append('phone_number', values.phone_number);
+        formData.append('employee_id', values.employee_id);
         formData.append('address', values.address);
         formData.append('joining_date', values.joining_date);
         formData.append('reporting_to', values.reporting_to.toString());
@@ -171,13 +173,24 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               placeholder="Enter full name"
               required
             />
+             <Input
+              name="employee_id"
+              formik={formik}
+              label="Employee Code"
+              placeholder="Enter employee code"
+            />
+             <Input
+              name="employee_id"
+              formik={formik}
+              label="Employee Code"
+              placeholder="Enter employee code"
+            />
             <Input
               name="email"
               formik={formik}
               label="Email"
               placeholder="Enter email address"
               type="email"
-              required
             />
           </div>
 
@@ -207,7 +220,8 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
             />
           </div>
 
-          <div className="flex mb-2 sm:flex-row flex-col sm:gap-4 gap-2">
+          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
+           
             <Input
               name="joining_date"
               formik={formik}

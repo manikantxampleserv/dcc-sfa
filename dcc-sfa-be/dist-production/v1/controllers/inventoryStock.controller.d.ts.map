@@ -1,0 +1,1 @@
+{"version":3,"file":"inventoryStock.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/inventoryStock.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAwF5C,eAAO,MAAM,wBAAwB;8BACH,OAAO,OAAO,QAAQ;8BA4BtB,GAAG,OAAO,GAAG;+BAwCZ,OAAO,OAAO,QAAQ;8BAwBvB,GAAG,OAAO,GAAG;8BAmCb,OAAO,OAAO,QAAQ;CAkBvD,CAAC"}

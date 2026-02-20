@@ -1,4 +1,4 @@
-import { Add, Block, CheckCircle, Download } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { Building2, Tag } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
@@ -18,6 +18,7 @@ import { useExportToExcel } from '../../../hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import { formatDate } from '../../../utils/dateUtils';
 import ManageCustomerType from './ManageCustomerType';
+import ImportCustomerType from './ImportCustomerType';
 
 const CustomerTypePage: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -25,6 +26,7 @@ const CustomerTypePage: React.FC = () => {
   const [selectedCustomerType, setSelectedCustomerType] =
     useState<CustomerType | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importDrawerOpen, setImportDrawerOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } =
@@ -69,6 +71,10 @@ const CustomerTypePage: React.FC = () => {
   const handleCreateCustomerType = useCallback(() => {
     setSelectedCustomerType(null);
     setDrawerOpen(true);
+  }, []);
+
+  const handleImportCustomerType = useCallback(() => {
+    setImportDrawerOpen(true);
   }, []);
 
   const handleEditCustomerType = useCallback((customerType: CustomerType) => {
@@ -299,15 +305,25 @@ const CustomerTypePage: React.FC = () => {
                   </PopConfirm>
                 )}
                 {isCreate && (
-                  <Button
-                    variant="contained"
-                    className="!capitalize"
-                    disableElevation
-                    startIcon={<Add />}
-                    onClick={handleCreateCustomerType}
-                  >
-                    Create
-                  </Button>
+                  <>
+                    <Button
+                      variant="outlined"
+                      className="!capitalize"
+                      startIcon={<Upload />}
+                      onClick={handleImportCustomerType}
+                    >
+                      Import
+                    </Button>
+                    <Button
+                      variant="contained"
+                      className="!capitalize"
+                      disableElevation
+                      startIcon={<Add />}
+                      onClick={handleCreateCustomerType}
+                    >
+                      Create
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -335,6 +351,11 @@ const CustomerTypePage: React.FC = () => {
         setSelectedCustomerType={setSelectedCustomerType}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
+      />
+
+      <ImportCustomerType
+        drawerOpen={importDrawerOpen}
+        setDrawerOpen={setImportDrawerOpen}
       />
     </>
   );

@@ -569,7 +569,7 @@ const VisitDetail: React.FC = () => {
               )}
 
               {visit.status && (
-                <div className="!space-y-0.5">
+                <div className="!space-y-0.5 flex flex-col items-start">
                   <Typography
                     variant="caption"
                     className="!text-gray-500 !text-xs !uppercase !tracking-wide"
@@ -597,9 +597,6 @@ const VisitDetail: React.FC = () => {
                     className="!font-semibold !text-gray-900"
                   >
                     {visit.salesperson.name}
-                  </Typography>
-                  <Typography variant="caption" className="!text-gray-500">
-                    {visit.salesperson.email}
                   </Typography>
                 </div>
               )}
@@ -767,7 +764,6 @@ const VisitDetail: React.FC = () => {
                 {visit.customer.name}
               </Typography>
             </div>
-
             {visit.customer.code && (
               <div className="!space-y-0.5">
                 <Typography
@@ -784,7 +780,6 @@ const VisitDetail: React.FC = () => {
                 </Typography>
               </div>
             )}
-
             {visit.customer.type && (
               <div className="!space-y-0.5">
                 <Typography
@@ -801,7 +796,6 @@ const VisitDetail: React.FC = () => {
                 </Typography>
               </div>
             )}
-
             {visit.customer.contact_person && (
               <div className="!space-y-0.5">
                 <Typography
@@ -818,7 +812,6 @@ const VisitDetail: React.FC = () => {
                 </Typography>
               </div>
             )}
-
             {visit.customer.phone_number && (
               <div className="!space-y-0.5">
                 <Typography
@@ -835,7 +828,6 @@ const VisitDetail: React.FC = () => {
                 </Typography>
               </div>
             )}
-
             {visit.customer.email && (
               <div className="!space-y-0.5">
                 <Typography
@@ -852,7 +844,6 @@ const VisitDetail: React.FC = () => {
                 </Typography>
               </div>
             )}
-
             {(visit.customer.city || visit.customer.state) && (
               <div className="!space-y-0.5">
                 <Typography
@@ -875,7 +866,6 @@ const VisitDetail: React.FC = () => {
                 </Typography>
               </div>
             )}
-
             {visit.customer.address && (
               <div className="!space-y-0.5 md:!col-span-2 lg:!col-span-3">
                 <Typography
@@ -892,7 +882,6 @@ const VisitDetail: React.FC = () => {
                 </Typography>
               </div>
             )}
-
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
@@ -907,7 +896,6 @@ const VisitDetail: React.FC = () => {
                 {formatCurrency(Number(visit.customer.credit_limit))}
               </Typography>
             </div>
-
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
@@ -923,7 +911,7 @@ const VisitDetail: React.FC = () => {
               </Typography>
             </div>
 
-            <div className="!space-y-0.5">
+            <div className="!space-y-0.5 flex flex-col items-start">
               <Typography
                 variant="caption"
                 className="!text-gray-500 !text-xs !uppercase !tracking-wide"

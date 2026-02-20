@@ -1,6 +1,5 @@
 import { Box, Chip, MenuItem } from '@mui/material';
 import { useAssetTypes } from 'hooks/useAssetTypes';
-import { useCustomers } from 'hooks/useCustomers';
 import { usePermission } from 'hooks/usePermission';
 import { useAssetMovementStatusReport } from 'hooks/useReports';
 import { Download, FileText, Move, Package, Users } from 'lucide-react';
@@ -10,6 +9,7 @@ import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
 import { formatDate } from 'utils/dateUtils';
 
@@ -18,7 +18,6 @@ const AssetMovementStatusReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [assetTypeId, setAssetTypeId] = useState<number | undefined>(undefined);
   const [assetStatus, setAssetStatus] = useState('all');
-  const [customerId, setCustomerId] = useState<number | undefined>(undefined);
   const { isRead } = usePermission('report');
 
   const { data: reportData, isLoading } = useAssetMovementStatusReport(
@@ -27,7 +26,6 @@ const AssetMovementStatusReport: React.FC = () => {
       end_date: endDate,
       asset_type_id: assetTypeId,
       asset_status: assetStatus === 'all' ? undefined : assetStatus,
-      customer_id: customerId,
     },
     {
       enabled: isRead,
@@ -35,10 +33,8 @@ const AssetMovementStatusReport: React.FC = () => {
   );
 
   const { data: assetTypesData } = useAssetTypes();
-  const { data: customersData } = useCustomers();
 
   const assetTypes = assetTypesData?.data || [];
-  const customers = customersData?.data || [];
 
   const summary = reportData?.summary || {
     total_assets: 0,
@@ -58,12 +54,11 @@ const AssetMovementStatusReport: React.FC = () => {
         end_date: endDate,
         asset_type_id: assetTypeId,
         asset_status: assetStatus === 'all' ? undefined : assetStatus,
-        customer_id: customerId,
       });
     } catch (error) {
       console.error('Error exporting report to Excel:', error);
     }
-  }, [startDate, endDate, assetTypeId, assetStatus, customerId]);
+  }, [startDate, endDate, assetTypeId, assetStatus]);
 
   // Asset Master columns
   const assetColumns: TableColumn<any>[] = [
@@ -353,7 +348,7 @@ const AssetMovementStatusReport: React.FC = () => {
 
       {isRead && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             <Input
               type="date"
               label="Start Date"
@@ -397,90 +392,39 @@ const AssetMovementStatusReport: React.FC = () => {
               <MenuItem value="retired">Retired</MenuItem>
               <MenuItem value="available">Available</MenuItem>
             </Select>
-            <Select
-              label="Customer"
-              value={customerId?.toString() || 'all'}
-              onChange={e =>
-                setCustomerId(
-                  e.target.value && e.target.value !== 'all'
-                    ? parseInt(e.target.value)
-                    : undefined
-                )
-              }
-              disableClearable
-            >
-              <MenuItem value="all">All Customers</MenuItem>
-              {customers.map((customer: any) => (
-                <MenuItem key={customer.id} value={customer.id.toString()}>
-                  {customer.name} ({customer.code})
-                </MenuItem>
-              ))}
-            </Select>
           </div>
         </div>
       )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Assets</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_assets}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Total Assets"
+          value={summary.total_assets}
+          icon={<Package className="w-6 h-6" />}
+          color="blue"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Movements</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_movements}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Move className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Movements"
+          value={summary.total_movements}
+          icon={<Move className="w-6 h-6" />}
+          color="purple"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Customer Assets
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_customer_assets}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Customer Assets"
+          value={summary.total_customer_assets}
+          icon={<Users className="w-6 h-6" />}
+          color="green"
+        />
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Warranty Claims
-              </p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {summary.total_warranty_claims}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <FileText className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
+        <StatsCard
+          title="Warranty Claims"
+          value={summary.total_warranty_claims}
+          icon={<FileText className="w-6 h-6" />}
+          color="orange"
+        />
       </div>
 
       {/* Asset Master Table */}

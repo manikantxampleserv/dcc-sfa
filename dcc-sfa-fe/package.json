@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "build:staging": "tsc -b && vite build --mode staging --outDir dist-staging",
+    "build:production": "tsc -b && vite build --mode production --outDir dist-production",
     "preview": "vite preview",
+    "preview:staging": "vite preview --outDir dist-staging",
+    "preview:production": "vite preview --outDir dist-production",
+    "lint": "eslint .",
     "generate:permissions": "node scripts/generate-permissions.js"
   },
   "dependencies": {

@@ -13,10 +13,12 @@ interface ProductVolumeSerialized {
   updatedby?: number | null;
 }
 
-const generateVolumeCode = (name: string): string => {
+const generateVolumeCode = async (name: string): Promise<string> => {
   const upperName = name.trim().toUpperCase();
 
   const volumeMatch = upperName.match(/([\d.]+)\s*(LTR|L|ML|MLTR)/i);
+  let baseCode = '';
+
   if (volumeMatch) {
     const numberStr = volumeMatch[1];
     const unit = volumeMatch[2].toUpperCase();
@@ -30,22 +32,43 @@ const generateVolumeCode = (name: string): string => {
     }
 
     if (unit === 'LTR' || unit === 'L') {
-      return `VOL-${number}L-001`;
+      baseCode = `VOL-${number}L`;
+    } else {
+      baseCode = `VOL-${number}${unit}`;
     }
-    return `VOL-${number}${unit}-001`;
+  } else {
+    const numberOnly = upperName.replace(/[^\d.]/g, '');
+    if (numberOnly) {
+      const numValue = parseFloat(numberOnly);
+      const cleanNumber = Number.isInteger(numValue)
+        ? numValue.toString()
+        : numberOnly.replace('.', '');
+      baseCode = `VOL-${cleanNumber}`;
+    } else {
+      const prefix = upperName.substring(0, 6).replace(/\s+/g, '');
+      baseCode = `VOL-${prefix}`;
+    }
   }
 
-  const numberOnly = upperName.replace(/[^\d.]/g, '');
-  if (numberOnly) {
-    const numValue = parseFloat(numberOnly);
-    const cleanNumber = Number.isInteger(numValue)
-      ? numValue.toString()
-      : numberOnly.replace('.', '');
-    return `VOL-${cleanNumber}-001`;
+  const existingCodes = await prisma.product_volumes.findMany({
+    where: {
+      code: {
+        startsWith: baseCode + '-',
+      },
+    },
+    select: { code: true },
+    orderBy: { code: 'desc' },
+  });
+
+  if (existingCodes.length === 0) {
+    return `${baseCode}-001`;
   }
 
-  const prefix = upperName.substring(0, 6).replace(/\s+/g, '');
-  return `VOL-${prefix}-001`;
+  const lastCode = existingCodes[0].code;
+  const lastNumber = parseInt(lastCode.split('-').pop() || '0');
+  const nextNumber = (lastNumber + 1).toString().padStart(3, '0');
+
+  return `${baseCode}-${nextNumber}`;
 };
 
 const serializeProductVolume = (volume: any): ProductVolumeSerialized => ({
@@ -67,12 +90,46 @@ export const productVolumesController = {
         return res.status(400).json({ message: 'Volume name is required' });
       }
 
-      const code = data.code || generateVolumeCode(data.name);
+      const existingVolume = await prisma.product_volumes.findFirst({
+        where: {
+          name: {
+            equals: data.name.trim(),
+          },
+        },
+      });
+
+      if (existingVolume) {
+        return res.status(400).json({
+          message: 'Volume name already exists',
+          error: 'DUPLICATE_NAME',
+          existingVolume: {
+            id: existingVolume.id,
+            name: existingVolume.name,
+            code: existingVolume.code,
+          },
+        });
+      }
+
+      if (data.code) {
+        const existingCode = await prisma.product_volumes.findUnique({
+          where: { code: data.code.trim() },
+        });
+
+        if (existingCode) {
+          return res.status(400).json({
+            message: 'Volume code already exists',
+            error: 'DUPLICATE_CODE',
+          });
+        }
+      }
+
+      const code = data.code || (await generateVolumeCode(data.name));
 
       const volume = await prisma.product_volumes.create({
         data: {
           ...data,
-          code,
+          name: data.name.trim(),
+          code: code.trim(),
           createdby: data.createdby
             ? Number(data.createdby)
             : req.user?.id || 1,
