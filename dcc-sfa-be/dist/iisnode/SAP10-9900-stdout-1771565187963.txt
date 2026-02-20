@@ -1,0 +1,3 @@
+[34m[info] Customer Category Assignment cronjob scheduled[0m
+[34m[info] Attendance cron jobs started[0m
+[32m[success] Server running at http://localhost:\\.\pipe\7300b4d6-7dac-4328-b74d-39915781b607[0m

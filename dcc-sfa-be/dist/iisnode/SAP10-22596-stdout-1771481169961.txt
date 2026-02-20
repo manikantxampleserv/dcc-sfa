@@ -1,0 +1,141 @@
+[34m[info] Customer Category Assignment cronjob scheduled[0m
+[34m[info] Attendance cron jobs started[0m
+[32m[success] Server running at http://localhost:\\.\pipe\3f567009-ea6a-443f-803f-d646fdca4ef6[0m
+0
+Request Query: [Object: null prototype] { limit: '1000' }
+Request User: {
+  id: 25,
+  email: 'admin@dcc.com',
+  employee_id: 'EMP-1',
+  name: 'Admin',
+  role: 'Super Admin',
+  permissions: [
+    'alert_create',
+    'alert_delete',
+    'alert_read',
+    'alert_update',
+    'approval_create',
+    'approval_delete',
+    'approval_read',
+    'approval_update',
+    'maintenance_create',
+    'maintenance_delete',
+    'maintenance_read',
+    'maintenance_update',
+    'asset_master_create',
+    'asset_master_delete',
+    'asset_master_read',
+    'asset_master_update',
+    'asset_movement_create',
+    'asset_movement_delete',
+    'asset_movement_read',
+    'asset_movement_update',
+    'asset_type_create',
+    'asset_type_delete',
+    'asset_type_read',
+    'asset_type_update',
+    'batch_lots_create',
+    'batch_lots_delete',
+    'batch_lots_read',
+    'batch_lots_update',
+    'brand_create',
+    'brand_delete',
+    'brand_read',
+    'brand_update',
+    'company_create',
+    'company_delete',
+    'company_read',
+    'company_update',
+    'competitor_create',
+    'competitor_delete',
+    'competitor_read',
+    'competitor_update',
+    'inspection_create',
+    'inspection_delete',
+    'inspection_read',
+    'inspection_update',
+    'installation_create',
+    'installation_delete',
+    'installation_read',
+    'installation_update',
+    'cooler_sub_type_create',
+    'cooler_sub_type_delete',
+    'cooler_sub_type_read',
+    'cooler_sub_type_update',
+    'cooler_type_create',
+    'cooler_type_delete',
+    'cooler_type_read',
+    'cooler_type_update',
+    'credit_note_create',
+    'credit_note_delete',
+    'credit_note_read',
+    'credit_note_update',
+    'currency_create',
+    'currency_delete',
+    'currency_read',
+    'currency_update',
+    'customer_category_create',
+    'customer_category_delete',
+    'customer_category_read',
+    'customer_category_update',
+    'customer_channel_create',
+    'customer_channel_delete',
+    'customer_channel_read',
+    'customer_channel_update',
+    'customer_complaint_create',
+    'customer_complaint_delete',
+    'customer_complaint_read',
+    'customer_complaint_update',
+    'customer_type_create',
+    'customer_type_delete',
+    'customer_type_read',
+    'customer_type_update',
+    'dashboard_create',
+    'dashboard_read',
+    'dashboard_update',
+    'delivery_create',
+    'delivery_delete',
+    'delivery_read',
+    'delivery_update',
+    'depot_create',
+    'depot_delete',
+    'depot_read',
+    'depot_update',
+    'erp_sync_create',
+    'erp_sync_read',
+    'erp_sync_update',
+    'exception_create',
+    'exception_delete',
+    'exception_read',
+    'exception_update',
+    'location_create',
+    'location_read',
+    ... 158 more items
+  ],
+  parent_id: null,
+  depot_id: null,
+  zone_id: null
+}
+Parsed Pagination: { pageNum: 1, limitNum: 100 }
+Search Term: 
+User Role: super admin User ID: 25
+Unknown role, restricting to own data
+Final Filters: {
+  "sales_person_id": 25
+}
+Fetched 0 visits
+ Visit IDs: []
+ Customer IDs: []
+ Fetched 0 payments
+ Fetched 0 customer coolers
+Statistics: {
+  totalVisits: 0,
+  activeVisits: 0,
+  inactiveVisits: 0,
+  newVisitsThisMonth: 0
+}
+ Serialized 0 visits with all relations
+0
+0
+0
+0

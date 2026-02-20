@@ -1,0 +1,87 @@
+<html>
+<head>
+    <title>iisnode logs</title>
+    <style type="text/css">
+        body
+        {
+            font-family: "Trebuchet MS" , Arial, Helvetica, sans-serif;
+        }
+        table
+        {
+            border-collapse: collapse;
+        }
+        td, th
+        {
+            border: 1px solid lightgray;
+            padding: 3px 7px 2px 7px;
+        }
+        th
+        {
+            text-align: left;
+            padding-top: 5px;
+            padding-bottom: 4px;
+            background-color: Gray;
+            color: #ffffff;
+        }
+        td.stderr
+        {
+            color: Red;
+        }
+    </style>
+</head>
+<body>
+    <table id="logFilesTable">
+        <tr>
+            <th>
+                Computer name
+            </th>
+            <th>
+                PID
+            </th>
+            <th>
+                Type
+            </th>
+            <th>
+                Created
+            </th>
+            <th>
+                Link
+            </th>
+        </tr>
+    </table>
+    <p id="lastUpdated"></p>
+    <script type="text/javascript">
+
+        // this is replaced with actual data at runtime by code in interceptor.js
+        var logFiles = [{"file":"SAP10-11516-stderr-1771497021401.txt","computername":"SAP10","pid":11516,"type":"stderr","created":1771497021401},{"file":"SAP10-11516-stdout-1771497021396.txt","computername":"SAP10","pid":11516,"type":"stdout","created":1771497021396},{"file":"SAP10-14300-stderr-1771421856103.txt","computername":"SAP10","pid":14300,"type":"stderr","created":1771421856103},{"file":"SAP10-14300-stdout-1771421856085.txt","computername":"SAP10","pid":14300,"type":"stdout","created":1771421856085},{"file":"SAP10-14712-stderr-1771433493012.txt","computername":"SAP10","pid":14712,"type":"stderr","created":1771433493012},{"file":"SAP10-14712-stdout-1771433493008.txt","computername":"SAP10","pid":14712,"type":"stdout","created":1771433493008},{"file":"SAP10-18844-stderr-1771491230706.txt","computername":"SAP10","pid":18844,"type":"stderr","created":1771491230706},{"file":"SAP10-18844-stdout-1771491230697.txt","computername":"SAP10","pid":18844,"type":"stdout","created":1771491230697},{"file":"SAP10-21204-stderr-1771504141437.txt","computername":"SAP10","pid":21204,"type":"stderr","created":1771504141437},{"file":"SAP10-21204-stdout-1771504141434.txt","computername":"SAP10","pid":21204,"type":"stdout","created":1771504141434},{"file":"SAP10-21664-stderr-1771500415669.txt","computername":"SAP10","pid":21664,"type":"stderr","created":1771500415669},{"file":"SAP10-21664-stdout-1771500415665.txt","computername":"SAP10","pid":21664,"type":"stdout","created":1771500415665},{"file":"SAP10-22596-stderr-1771481169966.txt","computername":"SAP10","pid":22596,"type":"stderr","created":1771481169966},{"file":"SAP10-22596-stdout-1771481169961.txt","computername":"SAP10","pid":22596,"type":"stdout","created":1771481169961},{"file":"SAP10-32572-stderr-1771479116726.txt","computername":"SAP10","pid":32572,"type":"stderr","created":1771479116726},{"file":"SAP10-32572-stdout-1771479116722.txt","computername":"SAP10","pid":32572,"type":"stdout","created":1771479116722},{"file":"SAP10-5604-stderr-1771561183148.txt","computername":"SAP10","pid":5604,"type":"stderr","created":1771561183148},{"file":"SAP10-5604-stdout-1771561183144.txt","computername":"SAP10","pid":5604,"type":"stdout","created":1771561183144},{"file":"SAP10-7816-stderr-1771474865960.txt","computername":"SAP10","pid":7816,"type":"stderr","created":1771474865960},{"file":"SAP10-7816-stdout-1771474865957.txt","computername":"SAP10","pid":7816,"type":"stdout","created":1771474865957},{"file":"SAP10-9900-stderr-1771565187966.txt","computername":"SAP10","pid":9900,"type":"stderr","created":1771565187966},{"file":"SAP10-9900-stdout-1771565187963.txt","computername":"SAP10","pid":9900,"type":"stdout","created":1771565187963}];
+        var lastUpdated = 1771565190322;
+        var date = new Date();
+
+        date.setTime(lastUpdated);
+        document.getElementById('lastUpdated').innerHTML = 'Index was last updated ' + date;
+
+        logFiles.sort(function (a, b) {
+            return b.created - a.created;
+        });
+
+        var logFilesTable = document.getElementById("logFilesTable");
+        for (var i = 0; i < logFiles.length; i++) {
+            var logFile = logFiles[i];
+            date.setTime(logFile.created);
+            var row = logFilesTable.insertRow(-1);
+            var computerNameCell = row.insertCell(0);
+            var pidCell = row.insertCell(1);
+            var typeCell = row.insertCell(2);
+            var dateCell = row.insertCell(3);
+            var logCell = row.insertCell(4);
+            computerNameCell.innerHTML = logFile.computername;
+            pidCell.innerHTML = logFile.pid.toString();
+            typeCell.innerHTML = logFile.type;
+            typeCell.setAttribute('class', logFile.type);
+            dateCell.innerHTML = date.toString();
+            logCell.innerHTML = '<a href="' + logFile.file + '">log</a>';
+        };
+
+    </script>
+</body>
+</html>
