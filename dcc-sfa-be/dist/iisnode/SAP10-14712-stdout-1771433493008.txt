@@ -1,9 +1,0 @@
-[34m[info] Customer Category Assignment cronjob scheduled[0m
-[34m[info] Attendance cron jobs started[0m
-[32m[success] Server running at http://localhost:\\.\pipe\9efaded9-a309-4dd1-91ad-6078ee18383c[0m
-Failed login attempt for unknown user: ali.shariff@doubleclick.co.tz from IP: 2401:4900:8831:e9d6:f885:5b8:c944:febd
-Failed login attempt for unknown user: admin@dcctz.com from IP: 2401:4900:8831:e9d6:f885:5b8:c944:febd
-Failed login attempt for unknown user: admin@dcctz.com from IP: 2401:4900:8831:e9d6:f885:5b8:c944:febd
-Failed login attempt for unknown user: admin@dcctz.com from IP: 2401:4900:8831:e9d6:f885:5b8:c944:febd
-Failed login attempt for unknown user: admin@dcctz.com from IP: 2401:4900:8831:e9d6:f885:5b8:c944:febd
-0

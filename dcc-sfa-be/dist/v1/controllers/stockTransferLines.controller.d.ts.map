@@ -1,1 +1,0 @@
-{"version":3,"file":"stockTransferLines.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/stockTransferLines.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAkE5C,eAAO,MAAM,4BAA4B;kCACH,GAAG,OAAO,GAAG;kCA6Eb,OAAO,OAAO,QAAQ;iCA6BvB,GAAG,OAAO,GAAG;iCAqCb,OAAO,OAAO,QAAQ;CAoB1D,CAAC"}
