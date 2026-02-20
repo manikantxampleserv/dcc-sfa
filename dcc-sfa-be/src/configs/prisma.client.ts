@@ -2,18 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaMssql } from '@prisma/adapter-mssql';
 import { config as MssqlConfig } from 'mssql';
 import { config as appConfig } from './env';
-import dotenv from 'dotenv';
-import path from 'path';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
-dotenv.config({
-  path: path.resolve(
-    process.cwd(),
-    `.env.${process.env.NODE_ENV || 'development'}`
-  ),
-  override: true,
-  quiet: true,
-});
 
 
 let prisma: PrismaClient | null = null;

@@ -26,6 +26,9 @@ export const subUnitOfMeasurementValidationSchema = Yup.object({
   unit_of_measurement_id: Yup.number()
     .required('Unit of measurement is required')
     .positive('Unit of measurement must be selected'),
+  product_id: Yup.number()
+    .required('Product is required')
+    .positive('Product must be selected'),
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Status must be either Active or Inactive')
     .required('Status is required'),
