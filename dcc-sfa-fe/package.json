@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:staging": "tsc -b && vite build --mode development --outDir dist-staging",
-    "build:production": "tsc -b && vite build --mode production --outDir dist-production",
+    "build": "tsc -b && vite build && node scripts/copy-webconfig.js",
+    "build:staging": "tsc -b && vite build --mode development --outDir dist-staging && node scripts/copy-webconfig.js",
+    "build:production": "tsc -b && vite build --mode production --outDir dist-production && node scripts/copy-webconfig.js",
     "preview": "vite preview",
     "preview:staging": "vite preview --outDir dist-staging",
     "preview:production": "vite preview --outDir dist-production",

@@ -3,7 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateUserValidation = exports.createUserValidation = void 0;
 const express_validator_1 = require("express-validator");
 exports.createUserValidation = [
-    (0, express_validator_1.body)('email').isEmail().withMessage('Enter a valid email'),
+    (0, express_validator_1.body)('email')
+        .optional({ checkFalsy: true })
+        .isEmail()
+        .withMessage('Enter a valid email'),
     (0, express_validator_1.body)('password')
         .isLength({ min: 6 })
         .withMessage('Password must be at least 6 characters long'),
@@ -42,7 +45,10 @@ exports.updateUserValidation = [
         .optional()
         .isLength({ min: 3 })
         .withMessage('Username must be at least 3 characters long'),
-    (0, express_validator_1.body)('email').optional().isEmail().withMessage('Enter a valid email'),
+    (0, express_validator_1.body)('email')
+        .optional({ checkFalsy: true })
+        .isEmail()
+        .withMessage('Enter a valid email'),
     (0, express_validator_1.body)('password')
         .optional()
         .isLength({ min: 6 })

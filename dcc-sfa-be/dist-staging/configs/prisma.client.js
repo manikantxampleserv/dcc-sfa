@@ -1,8 +1,20 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPrisma = void 0;
 const client_1 = require("@prisma/client");
 const adapter_mssql_1 = require("@prisma/adapter-mssql");
+const env_1 = require("./env");
+const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
+dotenv_1.default.config({ path: path_1.default.resolve(process.cwd(), '.env'), quiet: true });
+dotenv_1.default.config({
+    path: path_1.default.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
+    override: true,
+    quiet: true,
+});
 let prisma = null;
 const parseConnectionString = (connectionString) => {
     const params = Object.fromEntries(connectionString
@@ -51,9 +63,9 @@ const parseConnectionString = (connectionString) => {
 };
 const getPrisma = () => {
     if (!prisma) {
-        const databaseUrl = process.env.DATABASE_URL;
+        const databaseUrl = env_1.config.database.url;
         if (!databaseUrl) {
-            throw new Error('DATABASE_URL environment variable is not set. Please create a .env file with DATABASE_URL configured.');
+            throw new Error('DATABASE_URL is not configured in environment');
         }
         const connectionConfig = parseConnectionString(databaseUrl);
         const adapter = new adapter_mssql_1.PrismaMssql(connectionConfig);
