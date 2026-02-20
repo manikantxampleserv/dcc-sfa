@@ -1,1 +1,1 @@
-{"version":3,"file":"prisma.client.d.ts","sourceRoot":"","sources":["../../src/configs/prisma.client.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AA4E9C,eAAO,MAAM,SAAS,QAAO,YAmC5B,CAAC;;AAEF,wBAIG"}
+{"version":3,"file":"prisma.client.d.ts","sourceRoot":"","sources":["../../src/configs/prisma.client.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,YAAY,EAAE,MAAM,gBAAgB,CAAC;AAiE9C,eAAO,MAAM,SAAS,QAAO,YAmC5B,CAAC;;AAEF,wBAIG"}
