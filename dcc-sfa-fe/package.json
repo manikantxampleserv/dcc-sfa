@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:staging": "tsc -b && vite build --mode staging --outDir dist-staging",
+    "build:staging": "tsc -b && vite build --mode development --outDir dist-staging",
     "build:production": "tsc -b && vite build --mode production --outDir dist-production",
     "preview": "vite preview",
     "preview:staging": "vite preview --outDir dist-staging",

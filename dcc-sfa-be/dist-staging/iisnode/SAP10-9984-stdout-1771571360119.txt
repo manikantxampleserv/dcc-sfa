@@ -1,0 +1,5 @@
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[dotenv@17.2.3] injecting env (0) from .env.development -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[34m[info] Customer Category Assignment cronjob scheduled[0m
+[34m[info] Attendance cron jobs started[0m
+[32m[success] Server running at http://localhost:\\.\pipe\c59cbb41-efae-4ac3-a584-b410ca03a4f5[0m
