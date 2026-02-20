@@ -1,7 +1,10 @@
 import { body } from 'express-validator';
 
 export const createUserValidation = [
-  body('email').isEmail().withMessage('Enter a valid email'),
+  body('email')
+    .optional({ checkFalsy: true })
+    .isEmail()
+    .withMessage('Enter a valid email'),
   body('password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
@@ -42,7 +45,10 @@ export const updateUserValidation = [
     .isLength({ min: 3 })
     .withMessage('Username must be at least 3 characters long'),
 
-  body('email').optional().isEmail().withMessage('Enter a valid email'),
+  body('email')
+    .optional({ checkFalsy: true })
+    .isEmail()
+    .withMessage('Enter a valid email'),
 
   body('password')
     .optional()
