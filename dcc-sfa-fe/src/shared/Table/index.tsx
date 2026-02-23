@@ -1,6 +1,10 @@
+import { FilterList } from '@mui/icons-material';
 import {
   Box,
   Divider,
+  FormControlLabel,
+  IconButton,
+  Menu,
   Table as MuiTable,
   TableBody as MuiTableBody,
   TableCell as MuiTableCell,
@@ -11,18 +15,148 @@ import {
   TableSortLabel as MuiTableSortLabel,
   Paper,
   Skeleton,
+  Switch,
+  Typography,
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import { visuallyHidden } from '@mui/utils';
 import classNames from 'classnames';
 import { ArrowUpDown, Lock } from 'lucide-react';
 import React, { useMemo, useState, type ReactNode } from 'react';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { generateTableId } from '../../utils/generateTableId';
+
+const IOSSwitch = styled((props: any) => (
+  <Switch focusVisibleClassName=".Mui-focusVisible" disableRipple {...props} />
+))(({ theme }) => ({
+  width: 36,
+  height: 22,
+  padding: 0,
+  '& .MuiSwitch-switchBase': {
+    padding: 0,
+    margin: 2,
+    transitionDuration: '300ms',
+    '&.Mui-checked': {
+      transform: 'translateX(14px)',
+      color: '#fff',
+      '& + .MuiSwitch-track': {
+        backgroundColor: '#65C466',
+        opacity: 1,
+        border: 0,
+        ...theme.applyStyles('dark', {
+          backgroundColor: '#2ECA45',
+        }),
+      },
+      '&.Mui-disabled + .MuiSwitch-track': {
+        opacity: 0.5,
+      },
+    },
+    '&.Mui-focusVisible .MuiSwitch-thumb': {
+      color: '#33cf4d',
+      border: '6px solid #fff',
+    },
+    '&.Mui-disabled .MuiSwitch-thumb': {
+      color: theme.palette.grey[100],
+      ...theme.applyStyles('dark', {
+        color: theme.palette.grey[600],
+      }),
+    },
+    '&.Mui-disabled + .MuiSwitch-track': {
+      opacity: 0.7,
+      ...theme.applyStyles('dark', {
+        opacity: 0.3,
+      }),
+    },
+  },
+  '& .MuiSwitch-thumb': {
+    boxSizing: 'border-box',
+    width: 18,
+    height: 18,
+  },
+  '& .MuiSwitch-track': {
+    borderRadius: 22 / 2,
+    backgroundColor: '#E9E9EA',
+    opacity: 1,
+    transition: theme.transitions.create(['background-color'], {
+      duration: 500,
+    }),
+    ...theme.applyStyles('dark', {
+      backgroundColor: '#39393D',
+    }),
+  },
+}));
+
+const CustomSwitch = styled((props: any) => (
+  <Switch focusVisibleClassName=".Mui-focusVisible" disableRipple {...props} />
+))(({ theme }) => ({
+  width: 44,
+  height: 24,
+  padding: 0,
+  '& .MuiSwitch-switchBase': {
+    padding: 0,
+    margin: 2,
+    transitionDuration: '200ms',
+    '&.Mui-checked': {
+      transform: 'translateX(20px)',
+      color: theme.palette.primary.main,
+      '& + .MuiSwitch-track': {
+        backgroundColor: theme.palette.primary.main,
+        opacity: 0.2,
+        border: `2px solid ${theme.palette.primary.main}`,
+      },
+      '&.Mui-disabled + .MuiSwitch-track': {
+        opacity: 0.1,
+      },
+    },
+    '&.Mui-focusVisible .MuiSwitch-thumb': {
+      color: theme.palette.primary.main,
+      border: '3px solid #fff',
+      boxShadow: '0 0 0 6px rgba(25, 118, 210, 0.16)',
+    },
+    '&.Mui-disabled .MuiSwitch-thumb': {
+      color: theme.palette.grey[300],
+      ...theme.applyStyles('dark', {
+        color: theme.palette.grey[600],
+      }),
+    },
+    '&.Mui-disabled + .MuiSwitch-track': {
+      opacity: 0.3,
+      ...theme.applyStyles('dark', {
+        opacity: 0.1,
+      }),
+    },
+  },
+  '& .MuiSwitch-thumb': {
+    boxSizing: 'border-box',
+    width: 20,
+    height: 20,
+    backgroundColor: '#fff',
+    border: '2px solid #E0E0E0',
+    transition: theme.transitions.create(['border-color', 'transform'], {
+      duration: 200,
+    }),
+  },
+  '& .MuiSwitch-track': {
+    borderRadius: 24 / 2,
+    backgroundColor: '#F5F5F5',
+    border: '2px solid #E0E0E0',
+    opacity: 1,
+    transition: theme.transitions.create(['background-color', 'border-color'], {
+      duration: 200,
+    }),
+    ...theme.applyStyles('dark', {
+      backgroundColor: '#424242',
+      borderColor: '#616161',
+    }),
+  },
+}));
 
 /**
  * Configuration for a table column
  * @template T - The type of data in the table rows
  */
 export interface TableColumn<T = any> {
-  id: keyof T | string;
+  id: Extract<keyof T, string | number> | string;
   label: string;
   numeric?: boolean;
   disablePadding?: boolean;
@@ -31,6 +165,8 @@ export interface TableColumn<T = any> {
   render?: (value: any, row: T, index: number) => ReactNode;
   className?: string;
   isVisible?: boolean;
+  /** Whether this column can be hidden/shown by the user */
+  hideable?: boolean;
 }
 
 /**
@@ -117,6 +253,8 @@ export interface TableProps<T = any> {
   noAccessMessage?: string;
   /** Disable minimum width constraint to prevent horizontal scrolling */
   compact?: boolean;
+  /** Unique identifier for this table (used for localStorage persistence) */
+  tableId?: string;
 }
 
 /** Sort order type with three states */
@@ -187,6 +325,7 @@ interface TableHeadProps<T> {
   orderBy: string;
   columns: TableColumn<T>[];
   sortable: boolean;
+  columnVisibility?: Record<string, boolean>;
 }
 
 /**
@@ -196,14 +335,20 @@ interface TableHeadProps<T> {
  * @returns Table header JSX element
  */
 function TableHead<T>(props: TableHeadProps<T>) {
-  const { order, orderBy, onRequestSort, columns, sortable } = props;
+  const { order, orderBy, onRequestSort, columns, sortable, columnVisibility } =
+    props;
 
   const createSortHandler =
     (property: keyof T | string) => (event: React.MouseEvent<unknown>) => {
       onRequestSort(event, property);
     };
 
-  const visibleColumns = columns.filter(column => column.isVisible !== false);
+  const visibleColumns = columns.filter(column => {
+    const columnId = String(column.id);
+    return columnVisibility
+      ? columnVisibility[columnId] !== false
+      : column.isVisible !== false;
+  });
 
   return (
     <MuiTableHead>
@@ -343,6 +488,7 @@ export default function Table<T extends Record<string, any>>(
     isPermission = true,
     noAccessMessage = 'You do not have permission to access this content',
     compact = false,
+    tableId,
   } = props;
 
   const [order, setOrder] = useState<Order>(initialOrder);
@@ -360,8 +506,39 @@ export default function Table<T extends Record<string, any>>(
     return new Map(columns.map(col => [String(col.id), col]));
   }, [columns]);
 
+  const initialColumnVisibility: Record<string, boolean> = {};
+  columns.forEach(column => {
+    initialColumnVisibility[String(column.id)] = column.isVisible !== false;
+  });
+
+  // Generate unique table ID automatically
+  const autoTableId = useMemo(() => generateTableId(columns), [columns]);
+
+  const [columnVisibility, setColumnVisibility] = useLocalStorage<
+    Record<string, boolean>
+  >(
+    `table-column-visibility-${tableId || autoTableId}`,
+    initialColumnVisibility
+  );
+
+  const [columnFilterAnchorEl, setColumnFilterAnchorEl] =
+    useState<null | HTMLElement>(null);
+  const isColumnFilterOpen = Boolean(columnFilterAnchorEl);
+
   const visibleColumns = useMemo(() => {
-    return columns.filter(column => column.isVisible !== false);
+    if (loading) {
+      // Show all columns during loading
+      return columns.filter(column => column.isVisible !== false);
+    }
+    // Apply column visibility filter after loading
+    return columns.filter(column => {
+      const columnId = String(column.id);
+      return columnVisibility[columnId] !== false && column.isVisible !== false;
+    });
+  }, [columns, columnVisibility, loading]);
+
+  const hideableColumns = useMemo(() => {
+    return columns.filter(column => column.hideable !== false);
   }, [columns]);
 
   const handleRequestSort = (
@@ -398,6 +575,22 @@ export default function Table<T extends Record<string, any>>(
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     onPageChange?.(newPage);
+  };
+
+  const handleColumnFilterClick = (event: React.MouseEvent<HTMLElement>) => {
+    setColumnFilterAnchorEl(event.currentTarget);
+  };
+
+  const handleColumnFilterClose = () => {
+    setColumnFilterAnchorEl(null);
+  };
+
+  const handleColumnVisibilityChange = (
+    columnId: string,
+    isVisible: boolean
+  ) => {
+    const newVisibility = { ...columnVisibility, [columnId]: isVisible };
+    setColumnVisibility(newVisibility);
   };
 
   const visibleRows = useMemo(() => {
@@ -460,6 +653,7 @@ export default function Table<T extends Record<string, any>>(
           onRequestSort={handleRequestSort}
           columns={columns}
           sortable={sortable}
+          columnVisibility={columnVisibility}
         />
         <MuiTableBody>
           {loading ? (
@@ -514,10 +708,79 @@ export default function Table<T extends Record<string, any>>(
       >
         {props.actions && !Array.isArray(props.actions) && (
           <>
-            <Box className="!p-3">{props.actions}</Box>
+            <Box className="!p-3 flex items-start gap-2">
+              {props.actions}{' '}
+              <IconButton
+                className="!bg-blue-500/20 !size-9.5 !rounded !mt-px"
+                onClick={handleColumnFilterClick}
+              >
+                <FilterList className="!text-blue-500" />
+              </IconButton>
+            </Box>
             <Divider className="!border-gray-200" />
           </>
         )}
+        <Menu
+          anchorEl={columnFilterAnchorEl}
+          open={isColumnFilterOpen}
+          onClose={handleColumnFilterClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+          slotProps={{
+            paper: {
+              className: '!overflow-y-auto relative',
+              sx: {
+                boxShadow:
+                  '0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1)',
+                overflow: 'visible',
+              },
+            },
+          }}
+        >
+          <Box className="w-72">
+            <Typography
+              variant="subtitle2"
+              className="!font-semibold p-1.5 !text-gray-700"
+            >
+              Show/Hide Columns
+            </Typography>
+
+            <Divider className="" />
+
+            <Box className="!space-y-2 p-2">
+              {hideableColumns.map(column => {
+                const columnId = String(column.id);
+                const isVisible = columnVisibility[columnId] !== false;
+
+                return (
+                  <FormControlLabel
+                    key={columnId}
+                    control={
+                      <IOSSwitch
+                        checked={isVisible}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleColumnVisibilityChange(
+                            columnId,
+                            e.target.checked
+                          )
+                        }
+                      />
+                    }
+                    label={
+                      <Box className="!flex !items-center !gap-2">
+                        <Typography className="!text-gray-700">
+                          {column.label}
+                        </Typography>
+                      </Box>
+                    }
+                    labelPlacement="start"
+                    className="!justify-between !w-full !mx-0"
+                  />
+                );
+              })}
+            </Box>
+          </Box>
+        </Menu>
         <MuiTableContainer style={{ maxHeight }}>
           {renderTableContent()}
         </MuiTableContainer>
@@ -528,9 +791,9 @@ export default function Table<T extends Record<string, any>>(
             showFirstButton
             showLastButton
             count={totalCount}
-            rowsPerPage={rowsPerPage}
-            page={page}
             onPageChange={handleChangePage}
+            page={page}
+            rowsPerPage={rowsPerPage}
             className="!border-t !border-gray-200 [&_.MuiTablePagination-toolbar]:!text-gray-700 [&_.MuiTablePagination-selectIcon]:!text-gray-500"
           />
         )}
@@ -538,3 +801,5 @@ export default function Table<T extends Record<string, any>>(
     </Box>
   );
 }
+
+export { CustomSwitch };
