@@ -4,16 +4,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.startServer = void 0;
+const dotenv_1 = __importDefault(require("dotenv"));
 const app_1 = require("./app");
 const logger_1 = __importDefault(require("./configs/logger"));
 const killPort_1 = require("./utils/killPort");
 const attendance_cron_service_1 = require("./v1/services/attendance.cron.service");
-const dotenv_1 = __importDefault(require("dotenv"));
-const path_1 = __importDefault(require("path"));
-dotenv_1.default.config({
-    path: path_1.default.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
-    quiet: true,
-});
+const path_1 = require("path");
+// First check if DATABASE_URL is already set in environment variables
+if (!process.env.DATABASE_URL) {
+    // Load environment variables from the root directory
+    const possiblePaths = [
+        (0, path_1.resolve)(process.cwd(), '.env'), // Current working directory
+        (0, path_1.resolve)(__dirname, '../.env'), // Relative to compiled file
+        (0, path_1.resolve)(__dirname, '../../../.env'), // For production builds
+        '.env', // Fallback
+    ];
+    for (const path of possiblePaths) {
+        try {
+            const result = dotenv_1.default.config({ path, quiet: true });
+            if (result.error) {
+                continue;
+            }
+            if (process.env.DATABASE_URL) {
+                break;
+            }
+        }
+        catch (error) {
+            continue;
+        }
+    }
+}
 const startServer = async () => {
     const port = process.env.PORT || 4000;
     try {
@@ -23,7 +43,6 @@ const startServer = async () => {
             await (0, killPort_1.killPort)(port);
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        console.log(process.env.DATABASE_URL, "DATABASE_URL");
         const server = app.listen(port, async () => {
             attendance_cron_service_1.AttendanceCronService.startAutoPunchOut();
             attendance_cron_service_1.AttendanceCronService.startMidnightStatusReset();

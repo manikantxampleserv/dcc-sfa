@@ -1,10 +1,59 @@
 import dotenv from 'dotenv';
-import path from 'path';
+import { resolve } from 'path';
 
-dotenv.config({
-  path: path.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
-  quiet: true,
-});
+// First check if DATABASE_URL is already set in environment variables
+if (process.env.DATABASE_URL) {
+  console.log('DATABASE_URL found in environment variables');
+} else {
+  console.log(
+    'DATABASE_URL not found in environment variables, attempting to load from .env files...'
+  );
+
+  // Try .env.production first for production environment
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Load environment variables from the appropriate .env file
+  const possiblePaths = [
+    isProduction
+      ? resolve(process.cwd(), '.env.production')
+      : resolve(process.cwd(), '.env'), // Production .env file
+    resolve(process.cwd(), '.env'), // Current working directory
+    resolve(__dirname, '../../.env'), // Relative to compiled file
+    resolve(__dirname, '../../../.env'), // For production builds
+    '.env', // Fallback
+  ];
+
+  let envLoaded = false;
+  for (const path of possiblePaths) {
+    try {
+      const result = dotenv.config({ path, quiet: true });
+      if (result.error) {
+        // Try next path
+        continue;
+      }
+      if (process.env.DATABASE_URL) {
+        console.log(`DATABASE_URL loaded from: ${path}`);
+        envLoaded = true;
+        break;
+      }
+    } catch (error) {
+      // Try next path
+      continue;
+    }
+  }
+
+  if (!envLoaded && !process.env.DATABASE_URL) {
+    console.warn('Warning: DATABASE_URL not found in any .env file');
+    console.warn('Attempted paths:', possiblePaths);
+    console.warn(
+      'Available env vars:',
+      Object.keys(process.env).filter(key => key.includes('DATABASE'))
+    );
+    console.warn('Current working directory:', process.cwd());
+    console.warn('Module directory:', __dirname);
+    console.warn('NODE_ENV:', process.env.NODE_ENV);
+  }
+}
 
 const validateB2Config = () => {
   const required = {
@@ -24,6 +73,13 @@ const validateB2Config = () => {
 };
 
 validateB2Config();
+
+// Ensure DATABASE_URL is available before exporting config
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    'DATABASE_URL is required but not found in environment variables'
+  );
+}
 
 export const config = {
   database: {
