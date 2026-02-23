@@ -17,6 +17,7 @@ const startServer = async () => {
             await (0, killPort_1.killPort)(port);
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
+        console.log(process.env.DATABASE_URL, "DATABASE_URL");
         const server = app.listen(port, async () => {
             attendance_cron_service_1.AttendanceCronService.startAutoPunchOut();
             attendance_cron_service_1.AttendanceCronService.startMidnightStatusReset();

@@ -23,8 +23,7 @@ const validateB2Config = () => {
         .filter(([_, value]) => !value)
         .map(([key]) => key);
     if (missing.length > 0) {
-        console.error(' Missing B2 environment variables:', missing);
-        throw new Error(`Missing required B2 variables: ${missing.join(', ')}`);
+        console.warn(' Missing B2 environment variables:', missing);
     }
 };
 validateB2Config();

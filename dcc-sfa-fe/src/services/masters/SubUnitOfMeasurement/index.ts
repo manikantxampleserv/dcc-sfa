@@ -14,6 +14,7 @@ interface SubUnitOfMeasurement {
   code: string;
   description?: string | null;
   unit_of_measurement_id: number;
+  product_id: number;
   is_active: string;
   createdate?: string | null;
   createdby: number;
@@ -25,6 +26,11 @@ interface SubUnitOfMeasurement {
     name: string;
     code: string;
   } | null;
+  subunits_products?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
 }
 
 interface ManageSubUnitOfMeasurementPayload {
@@ -32,6 +38,7 @@ interface ManageSubUnitOfMeasurementPayload {
   code?: string;
   description?: string;
   unit_of_measurement_id: number;
+  product_id: number;
   is_active?: string;
 }
 
@@ -40,6 +47,7 @@ interface UpdateSubUnitOfMeasurementPayload {
   code?: string;
   description?: string;
   unit_of_measurement_id?: number;
+  product_id?: number;
   is_active?: string;
 }
 
@@ -49,6 +57,7 @@ interface GetSubUnitOfMeasurementsParams {
   search?: string;
   name?: string;
   isActive?: string;
+  productId?: number;
   unitOfMeasurementId?: number;
 }
 

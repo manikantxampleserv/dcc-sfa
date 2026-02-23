@@ -15,6 +15,7 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import UnitOfMeasurementSelect from 'shared/UnitOfMeasurementSelect';
+import SubUnitProductSelect from 'shared/SubUnitProductSelect';
 
 interface ManageSubUnitOfMeasurementProps {
   selectedSubUnit?: SubUnitOfMeasurement | null;
@@ -25,7 +26,17 @@ interface ManageSubUnitOfMeasurementProps {
 
 /**
  * ManageSubUnitOfMeasurement component for creating and editing sub units of measurement
- * Uses drawer-based form with formik validation
+ * Uses drawer-based form with formik validation<Box className="md:!col-span-1">
+  <UnitOfMeasurementSelect
+    name="unit_of_measurement_id"
+    label="Unit of Measurement"
+    formik={formik}
+  />
+</Box>
+
+<Box className="md:!col-span-1">
+  <SubUnitProductSelect formik={formik} />
+</Box>
  */
 const ManageSubUnitOfMeasurement: React.FC<ManageSubUnitOfMeasurementProps> = ({
   selectedSubUnit,
@@ -50,6 +61,7 @@ const ManageSubUnitOfMeasurement: React.FC<ManageSubUnitOfMeasurementProps> = ({
       code: selectedSubUnit?.code || '',
       description: selectedSubUnit?.description || '',
       unit_of_measurement_id: selectedSubUnit?.unit_of_measurement_id || 0,
+      product_id: selectedSubUnit?.product_id || 0,
       is_active: (selectedSubUnit?.is_active || 'Y') as 'Y' | 'N',
     },
     validationSchema: subUnitOfMeasurementValidationSchema,
@@ -115,6 +127,10 @@ const ManageSubUnitOfMeasurement: React.FC<ManageSubUnitOfMeasurementProps> = ({
                 label="Unit of Measurement"
                 formik={formik}
               />
+            </Box>
+
+            <Box className="md:!col-span-1">
+              <SubUnitProductSelect formik={formik} />
             </Box>
 
             <Box className="md:!col-span-2">
