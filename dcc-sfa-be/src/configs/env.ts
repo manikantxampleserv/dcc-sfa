@@ -1,13 +1,8 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
 dotenv.config({
-  path: path.resolve(
-    process.cwd(),
-    `.env.${process.env.NODE_ENV || 'development'}`
-  ),
-  override: true,
+  path: path.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
   quiet: true,
 });
 

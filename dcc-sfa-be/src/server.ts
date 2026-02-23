@@ -2,6 +2,12 @@ import { createApp } from './app';
 import logger from './configs/logger';
 import { isPortInUse, killPort } from './utils/killPort';
 import { AttendanceCronService } from './v1/services/attendance.cron.service';
+import dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({
+  path: path.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
+  quiet: true,
+});
 
 export const startServer = async () => {
   const port = process.env.PORT || 4000;
