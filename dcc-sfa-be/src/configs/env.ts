@@ -1,26 +1,30 @@
 import dotenv from 'dotenv';
 import { resolve } from 'path';
 
-// First check if DATABASE_URL is already set in environment variables
 if (process.env.DATABASE_URL) {
   console.log('DATABASE_URL found in environment variables');
 } else {
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    process.env.NODE_ENV === 'prod' ||
+    process.env.env === 'production';
   console.log(
-    'DATABASE_URL not found in environment variables, attempting to load from .env files...'
+    `Environment detection - NODE_ENV: ${process.env.NODE_ENV}, isProduction: ${isProduction}`
   );
 
-  // Try .env.production first for production environment
-  const isProduction = process.env.NODE_ENV === 'production';
+  const possiblePaths: string[] = [
+    ...(isProduction
+      ? [
+          resolve(process.cwd(), '.env.production'),
+          resolve(__dirname, '../../.env.production'),
+          resolve(__dirname, '../../../.env.production'),
+        ]
+      : []),
 
-  // Load environment variables from the appropriate .env file
-  const possiblePaths = [
-    isProduction
-      ? resolve(process.cwd(), '.env.production')
-      : resolve(process.cwd(), '.env'), // Production .env file
-    resolve(process.cwd(), '.env'), // Current working directory
-    resolve(__dirname, '../../.env'), // Relative to compiled file
-    resolve(__dirname, '../../../.env'), // For production builds
-    '.env', // Fallback
+    resolve(process.cwd(), '.env'),
+    resolve(__dirname, '../../.env'),
+    resolve(__dirname, '../../../.env'),
+    '.env',
   ];
 
   let envLoaded = false;
@@ -28,7 +32,6 @@ if (process.env.DATABASE_URL) {
     try {
       const result = dotenv.config({ path, quiet: true });
       if (result.error) {
-        // Try next path
         continue;
       }
       if (process.env.DATABASE_URL) {
@@ -37,7 +40,6 @@ if (process.env.DATABASE_URL) {
         break;
       }
     } catch (error) {
-      // Try next path
       continue;
     }
   }
@@ -74,7 +76,6 @@ const validateB2Config = () => {
 
 validateB2Config();
 
-// Ensure DATABASE_URL is available before exporting config
 if (!process.env.DATABASE_URL) {
   throw new Error(
     'DATABASE_URL is required but not found in environment variables'

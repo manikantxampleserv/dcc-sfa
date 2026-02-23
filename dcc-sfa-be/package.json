@@ -13,7 +13,7 @@
     "start": "cross-env NODE_ENV=development node dist/index.js",
     "start:staging": "cross-env NODE_ENV=development node dist-staging/index.js",
     "start:production": "cross-env NODE_ENV=production node dist-production/index.js",
-    "dev": "nodemon --exec ts-node src/index.ts",
+    "dev": "cross-env NODE_ENV=development nodemon --exec ts-node src/index.ts",
     "prisma:generate": "npx prisma generate",
     "seed:clean": "ts-node src/utils/seeders/index.ts clear",
     "seed:all": "ts-node src/utils/seeders/index.ts seed",

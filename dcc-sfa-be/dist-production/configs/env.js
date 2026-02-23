@@ -6,30 +6,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = require("path");
-// First check if DATABASE_URL is already set in environment variables
 if (process.env.DATABASE_URL) {
     console.log('DATABASE_URL found in environment variables');
 }
 else {
     console.log('DATABASE_URL not found in environment variables, attempting to load from .env files...');
-    // Try .env.production first for production environment
-    const isProduction = process.env.NODE_ENV === 'production';
-    // Load environment variables from the appropriate .env file
+    const isProduction = process.env.NODE_ENV === 'production' ||
+        process.env.NODE_ENV === 'prod' ||
+        process.env.env === 'production';
+    console.log(`Environment detection - NODE_ENV: ${process.env.NODE_ENV}, isProduction: ${isProduction}`);
     const possiblePaths = [
-        isProduction
-            ? (0, path_1.resolve)(process.cwd(), '.env.production')
-            : (0, path_1.resolve)(process.cwd(), '.env'), // Production .env file
-        (0, path_1.resolve)(process.cwd(), '.env'), // Current working directory
-        (0, path_1.resolve)(__dirname, '../../.env'), // Relative to compiled file
-        (0, path_1.resolve)(__dirname, '../../../.env'), // For production builds
-        '.env', // Fallback
+        ...(isProduction
+            ? [
+                (0, path_1.resolve)(process.cwd(), '.env.production'),
+                (0, path_1.resolve)(__dirname, '../../.env.production'),
+                (0, path_1.resolve)(__dirname, '../../../.env.production'),
+            ]
+            : []),
+        (0, path_1.resolve)(process.cwd(), '.env'),
+        (0, path_1.resolve)(__dirname, '../../.env'),
+        (0, path_1.resolve)(__dirname, '../../../.env'),
+        '.env',
     ];
     let envLoaded = false;
     for (const path of possiblePaths) {
         try {
             const result = dotenv_1.default.config({ path, quiet: true });
             if (result.error) {
-                // Try next path
                 continue;
             }
             if (process.env.DATABASE_URL) {
@@ -39,7 +42,6 @@ else {
             }
         }
         catch (error) {
-            // Try next path
             continue;
         }
     }
@@ -67,7 +69,6 @@ const validateB2Config = () => {
     }
 };
 validateB2Config();
-// Ensure DATABASE_URL is available before exporting config
 if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is required but not found in environment variables');
 }
