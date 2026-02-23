@@ -5,13 +5,55 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
-const path_1 = __importDefault(require("path"));
-dotenv_1.default.config({ path: path_1.default.resolve(process.cwd(), '.env'), quiet: true });
-dotenv_1.default.config({
-    path: path_1.default.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
-    override: true,
-    quiet: true,
-});
+const path_1 = require("path");
+if (process.env.DATABASE_URL) {
+    console.log('DATABASE_URL found in environment variables');
+}
+else {
+    console.log('DATABASE_URL not found in environment variables, attempting to load from .env files...');
+    const isProduction = process.env.NODE_ENV === 'production' ||
+        process.env.NODE_ENV === 'prod' ||
+        process.env.env === 'production';
+    console.log(`Environment detection - NODE_ENV: ${process.env.NODE_ENV}, isProduction: ${isProduction}`);
+    const possiblePaths = [
+        ...(isProduction
+            ? [
+                (0, path_1.resolve)(process.cwd(), '.env.production'),
+                (0, path_1.resolve)(__dirname, '../../.env.production'),
+                (0, path_1.resolve)(__dirname, '../../../.env.production'),
+            ]
+            : []),
+        (0, path_1.resolve)(process.cwd(), '.env'),
+        (0, path_1.resolve)(__dirname, '../../.env'),
+        (0, path_1.resolve)(__dirname, '../../../.env'),
+        '.env',
+    ];
+    let envLoaded = false;
+    for (const path of possiblePaths) {
+        try {
+            const result = dotenv_1.default.config({ path, quiet: true });
+            if (result.error) {
+                continue;
+            }
+            if (process.env.DATABASE_URL) {
+                console.log(`DATABASE_URL loaded from: ${path}`);
+                envLoaded = true;
+                break;
+            }
+        }
+        catch (error) {
+            continue;
+        }
+    }
+    if (!envLoaded && !process.env.DATABASE_URL) {
+        console.warn('Warning: DATABASE_URL not found in any .env file');
+        console.warn('Attempted paths:', possiblePaths);
+        console.warn('Available env vars:', Object.keys(process.env).filter(key => key.includes('DATABASE')));
+        console.warn('Current working directory:', process.cwd());
+        console.warn('Module directory:', __dirname);
+        console.warn('NODE_ENV:', process.env.NODE_ENV);
+    }
+}
 const validateB2Config = () => {
     const required = {
         BACKBLAZE_B2_KEY_ID: process.env.BACKBLAZE_B2_KEY_ID,
@@ -27,6 +69,9 @@ const validateB2Config = () => {
     }
 };
 validateB2Config();
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required but not found in environment variables');
+}
 exports.config = {
     database: {
         url: process.env.DATABASE_URL,

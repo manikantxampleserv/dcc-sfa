@@ -9,16 +9,17 @@
   "scripts": {
     "build": "tsc && node scripts/copy-webconfig.js",
     "build:staging": "tsc --project tsconfig.staging.json && node scripts/copy-webconfig.js",
-    "build:production": "tsc --project tsconfig.production.json && node scripts/copy-webconfig.js",
+    "build:production": "cross-env NODE_ENV=production tsc --project tsconfig.production.json && node scripts/copy-webconfig.js",
     "start": "cross-env NODE_ENV=development node dist/index.js",
     "start:staging": "cross-env NODE_ENV=development node dist-staging/index.js",
     "start:production": "cross-env NODE_ENV=production node dist-production/index.js",
-    "dev": "nodemon --exec ts-node src/index.ts",
+    "dev": "cross-env NODE_ENV=development nodemon --exec ts-node src/index.ts",
     "prisma:generate": "npx prisma generate",
     "seed:clean": "ts-node src/utils/seeders/index.ts clear",
     "seed:all": "ts-node src/utils/seeders/index.ts seed",
     "seed": "ts-node src/utils/seeders/index.ts",
-    "lint": "echo \"No linting configured for backend yet\""
+    "lint": "echo \"No linting configured for backend yet\"",
+    "check:env": "node -e \"console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET'); console.log('NODE_ENV:', process.env.NODE_ENV); console.log('Working Directory:', process.cwd());\""
   },
   "devDependencies": {
     "@types/backblaze-b2": "^1.5.6",
