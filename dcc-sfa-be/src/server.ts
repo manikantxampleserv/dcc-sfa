@@ -1,13 +1,34 @@
+import dotenv from 'dotenv';
 import { createApp } from './app';
 import logger from './configs/logger';
 import { isPortInUse, killPort } from './utils/killPort';
 import { AttendanceCronService } from './v1/services/attendance.cron.service';
-import dotenv from 'dotenv';
-import path from 'path';
-dotenv.config({
-  path: path.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
-  quiet: true,
-});
+import { resolve } from 'path';
+
+// First check if DATABASE_URL is already set in environment variables
+if (!process.env.DATABASE_URL) {
+  // Load environment variables from the root directory
+  const possiblePaths = [
+    resolve(process.cwd(), '.env'), // Current working directory
+    resolve(__dirname, '../.env'), // Relative to compiled file
+    resolve(__dirname, '../../../.env'), // For production builds
+    '.env', // Fallback
+  ];
+
+  for (const path of possiblePaths) {
+    try {
+      const result = dotenv.config({ path, quiet: true });
+      if (result.error) {
+        continue;
+      }
+      if (process.env.DATABASE_URL) {
+        break;
+      }
+    } catch (error) {
+      continue;
+    }
+  }
+}
 
 export const startServer = async () => {
   const port = process.env.PORT || 4000;
@@ -23,7 +44,6 @@ export const startServer = async () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    console.log(process.env.DATABASE_URL,"DATABASE_URL")
     const server = app.listen(port, async () => {
       AttendanceCronService.startAutoPunchOut();
       AttendanceCronService.startMidnightStatusReset();
