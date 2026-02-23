@@ -8,6 +8,12 @@ const app_1 = require("./app");
 const logger_1 = __importDefault(require("./configs/logger"));
 const killPort_1 = require("./utils/killPort");
 const attendance_cron_service_1 = require("./v1/services/attendance.cron.service");
+const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
+dotenv_1.default.config({
+    path: path_1.default.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
+    quiet: true,
+});
 const startServer = async () => {
     const port = process.env.PORT || 4000;
     try {

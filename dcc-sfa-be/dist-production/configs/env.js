@@ -6,10 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
-dotenv_1.default.config({ path: path_1.default.resolve(process.cwd(), '.env'), quiet: true });
 dotenv_1.default.config({
     path: path_1.default.resolve(process.cwd(), `.env.${process.env.NODE_ENV || 'development'}`),
-    override: true,
     quiet: true,
 });
 const validateB2Config = () => {

@@ -4,5 +4,5 @@
  *
  * @module index
  */
-export {};
+import './configs/env';
 //# sourceMappingURL=index.d.ts.map
