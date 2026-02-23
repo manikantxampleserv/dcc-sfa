@@ -7,6 +7,8 @@ export const createZoneValidation = [
 
   body('depot_id').optional().isInt().withMessage('Depot ID must be a number'),
 
+  body('code').optional().isString().withMessage('Zone code must be a string'),
+
   body('name')
     .notEmpty()
     .withMessage('Name is required')
