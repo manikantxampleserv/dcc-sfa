@@ -1068,7 +1068,7 @@ export const ordersController = {
                   },
                 });
               } else if (trackingType === 'SERIAL') {
-                console.log('🔹 Going to SERIAL branch');
+                console.log(' Going to SERIAL branch');
                 const serialData = item.serials || item.product_serials;
 
                 if (
