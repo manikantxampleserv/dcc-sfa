@@ -702,6 +702,12 @@ async function createOrUpdateSerialNumber(
 
   if (loadingType === 'L') {
     if (existingSerial) {
+      // Check if serial is already in van
+      if (existingSerial.status === 'in_van') {
+        throw new Error(
+          `Serial number ${serialNumber} is already loaded to van and cannot be loaded again until it becomes available`
+        );
+      }
       throw new Error(`Serial number ${serialNumber} already exists`);
     }
 
@@ -1798,6 +1804,13 @@ export const vanInventoryController = {
                       });
 
                       if (existingSerial) {
+                        // Check if serial is already in van
+                        if (existingSerial.status === 'in_van') {
+                          throw new Error(
+                            `Serial ${serialNumber} is already loaded to van and cannot be loaded again until it becomes available`
+                          );
+                        }
+
                         await tx.serial_numbers.update({
                           where: { id: existingSerial.id },
                           data: {
@@ -2717,6 +2730,19 @@ export const vanInventoryController = {
                       where: { id: vanItem.id },
                       data: { quantity: 0 },
                     });
+
+                    await tx.serial_numbers.update({
+                      where: { id: existingSerial.id },
+                      data: {
+                        status: 'available',
+                        location_id: inventoryData.location_id || null,
+                        updatedate: new Date(),
+                        updatedby: userId,
+                      },
+                    });
+                    console.log(
+                      ` Updated serial ${serialNumber} status → available`
+                    );
 
                     const inventoryStock = await tx.inventory_stock.findFirst({
                       where: {
@@ -4520,7 +4546,7 @@ export const vanInventoryController = {
   //                 product_id: productId,
   //                 product_name: product?.name || null,
   //                 product_code: product?.code || null,
-  //                 unit_price: item.unit_price ? Number(item.unit_price) : null,
+  //                 base_price: product?.base_price ? Number(product.base_price) : null,
   //                 tracking_type: product?.tracking_type || 'none',
   //                 quantity: 0,
   //                 batches: [],
@@ -5187,7 +5213,9 @@ export const vanInventoryController = {
                   product_id: productId,
                   product_name: product?.name || null,
                   product_code: product?.code || null,
-                  unit_price: item.unit_price ? Number(item.unit_price) : null,
+                  unit_price: product?.base_price
+                    ? Number(product.base_price)
+                    : null,
                   tracking_type: product?.tracking_type || 'none',
                   quantity: 0,
                   batches: [],
@@ -5368,6 +5396,7 @@ export const vanInventoryController = {
                       id: true,
                       name: true,
                       code: true,
+                      base_price: true,
                       tracking_type: true,
                       tax_id: true,
                       product_tax_master: {
@@ -5550,6 +5579,7 @@ export const vanInventoryController = {
                   id: true,
                   name: true,
                   code: true,
+                  base_price: true,
                   tracking_type: true,
                   tax_id: true,
                   product_tax_master: {

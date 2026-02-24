@@ -15,6 +15,10 @@ interface RouteSerialized {
   outlet_group?: string | null;
   start_location?: string | null;
   end_location?: string | null;
+  starting_latitude?: string | null;
+  starting_longitude?: string | null;
+  ending_latitude?: string | null;
+  ending_longitude?: string | null;
   estimated_distance?: string | null;
   estimated_time?: number | null;
   is_active: string;
@@ -108,6 +112,10 @@ const serializeRoute = (route: any): RouteSerialized => ({
   outlet_group: route.outlet_group,
   start_location: route.start_location,
   end_location: route.end_location,
+  starting_latitude: route.starting_latitude?.toString() || null,
+  starting_longitude: route.starting_longitude?.toString() || null,
+  ending_latitude: route.ending_latitude?.toString() || null,
+  ending_longitude: route.ending_longitude?.toString() || null,
   estimated_distance: route.estimated_distance?.toString() || null,
   estimated_time: route.estimated_time,
   is_active: route.is_active,
@@ -449,6 +457,10 @@ export const routesController = {
         outlet_group: data.outlet_group,
         start_location: data.start_location,
         end_location: data.end_location,
+        starting_latitude: data.starting_latitude,
+        starting_longitude: data.starting_longitude,
+        ending_latitude: data.ending_latitude,
+        ending_longitude: data.ending_longitude,
         estimated_distance: data.estimated_distance,
         estimated_time: data.estimated_time,
         is_active: data.is_active || 'Y',
@@ -651,6 +663,10 @@ export const routesController = {
         outlet_group: data.outlet_group,
         start_location: data.start_location,
         end_location: data.end_location,
+        starting_latitude: data.starting_latitude,
+        starting_longitude: data.starting_longitude,
+        ending_latitude: data.ending_latitude,
+        ending_longitude: data.ending_longitude,
         estimated_distance: data.estimated_distance,
         estimated_time: data.estimated_time,
         is_active: data.is_active,
@@ -676,11 +692,9 @@ export const routesController = {
         };
       }
 
-      // Handle salespersons - disconnect existing and connect new ones
       const salespersonsData = data.salespersons || data.salesperson_id;
 
       if (salespersonsData !== undefined) {
-        // First, disconnect all existing salespersons
         await prisma.routes.update({
           where: { id: Number(id) },
           data: {
@@ -690,18 +704,14 @@ export const routesController = {
           },
         });
 
-        // Then connect the new salespersons
         if (salespersonsData.length > 0) {
-          // Handle both array of objects and array of IDs
           const salespersonsToCreate = salespersonsData.map((sp: any) => {
             if (typeof sp === 'number' || typeof sp === 'string') {
-              // If it's just an ID, create the object structure
               return {
                 user_id: parseInt(sp.toString()),
                 role: 'PRIMARY',
               };
             } else {
-              // If it's already an object, use it as-is
               return {
                 user_id: sp.user_id,
                 role: sp.role || 'PRIMARY',

@@ -3,22 +3,40 @@ import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 
-const generateCustomerCode = async (name: string) => {
-  const prefix = name.slice(0, 3).toUpperCase();
-  const lastCustomers = await prisma.customers.findFirst({
+const generateCustomerCode = async (depotId: number) => {
+  const depot = await prisma.depots.findUnique({
+    where: { id: depotId },
+    select: { name: true },
+  });
+
+  if (!depot) {
+    throw new Error('Depot not found');
+  }
+
+  const depotPrefix = depot.name
+    .slice(0, 3)
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '');
+
+  const lastCustomer = await prisma.customers.findFirst({
+    where: {
+      code: {
+        startsWith: depotPrefix,
+      },
+    },
     orderBy: { id: 'desc' },
     select: { code: true },
   });
 
   let newNumber = 1;
-  if (lastCustomers && lastCustomers.code) {
-    const match = lastCustomers.code.match(/(\d+)$/);
+  if (lastCustomer && lastCustomer.code) {
+    const match = lastCustomer.code.match(/(\d+)$/);
     if (match) {
       newNumber = parseInt(match[1], 10) + 1;
     }
   }
-  const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
 
+  const code = `${depotPrefix}${newNumber.toString().padStart(2, '0')}`;
   return code;
 };
 const serializeCustomer = async (customer: any) => {
@@ -355,7 +373,7 @@ export const customerController = {
         }) || {};
 
       const customerImages =
-        uploadedFiles.outlet_images || uploadedFiles.outlet_images || [];
+        uploadedFiles.outlet_images || uploadedFiles.customer_images || [];
       const profilePics =
         uploadedFiles.profile_picture || uploadedFiles.profile_pics || [];
 
@@ -415,8 +433,8 @@ export const customerController = {
       }
 
       const allowedFields = [
-        'code',
         'name',
+        'depot_id',
         'type',
         'contact_person',
         'phone_number',
@@ -516,11 +534,35 @@ export const customerController = {
           const customerData = customersData[customerIndex];
 
           try {
-            const zones_id = customerData.zones_id;
+            const depot_id =
+              customerData.depot_id ||
+              customerData.zone_id ||
+              customerData.zones_id;
             const route_id = customerData.route_id;
             const salesperson_id = customerData.salesperson_id;
             const customer_type_id = customerData.customer_type_id;
             const customer_channel_id = customerData.customer_channel_id;
+
+            if (depot_id !== undefined && depot_id !== null) {
+              const depotExists = await prisma.depots.findUnique({
+                where: { id: depot_id },
+                select: { id: true },
+              });
+
+              if (!depotExists) {
+                results.errors.push({
+                  customer: customerData,
+                  reason: `Depot with ID ${depot_id} does not exist`,
+                });
+                continue;
+              }
+            } else if (depot_id === undefined || depot_id === null) {
+              results.errors.push({
+                customer: customerData,
+                reason: 'Depot selection is required',
+              });
+              continue;
+            }
 
             const cleanData: any = {};
             Object.keys(customerData).forEach(key => {
@@ -600,19 +642,6 @@ export const customerController = {
                 updatedby: req.user?.id || 1,
               };
 
-              if (zones_id !== undefined) {
-                if (zones_id === null) {
-                  updateData.customer_zones = { disconnect: true };
-                } else {
-                  const zoneExists = await prisma.zones.findUnique({
-                    where: { id: zones_id },
-                  });
-                  if (zoneExists) {
-                    updateData.customer_zones = { connect: { id: zones_id } };
-                  }
-                }
-              }
-
               if (route_id !== undefined) {
                 if (route_id === null) {
                   updateData.customer_routes = { disconnect: true };
@@ -691,7 +720,7 @@ export const customerController = {
               }
             } else {
               if (!cleanData.code) {
-                let uniqueCode = await generateCustomerCode(cleanData.name);
+                let uniqueCode = await generateCustomerCode(depot_id);
                 let attempts = 0;
                 const maxAttempts = 10;
 
@@ -720,15 +749,6 @@ export const customerController = {
                 log_inst: customerData.log_inst || 1,
                 createdate: new Date(),
               };
-
-              if (zones_id !== undefined && zones_id !== null) {
-                const zoneExists = await prisma.zones.findUnique({
-                  where: { id: zones_id },
-                });
-                if (zoneExists) {
-                  createData.customer_zones = { connect: { id: zones_id } };
-                }
-              }
 
               if (route_id !== undefined && route_id !== null) {
                 const routeExists = await prisma.routes.findUnique({
@@ -924,6 +944,25 @@ export const customerController = {
         return res.status(400).json({ message: 'Customer name is required' });
       }
 
+      const depotId = data.depot_id || data.zone_id || data.zones_id;
+
+      if (!depotId) {
+        return res.status(400).json({ message: 'Depot selection is required' });
+      }
+
+      const depotExists = await prisma.depots.findUnique({
+        where: { id: depotId },
+        select: { id: true, name: true },
+      });
+
+      if (!depotExists) {
+        return res
+          .status(400)
+          .json({ message: 'Selected depot does not exist' });
+      }
+
+      data.depot_id = depotId;
+
       const {
         credit_limit,
         outstanding_amount,
@@ -940,7 +979,7 @@ export const customerController = {
         longitude: longitude === '' ? null : longitude,
       };
 
-      const newCode = await generateCustomerCode(data.name);
+      const newCode = await generateCustomerCode(depotId);
       const customer = await prisma.customers.create({
         data: {
           ...processedData,
