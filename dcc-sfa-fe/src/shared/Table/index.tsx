@@ -708,7 +708,7 @@ export default function Table<T extends Record<string, any>>(
       >
         {props.actions && !Array.isArray(props.actions) && (
           <>
-            <Box className="!p-3 flex items-start gap-2">
+            <Box className="!p-3 flex items-start justify-between gap-2">
               {props.actions}{' '}
               <IconButton
                 className="!bg-blue-500/20 !size-9.5 !rounded !mt-px"

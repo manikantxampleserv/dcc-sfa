@@ -96,12 +96,12 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   });
 
   const movementTypeOptions = [
+    { value: 'installation', label: 'Installation' },
     { value: 'transfer', label: 'Transfer' },
     { value: 'maintenance', label: 'Maintenance' },
     { value: 'repair', label: 'Repair' },
     { value: 'disposal', label: 'Disposal' },
     { value: 'return', label: 'Return' },
-    { value: 'other', label: 'Other' },
   ];
 
   return (
@@ -109,7 +109,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Asset Movement' : 'Create Asset Movement'}
-      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -124,14 +123,12 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
             </Select>
 
             <Select name="movement_type" label="Movement Type" formik={formik}>
-              <MenuItem value="">Select Movement Type</MenuItem>
               {movementTypeOptions.map(option => (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}
                 </MenuItem>
               ))}
             </Select>
-
             <Input
               name="from_location"
               label="From Location"

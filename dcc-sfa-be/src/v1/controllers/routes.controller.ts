@@ -203,6 +203,223 @@ const serializeRoute = (route: any): RouteSerialized => ({
 });
 
 export const routesController = {
+  async getRouteAssignments(req: any, res: any) {
+    try {
+      const {
+        page = '1',
+        limit = '10',
+        search = '',
+        depot_id,
+        zone_id,
+      } = req.query;
+
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limit as string, 10) || 10;
+      const searchLower = (search as string).toLowerCase();
+
+      const userFilters: any = {
+        is_active: 'Y',
+        ...(search && {
+          OR: [
+            { name: { contains: searchLower } },
+            { email: { contains: searchLower } },
+            { employee_id: { contains: searchLower } },
+          ],
+        }),
+        user_role: {
+          name: { contains: 'Sales' },
+        },
+        ...(depot_id && { depot_id: parseInt(depot_id as string, 10) }),
+        ...(zone_id && { zone_id: parseInt(zone_id as string, 10) }),
+      };
+
+      const { data, pagination } = await paginate({
+        model: prisma.users,
+        filters: userFilters,
+        page: pageNum,
+        limit: limitNum,
+        orderBy: { createdate: 'desc' },
+        include: {
+          route_salespersons: {
+            where: { is_active: 'Y' },
+            include: {
+              route: {
+                select: { id: true, name: true, code: true },
+              },
+            },
+          },
+        },
+      });
+
+      const response = data.map((u: any) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        profile_image: u.profile_image,
+        depot_id: u.depot_id,
+        zone_id: u.zone_id,
+        assigned_routes:
+          u.route_salespersons?.map((rs: any) => ({
+            id: rs.route?.id,
+            name: rs.route?.name,
+            code: rs.route?.code,
+          })) || [],
+        assigned_routes_count: u.route_salespersons?.length || 0,
+      }));
+
+      const totalSalespersons = await prisma.users.count({
+        where: userFilters,
+      });
+      const totalRoutes = await prisma.routes.count({
+        where: { is_active: 'Y' },
+      });
+      const assignedRoutesDistinct = await prisma.route_salespersons.findMany({
+        where: { is_active: 'Y' },
+        distinct: ['route_id'],
+        select: { route_id: true },
+      });
+      const totalAssignedRoutes = assignedRoutesDistinct.length;
+      const totalUnassignedRoutes = Math.max(
+        totalRoutes - assignedRoutesDistinct.length,
+        0
+      );
+
+      res.success(
+        'Route assignments retrieved successfully',
+        response,
+        200,
+        pagination,
+        {
+          total_salespersons: totalSalespersons,
+          total_assigned_routes: totalAssignedRoutes,
+          total_routes: totalRoutes,
+          total_unassigned_routes: totalUnassignedRoutes,
+        }
+      );
+    } catch (error: any) {
+      console.error('Get Route Assignments Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getRouteAssignmentsByUser(req: Request, res: Response) {
+    try {
+      const { userId } = req.params as any;
+      const id = parseInt(userId as string, 10);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid user id' });
+      }
+
+      const user = await prisma.users.findUnique({
+        where: { id },
+        include: {
+          route_salespersons: {
+            where: { is_active: 'Y' },
+            include: {
+              route: {
+                select: { id: true, name: true, code: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      const response = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        profile_image: user.profile_image,
+        assigned_routes:
+          user.route_salespersons?.map((rs: any) => ({
+            id: rs.route?.id,
+            name: rs.route?.name,
+            code: rs.route?.code,
+          })) || [],
+      };
+
+      res.json({
+        message: 'User route assignments fetched successfully',
+        data: response,
+      });
+    } catch (error: any) {
+      console.error('Get User Route Assignments Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async setRouteAssignmentsForUser(req: any, res: any) {
+    try {
+      const { userId } = req.params as any;
+      const id = parseInt(userId as string, 10);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid user id' });
+      }
+
+      const { route_ids } = req.body as { route_ids: number[] };
+      if (!Array.isArray(route_ids)) {
+        return res
+          .status(400)
+          .json({ message: 'route_ids must be an array of numbers' });
+      }
+
+      const existingUser = await prisma.users.findUnique({ where: { id } });
+      if (!existingUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      await prisma.route_salespersons.deleteMany({
+        where: { user_id: id },
+      });
+
+      if (route_ids.length > 0) {
+        const createData = route_ids.map(rid => ({
+          route_id: Number(rid),
+          user_id: id,
+          role: 'PRIMARY',
+          is_active: 'Y',
+          assigned_at: new Date(),
+        }));
+        await prisma.route_salespersons.createMany({
+          data: createData,
+        });
+      }
+
+      const updated = await prisma.users.findUnique({
+        where: { id },
+        include: {
+          route_salespersons: {
+            where: { is_active: 'Y' },
+            include: {
+              route: { select: { id: true, name: true, code: true } },
+            },
+          },
+        },
+      });
+
+      res.json({
+        message: 'Route assignments updated successfully',
+        data: {
+          id: updated?.id,
+          name: updated?.name,
+          email: updated?.email,
+          assigned_routes:
+            updated?.route_salespersons?.map((rs: any) => ({
+              id: rs.route?.id,
+              name: rs.route?.name,
+              code: rs.route?.code,
+            })) || [],
+        },
+      });
+    } catch (error: any) {
+      console.error('Set Route Assignments Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
   async createRoutes(req: Request, res: Response) {
     try {
       const data = req.body;
@@ -249,11 +466,6 @@ export const routesController = {
         },
       };
 
-      // if (data.salesperson_id) {
-      //   createData.routes_salesperson = {
-      //     connect: { id: data.salesperson_id },
-      //   };
-      // }
       if (data.salespersons) {
         createData.salespersons = {
           create: data.salespersons.map((sp: any) => ({

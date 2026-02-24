@@ -27,6 +27,28 @@ router.get(
   routesController.getRoutes
 );
 
+router.get(
+  '/route-assignments',
+  authenticateToken,
+  requirePermission([{ module: 'route', action: 'read' }]),
+  routesController.getRouteAssignments
+);
+
+router.get(
+  '/route-assignments/:userId',
+  authenticateToken,
+  requirePermission([{ module: 'route', action: 'read' }]),
+  routesController.getRouteAssignmentsByUser
+);
+
+router.post(
+  '/route-assignments/:userId',
+  authenticateToken,
+  auditUpdate('route_salespersons'),
+  requirePermission([{ module: 'route', action: 'update' }]),
+  routesController.setRouteAssignmentsForUser
+);
+
 router.post(
   '/routes',
   authenticateToken,

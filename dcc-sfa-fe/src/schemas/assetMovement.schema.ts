@@ -12,8 +12,16 @@ export const assetMovementValidationSchema = Yup.object({
     .nullable(),
   movement_type: Yup.string()
     .oneOf(
-      ['transfer', 'maintenance', 'repair', 'disposal', 'return', 'other'],
-      'Movement type must be one of: transfer, maintenance, repair, disposal, return, other'
+      [
+        'transfer',
+        'maintenance',
+        'repair',
+        'disposal',
+        'return',
+
+        'installation',
+      ],
+      'Movement type must be one of: transfer, maintenance, repair, disposal, return, installation'
     )
     .nullable(),
   movement_date: Yup.date()

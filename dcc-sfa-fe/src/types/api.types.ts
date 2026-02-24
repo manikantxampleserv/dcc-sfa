@@ -266,6 +266,10 @@ export interface ApiResponse<T = any> {
     active_product_web_orders: number;
     inactive_product_web_orders: number;
     new_product_web_orders_this_month: number;
+    // Route assignment statistics
+    total_salespersons: number;
+    total_assigned_routes: number;
+    total_unassigned_routes: number;
   };
 }
 

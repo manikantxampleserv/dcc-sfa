@@ -15,10 +15,15 @@ import {
   deleteRoute,
   fetchRouteById,
   fetchRoutes,
+  fetchRouteAssignments,
+  fetchRouteAssignmentsByUser,
+  setRouteAssignmentsForUser,
   updateRoute,
+  type GetRouteAssignmentsParams,
   type GetRoutesParams,
   type ManageRoutePayload,
   type UpdateRoutePayload,
+  type RouteAssignment,
   type Route,
 } from '../services/masters/Routes';
 import type { ApiResponse } from '../types/api.types';
@@ -31,6 +36,15 @@ export const routeKeys = {
   list: (params: GetRoutesParams) => [...routeKeys.lists(), params] as const,
   details: () => [...routeKeys.all, 'detail'] as const,
   detail: (id: number) => [...routeKeys.details(), id] as const,
+};
+
+export const routeAssignmentKeys = {
+  all: ['route-assignments'] as const,
+  lists: () => [...routeAssignmentKeys.all, 'list'] as const,
+  list: (params: GetRouteAssignmentsParams) =>
+    [...routeAssignmentKeys.lists(), params] as const,
+  details: () => [...routeAssignmentKeys.all, 'detail'] as const,
+  detail: (id: number) => [...routeAssignmentKeys.details(), id] as const,
 };
 
 /**
@@ -133,4 +147,61 @@ export const useDeleteRoute = (options?: {
   });
 };
 
-export type { GetRoutesParams, ManageRoutePayload, UpdateRoutePayload, Route };
+export const useRouteAssignments = (
+  params?: GetRouteAssignmentsParams,
+  options?: Omit<
+    UseQueryOptions<ApiResponse<RouteAssignment[]>>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  return useQuery({
+    queryKey: routeAssignmentKeys.list(params || {}),
+    queryFn: () => fetchRouteAssignments(params),
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+export const useRouteAssignment = (userId: number) => {
+  return useQuery({
+    queryKey: routeAssignmentKeys.detail(userId),
+    queryFn: () => fetchRouteAssignmentsByUser(userId),
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useSetRouteAssignments = (
+  userId: number,
+  options?: {
+    onSuccess?: (data: any, variables: number[]) => void;
+    onError?: (error: any, variables: number[]) => void;
+  }
+) => {
+  const queryClient = useQueryClient();
+
+  return useApiMutation({
+    mutationFn: (route_ids: number[]) =>
+      setRouteAssignmentsForUser(userId, route_ids),
+    loadingMessage: 'Updating route assignments...',
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: routeAssignmentKeys.lists(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: routeAssignmentKeys.detail(userId),
+      });
+      options?.onSuccess?.(data, variables);
+    },
+    onError: options?.onError,
+  });
+};
+
+export type {
+  GetRoutesParams,
+  GetRouteAssignmentsParams,
+  ManageRoutePayload,
+  UpdateRoutePayload,
+  Route,
+  RouteAssignment,
+};

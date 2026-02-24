@@ -392,6 +392,11 @@ const menuItems: MenuItem[] = [
             href: '/transactions/visits',
           },
           {
+            id: 'route-assignments',
+            label: 'Route Assignment',
+            href: '/masters/route-assignments',
+          },
+          {
             id: 'competitor-activity',
             label: 'Competitor Activity',
             href: '/transactions/competitor',

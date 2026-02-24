@@ -45,6 +45,7 @@ import CoolerSubTypesManagement from 'pages/masters/CoolerSubTypes';
 import TaxMasterPage from 'pages/masters/TaxMaster';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
+import RouteAssignmentManagement from 'pages/transactions/RouteAssignment';
 import RouteDetail from 'pages/masters/Routes/RouteDetail';
 import RouteTypesManagement from 'pages/masters/RouteTypes';
 import SalesBonusRulesManagement from 'pages/masters/SalesBonusRules';
@@ -211,6 +212,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="route" action="read">
               <RoutesManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/route-assignments',
+          element: (
+            <PermissionGuard module="route" action="read">
+              <RouteAssignmentManagement />
             </PermissionGuard>
           ),
         },
