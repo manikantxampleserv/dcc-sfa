@@ -17,6 +17,7 @@ interface CustomerGroupSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  members_count?: number;
   members?: { id: number; customer_id: number; group_id: number }[];
   routes?: { id: number; name: string; code: string }[];
   depots?: { id: number; name: string; code: string }[];
@@ -104,6 +105,7 @@ const serializeCustomerGroup = (group: any): CustomerGroupSerialized => ({
   updatedate: group.updatedate,
   updatedby: group.updatedby,
   log_inst: group.log_inst,
+  members_count: group.customer_group_members_customer_group?.length || 0,
   members:
     group.customer_group_members_customer_group?.map((m: any) => ({
       id: m.id,
@@ -490,6 +492,13 @@ export const customerGroupsController = {
         },
       });
 
+      const totalMembersResult = await prisma.customer_group_members.aggregate({
+        _count: {
+          id: true,
+        },
+      });
+      const members_count = totalMembersResult._count.id || 0;
+
       res.success(
         'Customer groups retrieved successfully',
         data.map((g: any) => serializeCustomerGroup(g)),
@@ -500,6 +509,7 @@ export const customerGroupsController = {
           active_groups: activeGroups,
           inactive_groups: inactiveGroups,
           new_groups: newGroups,
+          members_count: members_count,
           avg_discount: avgDiscount,
         }
       );

@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
-import { uploadFile } from '../../utils/blackbaze';
 import prisma from '../../configs/prisma.client';
+import { uploadFile } from '../../utils/blackbaze';
 
 interface AssetMasterSerialized {
   id: number;
+  name: string;
+  code: string;
   asset_type_id: number;
   serial_number: string;
   purchase_date?: Date | null;
@@ -25,8 +27,28 @@ interface AssetMasterSerialized {
   asset_master_asset_types?: any;
 }
 
+const generateAssetCode = async (name: string) => {
+  const prefix = name.slice(0, 3).toUpperCase();
+  const lastAssetCode = await prisma.asset_master.findFirst({
+    orderBy: { id: 'desc' },
+    select: { code: true },
+  });
+
+  let newNumber = 1;
+  if (lastAssetCode && lastAssetCode.code) {
+    const match = lastAssetCode.code.match(/(\d+)$/);
+    if (match) {
+      newNumber = parseInt(match[1], 10) + 1;
+    }
+  }
+  const code = `${prefix}-${newNumber.toString().padStart(3, '0')}`;
+  return code;
+};
+
 const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   id: asset.id,
+  name: asset.name,
+  code: asset.code,
   asset_type_id: asset.asset_type_id,
   serial_number: asset.serial_number,
   purchase_date: asset.purchase_date ? new Date(asset.purchase_date) : null,
@@ -53,6 +75,8 @@ export const assetMasterController = {
   async createAssetMaster(req: any, res: any) {
     try {
       const {
+        name,
+        code,
         asset_type_id,
         serial_number,
         purchase_date,
@@ -72,10 +96,41 @@ export const assetMasterController = {
         }
       }
 
-      if (!asset_type_id || !serial_number) {
-        return res
-          .status(400)
-          .json({ message: 'asset_type_id and serial_number are required' });
+      if (!name || !asset_type_id || !serial_number) {
+        return res.status(400).json({
+          message: 'name, asset_type_id and serial_number are required',
+        });
+      }
+
+      let assetCode: string;
+      if (code && code.trim() !== '') {
+        assetCode = code.trim();
+
+        const existingAsset = await prisma.asset_master.findFirst({
+          where: { code: assetCode },
+        });
+
+        if (existingAsset) {
+          return res.status(400).json({ message: 'Asset code already exists' });
+        }
+      } else {
+        assetCode = await generateAssetCode(name);
+        let attempts = 0;
+
+        while (attempts < 10) {
+          const existing = await prisma.asset_master.findFirst({
+            where: { code: assetCode },
+          });
+          if (!existing) break;
+          assetCode = await generateAssetCode(name);
+          attempts++;
+        }
+
+        if (attempts >= 10) {
+          return res
+            .status(500)
+            .json({ message: 'Unable to generate unique asset code' });
+        }
       }
 
       const duplicateAsset = await prisma.asset_master.findFirst({
@@ -102,6 +157,8 @@ export const assetMasterController = {
         });
       }
       const assetData = {
+        name,
+        code: assetCode,
         asset_type_id: Number(asset_type_id),
         serial_number,
         purchase_date: purchase_date ? new Date(purchase_date) : null,
@@ -154,7 +211,7 @@ export const assetMasterController = {
 
       res.status(201).json({
         message: 'Asset created successfully with images',
-        data: createdAsset,
+        data: serializeAssetMaster(createdAsset),
       });
     } catch (error: any) {
       // if (error.code === 'P2002') {
@@ -179,6 +236,8 @@ export const assetMasterController = {
       const filters: any = {
         ...(search && {
           OR: [
+            { name: { contains: searchLower } },
+            { code: { contains: searchLower } },
             { serial_number: { contains: searchLower } },
             { current_location: { contains: searchLower } },
             { current_status: { contains: searchLower } },

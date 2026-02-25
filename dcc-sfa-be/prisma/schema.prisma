@@ -314,6 +314,8 @@ model asset_maintenance {
 model asset_master {
   id                           Int                     @id(map: "PK__asset_ma__3213E83FB367A2E5") @default(autoincrement())
   asset_type_id                Int
+  name                         String                  @db.VarChar(255)
+  code                         String                  @db.NVarChar(255)
   serial_number                String                  @unique(map: "UQ__asset_ma__BED14FEE105CB870") @db.NVarChar(100)
   purchase_date                DateTime?               @db.Date
   warranty_expiry              DateTime?               @db.Date
