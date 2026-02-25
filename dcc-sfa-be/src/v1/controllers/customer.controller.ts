@@ -91,6 +91,14 @@ const serializeCustomer = async (customer: any) => {
           id: customer.customer_routes.id,
           name: customer.customer_routes.name,
           code: customer.customer_routes.code,
+          description: customer.customer_routes.description || null,
+          start_location: customer.customer_routes.start_location || null,
+          end_location: customer.customer_routes.end_location || null,
+          estimated_distance:
+            customer.customer_routes.estimated_distance?.toString() || null,
+          estimated_time: customer.customer_routes.estimated_time || null,
+          route_type: customer.customer_routes.route_type || null,
+          outlet_group: customer.customer_routes.outlet_group || null,
         }
       : null,
 
@@ -1063,7 +1071,20 @@ export const customerController = {
         orderBy: { createdate: 'desc' },
         include: {
           customer_zones: true,
-          customer_routes: true,
+          customer_routes: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              description: true,
+              start_location: true,
+              end_location: true,
+              estimated_distance: true,
+              estimated_time: true,
+              route_type: true,
+              outlet_group: true,
+            },
+          },
           customer_users: true,
           customer_depot: {
             select: {
