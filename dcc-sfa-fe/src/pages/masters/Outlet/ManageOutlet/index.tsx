@@ -62,7 +62,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
   const formik = useFormik({
     initialValues: {
       name: selectedOutlet?.name || '',
-      short_name: selectedOutlet?.short_name || '',
+      code: selectedOutlet?.code || '',
       depot_id: selectedOutlet?.depot_id?.toString() || '',
       zones_id: selectedOutlet?.zones_id?.toString() || '',
       customer_type_id: selectedOutlet?.customer_type_id?.toString() || '',
@@ -96,7 +96,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       try {
         const customerData = {
           name: values.name,
-          short_name: values.short_name,
+          code: values.code,
           depot_id: values.depot_id ? Number(values.depot_id) : undefined,
           zones_id: values.zones_id ? Number(values.zones_id) : undefined,
           customer_type_id: values.customer_type_id
@@ -161,6 +161,14 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               placeholder="Enter outlet name"
               formik={formik}
               required
+            />
+
+            <Input
+              name="code"
+              label="Outlet Code"
+              placeholder="Enter outlet code"
+              helperText="Leave empty to auto-generate outlet code"
+              formik={formik}
             />
 
             <DepotSelect
@@ -301,13 +309,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               formik={formik}
             />
 
-            <Input
-              name="last_visit_date"
-              label="Last Visit Date"
-              type="date"
-              formik={formik}
-            />
-
             <Box className="md:!col-span-2">
               <ActiveInactiveField name="is_active" formik={formik} required />
             </Box>
@@ -349,8 +350,8 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
                 : updateCustomerMutation.isPending
                   ? 'Updating...'
                   : isEdit
-                    ? 'Update Outlet'
-                    : 'Create Outlet'}
+                    ? 'Update'
+                    : 'Create'}
             </Button>
           </Box>
         </form>
