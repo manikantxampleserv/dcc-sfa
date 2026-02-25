@@ -3,6 +3,7 @@ import type { ApiResponse } from 'types/api.types';
 
 export interface AssetMaster {
   id: number;
+  name: string;
   asset_type_id: number;
   serial_number: string;
   purchase_date?: string | null;
@@ -102,24 +103,26 @@ export interface AssetType {
 }
 
 export interface CreateAssetMasterPayload {
+  name: string;
   asset_type_id: number;
   serial_number: string;
-  purchase_date?: string;
-  warranty_expiry?: string;
-  current_location?: string;
-  current_status?: string;
-  assigned_to?: string;
+  purchase_date?: string | null;
+  warranty_expiry?: string | null;
+  current_location?: string | null;
+  current_status?: string | null;
+  assigned_to?: string | null;
   is_active?: string;
 }
 
 export interface UpdateAssetMasterPayload {
+  name?: string;
   asset_type_id?: number;
   serial_number?: string;
-  purchase_date?: string;
-  warranty_expiry?: string;
-  current_location?: string;
-  current_status?: string;
-  assigned_to?: string;
+  purchase_date?: string | null;
+  warranty_expiry?: string | null;
+  current_location?: string | null;
+  current_status?: string | null;
+  assigned_to?: string | null;
   is_active?: string;
 }
 

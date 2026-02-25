@@ -1,6 +1,11 @@
 import * as Yup from 'yup';
 
 export const assetMasterValidationSchema = Yup.object({
+  name: Yup.string()
+    .required('Asset name is required')
+    .min(1, 'Asset name must be at least 1 character')
+    .max(255, 'Asset name must not exceed 255 characters'),
+
   asset_type_id: Yup.number()
     .required('Asset type is required')
     .positive('Asset type must be selected'),
@@ -17,7 +22,12 @@ export const assetMasterValidationSchema = Yup.object({
   purchase_date: Yup.date()
     .nullable()
     .transform((value, originalValue) => {
-      if (originalValue === '' || originalValue === null) return null;
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      )
+        return null;
       return value;
     })
     .max(new Date(), 'Purchase date cannot be in the future'),
@@ -25,11 +35,20 @@ export const assetMasterValidationSchema = Yup.object({
   warranty_expiry: Yup.date()
     .nullable()
     .transform((value, originalValue) => {
-      if (originalValue === '' || originalValue === null) return null;
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      )
+        return null;
       return value;
     })
     .when('purchase_date', (purchase_date, schema) => {
-      if (purchase_date) {
+      if (
+        purchase_date &&
+        purchase_date instanceof Date &&
+        !isNaN(purchase_date.getTime())
+      ) {
         return schema.min(
           purchase_date,
           'Warranty expiry must be after purchase date'

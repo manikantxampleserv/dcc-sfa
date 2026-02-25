@@ -614,8 +614,11 @@ export const routesController = {
           customer_routes: true,
           route_depots: true,
           route_zones: true,
-          // routes_salesperson: true,
-
+          salespersons: {
+            include: {
+              user: true,
+            },
+          },
           routes_route_type: true,
           visit_routes: {
             include: {
@@ -633,9 +636,57 @@ export const routesController = {
         return res.status(404).json({ message: 'Route not found' });
       }
 
+      // Fetch all customers assigned to this route
+      const allRouteCustomers = await prisma.customers.findMany({
+        where: {
+          route_id: Number(id),
+          is_active: 'Y',
+        },
+        include: {
+          customer_depot: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          customer_zones: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          customer_type_customer: {
+            select: {
+              id: true,
+              type_name: true,
+            },
+          },
+          customer_channel_customer: {
+            select: {
+              id: true,
+              channel_name: true,
+            },
+          },
+          customer_category_customer: {
+            select: {
+              id: true,
+              category_name: true,
+            },
+          },
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
       res.json({
         message: 'Route fetched successfully',
-        data: serializeRoute(route),
+        data: {
+          ...serializeRoute(route),
+          all_customers: allRouteCustomers,
+        },
       });
     } catch (error: any) {
       console.error('Get Route Error:', error);

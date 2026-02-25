@@ -196,7 +196,7 @@ const OutletGroupsManagement: React.FC = () => {
         <Box className="flex items-center">
           <Users className="w-4 h-4 text-gray-400 mr-2" />
           <Typography variant="body2" className="!text-gray-900 !font-medium">
-            {row.members?.length || 0}
+            {row.members_count || 0}
           </Typography>
         </Box>
       ),

@@ -53,14 +53,15 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
 
   const formik = useFormik({
     initialValues: {
+      name: selectedAsset?.name || '',
       asset_type_id: selectedAsset?.asset_type_id || 0,
       serial_number: selectedAsset?.serial_number || '',
       purchase_date: selectedAsset?.purchase_date
         ? selectedAsset.purchase_date.split('T')[0]
-        : '',
+        : null,
       warranty_expiry: selectedAsset?.warranty_expiry
         ? selectedAsset.warranty_expiry.split('T')[0]
-        : '',
+        : null,
       warranty_period: '1',
       current_location: selectedAsset?.current_location || '',
       current_status: selectedAsset?.current_status || 'Available',
@@ -74,11 +75,11 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
         const submitData = {
           ...values,
           asset_type_id: Number(values.asset_type_id),
-          purchase_date: values.purchase_date,
-          warranty_expiry: values.warranty_expiry,
-          current_location: values.current_location,
-          current_status: values.current_status,
-          assigned_to: values.assigned_to,
+          purchase_date: values.purchase_date || null,
+          warranty_expiry: values.warranty_expiry || null,
+          current_location: values.current_location || null,
+          current_status: values.current_status || null,
+          assigned_to: values.assigned_to || null,
         };
 
         if (isEdit && selectedAsset) {
@@ -185,6 +186,14 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+            <Input
+              name="name"
+              label="Asset Name"
+              placeholder="Enter asset name"
+              formik={formik}
+              required
+            />
+
             <Select
               name="asset_type_id"
               label="Asset Type"

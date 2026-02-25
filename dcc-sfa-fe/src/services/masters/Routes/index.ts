@@ -68,6 +68,49 @@ interface Route {
     id: number;
     name: string;
   } | null;
+  all_customers?: Array<{
+    id: number;
+    name: string;
+    code: string;
+    short_name?: string | null;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
+    latitude?: string | null;
+    longitude?: string | null;
+    credit_limit?: string | null;
+    outstanding_amount?: string | null;
+    customer_depot?: {
+      id: number;
+      name: string;
+      code: string;
+    } | null;
+    customer_zones?: {
+      id: number;
+      name: string;
+      code: string;
+    } | null;
+    customer_type_customer?: {
+      id: number;
+      type_name: string;
+    } | null;
+    customer_channel_customer?: {
+      id: number;
+      channel_name: string;
+    } | null;
+    customer_category_customer?: {
+      id: number;
+      category_name: string;
+    } | null;
+    is_active: string;
+    createdate?: string | null;
+    updatedate?: string | null;
+  }>;
   visit_routes?: Array<{
     id: number;
     customer_id: number;

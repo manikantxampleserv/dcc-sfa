@@ -4,7 +4,7 @@ import {
   AvatarGroup,
   Box,
   Pagination,
-  Stack,
+  Skeleton,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -94,6 +94,136 @@ const RouteAssignmentManagement: React.FC = () => {
     setPage(1);
   }, []);
 
+  // Skeleton Loader Component
+  const SkeletonLoader = () => (
+    <>
+      {/* Stats Cards Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        {[1, 2, 3, 4].map(i => (
+          <div
+            key={i}
+            className="bg-white shadow-sm p-4 rounded-lg border border-gray-100"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <Skeleton
+                variant="circular"
+                width={40}
+                height={40}
+                className="!bg-gray-200"
+              />
+              <div className="flex-1">
+                <Skeleton
+                  variant="text"
+                  width="40%"
+                  height={16}
+                  className="!bg-gray-200"
+                />
+                <Skeleton
+                  variant="text"
+                  width="60%"
+                  height={24}
+                  className="!bg-gray-300 !mt-1"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Search Bar Skeleton */}
+      <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100 mb-4">
+        <div className="flex items-center flex-wrap gap-4">
+          <Skeleton
+            variant="rectangular"
+            width={320}
+            height={40}
+            className="!bg-gray-200 !rounded-lg"
+          />
+        </div>
+      </div>
+
+      {/* Salesperson Cards Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <div
+            key={i}
+            className="bg-white shadow-sm rounded-lg border border-gray-100"
+          >
+            <div className="flex justify-between items-start p-4 gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <Skeleton
+                  variant="circular"
+                  width={48}
+                  height={48}
+                  className="!bg-gray-200"
+                />
+                <div className="flex flex-col min-w-0 flex-1">
+                  <Skeleton
+                    variant="text"
+                    width="70%"
+                    height={20}
+                    className="!bg-gray-300"
+                  />
+                  <Skeleton
+                    variant="text"
+                    width="85%"
+                    height={14}
+                    className="!bg-gray-200 !mt-1"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Skeleton
+                  variant="rectangular"
+                  width={60}
+                  height={32}
+                  className="!bg-gray-200 !rounded"
+                />
+                <Skeleton
+                  variant="rectangular"
+                  width={60}
+                  height={32}
+                  className="!bg-gray-200 !rounded"
+                />
+              </div>
+            </div>
+            <div className="px-4 flex justify-between items-center pb-4">
+              <Skeleton
+                variant="text"
+                width="45%"
+                height={14}
+                className="!bg-gray-200"
+              />
+              <div className="!mt-2">
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map(j => (
+                    <Skeleton
+                      key={j}
+                      variant="circular"
+                      width={24}
+                      height={24}
+                      className="!bg-gray-200"
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination Skeleton */}
+      <div className="flex justify-center mt-6">
+        <Skeleton
+          variant="rectangular"
+          width={300}
+          height={40}
+          className="!bg-gray-200 !rounded"
+        />
+      </div>
+    </>
+  );
+
   return (
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
@@ -107,7 +237,9 @@ const RouteAssignmentManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {isRead && (
+      {isRead && isFetching && <SkeletonLoader />}
+
+      {isRead && !isFetching && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <StatsCard
             icon={<RouteIcon />}
@@ -149,7 +281,7 @@ const RouteAssignmentManagement: React.FC = () => {
         </div>
       )}
 
-      {isRead && (
+      {isRead && !isFetching && (
         <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100 mb-4">
           <div className="flex items-center flex-wrap gap-4">
             <SearchInput
@@ -162,7 +294,7 @@ const RouteAssignmentManagement: React.FC = () => {
         </div>
       )}
 
-      {isRead && (
+      {isRead && !isFetching && (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
           {assignments.map(user => (
             <div
@@ -242,22 +374,23 @@ const RouteAssignmentManagement: React.FC = () => {
         </div>
       )}
 
-      {isRead && assignments.length === 0 && !isFetching && (
+      {isRead && !isFetching && assignments.length === 0 && (
         <div className="col-span-full text-center py-12">
           <p className="text-gray-500 text-lg">No salespersons found</p>
         </div>
       )}
 
-      {isRead && totalPages > 1 && (
-        <Stack spacing={2} className="!mt-6 !items-center">
+      {isRead && !isFetching && assignments.length > 0 && totalPages > 1 && (
+        <div className="flex justify-center mt-6">
           <Pagination
             count={totalPages}
             page={page}
-            onChange={(_event, value) => setPage(value)}
-            variant="outlined"
-            shape="rounded"
+            onChange={(_, newPage) => setPage(newPage)}
+            color="primary"
+            showFirstButton
+            showLastButton
           />
-        </Stack>
+        </div>
       )}
 
       <ManageAssignRoute

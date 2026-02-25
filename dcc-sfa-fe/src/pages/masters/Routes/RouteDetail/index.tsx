@@ -6,10 +6,13 @@ import { useRoute } from 'hooks/useRoutes';
 import {
   AlertTriangle,
   ArrowLeft,
+  Building,
   Clock,
+  Mail,
   MapPin,
-  Navigation,
+  Phone,
   Route as RouteIcon,
+  Tag,
   Users,
 } from 'lucide-react';
 import React from 'react';
@@ -307,7 +310,7 @@ const RouteDetail: React.FC = () => {
     <div className="flex flex-col gap-4">
       <div className="flex items-start gap-4">
         <div className="!flex-2 flex flex-col gap-4">
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
+          <div className="!bg-white !rounded-lg !pb-9 !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
                 className={`!w-2.5 !h-2.5 !rounded-full ${
@@ -398,109 +401,6 @@ const RouteDetail: React.FC = () => {
               )}
             </div>
           </div>
-          <InfoCard title="Route Details" icon={Navigation}>
-            <div className="!space-y-3">
-              {route.start_location || route.end_location ? (
-                <>
-                  {route.start_location && (
-                    <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
-                      <div className="!flex !items-center !gap-2">
-                        <MapPin className="w-5 h-5 text-primary-500" />
-                        <div>
-                          <Typography
-                            variant="body2"
-                            className="!font-semibold !text-gray-900"
-                          >
-                            Start Location
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            className="!text-gray-500"
-                          >
-                            {route.start_location}
-                          </Typography>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {route.end_location && (
-                    <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
-                      <div className="!flex !items-center !gap-2">
-                        <MapPin className="w-5 h-5 text-primary-500" />
-                        <div>
-                          <Typography
-                            variant="body2"
-                            className="!font-semibold !text-gray-900"
-                          >
-                            End Location
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            className="!text-gray-500"
-                          >
-                            {route.end_location}
-                          </Typography>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {(route.estimated_distance || route.estimated_time) && (
-                    <div className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200">
-                      <div className="!flex !items-center !gap-4">
-                        {route.estimated_distance && (
-                          <div className="!flex !items-center !gap-2">
-                            <Navigation className="w-5 h-5 text-primary-500" />
-                            <div>
-                              <Typography
-                                variant="body2"
-                                className="!font-semibold !text-gray-900"
-                              >
-                                Distance
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                className="!text-gray-500"
-                              >
-                                {route.estimated_distance} km
-                              </Typography>
-                            </div>
-                          </div>
-                        )}
-                        {route.estimated_time && (
-                          <div className="!flex !items-center !gap-2">
-                            <Clock className="w-5 h-5 text-primary-500" />
-                            <div>
-                              <Typography
-                                variant="body2"
-                                className="!font-semibold !text-gray-900"
-                              >
-                                Duration
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                className="!text-gray-500"
-                              >
-                                {route.estimated_time} minutes
-                              </Typography>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="!text-center !py-8 !text-gray-500">
-                  <Navigation className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                  <Typography variant="body2">
-                    No location details available for this route.
-                  </Typography>
-                </div>
-              )}
-            </div>
-          </InfoCard>
         </div>
 
         <div className="!flex-4 !space-y-4">
@@ -676,193 +576,378 @@ const RouteDetail: React.FC = () => {
                   </Typography>
                 </div>
               )}
-
-              {route.createdate && (
-                <div className="!space-y-0.5">
-                  <Typography
-                    variant="caption"
-                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                  >
-                    Created Date
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    className="!font-semibold !text-gray-900"
-                  >
-                    {formatDate(
-                      typeof route.createdate === 'string'
-                        ? route.createdate
-                        : String(route.createdate || '')
-                    )}
-                  </Typography>
-                </div>
-              )}
-
-              {route.updatedate && (
-                <div className="!space-y-0.5">
-                  <Typography
-                    variant="caption"
-                    className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                  >
-                    Last Updated
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    className="!font-semibold !text-gray-900"
-                  >
-                    {formatDate(
-                      typeof route.updatedate === 'string'
-                        ? route.updatedate
-                        : String(route.updatedate || '')
-                    )}
-                  </Typography>
-                </div>
-              )}
             </div>
           </InfoCard>
         </div>
       </div>
 
-      {route.customer_routes && route.customer_routes.length > 0 && (
-        <InfoCard title="Assigned Customers" icon={Users}>
-          <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
-            {route.customer_routes.map(customer => (
-              <div
-                key={customer.id}
-                className="!p-5 !bg-gray-50 !rounded-md !border !border-gray-200 !hover:!shadow-md !transition-shadow"
-              >
-                <div className="!flex !items-start !justify-between !mb-3">
-                  <div className="!flex-1">
-                    <div className="!flex !items-center !gap-2 !mb-2 !flex-wrap">
-                      <Typography
-                        variant="h6"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {customer.name}
-                      </Typography>
-                      {customer.code && (
+      {/* Enhanced Outlets Section - replaces the original customer_routes section */}
+      {route.all_customers && route.all_customers.length > 0 && (
+        <InfoCard
+          title={`All Assigned Outlets (${route.all_customers.length})`}
+          icon={Users}
+        >
+          <div className="!space-y-4">
+            {/* Summary Statistics */}
+            <div className="!grid !grid-cols-2 md:!grid-cols-4 !gap-4 !mb-6">
+              <div className="!bg-blue-50 !p-4 !rounded-lg !text-center">
+                <Typography variant="h4" className="!text-blue-600 !font-bold">
+                  {route.all_customers.length}
+                </Typography>
+                <Typography variant="caption" className="!text-blue-600">
+                  Total Outlets
+                </Typography>
+              </div>
+              <div className="!bg-green-50 !p-4 !rounded-lg !text-center">
+                <Typography variant="h4" className="!text-green-600 !font-bold">
+                  {route.all_customers.filter(c => c.customer_depot).length}
+                </Typography>
+                <Typography variant="caption" className="!text-green-600">
+                  With Depot
+                </Typography>
+              </div>
+              <div className="!bg-purple-50 !p-4 !rounded-lg !text-center">
+                <Typography
+                  variant="h4"
+                  className="!text-purple-600 !font-bold"
+                >
+                  {route.all_customers.filter(c => c.customer_zones).length}
+                </Typography>
+                <Typography variant="caption" className="!text-purple-600">
+                  With Zone
+                </Typography>
+              </div>
+              <div className="!bg-orange-50 !p-4 !rounded-lg !text-center">
+                <Typography
+                  variant="h4"
+                  className="!text-orange-600 !font-bold"
+                >
+                  {
+                    new Set(
+                      route.all_customers
+                        .map(c => c.customer_type_customer?.type_name)
+                        .filter(Boolean)
+                    ).size
+                  }
+                </Typography>
+                <Typography variant="caption" className="!text-orange-600">
+                  Customer Types
+                </Typography>
+              </div>
+            </div>
+
+            {/* Customer Grid */}
+            <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
+              {route.all_customers.map(customer => (
+                <div
+                  key={customer.id}
+                  className="!p-5 !bg-gray-50 !rounded-md !border !border-gray-200 !hover:!shadow-md !transition-shadow"
+                >
+                  <div className="!flex !items-start !justify-between">
+                    <div className="!flex-1">
+                      <div className="!flex !items-center !justify-between !gap-2 !mb-2 !flex-wrap">
+                        <Typography
+                          variant="h6"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {customer.name}
+                        </Typography>
+
+                        {customer.customer_type_customer && (
+                          <Chip
+                            label={customer.customer_type_customer.type_name}
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="!space-y-3">
+                    {/* Contact Information */}
+                    {(customer.phone_number || customer.email) && (
+                      <div className="!space-y-2">
+                        {customer.phone_number && (
+                          <div className="!flex !items-center !gap-2">
+                            <Phone className="w-4 h-4 text-gray-400" />
+                            <Typography
+                              variant="body2"
+                              className="!font-semibold !text-gray-900"
+                            >
+                              {customer.phone_number}
+                            </Typography>
+                          </div>
+                        )}
+
+                        {customer.email && (
+                          <div className="!flex !items-center !gap-2">
+                            <Mail className="w-4 h-4 text-gray-400" />
+                            <Typography
+                              variant="body2"
+                              className="!font-semibold !text-gray-900 !break-all"
+                            >
+                              {customer.email}
+                            </Typography>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Location Information */}
+                    {(customer.customer_depot ||
+                      customer.customer_zones ||
+                      customer.customer_channel_customer ||
+                      customer.customer_category_customer) && (
+                      <div className="!space-y-2">
+                        {customer.customer_depot && (
+                          <div className="!flex !items-center !gap-2">
+                            <Building className="w-4 h-4 text-gray-400" />
+                            <Typography
+                              variant="body2"
+                              className="!text-gray-600"
+                            >
+                              Depot:{' '}
+                              <span className="!font-semibold">
+                                {customer.customer_depot.name}
+                              </span>
+                            </Typography>
+                          </div>
+                        )}
+
+                        {customer.customer_zones && (
+                          <div className="!flex !items-center !gap-2">
+                            <MapPin className="w-4 h-4 text-gray-400" />
+                            <Typography
+                              variant="body2"
+                              className="!text-gray-600"
+                            >
+                              Zone:{' '}
+                              <span className="!font-semibold">
+                                {customer.customer_zones.name}
+                              </span>
+                            </Typography>
+                          </div>
+                        )}
+
+                        {customer.customer_channel_customer && (
+                          <div className="!flex !items-center !gap-2">
+                            <Users className="w-4 h-4 text-gray-400" />
+                            <Typography
+                              variant="body2"
+                              className="!text-gray-600"
+                            >
+                              Channel:{' '}
+                              <span className="!font-semibold">
+                                {
+                                  customer.customer_channel_customer
+                                    .channel_name
+                                }
+                              </span>
+                            </Typography>
+                          </div>
+                        )}
+
+                        {customer.customer_category_customer && (
+                          <div className="!flex !items-center !gap-2">
+                            <Tag className="w-4 h-4 text-gray-400" />
+                            <Typography
+                              variant="body2"
+                              className="!text-gray-600"
+                            >
+                              Category:{' '}
+                              <span className="!font-semibold">
+                                {
+                                  customer.customer_category_customer
+                                    .category_name
+                                }
+                              </span>
+                            </Typography>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Address */}
+                    {(customer.city || customer.state || customer.address) && (
+                      <div className="!border-t border-gray-200 !pt-3">
                         <Typography
                           variant="caption"
-                          className="!text-gray-500 !bg-gray-200 !px-2 !py-0.5 !rounded !font-medium"
+                          className="!text-gray-500 !block !mb-1"
                         >
-                          {customer.code}
+                          Address
                         </Typography>
-                      )}
-                      <Chip
-                        label={
-                          customer.is_active === 'Y' ? 'Active' : 'Inactive'
-                        }
-                        size="small"
-                        color={customer.is_active === 'Y' ? 'success' : 'error'}
-                      />
-                    </div>
-                    {customer.type && (
-                      <Typography
-                        variant="body2"
-                        className="!text-gray-600 !mb-3"
-                      >
-                        Type:{' '}
-                        <span className="!font-semibold">{customer.type}</span>
-                      </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!text-gray-700 !text-sm"
+                        >
+                          {[
+                            customer.address,
+                            customer.city,
+                            customer.state,
+                            customer.zipcode,
+                          ]
+                            .filter(Boolean)
+                            .join(', ') || 'No address available'}
+                        </Typography>
+                      </div>
                     )}
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </InfoCard>
+      )}
 
-                <div className="!space-y-3">
-                  {customer.contact_person && (
-                    <div>
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !block !mb-1 !font-medium"
-                      >
-                        Contact Person
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {customer.contact_person}
-                      </Typography>
+      {/* Fallback for old customer_routes if all_customers is not available */}
+      {!route.all_customers &&
+        route.customer_routes &&
+        route.customer_routes.length > 0 && (
+          <InfoCard title="Assigned Customers" icon={Users}>
+            <div className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-3 !gap-4">
+              {route.customer_routes.map(customer => (
+                <div
+                  key={customer.id}
+                  className="!p-5 !bg-gray-50 !rounded-md !border !border-gray-200 !hover:!shadow-md !transition-shadow"
+                >
+                  <div className="!flex !items-start !justify-between !mb-3">
+                    <div className="!flex-1">
+                      <div className="!flex !items-center !gap-2 !mb-2 !flex-wrap">
+                        <Typography
+                          variant="h6"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {customer.name}
+                        </Typography>
+                        {customer.code && (
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !bg-gray-200 !px-2 !py-0.5 !rounded !font-medium"
+                          >
+                            {customer.code}
+                          </Typography>
+                        )}
+                        <Chip
+                          label={
+                            customer.is_active === 'Y' ? 'Active' : 'Inactive'
+                          }
+                          size="small"
+                          color={
+                            customer.is_active === 'Y' ? 'success' : 'error'
+                          }
+                        />
+                      </div>
+                      {customer.type && (
+                        <Typography
+                          variant="body2"
+                          className="!text-gray-600 !mb-3"
+                        >
+                          Type:{' '}
+                          <span className="!font-semibold">
+                            {customer.type}
+                          </span>
+                        </Typography>
+                      )}
                     </div>
-                  )}
+                  </div>
 
-                  <div className="!grid !grid-cols-1 !gap-2">
-                    {customer.phone_number && (
+                  <div className="!space-y-3">
+                    {customer.contact_person && (
                       <div>
                         <Typography
                           variant="caption"
                           className="!text-gray-500 !block !mb-1 !font-medium"
                         >
-                          Phone Number
+                          Contact Person
                         </Typography>
                         <Typography
                           variant="body2"
                           className="!font-semibold !text-gray-900"
                         >
-                          {customer.phone_number}
+                          {customer.contact_person}
                         </Typography>
                       </div>
                     )}
 
-                    {customer.email && (
+                    <div className="!grid !grid-cols-1 !gap-2">
+                      {customer.phone_number && (
+                        <div>
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !block !mb-1 !font-medium"
+                          >
+                            Phone Number
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {customer.phone_number}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {customer.email && (
+                        <div>
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !block !mb-1 !font-medium"
+                          >
+                            Email
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900 !break-all"
+                          >
+                            {customer.email}
+                          </Typography>
+                        </div>
+                      )}
+                    </div>
+
+                    {(customer.city || customer.state || customer.zipcode) && (
                       <div>
                         <Typography
                           variant="caption"
                           className="!text-gray-500 !block !mb-1 !font-medium"
                         >
-                          Email
+                          Location
                         </Typography>
                         <Typography
                           variant="body2"
-                          className="!font-semibold !text-gray-900 !break-all"
+                          className="!font-semibold !text-gray-900"
                         >
-                          {customer.email}
+                          {[customer.city, customer.state, customer.zipcode]
+                            .filter(Boolean)
+                            .join(', ') || 'N/A'}
+                        </Typography>
+                      </div>
+                    )}
+
+                    {customer.address && (
+                      <div>
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !block !mb-1 !font-medium"
+                        >
+                          Address
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {customer.address}
                         </Typography>
                       </div>
                     )}
                   </div>
-
-                  {(customer.city || customer.state || customer.zipcode) && (
-                    <div>
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !block !mb-1 !font-medium"
-                      >
-                        Location
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {[customer.city, customer.state, customer.zipcode]
-                          .filter(Boolean)
-                          .join(', ') || 'N/A'}
-                      </Typography>
-                    </div>
-                  )}
-
-                  {customer.address && (
-                    <div>
-                      <Typography
-                        variant="caption"
-                        className="!text-gray-500 !block !mb-1 !font-medium"
-                      >
-                        Address
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {customer.address}
-                      </Typography>
-                    </div>
-                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        </InfoCard>
-      )}
+              ))}
+            </div>
+          </InfoCard>
+        )}
 
       {route.visit_routes && route.visit_routes.length > 0 ? (
         <InfoCard title="Visits History" icon={Clock}>
@@ -1134,16 +1219,6 @@ const RouteDetail: React.FC = () => {
           </div>
         </InfoCard>
       )}
-
-      <div className="!mt-4">
-        <Button
-          variant="outlined"
-          startIcon={<ArrowLeft />}
-          onClick={handleBack}
-        >
-          Back to Routes
-        </Button>
-      </div>
     </div>
   );
 };

@@ -89,18 +89,48 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
   const customerCategories = (customerCategoriesResponse?.data ||
     []) as CustomerCategory[];
 
-  // Fetch all customers for selection
-  const { data: customersResponse, isLoading: customersLoading } = useCustomers(
-    {
-      page: 1,
-      limit: 1000, // Get all customers
-      isActive: 'Y',
-    }
-  );
+  const { data: customersResponse } = useCustomers({
+    page: 1,
+    limit: 1000,
+    isActive: 'Y',
+  });
 
   const customers = customersResponse?.data || [];
 
-  // Get selected customer IDs from the group members
+  const createFilterOptions =
+    (searchFields: string[]) => (options: any[], params: any) => {
+      const searchLower = params.inputValue.toLowerCase();
+      if (!searchLower) return options;
+      return options.filter(option =>
+        searchFields.some(field =>
+          option[field]?.toLowerCase().includes(searchLower)
+        )
+      );
+    };
+
+  const renderSelectedItems = (
+    items: number[],
+    data: any[],
+    getId: (item: any) => number,
+    getLabel: (item: any) => string,
+    onRemove: (id: number) => void
+  ) =>
+    items.map(id => {
+      const item = data.find(d => getId(d) === id);
+      if (!item) return null;
+      return (
+        <Box
+          key={id}
+          className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
+        >
+          <Typography variant="body2">{getLabel(item)}</Typography>
+          <IconButton size="small" onClick={() => onRemove(id)}>
+            <Close fontSize="small" />
+          </IconButton>
+        </Box>
+      );
+    });
+
   const getSelectedCustomers = () => {
     if (!selectedOutletGroup?.members) return [];
     return customers.filter(customer =>
@@ -110,25 +140,21 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
     );
   };
 
-  // Get selected route IDs from the group
   const getSelectedRouteIds = () => {
     if (!selectedOutletGroup?.routes) return [];
     return selectedOutletGroup.routes.map((route: any) => route.id);
   };
 
-  // Get selected depot IDs from the group
   const getSelectedDepotIds = () => {
     if (!selectedOutletGroup?.depots) return [];
     return selectedOutletGroup.depots.map((depot: any) => depot.id);
   };
 
-  // Get selected zone IDs from the group
   const getSelectedZoneIds = () => {
     if (!selectedOutletGroup?.zones) return [];
     return selectedOutletGroup.zones.map((zone: any) => zone.id);
   };
 
-  // Get selected customer category IDs from the group
   const getSelectedCategoryIds = () => {
     if (!selectedOutletGroup?.customer_categories) return [];
     return selectedOutletGroup.customer_categories.map(
@@ -195,7 +221,6 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
     },
   });
 
-  // Update customerGroups when selectedCustomers changes
   useEffect(() => {
     if (formik.values.selectedCustomers) {
       formik.setFieldValue(
@@ -224,7 +249,6 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
     formik.setFieldValue('customer_categories', selectedCategoryIds);
   }, [selectedCategoryIds]);
 
-  // Initialize state variables when editing existing group
   useEffect(() => {
     if (selectedOutletGroup) {
       setSelectedRouteIds(getSelectedRouteIds());
@@ -348,16 +372,7 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                     }}
                     size="small"
                     fullWidth
-                    filterOptions={(options, params) => {
-                      const searchLower = params.inputValue.toLowerCase();
-                      return options.filter(option => {
-                        if (!searchLower) return true;
-                        return (
-                          option.name?.toLowerCase().includes(searchLower) ||
-                          option.code?.toLowerCase().includes(searchLower)
-                        );
-                      });
-                    }}
+                    filterOptions={createFilterOptions(['name', 'code'])}
                     renderInput={params => (
                       <TextField
                         {...params}
@@ -380,13 +395,7 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                     }}
                     size="small"
                     fullWidth
-                    filterOptions={(options, params) => {
-                      const searchLower = params.inputValue.toLowerCase();
-                      return options.filter(option => {
-                        if (!searchLower) return true;
-                        return option.name?.toLowerCase().includes(searchLower);
-                      });
-                    }}
+                    filterOptions={createFilterOptions(['name'])}
                     renderInput={params => (
                       <TextField
                         {...params}
@@ -411,16 +420,7 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                     }}
                     size="small"
                     fullWidth
-                    filterOptions={(options, params) => {
-                      const searchLower = params.inputValue.toLowerCase();
-                      return options.filter(option => {
-                        if (!searchLower) return true;
-                        return (
-                          option.name?.toLowerCase().includes(searchLower) ||
-                          option.code?.toLowerCase().includes(searchLower)
-                        );
-                      });
-                    }}
+                    filterOptions={createFilterOptions(['name', 'code'])}
                     renderInput={params => (
                       <TextField
                         {...params}
@@ -447,20 +447,10 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                     }}
                     size="small"
                     fullWidth
-                    filterOptions={(options, params) => {
-                      const searchLower = params.inputValue.toLowerCase();
-                      return options.filter(option => {
-                        if (!searchLower) return true;
-                        return (
-                          option.category_name
-                            ?.toLowerCase()
-                            .includes(searchLower) ||
-                          option.category_code
-                            ?.toLowerCase()
-                            .includes(searchLower)
-                        );
-                      });
-                    }}
+                    filterOptions={createFilterOptions([
+                      'category_name',
+                      'category_code',
+                    ])}
                     renderInput={params => (
                       <TextField
                         {...params}
@@ -479,21 +469,11 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                     id="customers-autocomplete"
                     options={customers}
                     value={formik.values.selectedCustomers}
-                    onChange={(_event, newValue) => {
+                    onChange={(_, newValue) => {
                       formik.setFieldValue('selectedCustomers', newValue);
                     }}
-                    getOptionLabel={option => `${option.name}`}
-                    loading={customersLoading}
-                    filterOptions={(options, params) => {
-                      const searchLower = params.inputValue.toLowerCase();
-                      return options.filter(option => {
-                        if (!searchLower) return true;
-                        return (
-                          option.name?.toLowerCase().includes(searchLower) ||
-                          option.code?.toLowerCase().includes(searchLower)
-                        );
-                      });
-                    }}
+                    getOptionLabel={option => `${option.name} (${option.code})`}
+                    filterOptions={createFilterOptions(['name', 'code'])}
                     renderInput={params => (
                       <TextField
                         {...params}
@@ -550,142 +530,70 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                 <Box className="!mt-3 !border !border-gray-200 !rounded">
                   <Box className="!max-h-52 !overflow-y-auto">
                     {outletTab === 0 &&
-                      selectedDepotIds.map(depotId => {
-                        const depot = depots.find(d => d.id === depotId);
-                        if (!depot) return null;
-                        return (
-                          <Box
-                            key={depotId}
-                            className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
-                          >
-                            <Typography variant="body2">
-                              {depot.name}
-                              {depot.code ? ` (${depot.code})` : ''}
-                            </Typography>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedDepotIds(
-                                  selectedDepotIds.filter(id => id !== depotId)
-                                );
-                              }}
-                            >
-                              <Close fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        );
-                      })}
+                      renderSelectedItems(
+                        selectedDepotIds,
+                        depots,
+                        d => d.id,
+                        d => `${d.name}${d.code ? ` (${d.code})` : ''}`,
+                        id =>
+                          setSelectedDepotIds(
+                            selectedDepotIds.filter(dId => dId !== id)
+                          )
+                      )}
 
                     {outletTab === 1 &&
-                      selectedZoneIds.map(zoneId => {
-                        const zone = zones.find(z => z.id === zoneId);
-                        if (!zone) return null;
-                        return (
-                          <Box
-                            key={zoneId}
-                            className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
-                          >
-                            <Typography variant="body2">{zone.name}</Typography>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedZoneIds(
-                                  selectedZoneIds.filter(id => id !== zoneId)
-                                );
-                              }}
-                            >
-                              <Close fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        );
-                      })}
+                      renderSelectedItems(
+                        selectedZoneIds,
+                        zones,
+                        z => z.id,
+                        z => z.name,
+                        id =>
+                          setSelectedZoneIds(
+                            selectedZoneIds.filter(zId => zId !== id)
+                          )
+                      )}
 
                     {outletTab === 2 &&
-                      selectedRouteIds.map(routeId => {
-                        const route = routes.find(r => r.id === routeId);
-                        if (!route) return null;
-                        return (
-                          <Box
-                            key={routeId}
-                            className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
-                          >
-                            <Typography variant="body2">
-                              {route.name || route.code || `Route ${route.id}`}{' '}
-                              {route.code ? `(${route.code})` : ''}
-                            </Typography>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedRouteIds(
-                                  selectedRouteIds.filter(id => id !== routeId)
-                                );
-                              }}
-                            >
-                              <Close fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        );
-                      })}
+                      renderSelectedItems(
+                        selectedRouteIds,
+                        routes,
+                        r => r.id,
+                        r =>
+                          `${r.name || r.code || `Route ${r.id}`}${r.code ? ` (${r.code})` : ''}`,
+                        id =>
+                          setSelectedRouteIds(
+                            selectedRouteIds.filter(rId => rId !== id)
+                          )
+                      )}
 
                     {outletTab === 3 &&
-                      selectedCategoryIds.map(categoryId => {
-                        const category = customerCategories.find(
-                          c => c.id === categoryId
-                        );
-                        if (!category) return null;
-                        return (
-                          <Box
-                            key={categoryId}
-                            className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
-                          >
-                            <Typography variant="body2">
-                              {category.category_name}
-                              {category.category_code
-                                ? ` (${category.category_code})`
-                                : ''}
-                            </Typography>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                setSelectedCategoryIds(
-                                  selectedCategoryIds.filter(
-                                    id => id !== categoryId
-                                  )
-                                );
-                              }}
-                            >
-                              <Close fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        );
-                      })}
+                      renderSelectedItems(
+                        selectedCategoryIds,
+                        customerCategories,
+                        c => c.id,
+                        c =>
+                          `${c.category_name}${c.category_code ? ` (${c.category_code})` : ''}`,
+                        id =>
+                          setSelectedCategoryIds(
+                            selectedCategoryIds.filter(cId => cId !== id)
+                          )
+                      )}
 
                     {outletTab === 4 &&
-                      (formik.values.selectedCustomers || []).map(
-                        (customer: Customer) => (
-                          <Box
-                            key={customer.id}
-                            className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
-                          >
-                            <Typography variant="body2">
-                              {customer.name}
-                              {customer.code ? ` (${customer.code})` : ''}
-                            </Typography>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                formik.setFieldValue(
-                                  'selectedCustomers',
-                                  formik.values.selectedCustomers.filter(
-                                    (c: Customer) => c.id !== customer.id
-                                  )
-                                );
-                              }}
-                            >
-                              <Close fontSize="small" />
-                            </IconButton>
-                          </Box>
-                        )
+                      renderSelectedItems(
+                        (formik.values.selectedCustomers || []).map(
+                          (c: Customer) => c.id
+                        ),
+                        formik.values.selectedCustomers || [],
+                        c => c.id,
+                        c => `${c.name}${c.code ? ` (${c.code})` : ''}`,
+                        id =>
+                          formik.setFieldValue(
+                            'selectedCustomers',
+                            formik.values.selectedCustomers.filter(
+                              (c: Customer) => c.id !== id
+                            )
+                          )
                       )}
                   </Box>
                 </Box>
