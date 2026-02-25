@@ -6,6 +6,7 @@ interface CoolerInstallationSerialized {
   id: number;
   customer_id: number;
   code: string;
+  asset_master_id?: number | null;
   brand?: string | null;
   model?: string | null;
   serial_number?: string | null;
@@ -48,6 +49,12 @@ interface CoolerInstallationSerialized {
     name: string;
     code: string;
   } | null;
+  asset_master?: {
+    id: number;
+    serial_number?: string | null;
+    current_status?: string | null;
+    current_location?: string | null;
+  } | null;
 }
 
 const serializeCoolerInstallation = (
@@ -56,6 +63,7 @@ const serializeCoolerInstallation = (
   id: cooler.id,
   customer_id: cooler.customer_id,
   code: cooler.code,
+  asset_master_id: cooler.asset_master_id,
   brand: cooler.brand,
   model: cooler.model,
   serial_number: cooler.serial_number,
@@ -104,6 +112,14 @@ const serializeCoolerInstallation = (
         id: cooler.cooler_sub_types.id,
         name: cooler.cooler_sub_types.name,
         code: cooler.cooler_sub_types.code,
+      }
+    : null,
+  asset_master: cooler.cooler_asset_master
+    ? {
+        id: cooler.cooler_asset_master.id,
+        serial_number: cooler.cooler_asset_master.serial_number,
+        current_status: cooler.cooler_asset_master.current_status,
+        current_location: cooler.cooler_asset_master.current_location,
       }
     : null,
 });
@@ -201,8 +217,56 @@ export const coolerInstallationsController = {
               code: true,
             },
           },
+          cooler_asset_master: {
+            select: {
+              id: true,
+              serial_number: true,
+              current_status: true,
+              current_location: true,
+            },
+          },
         },
       });
+
+      if (cooler.asset_master_id && cooler.install_date) {
+        try {
+          const customer = cooler.coolers_customers;
+          const toLocation = customer
+            ? `${customer.name} (${customer.code})`
+            : 'Customer Location';
+
+          await prisma.asset_movements.create({
+            data: {
+              asset_id: cooler.asset_master_id,
+              from_location:
+                cooler.cooler_asset_master?.current_location || 'Warehouse',
+              to_location: toLocation,
+              movement_type: 'Installation',
+              movement_date: cooler.install_date,
+              performed_by: data.createdby ? Number(data.createdby) : 1,
+              notes: `Cooler ${cooler.code} installed at customer location`,
+              is_active: 'Y',
+              createdby: data.createdby ? Number(data.createdby) : 1,
+              createdate: new Date(),
+              log_inst: 1,
+            },
+          });
+
+          if (cooler.asset_master_id) {
+            await prisma.asset_master.update({
+              where: { id: cooler.asset_master_id },
+              data: {
+                current_location: toLocation,
+                current_status: 'In Use',
+                updatedate: new Date(),
+                updatedby: data.createdby ? Number(data.createdby) : 1,
+              },
+            });
+          }
+        } catch (movementError) {
+          console.error('Error creating asset movement:', movementError);
+        }
+      }
 
       res.status(201).json({
         message: 'Cooler installation created successfully',
@@ -296,6 +360,14 @@ export const coolerInstallationsController = {
               id: true,
               name: true,
               code: true,
+            },
+          },
+          cooler_asset_master: {
+            select: {
+              id: true,
+              serial_number: true,
+              current_status: true,
+              current_location: true,
             },
           },
         },
@@ -399,6 +471,14 @@ export const coolerInstallationsController = {
               code: true,
             },
           },
+          cooler_asset_master: {
+            select: {
+              id: true,
+              serial_number: true,
+              current_status: true,
+              current_location: true,
+            },
+          },
         },
       });
 
@@ -500,6 +580,14 @@ export const coolerInstallationsController = {
               id: true,
               name: true,
               code: true,
+            },
+          },
+          cooler_asset_master: {
+            select: {
+              id: true,
+              serial_number: true,
+              current_status: true,
+              current_location: true,
             },
           },
         },
@@ -644,6 +732,14 @@ export const coolerInstallationsController = {
               id: true,
               name: true,
               code: true,
+            },
+          },
+          cooler_asset_master: {
+            select: {
+              id: true,
+              serial_number: true,
+              current_status: true,
+              current_location: true,
             },
           },
         },

@@ -47,6 +47,7 @@ const serializeCustomer = async (customer: any) => {
   return {
     id: customer.id,
     name: customer.name,
+    depot_id: customer.depot_id || null,
     short_name: customer.short_name || null,
     code: customer.code,
     zones_id: customer.zones_id || null,
@@ -120,6 +121,13 @@ const serializeCustomer = async (customer: any) => {
           id: customer.customer_channel_customer.id,
           channel_name: customer.customer_channel_customer.channel_name,
           channel_code: customer.customer_channel_customer.channel_code,
+        }
+      : null,
+    depot: customer.customer_depot
+      ? {
+          id: customer.customer_depot.id,
+          name: customer.customer_depot.name,
+          code: customer.customer_depot.code,
         }
       : null,
     outlet_images: (customer.outlet_images_customers || []).map((img: any) => ({
@@ -1057,6 +1065,13 @@ export const customerController = {
           customer_zones: true,
           customer_routes: true,
           customer_users: true,
+          customer_depot: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
           customer_type_customer: {
             select: {
               id: true,

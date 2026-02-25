@@ -9,7 +9,7 @@ import {
   auditDelete,
 } from '../../middlewares/audit.middleware';
 import { assetMovementsController } from '../controllers/assetMovements.controller';
-import { createAssetMovementsValidation } from '../validations/assetMovements.validation';
+// import { createAssetMovementsValidation } from '../validations/assetMovements.validation';
 import { validate } from '../../middlewares/validation.middleware';
 
 const router = Router();
@@ -19,7 +19,7 @@ router.post(
   authenticateToken,
   auditCreate('asset_movements'),
   requirePermission([{ module: 'asset-movement', action: 'create' }]),
-  createAssetMovementsValidation,
+  // createAssetMovementsValidation,
   validate,
   assetMovementsController.createAssetMovements
 );
