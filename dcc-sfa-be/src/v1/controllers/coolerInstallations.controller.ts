@@ -139,20 +139,13 @@ export const coolerInstallationsController = {
         return `${prefix}-${String(count + 1).padStart(4, '0')}-${timestamp}`;
       };
 
-      let coolerCode = data.code && data.code.trim() !== '' ? data.code : null;
+      let coolerCode: string;
 
-      if (!coolerCode) {
-        coolerCode = await generateCode();
-        let attempts = 0;
-        while (attempts < 10) {
-          const existing = await prisma.coolers.findUnique({
-            where: { code: coolerCode },
-          });
-          if (!existing) break;
-          coolerCode = await generateCode();
-          attempts++;
-        }
-      } else {
+      // Handle user-provided code
+      if (data.code && data.code.trim() !== '') {
+        coolerCode = data.code.trim();
+
+        // Check if user-provided code already exists
         const existingCooler = await prisma.coolers.findUnique({
           where: { code: coolerCode },
         });
@@ -161,6 +154,26 @@ export const coolerInstallationsController = {
           return res
             .status(400)
             .json({ message: 'Cooler code already exists' });
+        }
+      } else {
+        // Generate auto code only if user didn't provide one
+        coolerCode = await generateCode();
+        let attempts = 0;
+
+        // Ensure generated code is unique
+        while (attempts < 10) {
+          const existing = await prisma.coolers.findUnique({
+            where: { code: coolerCode },
+          });
+          if (!existing) break;
+          coolerCode = await generateCode();
+          attempts++;
+        }
+
+        if (attempts >= 10) {
+          return res
+            .status(500)
+            .json({ message: 'Unable to generate unique cooler code' });
         }
       }
 
