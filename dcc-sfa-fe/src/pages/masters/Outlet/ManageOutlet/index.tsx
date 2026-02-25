@@ -13,6 +13,7 @@ import type { Route } from 'services/masters/Routes';
 import type { Zone } from 'services/masters/Zones';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
+import DepotSelect from 'shared/DepotSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
@@ -62,6 +63,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
     initialValues: {
       name: selectedOutlet?.name || '',
       short_name: selectedOutlet?.short_name || '',
+      depot_id: selectedOutlet?.depot_id?.toString() || '',
       zones_id: selectedOutlet?.zones_id?.toString() || '',
       customer_type_id: selectedOutlet?.customer_type_id?.toString() || '',
       customer_channel_id:
@@ -95,6 +97,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
         const customerData = {
           name: values.name,
           short_name: values.short_name,
+          depot_id: values.depot_id ? Number(values.depot_id) : undefined,
           zones_id: values.zones_id ? Number(values.zones_id) : undefined,
           customer_type_id: values.customer_type_id
             ? Number(values.customer_type_id)
@@ -160,11 +163,11 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               required
             />
 
-            <Input
-              name="short_name"
-              label="Short Name"
-              placeholder="Enter short name"
+            <DepotSelect
+              name="depot_id"
+              label="Depot"
               formik={formik}
+              required
             />
 
             <Select name="zones_id" label="Zone" formik={formik}>

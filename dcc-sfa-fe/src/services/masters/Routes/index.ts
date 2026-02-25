@@ -22,6 +22,10 @@ interface Route {
   }>;
   start_location?: string | null;
   end_location?: string | null;
+  starting_latitude?: string | null;
+  starting_longitude?: string | null;
+  ending_latitude?: string | null;
+  ending_longitude?: string | null;
   estimated_distance?: string | null;
   estimated_time?: number | null;
   is_active: string;
@@ -115,6 +119,10 @@ interface ManageRoutePayload {
   }>;
   start_location?: string;
   end_location?: string;
+  starting_latitude?: string;
+  starting_longitude?: string;
+  ending_latitude?: string;
+  ending_longitude?: string;
   estimated_distance?: number;
   estimated_time?: number;
   is_active?: string;
@@ -131,6 +139,10 @@ interface UpdateRoutePayload {
   }>;
   start_location?: string;
   end_location?: string;
+  starting_latitude?: string;
+  starting_longitude?: string;
+  ending_latitude?: string;
+  ending_longitude?: string;
   estimated_distance?: number;
   estimated_time?: number;
   is_active?: string;

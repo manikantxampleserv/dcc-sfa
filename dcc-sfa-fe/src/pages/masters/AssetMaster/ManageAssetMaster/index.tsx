@@ -1,20 +1,20 @@
-import { Box, MenuItem, Typography, IconButton } from '@mui/material';
 import { CloudUpload, Delete, Image } from '@mui/icons-material';
+import { Box, IconButton, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
-import { useAssetTypes } from 'hooks/useAssetTypes';
-import { useUsers } from 'hooks/useUsers';
 import {
   useCreateAssetMaster,
   useUpdateAssetMaster,
   type AssetMaster,
 } from 'hooks/useAssetMaster';
-import React, { useEffect, useState, useRef } from 'react';
+import { useAssetTypes } from 'hooks/useAssetTypes';
+import React, { useEffect, useRef, useState } from 'react';
+import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
-import ActiveInactiveField from 'shared/ActiveInactiveField';
+import UserSelect from 'shared/UserSelect';
 
 interface ManageAssetMasterProps {
   selectedAsset?: AssetMaster | null;
@@ -41,13 +41,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
   });
   const assetTypes = assetTypesResponse?.data || [];
 
-  const { data: usersResponse } = useUsers({
-    page: 1,
-    limit: 1000,
-    isActive: 'Y',
-  });
-  const users = usersResponse?.data || [];
-
   const createAssetMasterMutation = useCreateAssetMaster();
   const updateAssetMasterMutation = useUpdateAssetMaster();
 
@@ -68,7 +61,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       warranty_expiry: selectedAsset?.warranty_expiry
         ? selectedAsset.warranty_expiry.split('T')[0]
         : '',
-      warranty_period: '1', // Default to 1 year (UI only)
+      warranty_period: '1',
       current_location: selectedAsset?.current_location || '',
       current_status: selectedAsset?.current_status || 'Available',
       assigned_to: selectedAsset?.assigned_to || '',
@@ -188,7 +181,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Asset' : 'Create Asset'}
-      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -261,13 +253,12 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               ))}
             </Select>
 
-            <Select name="assigned_to" label="Assigned To" formik={formik}>
-              {users.map(user => (
-                <MenuItem key={user.id} value={user.name}>
-                  {user.name} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
+            <UserSelect
+              name="assigned_to"
+              label="Assigned To"
+              formik={formik}
+              placeholder="Search user..."
+            />
 
             <ActiveInactiveField name="is_active" formik={formik} required />
           </Box>

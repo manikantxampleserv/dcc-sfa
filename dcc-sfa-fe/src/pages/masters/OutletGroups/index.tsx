@@ -333,7 +333,7 @@ const OutletGroupsManagement: React.FC = () => {
                   startIcon={<Add />}
                   onClick={handleCreateOutletGroup}
                 >
-                  Add Outlet Group
+                  Create
                 </Button>
               )}
             </div>
@@ -352,7 +352,7 @@ const OutletGroupsManagement: React.FC = () => {
         emptyMessage={
           search
             ? `No outlet groups found matching "${search}"`
-            : 'No outlet groups found in the system'
+            : `No outlet groups found in the system`
         }
       />
 

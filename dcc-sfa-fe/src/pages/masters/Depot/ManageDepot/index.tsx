@@ -44,6 +44,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
   const formik = useFormik({
     initialValues: {
       parent_id: companies?.[0]?.id || '',
+      code: selectedDepot?.code || '',
       name: selectedDepot?.name || '',
       address: selectedDepot?.address || '',
       city: selectedDepot?.city || '',
@@ -64,6 +65,7 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
       try {
         const depotData = {
           parent_id: Number(values.parent_id),
+          code: values.code || undefined,
           name: values.name,
           address: values.address,
           city: values.city,
@@ -126,6 +128,14 @@ const ManageDepot: React.FC<ManageDepotProps> = ({
               formik={formik}
               required
             />
+            <Input
+              name="code"
+              label="Depot Code"
+              placeholder="Enter depot code"
+              formik={formik}
+              helperText="Leave empty to auto-generate depot code"
+            />
+
             <Input
               name="email"
               label="Email"

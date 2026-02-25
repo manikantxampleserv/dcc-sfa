@@ -104,6 +104,7 @@ interface GetDepotsParams {
   search?: string;
   isActive?: string;
   parent_id?: number;
+  depot_id?: number;
 }
 
 interface PaginationMeta {

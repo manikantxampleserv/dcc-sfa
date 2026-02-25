@@ -133,8 +133,7 @@ export const depotsController = {
       const depot = await prisma.depots.create({
         data: {
           ...data,
-          code: newCode,
-
+          code: data.code || newCode,
           createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
@@ -166,6 +165,7 @@ export const depotsController = {
         search = '',
         isActive,
         parent_id,
+        depot_id,
       } = req.query;
       const page_num = parseInt(page as string, 10);
       const limit_num = parseInt(limit as string, 10);
@@ -182,6 +182,7 @@ export const depotsController = {
           ],
         }),
         ...(parent_id && { parent_id: Number(parent_id) }),
+        ...(depot_id && { id: Number(depot_id) }),
       };
 
       const totalDepots = await prisma.depots.count();

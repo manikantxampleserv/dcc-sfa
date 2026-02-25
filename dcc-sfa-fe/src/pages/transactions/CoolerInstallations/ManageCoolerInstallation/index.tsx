@@ -5,9 +5,10 @@ import {
   useUpdateCoolerInstallation,
   type CoolerInstallation,
 } from 'hooks/useCoolerInstallations';
+import { useAssetMaster } from 'hooks/useAssetMaster';
 import { useCoolerTypesDropdown } from 'hooks/useCoolerTypes';
 import { useCoolerSubTypesDropdown } from 'hooks/useCoolerSubTypes';
-import { useUsers } from 'hooks/useUsers';
+import type { AssetMaster } from 'services/masters/AssetMaster';
 import React from 'react';
 import { coolerInstallationValidationSchema } from 'schemas/coolerInstallation.schema';
 import Button from 'shared/Button';
@@ -15,6 +16,7 @@ import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 
@@ -45,6 +47,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
   const formik = useFormik({
     initialValues: {
       customer_id: selectedInstallation?.customer_id || '',
+      asset_master_id: selectedInstallation?.asset_master_id || '',
       code: selectedInstallation?.code || '',
       brand: selectedInstallation?.brand || '',
       model: selectedInstallation?.model || '',
@@ -83,6 +86,10 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       try {
         const installationData = {
           customer_id: Number(values.customer_id),
+          asset_master_id: values.asset_master_id
+            ? Number(values.asset_master_id)
+            : undefined,
+          code: values.code || undefined,
           brand: values.brand,
           model: values.model,
           serial_number: values.serial_number,
@@ -125,7 +132,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
       }
     },
   });
-  const { data: usersResponse } = useUsers({ limit: 1000 });
+
   const { data: coolerTypesDropdown } = useCoolerTypesDropdown();
   const coolerTypeId = formik.values.cooler_type_id
     ? Number(formik.values.cooler_type_id)
@@ -133,22 +140,48 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
   const { data: coolerSubTypesDropdown } =
     useCoolerSubTypesDropdown(coolerTypeId);
 
-  const users = usersResponse?.data || [];
+  const { data: assetMasterData } = useAssetMaster({
+    page: 1,
+    limit: 1000,
+    status: 'active',
+  });
+
   const coolerTypes = coolerTypesDropdown?.data || [];
   const coolerSubTypes = coolerSubTypesDropdown?.data || [];
+  const assets = assetMasterData?.data || [];
   return (
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Cooler Installation' : 'Create Cooler Installation'}
-      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+            <Select
+              name="asset_master_id"
+              label="Cooler"
+              formik={formik}
+              required
+            >
+              {assets.map((asset: AssetMaster) => (
+                <MenuItem key={asset.id} value={asset.id}>
+                  {asset.serial_number} - {asset.current_status}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Input
+              name="code"
+              label="Cooler Code"
+              placeholder="Enter cooler code"
+              formik={formik}
+              helperText="Leave empty to auto-generate cooler code"
+            />
+
             <CustomerSelect
               name="customer_id"
-              label="Customer"
+              label="Outlet"
               formik={formik}
               required
             />
@@ -261,13 +294,12 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               type="date"
             />
 
-            <Select name="technician_id" label="Technician" formik={formik}>
-              {users.map(user => (
-                <MenuItem key={user.id} value={user.id}>
-                  {user.name} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
+            <UserSelect
+              name="technician_id"
+              label="Technician"
+              formik={formik}
+              placeholder="Search technician..."
+            />
 
             <Input
               name="last_scanned_date"

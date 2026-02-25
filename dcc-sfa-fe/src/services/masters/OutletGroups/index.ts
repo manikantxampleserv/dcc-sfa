@@ -17,6 +17,10 @@ interface OutletGroup {
   updatedby?: number | null;
   log_inst?: number | null;
   members?: { id: number; customer_id: number; group_id: number }[];
+  routes?: number[];
+  depots?: number[];
+  zones?: number[];
+  customer_categories?: number[];
 }
 
 interface CustomerGroupMember {
@@ -34,6 +38,10 @@ interface ManageOutletGroupPayload {
   price_group?: string;
   is_active?: string;
   customerGroups?: CustomerGroupMember[];
+  routes?: number[];
+  depots?: number[];
+  zones?: number[];
+  customer_categories?: number[];
 }
 
 interface UpdateOutletGroupPayload {
@@ -45,6 +53,10 @@ interface UpdateOutletGroupPayload {
   price_group?: string;
   is_active?: string;
   customerGroups?: CustomerGroupMember[];
+  routes?: number[];
+  depots?: number[];
+  zones?: number[];
+  customer_categories?: number[];
 }
 
 interface GetOutletGroupsParams {

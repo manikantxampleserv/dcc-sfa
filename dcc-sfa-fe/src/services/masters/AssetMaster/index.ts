@@ -172,24 +172,23 @@ export const createAssetMaster = async (
   try {
     const formData = new FormData();
 
-    // Add asset data
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         formData.append(key, value.toString());
       }
     });
 
-    // Add images if provided
     if (images && images.length > 0) {
-      images.forEach(image => {
-        formData.append('assetImages', image);
-      });
-
-      // Add image metadata
       const imageMetadata = images.map((_, idx) => ({
         caption: `Asset Image ${idx + 1}`,
       }));
       formData.append('assetImages', JSON.stringify(imageMetadata));
+    }
+
+    if (images && images.length > 0) {
+      images.forEach(image => {
+        formData.append('assetImages', image);
+      });
     }
 
     const response = await axiosInstance.post('/asset-master', formData, {

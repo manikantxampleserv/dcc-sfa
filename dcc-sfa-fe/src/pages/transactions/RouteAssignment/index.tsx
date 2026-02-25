@@ -17,12 +17,14 @@ import {
 } from 'hooks/useRoutes';
 import { RouteIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
 import StatsCard from 'shared/StatsCard';
 import ManageAssignRoute from './ManageAssignRoute';
 
 const RouteAssignmentManagement: React.FC = () => {
+  const navigate = useNavigate();
   const { isRead, isUpdate } = usePermission('route');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -191,15 +193,26 @@ const RouteAssignmentManagement: React.FC = () => {
                     </Typography>
                   </div>
                 </div>
-                {isUpdate && (
+                <div className="flex items-center gap-2">
                   <Button
                     size="small"
                     variant="outlined"
-                    onClick={() => handleOpenAssign(user)}
+                    onClick={() =>
+                      navigate(`/masters/route-assignments/${user.id}`)
+                    }
                   >
-                    Assign
+                    Details
                   </Button>
-                )}
+                  {isUpdate && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => handleOpenAssign(user)}
+                    >
+                      Assign
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="px-4 flex justify-between items-center pb-4">
                 <Typography variant="body2" className="!text-gray-500">

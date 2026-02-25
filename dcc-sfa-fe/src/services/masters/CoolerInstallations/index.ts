@@ -4,6 +4,7 @@ import type { ApiResponse } from 'types/api.types';
 export interface CoolerInstallation {
   id: number;
   customer_id: number;
+  asset_master_id?: number | null;
   code: string;
   brand?: string | null;
   model?: string | null;
@@ -47,10 +48,18 @@ export interface CoolerInstallation {
     name: string;
     code: string;
   } | null;
+  asset_master?: {
+    id: number;
+    serial_number: string;
+    current_status: string;
+    current_location: string;
+  } | null;
 }
 
 export interface CreateCoolerInstallationPayload {
   customer_id: number;
+  asset_master_id?: number;
+  code?: string;
   brand?: string;
   model?: string;
   serial_number?: string;
@@ -72,6 +81,7 @@ export interface CreateCoolerInstallationPayload {
 
 export interface UpdateCoolerInstallationPayload {
   customer_id?: number;
+  asset_master_id?: number;
   code?: string;
   brand?: string;
   model?: string;

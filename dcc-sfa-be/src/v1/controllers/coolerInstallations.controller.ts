@@ -658,7 +658,6 @@ export const coolerInstallationsController = {
           .json({ message: 'Status field and value are required' });
       }
 
-      // Validate status field and value
       const allowedStatuses = ['status', 'is_active'];
       const allowedOperationalStatuses = [
         'working',
@@ -745,7 +744,6 @@ export const coolerInstallationsController = {
         },
       });
 
-      // Map internal status names to user-friendly labels for the message
       const readableStatusMap: { [key: string]: string } = {
         status: 'operational status',
         is_active: 'Is Active',

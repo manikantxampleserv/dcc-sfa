@@ -176,8 +176,8 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
             <Input
               name="employee_id"
               formik={formik}
-              label="Employee Code"
-              placeholder="Enter employee code"
+              label="User Code"
+              placeholder="Enter user code"
             />
           </div>
 

@@ -9,7 +9,9 @@ interface Customer {
   name: string;
   short_name?: string | null;
   code: string;
+  depot_id?: number | null;
   zones_id?: number | null;
+  customer_category_id?: number | null;
   customer_type_id?: number | null;
   customer_channel_id?: number | null;
   type?: string | null;
@@ -61,6 +63,12 @@ interface Customer {
     channel_name: string;
     channel_code: string;
   } | null;
+  customer_category?: {
+    id: number;
+    category_name: string;
+    category_code: string;
+    level?: number | null;
+  } | null;
 }
 
 /**
@@ -69,6 +77,7 @@ interface Customer {
 interface ManageCustomerPayload {
   name: string;
   short_name?: string;
+  depot_id?: number;
   zones_id?: number;
   customer_type_id?: number;
   customer_channel_id?: number;
@@ -99,6 +108,7 @@ interface ManageCustomerPayload {
 interface UpdateCustomerPayload {
   name?: string;
   short_name?: string;
+  depot_id?: number;
   zones_id?: number;
   customer_type_id?: number;
   customer_channel_id?: number;

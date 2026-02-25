@@ -1,4 +1,9 @@
-import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+import {
+  DragDropContext,
+  Draggable,
+  Droppable,
+  type DropResult,
+} from '@hello-pangea/dnd';
 import { Avatar, Box, Typography } from '@mui/material';
 import type { Route, RouteAssignment } from 'hooks/useRoutes';
 import { GripVertical, Route as RouteIcon } from 'lucide-react';
@@ -54,7 +59,7 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
   }, [availableSearch, routes, selectedRouteIds]);
 
   const handleDragEnd = useCallback(
-    (result: any) => {
+    (result: DropResult) => {
       const { destination, source, draggableId } = result;
       if (!destination) return;
 
@@ -100,13 +105,7 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
     [selectedRouteIds, setSelectedRouteIds]
   );
 
-  const RouteCard = ({
-    route,
-    showIndex,
-  }: {
-    route: Route;
-    showIndex?: number;
-  }) => (
+  const RouteCard = ({ route }: { route: Route; showIndex?: number }) => (
     <div className="!flex !items-center !gap-3 !p-2 !pr-3 !bg-white !border !border-gray-200 !rounded-lg !mb-2 hover:!border-blue-300 hover:!shadow-md">
       <GripVertical className="!w-5 !h-5 !text-gray-400 !cursor-grab !flex-shrink-0" />
       <Avatar className="!w-9 !h-9 !bg-blue-100 !text-blue-600">
@@ -123,11 +122,6 @@ const ManageAssignRoute: React.FC<ManageAssignRouteProps> = ({
           {route.code || 'No Code'}
         </Typography>
       </Box>
-      {showIndex !== undefined && (
-        <Box className="!flex-shrink-0 !flex !items-center !justify-center !w-6 !h-6 !rounded-full !bg-primary-500 !text-white !text-xs !font-semibold">
-          {showIndex}
-        </Box>
-      )}
     </div>
   );
 
