@@ -6,7 +6,7 @@ export const scheduleCustomerCategoryAssignment = () => {
   cron.schedule(
     '0 0 * * *',
     async () => {
-      console.log('⏰ Cron job: Customer Category Assignment Started');
+      console.log(' Cron job: Customer Category Assignment Started');
       console.log('Time:', new Date().toISOString());
 
       try {
@@ -52,12 +52,12 @@ export const scheduleCustomerCategoryAssignment = () => {
 
         if (validCategories.length === 0) {
           console.warn(
-            '⚠️  No active customer categories found with sales conditions'
+            '  No active customer categories found with sales conditions'
           );
           return;
         }
 
-        console.log(`📊 Found ${validCategories.length} category levels`);
+        console.log(` Found ${validCategories.length} category levels`);
 
         const customers = await prisma.customers.findMany({
           where: {
@@ -70,7 +70,7 @@ export const scheduleCustomerCategoryAssignment = () => {
           },
         });
 
-        console.log(`👥 Processing ${customers.length} customers...\n`);
+        console.log(` Processing ${customers.length} customers...\n`);
 
         for (const customer of customers) {
           results.totalProcessed++;
@@ -99,6 +99,10 @@ export const scheduleCustomerCategoryAssignment = () => {
               }
             }
 
+            if (!assignedCategory && validCategories.length > 0) {
+              assignedCategory = validCategories[0];
+            }
+
             const newCategoryId = assignedCategory?.id || null;
             const currentCategoryId = customer.customer_category_id;
 
@@ -114,30 +118,30 @@ export const scheduleCustomerCategoryAssignment = () => {
 
               results.totalUpdated++;
               console.log(
-                `  📝 ${customer.name} → ${assignedCategory?.categoryName || 'None'} (Sales: ₹${totalSales})`
+                `   ${customer.name} → ${assignedCategory?.categoryName || 'None'} (Sales: ₹${totalSales})`
               );
             } else {
               results.totalUnchanged++;
             }
           } catch (error: any) {
             results.totalFailed++;
-            console.error(`❌ ${customer.name}: ${error.message}`);
+            console.error(` ${customer.name}: ${error.message}`);
           }
         }
 
         const endTime = new Date();
         const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
-        console.log('✅ Cron Customer Category Assignment Completed');
-        console.log(`⏱️ Duration: ${duration}s`);
-        console.log('📈 Summary:', {
+        console.log(' Cron Customer Category Assignment Completed');
+        console.log(` Duration: ${duration}s`);
+        console.log(' Summary:', {
           processed: results.totalProcessed,
           updated: results.totalUpdated,
           unchanged: results.totalUnchanged,
           failed: results.totalFailed,
         });
       } catch (error: any) {
-        console.error('❌ Cron: Customer Category Assignment Failed');
+        console.error(' Cron: Customer Category Assignment Failed');
         console.error('Error:', error.message);
       }
     },
