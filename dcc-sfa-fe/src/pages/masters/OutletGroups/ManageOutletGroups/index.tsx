@@ -1,3 +1,4 @@
+import { Close } from '@mui/icons-material';
 import {
   Autocomplete,
   Avatar,
@@ -8,9 +9,12 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Close } from '@mui/icons-material';
 import { useFormik } from 'formik';
 import { useCustomers, type Customer } from 'hooks/useCustomers';
+import {
+  useCustomerCategories,
+  type CustomerCategory,
+} from 'hooks/useCustomerCategory';
 import { useDepots, type Depot } from 'hooks/useDepots';
 import {
   useCreateOutletGroup,
@@ -18,9 +22,8 @@ import {
   type OutletGroup,
 } from 'hooks/useOutletGroups';
 import { useRoutes, type Route } from 'hooks/useRoutes';
-import { useCustomerTypes, type CustomerType } from 'hooks/useCustomerType';
 import { useZones, type Zone } from 'hooks/useZones';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { outletGroupValidationSchema } from 'schemas/outletGroup.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
@@ -79,12 +82,12 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
   );
   const routes = (routesResponse?.data || []) as Route[];
 
-  const { data: customerTypesResponse } = useCustomerTypes(
+  const { data: customerCategoriesResponse } = useCustomerCategories(
     { page: 1, limit: 1000, is_active: 'Y' } as any,
     { enabled: drawerOpen }
   );
-  const customerCategories = (customerTypesResponse?.data ||
-    []) as CustomerType[];
+  const customerCategories = (customerCategoriesResponse?.data ||
+    []) as CustomerCategory[];
 
   // Fetch all customers for selection
   const { data: customersResponse, isLoading: customersLoading } = useCustomers(
@@ -97,75 +100,6 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
 
   const customers = customersResponse?.data || [];
 
-  const routeDepotIdByRouteId = useMemo(() => {
-    const map = new Map<number, number>();
-    routes.forEach(r => {
-      if (typeof r.id === 'number' && typeof (r as any).depot_id === 'number') {
-        map.set(r.id, (r as any).depot_id);
-      }
-    });
-    return map;
-  }, [routes]);
-
-  const filteredOutlets = useMemo(() => {
-    // If no filters are selected, show all customers
-    const hasAnyFilters =
-      selectedZoneIds.length > 0 ||
-      selectedRouteIds.length > 0 ||
-      selectedDepotIds.length > 0 ||
-      selectedCategoryIds.length > 0;
-
-    if (!hasAnyFilters) {
-      return customers;
-    }
-
-    return customers.filter(customer => {
-      if (selectedZoneIds.length > 0) {
-        if (
-          !customer.zones_id ||
-          !selectedZoneIds.includes(customer.zones_id)
-        ) {
-          return false;
-        }
-      }
-
-      if (selectedRouteIds.length > 0) {
-        if (
-          !customer.route_id ||
-          !selectedRouteIds.includes(customer.route_id)
-        ) {
-          return false;
-        }
-      }
-
-      if (selectedDepotIds.length > 0) {
-        const routeId = customer.route_id || 0;
-        const depotId = routeDepotIdByRouteId.get(routeId);
-        if (!depotId || !selectedDepotIds.includes(depotId)) {
-          return false;
-        }
-      }
-
-      if (selectedCategoryIds.length > 0) {
-        if (
-          !customer.customer_type_id ||
-          !selectedCategoryIds.includes(customer.customer_type_id)
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [
-    customers,
-    routeDepotIdByRouteId,
-    selectedCategoryIds,
-    selectedDepotIds,
-    selectedRouteIds,
-    selectedZoneIds,
-  ]);
-
   // Get selected customer IDs from the group members
   const getSelectedCustomers = () => {
     if (!selectedOutletGroup?.members) return [];
@@ -173,6 +107,32 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
       selectedOutletGroup.members?.some(
         member => member.customer_id === customer.id
       )
+    );
+  };
+
+  // Get selected route IDs from the group
+  const getSelectedRouteIds = () => {
+    if (!selectedOutletGroup?.routes) return [];
+    return selectedOutletGroup.routes.map((route: any) => route.id);
+  };
+
+  // Get selected depot IDs from the group
+  const getSelectedDepotIds = () => {
+    if (!selectedOutletGroup?.depots) return [];
+    return selectedOutletGroup.depots.map((depot: any) => depot.id);
+  };
+
+  // Get selected zone IDs from the group
+  const getSelectedZoneIds = () => {
+    if (!selectedOutletGroup?.zones) return [];
+    return selectedOutletGroup.zones.map((zone: any) => zone.id);
+  };
+
+  // Get selected customer category IDs from the group
+  const getSelectedCategoryIds = () => {
+    if (!selectedOutletGroup?.customer_categories) return [];
+    return selectedOutletGroup.customer_categories.map(
+      (category: any) => category.id
     );
   };
 
@@ -186,10 +146,10 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
       price_group: selectedOutletGroup?.price_group || '',
       is_active: selectedOutletGroup?.is_active || 'Y',
       selectedCustomers: getSelectedCustomers(),
-      routes: selectedOutletGroup?.routes || [],
-      depots: selectedOutletGroup?.depots || [],
-      zones: selectedOutletGroup?.zones || [],
-      customer_categories: selectedOutletGroup?.customer_categories || [],
+      routes: getSelectedRouteIds(),
+      depots: getSelectedDepotIds(),
+      zones: getSelectedZoneIds(),
+      customer_categories: getSelectedCategoryIds(),
       customerGroups:
         selectedOutletGroup?.members?.map(member => ({
           customer_id: member.customer_id,
@@ -264,14 +224,15 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
     formik.setFieldValue('customer_categories', selectedCategoryIds);
   }, [selectedCategoryIds]);
 
-  const outletOptions = useMemo(() => {
-    const map = new Map<number, Customer>();
-    filteredOutlets.forEach(c => map.set(c.id, c));
-    (formik.values.selectedCustomers || []).forEach((c: Customer) =>
-      map.set(c.id, c)
-    );
-    return Array.from(map.values());
-  }, [filteredOutlets, formik.values.selectedCustomers]);
+  // Initialize state variables when editing existing group
+  useEffect(() => {
+    if (selectedOutletGroup) {
+      setSelectedRouteIds(getSelectedRouteIds());
+      setSelectedDepotIds(getSelectedDepotIds());
+      setSelectedZoneIds(getSelectedZoneIds());
+      setSelectedCategoryIds(getSelectedCategoryIds());
+    }
+  }, [selectedOutletGroup]);
 
   return (
     <CustomDrawer
@@ -476,7 +437,7 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                     multiple
                     options={customerCategories}
                     getOptionLabel={option =>
-                      `${option.type_name || ''} ${option.type_code ? `(${option.type_code})` : ''}`
+                      `${option.category_name || ''} ${option.category_code ? `(${option.category_code})` : ''}`
                     }
                     value={customerCategories.filter(ct =>
                       selectedCategoryIds.includes(ct.id)
@@ -491,10 +452,12 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                       return options.filter(option => {
                         if (!searchLower) return true;
                         return (
-                          option.type_name
+                          option.category_name
                             ?.toLowerCase()
                             .includes(searchLower) ||
-                          option.type_code?.toLowerCase().includes(searchLower)
+                          option.category_code
+                            ?.toLowerCase()
+                            .includes(searchLower)
                         );
                       });
                     }}
@@ -514,7 +477,7 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                     multiple
                     size="small"
                     id="customers-autocomplete"
-                    options={outletOptions}
+                    options={customers}
                     value={formik.values.selectedCustomers}
                     onChange={(_event, newValue) => {
                       formik.setFieldValue('selectedCustomers', newValue);
@@ -676,9 +639,9 @@ const ManageOutletGroup: React.FC<ManageOutletGroupProps> = ({
                             className="!flex !items-center !border-b !border-gray-200 !justify-between !py-1 !px-2 !bg-gray-50 !rounded !hover:bg-gray-100"
                           >
                             <Typography variant="body2">
-                              {category.type_name}
-                              {category.type_code
-                                ? ` (${category.type_code})`
+                              {category.category_name}
+                              {category.category_code
+                                ? ` (${category.category_code})`
                                 : ''}
                             </Typography>
                             <IconButton
