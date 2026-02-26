@@ -223,7 +223,6 @@ model depots {
   depot_price_overrides_depots depot_price_overrides[]
   route_depots                 routes[]                @relation("DepotRoutes")
   customer_depot               customers[]
-  asset_movements_depot        asset_movements[]
   customer_group_depot         customer_group_depots[]
   asset_movement_from_depot    asset_movements[]       @relation("AssetMovementFromDepot")
   asset_movement_to_depot      asset_movements[]       @relation("AssetMovementToDepot")
@@ -340,19 +339,16 @@ model asset_master {
 
 model asset_movements {
   id                           Int                     @id @default(autoincrement())
-  from_location                String?                 @db.NVarChar(255)
-  to_location                  String?                 @db.NVarChar(255)
+  from_direction                String?                 @db.NVarChar(255)
+  to_direction                  String?                 @db.NVarChar(255)
   movement_type                String?                 @db.NVarChar(50)
   movement_date                DateTime                @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
   performed_by                 Int
   notes                        String?                 @db.Text
-  type_channel                 String?                 @db.VarChar(20)
   from_depot_id                Int?
   from_customer_id             Int?
   to_depot_id                  Int?
   to_customer_id               Int?
-  asset_movements_depot_id     Int?
-  asset_movements_customer_id  Int?
   is_active                    String                  @default("Y") @db.Char(1)
   createdate                   DateTime?               @default(now(), map: "DF__asset_mov__creat__6B0FDBE9") @db.DateTime
   createdby                    Int
@@ -363,8 +359,6 @@ model asset_movements {
   asset_movement_from_customer customers?              @relation("AssetMovementFromCustomer", fields: [from_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_movement_to_depot      depots?                 @relation("AssetMovementToDepot", fields: [to_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_movement_to_customer   customers?              @relation("AssetMovementToCustomer", fields: [to_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movements_depot        depots?                 @relation(fields: [asset_movements_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movements_customer     customers?              @relation(fields: [asset_movements_customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   asset_movements_performed_by users                   @relation(fields: [performed_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
   asset_movement_assets        asset_movement_assets[]
 }
@@ -891,7 +885,6 @@ model customers {
   customer_category_customer             customer_category?             @relation(fields: [customer_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   customer_depot                         depots?                        @relation(fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promotion_customer_exclusion_customers promotion_customer_exclusion[]
-  asset_movements_customer               asset_movements[]
   asset_movement_from_customer           asset_movements[]              @relation("AssetMovementFromCustomer")
   asset_movement_to_customer             asset_movements[]              @relation("AssetMovementToCustomer")
 }

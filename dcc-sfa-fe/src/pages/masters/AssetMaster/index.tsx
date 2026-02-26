@@ -131,7 +131,7 @@ const AssetMasterManagement: React.FC = () => {
 
   const assetMasterColumns: TableColumn<AssetMaster>[] = [
     {
-      id: 'asset_info',
+      id: 'name',
       label: 'Asset Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">

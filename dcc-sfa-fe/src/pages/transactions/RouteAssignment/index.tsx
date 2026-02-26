@@ -160,13 +160,13 @@ const RouteAssignmentManagement: React.FC = () => {
                 <div className="flex flex-col min-w-0 flex-1">
                   <Skeleton
                     variant="text"
-                    width="70%"
+                    width={70}
                     height={20}
                     className="!bg-gray-300"
                   />
                   <Skeleton
                     variant="text"
-                    width="85%"
+                    width={85}
                     height={14}
                     className="!bg-gray-200 !mt-1"
                   />

@@ -4,8 +4,12 @@ import type { ApiResponse } from 'types/api.types';
 export interface AssetMovement {
   id: number;
   asset_id: number;
-  from_location?: string | null;
-  to_location?: string | null;
+  from_direction?: string | null;
+  from_outlet?: number | null;
+  from_depot?: number | null;
+  to_direction?: string | null;
+  to_outlet?: number | null;
+  to_depot?: number | null;
   movement_type?: string | null;
   movement_date: string;
   performed_by: number;
@@ -35,8 +39,12 @@ export interface AssetMovement {
 
 export interface CreateAssetMovementPayload {
   asset_id: number;
-  from_location?: string;
-  to_location?: string;
+  from_direction?: string;
+  from_outlet?: number | null;
+  from_depot?: number | null;
+  to_direction?: string;
+  to_outlet?: number | null;
+  to_depot?: number | null;
   movement_type?: string;
   movement_date: string;
   performed_by: number;
@@ -46,8 +54,12 @@ export interface CreateAssetMovementPayload {
 
 export interface UpdateAssetMovementPayload {
   asset_id?: number;
-  from_location?: string;
-  to_location?: string;
+  from_direction?: string;
+  from_outlet?: number | null;
+  from_depot?: number | null;
+  to_direction?: string;
+  to_outlet?: number | null;
+  to_depot?: number | null;
   movement_type?: string;
   movement_date?: string;
   performed_by?: number;

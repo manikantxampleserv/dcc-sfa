@@ -11,7 +11,9 @@ import React from 'react';
 import { assetMovementValidationSchema } from 'schemas/assetMovement.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
+import CustomerSelect from 'shared/CustomerSelect';
 import CustomDrawer from 'shared/Drawer';
+import DepotSelect from 'shared/DepotSelect';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import { formatForDateInput } from 'utils/dateUtils';
@@ -54,11 +56,27 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
     formik.resetForm();
   };
 
+  const handleDirectionChange = (fieldName: string, value: string) => {
+    formik.setFieldValue(fieldName, value);
+
+    if (fieldName === 'from_direction') {
+      formik.setFieldValue('from_outlet', '');
+      formik.setFieldValue('from_depot', '');
+    } else if (fieldName === 'to_direction') {
+      formik.setFieldValue('to_outlet', '');
+      formik.setFieldValue('to_depot', '');
+    }
+  };
+
   const formik = useFormik({
     initialValues: {
       asset_id: selectedMovement?.asset_id?.toString() || '',
-      from_location: selectedMovement?.from_location || '',
-      to_location: selectedMovement?.to_location || '',
+      from_direction: selectedMovement?.from_direction || '',
+      from_outlet: selectedMovement?.from_outlet?.toString() || '',
+      from_depot: selectedMovement?.from_depot?.toString() || '',
+      to_direction: selectedMovement?.to_direction || '',
+      to_outlet: selectedMovement?.to_outlet?.toString() || '',
+      to_depot: selectedMovement?.to_depot?.toString() || '',
       movement_type: selectedMovement?.movement_type || '',
       movement_date: formatForDateInput(selectedMovement?.movement_date),
       performed_by: selectedMovement?.performed_by?.toString() || '',
@@ -71,8 +89,20 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
       try {
         const submitData = {
           asset_id: Number(values.asset_id),
-          from_location: values.from_location,
-          to_location: values.to_location,
+          from_direction: values.from_direction,
+          from_outlet:
+            values.from_direction === 'outlet'
+              ? Number(values.from_outlet)
+              : null,
+          from_depot:
+            values.from_direction === 'depot'
+              ? Number(values.from_depot)
+              : null,
+          to_direction: values.to_direction,
+          to_outlet:
+            values.to_direction === 'outlet' ? Number(values.to_outlet) : null,
+          to_depot:
+            values.to_direction === 'depot' ? Number(values.to_depot) : null,
           movement_type: values.movement_type,
           movement_date: values.movement_date,
           performed_by: Number(values.performed_by),
@@ -114,7 +144,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             <Select name="asset_id" label="Asset" formik={formik} required>
-              <MenuItem value="">Select Asset</MenuItem>
               {assets.map((asset: AssetMaster) => (
                 <MenuItem key={asset.id} value={asset.id?.toString() || ''}>
                   {asset.asset_master_asset_types?.name} ({asset.serial_number})
@@ -129,19 +158,66 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
                 </MenuItem>
               ))}
             </Select>
-            <Input
-              name="from_location"
-              label="From Location"
-              placeholder="Enter source location"
+            <Select
+              name="from_direction"
+              label="From Direction"
               formik={formik}
-            />
+              required
+              onChange={e =>
+                handleDirectionChange('from_direction', e.target.value)
+              }
+            >
+              <MenuItem value="outlet">Outlet</MenuItem>
+              <MenuItem value="depot">Depot</MenuItem>
+            </Select>
+            <Select
+              name="to_direction"
+              label="To Direction"
+              formik={formik}
+              required
+              onChange={e =>
+                handleDirectionChange('to_direction', e.target.value)
+              }
+            >
+              <MenuItem value="outlet">Outlet</MenuItem>
+              <MenuItem value="depot">Depot</MenuItem>
+            </Select>
 
-            <Input
-              name="to_location"
-              label="To Location"
-              placeholder="Enter destination location"
-              formik={formik}
-            />
+            {formik.values.from_direction === 'outlet' && (
+              <CustomerSelect
+                name="from_outlet"
+                label="From Outlet"
+                formik={formik}
+                required
+              />
+            )}
+
+            {formik.values.from_direction === 'depot' && (
+              <DepotSelect
+                name="from_depot"
+                label="From Depot"
+                formik={formik}
+                required
+              />
+            )}
+
+            {formik.values.to_direction === 'outlet' && (
+              <CustomerSelect
+                name="to_outlet"
+                label="To Outlet"
+                formik={formik}
+                required
+              />
+            )}
+
+            {formik.values.to_direction === 'depot' && (
+              <DepotSelect
+                name="to_depot"
+                label="To Depot"
+                formik={formik}
+                required
+              />
+            )}
 
             <Input
               name="movement_date"

@@ -4,12 +4,48 @@ export const assetMovementValidationSchema = Yup.object({
   asset_id: Yup.number()
     .positive('Asset ID must be a positive number')
     .required('Asset ID is required'),
-  from_location: Yup.string()
-    .max(255, 'From location must be less than 255 characters')
-    .nullable(),
-  to_location: Yup.string()
-    .max(255, 'To location must be less than 255 characters')
-    .nullable(),
+  from_direction: Yup.string()
+    .oneOf(['outlet', 'depot'], 'From direction must be outlet or depot')
+    .required('From direction is required'),
+  from_outlet: Yup.number()
+    .positive('From outlet must be a positive number')
+    .nullable()
+    .when('from_direction', {
+      is: 'outlet',
+      then: schema =>
+        schema.required('From outlet is required when direction is outlet'),
+      otherwise: schema => schema.notRequired(),
+    }),
+  from_depot: Yup.number()
+    .positive('From depot must be a positive number')
+    .nullable()
+    .when('from_direction', {
+      is: 'depot',
+      then: schema =>
+        schema.required('From depot is required when direction is depot'),
+      otherwise: schema => schema.notRequired(),
+    }),
+  to_direction: Yup.string()
+    .oneOf(['outlet', 'depot'], 'To direction must be outlet or depot')
+    .required('To direction is required'),
+  to_outlet: Yup.number()
+    .positive('To outlet must be a positive number')
+    .nullable()
+    .when('to_direction', {
+      is: 'outlet',
+      then: schema =>
+        schema.required('To outlet is required when direction is outlet'),
+      otherwise: schema => schema.notRequired(),
+    }),
+  to_depot: Yup.number()
+    .positive('To depot must be a positive number')
+    .nullable()
+    .when('to_direction', {
+      is: 'depot',
+      then: schema =>
+        schema.required('To depot is required when direction is depot'),
+      otherwise: schema => schema.notRequired(),
+    }),
   movement_type: Yup.string()
     .oneOf(
       [
@@ -18,7 +54,6 @@ export const assetMovementValidationSchema = Yup.object({
         'repair',
         'disposal',
         'return',
-
         'installation',
       ],
       'Movement type must be one of: transfer, maintenance, repair, disposal, return, installation'
