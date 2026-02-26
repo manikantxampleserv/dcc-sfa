@@ -999,7 +999,7 @@ export const customerController = {
       const customer = await prisma.customers.create({
         data: {
           ...processedData,
-          code: newCode,
+          code: data.code || newCode,
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),

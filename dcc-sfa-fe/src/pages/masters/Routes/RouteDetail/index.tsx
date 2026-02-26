@@ -648,7 +648,7 @@ const RouteDetail: React.FC = () => {
                       <div className="!flex !items-center !justify-between !gap-2 !mb-2 !flex-wrap">
                         <Typography
                           variant="h6"
-                          className="!font-semibold !text-gray-900"
+                          className="!font-semibold !capitalize !text-gray-900"
                         >
                           {customer.name}
                         </Typography>
