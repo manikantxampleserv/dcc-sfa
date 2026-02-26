@@ -22,7 +22,7 @@ interface AssetMasterSerialized {
   log_inst?: number | null;
   asset_master_image?: any[];
   asset_maintenance_master?: any[];
-  asset_movements_master?: any[];
+  asset_movement_assets_asset?: any[];
   asset_master_warranty_claims?: any[];
   asset_master_asset_types?: any;
 }
@@ -66,7 +66,7 @@ const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   log_inst: asset.log_inst,
   asset_master_image: asset.asset_master_image || [],
   asset_maintenance_master: asset.asset_maintenance_master || [],
-  asset_movements_master: asset.asset_movements_master || [],
+  asset_movement_assets_asset: asset.asset_movement_assets_asset || [],
   asset_master_warranty_claims: asset.asset_master_warranty_claims || [],
   asset_master_asset_types: asset.asset_master_asset_types || null,
 });
@@ -257,7 +257,20 @@ export const assetMasterController = {
         include: {
           asset_master_image: true,
           asset_maintenance_master: true,
-          asset_movements_master: true,
+          asset_movement_assets_asset: {
+            include: {
+              asset_movement_assets_movement: {
+                select: {
+                  id: true,
+                  movement_type: true,
+                  movement_date: true,
+                  from_direction: true,
+                  to_direction: true,
+                  notes: true,
+                },
+              },
+            },
+          },
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
         },

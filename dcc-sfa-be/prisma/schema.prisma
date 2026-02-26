@@ -35,6 +35,7 @@ model users {
   approval_workflows_approval_workflows_requested_byTousers         approval_workflows[]         @relation("approval_workflows_requested_byTousers")
   asset_maintenance_technician                                      asset_maintenance[]
   asset_movements_performed_by                                      asset_movements[]
+  asset_movements_approved_by                                       asset_movements[]            @relation("AssetMovementApprovedBy")
   attendance_user                                                   attendance[]                 @relation("UserAttendance")
   audit_logs_audit_logs_changed_byTousers                           audit_logs[]                 @relation("audit_logs_changed_byTousers")
   cooler_inspections                                                cooler_inspections[]
@@ -339,12 +340,17 @@ model asset_master {
 
 model asset_movements {
   id                           Int                     @id @default(autoincrement())
-  from_direction                String?                 @db.NVarChar(255)
-  to_direction                  String?                 @db.NVarChar(255)
+  movement_number              String?                 @unique @db.NVarChar(50)
+  from_direction               String?                 @db.NVarChar(255)
+  to_direction                 String?                 @db.NVarChar(255)
   movement_type                String?                 @db.NVarChar(50)
   movement_date                DateTime                @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
   performed_by                 Int
   notes                        String?                 @db.Text
+  status                       String?                 @default("N") @db.VarChar(255)
+  approval_status              String?                 @default("P") @db.VarChar(20)
+  approved_by                  Int?
+  approved_at                  DateTime?               @db.DateTime
   from_depot_id                Int?
   from_customer_id             Int?
   to_depot_id                  Int?
@@ -360,6 +366,7 @@ model asset_movements {
   asset_movement_to_depot      depots?                 @relation("AssetMovementToDepot", fields: [to_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_movement_to_customer   customers?              @relation("AssetMovementToCustomer", fields: [to_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_movements_performed_by users                   @relation(fields: [performed_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  approved_by_user             users?                  @relation("AssetMovementApprovedBy", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_movement_assets        asset_movement_assets[]
 }
 
