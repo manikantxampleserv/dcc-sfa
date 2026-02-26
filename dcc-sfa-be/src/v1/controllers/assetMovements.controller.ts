@@ -4,7 +4,7 @@ import prisma from '../../configs/prisma.client';
 
 interface AssetMovementSerialized {
   id: number;
-  asset_id: number;
+  asset_ids: number[];
   from_location?: string | null;
   to_location?: string | null;
   movement_type?: string | null;
@@ -17,15 +17,19 @@ interface AssetMovementSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  asset_movements_master?: {
+  asset_movements_assets?: {
     id: number;
-    name: string;
-    serial_number: string;
-    asset_master_asset_types?: {
+    asset_id: number;
+    asset_master: {
       id: number;
       name: string;
-    } | null;
-  } | null;
+      serial_number: string;
+      asset_master_asset_types?: {
+        id: number;
+        name: string;
+      } | null;
+    };
+  }[];
   asset_movements_performed_by?: {
     id: number;
     name: string;
@@ -35,7 +39,8 @@ interface AssetMovementSerialized {
 
 const serializeAssetMovement = (movement: any): AssetMovementSerialized => ({
   id: movement.id,
-  asset_id: movement.asset_id,
+  asset_ids:
+    movement.asset_movements_assets?.map((aa: any) => aa.asset_id) || [],
   from_location: movement.from_location,
   to_location: movement.to_location,
   movement_type: movement.movement_type,
@@ -48,21 +53,27 @@ const serializeAssetMovement = (movement: any): AssetMovementSerialized => ({
   updatedate: movement.updatedate,
   updatedby: movement.updatedby,
   log_inst: movement.log_inst,
-  asset_movements_master: movement.asset_movements_master
-    ? {
-        id: movement.asset_movements_master.id,
-        name: movement.asset_movements_master.name,
-        serial_number: movement.asset_movements_master.serial_number,
-        asset_master_asset_types: movement.asset_movements_master
-          .asset_master_asset_types
-          ? {
-              id: movement.asset_movements_master.asset_master_asset_types.id,
-              name: movement.asset_movements_master.asset_master_asset_types
-                .name,
-            }
-          : null,
-      }
-    : null,
+  asset_movements_assets:
+    movement.asset_movements_assets?.map((aa: any) => ({
+      id: aa.id,
+      asset_id: aa.asset_id,
+      asset_master: aa.asset_movement_assets_asset
+        ? {
+            id: aa.asset_movement_assets_asset.id,
+            name: aa.asset_movement_assets_asset.name,
+            serial_number: aa.asset_movement_assets_asset.serial_number,
+            asset_master_asset_types: aa.asset_movement_assets_asset
+              .asset_master_asset_types
+              ? {
+                  id: aa.asset_movement_assets_asset.asset_master_asset_types
+                    .id,
+                  name: aa.asset_movement_assets_asset.asset_master_asset_types
+                    .name,
+                }
+              : null,
+          }
+        : null,
+    })) || [],
   asset_movements_performed_by: movement.asset_movements_performed_by
     ? {
         id: movement.asset_movements_performed_by.id,
@@ -76,18 +87,28 @@ export const assetMovementsController = {
   async createAssetMovements(req: Request, res: Response) {
     try {
       const data = req.body;
-      if (!data.asset_id || !data.performed_by || !data.movement_type) {
+      const assetIds = Array.isArray(data.asset_ids)
+        ? data.asset_ids
+        : [data.asset_id];
+
+      if (!assetIds.length || !data.performed_by || !data.movement_type) {
         return res.status(400).json({
-          message: 'asset_id, performed_by, and movement_type are required',
+          message:
+            'asset_ids (array or single), performed_by, and movement_type are required',
         });
       }
 
-      const currentAsset = await prisma.asset_master.findUnique({
-        where: { id: data.asset_id },
+      const currentAssets = await prisma.asset_master.findMany({
+        where: { id: { in: assetIds } },
       });
 
-      if (!currentAsset) {
-        return res.status(404).json({ message: 'Asset not found' });
+      if (currentAssets.length !== assetIds.length) {
+        return res.status(404).json({
+          message: 'One or more assets not found',
+          missing_assets: assetIds.filter(
+            (id: number) => !currentAssets.find((asset: any) => asset.id === id)
+          ),
+        });
       }
 
       let assetStatusUpdate: string = '';
@@ -183,9 +204,9 @@ export const assetMovementsController = {
           assetStatusUpdate = 'Under Maintenance';
 
           try {
-            await prisma.asset_maintenance.create({
-              data: {
-                asset_id: data.asset_id,
+            await prisma.asset_maintenance.createMany({
+              data: assetIds.map((assetId: number) => ({
+                asset_id: assetId,
                 maintenance_date: new Date(data.movement_date),
                 issue_reported: data.notes || 'Maintenance movement',
                 action_taken: `Asset moved from ${fromLocation} to ${toLocation}`,
@@ -194,11 +215,11 @@ export const assetMovementsController = {
                 createdate: new Date(),
                 technician_id: data.performed_by,
                 log_inst: 1,
-              },
+              })),
             });
           } catch (maintenanceError) {
             console.error(
-              'Error creating asset maintenance record:',
+              'Error creating asset maintenance records:',
               maintenanceError
             );
           }
@@ -264,9 +285,9 @@ export const assetMovementsController = {
           assetStatusUpdate = 'Under Maintenance';
 
           try {
-            await prisma.asset_maintenance.create({
-              data: {
-                asset_id: data.asset_id,
+            await prisma.asset_maintenance.createMany({
+              data: assetIds.map((assetId: number) => ({
+                asset_id: assetId,
                 maintenance_date: new Date(data.movement_date),
                 issue_reported: data.notes || 'Repair movement',
                 action_taken: `Asset moved from ${fromLocation} to ${toLocation}`,
@@ -275,11 +296,11 @@ export const assetMovementsController = {
                 createdate: new Date(),
                 technician_id: data.performed_by,
                 log_inst: 1,
-              },
+              })),
             });
           } catch (maintenanceError) {
             console.error(
-              'Error creating asset maintenance record:',
+              'Error creating asset maintenance records:',
               maintenanceError
             );
           }
@@ -355,7 +376,6 @@ export const assetMovementsController = {
 
       const assetMovement = await prisma.asset_movements.create({
         data: {
-          asset_id: data.asset_id,
           from_location: fromLocation,
           to_location: toLocation,
           movement_type: data.movement_type,
@@ -368,12 +388,24 @@ export const assetMovementsController = {
           createdby: req.user?.id || 1,
           createdate: new Date(),
           log_inst: data.log_inst || 1,
+          asset_movement_assets: {
+            create: assetIds.map((assetId: number) => ({
+              asset_id: assetId,
+              createdby: req.user?.id || 1,
+              createdate: new Date(),
+              log_inst: 1,
+            })),
+          },
         },
         include: {
-          asset_movements_master: {
+          asset_movement_assets: {
             include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
+              asset_movement_assets_asset: {
+                include: {
+                  asset_master_asset_types: {
+                    select: { id: true, name: true },
+                  },
+                },
               },
             },
           },
@@ -383,8 +415,8 @@ export const assetMovementsController = {
         },
       });
 
-      await prisma.asset_master.update({
-        where: { id: data.asset_id },
+      await prisma.asset_master.updateMany({
+        where: { id: { in: assetIds } },
         data: {
           current_location: toLocation,
           current_status: assetStatusUpdate,
@@ -416,18 +448,22 @@ export const assetMovementsController = {
         ...(search && {
           OR: [
             {
-              asset_movements_master: {
-                OR: [
-                  { serial_number: { contains: searchLower } },
-                  { current_location: { contains: searchLower } },
-                  { current_status: { contains: searchLower } },
-                  { assigned_to: { contains: searchLower } },
-                  {
-                    asset_master_asset_types: {
-                      name: { contains: searchLower },
-                    },
+              asset_movement_assets: {
+                some: {
+                  asset_movement_assets_asset: {
+                    OR: [
+                      { serial_number: { contains: searchLower } },
+                      { current_location: { contains: searchLower } },
+                      { current_status: { contains: searchLower } },
+                      { assigned_to: { contains: searchLower } },
+                      {
+                        asset_master_asset_types: {
+                          name: { contains: searchLower },
+                        },
+                      },
+                    ],
                   },
-                ],
+                },
               },
             },
             { from_location: { contains: searchLower } },
@@ -440,8 +476,12 @@ export const assetMovementsController = {
         ...(statusLower === 'inactive' && { is_active: 'N' }),
         ...(performed_by && { performed_by: Number(performed_by) }),
         ...(asset_type_id && {
-          asset_movements_master: {
-            asset_type_id: Number(asset_type_id),
+          asset_movement_assets: {
+            some: {
+              asset_movement_assets_asset: {
+                asset_type_id: Number(asset_type_id),
+              },
+            },
           },
         }),
       };
@@ -453,10 +493,14 @@ export const assetMovementsController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          asset_movements_master: {
+          asset_movement_assets: {
             include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
+              asset_movement_assets_asset: {
+                include: {
+                  asset_master_asset_types: {
+                    select: { id: true, name: true },
+                  },
+                },
               },
             },
           },
@@ -508,10 +552,14 @@ export const assetMovementsController = {
       const movement = await prisma.asset_movements.findUnique({
         where: { id: Number(id) },
         include: {
-          asset_movements_master: {
+          asset_movement_assets: {
             include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
+              asset_movement_assets_asset: {
+                include: {
+                  asset_master_asset_types: {
+                    select: { id: true, name: true },
+                  },
+                },
               },
             },
           },
@@ -554,10 +602,14 @@ export const assetMovementsController = {
           updatedate: new Date(),
         },
         select: {
-          asset_movements_master: {
+          asset_movement_assets: {
             include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
+              asset_movement_assets_asset: {
+                include: {
+                  asset_master_asset_types: {
+                    select: { id: true, name: true },
+                  },
+                },
               },
             },
           },

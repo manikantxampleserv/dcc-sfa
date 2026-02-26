@@ -309,7 +309,6 @@ export const assetMasterController = {
         include: {
           asset_master_image: true,
           asset_maintenance_master: true,
-          asset_movements_master: true,
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
         },
@@ -357,7 +356,6 @@ export const assetMasterController = {
         include: {
           asset_master_image: true,
           asset_maintenance_master: true,
-          asset_movements_master: true,
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
         },
