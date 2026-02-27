@@ -10,7 +10,6 @@ if (process.env.DATABASE_URL) {
     console.log('DATABASE_URL found in environment variables');
 }
 else {
-    console.log('DATABASE_URL not found in environment variables, attempting to load from .env files...');
     const isProduction = process.env.NODE_ENV === 'production' ||
         process.env.NODE_ENV === 'prod' ||
         process.env.env === 'production';

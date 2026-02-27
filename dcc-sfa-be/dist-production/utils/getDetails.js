@@ -109,6 +109,70 @@ async function getRequestDetailsByType(request_type, reference_id) {
                     payment_method: order.payment_method || 'N/A',
                     notes: order.notes || '',
                 };
+            case 'ASSET_MOVEMENT_APPROVAL':
+                const assetMovement = await prisma_client_1.default.asset_movements.findUnique({
+                    where: { id: reference_id },
+                    include: {
+                        asset_movement_assets: {
+                            include: {
+                                asset_movement_assets_asset: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        code: true,
+                                        serial_number: true,
+                                        asset_master_asset_types: {
+                                            select: { name: true },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        asset_movements_performed_by: {
+                            select: { name: true },
+                        },
+                        asset_movement_from_depot: {
+                            select: { name: true },
+                        },
+                        asset_movement_from_customer: {
+                            select: { name: true },
+                        },
+                        asset_movement_to_depot: {
+                            select: { name: true },
+                        },
+                        asset_movement_to_customer: {
+                            select: { name: true },
+                        },
+                    },
+                });
+                if (!assetMovement)
+                    return {};
+                const fromLocation = assetMovement.from_depot_id
+                    ? `Depot: ${assetMovement.asset_movement_from_depot?.name || 'N/A'}`
+                    : assetMovement.from_customer_id
+                        ? `Customer: ${assetMovement.asset_movement_from_customer?.name || 'N/A'}`
+                        : 'N/A';
+                const toLocation = assetMovement.to_depot_id
+                    ? `Depot: ${assetMovement.asset_movement_to_depot?.name || 'N/A'}`
+                    : assetMovement.to_customer_id
+                        ? `Customer: ${assetMovement.asset_movement_to_customer?.name || 'N/A'}`
+                        : 'N/A';
+                const assetList = assetMovement.asset_movement_assets
+                    .map((aa) => `${aa.asset_movement_assets_asset.name || aa.asset_movement_assets_asset.code || aa.asset_movement_assets_asset.serial_number} (${aa.asset_movement_assets_asset.asset_master_asset_types?.name || 'Unknown'})`)
+                    .join(', ');
+                return {
+                    movement_number: `AM-${reference_id}`,
+                    movement_type: assetMovement.movement_type || 'N/A',
+                    from_location: fromLocation,
+                    to_location: toLocation,
+                    performed_by: assetMovement.asset_movements_performed_by?.name || 'N/A',
+                    movement_date: assetMovement.movement_date
+                        ? new Date(assetMovement.movement_date).toLocaleDateString()
+                        : new Date().toLocaleDateString(),
+                    assets: assetList,
+                    notes: assetMovement.notes || '',
+                    approval_status: assetMovement.approval_status || 'P',
+                };
             default:
                 return {};
         }

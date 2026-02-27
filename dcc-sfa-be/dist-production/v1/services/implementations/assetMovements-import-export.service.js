@@ -224,11 +224,13 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
     }
     async transformDataForExport(data) {
         return data.map(movement => ({
-            asset_id: movement.asset_id || '',
-            asset_name: movement.asset_movements_master?.name || '',
-            asset_serial: movement.asset_movements_master?.serial_number || '',
-            from_location: movement.from_location || '',
-            to_location: movement.to_location || '',
+            asset_id: movement.asset_movement_assets?.[0]?.asset_id || '',
+            asset_name: movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+                ?.name || '',
+            asset_serial: movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+                ?.serial_number || '',
+            from_location: movement.from_direction || '',
+            to_location: movement.to_direction || '',
             movement_type: movement.movement_type || '',
             movement_date: movement.movement_date
                 ? new Date(movement.movement_date).toISOString().split('T')[0]
@@ -361,10 +363,14 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
             where: options.filters,
             orderBy: options.orderBy || { movement_date: 'desc' },
             include: {
-                asset_movements_master: {
-                    select: {
-                        name: true,
-                        serial_number: true,
+                asset_movement_assets: {
+                    include: {
+                        asset_movement_assets_asset: {
+                            select: {
+                                name: true,
+                                serial_number: true,
+                            },
+                        },
                     },
                 },
                 asset_movements_performed_by: {
@@ -416,8 +422,12 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
         exportData.forEach((row, index) => {
             const movement = data[index];
             row.id = movement.id;
-            row.asset_name = movement.asset_movements_master?.name || '';
-            row.asset_serial = movement.asset_movements_master?.serial_number || '';
+            row.asset_name =
+                movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+                    ?.name || '';
+            row.asset_serial =
+                movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+                    ?.serial_number || '';
             row.performed_by_name = movement.asset_movements_performed_by?.name || '';
             row.performed_by_email =
                 movement.asset_movements_performed_by?.email || '';
@@ -430,7 +440,8 @@ class AssetMovementsImportExportService extends import_export_service_1.ImportEx
                 movementTypeCount[movement.movement_type] =
                     (movementTypeCount[movement.movement_type] || 0) + 1;
             }
-            const assetName = movement.asset_movements_master?.name || 'Unknown';
+            const assetName = movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+                ?.name || 'Unknown';
             assetMovementCount[assetName] = (assetMovementCount[assetName] || 0) + 1;
             const excelRow = worksheet.addRow(row);
             if (index % 2 === 0) {

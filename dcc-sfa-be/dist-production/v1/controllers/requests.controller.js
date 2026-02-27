@@ -11,6 +11,7 @@ const getDetails_1 = __importDefault(require("../../utils/getDetails"));
 const paginate_1 = require("../../utils/paginate");
 const requestTypes_1 = require("../../mock/requestTypes");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const approvalWorkflow_helper_1 = require("../../helpers/approvalWorkflow.helper");
 const serializeRequest = (request) => ({
     id: request.id,
     requester_id: request.requester_id,
@@ -153,171 +154,6 @@ async function getWorkflowForRequest(request_type, requester_zone_id, requester_
         throw new Error(`Error resolving workflow: ${error.message}`);
     }
 }
-// export const createRequest = async (data: {
-//   requester_id: number;
-//   request_type: string;
-//   reference_id?: number | null;
-//   request_data?: string | null;
-//   createdby: number;
-//   log_inst: number;
-// }) => {
-//   try {
-//     console.log('Creating approval request:', data);
-//     const requester = await prisma.users.findUnique({
-//       where: { id: data.requester_id },
-//       select: {
-//         id: true,
-//         name: true,
-//         email: true,
-//         zone_id: true,
-//         depot_id: true,
-//       },
-//     });
-//     if (!requester) {
-//       throw new Error('Requester not found');
-//     }
-//     const request = await prisma.sfa_d_requests.create({
-//       data: {
-//         requester_id: data.requester_id,
-//         request_type: data.request_type,
-//         reference_id: data.reference_id || null,
-//         request_data: data.request_data || null,
-//         status: 'P',
-//         createdby: data.createdby,
-//         createdate: new Date(),
-//         log_inst: data.log_inst,
-//       },
-//     });
-//     console.log(' Request created, ID:', request.id);
-//     let workflowSteps;
-//     let workflowType = 'NONE';
-//     if (requester.zone_id && requester.depot_id) {
-//       workflowSteps = await prisma.approval_work_flow.findMany({
-//         where: {
-//           request_type: data.request_type,
-//           zone_id: requester.zone_id,
-//           depot_id: requester.depot_id,
-//           is_active: 'Y',
-//         },
-//         orderBy: { sequence: 'asc' },
-//         include: {
-//           approval_work_flow_approver: {
-//             select: { id: true, name: true, email: true },
-//           },
-//         },
-//       });
-//       if (workflowSteps && workflowSteps.length > 0) {
-//         workflowType = 'ZONE_DEPOT_SPECIFIC';
-//       }
-//     }
-//     if ((!workflowSteps || workflowSteps.length === 0) && requester.zone_id) {
-//       workflowSteps = await prisma.approval_work_flow.findMany({
-//         where: {
-//           request_type: data.request_type,
-//           zone_id: requester.zone_id,
-//           depot_id: null,
-//           is_active: 'Y',
-//         },
-//         orderBy: { sequence: 'asc' },
-//         include: {
-//           approval_work_flow_approver: {
-//             select: { id: true, name: true, email: true },
-//           },
-//         },
-//       });
-//       if (workflowSteps && workflowSteps.length > 0) {
-//         workflowType = 'ZONE_SPECIFIC';
-//       }
-//     }
-//     if ((!workflowSteps || workflowSteps.length === 0) && requester.depot_id) {
-//       workflowSteps = await prisma.approval_work_flow.findMany({
-//         where: {
-//           request_type: data.request_type,
-//           depot_id: requester.depot_id,
-//           zone_id: null,
-//           is_active: 'Y',
-//         },
-//         orderBy: { sequence: 'asc' },
-//         include: {
-//           approval_work_flow_approver: {
-//             select: { id: true, name: true, email: true },
-//           },
-//         },
-//       });
-//       if (workflowSteps && workflowSteps.length > 0) {
-//         workflowType = 'DEPOT_SPECIFIC';
-//       }
-//     }
-//     if (!workflowSteps || workflowSteps.length === 0) {
-//       workflowSteps = await prisma.approval_work_flow.findMany({
-//         where: {
-//           request_type: data.request_type,
-//           zone_id: null,
-//           depot_id: null,
-//           is_active: 'Y',
-//         },
-//         orderBy: { sequence: 'asc' },
-//         include: {
-//           approval_work_flow_approver: {
-//             select: { id: true, name: true, email: true },
-//           },
-//         },
-//       });
-//       if (workflowSteps && workflowSteps.length > 0) {
-//         workflowType = 'GLOBAL';
-//       }
-//     }
-//     if (!workflowSteps || workflowSteps.length === 0) {
-//       console.log(` No approval workflow defined for '${data.request_type}'`);
-//       return request;
-//     }
-//     console.log(` Using ${workflowType} workflow for ${data.request_type}`);
-//     const approvalsToInsert = workflowSteps.map((step, index) => ({
-//       request_id: Number(request.id),
-//       approver_id: Number(step.approver_id),
-//       sequence: Number(step.sequence) || index + 1,
-//       status: 'P',
-//       createdby: data.createdby,
-//       createdate: new Date(),
-//       log_inst: data.log_inst,
-//     }));
-//     await prisma.sfa_d_request_approvals.createMany({
-//       data: approvalsToInsert,
-//     });
-//     console.log(`Created ${approvalsToInsert.length} approval steps`);
-//     const request_detail = await getRequestDetailsByType(
-//       data.request_type,
-//       data.reference_id || null
-//     );
-//     const firstApprover = workflowSteps[0];
-//     if (firstApprover?.approval_work_flow_approver?.email) {
-//       const template = await generateEmailContent(
-//         templateKeyMap.notifyApprover,
-//         {
-//           approver_name: firstApprover.approval_work_flow_approver.name,
-//           requester_name: requester.name,
-//           request_type: data.request_type.replace(/_/g, ' '),
-//           company_name: 'SFA System',
-//           request_detail,
-//         }
-//       );
-//       await sendEmail({
-//         to: firstApprover.approval_work_flow_approver.email,
-//         subject: template.subject,
-//         html: template.body,
-//         createdby: data.createdby,
-//         log_inst: data.log_inst,
-//       });
-//       console.log(
-//         `Email Sent ${firstApprover.approval_work_flow_approver.email}`
-//       );
-//     }
-//     return request;
-//   } catch (error: any) {
-//     console.error('Error creating approval request:', error);
-//     throw error;
-//   }
-// };
 function replaceVariables(template, data) {
     if (!template) {
         console.log(' Empty template provided');
@@ -927,6 +763,18 @@ exports.requestsController = {
                         });
                         console.log(`Order ${request.reference_id} status updated to REJECTED`);
                     }
+                    if (request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                        request.reference_id) {
+                        await tx.asset_movements.update({
+                            where: { id: request.reference_id },
+                            data: {
+                                approval_status: 'R',
+                                updatedby: userId,
+                                updatedate: new Date(),
+                            },
+                        });
+                        console.log(`Asset Movement ${request.reference_id} status updated to REJECTED`);
+                    }
                     return { status: 'rejected', request };
                 }
                 const nextApprover = await tx.sfa_d_request_approvals.findFirst({
@@ -965,6 +813,90 @@ exports.requestsController = {
                             },
                         });
                     }
+                    if (request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                        request.reference_id) {
+                        const assetMovement = await tx.asset_movements.findUnique({
+                            where: { id: request.reference_id },
+                            include: {
+                                asset_movement_assets: {
+                                    select: { asset_id: true },
+                                },
+                            },
+                        });
+                        if (assetMovement) {
+                            await tx.asset_movements.update({
+                                where: { id: request.reference_id },
+                                data: {
+                                    approval_status: 'A',
+                                    approved_by: userId,
+                                    approved_at: new Date(),
+                                    updatedby: userId,
+                                    updatedate: new Date(),
+                                },
+                            });
+                            let assetStatusUpdate = '';
+                            switch (assetMovement.movement_type?.toLowerCase()) {
+                                case 'transfer':
+                                    assetStatusUpdate = 'Available';
+                                    break;
+                                case 'installation':
+                                    assetStatusUpdate = 'Installed';
+                                    break;
+                                case 'disposal':
+                                    assetStatusUpdate = 'Retired';
+                                    break;
+                                case 'maintenance':
+                                case 'repair':
+                                    assetStatusUpdate = 'Under Maintenance';
+                                    break;
+                                case 'return':
+                                    assetStatusUpdate = 'Available';
+                                    break;
+                                default:
+                                    assetStatusUpdate = 'Available';
+                            }
+                            const toDirection = assetMovement.to_direction || '';
+                            const toDepotId = assetMovement.to_depot_id;
+                            const toCustomerId = assetMovement.to_customer_id;
+                            await tx.asset_master.updateMany({
+                                where: {
+                                    id: {
+                                        in: assetMovement.asset_movement_assets.map((aa) => aa.asset_id),
+                                    },
+                                },
+                                data: {
+                                    current_location: `${toDirection} (${toDepotId || toCustomerId})`,
+                                    current_status: assetStatusUpdate,
+                                    updatedate: new Date(),
+                                    updatedby: userId,
+                                },
+                            });
+                            if (assetMovement.movement_type?.toLowerCase() ===
+                                'maintenance' ||
+                                assetMovement.movement_type?.toLowerCase() === 'repair') {
+                                try {
+                                    await tx.asset_maintenance.createMany({
+                                        data: assetMovement.asset_movement_assets.map((aa) => ({
+                                            asset_id: aa.asset_id,
+                                            maintenance_date: assetMovement.movement_date || new Date(),
+                                            issue_reported: assetMovement.notes ||
+                                                `${assetMovement.movement_type} movement`,
+                                            action_taken: `Asset moved from ${assetMovement.from_direction} to ${toDirection}`,
+                                            remarks: `Movement type: ${assetMovement.movement_type}`,
+                                            createdby: userId,
+                                            createdate: new Date(),
+                                            technician_id: assetMovement.performed_by,
+                                            log_inst: 1,
+                                        })),
+                                    });
+                                    console.log(`Maintenance records created for approved asset movement: ${request.reference_id}`);
+                                }
+                                catch (maintenanceError) {
+                                    console.error('Error creating maintenance records on approval:', maintenanceError);
+                                }
+                            }
+                        }
+                    }
                     return { status: 'fully_approved', request };
                 }
                 return { status: 'next_level', request, nextApprover };
@@ -972,9 +904,19 @@ exports.requestsController = {
                 maxWait: 10000,
                 timeout: 20000,
             });
-            // ========================================
-            // SEND EMAILS
-            // ========================================
+            if (result.status === 'fully_approved' &&
+                result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                result.request.reference_id) {
+                try {
+                    await prisma_client_1.default.asset_movement_contracts.deleteMany({
+                        where: { asset_movement_id: result.request.reference_id },
+                    });
+                    await (0, approvalWorkflow_helper_1.generateContractOnApproval)(result.request.reference_id);
+                }
+                catch (contractError) {
+                    console.error('Error generating contract after approval:', contractError);
+                }
+            }
             if (result.status === 'rejected') {
                 const template = await (0, emailTemplates_1.generateEmailContent)(templateKeyMap_1.default.requestRejected, {
                     employee_name: result.request.sfa_d_requests_requester.name,
@@ -1056,15 +998,12 @@ exports.requestsController = {
             const pageNum = parseInt(page);
             const limitNum = parseInt(limit);
             const skip = (pageNum - 1) * limitNum;
-            // Build where clause for approvals
             const approvalWhere = {
                 approver_id: userId,
             };
-            // Only filter by status if it's provided and not 'all'
             if (status && status !== 'all') {
                 approvalWhere.status = status;
             }
-            // Get all approvals for this user with the specified status
             const myApprovals = await prisma_client_1.default.sfa_d_request_approvals.findMany({
                 where: approvalWhere,
                 include: {
@@ -1080,9 +1019,7 @@ exports.requestsController = {
                     createdate: 'desc',
                 },
             });
-            // Get all request IDs to check for previous pending approvals in bulk
             const requestIds = myApprovals.map(approval => approval.request_id);
-            // Fetch all previous pending approvals in one query
             const previousPendingApprovals = await prisma_client_1.default.sfa_d_request_approvals.findMany({
                 where: {
                     request_id: { in: requestIds },
@@ -1093,7 +1030,6 @@ exports.requestsController = {
                     sequence: true,
                 },
             });
-            // Create a map for quick lookup: request_id -> array of pending sequences
             const pendingSequencesMap = new Map();
             previousPendingApprovals.forEach(approval => {
                 if (!pendingSequencesMap.has(approval.request_id)) {
@@ -1101,16 +1037,13 @@ exports.requestsController = {
                 }
                 pendingSequencesMap.get(approval.request_id).push(approval.sequence);
             });
-            // Filter approvals: only show if no previous pending approval exists
             const filteredApprovals = myApprovals.filter(approval => {
                 const pendingSequences = pendingSequencesMap.get(approval.request_id) || [];
                 const hasPreviousPending = pendingSequences.some(seq => seq < approval.sequence);
                 return !hasPreviousPending;
             });
-            // Map to request format with reference details
             let requests = await Promise.all(filteredApprovals.map(async (approval) => {
                 const request = approval.sfa_d_requests_approvals_request;
-                // Fetch reference details using the utility function
                 const referenceDetails = await (0, getDetails_1.default)(request.request_type, request.reference_id);
                 return {
                     id: request.id,
@@ -1126,7 +1059,7 @@ exports.requestsController = {
                     updatedby: request.updatedby,
                     log_inst: request.log_inst,
                     requester: request.sfa_d_requests_requester,
-                    reference_details: referenceDetails, // Will be null or the formatted data
+                    reference_details: referenceDetails,
                     approvals: [
                         {
                             id: approval.id,
@@ -1138,7 +1071,6 @@ exports.requestsController = {
                     ],
                 };
             }));
-            // Apply additional filters if provided
             if (request_type && request_type !== 'all') {
                 requests = requests.filter(req => req.request_type === request_type);
             }
@@ -1155,7 +1087,6 @@ exports.requestsController = {
             }
             const total = requests.length;
             const paginatedData = requests.slice(skip, skip + limitNum);
-            // Calculate statistics
             const pendingCount = requests.filter(req => (req.approvals?.[0]?.status || req.status)?.toUpperCase() === 'P').length;
             const approvedCount = requests.filter(req => (req.approvals?.[0]?.status || req.status)?.toUpperCase() === 'A').length;
             const rejectedCount = requests.filter(req => (req.approvals?.[0]?.status || req.status)?.toUpperCase() === 'R').length;
