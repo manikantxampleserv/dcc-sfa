@@ -248,22 +248,22 @@ export const coolerInstallationsController = {
             ? `${customer.name} (${customer.code})`
             : 'Customer Location';
 
-          await prisma.asset_movements.create({
-            data: {
-              asset_id: cooler.asset_master_id,
-              from_location:
-                cooler.cooler_asset_master?.current_location || 'Warehouse',
-              to_location: toLocation,
-              movement_type: 'Installation',
-              movement_date: cooler.install_date,
-              performed_by: data.createdby ? Number(data.createdby) : 1,
-              notes: `Cooler ${cooler.code} installed at customer location`,
-              is_active: 'Y',
-              createdby: data.createdby ? Number(data.createdby) : 1,
-              createdate: new Date(),
-              log_inst: 1,
-            },
-          });
+          // await prisma.asset_movements.create({
+          //   data: {
+          //     asset_id: cooler.asset_master_id,
+          //     from_location:
+          //       cooler.cooler_asset_master?.current_location || 'Warehouse',
+          //     to_location: toLocation,
+          //     movement_type: 'Installation',
+          //     movement_date: cooler.install_date,
+          //     performed_by: data.createdby ? Number(data.createdby) : 1,
+          //     notes: `Cooler ${cooler.code} installed at customer location`,
+          //     is_active: 'Y',
+          //     createdby: data.createdby ? Number(data.createdby) : 1,
+          //     createdate: new Date(),
+          //     log_inst: 1,
+          //   },
+          // });
 
           if (cooler.asset_master_id) {
             await prisma.asset_master.update({

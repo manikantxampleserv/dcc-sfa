@@ -849,6 +849,13 @@ export const customerController = {
                 customer_zones: true,
                 customer_routes: true,
                 customer_users: true,
+                customer_depot: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                  },
+                },
                 customer_type_customer: {
                   select: {
                     id: true,
