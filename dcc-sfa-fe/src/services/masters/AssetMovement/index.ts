@@ -18,6 +18,7 @@ export interface AssetMovement {
   approval_status?: string | null;
   approved_by?: number | null;
   approved_at?: string | null;
+  contract_url?: string | null;
   is_active: string;
   createdate?: string | null;
   createdby: number;

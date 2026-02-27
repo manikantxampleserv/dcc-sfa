@@ -33,6 +33,7 @@ const serializeAssetMovement = (movement) => {
         updatedate: movement.updatedate,
         updatedby: movement.updatedby,
         log_inst: movement.log_inst,
+        contract_url: movement.asset_movements_generated_contract?.[0]?.contract_url || null,
         asset_movement_assets: movement.asset_movement_assets?.map((aa) => ({
             id: aa.id,
             asset_id: aa.asset_id,
@@ -363,6 +364,11 @@ exports.assetMovementsController = {
                     asset_movement_to_customer: {
                         select: { id: true, name: true },
                     },
+                    asset_movements_generated_contract: {
+                        select: { contract_url: true },
+                        orderBy: { createdate: 'desc' },
+                        take: 1,
+                    },
                 },
             });
             const totalAssetMovements = await prisma_client_1.default.asset_movements.count();
@@ -410,6 +416,23 @@ exports.assetMovementsController = {
                         },
                     },
                     asset_movements_performed_by: true,
+                    asset_movement_from_depot: {
+                        select: { id: true, name: true },
+                    },
+                    asset_movement_from_customer: {
+                        select: { id: true, name: true },
+                    },
+                    asset_movement_to_depot: {
+                        select: { id: true, name: true },
+                    },
+                    asset_movement_to_customer: {
+                        select: { id: true, name: true },
+                    },
+                    asset_movements_generated_contract: {
+                        select: { contract_url: true },
+                        orderBy: { createdate: 'desc' },
+                        take: 1,
+                    },
                 },
             });
             if (!movement) {
@@ -545,6 +568,11 @@ exports.assetMovementsController = {
                         },
                         asset_movement_to_customer: {
                             select: { id: true, name: true },
+                        },
+                        asset_movements_generated_contract: {
+                            select: { contract_url: true },
+                            orderBy: { createdate: 'desc' },
+                            take: 1,
                         },
                     },
                 });

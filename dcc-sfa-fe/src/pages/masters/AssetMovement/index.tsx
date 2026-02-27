@@ -25,7 +25,7 @@ import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import { ArrowRight, Calendar, FileText, MapPin, Package } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
@@ -324,6 +324,22 @@ const AssetMovementManagement: React.FC = () => {
             sortable: false,
             render: (_value: any, row: AssetMovement) => (
               <div className="!flex !gap-2 !items-center">
+                {row.contract_url && (
+                  <ActionButton
+                    tooltip="View Contract"
+                    color="info"
+                    size="medium"
+                    icon={<FileText className="!w-5 !h-5" />}
+                    onClick={() => {
+                      const sanitized = row.contract_url
+                        ?.replace(/[`'"]/g, '')
+                        .trim();
+                      if (sanitized) {
+                        window.open(sanitized, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                  />
+                )}
                 {isUpdate && (
                   <EditButton
                     onClick={() => handleEditMovement(row)}
