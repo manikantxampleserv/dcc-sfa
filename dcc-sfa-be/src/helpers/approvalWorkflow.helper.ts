@@ -125,6 +125,34 @@ export async function createApprovalWorkflow(
           ];
           break;
 
+        case 'asset_movement':
+          workflowSteps = [
+            {
+              step_number: 1,
+              step_name: 'Movement Initiated',
+              is_required: false,
+            },
+            {
+              step_number: 2,
+              step_name: 'Supervisor Review',
+              assigned_role: 'Supervisor',
+              is_required: true,
+            },
+            {
+              step_number: 3,
+              step_name: 'Manager Approval',
+              assigned_role: 'Manager',
+              is_required: true,
+            },
+            {
+              step_number: 4,
+              step_name: 'Operations Confirmation',
+              assigned_role: 'Operations',
+              is_required: true,
+            },
+          ];
+          break;
+
         default:
           workflowSteps = [
             {
@@ -158,75 +186,71 @@ export async function createApprovalWorkflow(
     const initialCurrentStep = firstStepAutoCompleted ? 2 : 1;
     const initialStatus = 'P'; // Always start with Pending (P)
 
-    const workflow = await prisma.$transaction(async tx => {
-      const approvalWorkflow = await tx.approval_workflows.create({
-        data: {
-          workflow_type,
-          reference_id: referenceIdUuid,
-          reference_type,
-          reference_number,
-          requested_by,
-          request_date: new Date(),
-          priority,
-          status: initialStatus,
-          current_step: initialCurrentStep,
-          total_steps: totalSteps,
-          request_data: request_data ? JSON.stringify(request_data) : null,
-          is_active: 'Y',
-          createdate: new Date(),
-          createdby,
-        },
-      });
-
-      const stepsToCreate = workflowSteps.map(step => ({
-        workflow_id: approvalWorkflow.id,
-        step_number: step.step_number,
-        step_name: step.step_name,
-        assigned_role: step.assigned_role || '',
-        assigned_user_id: step.assigned_user_id || null,
-        status:
-          step.step_number === 1 && firstStepAutoCompleted
-            ? 'completed'
-            : 'pending',
-        is_required: step.is_required !== false,
-        due_date: step.due_date || null,
+    const approvalWorkflow = await prisma.approval_workflows.create({
+      data: {
+        workflow_type,
+        reference_id: referenceIdUuid,
+        reference_type,
+        reference_number,
+        requested_by,
+        request_date: new Date(),
+        priority,
+        status: initialStatus,
+        current_step: initialCurrentStep,
+        total_steps: totalSteps,
+        request_data: request_data ? JSON.stringify(request_data) : null,
         is_active: 'Y',
         createdate: new Date(),
         createdby,
-      }));
-
-      await tx.workflow_steps.createMany({
-        data: stepsToCreate,
-      });
-
-      const workflowWithSteps = await tx.approval_workflows.findUnique({
-        where: { id: approvalWorkflow.id },
-        include: {
-          workflow_steps: {
-            orderBy: { step_number: 'asc' },
-          },
-          users_approval_workflows_requested_byTousers: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
-
-      return workflowWithSteps;
+      },
     });
 
-    if (!workflow) {
+    const stepsToCreate = workflowSteps.map(step => ({
+      workflow_id: approvalWorkflow.id,
+      step_number: step.step_number,
+      step_name: step.step_name,
+      assigned_role: step.assigned_role || '',
+      assigned_user_id: step.assigned_user_id || null,
+      status:
+        step.step_number === 1 && firstStepAutoCompleted
+          ? 'completed'
+          : 'pending',
+      is_required: step.is_required !== false,
+      due_date: step.due_date || null,
+      is_active: 'Y',
+      createdate: new Date(),
+      createdby,
+    }));
+
+    await prisma.workflow_steps.createMany({
+      data: stepsToCreate,
+    });
+
+    const workflowWithSteps = await prisma.approval_workflows.findUnique({
+      where: { id: approvalWorkflow.id },
+      include: {
+        workflow_steps: {
+          orderBy: { step_number: 'asc' },
+        },
+        users_approval_workflows_requested_byTousers: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!workflowWithSteps) {
       throw new Error('Failed to create approval workflow');
     }
 
     console.log(
-      `Approval workflow created: ${workflow_type} - ${reference_number} (ID: ${workflow.id})`
+      `Approval workflow created: ${workflow_type} - ${reference_number} (ID: ${workflowWithSteps.id})`
     );
 
-    return workflow;
+    return workflowWithSteps;
   } catch (error) {
     console.error('Error creating approval workflow:', error);
     throw error;
@@ -256,6 +280,34 @@ export async function createOrderApprovalWorkflow(
     request_data: {
       ...(orderData || {}),
       order_id: orderId,
+    },
+    createdby: createdby || requestedBy,
+  });
+}
+
+/**
+ * Create approval workflow for an asset movement
+ */
+export async function createAssetMovementApprovalWorkflow(
+  assetMovementId: number,
+  movementNumber: string,
+  requestedBy: number,
+  priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium',
+  assetMovementData?: any,
+  createdby?: number
+) {
+  const referenceIdUuid = randomUUID();
+
+  return await createApprovalWorkflow({
+    workflow_type: 'asset_movement',
+    reference_type: 'asset_movement',
+    reference_id: referenceIdUuid,
+    reference_number: movementNumber,
+    requested_by: requestedBy,
+    priority,
+    request_data: {
+      ...(assetMovementData || {}),
+      asset_movement_id: assetMovementId,
     },
     createdby: createdby || requestedBy,
   });

@@ -340,7 +340,6 @@ model asset_master {
 
 model asset_movements {
   id                           Int                     @id @default(autoincrement())
-  movement_number              String?                 @unique @db.NVarChar(50)
   from_direction               String?                 @db.NVarChar(255)
   to_direction                 String?                 @db.NVarChar(255)
   movement_type                String?                 @db.NVarChar(50)

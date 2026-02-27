@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { createAssetMovementApprovalWorkflow } from '../../helpers';
+import { createRequest } from './requests.controller';
 
 interface AssetMovementSerialized {
   id: number;
@@ -15,16 +17,20 @@ interface AssetMovementSerialized {
   movement_date: Date;
   performed_by: number;
   notes?: string | null;
+  status?: string | null;
+  approval_status?: string | null;
+  approved_by?: number | null;
+  approved_at?: Date | null;
   is_active: string;
   createdate?: Date | null;
   createdby: number;
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  asset_movements_assets?: {
+  asset_movement_assets?: {
     id: number;
     asset_id: number;
-    asset_master: {
+    asset_movement_assets_asset: {
       id: number;
       name: string;
       serial_number: string;
@@ -57,79 +63,85 @@ interface AssetMovementSerialized {
   } | null;
 }
 
-const serializeAssetMovement = (movement: any): AssetMovementSerialized => ({
-  id: movement.id,
-  asset_ids:
-    movement.asset_movements_assets?.map((aa: any) => aa.asset_id) || [],
-  from_direction: movement.from_direction,
-  from_depot_id: movement.from_depot_id,
-  from_customer_id: movement.from_customer_id,
-  to_direction: movement.to_direction,
-  to_depot_id: movement.to_depot_id,
-  to_customer_id: movement.to_customer_id,
-  movement_type: movement.movement_type,
-  movement_date: movement.movement_date,
-  performed_by: movement.performed_by,
-  notes: movement.notes,
-  is_active: movement.is_active,
-  createdate: movement.createdate,
-  createdby: movement.createdby,
-  updatedate: movement.updatedate,
-  updatedby: movement.updatedby,
-  log_inst: movement.log_inst,
-  asset_movements_assets:
-    movement.asset_movements_assets?.map((aa: any) => ({
-      id: aa.id,
-      asset_id: aa.asset_id,
-      asset_master: aa.asset_movement_assets_asset
-        ? {
-            id: aa.asset_movement_assets_asset.id,
-            name: aa.asset_movement_assets_asset.name,
-            serial_number: aa.asset_movement_assets_asset.serial_number,
-            asset_master_asset_types: aa.asset_movement_assets_asset
-              .asset_master_asset_types
-              ? {
-                  id: aa.asset_movement_assets_asset.asset_master_asset_types
-                    .id,
-                  name: aa.asset_movement_assets_asset.asset_master_asset_types
-                    .name,
-                }
-              : null,
-          }
-        : null,
-    })) || [],
-  asset_movement_from_depot: movement.asset_movement_from_depot
-    ? {
-        id: movement.asset_movement_from_depot.id,
-        name: movement.asset_movement_from_depot.name,
-      }
-    : null,
-  asset_movement_from_customer: movement.asset_movement_from_customer
-    ? {
-        id: movement.asset_movement_from_customer.id,
-        name: movement.asset_movement_from_customer.name,
-      }
-    : null,
-  asset_movement_to_depot: movement.asset_movement_to_depot
-    ? {
-        id: movement.asset_movement_to_depot.id,
-        name: movement.asset_movement_to_depot.name,
-      }
-    : null,
-  asset_movement_to_customer: movement.asset_movement_to_customer
-    ? {
-        id: movement.asset_movement_to_customer.id,
-        name: movement.asset_movement_to_customer.name,
-      }
-    : null,
-  asset_movements_performed_by: movement.asset_movements_performed_by
-    ? {
-        id: movement.asset_movements_performed_by.id,
-        name: movement.asset_movements_performed_by.name,
-        email: movement.asset_movements_performed_by.email,
-      }
-    : null,
-});
+const serializeAssetMovement = (movement: any): AssetMovementSerialized => {
+  return {
+    id: movement.id,
+    asset_ids:
+      movement.asset_movement_assets?.map((aa: any) => aa.asset_id) || [],
+    from_direction: movement.from_direction,
+    from_depot_id: movement.from_depot_id,
+    from_customer_id: movement.from_customer_id,
+    to_direction: movement.to_direction,
+    to_depot_id: movement.to_depot_id,
+    to_customer_id: movement.to_customer_id,
+    movement_type: movement.movement_type,
+    movement_date: movement.movement_date,
+    performed_by: movement.performed_by,
+    notes: movement.notes,
+    status: movement.status,
+    approval_status: movement.approval_status,
+    approved_by: movement.approved_by,
+    approved_at: movement.approved_at,
+    is_active: movement.is_active,
+    createdate: movement.createdate,
+    createdby: movement.createdby,
+    updatedate: movement.updatedate,
+    updatedby: movement.updatedby,
+    log_inst: movement.log_inst,
+    asset_movement_assets:
+      movement.asset_movement_assets?.map((aa: any) => ({
+        id: aa.id,
+        asset_id: aa.asset_id,
+        asset_master: aa.asset_movement_assets_asset
+          ? {
+              id: aa.asset_movement_assets_asset.id,
+              name: aa.asset_movement_assets_asset.name,
+              serial_number: aa.asset_movement_assets_asset.serial_number,
+              asset_master_asset_types: aa.asset_movement_assets_asset
+                .asset_master_asset_types
+                ? {
+                    id: aa.asset_movement_assets_asset.asset_master_asset_types
+                      .id,
+                    name: aa.asset_movement_assets_asset
+                      .asset_master_asset_types.name,
+                  }
+                : null,
+            }
+          : null,
+      })) || [],
+    asset_movement_from_depot: movement.asset_movement_from_depot
+      ? {
+          id: movement.asset_movement_from_depot.id,
+          name: movement.asset_movement_from_depot.name,
+        }
+      : null,
+    asset_movement_from_customer: movement.asset_movement_from_customer
+      ? {
+          id: movement.asset_movement_from_customer.id,
+          name: movement.asset_movement_from_customer.name,
+        }
+      : null,
+    asset_movement_to_depot: movement.asset_movement_to_depot
+      ? {
+          id: movement.asset_movement_to_depot.id,
+          name: movement.asset_movement_to_depot.name,
+        }
+      : null,
+    asset_movement_to_customer: movement.asset_movement_to_customer
+      ? {
+          id: movement.asset_movement_to_customer.id,
+          name: movement.asset_movement_to_customer.name,
+        }
+      : null,
+    asset_movements_performed_by: movement.asset_movements_performed_by
+      ? {
+          id: movement.asset_movements_performed_by.id,
+          name: movement.asset_movements_performed_by.name,
+          email: movement.asset_movements_performed_by.email,
+        }
+      : null,
+  };
+};
 
 export const assetMovementsController = {
   async createAssetMovements(req: Request, res: Response) {
@@ -167,7 +179,6 @@ export const assetMovementsController = {
       let fromDirection: string = '';
       let toDirection: string = '';
 
-      // Set direction and IDs based on input
       if (data.from_direction === 'depot' && data.from_depot_id) {
         fromDirection = 'depot';
         fromDepotId = data.from_depot_id;
@@ -184,7 +195,6 @@ export const assetMovementsController = {
         toCustomerId = data.to_customer_id;
       }
 
-      // Validate depot/customer existence
       if (fromDepotId) {
         const fromDepot = await prisma.depots.findUnique({
           where: { id: fromDepotId },
@@ -221,7 +231,6 @@ export const assetMovementsController = {
         }
       }
 
-      // Set asset status based on movement type
       switch (data.movement_type.toLowerCase()) {
         case 'transfer':
           assetStatusUpdate = 'Available';
@@ -229,27 +238,10 @@ export const assetMovementsController = {
         case 'maintenance':
         case 'repair':
           assetStatusUpdate = 'Under Maintenance';
-          // Create maintenance records
-          try {
-            await prisma.asset_maintenance.createMany({
-              data: assetIds.map((assetId: number) => ({
-                asset_id: assetId,
-                maintenance_date: new Date(data.movement_date),
-                issue_reported: data.notes || `${data.movement_type} movement`,
-                action_taken: `Asset moved from ${fromDirection} to ${toDirection}`,
-                remarks: `Movement type: ${data.movement_type}`,
-                createdby: req.user?.id || 1,
-                createdate: new Date(),
-                technician_id: data.performed_by,
-                log_inst: 1,
-              })),
-            });
-          } catch (maintenanceError) {
-            console.error(
-              'Error creating asset maintenance records:',
-              maintenanceError
-            );
-          }
+
+          console.log(
+            `Maintenance records will be created after approval for maintenance/repair movement`
+          );
           break;
         case 'installation':
           assetStatusUpdate = 'Installed';
@@ -267,68 +259,110 @@ export const assetMovementsController = {
           });
       }
 
-      const assetMovement = await prisma.asset_movements.create({
-        data: {
-          from_direction: data.from_direction,
-          to_direction: data.to_direction,
-          from_depot_id: fromDepotId,
-          from_customer_id: fromCustomerId,
-          to_depot_id: toDepotId,
-          to_customer_id: toCustomerId,
-          movement_type: data.movement_type,
-          movement_date: new Date(data.movement_date),
-          performed_by: data.performed_by,
-          notes: data.notes,
-          is_active: data.is_active || 'Y',
-          createdby: req.user?.id || 1,
-          createdate: new Date(),
-          log_inst: data.log_inst || 1,
-          asset_movement_assets: {
-            create: assetIds.map((assetId: number) => ({
-              asset_id: assetId,
-              createdby: req.user?.id || 1,
-              createdate: new Date(),
-              log_inst: 1,
-            })),
+      const assetMovement = await prisma.$transaction(async tx => {
+        const assetMovement = await tx.asset_movements.create({
+          data: {
+            from_direction: data.from_direction,
+            to_direction: data.to_direction,
+            from_depot_id: fromDepotId,
+            from_customer_id: fromCustomerId,
+            to_depot_id: toDepotId,
+            to_customer_id: toCustomerId,
+            movement_type: data.movement_type,
+            movement_date: new Date(data.movement_date),
+            performed_by: data.performed_by,
+            notes: data.notes,
+            status: 'P',
+            is_active: data.is_active || 'Y',
+            createdby: req.user?.id || 1,
+            createdate: new Date(),
+            log_inst: data.log_inst || 1,
+            asset_movement_assets: {
+              create: assetIds.map((assetId: number) => ({
+                asset_id: assetId,
+                createdby: req.user?.id || 1,
+                createdate: new Date(),
+                log_inst: 1,
+              })),
+            },
           },
-        },
-        include: {
-          asset_movement_assets: {
-            include: {
-              asset_movement_assets_asset: {
-                include: {
-                  asset_master_asset_types: {
-                    select: { id: true, name: true },
+          include: {
+            asset_movement_assets: {
+              include: {
+                asset_movement_assets_asset: {
+                  include: {
+                    asset_master_asset_types: {
+                      select: { id: true, name: true },
+                    },
                   },
                 },
               },
             },
+            asset_movements_performed_by: true,
+            asset_movement_from_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_from_customer: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_customer: {
+              select: { id: true, name: true },
+            },
           },
-          asset_movements_performed_by: true,
-          asset_movement_from_depot: {
-            select: { id: true, name: true },
-          },
-          asset_movement_from_customer: {
-            select: { id: true, name: true },
-          },
-          asset_movement_to_depot: {
-            select: { id: true, name: true },
-          },
-          asset_movement_to_customer: {
-            select: { id: true, name: true },
-          },
-        },
+        });
+
+        return assetMovement;
       });
 
-      await prisma.asset_master.updateMany({
-        where: { id: { in: assetIds } },
-        data: {
-          current_location: `${toDirection} (${toDepotId || toCustomerId})`,
-          current_status: assetStatusUpdate,
-          updatedate: new Date(),
-          updatedby: req.user?.id || 1,
-        },
-      });
+      setTimeout(async () => {
+        try {
+          await createAssetMovementApprovalWorkflow(
+            assetMovement.id,
+            `AMV-${assetMovement.id.toString().padStart(5, '0')}`,
+            data.performed_by,
+            data.priority || 'medium',
+            {
+              asset_ids: assetIds,
+              from_direction: data.from_direction,
+              to_direction: data.to_direction,
+              from_depot_id: fromDepotId,
+              from_customer_id: fromCustomerId,
+              to_depot_id: toDepotId,
+              to_customer_id: toCustomerId,
+              movement_type: data.movement_type,
+              movement_date: data.movement_date,
+              notes: data.notes,
+            },
+            req.user?.id || 1
+          );
+          console.log(
+            `Approval workflow created for asset movement: AMV-${assetMovement.id.toString().padStart(5, '0')}`
+          );
+        } catch (workflowError) {
+          console.error('Error creating approval workflow:', workflowError);
+        }
+
+        try {
+          await createRequest({
+            requester_id: data.performed_by,
+            request_type: 'ASSET_MOVEMENT_APPROVAL',
+            reference_id: assetMovement.id,
+            createdby: req.user?.id || 1,
+            log_inst: 1,
+          });
+          console.log(
+            `Legacy approval request created for asset movement: ${assetMovement.id}`
+          );
+        } catch (requestError) {
+          console.error(
+            'Error creating legacy approval request:',
+            requestError
+          );
+        }
+      }, 500);
 
       res.status(201).json({
         message: 'Asset movement created successfully',
