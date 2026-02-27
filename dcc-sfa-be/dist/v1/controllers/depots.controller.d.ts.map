@@ -1,0 +1,1 @@
+{"version":3,"file":"depots.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/depots.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AA0H5C,eAAO,MAAM,gBAAgB;sBACH,OAAO,OAAO,QAAQ;mBAoCzB,OAAO,OAAO,QAAQ;uBA2FlB,OAAO,OAAO,QAAQ;sBA4BvB,OAAO,OAAO,QAAQ;sBAmCtB,OAAO,OAAO,QAAQ;CAoD/C,CAAC"}

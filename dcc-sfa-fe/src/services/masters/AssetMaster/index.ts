@@ -1,10 +1,24 @@
 import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from 'types/api.types';
 
+export interface AssetSubType {
+  id: number;
+  name: string;
+  code: string;
+  description?: string | null;
+  asset_type_id?: number | null;
+  is_active: string;
+  createdby: number;
+  createdate?: string | null;
+  updatedate?: string | null;
+  updatedby?: number | null;
+}
+
 export interface AssetMaster {
   id: number;
   name: string;
   asset_type_id: number;
+  asset_sub_type_id?: number | null;
   serial_number: string;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
@@ -22,6 +36,7 @@ export interface AssetMaster {
   asset_movements_master?: AssetMovement[];
   asset_master_warranty_claims?: AssetWarrantyClaim[];
   asset_master_asset_types?: AssetType;
+  asset_master_asset_sub_types?: AssetSubType;
 }
 
 export interface AssetImage {
@@ -105,6 +120,7 @@ export interface AssetType {
 export interface CreateAssetMasterPayload {
   name: string;
   asset_type_id: number;
+  asset_sub_type_id?: number | null;
   serial_number: string;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
@@ -117,6 +133,7 @@ export interface CreateAssetMasterPayload {
 export interface UpdateAssetMasterPayload {
   name?: string;
   asset_type_id?: number;
+  asset_sub_type_id?: number | null;
   serial_number?: string;
   purchase_date?: string | null;
   warranty_expiry?: string | null;

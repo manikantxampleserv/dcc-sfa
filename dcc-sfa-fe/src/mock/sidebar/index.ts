@@ -92,6 +92,11 @@ const menuItems: MenuItem[] = [
             href: '/masters/asset-types',
           },
           {
+            id: 'asset-sub-types',
+            label: 'Asset Sub Types',
+            href: '/masters/asset-sub-types',
+          },
+          {
             id: 'asset-master',
             label: 'Asset Master',
             href: '/masters/asset-master',

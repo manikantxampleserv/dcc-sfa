@@ -7,6 +7,7 @@ import { OrdersImportExportService } from './implementations/orders-import-expor
 import { CurrenciesImportExportService } from './implementations/currencies.import-export.service';
 import { VisitsImportExportService } from './implementations/visits.import-export.service';
 import { AssetTypesImportExportService } from './implementations/assetTypes-import-export.service';
+import { AssetSubTypesImportExportService } from './implementations/assetSubTypes-import-export.service';
 import { AssetMasterImportExportService } from './implementations/assetMaster-import-export.service';
 import { WarehousesImportExportService } from './implementations/warehouses-import-export.service';
 import { VehiclesImportExportService } from './implementations/vehicles-import-export.service';
@@ -75,6 +76,7 @@ export class ImportExportFactory {
     ['currencies', CurrenciesImportExportService],
     ['visits', VisitsImportExportService],
     ['asset_types', AssetTypesImportExportService],
+    ['asset_sub_types', AssetSubTypesImportExportService],
     ['asset_master', AssetMasterImportExportService],
     ['warehouses', WarehousesImportExportService],
     ['vehicles', VehiclesImportExportService],
