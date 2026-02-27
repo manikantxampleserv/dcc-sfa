@@ -310,15 +310,42 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
     return null;
   }
 
+  private async generateAssetCode(name: string): Promise<string> {
+    const prefix = name.slice(0, 3).toUpperCase();
+    const lastAssetCode = await prisma.asset_master.findFirst({
+      orderBy: { id: 'desc' },
+      select: { code: true },
+    });
+
+    let newNumber = 1;
+    if (lastAssetCode && lastAssetCode.code) {
+      const match = lastAssetCode.code.match(/(\d+)$/);
+      if (match) {
+        newNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    return `${prefix}-${newNumber.toString().padStart(3, '0')}`;
+  }
+
   protected async prepareDataForImport(
     data: any,
     userId: number
   ): Promise<any> {
+    // Debug logging to identify the issue
+    console.log('DEBUG: prepareDataForImport received data:', data);
+    console.log('DEBUG: data.code value:', data.code);
+    console.log('DEBUG: typeof data.code:', typeof data.code);
+
+    let assetCode: string | null = null;
+    if (data.code && typeof data.code === 'string' && data.code.trim() !== '') {
+      assetCode = data.code.trim();
+    } else {
+      assetCode = await this.generateAssetCode(data.name);
+    }
+
     const baseData = {
       name: data.name,
-      code: data.code && data.code.trim() !== '' ? data.code.trim() : null,
-      asset_type_id: data.asset_type_id,
-      asset_sub_type_id: data.asset_sub_type_id || null,
+      code: assetCode,
       serial_number: data.serial_number,
       purchase_date: data.purchase_date || null,
       warranty_expiry: data.warranty_expiry || null,
@@ -343,10 +370,16 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
       };
     }
 
-    return {
+    const finalData = {
       ...baseData,
       ...relationshipData,
     };
+
+    console.log('DEBUG: finalData being returned:', finalData);
+    console.log('DEBUG: finalData.code value:', finalData.code);
+    console.log('DEBUG: typeof finalData.code:', typeof finalData.code);
+
+    return finalData;
   }
 
   protected async updateExisting(
