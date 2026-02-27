@@ -107,6 +107,11 @@ export interface ApiResponse<T = any> {
     active_asset_types: number;
     inactive_asset_types: number;
     new_asset_types: number;
+    // Asset sub type statistics
+    total_asset_sub_types?: number;
+    active_asset_sub_types?: number;
+    inactive_asset_sub_types?: number;
+    new_asset_sub_types?: number;
     // Warehouse statistics
     total_warehouses: number;
     active_warehouses: number;

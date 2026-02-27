@@ -7,6 +7,7 @@ import {
   type AssetMaster,
 } from 'hooks/useAssetMaster';
 import { useAssetTypes } from 'hooks/useAssetTypes';
+import { useAssetSubTypes } from 'hooks/useAssetSubTypes';
 import React, { useEffect, useRef, useState } from 'react';
 import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -41,20 +42,11 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
   });
   const assetTypes = assetTypesResponse?.data || [];
 
-  const createAssetMasterMutation = useCreateAssetMaster();
-  const updateAssetMasterMutation = useUpdateAssetMaster();
-
-  const handleCancel = () => {
-    setSelectedAsset(null);
-    setDrawerOpen(false);
-    setSelectedImages([]);
-    formik.resetForm();
-  };
-
   const formik = useFormik({
     initialValues: {
       name: selectedAsset?.name || '',
       asset_type_id: selectedAsset?.asset_type_id || 0,
+      asset_sub_type_id: selectedAsset?.asset_sub_type_id || 0,
       serial_number: selectedAsset?.serial_number || '',
       purchase_date: selectedAsset?.purchase_date
         ? selectedAsset.purchase_date.split('T')[0]
@@ -75,6 +67,9 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
         const submitData = {
           ...values,
           asset_type_id: Number(values.asset_type_id),
+          asset_sub_type_id: values.asset_sub_type_id
+            ? Number(values.asset_sub_type_id)
+            : null,
           purchase_date: values.purchase_date || null,
           warranty_expiry: values.warranty_expiry || null,
           current_location: values.current_location || null,
@@ -99,6 +94,24 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       }
     },
   });
+
+  const selectedAssetTypeId = formik.values.asset_type_id;
+  const { data: assetSubTypesResponse } = useAssetSubTypes({
+    page: 1,
+    limit: 1000,
+    assetTypeId: selectedAssetTypeId ? Number(selectedAssetTypeId) : undefined,
+  });
+  const assetSubTypes = assetSubTypesResponse?.data || [];
+
+  const createAssetMasterMutation = useCreateAssetMaster();
+  const updateAssetMasterMutation = useUpdateAssetMaster();
+
+  const handleCancel = () => {
+    setSelectedAsset(null);
+    setDrawerOpen(false);
+    setSelectedImages([]);
+    formik.resetForm();
+  };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -168,6 +181,13 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     }
   }, [formik.values.purchase_date, formik.values.warranty_period]);
 
+  // Clear asset sub type when asset type changes
+  useEffect(() => {
+    if (formik.values.asset_type_id !== selectedAsset?.asset_type_id) {
+      formik.setFieldValue('asset_sub_type_id', '');
+    }
+  }, [formik.values.asset_type_id]);
+
   const statusOptions = [
     { value: 'Available', label: 'Available' },
     { value: 'In Use', label: 'In Use' },
@@ -203,6 +223,19 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               {assetTypes.map(type => (
                 <MenuItem key={type.id} value={type.id}>
                   {type.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="asset_sub_type_id"
+              label="Asset Sub Type"
+              formik={formik}
+              disabled={!selectedAssetTypeId}
+            >
+              {assetSubTypes.map(subType => (
+                <MenuItem key={subType.id} value={subType.id}>
+                  {subType.name}
                 </MenuItem>
               ))}
             </Select>

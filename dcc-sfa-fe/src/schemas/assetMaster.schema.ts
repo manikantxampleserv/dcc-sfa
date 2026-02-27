@@ -10,6 +10,20 @@ export const assetMasterValidationSchema = Yup.object({
     .required('Asset type is required')
     .positive('Asset type must be selected'),
 
+  asset_sub_type_id: Yup.number()
+    .nullable()
+    .positive('Asset sub type must be valid')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      ) {
+        return null;
+      }
+      return value;
+    }),
+
   serial_number: Yup.string()
     .required('Serial number is required')
     .min(1, 'Serial number must be at least 1 character')
@@ -79,6 +93,10 @@ export const assetMasterValidationSchema = Yup.object({
   assigned_to: Yup.string()
     .nullable()
     .max(100, 'Assigned to must not exceed 100 characters'),
+
+  warranty_period: Yup.string()
+    .oneOf(['1', '2', '3', '4', '5'], 'Invalid warranty period selected')
+    .default('1'),
 
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')

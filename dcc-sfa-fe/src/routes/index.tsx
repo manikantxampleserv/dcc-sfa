@@ -10,6 +10,7 @@ import AssetMaintenanceManagement from 'pages/masters/AssetMaintenance';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
 import AssetMovementManagement from 'pages/masters/AssetMovement';
 import AssetTypesManagement from 'pages/masters/AssetTypes';
+import AssetSubTypesPage from 'pages/masters/AssetSubTypes';
 import BatchLotsManagement from 'pages/masters/BatchLots';
 import BatchLotDetail from 'pages/masters/BatchLots/BatchLotDetail';
 import BrandsManagement from 'pages/masters/Brands';
@@ -301,6 +302,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="asset-type" action="read">
               <AssetTypesManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/asset-sub-types',
+          element: (
+            <PermissionGuard module="asset-type" action="read">
+              <AssetSubTypesPage />
             </PermissionGuard>
           ),
         },
