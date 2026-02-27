@@ -1,6 +1,6 @@
 import PDFDocument from 'pdfkit';
 import prisma from '../configs/prisma.client';
-import { uploadFile } from '../utils/blackbaze';
+import { uploadFile, deleteFile } from '../utils/blackbaze';
 
 export interface AssetMovementContractData {
   id: number;
@@ -241,7 +241,7 @@ export class ContractGenerationService {
     return await prisma.asset_movement_contracts.findFirst({
       where: {
         asset_movement_id: assetMovementId,
-        is_active: 'Y',
+        // Remove is_active filter to find all contracts, not just active ones
       },
       orderBy: {
         createdate: 'desc',
@@ -251,6 +251,60 @@ export class ContractGenerationService {
 
   async generateContractOnApproval(assetMovementId: number): Promise<any> {
     try {
+      console.log(
+        `Starting contract generation for asset movement: ${assetMovementId}`
+      );
+
+      // Debug: Check all contracts for this asset movement
+      const allContracts = await prisma.asset_movement_contracts.findMany({
+        where: { asset_movement_id: assetMovementId },
+      });
+      console.log(
+        `All contracts in database for asset movement ${assetMovementId}:`,
+        allContracts.map(c => ({
+          id: c.id,
+          contract_url: c.contract_url,
+          is_active: c.is_active,
+          createdate: c.createdate,
+        }))
+      );
+
+      // Delete existing contracts from Backblaze before generating new one
+      const existingContracts = await prisma.asset_movement_contracts.findMany({
+        where: { asset_movement_id: assetMovementId },
+      });
+
+      console.log(
+        `Found ${existingContracts.length} existing contracts for asset movement: ${assetMovementId}`
+      );
+
+      for (const contract of existingContracts) {
+        if (contract.contract_url) {
+          try {
+            // Extract file key from Backblaze URL
+            const urlParts = contract.contract_url.split('/');
+            const fileName = urlParts[urlParts.length - 1];
+
+            console.log(`Attempting to delete from Backblaze: ${fileName}`);
+
+            // Delete from Backblaze
+            await deleteFile(fileName);
+            console.log(`Successfully deleted from Backblaze: ${fileName}`);
+          } catch (error) {
+            console.error('Error deleting from Backblaze:', error);
+          }
+        }
+      }
+
+      // Delete existing contracts from database
+      const deleteResult = await prisma.asset_movement_contracts.deleteMany({
+        where: { asset_movement_id: assetMovementId },
+      });
+
+      console.log(
+        `Deleted ${deleteResult.count} contracts from database for asset movement: ${assetMovementId}`
+      );
+
       const contractBuffer =
         await this.generateCoolerIssuanceContract(assetMovementId);
 

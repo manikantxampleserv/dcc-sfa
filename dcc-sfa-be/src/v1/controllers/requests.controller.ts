@@ -1125,6 +1125,10 @@ export const requestsController = {
         result.request.reference_id
       ) {
         try {
+          await prisma.asset_movement_contracts.deleteMany({
+            where: { asset_movement_id: result.request.reference_id },
+          });
+
           await generateContractOnApproval(result.request.reference_id);
         } catch (contractError) {
           console.error(

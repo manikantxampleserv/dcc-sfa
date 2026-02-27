@@ -577,8 +577,86 @@ export const assetMovementsController = {
         }
       });
 
+      if (
+        existing.approval_status === 'A' &&
+        (updateData.asset_ids ||
+          updateData.from_direction ||
+          updateData.to_direction ||
+          updateData.movement_type ||
+          updateData.performed_by ||
+          updateData.notes)
+      ) {
+        console.log(
+          `Asset movement ${id} was approved, resetting approval status due to update`
+        );
+        validUpdateData.approval_status = 'P';
+        validUpdateData.approved_by = null;
+        validUpdateData.approved_at = null;
+
+        setTimeout(async () => {
+          try {
+            console.log(
+              `Creating approval workflow for updated asset movement: ${id}`
+            );
+            await createAssetMovementApprovalWorkflow(
+              Number(id),
+              `AMV-${Number(id).toString().padStart(5, '0')}`,
+              existing.performed_by,
+              'medium',
+              {
+                asset_ids: updateData.asset_ids || [],
+                from_direction:
+                  updateData.from_direction || existing.from_direction,
+                to_direction: updateData.to_direction || existing.to_direction,
+                from_depot_id:
+                  updateData.from_depot_id || existing.from_depot_id,
+                from_customer_id:
+                  updateData.from_customer_id || existing.from_customer_id,
+                to_depot_id: updateData.to_depot_id || existing.to_depot_id,
+                to_customer_id:
+                  updateData.to_customer_id || existing.to_customer_id,
+                movement_type:
+                  updateData.movement_type || existing.movement_type,
+                movement_date:
+                  updateData.movement_date || existing.movement_date,
+                notes: updateData.notes || existing.notes,
+              },
+              req.user?.id || 1
+            );
+            console.log(
+              `Approval workflow created for updated asset movement: AMV-${Number(id).toString().padStart(5, '0')}`
+            );
+          } catch (workflowError) {
+            console.error(
+              'Error creating approval workflow for updated movement:',
+              workflowError
+            );
+          }
+
+          try {
+            console.log(
+              `Creating approval request for updated asset movement: ${id}`
+            );
+            await createRequest({
+              requester_id: existing.performed_by,
+              request_type: 'ASSET_MOVEMENT_APPROVAL',
+              reference_id: Number(id),
+              createdby: req.user?.id || 1,
+              log_inst: 1,
+            });
+            console.log(
+              `Approval request created for updated asset movement: ${Number(id)}`
+            );
+          } catch (requestError) {
+            console.error(
+              'Error creating approval request for updated movement:',
+              requestError
+            );
+          }
+        }, 500);
+      }
+
       const updated = await prisma.$transaction(async tx => {
-        // Update the main asset movement record
         const movementUpdate = await tx.asset_movements.update({
           where: { id: Number(id) },
           data: {
