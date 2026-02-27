@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 import { createAssetMovementApprovalWorkflow } from '../../helpers';
 import { createRequest } from './requests.controller';
+import { ContractGenerationService } from '../../services/contractGeneration.service';
 
 interface AssetMovementSerialized {
   id: number;
@@ -535,6 +536,8 @@ export const assetMovementsController = {
   async updateAssetMovements(req: any, res: any) {
     try {
       const { id } = req.params;
+      const data = req.body;
+
       const existing = await prisma.asset_movements.findUnique({
         where: { id: Number(id) },
       });
@@ -543,29 +546,124 @@ export const assetMovementsController = {
         return res.status(404).json({ message: 'Asset movement not found' });
       }
 
-      const updated = await prisma.asset_movements.update({
-        where: { id: Number(id) },
-        data: {
-          ...req.body,
-          movement_date: new Date(req.body.movement_date),
+      // Extract asset_ids from request body and filter it out from the main update
+      const { asset_ids, priority, ...updateData } = data;
 
-          updatedby: req.user?.id || 1,
-          updatedate: new Date(),
-        },
-        select: {
-          asset_movement_assets: {
-            include: {
-              asset_movement_assets_asset: {
-                include: {
-                  asset_master_asset_types: {
-                    select: { id: true, name: true },
+      // Only include fields that exist in the asset_movements schema
+      const validUpdateData: any = {};
+      const allowedFields = [
+        'from_direction',
+        'to_direction',
+        'movement_type',
+        'movement_date',
+        'performed_by',
+        'notes',
+        'status',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'from_depot_id',
+        'from_customer_id',
+        'to_depot_id',
+        'to_customer_id',
+        'is_active',
+        'updatedby',
+        'updatedate',
+      ];
+
+      allowedFields.forEach(field => {
+        if (updateData[field] !== undefined) {
+          validUpdateData[field] = updateData[field];
+        }
+      });
+
+      const updated = await prisma.$transaction(async tx => {
+        // Update the main asset movement record
+        const movementUpdate = await tx.asset_movements.update({
+          where: { id: Number(id) },
+          data: {
+            ...validUpdateData,
+            movement_date: validUpdateData.movement_date
+              ? new Date(validUpdateData.movement_date)
+              : undefined,
+            updatedby: req.user?.id || 1,
+            updatedate: new Date(),
+          },
+          include: {
+            asset_movement_assets: {
+              include: {
+                asset_movement_assets_asset: {
+                  include: {
+                    asset_master_asset_types: {
+                      select: { id: true, name: true },
+                    },
                   },
                 },
               },
             },
+            asset_movements_performed_by: true,
+            asset_movement_from_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_from_customer: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_customer: {
+              select: { id: true, name: true },
+            },
           },
-          asset_movements_performed_by: true,
-        },
+        });
+
+        if (asset_ids && Array.isArray(asset_ids)) {
+          await tx.asset_movement_assets.deleteMany({
+            where: { movement_id: Number(id) },
+          });
+
+          if (asset_ids.length > 0) {
+            await tx.asset_movement_assets.createMany({
+              data: asset_ids.map((assetId: number) => ({
+                movement_id: Number(id),
+                asset_id: assetId,
+                createdby: req.user?.id || 1,
+                createdate: new Date(),
+                log_inst: 1,
+              })),
+            });
+          }
+        }
+
+        return await tx.asset_movements.findUnique({
+          where: { id: Number(id) },
+          include: {
+            asset_movement_assets: {
+              include: {
+                asset_movement_assets_asset: {
+                  include: {
+                    asset_master_asset_types: {
+                      select: { id: true, name: true },
+                    },
+                  },
+                },
+              },
+            },
+            asset_movements_performed_by: true,
+            asset_movement_from_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_from_customer: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_customer: {
+              select: { id: true, name: true },
+            },
+          },
+        });
       });
 
       res.json({
@@ -593,6 +691,104 @@ export const assetMovementsController = {
       res.json({ message: 'Asset movement deleted successfully' });
     } catch (error: any) {
       console.error('Delete Asset Movement Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async generateContract(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const contractService = new ContractGenerationService();
+
+      const assetMovement = await prisma.asset_movements.findUnique({
+        where: { id: Number(id) },
+      });
+
+      if (!assetMovement) {
+        return res.status(404).json({ message: 'Asset movement not found' });
+      }
+
+      if (assetMovement.approval_status !== 'A') {
+        return res.status(400).json({
+          message: 'Asset movement must be approved before generating contract',
+        });
+      }
+
+      const existingContract =
+        await contractService.getContractByAssetMovementId(Number(id));
+      if (existingContract) {
+        return res
+          .status(400)
+          .json({ message: 'Contract already exists for this asset movement' });
+      }
+
+      const contractRecord = await contractService.generateContractOnApproval(
+        Number(id)
+      );
+
+      res.status(201).json({
+        message: 'Contract generated and uploaded successfully',
+        data: {
+          contract_id: contractRecord.id,
+          contract_number: contractRecord.contract_number,
+          contract_url: contractRecord.contract_url,
+          contract_date: contractRecord.contract_date,
+        },
+      });
+    } catch (error: any) {
+      console.error('Generate Contract Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async downloadContract(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const contractService = new ContractGenerationService();
+
+      const contract = await contractService.getContractByAssetMovementId(
+        Number(id)
+      );
+
+      if (!contract) {
+        return res
+          .status(404)
+          .json({ message: 'Contract not found for this asset movement' });
+      }
+
+      res.redirect(302, contract.contract_url);
+    } catch (error: any) {
+      console.error('Download Contract Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getContractInfo(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const contractService = new ContractGenerationService();
+
+      const contract = await contractService.getContractByAssetMovementId(
+        Number(id)
+      );
+
+      if (!contract) {
+        return res
+          .status(404)
+          .json({ message: 'Contract not found for this asset movement' });
+      }
+
+      res.json({
+        message: 'Contract info retrieved successfully',
+        data: {
+          contract_id: contract.id,
+          contract_number: contract.contract_number,
+          contract_url: contract.contract_url,
+          contract_date: contract.contract_date,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Contract Info Error:', error);
       res.status(500).json({ message: error.message });
     }
   },

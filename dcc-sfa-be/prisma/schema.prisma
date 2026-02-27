@@ -339,34 +339,50 @@ model asset_master {
 }
 
 model asset_movements {
-  id                           Int                     @id @default(autoincrement())
-  from_direction               String?                 @db.NVarChar(255)
-  to_direction                 String?                 @db.NVarChar(255)
-  movement_type                String?                 @db.NVarChar(50)
-  movement_date                DateTime                @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
-  performed_by                 Int
-  notes                        String?                 @db.Text
-  status                       String?                 @default("N") @db.VarChar(255)
-  approval_status              String?                 @default("P") @db.VarChar(20)
-  approved_by                  Int?
-  approved_at                  DateTime?               @db.DateTime
-  from_depot_id                Int?
-  from_customer_id             Int?
-  to_depot_id                  Int?
-  to_customer_id               Int?
-  is_active                    String                  @default("Y") @db.Char(1)
-  createdate                   DateTime?               @default(now(), map: "DF__asset_mov__creat__6B0FDBE9") @db.DateTime
-  createdby                    Int
-  updatedate                   DateTime?               @db.DateTime
-  updatedby                    Int?
-  log_inst                     Int?
-  asset_movement_from_depot    depots?                 @relation("AssetMovementFromDepot", fields: [from_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movement_from_customer customers?              @relation("AssetMovementFromCustomer", fields: [from_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movement_to_depot      depots?                 @relation("AssetMovementToDepot", fields: [to_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movement_to_customer   customers?              @relation("AssetMovementToCustomer", fields: [to_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movements_performed_by users                   @relation(fields: [performed_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  approved_by_user             users?                  @relation("AssetMovementApprovedBy", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movement_assets        asset_movement_assets[]
+  id                                 Int                        @id @default(autoincrement())
+  from_direction                     String?                    @db.NVarChar(255)
+  to_direction                       String?                    @db.NVarChar(255)
+  movement_type                      String?                    @db.NVarChar(50)
+  movement_date                      DateTime                   @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
+  performed_by                       Int
+  notes                              String?                    @db.Text
+  status                             String?                    @default("N") @db.VarChar(255)
+  approval_status                    String?                    @default("P") @db.VarChar(20)
+  approved_by                        Int?
+  approved_at                        DateTime?                  @db.DateTime
+  from_depot_id                      Int?
+  from_customer_id                   Int?
+  to_depot_id                        Int?
+  to_customer_id                     Int?
+  is_active                          String                     @default("Y") @db.Char(1)
+  createdate                         DateTime?                  @default(now(), map: "DF__asset_mov__creat__6B0FDBE9") @db.DateTime
+  createdby                          Int
+  updatedate                         DateTime?                  @db.DateTime
+  updatedby                          Int?
+  log_inst                           Int?
+  asset_movement_from_depot          depots?                    @relation("AssetMovementFromDepot", fields: [from_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movement_from_customer       customers?                 @relation("AssetMovementFromCustomer", fields: [from_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movement_to_depot            depots?                    @relation("AssetMovementToDepot", fields: [to_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movement_to_customer         customers?                 @relation("AssetMovementToCustomer", fields: [to_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movements_performed_by       users                      @relation(fields: [performed_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  approved_by_user                   users?                     @relation("AssetMovementApprovedBy", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movement_assets              asset_movement_assets[]
+  asset_movements_generated_contract asset_movement_contracts[]
+}
+
+model asset_movement_contracts {
+  id                Int       @id @default(autoincrement())
+  asset_movement_id Int
+  contract_number   String    @db.NVarChar(50)
+  contract_date     DateTime  @db.DateTime
+  contract_url      String    @db.NVarChar(1000)
+  createdby         Int
+  createdate        DateTime  @default(now()) @db.DateTime
+  updatedby         Int?
+  updatedate        DateTime?
+  is_active         String    @default("Y") @db.Char(1)
+
+  asset_movements_generated_contract asset_movements @relation(fields: [asset_movement_id], references: [id])
 }
 
 model asset_movement_assets {

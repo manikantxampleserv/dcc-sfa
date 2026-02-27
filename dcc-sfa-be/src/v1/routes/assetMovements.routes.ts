@@ -53,4 +53,25 @@ router.delete(
   assetMovementsController.deleteAssetMovements
 );
 
+router.post(
+  '/asset-movement/:id/generate-contract',
+  authenticateToken,
+  requirePermission([{ module: 'asset-movement', action: 'create' }]),
+  assetMovementsController.generateContract
+);
+
+router.get(
+  '/asset-movement/:id/download-contract',
+  authenticateToken,
+  requirePermission([{ module: 'asset-movement', action: 'read' }]),
+  assetMovementsController.downloadContract
+);
+
+router.get(
+  '/asset-movement/:id/contract-info',
+  authenticateToken,
+  requirePermission([{ module: 'asset-movement', action: 'read' }]),
+  assetMovementsController.getContractInfo
+);
+
 export default router;

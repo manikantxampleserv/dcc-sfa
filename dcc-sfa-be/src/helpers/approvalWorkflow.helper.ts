@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import prisma from '../configs/prisma.client';
+import { ContractGenerationService } from '../services/contractGeneration.service';
 
 export interface CreateApprovalWorkflowParams {
   workflow_type: string;
@@ -177,14 +178,12 @@ export async function createApprovalWorkflow(
     }
 
     const totalSteps = workflowSteps.length;
-
-    // Determine initial current_step: if step 1 is auto-completed, start at step 2
     const firstStepAutoCompleted =
       workflowSteps[0]?.step_number === 1 &&
       (workflowSteps[0]?.assigned_role === 'Salesperson' ||
         workflowSteps[0]?.is_required === false);
     const initialCurrentStep = firstStepAutoCompleted ? 2 : 1;
-    const initialStatus = 'P'; // Always start with Pending (P)
+    const initialStatus = 'P';
 
     const approvalWorkflow = await prisma.approval_workflows.create({
       data: {
@@ -257,9 +256,6 @@ export async function createApprovalWorkflow(
   }
 }
 
-/**
- * Create approval workflow for an order
- */
 export async function createOrderApprovalWorkflow(
   orderId: number,
   orderNumber: string,
@@ -285,9 +281,6 @@ export async function createOrderApprovalWorkflow(
   });
 }
 
-/**
- * Create approval workflow for an asset movement
- */
 export async function createAssetMovementApprovalWorkflow(
   assetMovementId: number,
   movementNumber: string,
@@ -311,4 +304,19 @@ export async function createAssetMovementApprovalWorkflow(
     },
     createdby: createdby || requestedBy,
   });
+}
+
+export async function generateContractOnApproval(
+  assetMovementId: number
+): Promise<any> {
+  try {
+    const contractService = new ContractGenerationService();
+    const contractRecord =
+      await contractService.generateContractOnApproval(assetMovementId);
+    console.log(`Contract generated for asset movement: ${assetMovementId}`);
+    return contractRecord;
+  } catch (error) {
+    console.error('Error generating contract:', error);
+    throw error;
+  }
 }
