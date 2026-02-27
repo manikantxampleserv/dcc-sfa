@@ -141,11 +141,9 @@ export const coolerInstallationsController = {
 
       let coolerCode: string;
 
-      // Handle user-provided code
       if (data.code && data.code.trim() !== '') {
         coolerCode = data.code.trim();
 
-        // Check if user-provided code already exists
         const existingCooler = await prisma.coolers.findUnique({
           where: { code: coolerCode },
         });
@@ -156,11 +154,9 @@ export const coolerInstallationsController = {
             .json({ message: 'Cooler code already exists' });
         }
       } else {
-        // Generate auto code only if user didn't provide one
         coolerCode = await generateCode();
         let attempts = 0;
 
-        // Ensure generated code is unique
         while (attempts < 10) {
           const existing = await prisma.coolers.findUnique({
             where: { code: coolerCode },
@@ -304,14 +300,12 @@ export const coolerInstallationsController = {
         user_id,
       } = req.query;
 
-      // Provide default values and validate inputs
       const page_num = page ? parseInt(page as string, 10) : 1;
       const limit_num = limit ? parseInt(limit as string, 10) : 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
       const inspectorFilter = technician_id || user_id;
 
       const filters: any = {
-        // Only add is_active filter if isActive is provided
         ...(isActive && { is_active: isActive as string }),
 
         ...(search && {
