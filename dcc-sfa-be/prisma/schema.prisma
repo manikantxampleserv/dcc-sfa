@@ -316,6 +316,7 @@ model asset_maintenance {
 model asset_master {
   id                           Int                     @id(map: "PK__asset_ma__3213E83FB367A2E5") @default(autoincrement())
   asset_type_id                Int
+  asset_sub_type_id            Int?
   name                         String                  @db.VarChar(255)
   code                         String                  @db.NVarChar(255)
   serial_number                String                  @unique(map: "UQ__asset_ma__BED14FEE105CB870") @db.NVarChar(100)
@@ -336,37 +337,70 @@ model asset_master {
   asset_movement_assets_asset  asset_movement_assets[]
   asset_master_warranty_claims asset_warranty_claims[]
   cooler_asset_master          coolers[]
+  asset_master_asset_sub_types asset_sub_types?        @relation(fields: [asset_sub_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model asset_sub_types {
+  id                           Int            @id @default(autoincrement())
+  name                         String         @db.VarChar(255)
+  asset_type_id                Int
+  description                  String?        @db.Text
+  code                         String         @unique @db.VarChar(100)
+  is_active                    String         @default("Y") @db.Char(1)
+  createdate                   DateTime       @default(now())
+  createdby                    Int
+  updatedate                   DateTime?
+  updatedby                    Int?
+  log_inst                     Int?
+  asset_master_asset_sub_types asset_master[]
+  asset_sub_types_asset_types  asset_types    @relation(fields: [asset_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model asset_movements {
-  id                           Int                     @id @default(autoincrement())
-  from_direction               String?                 @db.NVarChar(255)
-  to_direction                 String?                 @db.NVarChar(255)
-  movement_type                String?                 @db.NVarChar(50)
-  movement_date                DateTime                @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
-  performed_by                 Int
-  notes                        String?                 @db.Text
-  status                       String?                 @default("N") @db.VarChar(255)
-  approval_status              String?                 @default("P") @db.VarChar(20)
-  approved_by                  Int?
-  approved_at                  DateTime?               @db.DateTime
-  from_depot_id                Int?
-  from_customer_id             Int?
-  to_depot_id                  Int?
-  to_customer_id               Int?
-  is_active                    String                  @default("Y") @db.Char(1)
-  createdate                   DateTime?               @default(now(), map: "DF__asset_mov__creat__6B0FDBE9") @db.DateTime
-  createdby                    Int
-  updatedate                   DateTime?               @db.DateTime
-  updatedby                    Int?
-  log_inst                     Int?
-  asset_movement_from_depot    depots?                 @relation("AssetMovementFromDepot", fields: [from_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movement_from_customer customers?              @relation("AssetMovementFromCustomer", fields: [from_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movement_to_depot      depots?                 @relation("AssetMovementToDepot", fields: [to_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movement_to_customer   customers?              @relation("AssetMovementToCustomer", fields: [to_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movements_performed_by users                   @relation(fields: [performed_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  approved_by_user             users?                  @relation("AssetMovementApprovedBy", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  asset_movement_assets        asset_movement_assets[]
+  id                                 Int                        @id @default(autoincrement())
+  from_direction                     String?                    @db.NVarChar(255)
+  to_direction                       String?                    @db.NVarChar(255)
+  movement_type                      String?                    @db.NVarChar(50)
+  movement_date                      DateTime                   @default(now(), map: "DF__asset_mov__movem__69279377") @db.DateTime
+  performed_by                       Int
+  notes                              String?                    @db.Text
+  status                             String?                    @default("N") @db.VarChar(255)
+  approval_status                    String?                    @default("P") @db.VarChar(20)
+  approved_by                        Int?
+  approved_at                        DateTime?                  @db.DateTime
+  from_depot_id                      Int?
+  from_customer_id                   Int?
+  to_depot_id                        Int?
+  to_customer_id                     Int?
+  is_active                          String                     @default("Y") @db.Char(1)
+  createdate                         DateTime?                  @default(now(), map: "DF__asset_mov__creat__6B0FDBE9") @db.DateTime
+  createdby                          Int
+  updatedate                         DateTime?                  @db.DateTime
+  updatedby                          Int?
+  log_inst                           Int?
+  asset_movement_from_depot          depots?                    @relation("AssetMovementFromDepot", fields: [from_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movement_from_customer       customers?                 @relation("AssetMovementFromCustomer", fields: [from_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movement_to_depot            depots?                    @relation("AssetMovementToDepot", fields: [to_depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movement_to_customer         customers?                 @relation("AssetMovementToCustomer", fields: [to_customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movements_performed_by       users                      @relation(fields: [performed_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  approved_by_user                   users?                     @relation("AssetMovementApprovedBy", fields: [approved_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movement_assets              asset_movement_assets[]
+  asset_movements_generated_contract asset_movement_contracts[]
+}
+
+model asset_movement_contracts {
+  id                Int       @id @default(autoincrement())
+  asset_movement_id Int
+  contract_number   String    @db.NVarChar(50)
+  contract_date     DateTime  @db.DateTime
+  contract_url      String    @db.NVarChar(1000)
+  createdby         Int
+  createdate        DateTime  @default(now()) @db.DateTime
+  updatedby         Int?
+  updatedate        DateTime?
+  is_active         String    @default("Y") @db.Char(1)
+
+  asset_movements_generated_contract asset_movements @relation(fields: [asset_movement_id], references: [id])
 }
 
 model asset_movement_assets {
@@ -384,19 +418,20 @@ model asset_movement_assets {
 }
 
 model asset_types {
-  id                       Int               @id(map: "PK__asset_ty__3213E83F81A55314") @default(autoincrement())
-  name                     String            @db.NVarChar(100)
-  description              String?           @db.NVarChar(255)
-  is_active                String            @default("Y", map: "DF__asset_typ__is_ac__62E4AA3C") @db.Char(1)
-  createdate               DateTime?         @default(now(), map: "DF__asset_typ__creat__63D8CE75") @db.DateTime
-  createdby                Int
-  updatedate               DateTime?         @db.DateTime
-  updatedby                Int?
-  log_inst                 Int?
-  category                 String?           @db.NVarChar(50)
-  brand                    String?           @db.NVarChar(100)
-  asset_master_asset_types asset_master[]
-  customer_asset_types     customer_assets[]
+  id                          Int               @id(map: "PK__asset_ty__3213E83F81A55314") @default(autoincrement())
+  name                        String            @db.NVarChar(100)
+  description                 String?           @db.NVarChar(255)
+  is_active                   String            @default("Y", map: "DF__asset_typ__is_ac__62E4AA3C") @db.Char(1)
+  createdate                  DateTime?         @default(now(), map: "DF__asset_typ__creat__63D8CE75") @db.DateTime
+  createdby                   Int
+  updatedate                  DateTime?         @db.DateTime
+  updatedby                   Int?
+  log_inst                    Int?
+  category                    String?           @db.NVarChar(50)
+  brand                       String?           @db.NVarChar(100)
+  asset_master_asset_types    asset_master[]
+  customer_asset_types        customer_assets[]
+  asset_sub_types_asset_types asset_sub_types[]
 }
 
 model asset_warranty_claims {

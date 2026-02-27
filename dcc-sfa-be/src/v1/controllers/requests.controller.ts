@@ -6,6 +6,7 @@ import getRequestDetailsByType from '../../utils/getDetails';
 import { paginate } from '../../utils/paginate';
 import { requestTypes } from '../../mock/requestTypes';
 import prisma from '../../configs/prisma.client';
+import { generateContractOnApproval } from '../../helpers/approvalWorkflow.helper';
 
 interface RequestSerialized {
   id: number;
@@ -1117,6 +1118,25 @@ export const requestsController = {
           timeout: 20000,
         }
       );
+
+      if (
+        result.status === 'fully_approved' &&
+        result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+        result.request.reference_id
+      ) {
+        try {
+          await prisma.asset_movement_contracts.deleteMany({
+            where: { asset_movement_id: result.request.reference_id },
+          });
+
+          await generateContractOnApproval(result.request.reference_id);
+        } catch (contractError) {
+          console.error(
+            'Error generating contract after approval:',
+            contractError
+          );
+        }
+      }
 
       if (result.status === 'rejected') {
         const template = await generateEmailContent(

@@ -8,6 +8,7 @@ interface AssetMasterSerialized {
   name: string;
   code: string;
   asset_type_id: number;
+  asset_sub_type_id?: number | null;
   serial_number: string;
   purchase_date?: Date | null;
   warranty_expiry?: Date | null;
@@ -25,6 +26,7 @@ interface AssetMasterSerialized {
   asset_movement_assets_asset?: any[];
   asset_master_warranty_claims?: any[];
   asset_master_asset_types?: any;
+  asset_master_asset_sub_types?: any;
 }
 
 const generateAssetCode = async (name: string) => {
@@ -50,6 +52,7 @@ const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   name: asset.name,
   code: asset.code,
   asset_type_id: asset.asset_type_id,
+  asset_sub_type_id: asset.asset_sub_type_id,
   serial_number: asset.serial_number,
   purchase_date: asset.purchase_date ? new Date(asset.purchase_date) : null,
   warranty_expiry: asset.warranty_expiry
@@ -69,6 +72,7 @@ const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   asset_movement_assets_asset: asset.asset_movement_assets_asset || [],
   asset_master_warranty_claims: asset.asset_master_warranty_claims || [],
   asset_master_asset_types: asset.asset_master_asset_types || null,
+  asset_master_asset_sub_types: asset.asset_master_asset_sub_types || null,
 });
 
 export const assetMasterController = {
@@ -78,6 +82,7 @@ export const assetMasterController = {
         name,
         code,
         asset_type_id,
+        asset_sub_type_id,
         serial_number,
         purchase_date,
         warranty_expiry,
@@ -160,6 +165,7 @@ export const assetMasterController = {
         name,
         code: assetCode,
         asset_type_id: Number(asset_type_id),
+        asset_sub_type_id: asset_sub_type_id ? Number(asset_sub_type_id) : null,
         serial_number,
         purchase_date: purchase_date ? new Date(purchase_date) : null,
         warranty_expiry: warranty_expiry ? new Date(warranty_expiry) : null,
@@ -206,7 +212,13 @@ export const assetMasterController = {
 
       const createdAsset = await prisma.asset_master.findUnique({
         where: { id: newAsset.id },
-        include: { asset_master_image: true },
+        include: {
+          asset_master_image: true,
+          asset_maintenance_master: true,
+          asset_master_warranty_claims: true,
+          asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
+        },
       });
 
       res.status(201).json({
@@ -273,6 +285,7 @@ export const assetMasterController = {
           },
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
         },
       });
 
@@ -324,6 +337,7 @@ export const assetMasterController = {
           asset_maintenance_master: true,
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
         },
       });
 
@@ -350,6 +364,9 @@ export const assetMasterController = {
 
       const data = {
         ...req.body,
+        asset_sub_type_id: req.body.asset_sub_type_id
+          ? Number(req.body.asset_sub_type_id)
+          : existingAsset.asset_sub_type_id,
         assigned_to: req.body.assigned_to
           ? String(req.body.assigned_to)
           : existingAsset.assigned_to,
@@ -371,6 +388,7 @@ export const assetMasterController = {
           asset_maintenance_master: true,
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
         },
       });
 
