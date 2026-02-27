@@ -1,9 +1,10 @@
 import * as Yup from 'yup';
 
 export const assetMovementValidationSchema = Yup.object({
-  asset_id: Yup.number()
-    .positive('Asset ID must be a positive number')
-    .required('Asset ID is required'),
+  asset_ids: Yup.array()
+    .of(Yup.number().positive('Asset ID must be a positive number'))
+    .min(1, 'At least one asset must be selected')
+    .required('Asset selection is required'),
   from_direction: Yup.string()
     .oneOf(['outlet', 'depot'], 'From direction must be outlet or depot')
     .required('From direction is required'),
@@ -65,6 +66,12 @@ export const assetMovementValidationSchema = Yup.object({
   performed_by: Yup.number()
     .positive('Performed by must be a positive number')
     .required('Performed by is required'),
+  priority: Yup.string()
+    .oneOf(
+      ['low', 'medium', 'high', 'urgent'],
+      'Priority must be low, medium, high, or urgent'
+    )
+    .default('medium'),
   notes: Yup.string()
     .max(1000, 'Notes must be less than 1000 characters')
     .nullable(),

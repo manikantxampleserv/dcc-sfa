@@ -1,4 +1,12 @@
-import { Add, Block, CheckCircle, Download, Upload } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  Download,
+  HelpOutline,
+  Schedule,
+  Upload,
+} from '@mui/icons-material';
 import {
   Alert,
   Avatar,
@@ -248,8 +256,56 @@ const AssetMovementManagement: React.FC = () => {
       ),
     },
     {
+      id: 'status',
+      label: 'Approval Status',
+      render: (_value, row) => {
+        const status = row.status || 'unknown';
+        const statusLower = status.toLowerCase();
+
+        const icon =
+          statusLower === 'a' ? (
+            <CheckCircle />
+          ) : statusLower === 'p' ? (
+            <Schedule />
+          ) : statusLower === 'r' ? (
+            <Block />
+          ) : (
+            <HelpOutline />
+          );
+
+        const color =
+          statusLower === 'a'
+            ? 'success'
+            : statusLower === 'p'
+              ? 'warning'
+              : statusLower === 'r'
+                ? 'error'
+                : 'default';
+
+        const label =
+          statusLower === 'p'
+            ? 'Pending'
+            : statusLower === 'a'
+              ? 'Approved'
+              : statusLower === 'r'
+                ? 'Rejected'
+                : status;
+
+        return (
+          <Chip
+            icon={icon}
+            label={label}
+            variant="outlined"
+            color={color}
+            size="small"
+            className="!capitalize"
+          />
+        );
+      },
+    },
+    {
       id: 'is_active',
-      label: 'Active Status',
+      label: 'Status',
       render: (_value, row) => (
         <Chip
           icon={row.is_active === 'Y' ? <CheckCircle /> : <Block />}

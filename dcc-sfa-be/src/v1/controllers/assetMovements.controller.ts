@@ -548,7 +548,6 @@ export const assetMovementsController = {
         data: {
           ...req.body,
           movement_date: new Date(req.body.movement_date),
-
           updatedby: req.user?.id || 1,
           updatedate: new Date(),
         },

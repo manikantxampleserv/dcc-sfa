@@ -39,6 +39,15 @@ export interface Request {
     payment_method?: string;
     status?: string;
     notes?: string;
+
+    movement_number?: string;
+    movement_type?: string;
+    from_location?: string;
+    to_location?: string;
+    performed_by?: string;
+    movement_date?: string;
+    assets?: string;
+    approval_status?: string;
   } | null;
   approvals?: {
     id: number;
@@ -67,7 +76,7 @@ export interface GetRequestsByUsersParams {
 export interface TakeActionOnRequestPayload {
   request_id: number;
   approval_id: number;
-  action: 'A' | 'R'; // A for Approve, R for Reject
+  action: 'A' | 'R';
   remarks?: string;
 }
 
