@@ -28,10 +28,11 @@ interface AssetMovementSerialized {
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  contract_url?: string | null;
   asset_movement_assets?: {
     id: number;
     asset_id: number;
-    asset_movement_assets_asset: {
+    asset_master: {
       id: number;
       name: string;
       serial_number: string;
@@ -89,6 +90,8 @@ const serializeAssetMovement = (movement: any): AssetMovementSerialized => {
     updatedate: movement.updatedate,
     updatedby: movement.updatedby,
     log_inst: movement.log_inst,
+    contract_url:
+      movement.asset_movements_generated_contract?.[0]?.contract_url || null,
     asset_movement_assets:
       movement.asset_movement_assets?.map((aa: any) => ({
         id: aa.id,
@@ -457,6 +460,11 @@ export const assetMovementsController = {
           asset_movement_to_customer: {
             select: { id: true, name: true },
           },
+          asset_movements_generated_contract: {
+            select: { contract_url: true },
+            orderBy: { createdate: 'desc' },
+            take: 1,
+          },
         },
       });
 
@@ -516,6 +524,23 @@ export const assetMovementsController = {
             },
           },
           asset_movements_performed_by: true,
+          asset_movement_from_depot: {
+            select: { id: true, name: true },
+          },
+          asset_movement_from_customer: {
+            select: { id: true, name: true },
+          },
+          asset_movement_to_depot: {
+            select: { id: true, name: true },
+          },
+          asset_movement_to_customer: {
+            select: { id: true, name: true },
+          },
+          asset_movements_generated_contract: {
+            select: { contract_url: true },
+            orderBy: { createdate: 'desc' },
+            take: 1,
+          },
         },
       });
 
@@ -691,6 +716,11 @@ export const assetMovementsController = {
             },
             asset_movement_to_customer: {
               select: { id: true, name: true },
+            },
+            asset_movements_generated_contract: {
+              select: { contract_url: true },
+              orderBy: { createdate: 'desc' },
+              take: 1,
             },
           },
         });
