@@ -140,10 +140,7 @@ const AssetMovementManagement: React.FC = () => {
       label: 'Asset Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
-          <Avatar
-            alt={row.asset_movements_master?.serial_number || 'Asset'}
-            className="!rounded !bg-primary-100 !text-primary-500"
-          >
+          <Avatar className="!rounded !bg-primary-100 !text-primary-500">
             <Package className="w-5 h-5" />
           </Avatar>
           <Box>
@@ -151,15 +148,13 @@ const AssetMovementManagement: React.FC = () => {
               variant="body1"
               className="!text-gray-900 !leading-tight"
             >
-              {row.asset_movements_master?.asset_master_asset_types?.name ||
-                'Unknown Asset'}
+              Asset Movement #{row.id}
             </Typography>
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.asset_movements_master?.serial_number ||
-                `Asset #${row.asset_id}`}
+              {row.asset_ids?.length || 0} asset(s) moved
             </Typography>
           </Box>
         </Box>
@@ -172,12 +167,20 @@ const AssetMovementManagement: React.FC = () => {
         <Box className="flex items-center gap-2">
           <Box className="flex items-center gap-1">
             <MapPin className="w-3 h-3 text-gray-400" />
-            <span className="text-xs">{row.from_location || 'Unknown'}</span>
+            <span className="text-xs">
+              {row.from_direction === 'depot'
+                ? row.asset_movement_from_depot?.name
+                : row.asset_movement_from_customer?.name}
+            </span>
           </Box>
           <ArrowRight className="w-3 h-3 text-gray-400" />
           <Box className="flex items-center gap-1">
             <MapPin className="w-3 h-3 text-gray-400" />
-            <span className="text-xs">{row.to_location || 'Unknown'}</span>
+            <span className="text-xs">
+              {row.to_direction === 'depot'
+                ? row.asset_movement_to_depot?.name
+                : row.asset_movement_to_customer?.name}
+            </span>
           </Box>
         </Box>
       ),
@@ -200,11 +203,9 @@ const AssetMovementManagement: React.FC = () => {
       label: 'Performed By',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
-          <Avatar
-            alt={row.asset_movements_performed_by?.name}
-            src={row.asset_movements_performed_by?.profile_image || 'mkx'}
-            className="!rounded !bg-primary-100 !text-primary-500"
-          />
+          <Avatar className="!rounded !bg-primary-100 !text-primary-500">
+            {row.asset_movements_performed_by?.name?.charAt(0) || 'U'}
+          </Avatar>
           <Box>
             <Typography
               variant="body1"

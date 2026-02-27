@@ -6,7 +6,6 @@ import {
   useUpdateAssetMovement,
   type AssetMovement,
 } from 'hooks/useAssetMovement';
-import { useUsers, type User } from 'hooks/useUsers';
 import React from 'react';
 import { assetMovementValidationSchema } from 'schemas/assetMovement.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -16,6 +15,7 @@ import CustomDrawer from 'shared/Drawer';
 import DepotSelect from 'shared/DepotSelect';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
+import UserSelect from 'shared/UserSelect';
 import { formatForDateInput } from 'utils/dateUtils';
 
 interface ManageAssetMovementProps {
@@ -40,13 +40,6 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
   });
   const assets = assetsResponse?.data || [];
 
-  const { data: usersResponse } = useUsers({
-    page: 1,
-    limit: 1000,
-    isActive: 'Y',
-  });
-  const users = usersResponse?.data || [];
-
   const createAssetMovementMutation = useCreateAssetMovement();
   const updateAssetMovementMutation = useUpdateAssetMovement();
 
@@ -70,13 +63,13 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
 
   const formik = useFormik({
     initialValues: {
-      asset_id: selectedMovement?.asset_id?.toString() || '',
+      asset_id: selectedMovement?.asset_ids?.[0]?.toString() || '',
       from_direction: selectedMovement?.from_direction || '',
-      from_outlet: selectedMovement?.from_outlet?.toString() || '',
-      from_depot: selectedMovement?.from_depot?.toString() || '',
+      from_outlet: selectedMovement?.from_customer_id?.toString() || '',
+      from_depot: selectedMovement?.from_depot_id?.toString() || '',
       to_direction: selectedMovement?.to_direction || '',
-      to_outlet: selectedMovement?.to_outlet?.toString() || '',
-      to_depot: selectedMovement?.to_depot?.toString() || '',
+      to_outlet: selectedMovement?.to_customer_id?.toString() || '',
+      to_depot: selectedMovement?.to_depot_id?.toString() || '',
       movement_type: selectedMovement?.movement_type || '',
       movement_date: formatForDateInput(selectedMovement?.movement_date),
       performed_by: selectedMovement?.performed_by?.toString() || '',
@@ -90,18 +83,18 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
         const submitData = {
           asset_id: Number(values.asset_id),
           from_direction: values.from_direction,
-          from_outlet:
+          from_customer_id:
             values.from_direction === 'outlet'
               ? Number(values.from_outlet)
               : null,
-          from_depot:
+          from_depot_id:
             values.from_direction === 'depot'
               ? Number(values.from_depot)
               : null,
           to_direction: values.to_direction,
-          to_outlet:
+          to_customer_id:
             values.to_direction === 'outlet' ? Number(values.to_outlet) : null,
-          to_depot:
+          to_depot_id:
             values.to_direction === 'depot' ? Number(values.to_depot) : null,
           movement_type: values.movement_type,
           movement_date: values.movement_date,
@@ -228,19 +221,12 @@ const ManageAssetMovement: React.FC<ManageAssetMovementProps> = ({
               slotProps={{ inputLabel: { shrink: true } }}
             />
 
-            <Select
+            <UserSelect
               name="performed_by"
               label="Performed By"
               formik={formik}
               required
-            >
-              <MenuItem value="">Select User</MenuItem>
-              {users.map((user: User) => (
-                <MenuItem key={user.id} value={user.id?.toString() || ''}>
-                  {user.name} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <ActiveInactiveField
               name="is_active"
