@@ -3,13 +3,13 @@ import type { ApiResponse } from 'types/api.types';
 
 export interface AssetMovement {
   id: number;
-  asset_id: number;
+  asset_ids?: number[];
   from_direction?: string | null;
-  from_outlet?: number | null;
-  from_depot?: number | null;
+  from_depot_id?: number | null;
+  from_customer_id?: number | null;
   to_direction?: string | null;
-  to_outlet?: number | null;
-  to_depot?: number | null;
+  to_depot_id?: number | null;
+  to_customer_id?: number | null;
   movement_type?: string | null;
   movement_date: string;
   performed_by: number;
@@ -20,41 +20,50 @@ export interface AssetMovement {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  asset_movements_master?: {
+  asset_movements_assets?: any[];
+  asset_movement_from_depot?: {
     id: number;
     name: string;
-    serial_number: string;
-    asset_master_asset_types?: {
-      id: number;
-      name: string;
-    } | null;
+  } | null;
+  asset_movement_from_customer?: {
+    id: number;
+    name: string;
+  } | null;
+  asset_movement_to_depot?: {
+    id: number;
+    name: string;
+  } | null;
+  asset_movement_to_customer?: {
+    id: number;
+    name: string;
   } | null;
   asset_movements_performed_by?: {
     id: number;
     name: string;
     email: string;
-    profile_image: string;
   } | null;
 }
 
 export interface CreateAssetMovementPayload {
   asset_id: number;
   from_direction?: string;
-  from_outlet?: number | null;
-  from_depot?: number | null;
+  from_customer_id?: number | null;
+  from_depot_id?: number | null;
   to_direction?: string;
-  to_outlet?: number | null;
-  to_depot?: number | null;
+  to_customer_id?: number | null;
+  to_depot_id?: number | null;
   movement_type?: string;
   movement_date: string;
   performed_by: number;
-  notes?: string;
+  notes?: string | null;
   is_active?: string;
 }
 
 export interface UpdateAssetMovementPayload {
   asset_id?: number;
   from_direction?: string;
+  from_customer_id?: number | null;
+  from_depot_id?: number | null;
   from_outlet?: number | null;
   from_depot?: number | null;
   to_direction?: string;
