@@ -14,13 +14,17 @@ export interface AssetMovement {
   movement_date: string;
   performed_by: number;
   notes?: string | null;
+  status?: string | null;
+  approval_status?: string | null;
+  approved_by?: number | null;
+  approved_at?: string | null;
   is_active: string;
   createdate?: string | null;
   createdby: number;
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  asset_movements_assets?: any[];
+  asset_movement_assets?: any[];
   asset_movement_from_depot?: {
     id: number;
     name: string;
@@ -45,7 +49,7 @@ export interface AssetMovement {
 }
 
 export interface CreateAssetMovementPayload {
-  asset_id: number;
+  asset_ids: number[];
   from_direction?: string;
   from_customer_id?: number | null;
   from_depot_id?: number | null;
@@ -56,23 +60,23 @@ export interface CreateAssetMovementPayload {
   movement_date: string;
   performed_by: number;
   notes?: string | null;
+  priority?: string;
   is_active?: string;
 }
 
 export interface UpdateAssetMovementPayload {
-  asset_id?: number;
+  asset_ids?: number[];
   from_direction?: string;
   from_customer_id?: number | null;
   from_depot_id?: number | null;
-  from_outlet?: number | null;
-  from_depot?: number | null;
   to_direction?: string;
-  to_outlet?: number | null;
-  to_depot?: number | null;
+  to_customer_id?: number | null;
+  to_depot_id?: number | null;
   movement_type?: string;
   movement_date?: string;
   performed_by?: number;
-  notes?: string;
+  notes?: string | null;
+  priority?: string;
   is_active?: string;
 }
 

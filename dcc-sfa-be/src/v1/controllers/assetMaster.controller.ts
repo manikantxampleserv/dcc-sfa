@@ -226,12 +226,6 @@ export const assetMasterController = {
         data: serializeAssetMaster(createdAsset),
       });
     } catch (error: any) {
-      // if (error.code === 'P2002') {
-      //   return res.status(409).json({
-      //     message: 'Duplicate asset is not allowed',
-      //   });
-      // }
-
       console.error('Create Asset Error:', error);
       res.status(500).json({ message: error.message });
     }
