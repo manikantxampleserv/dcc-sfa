@@ -153,6 +153,9 @@ const AssetMasterManagement: React.FC = () => {
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
               {row.serial_number} • {row.asset_master_asset_types?.name}
+              {row.asset_master_asset_sub_types?.name && (
+                <span> • {row.asset_master_asset_sub_types.name}</span>
+              )}
             </Typography>
           </Box>
         </Box>
