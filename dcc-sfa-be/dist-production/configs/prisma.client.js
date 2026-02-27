@@ -69,13 +69,13 @@ const parseConnectionString = (connectionString) => {
         connectionTimeout: 30000,
         requestTimeout: 60000,
         pool: {
-            max: 10,
-            min: 0,
+            max: 5,
+            min: 1,
             idleTimeoutMillis: 30000,
-            acquireTimeoutMillis: 30000,
-            createTimeoutMillis: 30000,
+            acquireTimeoutMillis: 15000,
+            createTimeoutMillis: 15000,
             reapIntervalMillis: 1000,
-            createRetryIntervalMillis: 200,
+            createRetryIntervalMillis: 100,
         },
     };
 };
@@ -90,6 +90,11 @@ const getPrisma = () => {
         prisma = new client_1.PrismaClient({
             adapter,
             log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+            transactionOptions: {
+                maxWait: 5000,
+                timeout: 10000,
+                isolationLevel: 'ReadCommitted',
+            },
         });
         process.on('beforeExit', async () => {
             if (prisma) {

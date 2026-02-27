@@ -13,6 +13,32 @@ const express_1 = __importDefault(require("express"));
 const response_middleware_1 = require("./middlewares/response.middleware");
 const routes_1 = __importDefault(require("./routes"));
 const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignment.job");
+const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = require("path");
+// First check if DATABASE_URL is already set in environment variables
+if (!process.env.DATABASE_URL) {
+    // Load environment variables from the root directory
+    const possiblePaths = [
+        (0, path_1.resolve)(process.cwd(), '.env'), // Current working directory
+        (0, path_1.resolve)(__dirname, '../.env'), // Relative to compiled file
+        (0, path_1.resolve)(__dirname, '../../../.env'), // For production builds
+        '.env', // Fallback
+    ];
+    for (const path of possiblePaths) {
+        try {
+            const result = dotenv_1.default.config({ path, quiet: true });
+            if (result.error) {
+                continue;
+            }
+            if (process.env.DATABASE_URL) {
+                break;
+            }
+        }
+        catch (error) {
+            continue;
+        }
+    }
+}
 /**
  * Creates and configures the Express application
  * @returns {Application} Configured Express application
