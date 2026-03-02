@@ -142,7 +142,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
       size={size}
       onClick={onClick}
       disabled={disabled}
-      className={`!rounded ${getColorClass(color)} ${disabled ? '!cursor-not-allowed' : ''}`}
+      className={`!rounded  ${getColorClass(color)} ${disabled ? '!cursor-not-allowed' : ''}`}
     >
       {icon}
     </IconButton>
