@@ -92,7 +92,6 @@ const ImportAssetType: React.FC<ImportAssetTypeProps> = ({
           updateExisting: false,
         },
       });
-      // Results are handled in the mutation onSuccess callback
     } catch (error) {
       console.error('Import failed:', error);
     }

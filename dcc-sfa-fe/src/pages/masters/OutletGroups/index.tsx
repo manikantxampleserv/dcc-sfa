@@ -196,7 +196,7 @@ const OutletGroupsManagement: React.FC = () => {
         <Box className="flex items-center">
           <Users className="w-4 h-4 text-gray-400 mr-2" />
           <Typography variant="body2" className="!text-gray-900 !font-medium">
-            {row.members?.length || 0}
+            {row.members_count || 0}
           </Typography>
         </Box>
       ),
@@ -333,7 +333,7 @@ const OutletGroupsManagement: React.FC = () => {
                   startIcon={<Add />}
                   onClick={handleCreateOutletGroup}
                 >
-                  Add Outlet Group
+                  Create
                 </Button>
               )}
             </div>
@@ -352,7 +352,7 @@ const OutletGroupsManagement: React.FC = () => {
         emptyMessage={
           search
             ? `No outlet groups found matching "${search}"`
-            : 'No outlet groups found in the system'
+            : `No outlet groups found in the system`
         }
       />
 

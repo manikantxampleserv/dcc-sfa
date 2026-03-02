@@ -375,7 +375,6 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
 
           <Box>
             <p className="!font-semibold !my-3">Assign Approvers</p>
-
             <DragDropContext onDragEnd={onDragEnd}>
               <div className="!grid !grid-cols-2 !gap-4 !h-[500px]">
                 {/* Available Users Panel */}

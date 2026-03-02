@@ -35,6 +35,10 @@ const serializeRoute = (route) => ({
     outlet_group: route.outlet_group,
     start_location: route.start_location,
     end_location: route.end_location,
+    starting_latitude: route.starting_latitude?.toString() || null,
+    starting_longitude: route.starting_longitude?.toString() || null,
+    ending_latitude: route.ending_latitude?.toString() || null,
+    ending_longitude: route.ending_longitude?.toString() || null,
     estimated_distance: route.estimated_distance?.toString() || null,
     estimated_time: route.estimated_time,
     is_active: route.is_active,
@@ -124,6 +128,189 @@ const serializeRoute = (route) => ({
     })) || [],
 });
 exports.routesController = {
+    async getRouteAssignments(req, res) {
+        try {
+            const { page = '1', limit = '10', search = '', depot_id, zone_id, } = req.query;
+            const pageNum = parseInt(page, 10) || 1;
+            const limitNum = parseInt(limit, 10) || 10;
+            const searchLower = search.toLowerCase();
+            const userFilters = {
+                is_active: 'Y',
+                ...(search && {
+                    OR: [
+                        { name: { contains: searchLower } },
+                        { email: { contains: searchLower } },
+                        { employee_id: { contains: searchLower } },
+                    ],
+                }),
+                user_role: {
+                    name: { contains: 'Sales' },
+                },
+                ...(depot_id && { depot_id: parseInt(depot_id, 10) }),
+                ...(zone_id && { zone_id: parseInt(zone_id, 10) }),
+            };
+            const { data, pagination } = await (0, paginate_1.paginate)({
+                model: prisma_client_1.default.users,
+                filters: userFilters,
+                page: pageNum,
+                limit: limitNum,
+                orderBy: { createdate: 'desc' },
+                include: {
+                    route_salespersons: {
+                        where: { is_active: 'Y' },
+                        include: {
+                            route: {
+                                select: { id: true, name: true, code: true },
+                            },
+                        },
+                    },
+                },
+            });
+            const response = data.map((u) => ({
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                profile_image: u.profile_image,
+                depot_id: u.depot_id,
+                zone_id: u.zone_id,
+                assigned_routes: u.route_salespersons?.map((rs) => ({
+                    id: rs.route?.id,
+                    name: rs.route?.name,
+                    code: rs.route?.code,
+                })) || [],
+                assigned_routes_count: u.route_salespersons?.length || 0,
+            }));
+            const totalSalespersons = await prisma_client_1.default.users.count({
+                where: userFilters,
+            });
+            const totalRoutes = await prisma_client_1.default.routes.count({
+                where: { is_active: 'Y' },
+            });
+            const assignedRoutesDistinct = await prisma_client_1.default.route_salespersons.findMany({
+                where: { is_active: 'Y' },
+                distinct: ['route_id'],
+                select: { route_id: true },
+            });
+            const totalAssignedRoutes = assignedRoutesDistinct.length;
+            const totalUnassignedRoutes = Math.max(totalRoutes - assignedRoutesDistinct.length, 0);
+            res.success('Route assignments retrieved successfully', response, 200, pagination, {
+                total_salespersons: totalSalespersons,
+                total_assigned_routes: totalAssignedRoutes,
+                total_routes: totalRoutes,
+                total_unassigned_routes: totalUnassignedRoutes,
+            });
+        }
+        catch (error) {
+            console.error('Get Route Assignments Error:', error);
+            res.status(500).json({ message: error.message });
+        }
+    },
+    async getRouteAssignmentsByUser(req, res) {
+        try {
+            const { userId } = req.params;
+            const id = parseInt(userId, 10);
+            if (isNaN(id)) {
+                return res.status(400).json({ message: 'Invalid user id' });
+            }
+            const user = await prisma_client_1.default.users.findUnique({
+                where: { id },
+                include: {
+                    route_salespersons: {
+                        where: { is_active: 'Y' },
+                        include: {
+                            route: {
+                                select: { id: true, name: true, code: true },
+                            },
+                        },
+                    },
+                },
+            });
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            const response = {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                profile_image: user.profile_image,
+                assigned_routes: user.route_salespersons?.map((rs) => ({
+                    id: rs.route?.id,
+                    name: rs.route?.name,
+                    code: rs.route?.code,
+                })) || [],
+            };
+            res.json({
+                message: 'User route assignments fetched successfully',
+                data: response,
+            });
+        }
+        catch (error) {
+            console.error('Get User Route Assignments Error:', error);
+            res.status(500).json({ message: error.message });
+        }
+    },
+    async setRouteAssignmentsForUser(req, res) {
+        try {
+            const { userId } = req.params;
+            const id = parseInt(userId, 10);
+            if (isNaN(id)) {
+                return res.status(400).json({ message: 'Invalid user id' });
+            }
+            const { route_ids } = req.body;
+            if (!Array.isArray(route_ids)) {
+                return res
+                    .status(400)
+                    .json({ message: 'route_ids must be an array of numbers' });
+            }
+            const existingUser = await prisma_client_1.default.users.findUnique({ where: { id } });
+            if (!existingUser) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            await prisma_client_1.default.route_salespersons.deleteMany({
+                where: { user_id: id },
+            });
+            if (route_ids.length > 0) {
+                const createData = route_ids.map(rid => ({
+                    route_id: Number(rid),
+                    user_id: id,
+                    role: 'PRIMARY',
+                    is_active: 'Y',
+                    assigned_at: new Date(),
+                }));
+                await prisma_client_1.default.route_salespersons.createMany({
+                    data: createData,
+                });
+            }
+            const updated = await prisma_client_1.default.users.findUnique({
+                where: { id },
+                include: {
+                    route_salespersons: {
+                        where: { is_active: 'Y' },
+                        include: {
+                            route: { select: { id: true, name: true, code: true } },
+                        },
+                    },
+                },
+            });
+            res.json({
+                message: 'Route assignments updated successfully',
+                data: {
+                    id: updated?.id,
+                    name: updated?.name,
+                    email: updated?.email,
+                    assigned_routes: updated?.route_salespersons?.map((rs) => ({
+                        id: rs.route?.id,
+                        name: rs.route?.name,
+                        code: rs.route?.code,
+                    })) || [],
+                },
+            });
+        }
+        catch (error) {
+            console.error('Set Route Assignments Error:', error);
+            res.status(500).json({ message: error.message });
+        }
+    },
     async createRoutes(req, res) {
         try {
             const data = req.body;
@@ -150,6 +337,10 @@ exports.routesController = {
                 outlet_group: data.outlet_group,
                 start_location: data.start_location,
                 end_location: data.end_location,
+                starting_latitude: data.starting_latitude,
+                starting_longitude: data.starting_longitude,
+                ending_latitude: data.ending_latitude,
+                ending_longitude: data.ending_longitude,
                 estimated_distance: data.estimated_distance,
                 estimated_time: data.estimated_time,
                 is_active: data.is_active || 'Y',
@@ -166,11 +357,6 @@ exports.routesController = {
                     connect: { id: data.route_type_id },
                 },
             };
-            // if (data.salesperson_id) {
-            //   createData.routes_salesperson = {
-            //     connect: { id: data.salesperson_id },
-            //   };
-            // }
             if (data.salespersons) {
                 createData.salespersons = {
                     create: data.salespersons.map((sp) => ({
@@ -286,7 +472,11 @@ exports.routesController = {
                     customer_routes: true,
                     route_depots: true,
                     route_zones: true,
-                    // routes_salesperson: true,
+                    salespersons: {
+                        include: {
+                            user: true,
+                        },
+                    },
                     routes_route_type: true,
                     visit_routes: {
                         include: {
@@ -302,9 +492,56 @@ exports.routesController = {
             if (!route) {
                 return res.status(404).json({ message: 'Route not found' });
             }
+            // Fetch all customers assigned to this route
+            const allRouteCustomers = await prisma_client_1.default.customers.findMany({
+                where: {
+                    route_id: Number(id),
+                    is_active: 'Y',
+                },
+                include: {
+                    customer_depot: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customer_zones: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customer_type_customer: {
+                        select: {
+                            id: true,
+                            type_name: true,
+                        },
+                    },
+                    customer_channel_customer: {
+                        select: {
+                            id: true,
+                            channel_name: true,
+                        },
+                    },
+                    customer_category_customer: {
+                        select: {
+                            id: true,
+                            category_name: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    name: 'asc',
+                },
+            });
             res.json({
                 message: 'Route fetched successfully',
-                data: serializeRoute(route),
+                data: {
+                    ...serializeRoute(route),
+                    all_customers: allRouteCustomers,
+                },
             });
         }
         catch (error) {
@@ -329,6 +566,10 @@ exports.routesController = {
                 outlet_group: data.outlet_group,
                 start_location: data.start_location,
                 end_location: data.end_location,
+                starting_latitude: data.starting_latitude,
+                starting_longitude: data.starting_longitude,
+                ending_latitude: data.ending_latitude,
+                ending_longitude: data.ending_longitude,
                 estimated_distance: data.estimated_distance,
                 estimated_time: data.estimated_time,
                 is_active: data.is_active,
@@ -350,10 +591,8 @@ exports.routesController = {
                     connect: { id: data.route_type_id },
                 };
             }
-            // Handle salespersons - disconnect existing and connect new ones
             const salespersonsData = data.salespersons || data.salesperson_id;
             if (salespersonsData !== undefined) {
-                // First, disconnect all existing salespersons
                 await prisma_client_1.default.routes.update({
                     where: { id: Number(id) },
                     data: {
@@ -362,19 +601,15 @@ exports.routesController = {
                         },
                     },
                 });
-                // Then connect the new salespersons
                 if (salespersonsData.length > 0) {
-                    // Handle both array of objects and array of IDs
                     const salespersonsToCreate = salespersonsData.map((sp) => {
                         if (typeof sp === 'number' || typeof sp === 'string') {
-                            // If it's just an ID, create the object structure
                             return {
                                 user_id: parseInt(sp.toString()),
                                 role: 'PRIMARY',
                             };
                         }
                         else {
-                            // If it's already an object, use it as-is
                             return {
                                 user_id: sp.user_id,
                                 role: sp.role || 'PRIMARY',

@@ -10,6 +10,7 @@ import AssetMaintenanceManagement from 'pages/masters/AssetMaintenance';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
 import AssetMovementManagement from 'pages/masters/AssetMovement';
 import AssetTypesManagement from 'pages/masters/AssetTypes';
+import AssetSubTypesPage from 'pages/masters/AssetSubTypes';
 import BatchLotsManagement from 'pages/masters/BatchLots';
 import BatchLotDetail from 'pages/masters/BatchLots/BatchLotDetail';
 import BrandsManagement from 'pages/masters/Brands';
@@ -45,6 +46,8 @@ import CoolerSubTypesManagement from 'pages/masters/CoolerSubTypes';
 import TaxMasterPage from 'pages/masters/TaxMaster';
 import RolePermissions from 'pages/masters/RolePermissions';
 import RoutesManagement from 'pages/masters/Routes';
+import RouteAssignmentManagement from 'pages/transactions/RouteAssignment';
+import RouteAssignmentDetail from 'pages/transactions/RouteAssignment/RouteAssignmentDetail';
 import RouteDetail from 'pages/masters/Routes/RouteDetail';
 import RouteTypesManagement from 'pages/masters/RouteTypes';
 import SalesBonusRulesManagement from 'pages/masters/SalesBonusRules';
@@ -215,6 +218,22 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: '/masters/route-assignments',
+          element: (
+            <PermissionGuard module="route" action="read">
+              <RouteAssignmentManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/route-assignments/:id',
+          element: (
+            <PermissionGuard module="route" action="read">
+              <RouteAssignmentDetail />
+            </PermissionGuard>
+          ),
+        },
+        {
           path: '/masters/routes/:id',
           element: (
             <PermissionGuard module="route" action="read">
@@ -283,6 +302,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="asset-type" action="read">
               <AssetTypesManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/asset-sub-types',
+          element: (
+            <PermissionGuard module="asset-type" action="read">
+              <AssetSubTypesPage />
             </PermissionGuard>
           ),
         },

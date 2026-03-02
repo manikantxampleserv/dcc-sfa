@@ -61,6 +61,54 @@ export const routeValidationSchema = yup.object({
     .max(200, 'End location must not exceed 200 characters')
     .trim(),
 
+  starting_latitude: yup
+    .string()
+    .test(
+      'is-lat-or-empty',
+      'Starting latitude must be between -90 and 90',
+      v => {
+        if (!v) return true;
+        const num = Number(v);
+        return !isNaN(num) && num >= -90 && num <= 90;
+      }
+    ),
+
+  starting_longitude: yup
+    .string()
+    .test(
+      'is-lng-or-empty',
+      'Starting longitude must be between -180 and 180',
+      v => {
+        if (!v) return true;
+        const num = Number(v);
+        return !isNaN(num) && num >= -180 && num <= 180;
+      }
+    ),
+
+  ending_latitude: yup
+    .string()
+    .test(
+      'is-lat-or-empty',
+      'Ending latitude must be between -90 and 90',
+      v => {
+        if (!v) return true;
+        const num = Number(v);
+        return !isNaN(num) && num >= -90 && num <= 90;
+      }
+    ),
+
+  ending_longitude: yup
+    .string()
+    .test(
+      'is-lng-or-empty',
+      'Ending longitude must be between -180 and 180',
+      v => {
+        if (!v) return true;
+        const num = Number(v);
+        return !isNaN(num) && num >= -180 && num <= 180;
+      }
+    ),
+
   estimated_distance: yup
     .string()
     .test(

@@ -1,20 +1,21 @@
-import { Box, MenuItem, Typography, IconButton } from '@mui/material';
 import { CloudUpload, Delete, Image } from '@mui/icons-material';
+import { Box, IconButton, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
-import { useAssetTypes } from 'hooks/useAssetTypes';
-import { useUsers } from 'hooks/useUsers';
 import {
   useCreateAssetMaster,
   useUpdateAssetMaster,
   type AssetMaster,
 } from 'hooks/useAssetMaster';
-import React, { useEffect, useState, useRef } from 'react';
+import { useAssetTypes } from 'hooks/useAssetTypes';
+import { useAssetSubTypes } from 'hooks/useAssetSubTypes';
+import React, { useEffect, useRef, useState } from 'react';
+import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
-import ActiveInactiveField from 'shared/ActiveInactiveField';
+import UserSelect from 'shared/UserSelect';
 
 interface ManageAssetMasterProps {
   selectedAsset?: AssetMaster | null;
@@ -41,34 +42,19 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
   });
   const assetTypes = assetTypesResponse?.data || [];
 
-  const { data: usersResponse } = useUsers({
-    page: 1,
-    limit: 1000,
-    isActive: 'Y',
-  });
-  const users = usersResponse?.data || [];
-
-  const createAssetMasterMutation = useCreateAssetMaster();
-  const updateAssetMasterMutation = useUpdateAssetMaster();
-
-  const handleCancel = () => {
-    setSelectedAsset(null);
-    setDrawerOpen(false);
-    setSelectedImages([]);
-    formik.resetForm();
-  };
-
   const formik = useFormik({
     initialValues: {
+      name: selectedAsset?.name || '',
       asset_type_id: selectedAsset?.asset_type_id || 0,
+      asset_sub_type_id: selectedAsset?.asset_sub_type_id || 0,
       serial_number: selectedAsset?.serial_number || '',
       purchase_date: selectedAsset?.purchase_date
         ? selectedAsset.purchase_date.split('T')[0]
-        : '',
+        : null,
       warranty_expiry: selectedAsset?.warranty_expiry
         ? selectedAsset.warranty_expiry.split('T')[0]
-        : '',
-      warranty_period: '1', // Default to 1 year (UI only)
+        : null,
+      warranty_period: '1',
       current_location: selectedAsset?.current_location || '',
       current_status: selectedAsset?.current_status || 'Available',
       assigned_to: selectedAsset?.assigned_to || '',
@@ -81,11 +67,14 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
         const submitData = {
           ...values,
           asset_type_id: Number(values.asset_type_id),
-          purchase_date: values.purchase_date,
-          warranty_expiry: values.warranty_expiry,
-          current_location: values.current_location,
-          current_status: values.current_status,
-          assigned_to: values.assigned_to,
+          asset_sub_type_id: values.asset_sub_type_id
+            ? Number(values.asset_sub_type_id)
+            : null,
+          purchase_date: values.purchase_date || null,
+          warranty_expiry: values.warranty_expiry || null,
+          current_location: values.current_location || null,
+          current_status: values.current_status || null,
+          assigned_to: values.assigned_to || null,
         };
 
         if (isEdit && selectedAsset) {
@@ -105,6 +94,24 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       }
     },
   });
+
+  const selectedAssetTypeId = formik.values.asset_type_id;
+  const { data: assetSubTypesResponse } = useAssetSubTypes({
+    page: 1,
+    limit: 1000,
+    assetTypeId: selectedAssetTypeId ? Number(selectedAssetTypeId) : undefined,
+  });
+  const assetSubTypes = assetSubTypesResponse?.data || [];
+
+  const createAssetMasterMutation = useCreateAssetMaster();
+  const updateAssetMasterMutation = useUpdateAssetMaster();
+
+  const handleCancel = () => {
+    setSelectedAsset(null);
+    setDrawerOpen(false);
+    setSelectedImages([]);
+    formik.resetForm();
+  };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -174,6 +181,13 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     }
   }, [formik.values.purchase_date, formik.values.warranty_period]);
 
+  // Clear asset sub type when asset type changes
+  useEffect(() => {
+    if (formik.values.asset_type_id !== selectedAsset?.asset_type_id) {
+      formik.setFieldValue('asset_sub_type_id', '');
+    }
+  }, [formik.values.asset_type_id]);
+
   const statusOptions = [
     { value: 'Available', label: 'Available' },
     { value: 'In Use', label: 'In Use' },
@@ -188,11 +202,18 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Asset' : 'Create Asset'}
-      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+            <Input
+              name="name"
+              label="Asset Name"
+              placeholder="Enter asset name"
+              formik={formik}
+              required
+            />
+
             <Select
               name="asset_type_id"
               label="Asset Type"
@@ -202,6 +223,19 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               {assetTypes.map(type => (
                 <MenuItem key={type.id} value={type.id}>
                   {type.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="asset_sub_type_id"
+              label="Asset Sub Type"
+              formik={formik}
+              disabled={!selectedAssetTypeId}
+            >
+              {assetSubTypes.map(subType => (
+                <MenuItem key={subType.id} value={subType.id}>
+                  {subType.name}
                 </MenuItem>
               ))}
             </Select>
@@ -261,13 +295,12 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               ))}
             </Select>
 
-            <Select name="assigned_to" label="Assigned To" formik={formik}>
-              {users.map(user => (
-                <MenuItem key={user.id} value={user.name}>
-                  {user.name} ({user.email})
-                </MenuItem>
-              ))}
-            </Select>
+            <UserSelect
+              name="assigned_to"
+              label="Assigned To"
+              formik={formik}
+              placeholder="Search user..."
+            />
 
             <ActiveInactiveField name="is_active" formik={formik} required />
           </Box>

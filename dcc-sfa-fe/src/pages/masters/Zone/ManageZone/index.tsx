@@ -49,6 +49,7 @@ const ManageZone: React.FC<ManageZoneProps> = ({
   const formik = useFormik({
     initialValues: {
       parent_id: selectedZone?.parent_id?.toString() || '',
+      code: selectedZone?.code || '',
       name: selectedZone?.name || '',
       description: selectedZone?.description || '',
       supervisor_id: selectedZone?.supervisor_id?.toString() || '',
@@ -60,6 +61,7 @@ const ManageZone: React.FC<ManageZoneProps> = ({
       try {
         const zoneData = {
           parent_id: Number(values.parent_id),
+          code: values.code || undefined,
           name: values.name,
           description: values.description,
           supervisor_id: values.supervisor_id
@@ -107,6 +109,14 @@ const ManageZone: React.FC<ManageZoneProps> = ({
               placeholder="Enter zone name"
               formik={formik}
               required
+            />
+
+            <Input
+              name="code"
+              label="Zone Code"
+              placeholder="Enter zone code"
+              formik={formik}
+              helperText="Leave empty to auto-generate zone code"
             />
 
             <Select

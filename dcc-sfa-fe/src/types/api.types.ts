@@ -107,6 +107,11 @@ export interface ApiResponse<T = any> {
     active_asset_types: number;
     inactive_asset_types: number;
     new_asset_types: number;
+    // Asset sub type statistics
+    total_asset_sub_types?: number;
+    active_asset_sub_types?: number;
+    inactive_asset_sub_types?: number;
+    new_asset_sub_types?: number;
     // Warehouse statistics
     total_warehouses: number;
     active_warehouses: number;
@@ -266,6 +271,10 @@ export interface ApiResponse<T = any> {
     active_product_web_orders: number;
     inactive_product_web_orders: number;
     new_product_web_orders_this_month: number;
+    // Route assignment statistics
+    total_salespersons: number;
+    total_assigned_routes: number;
+    total_unassigned_routes: number;
   };
 }
 

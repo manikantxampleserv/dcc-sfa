@@ -231,6 +231,30 @@ const CoolerInstallationsManagement: React.FC = () => {
       ),
     },
     {
+      id: 'asset',
+      label: 'Cooler',
+      sortable: false,
+      render: (_value, row) => (
+        <Box className="flex items-center gap-1">
+          <Package className="w-4 h-4 text-gray-400" />
+          <Box className="flex flex-col">
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
+            >
+              {row.asset_master?.serial_number || 'No Asset'}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.asset_master?.current_status || 'Unknown Status'}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
       id: 'installation_details',
       label: 'Installation Details',
       sortable: false,

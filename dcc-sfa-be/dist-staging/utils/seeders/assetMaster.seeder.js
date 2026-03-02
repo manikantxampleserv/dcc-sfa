@@ -147,6 +147,8 @@ async function seedAssetMaster() {
                     await prisma_client_1.default.asset_master.create({
                         data: {
                             asset_type_id: assetType.id,
+                            name: `${asset.asset_type_name} - ${asset.serial_number}`,
+                            code: asset.serial_number,
                             serial_number: asset.serial_number,
                             purchase_date: asset.purchase_date,
                             warranty_expiry: asset.warranty_expiry,

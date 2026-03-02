@@ -196,11 +196,15 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
 
   protected async transformDataForExport(data: any[]): Promise<any[]> {
     return data.map(movement => ({
-      asset_id: movement.asset_id || '',
-      asset_name: movement.asset_movements_master?.name || '',
-      asset_serial: movement.asset_movements_master?.serial_number || '',
-      from_location: movement.from_location || '',
-      to_location: movement.to_location || '',
+      asset_id: movement.asset_movement_assets?.[0]?.asset_id || '',
+      asset_name:
+        movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+          ?.name || '',
+      asset_serial:
+        movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+          ?.serial_number || '',
+      from_location: movement.from_direction || '',
+      to_location: movement.to_direction || '',
       movement_type: movement.movement_type || '',
       movement_date: movement.movement_date
         ? new Date(movement.movement_date).toISOString().split('T')[0]
@@ -359,10 +363,14 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
       where: options.filters,
       orderBy: options.orderBy || { movement_date: 'desc' },
       include: {
-        asset_movements_master: {
-          select: {
-            name: true,
-            serial_number: true,
+        asset_movement_assets: {
+          include: {
+            asset_movement_assets_asset: {
+              select: {
+                name: true,
+                serial_number: true,
+              },
+            },
           },
         },
         asset_movements_performed_by: {
@@ -423,8 +431,12 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
       const movement = data[index] as any;
 
       row.id = movement.id;
-      row.asset_name = movement.asset_movements_master?.name || '';
-      row.asset_serial = movement.asset_movements_master?.serial_number || '';
+      row.asset_name =
+        movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+          ?.name || '';
+      row.asset_serial =
+        movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+          ?.serial_number || '';
       row.performed_by_name = movement.asset_movements_performed_by?.name || '';
       row.performed_by_email =
         movement.asset_movements_performed_by?.email || '';
@@ -438,7 +450,9 @@ export class AssetMovementsImportExportService extends ImportExportService<any> 
           (movementTypeCount[movement.movement_type] || 0) + 1;
       }
 
-      const assetName = movement.asset_movements_master?.name || 'Unknown';
+      const assetName =
+        movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+          ?.name || 'Unknown';
       assetMovementCount[assetName] = (assetMovementCount[assetName] || 0) + 1;
 
       const excelRow = worksheet.addRow(row);

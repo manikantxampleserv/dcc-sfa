@@ -7,6 +7,7 @@ exports.createZoneValidation = [
         .isInt()
         .withMessage('Parent ID is required and must be a number'),
     (0, express_validator_1.body)('depot_id').optional().isInt().withMessage('Depot ID must be a number'),
+    (0, express_validator_1.body)('code').optional().isString().withMessage('Zone code must be a string'),
     (0, express_validator_1.body)('name')
         .notEmpty()
         .withMessage('Name is required')

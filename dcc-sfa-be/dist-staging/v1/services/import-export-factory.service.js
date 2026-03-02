@@ -9,6 +9,7 @@ const orders_import_export_service_1 = require("./implementations/orders-import-
 const currencies_import_export_service_1 = require("./implementations/currencies.import-export.service");
 const visits_import_export_service_1 = require("./implementations/visits.import-export.service");
 const assetTypes_import_export_service_1 = require("./implementations/assetTypes-import-export.service");
+const assetSubTypes_import_export_service_1 = require("./implementations/assetSubTypes-import-export.service");
 const assetMaster_import_export_service_1 = require("./implementations/assetMaster-import-export.service");
 const warehouses_import_export_service_1 = require("./implementations/warehouses-import-export.service");
 const vehicles_import_export_service_1 = require("./implementations/vehicles-import-export.service");
@@ -71,6 +72,7 @@ class ImportExportFactory {
         ['currencies', currencies_import_export_service_1.CurrenciesImportExportService],
         ['visits', visits_import_export_service_1.VisitsImportExportService],
         ['asset_types', assetTypes_import_export_service_1.AssetTypesImportExportService],
+        ['asset_sub_types', assetSubTypes_import_export_service_1.AssetSubTypesImportExportService],
         ['asset_master', assetMaster_import_export_service_1.AssetMasterImportExportService],
         ['warehouses', warehouses_import_export_service_1.WarehousesImportExportService],
         ['vehicles', vehicles_import_export_service_1.VehiclesImportExportService],

@@ -6,6 +6,10 @@ export const customerValidationSchema = yup.object().shape({
     .required('Outlet name is required')
     .min(2, 'Outlet name must be at least 2 characters')
     .max(100, 'Outlet name must be at most 100 characters'),
+  depot_id: yup
+    .string()
+    .required('Depot is required')
+    .matches(/^\d+$/, 'Depot must be a valid number'),
   zones_id: yup.string().nullable(),
   type: yup.string().nullable(),
   contact_person: yup

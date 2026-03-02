@@ -1,30 +1,62 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { createAssetMovementApprovalWorkflow } from '../../helpers';
+import { createRequest } from './requests.controller';
+import { ContractGenerationService } from '../../services/contractGeneration.service';
 
 interface AssetMovementSerialized {
   id: number;
-  asset_id: number;
-  from_location?: string | null;
-  to_location?: string | null;
+  asset_ids: number[];
+  from_direction?: string | null;
+  from_depot_id?: number | null;
+  from_customer_id?: number | null;
+  to_direction?: string | null;
+  to_depot_id?: number | null;
+  to_customer_id?: number | null;
   movement_type?: string | null;
   movement_date: Date;
   performed_by: number;
   notes?: string | null;
+  status?: string | null;
+  approval_status?: string | null;
+  approved_by?: number | null;
+  approved_at?: Date | null;
   is_active: string;
   createdate?: Date | null;
   createdby: number;
   updatedate?: Date | null;
   updatedby?: number | null;
   log_inst?: number | null;
-  asset_movements_master?: {
+  contract_url?: string | null;
+  asset_movement_assets?: {
     id: number;
-    name: string;
-    serial_number: string;
-    asset_master_asset_types?: {
+    asset_id: number;
+    asset_master: {
       id: number;
       name: string;
-    } | null;
+      serial_number: string;
+      asset_master_asset_types?: {
+        id: number;
+        name: string;
+      } | null;
+    };
+  }[];
+  asset_movement_from_depot?: {
+    id: number;
+    name: string;
+  } | null;
+  asset_movement_from_customer?: {
+    id: number;
+    name: string;
+  } | null;
+  asset_movement_to_depot?: {
+    id: number;
+    name: string;
+  } | null;
+  asset_movement_to_customer?: {
+    id: number;
+    name: string;
   } | null;
   asset_movements_performed_by?: {
     id: number;
@@ -33,75 +65,308 @@ interface AssetMovementSerialized {
   } | null;
 }
 
-const serializeAssetMovement = (movement: any): AssetMovementSerialized => ({
-  id: movement.id,
-  asset_id: movement.asset_id,
-  from_location: movement.from_location,
-  to_location: movement.to_location,
-  movement_type: movement.movement_type,
-  movement_date: movement.movement_date,
-  performed_by: movement.performed_by,
-  notes: movement.notes,
-  is_active: movement.is_active,
-  createdate: movement.createdate,
-  createdby: movement.createdby,
-  updatedate: movement.updatedate,
-  updatedby: movement.updatedby,
-  log_inst: movement.log_inst,
-  asset_movements_master: movement.asset_movements_master
-    ? {
-        id: movement.asset_movements_master.id,
-        name: movement.asset_movements_master.name,
-        serial_number: movement.asset_movements_master.serial_number,
-        asset_master_asset_types: movement.asset_movements_master
-          .asset_master_asset_types
+const serializeAssetMovement = (movement: any): AssetMovementSerialized => {
+  return {
+    id: movement.id,
+    asset_ids:
+      movement.asset_movement_assets?.map((aa: any) => aa.asset_id) || [],
+    from_direction: movement.from_direction,
+    from_depot_id: movement.from_depot_id,
+    from_customer_id: movement.from_customer_id,
+    to_direction: movement.to_direction,
+    to_depot_id: movement.to_depot_id,
+    to_customer_id: movement.to_customer_id,
+    movement_type: movement.movement_type,
+    movement_date: movement.movement_date,
+    performed_by: movement.performed_by,
+    notes: movement.notes,
+    status: movement.status,
+    approval_status: movement.approval_status,
+    approved_by: movement.approved_by,
+    approved_at: movement.approved_at,
+    is_active: movement.is_active,
+    createdate: movement.createdate,
+    createdby: movement.createdby,
+    updatedate: movement.updatedate,
+    updatedby: movement.updatedby,
+    log_inst: movement.log_inst,
+    contract_url:
+      movement.asset_movements_generated_contract?.[0]?.contract_url || null,
+    asset_movement_assets:
+      movement.asset_movement_assets?.map((aa: any) => ({
+        id: aa.id,
+        asset_id: aa.asset_id,
+        asset_master: aa.asset_movement_assets_asset
           ? {
-              id: movement.asset_movements_master.asset_master_asset_types.id,
-              name: movement.asset_movements_master.asset_master_asset_types
-                .name,
+              id: aa.asset_movement_assets_asset.id,
+              name: aa.asset_movement_assets_asset.name,
+              serial_number: aa.asset_movement_assets_asset.serial_number,
+              asset_master_asset_types: aa.asset_movement_assets_asset
+                .asset_master_asset_types
+                ? {
+                    id: aa.asset_movement_assets_asset.asset_master_asset_types
+                      .id,
+                    name: aa.asset_movement_assets_asset
+                      .asset_master_asset_types.name,
+                  }
+                : null,
             }
           : null,
-      }
-    : null,
-  asset_movements_performed_by: movement.asset_movements_performed_by
-    ? {
-        id: movement.asset_movements_performed_by.id,
-        name: movement.asset_movements_performed_by.name,
-        email: movement.asset_movements_performed_by.email,
-      }
-    : null,
-});
+      })) || [],
+    asset_movement_from_depot: movement.asset_movement_from_depot
+      ? {
+          id: movement.asset_movement_from_depot.id,
+          name: movement.asset_movement_from_depot.name,
+        }
+      : null,
+    asset_movement_from_customer: movement.asset_movement_from_customer
+      ? {
+          id: movement.asset_movement_from_customer.id,
+          name: movement.asset_movement_from_customer.name,
+        }
+      : null,
+    asset_movement_to_depot: movement.asset_movement_to_depot
+      ? {
+          id: movement.asset_movement_to_depot.id,
+          name: movement.asset_movement_to_depot.name,
+        }
+      : null,
+    asset_movement_to_customer: movement.asset_movement_to_customer
+      ? {
+          id: movement.asset_movement_to_customer.id,
+          name: movement.asset_movement_to_customer.name,
+        }
+      : null,
+    asset_movements_performed_by: movement.asset_movements_performed_by
+      ? {
+          id: movement.asset_movements_performed_by.id,
+          name: movement.asset_movements_performed_by.name,
+          email: movement.asset_movements_performed_by.email,
+        }
+      : null,
+  };
+};
 
 export const assetMovementsController = {
   async createAssetMovements(req: Request, res: Response) {
     try {
       const data = req.body;
-      if (!data.asset_id || !data.performed_by) {
-        return res
-          .status(400)
-          .json({ message: 'asset_id and performed_by are required' });
+      const assetIds = Array.isArray(data.asset_ids)
+        ? data.asset_ids
+        : [data.asset_id];
+
+      if (!assetIds.length || !data.performed_by || !data.movement_type) {
+        return res.status(400).json({
+          message:
+            'asset_ids (array or single), performed_by, and movement_type are required',
+        });
       }
 
-      const assetMovement = await prisma.asset_movements.create({
-        data: {
-          ...data,
-          movement_date: new Date(data.movement_date),
+      const currentAssets = await prisma.asset_master.findMany({
+        where: { id: { in: assetIds } },
+      });
 
-          createdby: req.user?.id || 1,
-          createdate: new Date(),
-          log_inst: data.log_inst || 1,
-        },
-        include: {
-          asset_movements_master: {
-            include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
-              },
+      if (currentAssets.length !== assetIds.length) {
+        return res.status(404).json({
+          message: 'One or more assets not found',
+          missing_assets: assetIds.filter(
+            (id: number) => !currentAssets.find((asset: any) => asset.id === id)
+          ),
+        });
+      }
+
+      let assetStatusUpdate: string = '';
+      let fromDepotId: number | null = null;
+      let toDepotId: number | null = null;
+      let fromCustomerId: number | null = null;
+      let toCustomerId: number | null = null;
+      let fromDirection: string = '';
+      let toDirection: string = '';
+
+      if (data.from_direction === 'depot' && data.from_depot_id) {
+        fromDirection = 'depot';
+        fromDepotId = data.from_depot_id;
+      } else if (data.from_direction === 'outlet' && data.from_customer_id) {
+        fromDirection = 'outlet';
+        fromCustomerId = data.from_customer_id;
+      }
+
+      if (data.to_direction === 'depot' && data.to_depot_id) {
+        toDirection = 'depot';
+        toDepotId = data.to_depot_id;
+      } else if (data.to_direction === 'outlet' && data.to_customer_id) {
+        toDirection = 'outlet';
+        toCustomerId = data.to_customer_id;
+      }
+
+      if (fromDepotId) {
+        const fromDepot = await prisma.depots.findUnique({
+          where: { id: fromDepotId },
+        });
+        if (!fromDepot) {
+          return res.status(400).json({ message: 'From depot not found' });
+        }
+      }
+
+      if (toDepotId) {
+        const toDepot = await prisma.depots.findUnique({
+          where: { id: toDepotId },
+        });
+        if (!toDepot) {
+          return res.status(400).json({ message: 'To depot not found' });
+        }
+      }
+
+      if (fromCustomerId) {
+        const fromCustomer = await prisma.customers.findUnique({
+          where: { id: fromCustomerId },
+        });
+        if (!fromCustomer) {
+          return res.status(400).json({ message: 'From customer not found' });
+        }
+      }
+
+      if (toCustomerId) {
+        const toCustomer = await prisma.customers.findUnique({
+          where: { id: toCustomerId },
+        });
+        if (!toCustomer) {
+          return res.status(400).json({ message: 'To customer not found' });
+        }
+      }
+
+      switch (data.movement_type.toLowerCase()) {
+        case 'transfer':
+          assetStatusUpdate = 'Available';
+          break;
+        case 'maintenance':
+        case 'repair':
+          assetStatusUpdate = 'Under Maintenance';
+
+          console.log(
+            `Maintenance records will be created after approval for maintenance/repair movement`
+          );
+          break;
+        case 'installation':
+          assetStatusUpdate = 'Installed';
+          break;
+        case 'disposal':
+          assetStatusUpdate = 'Retired';
+          break;
+        case 'return':
+          assetStatusUpdate = 'Available';
+          break;
+        default:
+          return res.status(400).json({
+            message:
+              'Invalid movement_type. Must be one of: transfer, maintenance, repair, disposal, return, installation',
+          });
+      }
+
+      const assetMovement = await prisma.$transaction(async tx => {
+        const assetMovement = await tx.asset_movements.create({
+          data: {
+            from_direction: data.from_direction,
+            to_direction: data.to_direction,
+            from_depot_id: fromDepotId,
+            from_customer_id: fromCustomerId,
+            to_depot_id: toDepotId,
+            to_customer_id: toCustomerId,
+            movement_type: data.movement_type,
+            movement_date: new Date(data.movement_date),
+            performed_by: data.performed_by,
+            notes: data.notes,
+            status: 'P',
+            is_active: data.is_active || 'Y',
+            createdby: req.user?.id || 1,
+            createdate: new Date(),
+            log_inst: data.log_inst || 1,
+            asset_movement_assets: {
+              create: assetIds.map((assetId: number) => ({
+                asset_id: assetId,
+                createdby: req.user?.id || 1,
+                createdate: new Date(),
+                log_inst: 1,
+              })),
             },
           },
-          asset_movements_performed_by: true,
-        },
+          include: {
+            asset_movement_assets: {
+              include: {
+                asset_movement_assets_asset: {
+                  include: {
+                    asset_master_asset_types: {
+                      select: { id: true, name: true },
+                    },
+                  },
+                },
+              },
+            },
+            asset_movements_performed_by: true,
+            asset_movement_from_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_from_customer: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_customer: {
+              select: { id: true, name: true },
+            },
+          },
+        });
+
+        return assetMovement;
       });
+
+      setTimeout(async () => {
+        try {
+          await createAssetMovementApprovalWorkflow(
+            assetMovement.id,
+            `AMV-${assetMovement.id.toString().padStart(5, '0')}`,
+            data.performed_by,
+            data.priority || 'medium',
+            {
+              asset_ids: assetIds,
+              from_direction: data.from_direction,
+              to_direction: data.to_direction,
+              from_depot_id: fromDepotId,
+              from_customer_id: fromCustomerId,
+              to_depot_id: toDepotId,
+              to_customer_id: toCustomerId,
+              movement_type: data.movement_type,
+              movement_date: data.movement_date,
+              notes: data.notes,
+            },
+            req.user?.id || 1
+          );
+          console.log(
+            `Approval workflow created for asset movement: AMV-${assetMovement.id.toString().padStart(5, '0')}`
+          );
+        } catch (workflowError) {
+          console.error('Error creating approval workflow:', workflowError);
+        }
+
+        try {
+          await createRequest({
+            requester_id: data.performed_by,
+            request_type: 'ASSET_MOVEMENT_APPROVAL',
+            reference_id: assetMovement.id,
+            createdby: req.user?.id || 1,
+            log_inst: 1,
+          });
+          console.log(
+            `Legacy approval request created for asset movement: ${assetMovement.id}`
+          );
+        } catch (requestError) {
+          console.error(
+            'Error creating legacy approval request:',
+            requestError
+          );
+        }
+      }, 500);
 
       res.status(201).json({
         message: 'Asset movement created successfully',
@@ -112,98 +377,6 @@ export const assetMovementsController = {
       res.status(500).json({ message: error.message });
     }
   },
-
-  // async getAllAssetMovements(req: any, res: any) {
-  //   try {
-  //     const { page, limit, search, status, asset_type_id, performed_by } =
-  //       req.query;
-  //     const pageNum = parseInt(page as string, 10) || 1;
-  //     const limitNum = parseInt(limit as string, 10) || 10;
-  //     const searchLower = search ? (search as string).toLowerCase() : '';
-  //     const statusLower = status ? (status as string).toLowerCase() : '';
-
-  //     const filters: any = {
-  //       ...(search && {
-  //         OR: [
-  //           {
-  //             asset_movements_master: {
-  //               OR: [
-  //                 { serial_number: { contains: searchLower } },
-  //                 { current_location: { contains: searchLower } },
-  //                 { current_status: { contains: searchLower } },
-  //                 { assigned_to: { contains: searchLower } },
-  //               ],
-  //             },
-  //           },
-  //           { from_location: { contains: searchLower } },
-  //           { to_location: { contains: searchLower } },
-  //           { movement_type: { contains: searchLower } },
-  //           { notes: { contains: searchLower } },
-  //         ],
-  //       }),
-  //       ...(statusLower === 'active' && { is_active: 'Y' }),
-  //       ...(statusLower === 'inactive' && { is_active: 'N' }),
-  //       ...(performed_by && { performed_by: Number(performed_by) }),
-  //       ...(asset_type_id && {
-  //         asset_movements_master: {
-  //           asset_type_id: Number(asset_type_id),
-  //         },
-  //       }),
-  //     };
-  //     const { data, pagination } = await paginate({
-  //       model: prisma.asset_movements,
-  //       filters,
-  //       page: pageNum,
-  //       limit: limitNum,
-  //       orderBy: { createdate: 'desc' },
-  //       include: {
-  //         asset_movements_master: {
-  //           include: {
-  //             asset_master_asset_types: {
-  //               select: { id: true, name: true },
-  //             },
-  //           },
-  //         },
-  //         asset_movements_performed_by: true,
-  //       },
-  //     });
-
-  //     const totalAssetMovements = await prisma.asset_movements.count();
-  //     const activeAssetMovements = await prisma.asset_movements.count({
-  //       where: { is_active: 'Y' },
-  //     });
-  //     const inactiveAssetMovements = await prisma.asset_movements.count({
-  //       where: { is_active: 'N' },
-  //     });
-  //     const thisMonthAssetMovements = await prisma.asset_movements.count({
-  //       where: {
-  //         createdate: {
-  //           gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-  //           lte: new Date(
-  //             new Date().getFullYear(),
-  //             new Date().getMonth() + 1,
-  //             0
-  //           ),
-  //         },
-  //       },
-  //     });
-  //     res.success(
-  //       'Asset movements retrieved successfully',
-  //       data.map((m: any) => serializeAssetMovement(m)),
-  //       200,
-  //       pagination,
-  //       {
-  //         total_records: totalAssetMovements,
-  //         active_records: activeAssetMovements,
-  //         inactive_records: inactiveAssetMovements,
-  //         this_month_records: thisMonthAssetMovements,
-  //       }
-  //     );
-  //   } catch (error: any) {
-  //     console.error('Get Asset Movements Error:', error);
-  //     res.status(500).json({ message: error.message });
-  //   }
-  // },
 
   async getAllAssetMovements(req: any, res: any) {
     try {
@@ -218,22 +391,26 @@ export const assetMovementsController = {
         ...(search && {
           OR: [
             {
-              asset_movements_master: {
-                OR: [
-                  { serial_number: { contains: searchLower } },
-                  { current_location: { contains: searchLower } },
-                  { current_status: { contains: searchLower } },
-                  { assigned_to: { contains: searchLower } },
-                  {
-                    asset_master_asset_types: {
-                      name: { contains: searchLower },
-                    },
+              asset_movement_assets: {
+                some: {
+                  asset_movement_assets_asset: {
+                    OR: [
+                      { serial_number: { contains: searchLower } },
+                      { current_location: { contains: searchLower } },
+                      { current_status: { contains: searchLower } },
+                      { assigned_to: { contains: searchLower } },
+                      {
+                        asset_master_asset_types: {
+                          name: { contains: searchLower },
+                        },
+                      },
+                    ],
                   },
-                ],
+                },
               },
             },
-            { from_location: { contains: searchLower } },
-            { to_location: { contains: searchLower } },
+            { from_direction: { contains: searchLower } },
+            { to_direction: { contains: searchLower } },
             { movement_type: { contains: searchLower } },
             { notes: { contains: searchLower } },
           ],
@@ -242,8 +419,12 @@ export const assetMovementsController = {
         ...(statusLower === 'inactive' && { is_active: 'N' }),
         ...(performed_by && { performed_by: Number(performed_by) }),
         ...(asset_type_id && {
-          asset_movements_master: {
-            asset_type_id: Number(asset_type_id),
+          asset_movement_assets: {
+            some: {
+              asset_movement_assets_asset: {
+                asset_type_id: Number(asset_type_id),
+              },
+            },
           },
         }),
       };
@@ -255,14 +436,35 @@ export const assetMovementsController = {
         limit: limitNum,
         orderBy: { createdate: 'desc' },
         include: {
-          asset_movements_master: {
+          asset_movement_assets: {
             include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
+              asset_movement_assets_asset: {
+                include: {
+                  asset_master_asset_types: {
+                    select: { id: true, name: true },
+                  },
+                },
               },
             },
           },
           asset_movements_performed_by: true,
+          asset_movement_from_depot: {
+            select: { id: true, name: true },
+          },
+          asset_movement_from_customer: {
+            select: { id: true, name: true },
+          },
+          asset_movement_to_depot: {
+            select: { id: true, name: true },
+          },
+          asset_movement_to_customer: {
+            select: { id: true, name: true },
+          },
+          asset_movements_generated_contract: {
+            select: { contract_url: true },
+            orderBy: { createdate: 'desc' },
+            take: 1,
+          },
         },
       });
 
@@ -310,14 +512,35 @@ export const assetMovementsController = {
       const movement = await prisma.asset_movements.findUnique({
         where: { id: Number(id) },
         include: {
-          asset_movements_master: {
+          asset_movement_assets: {
             include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
+              asset_movement_assets_asset: {
+                include: {
+                  asset_master_asset_types: {
+                    select: { id: true, name: true },
+                  },
+                },
               },
             },
           },
           asset_movements_performed_by: true,
+          asset_movement_from_depot: {
+            select: { id: true, name: true },
+          },
+          asset_movement_from_customer: {
+            select: { id: true, name: true },
+          },
+          asset_movement_to_depot: {
+            select: { id: true, name: true },
+          },
+          asset_movement_to_customer: {
+            select: { id: true, name: true },
+          },
+          asset_movements_generated_contract: {
+            select: { contract_url: true },
+            orderBy: { createdate: 'desc' },
+            take: 1,
+          },
         },
       });
 
@@ -338,6 +561,8 @@ export const assetMovementsController = {
   async updateAssetMovements(req: any, res: any) {
     try {
       const { id } = req.params;
+      const data = req.body;
+
       const existing = await prisma.asset_movements.findUnique({
         where: { id: Number(id) },
       });
@@ -346,25 +571,207 @@ export const assetMovementsController = {
         return res.status(404).json({ message: 'Asset movement not found' });
       }
 
-      const updated = await prisma.asset_movements.update({
-        where: { id: Number(id) },
-        data: {
-          ...req.body,
-          movement_date: new Date(req.body.movement_date),
+      // Extract asset_ids from request body and filter it out from the main update
+      const { asset_ids, priority, ...updateData } = data;
 
-          updatedby: req.user?.id || 1,
-          updatedate: new Date(),
-        },
-        select: {
-          asset_movements_master: {
-            include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
+      // Only include fields that exist in the asset_movements schema
+      const validUpdateData: any = {};
+      const allowedFields = [
+        'from_direction',
+        'to_direction',
+        'movement_type',
+        'movement_date',
+        'performed_by',
+        'notes',
+        'status',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'from_depot_id',
+        'from_customer_id',
+        'to_depot_id',
+        'to_customer_id',
+        'is_active',
+        'updatedby',
+        'updatedate',
+      ];
+
+      allowedFields.forEach(field => {
+        if (updateData[field] !== undefined) {
+          validUpdateData[field] = updateData[field];
+        }
+      });
+
+      if (
+        existing.approval_status === 'A' &&
+        (updateData.asset_ids ||
+          updateData.from_direction ||
+          updateData.to_direction ||
+          updateData.movement_type ||
+          updateData.performed_by ||
+          updateData.notes)
+      ) {
+        console.log(
+          `Asset movement ${id} was approved, resetting approval status due to update`
+        );
+        validUpdateData.approval_status = 'P';
+        validUpdateData.approved_by = null;
+        validUpdateData.approved_at = null;
+
+        setTimeout(async () => {
+          try {
+            console.log(
+              `Creating approval workflow for updated asset movement: ${id}`
+            );
+            await createAssetMovementApprovalWorkflow(
+              Number(id),
+              `AMV-${Number(id).toString().padStart(5, '0')}`,
+              existing.performed_by,
+              'medium',
+              {
+                asset_ids: updateData.asset_ids || [],
+                from_direction:
+                  updateData.from_direction || existing.from_direction,
+                to_direction: updateData.to_direction || existing.to_direction,
+                from_depot_id:
+                  updateData.from_depot_id || existing.from_depot_id,
+                from_customer_id:
+                  updateData.from_customer_id || existing.from_customer_id,
+                to_depot_id: updateData.to_depot_id || existing.to_depot_id,
+                to_customer_id:
+                  updateData.to_customer_id || existing.to_customer_id,
+                movement_type:
+                  updateData.movement_type || existing.movement_type,
+                movement_date:
+                  updateData.movement_date || existing.movement_date,
+                notes: updateData.notes || existing.notes,
+              },
+              req.user?.id || 1
+            );
+            console.log(
+              `Approval workflow created for updated asset movement: AMV-${Number(id).toString().padStart(5, '0')}`
+            );
+          } catch (workflowError) {
+            console.error(
+              'Error creating approval workflow for updated movement:',
+              workflowError
+            );
+          }
+
+          try {
+            console.log(
+              `Creating approval request for updated asset movement: ${id}`
+            );
+            await createRequest({
+              requester_id: existing.performed_by,
+              request_type: 'ASSET_MOVEMENT_APPROVAL',
+              reference_id: Number(id),
+              createdby: req.user?.id || 1,
+              log_inst: 1,
+            });
+            console.log(
+              `Approval request created for updated asset movement: ${Number(id)}`
+            );
+          } catch (requestError) {
+            console.error(
+              'Error creating approval request for updated movement:',
+              requestError
+            );
+          }
+        }, 500);
+      }
+
+      const updated = await prisma.$transaction(async tx => {
+        const movementUpdate = await tx.asset_movements.update({
+          where: { id: Number(id) },
+          data: {
+            ...validUpdateData,
+            movement_date: validUpdateData.movement_date
+              ? new Date(validUpdateData.movement_date)
+              : undefined,
+            updatedby: req.user?.id || 1,
+            updatedate: new Date(),
+          },
+          include: {
+            asset_movement_assets: {
+              include: {
+                asset_movement_assets_asset: {
+                  include: {
+                    asset_master_asset_types: {
+                      select: { id: true, name: true },
+                    },
+                  },
+                },
               },
             },
+            asset_movements_performed_by: true,
+            asset_movement_from_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_from_customer: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_customer: {
+              select: { id: true, name: true },
+            },
+            asset_movements_generated_contract: {
+              select: { contract_url: true },
+              orderBy: { createdate: 'desc' },
+              take: 1,
+            },
           },
-          asset_movements_performed_by: true,
-        },
+        });
+
+        if (asset_ids && Array.isArray(asset_ids)) {
+          await tx.asset_movement_assets.deleteMany({
+            where: { movement_id: Number(id) },
+          });
+
+          if (asset_ids.length > 0) {
+            await tx.asset_movement_assets.createMany({
+              data: asset_ids.map((assetId: number) => ({
+                movement_id: Number(id),
+                asset_id: assetId,
+                createdby: req.user?.id || 1,
+                createdate: new Date(),
+                log_inst: 1,
+              })),
+            });
+          }
+        }
+
+        return await tx.asset_movements.findUnique({
+          where: { id: Number(id) },
+          include: {
+            asset_movement_assets: {
+              include: {
+                asset_movement_assets_asset: {
+                  include: {
+                    asset_master_asset_types: {
+                      select: { id: true, name: true },
+                    },
+                  },
+                },
+              },
+            },
+            asset_movements_performed_by: true,
+            asset_movement_from_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_from_customer: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_depot: {
+              select: { id: true, name: true },
+            },
+            asset_movement_to_customer: {
+              select: { id: true, name: true },
+            },
+          },
+        });
       });
 
       res.json({
@@ -392,6 +799,104 @@ export const assetMovementsController = {
       res.json({ message: 'Asset movement deleted successfully' });
     } catch (error: any) {
       console.error('Delete Asset Movement Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async generateContract(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const contractService = new ContractGenerationService();
+
+      const assetMovement = await prisma.asset_movements.findUnique({
+        where: { id: Number(id) },
+      });
+
+      if (!assetMovement) {
+        return res.status(404).json({ message: 'Asset movement not found' });
+      }
+
+      if (assetMovement.approval_status !== 'A') {
+        return res.status(400).json({
+          message: 'Asset movement must be approved before generating contract',
+        });
+      }
+
+      const existingContract =
+        await contractService.getContractByAssetMovementId(Number(id));
+      if (existingContract) {
+        return res
+          .status(400)
+          .json({ message: 'Contract already exists for this asset movement' });
+      }
+
+      const contractRecord = await contractService.generateContractOnApproval(
+        Number(id)
+      );
+
+      res.status(201).json({
+        message: 'Contract generated and uploaded successfully',
+        data: {
+          contract_id: contractRecord.id,
+          contract_number: contractRecord.contract_number,
+          contract_url: contractRecord.contract_url,
+          contract_date: contractRecord.contract_date,
+        },
+      });
+    } catch (error: any) {
+      console.error('Generate Contract Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async downloadContract(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const contractService = new ContractGenerationService();
+
+      const contract = await contractService.getContractByAssetMovementId(
+        Number(id)
+      );
+
+      if (!contract) {
+        return res
+          .status(404)
+          .json({ message: 'Contract not found for this asset movement' });
+      }
+
+      res.redirect(302, contract.contract_url);
+    } catch (error: any) {
+      console.error('Download Contract Error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getContractInfo(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const contractService = new ContractGenerationService();
+
+      const contract = await contractService.getContractByAssetMovementId(
+        Number(id)
+      );
+
+      if (!contract) {
+        return res
+          .status(404)
+          .json({ message: 'Contract not found for this asset movement' });
+      }
+
+      res.json({
+        message: 'Contract info retrieved successfully',
+        data: {
+          contract_id: contract.id,
+          contract_number: contract.contract_number,
+          contract_url: contract.contract_url,
+          contract_date: contract.contract_date,
+        },
+      });
+    } catch (error: any) {
+      console.error('Get Contract Info Error:', error);
       res.status(500).json({ message: error.message });
     }
   },

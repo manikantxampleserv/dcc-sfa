@@ -3,12 +3,31 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.zonesController = void 0;
+exports.zonesController = exports.generateZoneCode = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
-const generateZoneCode = async (name) => {
-    const prefix = name.slice(0, 3).toUpperCase();
+const generateZoneCode = async (depotId) => {
+    if (!depotId) {
+        throw new Error('Depot ID is required for zone code generation');
+    }
+    const depot = await prisma_client_1.default.depots.findUnique({
+        where: { id: depotId },
+        select: { name: true },
+    });
+    if (!depot) {
+        throw new Error('Depot not found');
+    }
+    const depotPrefix = depot.name
+        .slice(0, 3)
+        .toUpperCase()
+        .replace(/[^A-Z]/g, '');
     const lastZone = await prisma_client_1.default.zones.findFirst({
+        where: {
+            depot_id: depotId,
+            code: {
+                startsWith: `${depotPrefix}Z`,
+            },
+        },
         orderBy: { id: 'desc' },
         select: { code: true },
     });
@@ -19,9 +38,10 @@ const generateZoneCode = async (name) => {
             newNumber = parseInt(match[1], 10) + 1;
         }
     }
-    const code = `${prefix}${newNumber.toString().padStart(3, '0')}`;
+    const code = `${depotPrefix}Z${newNumber.toString().padStart(2, '0')}`;
     return code;
 };
+exports.generateZoneCode = generateZoneCode;
 const serializeZone = (zone) => ({
     id: zone.id,
     parent_id: zone.parent_id,
@@ -67,6 +87,29 @@ exports.zonesController = {
             if (!data.name) {
                 return res.status(400).json({ message: 'Zone name is required' });
             }
+            let newCode;
+            if (data.code) {
+                newCode = data.code.trim();
+                const existingCode = await prisma_client_1.default.zones.findFirst({
+                    where: { code: newCode },
+                });
+                if (existingCode) {
+                    return res.status(400).json({ message: 'Zone code already exists' });
+                }
+            }
+            else {
+                if (!data.depot_id) {
+                    return res.status(400).json({
+                        message: 'Either zone code or depot ID is required. Provide a zone code or depot ID for auto-generation.',
+                    });
+                }
+                try {
+                    newCode = await (0, exports.generateZoneCode)(data.depot_id);
+                }
+                catch (error) {
+                    return res.status(400).json({ message: error.message });
+                }
+            }
             const existingZone = await prisma_client_1.default.zones.findFirst({
                 where: {
                     name: {
@@ -82,7 +125,6 @@ exports.zonesController = {
             if (data.depot_id && !data.parent_id) {
                 data.parent_id = data.depot_id;
             }
-            const newCode = await generateZoneCode(data.name);
             const zone = await prisma_client_1.default.zones.create({
                 data: {
                     ...data,

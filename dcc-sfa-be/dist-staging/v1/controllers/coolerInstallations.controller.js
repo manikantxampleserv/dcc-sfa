@@ -10,6 +10,7 @@ const serializeCoolerInstallation = (cooler) => ({
     id: cooler.id,
     customer_id: cooler.customer_id,
     code: cooler.code,
+    asset_master_id: cooler.asset_master_id,
     brand: cooler.brand,
     model: cooler.model,
     serial_number: cooler.serial_number,
@@ -60,6 +61,14 @@ const serializeCoolerInstallation = (cooler) => ({
             code: cooler.cooler_sub_types.code,
         }
         : null,
+    asset_master: cooler.cooler_asset_master
+        ? {
+            id: cooler.cooler_asset_master.id,
+            serial_number: cooler.cooler_asset_master.serial_number,
+            current_status: cooler.cooler_asset_master.current_status,
+            current_location: cooler.cooler_asset_master.current_location,
+        }
+        : null,
 });
 exports.coolerInstallationsController = {
     async createCoolerInstallation(req, res) {
@@ -74,8 +83,19 @@ exports.coolerInstallationsController = {
                 const timestamp = Date.now().toString().slice(-6);
                 return `${prefix}-${String(count + 1).padStart(4, '0')}-${timestamp}`;
             };
-            let coolerCode = data.code && data.code.trim() !== '' ? data.code : null;
-            if (!coolerCode) {
+            let coolerCode;
+            if (data.code && data.code.trim() !== '') {
+                coolerCode = data.code.trim();
+                const existingCooler = await prisma_client_1.default.coolers.findUnique({
+                    where: { code: coolerCode },
+                });
+                if (existingCooler) {
+                    return res
+                        .status(400)
+                        .json({ message: 'Cooler code already exists' });
+                }
+            }
+            else {
                 coolerCode = await generateCode();
                 let attempts = 0;
                 while (attempts < 10) {
@@ -87,15 +107,10 @@ exports.coolerInstallationsController = {
                     coolerCode = await generateCode();
                     attempts++;
                 }
-            }
-            else {
-                const existingCooler = await prisma_client_1.default.coolers.findUnique({
-                    where: { code: coolerCode },
-                });
-                if (existingCooler) {
+                if (attempts >= 10) {
                     return res
-                        .status(400)
-                        .json({ message: 'Cooler code already exists' });
+                        .status(500)
+                        .json({ message: 'Unable to generate unique cooler code' });
                 }
             }
             const cooler = await prisma_client_1.default.coolers.create({
@@ -151,8 +166,54 @@ exports.coolerInstallationsController = {
                             code: true,
                         },
                     },
+                    cooler_asset_master: {
+                        select: {
+                            id: true,
+                            serial_number: true,
+                            current_status: true,
+                            current_location: true,
+                        },
+                    },
                 },
             });
+            if (cooler.asset_master_id && cooler.install_date) {
+                try {
+                    const customer = cooler.coolers_customers;
+                    const toLocation = customer
+                        ? `${customer.name} (${customer.code})`
+                        : 'Customer Location';
+                    // await prisma.asset_movements.create({
+                    //   data: {
+                    //     asset_id: cooler.asset_master_id,
+                    //     from_location:
+                    //       cooler.cooler_asset_master?.current_location || 'Warehouse',
+                    //     to_location: toLocation,
+                    //     movement_type: 'Installation',
+                    //     movement_date: cooler.install_date,
+                    //     performed_by: data.createdby ? Number(data.createdby) : 1,
+                    //     notes: `Cooler ${cooler.code} installed at customer location`,
+                    //     is_active: 'Y',
+                    //     createdby: data.createdby ? Number(data.createdby) : 1,
+                    //     createdate: new Date(),
+                    //     log_inst: 1,
+                    //   },
+                    // });
+                    if (cooler.asset_master_id) {
+                        await prisma_client_1.default.asset_master.update({
+                            where: { id: cooler.asset_master_id },
+                            data: {
+                                current_location: toLocation,
+                                current_status: 'In Use',
+                                updatedate: new Date(),
+                                updatedby: data.createdby ? Number(data.createdby) : 1,
+                            },
+                        });
+                    }
+                }
+                catch (movementError) {
+                    console.error('Error creating asset movement:', movementError);
+                }
+            }
             res.status(201).json({
                 message: 'Cooler installation created successfully',
                 data: serializeCoolerInstallation(cooler),
@@ -166,13 +227,11 @@ exports.coolerInstallationsController = {
     async getCoolerInstallations(req, res) {
         try {
             const { page, limit, search, isActive, status, customer_id, technician_id, user_id, } = req.query;
-            // Provide default values and validate inputs
             const page_num = page ? parseInt(page, 10) : 1;
             const limit_num = limit ? parseInt(limit, 10) : 10;
             const searchLower = search ? search.toLowerCase() : '';
             const inspectorFilter = technician_id || user_id;
             const filters = {
-                // Only add is_active filter if isActive is provided
                 ...(isActive && { is_active: isActive }),
                 ...(search && {
                     OR: [
@@ -231,6 +290,14 @@ exports.coolerInstallationsController = {
                             id: true,
                             name: true,
                             code: true,
+                        },
+                    },
+                    cooler_asset_master: {
+                        select: {
+                            id: true,
+                            serial_number: true,
+                            current_status: true,
+                            current_location: true,
                         },
                     },
                 },
@@ -324,6 +391,14 @@ exports.coolerInstallationsController = {
                             id: true,
                             name: true,
                             code: true,
+                        },
+                    },
+                    cooler_asset_master: {
+                        select: {
+                            id: true,
+                            serial_number: true,
+                            current_status: true,
+                            current_location: true,
                         },
                     },
                 },
@@ -421,6 +496,14 @@ exports.coolerInstallationsController = {
                             code: true,
                         },
                     },
+                    cooler_asset_master: {
+                        select: {
+                            id: true,
+                            serial_number: true,
+                            current_status: true,
+                            current_location: true,
+                        },
+                    },
                 },
             });
             res.json({
@@ -479,7 +562,6 @@ exports.coolerInstallationsController = {
                     .status(400)
                     .json({ message: 'Status field and value are required' });
             }
-            // Validate status field and value
             const allowedStatuses = ['status', 'is_active'];
             const allowedOperationalStatuses = [
                 'working',
@@ -548,9 +630,16 @@ exports.coolerInstallationsController = {
                             code: true,
                         },
                     },
+                    cooler_asset_master: {
+                        select: {
+                            id: true,
+                            serial_number: true,
+                            current_status: true,
+                            current_location: true,
+                        },
+                    },
                 },
             });
-            // Map internal status names to user-friendly labels for the message
             const readableStatusMap = {
                 status: 'operational status',
                 is_active: 'Is Active',

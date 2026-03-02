@@ -1117,10 +1117,14 @@ export const reportsController = {
       const movements = await prisma.asset_movements.findMany({
         where: whereMovements,
         include: {
-          asset_movements_master: {
+          asset_movement_assets: {
             include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
+              asset_movement_assets_asset: {
+                include: {
+                  asset_master_asset_types: {
+                    select: { id: true, name: true },
+                  },
+                },
               },
             },
           },
@@ -1196,12 +1200,14 @@ export const reportsController = {
 
       const serializedMovements = movements.map(movement => ({
         id: movement.id,
-        asset_serial: movement.asset_movements_master?.serial_number || 'N/A',
+        asset_serial:
+          movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+            ?.serial_number || 'N/A',
         asset_type:
-          movement.asset_movements_master?.asset_master_asset_types?.name ||
-          'N/A',
-        from_location: movement.from_location || 'N/A',
-        to_location: movement.to_location || 'N/A',
+          movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+            ?.asset_master_asset_types?.name || 'N/A',
+        from_location: movement.from_direction || 'N/A',
+        to_location: movement.to_direction || 'N/A',
         movement_type: movement.movement_type || 'N/A',
         movement_date: movement.movement_date?.toISOString() || '',
         performed_by: movement.asset_movements_performed_by?.name || 'N/A',
@@ -1341,10 +1347,14 @@ export const reportsController = {
       const movements = await prisma.asset_movements.findMany({
         where: whereMovements,
         include: {
-          asset_movements_master: {
+          asset_movement_assets: {
             include: {
-              asset_master_asset_types: {
-                select: { id: true, name: true },
+              asset_movement_assets_asset: {
+                include: {
+                  asset_master_asset_types: {
+                    select: { id: true, name: true },
+                  },
+                },
               },
             },
           },
@@ -1457,12 +1467,14 @@ export const reportsController = {
       ];
       movements.forEach((movement: any) => {
         movementsSheet.addRow({
-          asset_serial: movement.asset_movements_master?.serial_number || 'N/A',
+          asset_serial:
+            movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+              ?.serial_number || 'N/A',
           asset_type:
-            movement.asset_movements_master?.asset_master_asset_types?.name ||
-            'N/A',
-          from_location: movement.from_location || 'N/A',
-          to_location: movement.to_location || 'N/A',
+            movement.asset_movement_assets?.[0]?.asset_movement_assets_asset
+              ?.asset_master_asset_types?.name || 'N/A',
+          from_location: movement.from_direction || 'N/A',
+          to_location: movement.to_direction || 'N/A',
           movement_type: movement.movement_type || 'N/A',
           movement_date: movement.movement_date
             ? new Date(movement.movement_date).toLocaleDateString()

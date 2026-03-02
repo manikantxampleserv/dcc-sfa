@@ -1,4 +1,4 @@
-import { Skeleton } from '@mui/material';
+import { Button, Skeleton } from '@mui/material';
 import {
   ArcElement,
   BarElement,
@@ -12,23 +12,28 @@ import {
   Title,
   Tooltip,
 } from 'chart.js';
+import { useAuditLogs } from 'hooks/useAuditLogs';
+import { useCurrency } from 'hooks/useCurrency';
 import {
   useDashboardStatistics,
   useOrderStatus,
   useSalesPerformance,
   useTopProducts,
 } from 'hooks/useExecutiveDashboard';
-import { useCurrency } from 'hooks/useCurrency';
-import React from 'react';
-import { Bar, Chart, Doughnut, Line, Pie } from 'react-chartjs-2';
+import { useRequestsByUsersWithoutPermission } from 'hooks/useRequests';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Bar, Chart, Doughnut, Line } from 'react-chartjs-2';
 import {
-  FaChartLine,
   FaClipboardList,
   FaMoneyBillWave,
   FaShoppingCart,
   FaTruck,
   FaUsers,
 } from 'react-icons/fa';
+import type { Request } from 'services/requests';
+import ApprovalModal from 'shared/ApprovalModal';
+import { formatDateTime } from 'utils/dateUtils';
 
 ChartJS.register(
   CategoryScale,
@@ -44,6 +49,7 @@ ChartJS.register(
 );
 
 const ExecutiveDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { data: stats, isLoading: statsLoading } = useDashboardStatistics();
   const { data: salesData, isLoading: salesLoading } = useSalesPerformance(30);
   const { data: topProducts, isLoading: productsLoading } = useTopProducts(
@@ -51,7 +57,38 @@ const ExecutiveDashboard: React.FC = () => {
     5
   );
   const { data: orderStatus, isLoading: orderStatusLoading } = useOrderStatus();
+  const { data: pendingApprovals, isLoading: approvalsLoading } =
+    useRequestsByUsersWithoutPermission({
+      page: 1,
+      limit: 10,
+      status: 'P',
+    });
+  const { data: auditLogs, isLoading: auditLogsLoading } = useAuditLogs({
+    page: 1,
+    limit: 5,
+  });
   const { formatCurrency } = useCurrency();
+
+  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [modalType, setModalType] = useState<'approve' | 'reject'>('approve');
+
+  const handleApproveClick = (request: Request) => {
+    setSelectedRequest(request);
+    setModalType('approve');
+    setApprovalModalOpen(true);
+  };
+
+  const handleRejectClick = (request: Request) => {
+    setSelectedRequest(request);
+    setModalType('reject');
+    setApprovalModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setApprovalModalOpen(false);
+    setSelectedRequest(null);
+  };
 
   const CHART_COLORS = {
     primary: '#3b82f6',
@@ -257,38 +294,11 @@ const ExecutiveDashboard: React.FC = () => {
     ],
   };
 
-  const revenueDistributionData = stats
-    ? [
-        {
-          name: 'Achieved',
-          value: stats?.salesRevenue.value || 0,
-        },
-        {
-          name: 'Pending',
-          value:
-            (stats.salesRevenue.target
-              ? stats.salesRevenue.target - (stats.salesRevenue.value || 0)
-              : 0) || 0,
-        },
-      ].filter(item => item.value > 0)
-    : [];
-  const revenueDistributionChartData = {
-    labels: revenueDistributionData.map(d => d.name),
-    datasets: [
-      {
-        data: revenueDistributionData.map(d => d.value),
-        backgroundColor: [CHART_COLORS.success, CHART_COLORS.warning],
-        borderWidth: 0,
-      },
-    ],
-  };
-
   const hasLineChartData = lineChartLabels.length > 0;
   const hasPieChartData = pieChartLabels.length > 0;
   const hasBarChartData = barChartLabels.length > 0;
   const hasAreaChartData = lineChartLabels.length > 0;
   const hasComposedChartData = lineChartLabels.length > 0;
-  const hasRevenueDistributionData = revenueDistributionData.length > 0;
 
   const commonChartOptions = {
     responsive: true,
@@ -367,25 +377,6 @@ const ExecutiveDashboard: React.FC = () => {
     },
   };
 
-  const pieChartOptions = {
-    ...commonChartOptions,
-    plugins: {
-      ...commonChartOptions.plugins,
-      tooltip: {
-        callbacks: {
-          label: (context: any) => {
-            const total = context.dataset.data.reduce(
-              (a: number, b: number) => a + b,
-              0
-            );
-            const percentage = ((context.parsed / total) * 100).toFixed(0);
-            return `${context.label}: ${percentage}%`;
-          },
-        },
-      },
-    },
-  };
-
   const composedChartOptions = {
     ...commonChartOptions,
     plugins: {
@@ -424,7 +415,12 @@ const ExecutiveDashboard: React.FC = () => {
   };
 
   const isLoading =
-    statsLoading || salesLoading || productsLoading || orderStatusLoading;
+    statsLoading ||
+    salesLoading ||
+    productsLoading ||
+    orderStatusLoading ||
+    approvalsLoading ||
+    auditLogsLoading;
 
   // Header Skeleton Component
   const HeaderSkeleton = () => (
@@ -742,22 +738,159 @@ const ExecutiveDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2">
           <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Sales Performance & Trends
-            </h3>
-            {salesLoading ? (
-              <ChartSkeleton height={288} />
-            ) : hasLineChartData ? (
-              <div className="h-72 w-full">
-                <Line data={lineChartDataValue} options={lineChartOptions} />
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Pending Approvals
+              </h3>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/workflows/approvals')}
+              >
+                View All
+              </Button>
+            </div>
+            {approvalsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div
+                    key={i}
+                    className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                  >
+                    <Skeleton
+                      variant="text"
+                      width="60%"
+                      height={20}
+                      className="!mb-2"
+                    />
+                    <Skeleton
+                      variant="text"
+                      width="40%"
+                      height={16}
+                      className="!mb-3"
+                    />
+                    <div className="flex gap-2">
+                      <Skeleton variant="rectangular" width={80} height={24} />
+                      <Skeleton variant="rectangular" width={80} height={24} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : pendingApprovals?.data && pendingApprovals.data.length > 0 ? (
+              <div className="space-y-2 max-h-72 hide-scrollbar overflow-y-auto">
+                {pendingApprovals.data.map(request => {
+                  const requesterName =
+                    request.requester?.name || `User #${request.requester_id}`;
+                  const requestTypeLabel = request.request_type
+                    .replace(/_/g, ' ')
+                    .replace(
+                      /\w\S*/g,
+                      txt => txt.charAt(0) + txt.substr(1).toLowerCase()
+                    );
+
+                  // Get reference number
+                  let referenceNumber = `#${request.reference_id}`;
+                  if (request.reference_details) {
+                    if (
+                      request.request_type === 'ORDER_APPROVAL' &&
+                      request.reference_details.order_number
+                    ) {
+                      referenceNumber = request.reference_details.order_number;
+                    } else if (
+                      request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                      request.reference_details.movement_number
+                    ) {
+                      referenceNumber =
+                        request.reference_details.movement_number;
+                    }
+                  }
+
+                  const approvalStatus =
+                    request.approvals?.[0]?.status || request.status;
+
+                  return (
+                    <div
+                      key={request.id}
+                      className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex justify-between items-center gap-2 flex-1 min-w-0">
+                          <span className="font-semibold text-gray-900 text-sm">
+                            {referenceNumber}
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-gray-600 text-xs leading-tight block mb-3">
+                        <span className="font-medium text-gray-800">
+                          {requesterName}
+                        </span>{' '}
+                        has requested{' '}
+                        <span className="font-medium text-gray-800">
+                          {requestTypeLabel}
+                        </span>
+                        {request.request_type === 'ORDER_APPROVAL' && (
+                          <>
+                            {' '}
+                            for order{' '}
+                            <span className="font-semibold text-blue-600">
+                              {referenceNumber}
+                            </span>
+                          </>
+                        )}
+                        {request.request_type === 'ASSET_MOVEMENT_APPROVAL' && (
+                          <>
+                            {' '}
+                            for asset movement{' '}
+                            <span className="font-semibold text-green-600">
+                              {referenceNumber}
+                            </span>
+                          </>
+                        )}
+                      </p>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {request.createdate && (
+                            <span className="text-gray-500 text-xs">
+                              {formatDateTime(request.createdate.toString())}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            onClick={() => handleApproveClick(request)}
+                            disabled={
+                              approvalStatus?.toUpperCase() !== 'P' &&
+                              approvalStatus?.toUpperCase() !== 'PENDING'
+                            }
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            onClick={() => handleRejectClick(request)}
+                            disabled={
+                              approvalStatus?.toUpperCase() !== 'P' &&
+                              approvalStatus?.toUpperCase() !== 'PENDING'
+                            }
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="h-72 flex items-center justify-center bg-gray-50 rounded-lg">
                 <div className="text-center">
                   <div className="text-gray-400 mx-auto mb-2 flex justify-center">
-                    <FaChartLine size={48} />
+                    <FaClipboardList size={48} />
                   </div>
-                  <span className="text-gray-500">No sales data available</span>
+                  <span className="text-gray-500">No pending approvals</span>
                 </div>
               </div>
             )}
@@ -843,103 +976,131 @@ const ExecutiveDashboard: React.FC = () => {
         </div>
       )}
 
-      {hasRevenueDistributionData && revenueDistributionData.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Sales Performance & Trends and Activity Logs Side by Side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Sales Performance & Trends */}
+        {hasLineChartData && (
           <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Revenue vs Target
+              Sales Performance & Trends
             </h3>
-            <div className="h-64 w-full">
-              <Pie
-                data={revenueDistributionChartData}
-                options={pieChartOptions}
-              />
-            </div>
+            {salesLoading ? (
+              <ChartSkeleton height={288} />
+            ) : (
+              <div className="h-72 w-full">
+                <Line data={lineChartDataValue} options={lineChartOptions} />
+              </div>
+            )}
           </div>
+        )}
 
+        {/* Audit Logs Section */}
+        {auditLogs?.logs && auditLogs.logs.length > 0 && (
           <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Sales Distribution
+              Recent Activity Logs
             </h3>
-            <div className="space-y-4">
-              {stats && (
-                <>
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm text-gray-600">
-                        Total Revenue
+            {auditLogsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div
+                    key={i}
+                    className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <Skeleton
+                        variant="circular"
+                        width={40}
+                        height={40}
+                        className="!bg-gray-200"
+                      />
+                      <div className="flex-1">
+                        <Skeleton
+                          variant="text"
+                          width="60%"
+                          height={20}
+                          className="!mb-1"
+                        />
+                        <Skeleton variant="text" width="40%" height={16} />
+                      </div>
+                    </div>
+                    <Skeleton
+                      variant="text"
+                      width="80%"
+                      height={16}
+                      className="!mb-2"
+                    />
+                    <div className="flex gap-2">
+                      <Skeleton variant="rectangular" width={60} height={20} />
+                      <Skeleton variant="rectangular" width={80} height={20} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-80 hide-scrollbar overflow-y-auto">
+                {auditLogs.logs.slice(0, 5).map((log: any) => (
+                  <div
+                    key={log.id}
+                    className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="text-xs flex justify-between items-center  text-gray-500 uppercase tracking-wide mb-2">
+                      <p className="font-medium">
+                        {log.table_name?.replaceAll('_', ' ')}
+                      </p>
+                      <span className="text-xs text-gray-500 ml-2">
+                        {new Date(log.changed_at).toLocaleDateString()}
                       </span>
-                      <span className="text-sm font-semibold">
-                        {formatCurrency(
-                          stats.salesRevenue.value || 0,
-                          stats.salesRevenue.formatted
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      <span className="font-medium text-gray-900">
+                        {log.user_name}
+                      </span>
+                      <span className="mx-1">
+                        {log.action === 'CREATE' && (
+                          <span className="text-green-600 font-medium">
+                            created
+                          </span>
+                        )}
+                        {log.action === 'UPDATE' && (
+                          <span className="text-blue-600 font-medium">
+                            updated
+                          </span>
+                        )}
+                        {log.action === 'DELETE' && (
+                          <span className="text-red-600 font-medium">
+                            deleted
+                          </span>
                         )}
                       </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-green-500 h-2 rounded-full"
-                        style={{
-                          width: `${Math.min(parseFloat(stats.salesRevenue.targetProgress || '0'), 100)}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Target Progress:{' '}
-                      {parseFloat(
-                        stats.salesRevenue.targetProgress || '0'
-                      ).toFixed(1)}
-                      %
+                      <span className="text-gray-600">
+                        a {log.table_name?.replaceAll('_', ' ')} record
+                        {log.record_id && ` (ID: ${log.record_id})`}
+                      </span>
                     </div>
                   </div>
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm text-gray-600">
-                        Total Orders
-                      </span>
-                      <span className="text-sm font-semibold">
-                        {stats.totalOrders.value.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full"
-                        style={{
-                          width: `${Math.min((stats.totalOrders.thisMonth / Math.max(stats.totalOrders.value, 1)) * 100, 100)}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      This Month: {stats.totalOrders.thisMonth}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-sm text-gray-600">
-                        Delivery Success
-                      </span>
-                      <span className="text-sm font-semibold">
-                        {stats.deliveries.successRate}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-cyan-500 h-2 rounded-full"
-                        style={{
-                          width: `${Math.min(parseFloat(stats.deliveries.successRate || '0'), 100)}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Completed: {stats.deliveries.value.toLocaleString()}
-                    </div>
-                  </div>
-                </>
-              )}
+                ))}
+              </div>
+            )}
+            <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end">
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/reports/audit-logs')}
+              >
+                View All Logs
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      {/* Approval Modal */}
+      <ApprovalModal
+        open={approvalModalOpen}
+        onClose={handleModalClose}
+        request={selectedRequest}
+        type={modalType}
+      />
     </div>
   );
 };

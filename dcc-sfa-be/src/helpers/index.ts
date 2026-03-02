@@ -1,6 +1,7 @@
 export {
   createApprovalWorkflow,
   createOrderApprovalWorkflow,
+  createAssetMovementApprovalWorkflow,
   type CreateApprovalWorkflowParams,
   type WorkflowStepDefinition,
 } from './approvalWorkflow.helper';

@@ -7,6 +7,7 @@ interface OutletGroup {
   code: string;
   description?: string | null;
   discount_percentage?: number | null;
+  members_count: number;
   credit_terms?: number | null;
   payment_terms?: string | null;
   price_group?: string | null;
@@ -17,6 +18,10 @@ interface OutletGroup {
   updatedby?: number | null;
   log_inst?: number | null;
   members?: { id: number; customer_id: number; group_id: number }[];
+  routes?: number[];
+  depots?: number[];
+  zones?: number[];
+  customer_categories?: number[];
 }
 
 interface CustomerGroupMember {
@@ -34,18 +39,14 @@ interface ManageOutletGroupPayload {
   price_group?: string;
   is_active?: string;
   customerGroups?: CustomerGroupMember[];
+  routes?: number[];
+  depots?: number[];
+  zones?: number[];
+  customer_categories?: number[];
 }
 
-interface UpdateOutletGroupPayload {
-  name?: string;
-  description?: string;
-  discount_percentage?: number;
-  credit_terms?: number;
-  payment_terms?: string;
-  price_group?: string;
-  is_active?: string;
-  customerGroups?: CustomerGroupMember[];
-}
+interface UpdateOutletGroupPayload
+  extends Omit<ManageOutletGroupPayload, 'customerGroups'> {}
 
 interface GetOutletGroupsParams {
   page?: number;

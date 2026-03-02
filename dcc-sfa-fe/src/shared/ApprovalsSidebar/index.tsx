@@ -1,5 +1,4 @@
 import {
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -20,7 +19,7 @@ import type { Request } from 'services/requests';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import { formatDate } from 'utils/dateUtils';
+import { formatDateTime } from 'utils/dateUtils';
 import * as yup from 'yup';
 
 interface ApprovalsSidebarProps {
@@ -110,62 +109,84 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
     setSelectedRequest(null);
   };
 
-  const getStatusColor = (status: string | null) => {
-    if (!status) return 'default';
-    const normalizedStatus = status.toUpperCase();
-    switch (normalizedStatus) {
-      case 'A':
-      case 'APPROVED':
-        return 'success';
-      case 'R':
-      case 'REJECTED':
-        return 'error';
-      case 'P':
-      case 'PENDING':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
+  // const getStatusColor = (status: string | null) => {
+  //   if (!status) return 'default';
+  //   const normalizedStatus = status.toUpperCase();
+  //   switch (normalizedStatus) {
+  //     case 'A':
+  //     case 'APPROVED':
+  //       return 'success';
+  //     case 'R':
+  //     case 'REJECTED':
+  //       return 'error';
+  //     case 'P':
+  //     case 'PENDING':
+  //       return 'warning';
+  //     default:
+  //       return 'default';
+  //   }
+  // };
 
-  const getStatusLabel = (status: string | null) => {
-    if (!status) return 'N/A';
-    const normalizedStatus = status.toUpperCase();
-    switch (normalizedStatus) {
-      case 'A':
-      case 'APPROVED':
-        return 'Approved';
-      case 'R':
-      case 'REJECTED':
-        return 'Rejected';
-      case 'P':
-      case 'PENDING':
-        return 'Pending';
-      default:
-        return status;
-    }
-  };
+  // const getStatusLabel = (status: string | null) => {
+  //   if (!status) return 'N/A';
+  //   const normalizedStatus = status.toUpperCase();
+  //   switch (normalizedStatus) {
+  //     case 'A':
+  //     case 'APPROVED':
+  //       return 'Approved';
+  //     case 'R':
+  //     case 'REJECTED':
+  //       return 'Rejected';
+  //     case 'P':
+  //     case 'PENDING':
+  //       return 'Pending';
+  //     default:
+  //       return status;
+  //   }
+  // };
 
   const formatRequestType = (type: string): string => {
     return type
       .replace(/_/g, ' ')
-      .replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1));
+      .replace(/\w\S*/g, txt => txt.charAt(0) + txt.substr(1).toLowerCase());
   };
 
   const getReferenceNumber = (request: Request): string => {
+    if (request.reference_details) {
+      if (
+        request.request_type === 'ORDER_APPROVAL' &&
+        request.reference_details.order_number
+      ) {
+        return request.reference_details.order_number;
+      }
+      // For ASSET_MOVEMENT_APPROVAL, use movement_number
+      if (
+        request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+        request.reference_details.movement_number
+      ) {
+        return request.reference_details.movement_number;
+      }
+    }
+
+    // Fallback to reference_id or generated ID
     if (request.reference_id) {
       return `#${request.reference_id}`;
     }
+
     if (request.request_data) {
       try {
         const data = JSON.parse(request.request_data);
         return (
-          data.order_number || data.reference_number || `REQ-${request.id}`
+          data.order_number ||
+          data.reference_number ||
+          data.movement_number ||
+          `REQ-${request.id}`
         );
       } catch {
         return `REQ-${request.id}`;
       }
     }
+
     return `REQ-${request.id}`;
   };
 
@@ -236,18 +257,18 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                     className="!bg-white !rounded-lg !border !border-gray-200 !p-3 !hover:!shadow-md !transition-shadow"
                   >
                     <div className="!flex !items-center !justify-between !mb-2">
-                      <div className="!flex !items-center !gap-2 !flex-1 !min-w-0">
+                      <div className="!flex justify-between !items-center !gap-2 !flex-1 !min-w-0">
                         <Typography
                           variant="body2"
                           className="!font-semibold !text-gray-900"
                         >
                           {referenceNumber}
                         </Typography>
-                        <Chip
+                        {/* <Chip
                           label={requestTypeLabel}
                           size="small"
                           className="!capitalize !text-xs !h-5"
-                        />
+                        /> */}
                       </div>
                     </div>
 
@@ -255,27 +276,41 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                       variant="caption"
                       className="!text-gray-600 !text-xs !leading-tight !block !mb-3"
                     >
-                      <span className="!font-medium">{requesterName}</span> has
-                      requested{' '}
-                      <span className="!font-medium">
-                        {requestTypeLabel} Approval
+                      <span className="!font-medium !text-gray-800">
+                        {requesterName}
+                      </span>{' '}
+                      has requested{' '}
+                      <span className="!font-medium !text-gray-800">
+                        {requestTypeLabel}
                       </span>
+                      {request.request_type === 'ORDER_APPROVAL' && (
+                        <>
+                          {' '}
+                          for order{' '}
+                          <span className="!font-semibold !text-blue-600">
+                            {referenceNumber}
+                          </span>
+                        </>
+                      )}
+                      {request.request_type === 'ASSET_MOVEMENT_APPROVAL' && (
+                        <>
+                          {' '}
+                          for asset movement{' '}
+                          <span className="!font-semibold !text-green-600">
+                            {referenceNumber}
+                          </span>
+                        </>
+                      )}
                     </Typography>
 
                     <div className="!flex !items-center !justify-between !gap-2">
                       <div className="!flex !items-center !gap-2 !flex-wrap">
-                        <Chip
-                          label={getStatusLabel(approvalStatus)}
-                          color={getStatusColor(approvalStatus) as any}
-                          size="small"
-                          className="!capitalize !text-xs !h-5"
-                        />
                         {request.createdate && (
                           <Typography
                             variant="caption"
                             className="!text-gray-500 !text-xs"
                           >
-                            {formatDate(
+                            {formatDateTime(
                               request.createdate instanceof Date
                                 ? request.createdate.toISOString()
                                 : String(request.createdate)
@@ -406,75 +441,288 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
               </Typography>
               {selectedRequest.reference_details ? (
                 <div className="!bg-gray-50 !rounded-md !p-4 !border !border-gray-200">
-                  <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-                    {selectedRequest.reference_details.order_number && (
-                      <div className="!space-y-1">
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
-                        >
-                          Order Number
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          className="!font-semibold !text-gray-900"
-                        >
-                          {selectedRequest.reference_details.order_number}
-                        </Typography>
-                      </div>
-                    )}
+                  {/* ORDER_APPROVAL Details */}
+                  {selectedRequest.request_type === 'ORDER_APPROVAL' && (
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                      {selectedRequest.reference_details.order_number && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Order Number
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.order_number}
+                          </Typography>
+                        </div>
+                      )}
 
-                    {selectedRequest.reference_details.customer_name && (
-                      <div className="!space-y-1">
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
-                        >
-                          Customer Name
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          className="!font-semibold !text-gray-900"
-                        >
-                          {selectedRequest.reference_details.customer_name}
-                        </Typography>
-                      </div>
-                    )}
+                      {selectedRequest.reference_details.customer_name && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Customer Name
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.customer_name}
+                          </Typography>
+                        </div>
+                      )}
 
-                    {selectedRequest.reference_details.total_amount && (
-                      <div className="!space-y-1">
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
-                        >
-                          Total Amount
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          className="!font-semibold !text-primary-600"
-                        >
-                          {selectedRequest.reference_details.total_amount}
-                        </Typography>
-                      </div>
-                    )}
+                      {selectedRequest.reference_details.customer_code && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Customer Code
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.customer_code}
+                          </Typography>
+                        </div>
+                      )}
 
-                    {selectedRequest.reference_id && (
-                      <div className="!space-y-1">
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
-                        >
-                          Reference ID
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          className="!font-semibold !text-gray-900"
-                        >
-                          #{selectedRequest.reference_id}
-                        </Typography>
-                      </div>
-                    )}
-                  </div>
+                      {selectedRequest.reference_details.salesperson_name && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Salesperson
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.salesperson_name}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.total_amount && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Total Amount
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-primary-600"
+                          >
+                            {selectedRequest.reference_details.total_amount}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.order_date && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Order Date
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.order_date}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.payment_method && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Payment Method
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.payment_method}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.status && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Order Status
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.status}
+                          </Typography>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ASSET_MOVEMENT_APPROVAL Details */}
+                  {selectedRequest.request_type ===
+                    'ASSET_MOVEMENT_APPROVAL' && (
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                      {selectedRequest.reference_details.movement_number && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Movement Number
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.movement_number}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.movement_type && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Movement Type
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !capitalize !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.movement_type}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.from_location && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            From Location
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.from_location}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.to_location && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            To Location
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.to_location}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.performed_by && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Performed By
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.performed_by}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.movement_date && (
+                        <div className="!space-y-1">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Movement Date
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.movement_date}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.assets && (
+                        <div className="!space-y-1 md:!col-span-2">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Assets
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.assets}
+                          </Typography>
+                        </div>
+                      )}
+
+                      {selectedRequest.reference_details.notes && (
+                        <div className="!space-y-1 md:!col-span-2">
+                          <Typography
+                            variant="caption"
+                            className="!text-gray-500 !text-xs !uppercase !tracking-wide !font-medium"
+                          >
+                            Notes
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            className="!font-semibold !text-gray-900"
+                          >
+                            {selectedRequest.reference_details.notes}
+                          </Typography>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="!bg-gray-50 !rounded-md !p-4 !border !border-gray-200">

@@ -1,16 +1,15 @@
 import { Router } from 'express';
 import {
+  auditCreate,
+  auditDelete,
+  auditUpdate,
+} from '../../middlewares/audit.middleware';
+import {
   authenticateToken,
   requirePermission,
 } from '../../middlewares/auth.middleware';
-import {
-  auditCreate,
-  auditUpdate,
-  auditDelete,
-} from '../../middlewares/audit.middleware';
-import { assetMovementsController } from '../controllers/assetMovements.controller';
-import { createAssetMovementsValidation } from '../validations/assetMovements.validation';
 import { validate } from '../../middlewares/validation.middleware';
+import { assetMovementsController } from '../controllers/assetMovements.controller';
 
 const router = Router();
 
@@ -19,7 +18,6 @@ router.post(
   authenticateToken,
   auditCreate('asset_movements'),
   requirePermission([{ module: 'asset-movement', action: 'create' }]),
-  createAssetMovementsValidation,
   validate,
   assetMovementsController.createAssetMovements
 );
@@ -51,6 +49,27 @@ router.delete(
   auditDelete('asset_movements'),
   requirePermission([{ module: 'asset-movement', action: 'delete' }]),
   assetMovementsController.deleteAssetMovements
+);
+
+router.post(
+  '/asset-movement/:id/generate-contract',
+  authenticateToken,
+  requirePermission([{ module: 'asset-movement', action: 'create' }]),
+  assetMovementsController.generateContract
+);
+
+router.get(
+  '/asset-movement/:id/download-contract',
+  authenticateToken,
+  requirePermission([{ module: 'asset-movement', action: 'read' }]),
+  assetMovementsController.downloadContract
+);
+
+router.get(
+  '/asset-movement/:id/contract-info',
+  authenticateToken,
+  requirePermission([{ module: 'asset-movement', action: 'read' }]),
+  assetMovementsController.getContractInfo
 );
 
 export default router;

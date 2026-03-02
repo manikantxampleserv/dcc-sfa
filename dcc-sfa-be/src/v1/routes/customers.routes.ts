@@ -10,6 +10,8 @@ import {
   auditDelete,
 } from '../../middlewares/audit.middleware';
 import { upload } from '../../utils/multer';
+import { validate } from '../../middlewares/validation.middleware';
+import { createCustomerValidation } from '../validations/customers.validation';
 
 const router = Router();
 
@@ -18,6 +20,8 @@ router.post(
   authenticateToken,
   auditCreate('customers'),
   requirePermission([{ module: 'outlet', action: 'create' }]),
+  createCustomerValidation,
+  validate,
   customerController.createCustomers
 );
 router.get(

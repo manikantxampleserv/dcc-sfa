@@ -22,7 +22,11 @@ interface Route {
   }>;
   start_location?: string | null;
   end_location?: string | null;
-  estimated_distance?: string | null; // API returns string
+  starting_latitude?: string | null;
+  starting_longitude?: string | null;
+  ending_latitude?: string | null;
+  ending_longitude?: string | null;
+  estimated_distance?: string | null;
   estimated_time?: number | null;
   is_active: string;
   createdate?: string | null;
@@ -64,6 +68,49 @@ interface Route {
     id: number;
     name: string;
   } | null;
+  all_customers?: Array<{
+    id: number;
+    name: string;
+    code: string;
+    short_name?: string | null;
+    type?: string | null;
+    contact_person?: string | null;
+    phone_number?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zipcode?: string | null;
+    latitude?: string | null;
+    longitude?: string | null;
+    credit_limit?: string | null;
+    outstanding_amount?: string | null;
+    customer_depot?: {
+      id: number;
+      name: string;
+      code: string;
+    } | null;
+    customer_zones?: {
+      id: number;
+      name: string;
+      code: string;
+    } | null;
+    customer_type_customer?: {
+      id: number;
+      type_name: string;
+    } | null;
+    customer_channel_customer?: {
+      id: number;
+      channel_name: string;
+    } | null;
+    customer_category_customer?: {
+      id: number;
+      category_name: string;
+    } | null;
+    is_active: string;
+    createdate?: string | null;
+    updatedate?: string | null;
+  }>;
   visit_routes?: Array<{
     id: number;
     customer_id: number;
@@ -89,6 +136,21 @@ interface Route {
   }>;
 }
 
+interface RouteAssignment {
+  id: number;
+  name: string;
+  email: string;
+  profile_image?: string | null;
+  depot_id?: number | null;
+  zone_id?: number | null;
+  assigned_routes: Array<{
+    id: number;
+    name?: string | null;
+    code?: string | null;
+  }>;
+  assigned_routes_count?: number;
+}
+
 interface ManageRoutePayload {
   parent_id: number;
   depot_id: number;
@@ -100,6 +162,10 @@ interface ManageRoutePayload {
   }>;
   start_location?: string;
   end_location?: string;
+  starting_latitude?: string;
+  starting_longitude?: string;
+  ending_latitude?: string;
+  ending_longitude?: string;
   estimated_distance?: number;
   estimated_time?: number;
   is_active?: string;
@@ -116,6 +182,10 @@ interface UpdateRoutePayload {
   }>;
   start_location?: string;
   end_location?: string;
+  starting_latitude?: string;
+  starting_longitude?: string;
+  ending_latitude?: string;
+  ending_longitude?: string;
   estimated_distance?: number;
   estimated_time?: number;
   is_active?: string;
@@ -129,6 +199,14 @@ interface GetRoutesParams {
   parent_id?: number;
   depot_id?: number;
   salesperson_id?: number;
+}
+
+interface GetRouteAssignmentsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  depot_id?: number;
+  zone_id?: number;
 }
 
 interface PaginationMeta {
@@ -225,19 +303,48 @@ export const deleteRoute = async (id: number, force?: string) => {
   return response.data;
 };
 
+export const fetchRouteAssignments = async (
+  params?: GetRouteAssignmentsParams
+): Promise<ApiResponse<RouteAssignment[]>> => {
+  const response = await axiosInstance.get('/route-assignments', { params });
+  return response.data;
+};
+
+export const fetchRouteAssignmentsByUser = async (
+  userId: number
+): Promise<ApiResponse<RouteAssignment>> => {
+  const response = await axiosInstance.get(`/route-assignments/${userId}`);
+  return response.data;
+};
+
+export const setRouteAssignmentsForUser = async (
+  userId: number,
+  route_ids: number[]
+): Promise<ApiResponse<RouteAssignment>> => {
+  const response = await axiosInstance.post(`/route-assignments/${userId}`, {
+    route_ids,
+  });
+  return response.data;
+};
+
 export default {
   fetchRoutes,
   fetchRouteById,
   createRoute,
   updateRoute,
   deleteRoute,
+  fetchRouteAssignments,
+  fetchRouteAssignmentsByUser,
+  setRouteAssignmentsForUser,
 };
 
 export type {
   GetRoutesParams,
+  GetRouteAssignmentsParams,
   ManageRoutePayload,
   UpdateRoutePayload,
   PaginationMeta,
   RouteStats,
   Route,
+  RouteAssignment,
 };

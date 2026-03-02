@@ -14,6 +14,7 @@ export const depotValidationSchema = Yup.object({
   parent_id: Yup.number()
     .required('Company is required')
     .positive('Invalid company'),
+  code: Yup.string().max(20, 'Depot code must be less than 20 characters'),
   name: Yup.string()
     .required('Depot name is required')
     .min(2, 'Name must be at least 2 characters')

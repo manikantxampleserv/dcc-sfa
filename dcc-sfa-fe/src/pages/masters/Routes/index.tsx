@@ -422,7 +422,7 @@ const RoutesManagement: React.FC = () => {
                     <Select
                       value={depotFilter}
                       onChange={e => setDepotFilter(e.target.value)}
-                      className="!min-w-80"
+                      className="!min-w-60"
                       size="small"
                       disableClearable
                     >

@@ -9,7 +9,7 @@ const prisma_client_1 = __importDefault(require("../configs/prisma.client"));
 const logger_1 = __importDefault(require("../configs/logger"));
 const scheduleCustomerCategoryAssignment = () => {
     node_cron_1.default.schedule('0 0 * * *', async () => {
-        console.log('⏰ Cron job: Customer Category Assignment Started');
+        console.log(' Cron job: Customer Category Assignment Started');
         console.log('Time:', new Date().toISOString());
         try {
             const startTime = new Date();
@@ -46,10 +46,10 @@ const scheduleCustomerCategoryAssignment = () => {
             }))
                 .sort((a, b) => a.thresholdValue - b.thresholdValue);
             if (validCategories.length === 0) {
-                console.warn('⚠️  No active customer categories found with sales conditions');
+                console.warn('  No active customer categories found with sales conditions');
                 return;
             }
-            console.log(`📊 Found ${validCategories.length} category levels`);
+            console.log(` Found ${validCategories.length} category levels`);
             const customers = await prisma_client_1.default.customers.findMany({
                 where: {
                     is_active: 'Y',
@@ -60,7 +60,7 @@ const scheduleCustomerCategoryAssignment = () => {
                     customer_category_id: true,
                 },
             });
-            console.log(`👥 Processing ${customers.length} customers...\n`);
+            console.log(` Processing ${customers.length} customers...\n`);
             for (const customer of customers) {
                 results.totalProcessed++;
                 try {
@@ -84,6 +84,9 @@ const scheduleCustomerCategoryAssignment = () => {
                             break;
                         }
                     }
+                    if (!assignedCategory && validCategories.length > 0) {
+                        assignedCategory = validCategories[0];
+                    }
                     const newCategoryId = assignedCategory?.id || null;
                     const currentCategoryId = customer.customer_category_id;
                     if (newCategoryId !== currentCategoryId) {
@@ -96,7 +99,7 @@ const scheduleCustomerCategoryAssignment = () => {
                             },
                         });
                         results.totalUpdated++;
-                        console.log(`  📝 ${customer.name} → ${assignedCategory?.categoryName || 'None'} (Sales: ₹${totalSales})`);
+                        console.log(`   ${customer.name} → ${assignedCategory?.categoryName || 'None'} (Sales: ₹${totalSales})`);
                     }
                     else {
                         results.totalUnchanged++;
@@ -104,14 +107,14 @@ const scheduleCustomerCategoryAssignment = () => {
                 }
                 catch (error) {
                     results.totalFailed++;
-                    console.error(`❌ ${customer.name}: ${error.message}`);
+                    console.error(` ${customer.name}: ${error.message}`);
                 }
             }
             const endTime = new Date();
             const duration = (endTime.getTime() - startTime.getTime()) / 1000;
-            console.log('✅ Cron Customer Category Assignment Completed');
-            console.log(`⏱️ Duration: ${duration}s`);
-            console.log('📈 Summary:', {
+            console.log(' Cron Customer Category Assignment Completed');
+            console.log(` Duration: ${duration}s`);
+            console.log(' Summary:', {
                 processed: results.totalProcessed,
                 updated: results.totalUpdated,
                 unchanged: results.totalUnchanged,
@@ -119,7 +122,7 @@ const scheduleCustomerCategoryAssignment = () => {
             });
         }
         catch (error) {
-            console.error('❌ Cron: Customer Category Assignment Failed');
+            console.error(' Cron: Customer Category Assignment Failed');
             console.error('Error:', error.message);
         }
     }, {

@@ -1,9 +1,28 @@
 import * as Yup from 'yup';
 
 export const assetMasterValidationSchema = Yup.object({
+  name: Yup.string()
+    .required('Asset name is required')
+    .min(1, 'Asset name must be at least 1 character')
+    .max(255, 'Asset name must not exceed 255 characters'),
+
   asset_type_id: Yup.number()
     .required('Asset type is required')
     .positive('Asset type must be selected'),
+
+  asset_sub_type_id: Yup.number()
+    .nullable()
+    .positive('Asset sub type must be valid')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      ) {
+        return null;
+      }
+      return value;
+    }),
 
   serial_number: Yup.string()
     .required('Serial number is required')
@@ -17,7 +36,12 @@ export const assetMasterValidationSchema = Yup.object({
   purchase_date: Yup.date()
     .nullable()
     .transform((value, originalValue) => {
-      if (originalValue === '' || originalValue === null) return null;
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      )
+        return null;
       return value;
     })
     .max(new Date(), 'Purchase date cannot be in the future'),
@@ -25,11 +49,20 @@ export const assetMasterValidationSchema = Yup.object({
   warranty_expiry: Yup.date()
     .nullable()
     .transform((value, originalValue) => {
-      if (originalValue === '' || originalValue === null) return null;
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      )
+        return null;
       return value;
     })
     .when('purchase_date', (purchase_date, schema) => {
-      if (purchase_date) {
+      if (
+        purchase_date &&
+        purchase_date instanceof Date &&
+        !isNaN(purchase_date.getTime())
+      ) {
         return schema.min(
           purchase_date,
           'Warranty expiry must be after purchase date'
@@ -60,6 +93,10 @@ export const assetMasterValidationSchema = Yup.object({
   assigned_to: Yup.string()
     .nullable()
     .max(100, 'Assigned to must not exceed 100 characters'),
+
+  warranty_period: Yup.string()
+    .oneOf(['1', '2', '3', '4', '5'], 'Invalid warranty period selected')
+    .default('1'),
 
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')

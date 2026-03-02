@@ -51,7 +51,7 @@ exports.createCoolerInstallationValidation = [
         .isISO8601()
         .withMessage('Last service date must be a valid date'),
     (0, express_validator_1.body)('next_service_due')
-        .optional()
+        .optional({ checkFalsy: true })
         .isISO8601()
         .withMessage('Next service due must be a valid date'),
     (0, express_validator_1.body)('next_inspection_due')

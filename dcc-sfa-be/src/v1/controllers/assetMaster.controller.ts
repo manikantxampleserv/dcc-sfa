@@ -1,11 +1,14 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
-import { uploadFile } from '../../utils/blackbaze';
 import prisma from '../../configs/prisma.client';
+import { uploadFile } from '../../utils/blackbaze';
 
 interface AssetMasterSerialized {
   id: number;
+  name: string;
+  code: string;
   asset_type_id: number;
+  asset_sub_type_id?: number | null;
   serial_number: string;
   purchase_date?: Date | null;
   warranty_expiry?: Date | null;
@@ -20,14 +23,36 @@ interface AssetMasterSerialized {
   log_inst?: number | null;
   asset_master_image?: any[];
   asset_maintenance_master?: any[];
-  asset_movements_master?: any[];
+  asset_movement_assets_asset?: any[];
   asset_master_warranty_claims?: any[];
   asset_master_asset_types?: any;
+  asset_master_asset_sub_types?: any;
 }
+
+const generateAssetCode = async (name: string) => {
+  const prefix = name.slice(0, 3).toUpperCase();
+  const lastAssetCode = await prisma.asset_master.findFirst({
+    orderBy: { id: 'desc' },
+    select: { code: true },
+  });
+
+  let newNumber = 1;
+  if (lastAssetCode && lastAssetCode.code) {
+    const match = lastAssetCode.code.match(/(\d+)$/);
+    if (match) {
+      newNumber = parseInt(match[1], 10) + 1;
+    }
+  }
+  const code = `${prefix}-${newNumber.toString().padStart(3, '0')}`;
+  return code;
+};
 
 const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   id: asset.id,
+  name: asset.name,
+  code: asset.code,
   asset_type_id: asset.asset_type_id,
+  asset_sub_type_id: asset.asset_sub_type_id,
   serial_number: asset.serial_number,
   purchase_date: asset.purchase_date ? new Date(asset.purchase_date) : null,
   warranty_expiry: asset.warranty_expiry
@@ -44,16 +69,20 @@ const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   log_inst: asset.log_inst,
   asset_master_image: asset.asset_master_image || [],
   asset_maintenance_master: asset.asset_maintenance_master || [],
-  asset_movements_master: asset.asset_movements_master || [],
+  asset_movement_assets_asset: asset.asset_movement_assets_asset || [],
   asset_master_warranty_claims: asset.asset_master_warranty_claims || [],
   asset_master_asset_types: asset.asset_master_asset_types || null,
+  asset_master_asset_sub_types: asset.asset_master_asset_sub_types || null,
 });
 
 export const assetMasterController = {
   async createAssetMaster(req: any, res: any) {
     try {
       const {
+        name,
+        code,
         asset_type_id,
+        asset_sub_type_id,
         serial_number,
         purchase_date,
         warranty_expiry,
@@ -72,10 +101,41 @@ export const assetMasterController = {
         }
       }
 
-      if (!asset_type_id || !serial_number) {
-        return res
-          .status(400)
-          .json({ message: 'asset_type_id and serial_number are required' });
+      if (!name || !asset_type_id || !serial_number) {
+        return res.status(400).json({
+          message: 'name, asset_type_id and serial_number are required',
+        });
+      }
+
+      let assetCode: string;
+      if (code && code.trim() !== '') {
+        assetCode = code.trim();
+
+        const existingAsset = await prisma.asset_master.findFirst({
+          where: { code: assetCode },
+        });
+
+        if (existingAsset) {
+          return res.status(400).json({ message: 'Asset code already exists' });
+        }
+      } else {
+        assetCode = await generateAssetCode(name);
+        let attempts = 0;
+
+        while (attempts < 10) {
+          const existing = await prisma.asset_master.findFirst({
+            where: { code: assetCode },
+          });
+          if (!existing) break;
+          assetCode = await generateAssetCode(name);
+          attempts++;
+        }
+
+        if (attempts >= 10) {
+          return res
+            .status(500)
+            .json({ message: 'Unable to generate unique asset code' });
+        }
       }
 
       const duplicateAsset = await prisma.asset_master.findFirst({
@@ -102,7 +162,10 @@ export const assetMasterController = {
         });
       }
       const assetData = {
+        name,
+        code: assetCode,
         asset_type_id: Number(asset_type_id),
+        asset_sub_type_id: asset_sub_type_id ? Number(asset_sub_type_id) : null,
         serial_number,
         purchase_date: purchase_date ? new Date(purchase_date) : null,
         warranty_expiry: warranty_expiry ? new Date(warranty_expiry) : null,
@@ -149,20 +212,20 @@ export const assetMasterController = {
 
       const createdAsset = await prisma.asset_master.findUnique({
         where: { id: newAsset.id },
-        include: { asset_master_image: true },
+        include: {
+          asset_master_image: true,
+          asset_maintenance_master: true,
+          asset_master_warranty_claims: true,
+          asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
+        },
       });
 
       res.status(201).json({
         message: 'Asset created successfully with images',
-        data: createdAsset,
+        data: serializeAssetMaster(createdAsset),
       });
     } catch (error: any) {
-      // if (error.code === 'P2002') {
-      //   return res.status(409).json({
-      //     message: 'Duplicate asset is not allowed',
-      //   });
-      // }
-
       console.error('Create Asset Error:', error);
       res.status(500).json({ message: error.message });
     }
@@ -179,6 +242,8 @@ export const assetMasterController = {
       const filters: any = {
         ...(search && {
           OR: [
+            { name: { contains: searchLower } },
+            { code: { contains: searchLower } },
             { serial_number: { contains: searchLower } },
             { current_location: { contains: searchLower } },
             { current_status: { contains: searchLower } },
@@ -198,9 +263,23 @@ export const assetMasterController = {
         include: {
           asset_master_image: true,
           asset_maintenance_master: true,
-          asset_movements_master: true,
+          asset_movement_assets_asset: {
+            include: {
+              asset_movement_assets_movement: {
+                select: {
+                  id: true,
+                  movement_type: true,
+                  movement_date: true,
+                  from_direction: true,
+                  to_direction: true,
+                  notes: true,
+                },
+              },
+            },
+          },
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
         },
       });
 
@@ -250,9 +329,9 @@ export const assetMasterController = {
         include: {
           asset_master_image: true,
           asset_maintenance_master: true,
-          asset_movements_master: true,
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
         },
       });
 
@@ -279,6 +358,9 @@ export const assetMasterController = {
 
       const data = {
         ...req.body,
+        asset_sub_type_id: req.body.asset_sub_type_id
+          ? Number(req.body.asset_sub_type_id)
+          : existingAsset.asset_sub_type_id,
         assigned_to: req.body.assigned_to
           ? String(req.body.assigned_to)
           : existingAsset.assigned_to,
@@ -298,9 +380,9 @@ export const assetMasterController = {
         include: {
           asset_master_image: true,
           asset_maintenance_master: true,
-          asset_movements_master: true,
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
         },
       });
 

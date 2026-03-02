@@ -90,6 +90,7 @@ import taxMaster from '../v1/routes/taxMaster.routes';
 import batchLots from '../v1/routes/batchLots.routes';
 import inventoryItemRoutes from '../v1/routes/inventoryItem.routes';
 import subunitsRoutes from '../v1/routes/subunits.routes';
+import assetSubTypes from '../v1/routes/assetSubTypes.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -182,6 +183,7 @@ routes.use('/v1', taxMaster);
 routes.use('/v1', batchLots);
 routes.use('/v1', inventoryItemRoutes);
 routes.use('/v1', subunitsRoutes);
+routes.use('/v1', assetSubTypes);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

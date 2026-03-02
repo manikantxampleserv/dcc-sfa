@@ -92,6 +92,11 @@ const menuItems: MenuItem[] = [
             href: '/masters/asset-types',
           },
           {
+            id: 'asset-sub-types',
+            label: 'Asset Sub Types',
+            href: '/masters/asset-sub-types',
+          },
+          {
             id: 'asset-master',
             label: 'Asset Master',
             href: '/masters/asset-master',
@@ -390,6 +395,11 @@ const menuItems: MenuItem[] = [
             id: 'visit-logging',
             label: 'Visit Logging',
             href: '/transactions/visits',
+          },
+          {
+            id: 'route-assignments',
+            label: 'Route Assignment',
+            href: '/masters/route-assignments',
           },
           {
             id: 'competitor-activity',

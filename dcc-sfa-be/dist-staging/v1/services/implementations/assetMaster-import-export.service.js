@@ -18,13 +18,71 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
     ];
     columns = [
         {
+            key: 'name',
+            header: 'Asset Name',
+            width: 30,
+            required: true,
+            type: 'string',
+            validation: value => {
+                if (!value || value.length < 1)
+                    return 'Asset name is required';
+                if (value.length > 255)
+                    return 'Asset name must be less than 255 characters';
+                return true;
+            },
+            transform: value => value?.trim() || '',
+            description: 'Name of the asset (required, max 255 chars)',
+        },
+        {
+            key: 'code',
+            header: 'Asset Code',
+            width: 20,
+            required: false,
+            type: 'string',
+            validation: value => {
+                if (value && typeof value === 'string' && value.trim() === '') {
+                    return 'Asset code cannot be empty string';
+                }
+                if (value && value.length > 255)
+                    return 'Asset code must be less than 255 characters';
+                return true;
+            },
+            transform: value => (value && value.trim() !== '' ? value.trim() : null),
+            description: 'Asset code (optional, max 255 chars, auto-generated if empty)',
+        },
+        {
             key: 'asset_type_id',
             header: 'Asset Type ID',
             width: 15,
             required: true,
             type: 'number',
             transform: value => parseInt(value),
-            description: 'ID of the asset type (required)',
+            description: 'ID of asset type (required)',
+        },
+        {
+            key: 'asset_type_name',
+            header: 'Asset Type Name',
+            width: 20,
+            required: false,
+            type: 'string',
+            description: 'Name of asset type (export only)',
+        },
+        {
+            key: 'asset_sub_type_id',
+            header: 'Asset Sub Type ID',
+            width: 15,
+            required: false,
+            type: 'number',
+            transform: value => (value ? parseInt(value) : null),
+            description: 'ID of asset sub type (optional)',
+        },
+        {
+            key: 'asset_sub_type_name',
+            header: 'Asset Sub Type Name',
+            width: 20,
+            required: false,
+            type: 'string',
+            description: 'Name of asset sub type (export only)',
         },
         {
             key: 'serial_number',
@@ -118,7 +176,12 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
     async getSampleData() {
         return [
             {
+                name: 'Small Display Cooler',
+                code: 'COOLER-SM-001',
                 asset_type_id: 1,
+                asset_type_name: 'Cooler',
+                asset_sub_type_id: 1,
+                asset_sub_type_name: 'Small Cooler',
                 serial_number: 'COOLER-001-2024',
                 purchase_date: '2024-01-15',
                 warranty_expiry: '2026-01-15',
@@ -128,7 +191,12 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
                 is_active: 'Y',
             },
             {
+                name: 'Large Storage Fridge',
+                code: 'FRIDGE-LG-002',
                 asset_type_id: 2,
+                asset_type_name: 'Fridge',
+                asset_sub_type_id: 3,
+                asset_sub_type_name: 'Large Fridge',
                 serial_number: 'FRIDGE-002-2024',
                 purchase_date: '2024-02-20',
                 warranty_expiry: '2027-02-20',
@@ -138,7 +206,12 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
                 is_active: 'Y',
             },
             {
+                name: 'Medium Display Cooler',
+                code: 'COOLER-MD-003',
                 asset_type_id: 1,
+                asset_type_name: 'Cooler',
+                asset_sub_type_id: 2,
+                asset_sub_type_name: 'Medium Cooler',
                 serial_number: 'COOLER-003-2023',
                 purchase_date: '2023-12-10',
                 warranty_expiry: '2025-12-10',
@@ -153,10 +226,24 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
         const column = this.columns.find(col => col.key === key);
         return column?.description || '';
     }
+    async exportToExcel(options = {}) {
+        const exportOptions = {
+            ...options,
+            include: {
+                asset_master_asset_types: true,
+                asset_master_asset_sub_types: true,
+            },
+        };
+        return super.exportToExcel(exportOptions);
+    }
     async transformDataForExport(data) {
         return data.map(asset => ({
+            name: asset.name || '',
+            code: asset.code || '',
             asset_type_id: asset.asset_type_id,
             asset_type_name: asset.asset_master_asset_types?.name || '',
+            asset_sub_type_id: asset.asset_sub_type_id || '',
+            asset_sub_type_name: asset.asset_master_asset_sub_types?.name || '',
             serial_number: asset.serial_number,
             purchase_date: asset.purchase_date
                 ? asset.purchase_date.toISOString().split('T')[0]
@@ -184,9 +271,57 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
         }
         return null;
     }
-    async transformDataForImport(data, userId) {
-        return {
-            asset_type_id: data.asset_type_id,
+    async validateForeignKeys(data, tx) {
+        const prismaClient = tx || prisma_client_1.default;
+        const assetType = await prismaClient.asset_types.findUnique({
+            where: { id: data.asset_type_id },
+        });
+        if (!assetType) {
+            return `Asset type with ID ${data.asset_type_id} does not exist`;
+        }
+        if (data.asset_sub_type_id) {
+            const assetSubType = await prismaClient.asset_sub_types.findUnique({
+                where: { id: data.asset_sub_type_id },
+            });
+            if (!assetSubType) {
+                return `Asset sub type with ID ${data.asset_sub_type_id} does not exist`;
+            }
+            if (assetSubType.asset_type_id !== data.asset_type_id) {
+                return `Asset sub type with ID ${data.asset_sub_type_id} does not belong to asset type ${data.asset_type_id}`;
+            }
+        }
+        return null;
+    }
+    async generateAssetCode(name) {
+        const prefix = name.slice(0, 3).toUpperCase();
+        const lastAssetCode = await prisma_client_1.default.asset_master.findFirst({
+            orderBy: { id: 'desc' },
+            select: { code: true },
+        });
+        let newNumber = 1;
+        if (lastAssetCode && lastAssetCode.code) {
+            const match = lastAssetCode.code.match(/(\d+)$/);
+            if (match) {
+                newNumber = parseInt(match[1], 10) + 1;
+            }
+        }
+        return `${prefix}-${newNumber.toString().padStart(3, '0')}`;
+    }
+    async prepareDataForImport(data, userId) {
+        // Debug logging to identify the issue
+        console.log('DEBUG: prepareDataForImport received data:', data);
+        console.log('DEBUG: data.code value:', data.code);
+        console.log('DEBUG: typeof data.code:', typeof data.code);
+        let assetCode = null;
+        if (data.code && typeof data.code === 'string' && data.code.trim() !== '') {
+            assetCode = data.code.trim();
+        }
+        else {
+            assetCode = await this.generateAssetCode(data.name);
+        }
+        const baseData = {
+            name: data.name,
+            code: assetCode,
             serial_number: data.serial_number,
             purchase_date: data.purchase_date || null,
             warranty_expiry: data.warranty_expiry || null,
@@ -198,19 +333,24 @@ class AssetMasterImportExportService extends import_export_service_1.ImportExpor
             createdby: userId,
             log_inst: 1,
         };
-    }
-    async validateForeignKeys(data, tx) {
-        const prismaClient = tx || prisma_client_1.default;
-        const assetType = await prismaClient.asset_types.findUnique({
-            where: { id: data.asset_type_id },
-        });
-        if (!assetType) {
-            return `Asset type with ID ${data.asset_type_id} does not exist`;
+        const relationshipData = {
+            asset_master_asset_types: {
+                connect: { id: data.asset_type_id },
+            },
+        };
+        if (data.asset_sub_type_id) {
+            relationshipData.asset_master_asset_sub_types = {
+                connect: { id: data.asset_sub_type_id },
+            };
         }
-        return null;
-    }
-    async prepareDataForImport(data, userId) {
-        return this.transformDataForImport(data, userId);
+        const finalData = {
+            ...baseData,
+            ...relationshipData,
+        };
+        console.log('DEBUG: finalData being returned:', finalData);
+        console.log('DEBUG: finalData.code value:', finalData.code);
+        console.log('DEBUG: typeof finalData.code:', typeof finalData.code);
+        return finalData;
     }
     async updateExisting(data, userId, tx) {
         const model = tx ? tx.asset_master : prisma_client_1.default.asset_master;

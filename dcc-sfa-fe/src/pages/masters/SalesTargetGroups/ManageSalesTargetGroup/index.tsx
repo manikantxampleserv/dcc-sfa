@@ -165,6 +165,7 @@ const ManageSalesTargetGroup: React.FC<ManageSalesTargetGroupProps> = ({
           size="small"
           fullWidth
           label="Status"
+          disableClearable
         >
           <MenuItem value="Y">Active</MenuItem>
           <MenuItem value="N">Inactive</MenuItem>

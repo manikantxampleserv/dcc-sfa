@@ -1,1 +1,1 @@
-{"version":3,"file":"requestTypes.js","sourceRoot":"","sources":["../../src/mock/requestTypes.ts"],"names":[],"mappings":";;;AAAa,QAAA,YAAY,GAAG;IAC1B,EAAE,KAAK,EAAE,gBAAgB,EAAE,KAAK,EAAE,gBAAgB,EAAE;CACrD,CAAC"}
+{"version":3,"file":"requestTypes.js","sourceRoot":"","sources":["../../src/mock/requestTypes.ts"],"names":[],"mappings":";;;AAAa,QAAA,YAAY,GAAG;IAC1B,EAAE,KAAK,EAAE,gBAAgB,EAAE,KAAK,EAAE,gBAAgB,EAAE;IACpD,EAAE,KAAK,EAAE,gBAAgB,EAAE,KAAK,EAAE,yBAAyB,EAAE;CAC9D,CAAC"}

@@ -131,12 +131,12 @@ const AssetMasterManagement: React.FC = () => {
 
   const assetMasterColumns: TableColumn<AssetMaster>[] = [
     {
-      id: 'asset_info',
+      id: 'name',
       label: 'Asset Info',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
-            alt={row.serial_number}
+            alt={row.name || row.serial_number}
             className="!rounded !bg-primary-100 !text-primary-500"
           >
             <Package className="w-5 h-5" />
@@ -146,13 +146,16 @@ const AssetMasterManagement: React.FC = () => {
               variant="body1"
               className="!text-gray-900 !leading-tight"
             >
-              {row.asset_master_asset_types?.name}
+              {row.name}
             </Typography>
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.serial_number}
+              {row.serial_number} • {row.asset_master_asset_types?.name}
+              {row.asset_master_asset_sub_types?.name && (
+                <span> • {row.asset_master_asset_sub_types.name}</span>
+              )}
             </Typography>
           </Box>
         </Box>
