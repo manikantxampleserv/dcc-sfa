@@ -8,10 +8,11 @@ export declare class AssetMasterImportExportService extends ImportExportService<
     protected columns: ColumnDefinition[];
     protected getSampleData(): Promise<any[]>;
     protected getColumnDescription(key: string): string;
+    exportToExcel(options?: any): Promise<Buffer>;
     protected transformDataForExport(data: any[]): Promise<any[]>;
     protected checkDuplicate(data: any, tx?: any): Promise<string | null>;
-    protected transformDataForImport(data: any, userId: number): Promise<any>;
     protected validateForeignKeys(data: any, tx?: any): Promise<string | null>;
+    private generateAssetCode;
     protected prepareDataForImport(data: any, userId: number): Promise<any>;
     protected updateExisting(data: any, userId: number, tx?: any): Promise<any>;
 }

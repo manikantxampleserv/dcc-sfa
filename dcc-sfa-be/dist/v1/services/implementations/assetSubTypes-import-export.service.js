@@ -11,6 +11,8 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
     displayName = 'Asset Sub Types';
     uniqueFields = ['name', 'asset_type_id'];
     searchFields = ['name', 'description', 'code'];
+    // Add code counters to avoid database queries during import
+    codeCounters = new Map();
     columns = [
         {
             key: 'name',
@@ -131,30 +133,48 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
             abbreviation = firstWord;
         }
         const baseCode = `AST-${abbreviation}`;
-        const model = tx ? tx.asset_sub_types : prisma_client_1.default.asset_sub_types;
-        const existingCodes = await model.findMany({
-            where: {
-                code: {
-                    startsWith: baseCode,
+        // Use counter-based approach to avoid database queries during import
+        const currentCount = this.codeCounters.get(baseCode) || 0;
+        const nextCount = currentCount + 1;
+        this.codeCounters.set(baseCode, nextCount);
+        return `${baseCode}-${nextCount.toString().padStart(2, '0')}`;
+    }
+    /**
+     * Initialize counters with existing codes to avoid conflicts
+     * This should be called once at the beginning of the import process
+     */
+    async initializeCodeCounters(tx) {
+        try {
+            const model = tx ? tx.asset_sub_types : prisma_client_1.default.asset_sub_types;
+            // Get all existing codes and initialize counters
+            const existingCodes = await model.findMany({
+                select: { code: true },
+                where: {
+                    code: {
+                        startsWith: 'AST-',
+                    },
                 },
-            },
-            select: {
-                code: true,
-            },
-            orderBy: {
-                code: 'desc',
-            },
-            take: 1,
-        });
-        let nextNumber = 1;
-        if (existingCodes.length > 0) {
-            const lastCode = existingCodes[0].code;
-            const match = lastCode.match(new RegExp(`${baseCode.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}-(\\d+)$`));
-            if (match) {
-                nextNumber = parseInt(match[1]) + 1;
+            });
+            // Process each code to extract the base and number
+            for (const item of existingCodes) {
+                const code = item.code;
+                const match = code.match(/^AST-([A-Z]+)-(\d+)$/);
+                if (match) {
+                    const baseCode = `AST-${match[1]}`;
+                    const number = parseInt(match[2]);
+                    // Update counter to the maximum number found for this base
+                    const currentMax = this.codeCounters.get(baseCode) || 0;
+                    if (number > currentMax) {
+                        this.codeCounters.set(baseCode, number);
+                    }
+                }
             }
         }
-        return `${baseCode}-${nextNumber.toString().padStart(2, '0')}`;
+        catch (error) {
+            console.error('Error initializing code counters:', error);
+            // If initialization fails, we'll start with empty counters
+            // This might cause conflicts but won't crash the import
+        }
     }
     async prepareDataForImport(data, userId) {
         const code = await this.generateCode(data.name);
@@ -165,6 +185,15 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
             createdate: new Date(),
             log_inst: 1,
         };
+    }
+    /**
+     * Override importData to initialize code counters before transaction starts
+     */
+    async importData(data, userId, options = {}) {
+        // Initialize code counters before starting the transaction to avoid timeouts
+        await this.initializeCodeCounters();
+        // Call the parent importData method
+        return super.importData(data, userId, options);
     }
     async updateExisting(data, userId, tx) {
         const model = tx ? tx.asset_sub_types : prisma_client_1.default.asset_sub_types;

@@ -259,7 +259,7 @@ const AssetMovementManagement: React.FC = () => {
       id: 'status',
       label: 'Approval Status',
       render: (_value, row) => {
-        const status = row.status || 'unknown';
+        const status = row.approval_status || 'unknown';
         const statusLower = status.toLowerCase();
 
         const icon =
