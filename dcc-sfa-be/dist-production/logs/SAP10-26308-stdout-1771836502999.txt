@@ -1,0 +1,5 @@
+DATABASE_URL not found in environment variables, attempting to load from .env files...
+DATABASE_URL loaded from: C:\inetpub\wwwroot\dcc_sfa\dcc-sfa-be\.env
+[34m[info] Customer Category Assignment cronjob scheduled[0m
+[34m[info] Attendance cron jobs started[0m
+[32m[success] Server running at http://localhost:\\.\pipe\ce4f64a5-d1d5-40d6-8c9f-0e034ed39a32[0m
