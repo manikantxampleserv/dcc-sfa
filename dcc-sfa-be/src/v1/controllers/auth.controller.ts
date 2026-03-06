@@ -358,7 +358,6 @@ export const forgotPassword = async (req: any, res: any) => {
       return res.error('Invalid email format', 400);
     }
 
-    // Check if user exists
     const user = await prisma.users.findFirst({
       where: {
         email,
@@ -419,48 +418,92 @@ export const forgotPassword = async (req: any, res: any) => {
   }
 };
 
-export const resetPassword = async (req: any, res: any) => {
+export const verifyResetOtp = async (req: any, res: any) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const { email, otp } = req.body;
 
-    if (!email || !otp || !newPassword) {
-      return res.error('Email, OTP, and new password are required', 400);
+    if (!email || !otp) {
+      return res.error('Email and OTP are required', 400);
     }
 
     if (!isValidEmail(email)) {
       return res.error('Invalid email format', 400);
     }
 
-    if (newPassword.length < 6) {
-      return res.error('Password must be at least 6 characters long', 400);
-    }
-
-    // Verify OTP
     const otpValid = await verifyOTP(email, otp);
     if (!otpValid) {
       return res.error('Invalid or expired OTP', 400);
     }
 
-    // Find user
     const user = await prisma.users.findFirst({
-      where: {
-        email,
-        is_active: 'Y',
-      },
+      where: { email, is_active: 'Y' },
     });
 
     if (!user) {
       return res.error('User not found', 404);
     }
 
-    // Hash new password
+    const resetToken = jwt.sign(
+      { id: user.id, email: user.email, purpose: 'password_reset' },
+      jwtConfig.secret,
+      { expiresIn: '5m' }
+    );
+
+    console.log(`OTP verified — reset token issued for: ${email}`);
+    return res.success(
+      'OTP verified successfully. You may now set a new password.',
+      {
+        resetToken,
+      }
+    );
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    return res.error('Failed to verify OTP', 500);
+  }
+};
+
+export const resetPassword = async (req: any, res: any) => {
+  try {
+    const { resetToken, newPassword } = req.body;
+
+    if (!resetToken || !newPassword) {
+      return res.error('Reset token and new password are required', 400);
+    }
+
+    if (newPassword.length < 6) {
+      return res.error('Password must be at least 6 characters long', 400);
+    }
+
+    let decoded: { id: number; email: string; purpose: string };
+    try {
+      decoded = jwt.verify(resetToken, jwtConfig.secret) as {
+        id: number;
+        email: string;
+        purpose: string;
+      };
+    } catch (err) {
+      return res.error(
+        'Reset token is invalid or has expired. Please request a new OTP.',
+        400
+      );
+    }
+
+    if (decoded.purpose !== 'password_reset') {
+      return res.error('Invalid reset token', 400);
+    }
+
+    const user = await prisma.users.findFirst({
+      where: { id: decoded.id, email: decoded.email, is_active: 'Y' },
+    });
+
+    if (!user) {
+      return res.error('User not found', 404);
+    }
+
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update password
     await prisma.users.update({
-      where: {
-        id: user.id,
-      },
+      where: { id: user.id },
       data: {
         password_hash: hashedPassword,
         updatedate: new Date(),
@@ -468,12 +511,8 @@ export const resetPassword = async (req: any, res: any) => {
       },
     });
 
-    // Revoke all existing tokens for this user (force re-login)
     await prisma.api_tokens.updateMany({
-      where: {
-        user_id: user.id,
-        is_revoked: false,
-      },
+      where: { user_id: user.id, is_revoked: false },
       data: {
         is_revoked: true,
         updated_date: new Date(),
@@ -481,7 +520,7 @@ export const resetPassword = async (req: any, res: any) => {
       },
     });
 
-    console.log(`Password reset successfully for user: ${email}`);
+    console.log(`Password reset successfully for user: ${decoded.email}`);
     return res.success(
       'Password has been reset successfully. Please login with your new password.'
     );
