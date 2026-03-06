@@ -84,10 +84,8 @@ exports.coolerInstallationsController = {
                 return `${prefix}-${String(count + 1).padStart(4, '0')}-${timestamp}`;
             };
             let coolerCode;
-            // Handle user-provided code
             if (data.code && data.code.trim() !== '') {
                 coolerCode = data.code.trim();
-                // Check if user-provided code already exists
                 const existingCooler = await prisma_client_1.default.coolers.findUnique({
                     where: { code: coolerCode },
                 });
@@ -98,10 +96,8 @@ exports.coolerInstallationsController = {
                 }
             }
             else {
-                // Generate auto code only if user didn't provide one
                 coolerCode = await generateCode();
                 let attempts = 0;
-                // Ensure generated code is unique
                 while (attempts < 10) {
                     const existing = await prisma_client_1.default.coolers.findUnique({
                         where: { code: coolerCode },
@@ -186,21 +182,22 @@ exports.coolerInstallationsController = {
                     const toLocation = customer
                         ? `${customer.name} (${customer.code})`
                         : 'Customer Location';
-                    await prisma_client_1.default.asset_movements.create({
-                        data: {
-                            asset_id: cooler.asset_master_id,
-                            from_location: cooler.cooler_asset_master?.current_location || 'Warehouse',
-                            to_location: toLocation,
-                            movement_type: 'Installation',
-                            movement_date: cooler.install_date,
-                            performed_by: data.createdby ? Number(data.createdby) : 1,
-                            notes: `Cooler ${cooler.code} installed at customer location`,
-                            is_active: 'Y',
-                            createdby: data.createdby ? Number(data.createdby) : 1,
-                            createdate: new Date(),
-                            log_inst: 1,
-                        },
-                    });
+                    // await prisma.asset_movements.create({
+                    //   data: {
+                    //     asset_id: cooler.asset_master_id,
+                    //     from_location:
+                    //       cooler.cooler_asset_master?.current_location || 'Warehouse',
+                    //     to_location: toLocation,
+                    //     movement_type: 'Installation',
+                    //     movement_date: cooler.install_date,
+                    //     performed_by: data.createdby ? Number(data.createdby) : 1,
+                    //     notes: `Cooler ${cooler.code} installed at customer location`,
+                    //     is_active: 'Y',
+                    //     createdby: data.createdby ? Number(data.createdby) : 1,
+                    //     createdate: new Date(),
+                    //     log_inst: 1,
+                    //   },
+                    // });
                     if (cooler.asset_master_id) {
                         await prisma_client_1.default.asset_master.update({
                             where: { id: cooler.asset_master_id },
@@ -230,13 +227,11 @@ exports.coolerInstallationsController = {
     async getCoolerInstallations(req, res) {
         try {
             const { page, limit, search, isActive, status, customer_id, technician_id, user_id, } = req.query;
-            // Provide default values and validate inputs
             const page_num = page ? parseInt(page, 10) : 1;
             const limit_num = limit ? parseInt(limit, 10) : 10;
             const searchLower = search ? search.toLowerCase() : '';
             const inspectorFilter = technician_id || user_id;
             const filters = {
-                // Only add is_active filter if isActive is provided
                 ...(isActive && { is_active: isActive }),
                 ...(search && {
                     OR: [
