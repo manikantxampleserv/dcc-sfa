@@ -14,12 +14,26 @@
  * - Integration with auth service and token management
  */
 
-import { Checkbox, FormControlLabel, Link as MuiLink } from '@mui/material';
+import {
+  Checkbox,
+  FormControlLabel,
+  Link as MuiLink,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+} from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFormik } from 'formik';
-import { useLogin } from 'hooks/useAuth';
+import {
+  useForgotPassword,
+  useLogin,
+  useResetPassword,
+  useVerifyResetOtp,
+} from 'hooks/useAuth';
 import { userQueryKeys } from 'hooks/useUsers';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { type LoginRequest } from 'services/auth/authService';
 import tokenService from 'services/auth/tokenService';
@@ -59,6 +73,9 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'email' | 'otp' | 'reset' | 'done'>('email');
+  const [resetToken, setResetToken] = useState('');
 
   // Get redirect path from location state or default to dashboard
   const from = (location.state as any)?.from?.pathname || '/';
@@ -76,6 +93,80 @@ const Login: React.FC = () => {
           navigate(from, { replace: true });
         }, 100);
       }
+    },
+  });
+
+  const forgotPasswordMutation = useForgotPassword({
+    onSuccess: () => {
+      setForgotStep('otp');
+    },
+  });
+
+  const verifyOtpMutation = useVerifyResetOtp({
+    onSuccess: (data, variables) => {
+      const tokenFromResponse =
+        (data?.data && (data.data.resetToken || data.data.token)) ||
+        data?.resetToken ||
+        '';
+      setResetToken(tokenFromResponse);
+      // Fallback: if backend doesn't send token, stay on otp step
+      if (tokenFromResponse) {
+        setForgotStep('reset');
+      }
+    },
+  });
+
+  const resetPasswordMutation = useResetPassword({
+    onSuccess: () => {
+      setForgotStep('done');
+    },
+  });
+
+  const forgotFormik = useFormik<{ email: string }>({
+    initialValues: {
+      email: '',
+    },
+    validationSchema: Yup.object({
+      email: Yup.string()
+        .matches(
+          /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+          'Please enter a valid email address'
+        )
+        .required('Email is required'),
+    }),
+    onSubmit: values => {
+      forgotPasswordMutation.mutate(values.email);
+    },
+  });
+
+  const otpFormik = useFormik<{ otp: string }>({
+    initialValues: {
+      otp: '',
+    },
+    validationSchema: Yup.object({
+      otp: Yup.string().required('OTP is required').length(6, 'Enter 6 digit code'),
+    }),
+    onSubmit: values => {
+      verifyOtpMutation.mutate({ email: forgotFormik.values.email, otp: values.otp });
+    },
+  });
+
+  const resetFormik = useFormik<{ newPassword: string; confirmPassword: string }>({
+    initialValues: {
+      newPassword: '',
+      confirmPassword: '',
+    },
+    validationSchema: Yup.object({
+      newPassword: Yup.string().min(6, 'Minimum 6 characters').required('New password is required'),
+      confirmPassword: Yup.string()
+        .oneOf([Yup.ref('newPassword')], 'Passwords must match')
+        .required('Confirm your password'),
+    }),
+    onSubmit: values => {
+      resetPasswordMutation.mutate({
+        resetToken,
+        newPassword: values.newPassword,
+      });
     },
   });
 
@@ -134,6 +225,7 @@ const Login: React.FC = () => {
     if (rememberedEmail) {
       formik.setFieldValue('email', rememberedEmail);
       formik.setFieldValue('rememberMe', true);
+      forgotFormik.setFieldValue('email', rememberedEmail);
     }
   }, []);
 
@@ -338,13 +430,16 @@ const Login: React.FC = () => {
                 </span>
               }
             />
-            {/* <MuiLink
-              component={Link}
-              to="#"
-              className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium no-underline hover:underline transition-colors"
+            <MuiLink
+              onClick={() => {
+                setForgotStep('email');
+                setResetToken('');
+                setForgotOpen(true);
+              }}
+              className="text-blue-600 hover:text-blue-700 text-xs lg:!text-sm font-medium no-underline hover:underline transition-colors"
             >
-              Forgot Your Password?
-            </MuiLink> */}
+              Forgot your password?
+            </MuiLink>
           </div>
 
           <Button
@@ -358,6 +453,149 @@ const Login: React.FC = () => {
             {loginMutation.isPending ? 'Signing In...' : 'Log In'}
           </Button>
         </form>
+
+        <Dialog
+          open={forgotOpen}
+          onClose={() => setForgotOpen(false)}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle className="!font-bold !text-gray-900">
+            Reset Password
+          </DialogTitle>
+          <DialogContent>
+            {forgotStep === 'email' && (
+              <div className="space-y-4 pt-1">
+                <Typography variant="body2" className="!text-gray-600">
+                  Enter your account email and we will send you a reset link.
+                </Typography>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    forgotFormik.handleSubmit();
+                  }}
+                >
+                  <Input
+                    name="email"
+                    type="email"
+                    label="Email"
+                    placeholder="Enter your email"
+                    formik={forgotFormik}
+                    required
+                    className="!mt-2"
+                  />
+                </form>
+              </div>
+            )}
+            {forgotStep === 'otp' && (
+              <div className="space-y-4 pt-1">
+                <Typography variant="body2" className="!text-gray-600">
+                  Enter the 6-digit code sent to {forgotFormik.values.email}.
+                </Typography>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    otpFormik.handleSubmit();
+                  }}
+                >
+                  <Input
+                    name="otp"
+                    type="text"
+                    label="Verification Code"
+                    placeholder="Enter 6-digit code"
+                    formik={otpFormik}
+                    required
+                  />
+                </form>
+              </div>
+            )}
+            {forgotStep === 'reset' && (
+              <div className="space-y-4 pt-1">
+                <Typography variant="body2" className="!text-gray-600">
+                  Create a new password for {forgotFormik.values.email}.
+                </Typography>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    resetFormik.handleSubmit();
+                  }}
+                >
+                  <Input
+                    name="newPassword"
+                    type="password"
+                    label="New Password"
+                    placeholder="Enter new password"
+                    formik={resetFormik}
+                    required
+                  />
+                  <div className="!mt-3" />
+                  <Input
+                    name="confirmPassword"
+                    type="password"
+                    label="Confirm Password"
+                    placeholder="Re-enter new password"
+                    formik={resetFormik}
+                    required
+                  />
+                </form>
+              </div>
+            )}
+            {forgotStep === 'done' && (
+              <div className="py-1">
+                <Typography variant="body2" className="!text-green-700">
+                  Password reset successful. You can now sign in with your new password.
+                </Typography>
+              </div>
+            )}
+          </DialogContent>
+          <DialogActions className="!px-6 !pb-4 !gap-2">
+            <Button
+              variant="outlined"
+              onClick={() => setForgotOpen(false)}
+              className="!capitalize"
+            >
+              Close
+            </Button>
+            {forgotStep === 'email' && (
+              <Button
+                loading={forgotPasswordMutation.isPending as any}
+                variant="contained"
+                onClick={() => forgotFormik.handleSubmit()}
+                disabled={!forgotFormik.isValid || !forgotFormik.values.email}
+                className="!capitalize"
+              >
+                Send Reset Link
+              </Button>
+            )}
+            {forgotStep === 'otp' && (
+              <Button
+                loading={verifyOtpMutation.isPending as any}
+                variant="contained"
+                onClick={() => otpFormik.handleSubmit()}
+                disabled={!otpFormik.isValid || !otpFormik.values.otp}
+                className="!capitalize"
+              >
+                Verify Code
+              </Button>
+            )}
+            {forgotStep === 'reset' && (
+              <Button
+                loading={resetPasswordMutation.isPending as any}
+                variant="contained"
+                onClick={() => resetFormik.handleSubmit()}
+                disabled={
+                  !resetFormik.isValid ||
+                  !resetFormik.values.newPassword ||
+                  !resetFormik.values.confirmPassword ||
+                  !resetToken
+                }
+                className="!capitalize"
+              >
+                Reset Password
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
 
         {/* Footer */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mt-8 sm:mt-12 text-xs text-gray-500">

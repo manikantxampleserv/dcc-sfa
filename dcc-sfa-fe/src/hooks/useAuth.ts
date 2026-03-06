@@ -26,6 +26,56 @@ export const useLogin = (options?: {
 };
 
 /**
+ * Hook for forgot password (send reset link/OTP)
+ */
+export const useForgotPassword = (options?: {
+  onSuccess?: (data: any, variables: string) => void;
+  onError?: (error: any, variables: string) => void;
+}) => {
+  return useApiMutation({
+    mutationFn: (email: string) => authService.forgotPassword(email),
+    loadingMessage: 'Sending reset link...',
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+  });
+};
+
+/**
+ * Hook for reset password with OTP
+ */
+export const useResetPassword = (options?: {
+  onSuccess?: (
+    data: any,
+    variables: { resetToken: string; newPassword: string }
+  ) => void;
+  onError?: (
+    error: any,
+    variables: { resetToken: string; newPassword: string }
+  ) => void;
+}) => {
+  return useApiMutation({
+    mutationFn: (payload: { resetToken: string; newPassword: string }) =>
+      authService.resetPassword(payload),
+    loadingMessage: 'Resetting password...',
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+  });
+};
+
+export const useVerifyResetOtp = (options?: {
+  onSuccess?: (data: any, variables: { email: string; otp: string }) => void;
+  onError?: (error: any, variables: { email: string; otp: string }) => void;
+}) => {
+  return useApiMutation({
+    mutationFn: (payload: { email: string; otp: string }) =>
+      authService.verifyResetOtp(payload),
+    loadingMessage: 'Verifying code...',
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+  });
+};
+
+/**
  * Hook for user logout
  * @param options - Additional options for the mutation
  * @returns Mutation for logout operation

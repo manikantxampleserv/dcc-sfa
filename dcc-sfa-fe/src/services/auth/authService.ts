@@ -80,6 +80,43 @@ class AuthService {
   }
 
   /**
+   * Sends forgot password request to backend
+   * @param email - Account email
+   */
+  async forgotPassword(
+    email: string
+  ): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/auth/forgot-password', { email }, {
+      skipAuth: true,
+    } as any);
+    return response.data;
+  }
+
+  /**
+   * Resets password using OTP
+   * @param payload - { email, newPassword }
+   */
+  async resetPassword(payload: {
+    resetToken: string;
+    newPassword: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/auth/reset-password', payload, {
+      skipAuth: true,
+    } as any);
+    return response.data;
+  }
+
+  async verifyResetOtp(payload: {
+    email: string;
+    otp: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/auth/verify-otp', payload, {
+      skipAuth: true,
+    } as any);
+    return response.data;
+  }
+
+  /**
    * Logs out the current user
    * @returns {Promise<void>}
    */
