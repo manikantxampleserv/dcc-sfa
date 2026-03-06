@@ -103,7 +103,7 @@ const Login: React.FC = () => {
   });
 
   const verifyOtpMutation = useVerifyResetOtp({
-    onSuccess: (data, variables) => {
+    onSuccess: data => {
       const tokenFromResponse =
         (data?.data && (data.data.resetToken || data.data.token)) ||
         data?.resetToken ||
