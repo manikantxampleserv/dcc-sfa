@@ -366,9 +366,7 @@ export const forgotPassword = async (req: any, res: any) => {
     });
 
     if (!user) {
-      return res.success(
-        'If an account with this email exists, a password reset OTP has been sent.'
-      );
+      return res.success('No email found ');
     }
 
     const otpCode = generateOTP(6);
