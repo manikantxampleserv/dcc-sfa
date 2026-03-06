@@ -4,6 +4,8 @@ import {
   login,
   logout,
   refresh,
+  forgotPassword,
+  resetPassword,
 } from '../controllers/auth.controller';
 import {
   authenticateToken,
@@ -22,5 +24,7 @@ router.post(
   logout
 );
 router.post('/auth/refresh', refresh);
+router.post('/auth/forgot-password', forgotPassword);
+router.post('/auth/reset-password', resetPassword);
 
 export default router;

@@ -2834,3 +2834,23 @@ model subunits {
   subunits_unit_of_measurement unit_of_measurement @relation(fields: [unit_of_measurement_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
   subunits_products            products[]
 }
+
+model password_reset_otps {
+  id         Int       @id @default(autoincrement())
+  email      String    @db.NVarChar(255)
+  otp_code   String    @db.NVarChar(10)
+  expires_at DateTime
+  is_used    Boolean   @default(false)
+  created_at DateTime  @default(now())
+  updated_at DateTime? @updatedAt
+  ip_address String?   @db.NVarChar(50)
+  user_agent String?   @db.NVarChar(500)
+  is_active  String    @default("Y") @db.Char(1)
+  createdby  Int?
+  updatedby  Int?
+  log_inst   Int?
+
+  @@index([email])
+  @@index([otp_code])
+  @@index([expires_at])
+}

@@ -3,6 +3,14 @@ import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../../configs/jwt.config';
 import { getClientIP } from '../../utils/ipUtils';
 import prisma from '../../configs/prisma.client';
+import {
+  generateOTP,
+  storeOTP,
+  verifyOTP,
+  isValidEmail,
+} from '../../utils/otp.util';
+import { generateEmailContent } from '../../utils/emailTemplates';
+import { sendEmail } from '../../utils/mailer';
 
 const truncateString = (str: string | undefined, maxLength: number): string => {
   if (!str) return 'Unknown';
@@ -335,5 +343,150 @@ export const refresh = async (req: any, res: any) => {
   } catch (error) {
     console.error(error);
     return res.error('Invalid refresh token', 401);
+  }
+};
+
+export const forgotPassword = async (req: any, res: any) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.error('Email is required', 400);
+    }
+
+    if (!isValidEmail(email)) {
+      return res.error('Invalid email format', 400);
+    }
+
+    // Check if user exists
+    const user = await prisma.users.findFirst({
+      where: {
+        email,
+        is_active: 'Y',
+      },
+    });
+
+    if (!user) {
+      return res.success(
+        'If an account with this email exists, a password reset OTP has been sent.'
+      );
+    }
+
+    const otpCode = generateOTP(6);
+    const ipAddress = getClientIP(req);
+    const userAgent = req.get('User-Agent') || 'Unknown';
+
+    const otpStored = await storeOTP(
+      email,
+      otpCode,
+      ipAddress,
+      userAgent,
+      user.parent_id || undefined
+    );
+    if (!otpStored) {
+      return res.error('Failed to generate OTP. Please try again.', 500);
+    }
+
+    try {
+      const emailContent = await generateEmailContent('password_reset_otp', {
+        user_name: user.name,
+        email: email,
+        otp_code: otpCode,
+        expiry_minutes: 15,
+      });
+
+      const emailSent = await sendEmail({
+        to: email,
+        subject: emailContent.subject,
+        html: emailContent.body,
+        log_inst: user.parent_id || undefined,
+      });
+
+      if (!emailSent) {
+        console.error('Failed to send OTP email to:', email);
+        return res.error('Failed to send OTP email. Please try again.', 500);
+      }
+
+      console.log(`Password reset OTP sent to ${email}: ${otpCode}`);
+      return res.success('Password reset OTP has been sent to your email.');
+    } catch (emailError) {
+      console.error('Error generating/sending OTP email:', emailError);
+      return res.error('Failed to send OTP email. Please try again.', 500);
+    }
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.error('Failed to process forgot password request', 500);
+  }
+};
+
+export const resetPassword = async (req: any, res: any) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.error('Email, OTP, and new password are required', 400);
+    }
+
+    if (!isValidEmail(email)) {
+      return res.error('Invalid email format', 400);
+    }
+
+    if (newPassword.length < 6) {
+      return res.error('Password must be at least 6 characters long', 400);
+    }
+
+    // Verify OTP
+    const otpValid = await verifyOTP(email, otp);
+    if (!otpValid) {
+      return res.error('Invalid or expired OTP', 400);
+    }
+
+    // Find user
+    const user = await prisma.users.findFirst({
+      where: {
+        email,
+        is_active: 'Y',
+      },
+    });
+
+    if (!user) {
+      return res.error('User not found', 404);
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await prisma.users.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        password_hash: hashedPassword,
+        updatedate: new Date(),
+        updatedby: user.id,
+      },
+    });
+
+    // Revoke all existing tokens for this user (force re-login)
+    await prisma.api_tokens.updateMany({
+      where: {
+        user_id: user.id,
+        is_revoked: false,
+      },
+      data: {
+        is_revoked: true,
+        updated_date: new Date(),
+        updated_by: user.id,
+      },
+    });
+
+    console.log(`Password reset successfully for user: ${email}`);
+    return res.success(
+      'Password has been reset successfully. Please login with your new password.'
+    );
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.error('Failed to reset password', 500);
   }
 };
