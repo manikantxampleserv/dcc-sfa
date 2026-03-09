@@ -33,7 +33,7 @@ export const storeOTP = async (
       },
     });
 
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await prisma.password_reset_otps.create({
       data: {
