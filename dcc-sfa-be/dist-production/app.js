@@ -1,7 +1,4 @@
 "use strict";
-/**
- * Sets up middleware, routes, and application-level configurations.
- */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -15,6 +12,7 @@ const routes_1 = __importDefault(require("./routes"));
 const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignment.job");
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = require("path");
+const server_1 = require("./graphql/server");
 // First check if DATABASE_URL is already set in environment variables
 if (!process.env.DATABASE_URL) {
     // Load environment variables from the root directory
@@ -41,13 +39,14 @@ if (!process.env.DATABASE_URL) {
 }
 /**
  * Creates and configures the Express application
- * @returns {Application} Configured Express application
+ * @returns {Promise<Application>} Configured Express application
  */
-const createApp = () => {
+const createApp = async () => {
     const app = (0, express_1.default)();
     app.set('trust proxy', true);
-    app.use(express_1.default.json());
-    app.use(express_1.default.urlencoded({ extended: true }));
+    await (0, server_1.setupGraphQL)(app);
+    app.use(express_1.default.json({ limit: '10mb' }));
+    app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
     app.use((0, cookie_parser_1.default)());
     app.use((0, cors_1.default)({ origin: '*', credentials: true }));
     app.use(response_middleware_1.responseHandler);
