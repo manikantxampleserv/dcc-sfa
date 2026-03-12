@@ -18,6 +18,7 @@
     "seed:clean": "ts-node src/utils/seeders/index.ts clear",
     "seed:all": "ts-node src/utils/seeders/index.ts seed",
     "seed": "ts-node src/utils/seeders/index.ts",
+    "seed:permissions": "ts-node src/utils/seeders/index.ts seed permissions",
     "lint": "echo \"No linting configured for backend yet\"",
     "check:env": "node -e \"console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET'); console.log('NODE_ENV:', process.env.NODE_ENV); console.log('Working Directory:', process.cwd());\""
   },

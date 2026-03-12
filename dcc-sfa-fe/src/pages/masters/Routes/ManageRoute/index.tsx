@@ -9,7 +9,7 @@ import {
   type DropResult,
 } from '@hello-pangea/dnd';
 import { GripVertical, User } from 'lucide-react';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { routeValidationSchema } from 'schemas/route.schema';
 import type { Depot } from 'services/masters/Depots';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -23,6 +23,12 @@ import { useUsersDropdown } from 'hooks/useUsers';
 interface Zone {
   id: number;
   name: string;
+  depot_id?: number;
+  zone_depots?: {
+    id: number;
+    name: string;
+    code: string;
+  };
 }
 
 interface SalespersonOption {
@@ -133,6 +139,21 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
       }
     },
   });
+
+  // Auto-select depot when zone is selected
+  useEffect(() => {
+    if (formik.values.parent_id) {
+      const selectedZone = zones.find(
+        zone => zone.id === Number(formik.values.parent_id)
+      );
+      if (selectedZone?.zone_depots?.id) {
+        formik.setFieldValue(
+          'depot_id',
+          selectedZone.zone_depots.id.toString()
+        );
+      }
+    }
+  }, [formik.values.parent_id, zones]);
 
   const initialSelectedUsers = useMemo(() => {
     const sps = selectedRoute?.salespersons || [];
@@ -259,24 +280,14 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            {/* Depot Selection */}
-            <Select name="depot_id" label="Depot" formik={formik} required>
-              {depots.map(depot => (
-                <MenuItem key={depot.id} value={depot.id.toString()}>
-                  {depot.name} ({depot.code})
-                </MenuItem>
-              ))}
-            </Select>
-
-            {/* Zone Selection */}
-            <Select name="parent_id" label="Zone" formik={formik} required>
-              {zones.map(zone => (
-                <MenuItem key={zone.id} value={zone.id.toString()}>
-                  {zone.name}
-                </MenuItem>
-              ))}
-            </Select>
-
+            {/* Route Name */}
+            <Input
+              name="name"
+              label="Route Name"
+              placeholder="Enter route name"
+              formik={formik}
+              required
+            />
             {/* Route Type Selection */}
             <Select
               name="route_type_id"
@@ -291,15 +302,23 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
               ))}
             </Select>
 
-            {/* Route Name */}
-            <Input
-              name="name"
-              label="Route Name"
-              placeholder="Enter route name"
-              formik={formik}
-              required
-            />
+            {/* Zone Selection */}
+            <Select name="parent_id" label="Zone" formik={formik} required>
+              {zones.map(zone => (
+                <MenuItem key={zone.id} value={zone.id.toString()}>
+                  {zone.name}
+                </MenuItem>
+              ))}
+            </Select>
 
+            {/* Depot Selection */}
+            <Select name="depot_id" label="Depot" formik={formik} required>
+              {depots.map(depot => (
+                <MenuItem key={depot.id} value={depot.id.toString()}>
+                  {depot.name} ({depot.code})
+                </MenuItem>
+              ))}
+            </Select>
             {/* Start Location */}
             <Input
               name="start_location"

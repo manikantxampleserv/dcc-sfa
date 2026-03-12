@@ -127,6 +127,7 @@ export type Modules =
   | 'outlet'
   | 'outlet-group'
   | 'asset-type'
+  | 'asset-sub-types'
   | 'asset-master'
   | 'warehouse'
   | 'vehicle'
@@ -166,8 +167,6 @@ export type Modules =
   | 'customer-complaint'
   | 'customer-category'
   | 'customer-type'
-  | 'cooler-type'
-  | 'cooler-sub-type'
   | 'location'
   | 'route-effectiveness'
   | 'erp-sync'
@@ -209,6 +208,7 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
   outlet: 'Outlet',
   'outlet-group': 'Outlet Group',
   'asset-type': 'Asset Type',
+  'asset-sub-types': 'Asset Sub Types',
   'asset-master': 'Asset Master',
   warehouse: 'Warehouse',
   vehicle: 'Vehicle',
