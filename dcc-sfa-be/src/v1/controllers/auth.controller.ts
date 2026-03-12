@@ -385,17 +385,59 @@ export const forgotPassword = async (req: any, res: any) => {
     }
 
     try {
-      const emailContent = await generateEmailContent('password_reset_otp', {
-        user_name: user.name,
-        email: email,
-        otp_code: otpCode,
-        expiry_minutes: 15,
-      });
+      const emailHtml = `<!DOCTYPE html>
+<html>
+<body style="font-family:Arial, sans-serif;background:#f5f7fb;padding:40px">
+
+<table align="center" width="500" style="background:#ffffff;border-radius:8px;padding:30px">
+<tr>
+<td align="center">
+
+<h2 style="color:#333;">Reset Your Password</h2>
+
+<p style="color:#666;">
+Hi <b>${user.name}</b>, <br>
+We received a request to reset your password.
+</p>
+
+<div style="
+font-size:34px;
+letter-spacing:8px;
+background:#f2f4f8;
+padding:15px;
+margin:25px 0;
+border-radius:6px;
+font-weight:bold;
+color:#111;
+">
+${otpCode}
+</div>
+
+<p style="color:#777;font-size:14px">
+This OTP will expire in <b>15 minutes</b>.
+</p>
+
+<p style="color:#999;font-size:13px">
+If you didn't request this, please ignore this email.
+</p>
+
+<hr style="margin:30px 0">
+
+<p style="font-size:12px;color:#aaa">
+© 2026 DCC-SFA
+</p>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>`;
 
       const emailSent = await sendEmail({
         to: email,
-        subject: emailContent.subject,
-        html: emailContent.body,
+        subject: 'Password Reset OTP',
+        html: emailHtml,
         log_inst: user.parent_id || undefined,
       });
 

@@ -1,5 +1,4 @@
-import { Request } from 'express';
-import multer from 'multer';
+import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 
 const storage = multer.memoryStorage();
@@ -8,9 +7,9 @@ export const uploadExcel = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (
-    req: Request,
+    _req: any,
     file: Express.Multer.File,
-    cb: (err: Error | null, acceptFile?: boolean) => void
+    cb: FileFilterCallback
   ) => {
     const allowedTypes = [
       'application/vnd.ms-excel',
@@ -37,9 +36,9 @@ export const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (
-    req: Request,
+    _req: any,
     file: Express.Multer.File,
-    cb: (err: Error | null, acceptFile?: boolean) => void
+    cb: FileFilterCallback
   ) => {
     const allowedTypes = [
       'image/jpeg',
