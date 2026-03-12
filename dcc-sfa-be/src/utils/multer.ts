@@ -1,4 +1,4 @@
-import { application, Request } from 'express';
+import { Request } from 'express';
 import multer from 'multer';
 import path from 'path';
 
