@@ -35,7 +35,7 @@ const SalesTargetGroupsManagement: React.FC = () => {
 
   const {
     data: groupsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useSalesTargetGroups(
     {
@@ -229,28 +229,28 @@ const SalesTargetGroupsManagement: React.FC = () => {
           value={totalGroups}
           icon={<Users className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Groups"
           value={activeGroups}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Groups"
           value={inactiveGroups}
           icon={<XCircle className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={groupsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -343,7 +343,7 @@ const SalesTargetGroupsManagement: React.FC = () => {
         }
         getRowId={group => group.id}
         initialOrderBy="group_name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

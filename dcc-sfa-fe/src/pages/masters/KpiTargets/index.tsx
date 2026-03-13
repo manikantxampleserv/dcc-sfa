@@ -35,7 +35,7 @@ const KpiTargetsManagement: React.FC = () => {
 
   const {
     data: kpiTargetsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useKpiTargets(
     {
@@ -246,28 +246,28 @@ const KpiTargetsManagement: React.FC = () => {
           value={totalTargets}
           icon={<Target className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Targets"
           value={activeTargets}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Targets"
           value={inactiveTargets}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={targetsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -356,7 +356,7 @@ const KpiTargetsManagement: React.FC = () => {
         }
         getRowId={kpiTarget => kpiTarget.id}
         initialOrderBy="kpi_name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

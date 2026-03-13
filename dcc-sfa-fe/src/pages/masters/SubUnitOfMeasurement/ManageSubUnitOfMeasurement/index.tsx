@@ -15,7 +15,6 @@ import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import UnitOfMeasurementSelect from 'shared/UnitOfMeasurementSelect';
-import SubUnitProductSelect from 'shared/SubUnitProductSelect';
 
 interface ManageSubUnitOfMeasurementProps {
   selectedSubUnit?: SubUnitOfMeasurement | null;
@@ -127,10 +126,6 @@ const ManageSubUnitOfMeasurement: React.FC<ManageSubUnitOfMeasurementProps> = ({
                 label="Unit of Measurement"
                 formik={formik}
               />
-            </Box>
-
-            <Box className="md:!col-span-1">
-              <SubUnitProductSelect formik={formik} />
             </Box>
 
             <Box className="md:!col-span-2">

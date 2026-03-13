@@ -108,6 +108,7 @@ import UpdatedPromotionsManagement from 'pages/masters/UpdatedPromotions';
 import UpdatedPromotionDetail from 'pages/masters/UpdatedPromotions/UpdatedPromotionDetail';
 import InventoryItems from 'pages/masters/InvetoryItems';
 import InventoryDetail from 'pages/masters/InvetoryItems/InventoryDetail';
+import EmailTemplates from 'pages/settings/EmailTemplates';
 
 const router = createBrowserRouter(
   [
@@ -913,6 +914,16 @@ const router = createBrowserRouter(
             </PermissionGuard>
           ),
         },
+
+        {
+          path: '/settings/email-templates',
+          element: (
+            <PermissionGuard module="email-templates" action="read">
+              <EmailTemplates />
+            </PermissionGuard>
+          ),
+        },
+
         {
           path: '/settings/tokens',
           element: (

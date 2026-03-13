@@ -43,7 +43,7 @@ const CreditNotesManagement: React.FC = () => {
 
   const {
     data: creditNotesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCreditNotes(
     {
@@ -368,28 +368,28 @@ const CreditNotesManagement: React.FC = () => {
           value={totalCreditNotes}
           icon={<Receipt className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Total Value"
           value={formatCurrency(totalValue)}
           icon={<DollarSign className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Avg Credit Note Value"
           value={formatCurrency(avgCreditNoteValue)}
           icon={<DollarSign className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Pending Approval"
           value={pendingApproval}
           icon={<AlertTriangle className="w-6 h-6" />}
           color="orange"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -480,7 +480,7 @@ const CreditNotesManagement: React.FC = () => {
         }
         getRowId={creditNote => creditNote.id}
         initialOrderBy="credit_note_number"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

@@ -183,7 +183,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
               />
             </InputAdornment>
           ),
-          className: '!text-sm',
         },
       }}
     />

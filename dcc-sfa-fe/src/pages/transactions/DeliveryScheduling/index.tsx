@@ -45,7 +45,7 @@ const DeliveryScheduling: React.FC = () => {
 
   const {
     data: deliverySchedulesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useDeliverySchedules(
     {
@@ -442,28 +442,28 @@ const DeliveryScheduling: React.FC = () => {
           value={totalDeliveries}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Deliveries"
           value={activeDeliveries}
           icon={<Truck className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Deliveries"
           value={inactiveDeliveries}
           icon={<XCircle className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newDeliveriesThisMonth}
           icon={<Calendar className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -571,7 +571,7 @@ const DeliveryScheduling: React.FC = () => {
         }
         getRowId={deliverySchedule => deliverySchedule.id}
         initialOrderBy="scheduled_date"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

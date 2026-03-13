@@ -54,7 +54,7 @@ const CoolerInspectionsManagement: React.FC = () => {
 
   const {
     data: coolerInspectionsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCoolerInspections(
     {
@@ -420,28 +420,28 @@ const CoolerInspectionsManagement: React.FC = () => {
           value={totalInspections}
           icon={<Wrench className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Inspections"
           value={activeInspections}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Inspections"
           value={inactiveInspections}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={inspectionsThisMonth}
           icon={<Calendar className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -563,7 +563,7 @@ const CoolerInspectionsManagement: React.FC = () => {
         }
         getRowId={inspection => inspection.id}
         initialOrderBy="inspection_date"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

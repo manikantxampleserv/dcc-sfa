@@ -34,7 +34,7 @@ const CustomerTypePage: React.FC = () => {
 
   const {
     data: customerTypesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCustomerTypes(
     {
@@ -221,28 +221,28 @@ const CustomerTypePage: React.FC = () => {
           value={totalCustomerTypes}
           icon={<Tag className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Types"
           value={activeCustomerTypes}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Types"
           value={inactiveCustomerTypes}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newCustomerTypesThisMonth}
           icon={<Building2 className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -333,7 +333,7 @@ const CustomerTypePage: React.FC = () => {
         }
         getRowId={customerType => customerType.id}
         initialOrderBy="type_name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

@@ -46,7 +46,7 @@ const ApprovalWorkflows: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const { isRead, isUpdate } = usePermission('approval');
 
-  const { data: requestsResponse, isLoading } = useRequestsByUsers(
+  const { data: requestsResponse, isFetching } = useRequestsByUsers(
     {
       page,
       limit,
@@ -284,28 +284,28 @@ const ApprovalWorkflows: React.FC = () => {
             value={stats?.total_requests || 0}
             icon={<FileText className="w-6 h-6" />}
             color="blue"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Pending Requests"
             value={stats?.pending_requests || 0}
             icon={<AlertTriangle className="w-6 h-6" />}
             color="orange"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Approved Requests"
             value={stats?.approved_requests || 0}
             icon={<CheckCircle className="w-6 h-6" />}
             color="green"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Rejected Requests"
             value={stats?.rejected_requests || 0}
             icon={<XCircle className="w-6 h-6" />}
             color="red"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
         </div>
       )}
@@ -313,7 +313,7 @@ const ApprovalWorkflows: React.FC = () => {
       <Table
         columns={columns}
         data={requests}
-        loading={isLoading}
+        loading={isFetching}
         page={page - 1}
         onPageChange={newPage => setPage(newPage + 1)}
         rowsPerPage={limit}

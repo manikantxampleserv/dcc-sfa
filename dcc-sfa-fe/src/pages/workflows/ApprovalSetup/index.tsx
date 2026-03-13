@@ -33,7 +33,7 @@ const ApprovalSetup: React.FC = () => {
 
   const {
     data: workflowsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useApprovalWorkflowSetups(
     {
@@ -250,28 +250,28 @@ const ApprovalSetup: React.FC = () => {
             value={totalWorkflows}
             icon={<Settings className="w-6 h-6" />}
             color="blue"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Active Workflows"
             value={activeWorkflows}
             icon={<CheckCircle className="w-6 h-6" />}
             color="green"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Inactive Workflows"
             value={inactiveWorkflows}
             icon={<XCircle className="w-6 h-6" />}
             color="red"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Total Approvers"
             value={totalApprovers}
             icon={<Users className="w-6 h-6" />}
             color="purple"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
         </div>
       )}
@@ -343,7 +343,7 @@ const ApprovalSetup: React.FC = () => {
         }
         getRowId={workflow => workflow.request_type}
         initialOrderBy="request_type"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={
           statusFilter !== 'all'
             ? filteredWorkflows.length

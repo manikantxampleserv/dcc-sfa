@@ -34,7 +34,7 @@ const ProductWebOrdersPage: React.FC = () => {
 
   const {
     data: productWebOrdersResponse,
-    isLoading,
+    isFetching,
     error,
   } = useProductWebOrders(
     {
@@ -222,28 +222,28 @@ const ProductWebOrdersPage: React.FC = () => {
           value={totalProductWebOrders}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Orders"
           value={activeProductWebOrders}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Orders"
           value={inactiveProductWebOrders}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newProductWebOrdersThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -337,7 +337,7 @@ const ProductWebOrdersPage: React.FC = () => {
         }
         getRowId={productWebOrder => productWebOrder.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

@@ -1,13 +1,10 @@
 import { Router } from 'express';
 import {
-  authenticateToken,
-  requirePermission,
-} from '../../middlewares/auth.middleware';
-import {
   auditCreate,
-  auditUpdate,
   auditDelete,
+  auditUpdate,
 } from '../../middlewares/audit.middleware';
+import { authenticateToken } from '../../middlewares/auth.middleware';
 import { templatesController } from '../controllers/templates.controller';
 
 const router = Router();

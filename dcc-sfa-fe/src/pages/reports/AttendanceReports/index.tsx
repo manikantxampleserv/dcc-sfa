@@ -22,7 +22,7 @@ const AttendanceReports: React.FC = () => {
   const [limit] = useState(10);
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useAttendanceHistoryReport(
+  const { data: reportData, isFetching } = useAttendanceHistoryReport(
     {
       page,
       limit,
@@ -286,7 +286,7 @@ const AttendanceReports: React.FC = () => {
       <Table
         columns={columns}
         data={reportData?.data || []}
-        loading={isLoading}
+        loading={isFetching}
         totalCount={pagination.total_count || 0}
         page={pagination.current_page - 1 || 0}
         rowsPerPage={limit}

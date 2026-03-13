@@ -7,6 +7,7 @@ import {
   MdBusiness,
   MdCategory,
   MdDashboard,
+  MdEmail,
   // MdDeliveryDining,
   MdFolder,
   MdLocalShipping,
@@ -546,6 +547,12 @@ const menuItems: MenuItem[] = [
       //   icon: MdPerson,
       //   href: '/profile',
       // },
+      {
+        id: 'email-templates',
+        label: 'Email Templates',
+        icon: MdEmail,
+        href: '/settings/email-templates',
+      },
       {
         id: 'login-history',
         label: 'Login History',

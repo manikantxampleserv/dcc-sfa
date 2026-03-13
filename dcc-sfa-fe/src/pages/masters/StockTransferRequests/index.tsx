@@ -35,7 +35,7 @@ const StockTransferRequestsManagement: React.FC = () => {
 
   const {
     data: requestsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useStockTransferRequests(
     {
@@ -323,28 +323,28 @@ const StockTransferRequestsManagement: React.FC = () => {
           value={totalRequests}
           icon={<Truck className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Requests"
           value={activeRequests}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Requests"
           value={inactiveRequests}
           icon={<XCircle className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={requestsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -434,7 +434,7 @@ const StockTransferRequestsManagement: React.FC = () => {
         }
         getRowId={request => request.id}
         initialOrderBy="request_number"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}
