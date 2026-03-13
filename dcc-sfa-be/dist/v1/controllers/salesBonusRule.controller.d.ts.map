@@ -1,1 +1,0 @@
-{"version":3,"file":"salesBonusRule.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/salesBonusRule.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAoC5C,eAAO,MAAM,yBAAyB;8BACJ,GAAG,OAAO,GAAG;+BAmCZ,GAAG,OAAO,GAAG;+BAiEb,OAAO,OAAO,QAAQ;8BA4BvB,GAAG,OAAO,GAAG;8BA6Cb,OAAO,OAAO,QAAQ;CAevD,CAAC"}

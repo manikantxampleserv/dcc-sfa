@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const auth_middleware_1 = require("../../middlewares/auth.middleware");
 const audit_middleware_1 = require("../../middlewares/audit.middleware");
+const auth_middleware_1 = require("../../middlewares/auth.middleware");
 const templates_controller_1 = require("../controllers/templates.controller");
 const router = (0, express_1.Router)();
 router.post('/templates', auth_middleware_1.authenticateToken, (0, audit_middleware_1.auditCreate)('templates'), templates_controller_1.templatesController.createTemplates);
