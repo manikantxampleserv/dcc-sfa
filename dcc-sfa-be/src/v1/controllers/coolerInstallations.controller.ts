@@ -54,75 +54,83 @@ interface CoolerInstallationSerialized {
     serial_number?: string | null;
     current_status?: string | null;
     current_location?: string | null;
+    asset_type?: {
+      id: number;
+      name: string;
+    } | null;
+    asset_sub_type?: {
+      id: number;
+      name: string;
+    } | null;
   } | null;
 }
 
 const serializeCoolerInstallation = (
   cooler: any
-): CoolerInstallationSerialized => ({
-  id: cooler.id,
-  customer_id: cooler.customer_id,
-  code: cooler.code,
-  asset_master_id: cooler.asset_master_id,
-  brand: cooler.brand,
-  model: cooler.model,
-  serial_number: cooler.serial_number,
-  capacity: cooler.capacity,
-  install_date: cooler.install_date?.toISOString(),
-  last_service_date: cooler.last_service_date?.toISOString(),
-  next_service_due: cooler.next_service_due?.toISOString(),
-  cooler_type_id: cooler.cooler_type_id,
-  cooler_sub_type_id: cooler.cooler_sub_type_id,
-  status: cooler.status,
-  temperature: cooler.temperature ? Number(cooler.temperature) : null,
-  energy_rating: cooler.energy_rating,
-  warranty_expiry: cooler.warranty_expiry?.toISOString(),
-  maintenance_contract: cooler.maintenance_contract,
-  technician_id: cooler.technician_id,
-  last_scanned_date: cooler.last_scanned_date?.toISOString(),
-  is_active: cooler.is_active,
-  createdate: cooler.createdate?.toISOString(),
-  createdby: cooler.createdby,
-  updatedate: cooler.updatedate?.toISOString(),
-  updatedby: cooler.updatedby,
-  customer: cooler.coolers_customers
-    ? {
-        id: cooler.coolers_customers.id,
-        name: cooler.coolers_customers.name,
-        code: cooler.coolers_customers.code,
-      }
-    : null,
-  technician: cooler.users
-    ? {
-        id: cooler.users.id,
-        name: cooler.users.name,
-        email: cooler.users.email,
-        profile_image: cooler.users.profile_image,
-      }
-    : null,
-  cooler_type: cooler.cooler_types
-    ? {
-        id: cooler.cooler_types.id,
-        name: cooler.cooler_types.name,
-        code: cooler.cooler_types.code,
-      }
-    : null,
-  cooler_sub_type: cooler.cooler_sub_types
-    ? {
-        id: cooler.cooler_sub_types.id,
-        name: cooler.cooler_sub_types.name,
-        code: cooler.cooler_sub_types.code,
-      }
-    : null,
-  asset_master: cooler.cooler_asset_master
-    ? {
-        id: cooler.cooler_asset_master.id,
-        serial_number: cooler.cooler_asset_master.serial_number,
-        current_status: cooler.cooler_asset_master.current_status,
-        current_location: cooler.cooler_asset_master.current_location,
-      }
-    : null,
-});
+): CoolerInstallationSerialized => {
+  const {
+    coolers_customers: customer,
+    users: technician,
+    cooler_asset_master: asset_master,
+  } = cooler;
+  const {
+    asset_master_asset_types: asset_type,
+    asset_master_asset_sub_types: asset_sub_type,
+  } = asset_master || {};
+
+  return {
+    id: cooler.id,
+    customer_id: cooler.customer_id,
+    code: cooler.code,
+    asset_master_id: cooler.asset_master_id,
+    brand: cooler.brand,
+    model: cooler.model,
+    serial_number: cooler.serial_number,
+    capacity: cooler.capacity,
+    install_date: cooler.install_date?.toISOString(),
+    last_service_date: cooler.last_service_date?.toISOString(),
+    next_service_due: cooler.next_service_due?.toISOString(),
+    cooler_type_id: cooler.cooler_type_id,
+    cooler_sub_type_id: cooler.cooler_sub_type_id,
+    status: cooler.status,
+    temperature: cooler.temperature ? Number(cooler.temperature) : null,
+    energy_rating: cooler.energy_rating,
+    warranty_expiry: cooler.warranty_expiry?.toISOString(),
+    maintenance_contract: cooler.maintenance_contract,
+    technician_id: cooler.technician_id,
+    last_scanned_date: cooler.last_scanned_date?.toISOString(),
+    is_active: cooler.is_active,
+    createdate: cooler.createdate?.toISOString(),
+    createdby: cooler.createdby,
+    updatedate: cooler.updatedate?.toISOString(),
+    updatedby: cooler.updatedby,
+    customer: customer
+      ? { id: customer.id, name: customer.name, code: customer.code }
+      : null,
+    technician: technician
+      ? {
+          id: technician.id,
+          name: technician.name,
+          email: technician.email,
+          profile_image: technician.profile_image,
+        }
+      : null,
+    asset_master: asset_master
+      ? {
+          id: asset_master.id,
+          serial_number: asset_master.serial_number,
+          current_status: asset_master.current_status,
+          current_location: asset_master.current_location,
+          asset_type: asset_type
+            ? { id: asset_type.id, name: asset_type.name }
+            : null,
+          asset_sub_type: asset_sub_type
+            ? { id: asset_sub_type.id, name: asset_sub_type.name }
+            : null,
+        }
+      : null,
+  };
+};
 
 export const coolerInstallationsController = {
   async createCoolerInstallation(req: Request, res: Response) {
@@ -244,23 +252,6 @@ export const coolerInstallationsController = {
             ? `${customer.name} (${customer.code})`
             : 'Customer Location';
 
-          // await prisma.asset_movements.create({
-          //   data: {
-          //     asset_id: cooler.asset_master_id,
-          //     from_location:
-          //       cooler.cooler_asset_master?.current_location || 'Warehouse',
-          //     to_location: toLocation,
-          //     movement_type: 'Installation',
-          //     movement_date: cooler.install_date,
-          //     performed_by: data.createdby ? Number(data.createdby) : 1,
-          //     notes: `Cooler ${cooler.code} installed at customer location`,
-          //     is_active: 'Y',
-          //     createdby: data.createdby ? Number(data.createdby) : 1,
-          //     createdate: new Date(),
-          //     log_inst: 1,
-          //   },
-          // });
-
           if (cooler.asset_master_id) {
             await prisma.asset_master.update({
               where: { id: cooler.asset_master_id },
@@ -375,6 +366,8 @@ export const coolerInstallationsController = {
               serial_number: true,
               current_status: true,
               current_location: true,
+              asset_master_asset_types: true,
+              asset_master_asset_sub_types: true,
             },
           },
         },
@@ -484,6 +477,8 @@ export const coolerInstallationsController = {
               serial_number: true,
               current_status: true,
               current_location: true,
+              asset_master_asset_types: true,
+              asset_master_asset_sub_types: true,
             },
           },
         },

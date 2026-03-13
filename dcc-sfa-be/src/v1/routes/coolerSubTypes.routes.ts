@@ -18,7 +18,7 @@ router.post(
   '/cooler-sub-types',
   authenticateToken,
   auditCreate('cooler_sub_types'),
-  requirePermission([{ module: 'cooler-sub-type', action: 'create' }]),
+  requirePermission([{ module: 'asset-sub-types', action: 'create' }]),
   createCoolerSubTypeValidation,
   validate,
   coolerSubTypesController.createCoolerSubType
@@ -27,7 +27,7 @@ router.post(
 router.get(
   '/cooler-sub-types/:id',
   authenticateToken,
-  requirePermission([{ module: 'cooler-sub-type', action: 'read' }]),
+  requirePermission([{ module: 'asset-sub-types', action: 'read' }]),
   validate,
   coolerSubTypesController.getCoolerSubTypeById
 );
@@ -35,7 +35,7 @@ router.get(
 router.get(
   '/cooler-sub-types',
   authenticateToken,
-  requirePermission([{ module: 'cooler-sub-type', action: 'read' }]),
+  requirePermission([{ module: 'asset-sub-types', action: 'read' }]),
   coolerSubTypesController.getCoolerSubTypes
 );
 
@@ -49,7 +49,7 @@ router.put(
   '/cooler-sub-types/:id',
   authenticateToken,
   auditUpdate('cooler_sub_types'),
-  requirePermission([{ module: 'cooler-sub-type', action: 'update' }]),
+  requirePermission([{ module: 'asset-sub-types', action: 'update' }]),
   coolerSubTypesController.updateCoolerSubType
 );
 
@@ -57,7 +57,7 @@ router.delete(
   '/cooler-sub-types/:id',
   authenticateToken,
   auditDelete('cooler_sub_types'),
-  requirePermission([{ module: 'cooler-sub-type', action: 'delete' }]),
+  requirePermission([{ module: 'asset-sub-types', action: 'delete' }]),
   coolerSubTypesController.deleteCoolerSubType
 );
 

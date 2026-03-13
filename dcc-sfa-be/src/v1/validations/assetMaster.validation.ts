@@ -33,14 +33,14 @@ export const createAssetMasterValidation = [
     .withMessage('Current status must not exceed 50 characters')
     .isIn([
       'Available',
-      'In Use',
+      'Installed',
       'Under Maintenance',
       'Retired',
       'Lost',
       'Damaged',
     ])
     .withMessage(
-      'Current status must be one of: Available, In Use, Under Maintenance, Retired, Lost, Damaged'
+      'Current status must be one of: Available, Installed, Under Maintenance, Retired, Lost, Damaged'
     ),
   body('assigned_to')
     .optional({ checkFalsy: true })
@@ -83,14 +83,14 @@ export const updateAssetMasterValidation = [
     .withMessage('Current status must not exceed 50 characters')
     .isIn([
       'Available',
-      'In Use',
+      'Installed',
       'Under Maintenance',
       'Retired',
       'Lost',
       'Damaged',
     ])
     .withMessage(
-      'Current status must be one of: Available, In Use, Under Maintenance, Retired, Lost, Damaged'
+      'Current status must be one of: Available, Installed, Under Maintenance, Retired, Lost, Damaged'
     ),
   body('assigned_to')
     .optional({ checkFalsy: true })

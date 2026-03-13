@@ -31,19 +31,6 @@ export declare const resolvers: {
                 cost: import("@prisma/client-runtime-utils").Decimal | null;
                 technician_id: number;
             }[];
-            asset_master_asset_types: {
-                brand: string | null;
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                category: string | null;
-                description: string | null;
-            };
             asset_master_asset_sub_types: {
                 name: string;
                 id: number;
@@ -57,6 +44,19 @@ export declare const resolvers: {
                 asset_type_id: number;
                 description: string | null;
             } | null;
+            asset_master_asset_types: {
+                brand: string | null;
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                category: string | null;
+                description: string | null;
+            };
         } & {
             name: string;
             id: number;
@@ -71,10 +71,10 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
-            asset_sub_type_id: number | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
+            asset_sub_type_id: number | null;
         })[]>;
         assetMaster: (_: any, { id }: {
             id: number;
@@ -109,19 +109,6 @@ export declare const resolvers: {
                 cost: import("@prisma/client-runtime-utils").Decimal | null;
                 technician_id: number;
             }[];
-            asset_master_asset_types: {
-                brand: string | null;
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                category: string | null;
-                description: string | null;
-            };
             asset_master_asset_sub_types: {
                 name: string;
                 id: number;
@@ -135,6 +122,19 @@ export declare const resolvers: {
                 asset_type_id: number;
                 description: string | null;
             } | null;
+            asset_master_asset_types: {
+                brand: string | null;
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                category: string | null;
+                description: string | null;
+            };
         } & {
             name: string;
             id: number;
@@ -149,10 +149,10 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
-            asset_sub_type_id: number | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
+            asset_sub_type_id: number | null;
         }) | null>;
         coolers: (_: any, { filter, limit, offset }: any) => Promise<({
             users: {
@@ -239,10 +239,10 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
-                asset_sub_type_id: number | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
+                asset_sub_type_id: number | null;
             } | null;
             coolers_customers: {
                 name: string;
@@ -397,10 +397,10 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
-                asset_sub_type_id: number | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
+                asset_sub_type_id: number | null;
             } | null;
             coolers_customers: {
                 name: string;
@@ -555,10 +555,10 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
-                asset_sub_type_id: number | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
+                asset_sub_type_id: number | null;
             } | null;
             coolers_customers: {
                 name: string;
@@ -1067,19 +1067,6 @@ export declare const resolvers: {
     };
     Mutation: {
         createAssetMaster: (_: any, { input }: any) => Promise<{
-            asset_master_asset_types: {
-                brand: string | null;
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                category: string | null;
-                description: string | null;
-            };
             asset_master_asset_sub_types: {
                 name: string;
                 id: number;
@@ -1093,6 +1080,19 @@ export declare const resolvers: {
                 asset_type_id: number;
                 description: string | null;
             } | null;
+            asset_master_asset_types: {
+                brand: string | null;
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                category: string | null;
+                description: string | null;
+            };
         } & {
             name: string;
             id: number;
@@ -1107,25 +1107,12 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
-            asset_sub_type_id: number | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
+            asset_sub_type_id: number | null;
         }>;
         updateAssetMaster: (_: any, { id, input }: any) => Promise<{
-            asset_master_asset_types: {
-                brand: string | null;
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                category: string | null;
-                description: string | null;
-            };
             asset_master_asset_sub_types: {
                 name: string;
                 id: number;
@@ -1139,6 +1126,19 @@ export declare const resolvers: {
                 asset_type_id: number;
                 description: string | null;
             } | null;
+            asset_master_asset_types: {
+                brand: string | null;
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                category: string | null;
+                description: string | null;
+            };
         } & {
             name: string;
             id: number;
@@ -1153,27 +1153,14 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
-            asset_sub_type_id: number | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
+            asset_sub_type_id: number | null;
         }>;
         deleteAssetMaster: (_: any, { id }: {
             id: number;
         }) => Promise<{
-            asset_master_asset_types: {
-                brand: string | null;
-                name: string;
-                id: number;
-                is_active: string;
-                createdate: Date | null;
-                createdby: number;
-                updatedate: Date | null;
-                updatedby: number | null;
-                log_inst: number | null;
-                category: string | null;
-                description: string | null;
-            };
             asset_master_asset_sub_types: {
                 name: string;
                 id: number;
@@ -1187,6 +1174,19 @@ export declare const resolvers: {
                 asset_type_id: number;
                 description: string | null;
             } | null;
+            asset_master_asset_types: {
+                brand: string | null;
+                name: string;
+                id: number;
+                is_active: string;
+                createdate: Date | null;
+                createdby: number;
+                updatedate: Date | null;
+                updatedby: number | null;
+                log_inst: number | null;
+                category: string | null;
+                description: string | null;
+            };
         } & {
             name: string;
             id: number;
@@ -1201,10 +1201,10 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
-            asset_sub_type_id: number | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
+            asset_sub_type_id: number | null;
         }>;
         createCooler: (_: any, { input }: any) => Promise<{
             users: {
@@ -1269,10 +1269,10 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
-                asset_sub_type_id: number | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
+                asset_sub_type_id: number | null;
             } | null;
             coolers_customers: {
                 name: string;
@@ -1403,10 +1403,10 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
-                asset_sub_type_id: number | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
+                asset_sub_type_id: number | null;
             } | null;
             coolers_customers: {
                 name: string;
@@ -1539,10 +1539,10 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
-                asset_sub_type_id: number | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
+                asset_sub_type_id: number | null;
             } | null;
             coolers_customers: {
                 name: string;

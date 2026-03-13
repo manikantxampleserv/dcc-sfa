@@ -181,7 +181,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     }
   }, [formik.values.purchase_date, formik.values.warranty_period]);
 
-  // Clear asset sub type when asset type changes
   useEffect(() => {
     if (formik.values.asset_type_id !== selectedAsset?.asset_type_id) {
       formik.setFieldValue('asset_sub_type_id', '');
@@ -190,7 +189,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
 
   const statusOptions = [
     { value: 'Available', label: 'Available' },
-    { value: 'In Use', label: 'In Use' },
+    { value: 'Installed', label: 'Installed' },
     { value: 'Under Maintenance', label: 'Under Maintenance' },
     { value: 'Retired', label: 'Retired' },
     { value: 'Lost', label: 'Lost' },

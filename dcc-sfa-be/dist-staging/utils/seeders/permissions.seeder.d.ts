@@ -1,6 +1,6 @@
 /**
  * @fileoverview Permissions Seeder
- * @description Creates 11 sample permissions for testing and development
+ * @description Generates permissions for all system modules dynamically
  * @author DCC-SFA Team
  * @version 1.0.0
  */
@@ -16,9 +16,8 @@ interface MockPermission {
     is_active: string;
 }
 /**
- * @constant mockPermissions
- * @description Generated permissions array populated during module iteration
- * @type {MockPermission[]}
+ * @description Generates CRUD permissions for each module based on available actions
+ * @description Iterates through all modules and actions to create permission entries
  */
 declare const mockPermissions: MockPermission[];
 /**
