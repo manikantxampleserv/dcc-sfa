@@ -33,7 +33,7 @@ const RouteTypesManagement: React.FC = () => {
 
   const {
     data: routeTypesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useRouteTypes(
     {
@@ -194,28 +194,28 @@ const RouteTypesManagement: React.FC = () => {
           value={totalRouteTypes}
           icon={<Route className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Route Types"
           value={activeRouteTypes}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Route Types"
           value={inactiveRouteTypes}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={routeTypesThisMonth}
           icon={<Route className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -306,7 +306,7 @@ const RouteTypesManagement: React.FC = () => {
         }
         getRowId={routeType => routeType.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

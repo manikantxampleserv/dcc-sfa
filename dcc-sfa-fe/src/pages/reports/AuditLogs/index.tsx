@@ -1,4 +1,4 @@
-import { Chip, MenuItem, Skeleton, Tooltip, Typography } from '@mui/material';
+import { Chip, MenuItem, Tooltip, Typography } from '@mui/material';
 import { useAuditLogs } from 'hooks/useAuditLogs';
 import { usePermission } from 'hooks/usePermission';
 import {
@@ -30,7 +30,7 @@ const ActivityLogs: React.FC = () => {
   const [userId, setUserId] = useState<string>('all');
   const { isRead } = usePermission('report');
 
-  const { data: auditData, isLoading } = useAuditLogs(
+  const { data: auditData, isFetching } = useAuditLogs(
     {
       page,
       limit: pageSize,
@@ -79,35 +79,6 @@ const ActivityLogs: React.FC = () => {
       console.error('Error exporting audit logs:', error);
     }
   }, [exportToExcelMutation, startDate, endDate, action, userId]);
-
-  const SummaryStatsSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-      {[1, 2, 3, 4].map(item => (
-        <div
-          key={item}
-          className="bg-white shadow-sm p-6 rounded-lg border border-gray-100"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <Skeleton
-                variant="text"
-                width="60%"
-                height={20}
-                className="!mb-2"
-              />
-              <Skeleton variant="text" width="40%" height={32} />
-            </div>
-            <Skeleton
-              variant="circular"
-              width={48}
-              height={48}
-              className="!bg-gray-100"
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 
   const columns: TableColumn<any>[] = [
     {
@@ -290,47 +261,46 @@ const ActivityLogs: React.FC = () => {
         </div>
       )}
 
-      {/* Summary Stats */}
-      {isLoading ? (
-        <SummaryStatsSkeleton />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <StatsCard
-            title="Total Logs"
-            value={statistics.total_logs}
-            icon={<History className="w-6 h-6" />}
-            color="blue"
-          />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <StatsCard
+          title="Total Logs"
+          value={statistics.total_logs}
+          icon={<History className="w-6 h-6" />}
+          color="blue"
+          isLoading={isFetching}
+        />
 
-          <StatsCard
-            title="Created"
-            value={statistics.by_action.CREATE}
-            icon={<FileText className="w-6 h-6" />}
-            color="green"
-          />
+        <StatsCard
+          title="Created"
+          value={statistics.by_action.CREATE}
+          icon={<FileText className="w-6 h-6" />}
+          color="green"
+          isLoading={isFetching}
+        />
 
-          <StatsCard
-            title="Updated"
-            value={statistics.by_action.UPDATE}
-            icon={<Shuffle className="w-6 h-6" />}
-            color="blue"
-          />
+        <StatsCard
+          title="Updated"
+          value={statistics.by_action.UPDATE}
+          icon={<Shuffle className="w-6 h-6" />}
+          color="blue"
+          isLoading={isFetching}
+        />
 
-          <StatsCard
-            title="Deleted"
-            value={statistics.by_action.DELETE}
-            icon={<Trash2 className="w-6 h-6" />}
-            color="red"
-          />
-        </div>
-      )}
+        <StatsCard
+          title="Deleted"
+          value={statistics.by_action.DELETE}
+          icon={<Trash2 className="w-6 h-6" />}
+          color="red"
+          isLoading={isFetching}
+        />
+      </div>
 
       {/* Audit Logs Table */}
 
       <Table
         columns={columns}
         data={logs}
-        loading={isLoading}
+        loading={isFetching}
         pagination={true}
         page={page - 1}
         rowsPerPage={pageSize}

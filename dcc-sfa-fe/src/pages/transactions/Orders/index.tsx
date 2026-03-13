@@ -41,7 +41,7 @@ const OrdersManagement: React.FC = () => {
 
   const {
     data: ordersResponse,
-    isLoading,
+    isFetching,
     error,
   } = useOrders(
     {
@@ -417,28 +417,28 @@ const OrdersManagement: React.FC = () => {
           value={totalOrders}
           icon={<ShoppingCart className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Orders"
           value={activeOrders}
           icon={<ShoppingCart className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Orders"
           value={inactiveOrders}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Orders This Month"
           value={ordersThisMonth}
           icon={<Calendar className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -534,7 +534,7 @@ const OrdersManagement: React.FC = () => {
         }
         getRowId={order => order.id}
         initialOrderBy="order_number"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

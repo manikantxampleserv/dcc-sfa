@@ -47,7 +47,7 @@ const InvoicesManagement: React.FC = () => {
 
   const {
     data: invoicesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useInvoices(
     {
@@ -375,28 +375,28 @@ const InvoicesManagement: React.FC = () => {
           value={totalInvoices}
           icon={<Receipt className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Total Amount"
           value={formatCurrency(totalAmount)}
           icon={<DollarSign className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Amount Paid"
           value={formatCurrency(totalPaid)}
           icon={<CheckCircleIcon className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Outstanding Balance"
           value={formatCurrency(totalBalance)}
           icon={<AlertTriangle className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
       {error && (
@@ -486,7 +486,7 @@ const InvoicesManagement: React.FC = () => {
         }
         getRowId={invoice => invoice.id}
         initialOrderBy="invoice_number"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

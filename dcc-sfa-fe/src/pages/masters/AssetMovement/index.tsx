@@ -51,7 +51,7 @@ const AssetMovementManagement: React.FC = () => {
 
   const {
     data: assetMovementResponse,
-    isLoading,
+    isFetching,
     error,
   } = useAssetMovements(
     {
@@ -378,28 +378,28 @@ const AssetMovementManagement: React.FC = () => {
           value={totalMovements}
           icon={<ArrowRight className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Movements"
           value={activeMovements}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Movements"
           value={inactiveMovements}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={movementsThisMonth}
           icon={<Calendar className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -488,7 +488,7 @@ const AssetMovementManagement: React.FC = () => {
         }
         getRowId={movement => movement.id}
         initialOrderBy="movement_date"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

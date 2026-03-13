@@ -37,7 +37,7 @@ const StockMovementsManagement: React.FC = () => {
 
   const {
     data: movementsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useStockMovements(
     {
@@ -311,28 +311,28 @@ const StockMovementsManagement: React.FC = () => {
           value={totalMovements}
           icon={<ArrowRightLeft className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Stock In"
           value={totalInMovements}
           icon={<ArrowDown className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Stock Out"
           value={totalOutMovements}
           icon={<ArrowUp className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={movementsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -435,7 +435,7 @@ const StockMovementsManagement: React.FC = () => {
         }
         getRowId={movement => movement.id}
         initialOrderBy="createdate"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

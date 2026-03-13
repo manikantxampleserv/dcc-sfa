@@ -35,7 +35,7 @@ const ProductTargetGroupsPage: React.FC = () => {
 
   const {
     data: productTargetGroupsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useProductTargetGroups(
     {
@@ -224,28 +224,28 @@ const ProductTargetGroupsPage: React.FC = () => {
           value={totalProductTargetGroups}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Groups"
           value={activeProductTargetGroups}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Groups"
           value={inactiveProductTargetGroups}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newProductTargetGroupsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -339,7 +339,7 @@ const ProductTargetGroupsPage: React.FC = () => {
         }
         getRowId={productTargetGroup => productTargetGroup.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

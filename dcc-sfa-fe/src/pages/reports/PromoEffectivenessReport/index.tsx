@@ -29,7 +29,7 @@ const PromoEffectivenessReport: React.FC = () => {
   const [zoneId, setZoneId] = useState<number | undefined>(undefined);
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = usePromoEffectivenessReport(
+  const { data: reportData, isFetching } = usePromoEffectivenessReport(
     {
       start_date: startDate,
       end_date: endDate,
@@ -348,7 +348,7 @@ const PromoEffectivenessReport: React.FC = () => {
         }
         columns={promotionsColumns}
         data={reportData?.data?.promotions || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
       />
 
@@ -362,7 +362,7 @@ const PromoEffectivenessReport: React.FC = () => {
         }
         columns={productsColumns}
         data={reportData?.data?.products || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
       />
 
@@ -376,7 +376,7 @@ const PromoEffectivenessReport: React.FC = () => {
         }
         columns={parametersColumns}
         data={reportData?.data?.parameters || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
       />
     </div>

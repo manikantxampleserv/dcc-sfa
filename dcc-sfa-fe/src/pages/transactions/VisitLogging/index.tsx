@@ -46,7 +46,7 @@ const VisitLogging: React.FC = () => {
 
   const {
     data: visitsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useVisits(
     {
@@ -354,28 +354,28 @@ const VisitLogging: React.FC = () => {
           value={totalVisits}
           icon={<User className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Visits"
           value={activeVisits}
           icon={<UserCheck className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Visits"
           value={inactiveVisits}
           icon={<XCircle className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newVisitsThisMonth}
           icon={<Calendar className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -477,7 +477,7 @@ const VisitLogging: React.FC = () => {
         }
         getRowId={visit => visit.id}
         initialOrderBy="visit_date"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

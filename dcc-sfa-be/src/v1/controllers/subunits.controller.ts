@@ -95,9 +95,12 @@ export const subunitsController = {
       }
 
       const newCode = data.code || (await generateSubunitCode(data.name));
+
+      const { product_id, ...subunitData } = data;
+
       const subunit = await prisma.subunits.create({
         data: {
-          ...data,
+          ...subunitData,
           code: newCode,
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
@@ -253,9 +256,11 @@ export const subunitsController = {
         }
       }
 
+      const { product_id, ...updateData } = data;
+
       const subunit = await prisma.subunits.update({
         where: { id: Number(id) },
-        data,
+        data: updateData,
         include: {
           subunits_unit_of_measurement: true,
         },

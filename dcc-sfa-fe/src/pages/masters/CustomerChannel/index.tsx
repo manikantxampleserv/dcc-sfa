@@ -34,7 +34,7 @@ const CustomerChannelPage: React.FC = () => {
 
   const {
     data: customerChannelsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCustomerChannels(
     {
@@ -225,28 +225,28 @@ const CustomerChannelPage: React.FC = () => {
           value={totalCustomerChannels}
           icon={<Tag className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Channels"
           value={activeCustomerChannels}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Channels"
           value={inactiveCustomerChannels}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newCustomerChannelsThisMonth}
           icon={<Building2 className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -337,7 +337,7 @@ const CustomerChannelPage: React.FC = () => {
         }
         getRowId={customerChannel => customerChannel.id}
         initialOrderBy="channel_name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

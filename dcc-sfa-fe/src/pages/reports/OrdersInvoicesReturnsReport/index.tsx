@@ -28,7 +28,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
   const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useOrdersInvoicesReturnsReport(
+  const { data: reportData, isFetching } = useOrdersInvoicesReturnsReport(
     {
       start_date: startDate,
       end_date: endDate,
@@ -616,7 +616,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         }
         data={reportData?.data?.orders || []}
         columns={orderColumns}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -631,7 +631,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         }
         data={reportData?.data?.invoices || []}
         columns={invoiceColumns}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -646,7 +646,7 @@ const OrdersInvoicesReturnsReport: React.FC = () => {
         }
         data={reportData?.data?.returns || []}
         columns={returnColumns}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />

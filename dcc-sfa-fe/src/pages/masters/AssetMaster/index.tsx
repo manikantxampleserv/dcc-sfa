@@ -40,7 +40,7 @@ const AssetMasterManagement: React.FC = () => {
 
   const {
     data: assetMasterResponse,
-    isLoading,
+    isFetching,
     error,
   } = useAssetMaster(
     {
@@ -284,28 +284,28 @@ const AssetMasterManagement: React.FC = () => {
           value={totalAssets}
           icon={<Package className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Assets"
           value={activeAssets}
           icon={<Settings className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Assets"
           value={inactiveAssets}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={assetsThisMonth}
           icon={<Wrench className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -396,7 +396,7 @@ const AssetMasterManagement: React.FC = () => {
         }
         getRowId={asset => asset.id}
         initialOrderBy="serial_number"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

@@ -152,7 +152,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
 
   const depotId = normalizedValue ? Number(normalizedValue) : undefined;
 
-  const { data: dropdownResponse, isLoading: isLoading } = useDepots({
+  const { data: dropdownResponse, isLoading: isFetching } = useDepots({
     page: 1,
     limit: 50,
     search: effectiveSearch,
@@ -170,7 +170,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
     if (
       normalizedValue &&
       !selectedDepotData &&
-      !isLoading &&
+      !isFetching &&
       searchResults.length > 0
     ) {
       const found = searchResults.find(
@@ -189,7 +189,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
     selectedDepotData,
     inputValue,
     searchResults,
-    isLoading,
+    isFetching,
   ]);
 
   const selectedDepot = React.useMemo(() => {
@@ -359,7 +359,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
       onInputChange={handleInputChange}
       onChange={handleChange}
       noOptionsText={
-        debouncedSearch && !isLoading
+        debouncedSearch && !isFetching
           ? 'No depots found'
           : 'Type to search depots'
       }
@@ -369,7 +369,7 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
           depots...
         </span>
       }
-      loading={isLoading}
+      loading={isFetching}
       filterOptions={options => options}
     />
   );

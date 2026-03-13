@@ -32,7 +32,6 @@ const SalesTargetsManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  // Use dynamic currency formatting
   const { formatCurrency } = useCurrency();
 
   const { isCreate, isUpdate, isDelete, isRead } =
@@ -40,7 +39,7 @@ const SalesTargetsManagement: React.FC = () => {
 
   const {
     data: targetsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useSalesTargets(
     {
@@ -281,28 +280,28 @@ const SalesTargetsManagement: React.FC = () => {
           value={totalTargets}
           icon={<Target className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Targets"
           value={activeTargets}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Targets"
           value={inactiveTargets}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={targetsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -393,7 +392,7 @@ const SalesTargetsManagement: React.FC = () => {
         }
         getRowId={target => target.id}
         initialOrderBy="target_quantity"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

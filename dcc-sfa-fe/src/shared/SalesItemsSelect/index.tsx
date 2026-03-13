@@ -92,7 +92,7 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
     inputValue,
   ]);
 
-  const { data: salesItemsData, isLoading } =
+  const { data: salesItemsData, isFetching } =
     useSalespersonInventoryItemsDropdown(salespersonId, effectiveSearch, {
       enabled: !disabled && !!salespersonId,
     });
@@ -210,7 +210,7 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
       id={`sales-items-select-${name}`}
       options={options}
       getOptionLabel={(option: SalesItem) => option.name}
-      loading={isLoading}
+      loading={isFetching}
       value={selectedItem}
       onChange={handleChange}
       onInputChange={handleInputChange}
@@ -248,7 +248,7 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
       noOptionsText={
         !salespersonId
           ? 'Select a salesperson first'
-          : debouncedSearch && !isLoading
+          : debouncedSearch && !isFetching
             ? 'No items found'
             : 'Type to search items'
       }
@@ -272,7 +272,7 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
             ...params.InputProps,
             endAdornment: (
               <React.Fragment>
-                {isLoading ? (
+                {isFetching ? (
                   <CircularProgress color="inherit" size={20} />
                 ) : null}
                 {params.InputProps.endAdornment}

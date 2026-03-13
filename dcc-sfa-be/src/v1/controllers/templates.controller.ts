@@ -78,15 +78,21 @@ export const templatesController = {
         ...(type && { type: type }),
       };
 
-      const { data, pagination } = await paginate({
-        model: prisma.sfa_d_templates,
-        filters,
-        page: pageNum,
-        limit: limitNum,
-        orderBy: { createdate: 'desc' },
+      const totalTemplates = await prisma.sfa_d_templates.count();
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+      const newTemplatesThisMonth = await prisma.sfa_d_templates.count({
+        where: {
+          createdate: {
+            gte: startOfMonth,
+            lt: endOfMonth,
+          },
+        },
       });
 
-      const totalTemplates = await prisma.sfa_d_templates.count();
       const channels = await prisma.sfa_d_templates.findMany({
         select: { channel: true },
         distinct: ['channel'],
@@ -98,20 +104,40 @@ export const templatesController = {
         where: { type: { not: null } },
       });
 
-      res.success(
-        'Templates retrieved successfully',
-        data.map((t: any) => serializeTemplate(t)),
-        200,
-        pagination,
-        {
-          total_templates: totalTemplates,
-          channels: channels.map(c => c.channel).filter(Boolean),
-          types: types.map(t => t.type).filter(Boolean),
-        }
-      );
+      const stats = {
+        total_templates: totalTemplates,
+        new_templates_this_month: newTemplatesThisMonth,
+        total_channels: channels.map(c => c.channel).filter(Boolean).length,
+        total_types: types.map(t => t.type).filter(Boolean).length,
+        channels: channels.map(c => c.channel).filter(Boolean),
+        types: types.map(t => t.type).filter(Boolean),
+      };
+
+      const { data, pagination } = await paginate({
+        model: prisma.sfa_d_templates,
+        filters,
+        page: pageNum,
+        limit: limitNum,
+        orderBy: { createdate: 'desc' },
+      });
+
+      res.json({
+        success: true,
+        message: 'Templates retrieved successfully',
+        data: data.map((t: any) => serializeTemplate(t)),
+        meta: {
+          requestDuration: Date.now(),
+          timestamp: new Date().toISOString(),
+          ...pagination,
+        },
+        stats,
+      });
     } catch (error: any) {
       console.error('Get Templates Error:', error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
     }
   },
 

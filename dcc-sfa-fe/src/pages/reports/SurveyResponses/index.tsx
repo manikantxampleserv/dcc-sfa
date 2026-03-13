@@ -38,7 +38,7 @@ const SurveyResponses: React.FC = () => {
 
   const {
     data: responsesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useSurveyResponses(
     {
@@ -323,7 +323,7 @@ const SurveyResponses: React.FC = () => {
           value={totalResponses}
           icon={<FileText className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
 
         <StatsCard
@@ -331,7 +331,7 @@ const SurveyResponses: React.FC = () => {
           value={activeResponses}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
 
         <StatsCard
@@ -339,7 +339,7 @@ const SurveyResponses: React.FC = () => {
           value={inactiveResponses}
           icon={<FileText className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
 
         <StatsCard
@@ -347,7 +347,7 @@ const SurveyResponses: React.FC = () => {
           value={responsesThisMonth}
           icon={<Calendar className="w-6 h-6" />}
           color="teal"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -424,7 +424,7 @@ const SurveyResponses: React.FC = () => {
         }
         getRowId={response => response.id}
         initialOrderBy="submitted_at"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

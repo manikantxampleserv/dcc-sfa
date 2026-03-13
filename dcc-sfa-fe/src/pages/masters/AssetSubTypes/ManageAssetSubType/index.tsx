@@ -92,15 +92,13 @@ const ManageAssetSubType: React.FC<ManageAssetSubTypeProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <Input
-                name="name"
-                label="Asset Sub Type Name"
-                placeholder="Enter asset sub type name"
-                formik={formik}
-                required
-              />
-            </Box>
+            <Input
+              name="name"
+              label="Asset Sub Type Name"
+              placeholder="Enter asset sub type name"
+              formik={formik}
+              required
+            />
 
             <Select
               name="asset_type_id"

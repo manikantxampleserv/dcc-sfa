@@ -315,7 +315,7 @@ const forgotPassword = async (req, res) => {
             },
         });
         if (!user) {
-            return res.success('No email found ');
+            return res.error('No user associated with this email', 400);
         }
         const otpCode = (0, otp_util_1.generateOTP)(6);
         const ipAddress = (0, ipUtils_1.getClientIP)(req);

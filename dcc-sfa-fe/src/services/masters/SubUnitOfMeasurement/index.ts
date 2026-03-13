@@ -37,8 +37,8 @@ interface ManageSubUnitOfMeasurementPayload {
   name: string;
   code?: string;
   description?: string;
-  unit_of_measurement_id: number;
-  product_id: number;
+  unit_of_measurement_id?: number;
+  product_id?: number;
   is_active?: string;
 }
 

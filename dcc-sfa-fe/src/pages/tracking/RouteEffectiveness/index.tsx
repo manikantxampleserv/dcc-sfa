@@ -27,7 +27,7 @@ const RouteEffectiveness: React.FC = () => {
   const [depotId, setDepotId] = useState<number | undefined>(undefined);
   const { isRead } = usePermission('route-effectiveness');
 
-  const { data: reportData, isLoading } = useRouteEffectiveness(
+  const { data: reportData, isFetching } = useRouteEffectiveness(
     {
       start_date: startDate,
       end_date: endDate,
@@ -211,28 +211,28 @@ const RouteEffectiveness: React.FC = () => {
             value={summary.total_routes}
             icon={<Navigation className="w-6 h-6" />}
             color="blue"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Completion Rate"
             value={`${summary.avg_completion_rate}%`}
             icon={<Target className="w-6 h-6" />}
             color="green"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Efficiency Score"
             value={`${summary.avg_efficiency_score}%`}
             icon={<Activity className="w-6 h-6" />}
             color="purple"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Missed Visits"
             value={summary.missed_visits}
             icon={<AlertCircle className="w-6 h-6" />}
             color="orange"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
         </div>
       )}
@@ -242,7 +242,7 @@ const RouteEffectiveness: React.FC = () => {
           columns={columns}
           actions={<Box>Route Performance ({routes.length})</Box>}
           data={routes}
-          loading={isLoading}
+          loading={isFetching}
           pagination={false}
           isPermission={isRead}
         />
@@ -257,7 +257,7 @@ const RouteEffectiveness: React.FC = () => {
         </div>
       )}
 
-      {isRead && !isLoading && routes.length > 0 && (
+      {isRead && !isFetching && routes.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {routes.slice(0, 4).map((route: any) => (
             <div

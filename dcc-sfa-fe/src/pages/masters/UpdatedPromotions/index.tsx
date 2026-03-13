@@ -39,7 +39,7 @@ const UpdatedPromotionsManagement: React.FC = () => {
 
   const {
     data: promotionsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useUpdatedPromotions(
     {
@@ -265,28 +265,28 @@ const UpdatedPromotionsManagement: React.FC = () => {
           value={totalPromotions}
           icon={<Tag className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Promotions"
           value={activePromotions}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Promotions"
           value={inactivePromotions}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newPromotionsThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -369,7 +369,7 @@ const UpdatedPromotionsManagement: React.FC = () => {
         }
         getRowId={promotion => promotion.id}
         initialOrderBy="name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

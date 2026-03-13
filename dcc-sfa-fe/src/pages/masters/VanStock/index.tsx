@@ -46,7 +46,7 @@ const VanStockPage: React.FC = () => {
 
   const {
     data: vanInventoryResponse,
-    isLoading,
+    isFetching,
     error,
   } = useVanInventory(
     {
@@ -360,28 +360,28 @@ const VanStockPage: React.FC = () => {
           value={totalVanInventory}
           icon={<Truck className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Records"
           value={activeVanInventory}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Records"
           value={inactiveVanInventory}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New This Month"
           value={newVanInventoryThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -487,7 +487,7 @@ const VanStockPage: React.FC = () => {
         }
         getRowId={vanInventory => vanInventory.id}
         initialOrderBy="last_updated"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

@@ -40,7 +40,7 @@ export const SubUnitProductSelect = ({
   error = false,
   helperText,
 }: SubUnitProductSelectProps) => {
-  const { data: products = [], isLoading } = useProductsLookup();
+  const { data: products = [], isFetching } = useProductsLookup();
 
   // Convert products to SearchSelectOption format
   const options: SearchSelectOption[] = products.map((product: any) => ({
@@ -51,7 +51,8 @@ export const SubUnitProductSelect = ({
 
   // Get current value
   const currentValue = formik?.values[name] || '';
-  const selectedOption = options.find(option => option.value === currentValue) || null;
+  const selectedOption =
+    options.find(option => option.value === currentValue) || null;
 
   // Handle change
   const handleChange = (option: SearchSelectOption | null) => {
@@ -68,19 +69,21 @@ export const SubUnitProductSelect = ({
   };
 
   // Get error state
-  const hasError = error || (formik?.touched[name] && Boolean(formik?.errors[name]));
-  const errorMessage = helperText || (formik?.touched[name] && formik?.errors[name] as string);
+  const hasError =
+    error || (formik?.touched[name] && Boolean(formik?.errors[name]));
+  const errorMessage =
+    helperText || (formik?.touched[name] && (formik?.errors[name] as string));
 
   return (
     <Autocomplete
       options={options}
       value={selectedOption}
       onChange={(_, option) => handleChange(option)}
-      loading={isLoading}
+      loading={isFetching}
       disabled={disabled}
       size={size}
       fullWidth={fullWidth}
-      renderInput={(params) => (
+      renderInput={params => (
         <TextField
           {...params}
           label={label}
@@ -110,7 +113,9 @@ export const SubUnitProductSelect = ({
             ),
             endAdornment: (
               <>
-                {isLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                {isFetching ? (
+                  <CircularProgress color="inherit" size={20} />
+                ) : null}
                 {params.InputProps.endAdornment}
               </>
             ),
@@ -141,7 +146,7 @@ export const SubUnitProductSelect = ({
         </Box>
       )}
       isOptionEqualToValue={(option, value) => option.value === value?.value}
-      getOptionLabel={(option) => option.label}
+      getOptionLabel={option => option.label}
       noOptionsText="No products found"
       loadingText="Loading products..."
     />

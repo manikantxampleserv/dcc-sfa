@@ -88,7 +88,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
 
   const customerId = normalizedValue ? Number(normalizedValue) : undefined;
 
-  const { data: dropdownResponse, isLoading } = useCustomersDropdown({
+  const { data: dropdownResponse, isFetching } = useCustomersDropdown({
     search: effectiveSearch,
     customer_id: customerId && !effectiveSearch ? customerId : undefined,
   });
@@ -108,7 +108,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
     if (
       normalizedValue &&
       !selectedCustomerData &&
-      !isLoading &&
+      !isFetching &&
       searchResults.length > 0
     ) {
       const found = searchResults.find(
@@ -127,7 +127,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
         }, 100);
       }
     }
-  }, [normalizedValue, isLoading, searchResults.length]);
+  }, [normalizedValue, isFetching, searchResults.length]);
 
   // Get selected customer from state or search results
   const selectedCustomer = React.useMemo(() => {
@@ -243,7 +243,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       options={customers}
       getOptionLabel={(option: Customer) => option.name}
       value={selectedCustomer}
-      loading={isLoading}
+      loading={isFetching}
       onChange={handleChange}
       inputValue={inputValue}
       onInputChange={handleInputChange}
@@ -287,7 +287,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
         />
       )}
       noOptionsText={
-        debouncedSearch && !isLoading
+        debouncedSearch && !isFetching
           ? 'No customers found'
           : 'Type to search customers'
       }

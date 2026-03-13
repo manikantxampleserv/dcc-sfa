@@ -51,7 +51,7 @@ export const UnitOfMeasurementSelect = ({
   error = false,
   helperText,
 }: UnitOfMeasurementSelectProps) => {
-  const { data: units = [], isLoading } = useUnitsOfMeasurementLookup();
+  const { data: units = [], isFetching } = useUnitsOfMeasurementLookup();
 
   // Convert units to SearchSelectOption format
   const options: SearchSelectOption[] = units.map((unit: any) => ({
@@ -90,7 +90,7 @@ export const UnitOfMeasurementSelect = ({
       options={options}
       value={selectedOption}
       onChange={(_, option) => handleChange(option)}
-      loading={isLoading}
+      loading={isFetching}
       disabled={disabled}
       size={size}
       fullWidth={fullWidth}
@@ -124,7 +124,7 @@ export const UnitOfMeasurementSelect = ({
             ),
             endAdornment: (
               <>
-                {isLoading ? (
+                {isFetching ? (
                   <CircularProgress color="inherit" size={20} />
                 ) : null}
                 {params.InputProps.endAdornment}

@@ -27,7 +27,7 @@ const RegionTerritorySalesReport: React.FC = () => {
   const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useRegionTerritorySalesReport(
+  const { data: reportData, isFetching } = useRegionTerritorySalesReport(
     {
       start_date: startDate,
       end_date: endDate,
@@ -356,7 +356,7 @@ const RegionTerritorySalesReport: React.FC = () => {
         }
         columns={territoryColumns}
         data={reportData?.data?.zones || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -371,7 +371,7 @@ const RegionTerritorySalesReport: React.FC = () => {
         }
         columns={routeColumns}
         data={allRoutes}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />

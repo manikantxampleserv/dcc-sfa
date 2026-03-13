@@ -151,7 +151,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
 
   const userId = normalizedValue ? Number(normalizedValue) : undefined;
 
-  const { data: dropdownResponse, isLoading: isLoading } = useUsersDropdown({
+  const { data: dropdownResponse, isLoading: isFetching } = useUsersDropdown({
     search: effectiveSearch,
     user_id: userId && !effectiveSearch ? userId : undefined,
   });
@@ -167,7 +167,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
     if (
       normalizedValue &&
       !selectedUserData &&
-      !isLoading &&
+      !isFetching &&
       searchResults.length > 0
     ) {
       const found = searchResults.find(
@@ -181,7 +181,13 @@ const UserSelect: React.FC<UserSelectProps> = ({
         setHasInitialized(true);
       }
     }
-  }, [normalizedValue, selectedUserData, inputValue, searchResults, isLoading]);
+  }, [
+    normalizedValue,
+    selectedUserData,
+    inputValue,
+    searchResults,
+    isFetching,
+  ]);
 
   const selectedUser = React.useMemo(() => {
     if (!normalizedValue) {
@@ -327,7 +333,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
       options={users}
       getOptionLabel={(option: User) => option.name}
       value={selectedUser}
-      loading={isLoading}
+      loading={isFetching}
       onChange={handleChange}
       inputValue={inputValue}
       onInputChange={handleInputChange}
@@ -373,7 +379,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
         />
       )}
       noOptionsText={
-        debouncedSearch && !isLoading
+        debouncedSearch && !isFetching
           ? 'No users found'
           : 'Type to search users'
       }

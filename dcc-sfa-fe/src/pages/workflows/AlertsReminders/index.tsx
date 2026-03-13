@@ -38,7 +38,7 @@ const AlertsReminders: React.FC = () => {
   const [limit] = useState(10);
   const { isRead } = usePermission('alert');
 
-  const isLoading = false;
+  const isFetching = false;
   const alertsReminders: AlertReminder[] = [];
 
   const totalAlerts = alertsReminders.filter(a => a.type === 'alert').length;
@@ -190,28 +190,28 @@ const AlertsReminders: React.FC = () => {
             value={totalAlerts}
             icon={<XCircle className="w-6 h-6" />}
             color="red"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Total Reminders"
             value={totalReminders}
             icon={<Bell className="w-6 h-6" />}
             color="blue"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Active Alerts"
             value={activeAlerts}
             icon={<Bell className="w-6 h-6" />}
             color="green"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="High Priority"
             value={highPriority}
             icon={<XCircle className="w-6 h-6" />}
             color="orange"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
         </div>
       )}
@@ -219,7 +219,7 @@ const AlertsReminders: React.FC = () => {
       <Table
         columns={columns}
         data={alertsReminders}
-        loading={isLoading}
+        loading={isFetching}
         page={page - 1}
         onPageChange={newPage => setPage(newPage + 1)}
         rowsPerPage={limit}

@@ -45,7 +45,7 @@ const SalesBonusRulesManagement: React.FC = () => {
 
   const {
     data: rulesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useSalesBonusRules(
     {
@@ -311,28 +311,28 @@ const SalesBonusRulesManagement: React.FC = () => {
           value={totalRules}
           icon={<Award className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Rules"
           value={activeRules}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Rules"
           value={inactiveRules}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={rulesThisMonth}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -423,7 +423,7 @@ const SalesBonusRulesManagement: React.FC = () => {
         }
         getRowId={rule => rule.id}
         initialOrderBy="achievement_min_percent"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

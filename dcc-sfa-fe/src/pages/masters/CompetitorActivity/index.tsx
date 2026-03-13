@@ -44,7 +44,7 @@ const CompetitorActivityManagement: React.FC = () => {
 
   const {
     data: competitorActivityResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCompetitorActivities(
     {
@@ -320,28 +320,28 @@ const CompetitorActivityManagement: React.FC = () => {
           value={totalActivities}
           icon={<Target className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Activities"
           value={activeActivities}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Activities"
           value={inactiveActivities}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={activitiesThisMonth}
           icon={<Calendar className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -420,7 +420,7 @@ const CompetitorActivityManagement: React.FC = () => {
         }
         getRowId={activity => activity.id}
         initialOrderBy="createdate"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

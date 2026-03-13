@@ -69,9 +69,10 @@ exports.subunitsController = {
                     .json({ message: 'Subunit with this code already exists' });
             }
             const newCode = data.code || (await generateSubunitCode(data.name));
+            const { product_id, ...subunitData } = data;
             const subunit = await prisma_client_1.default.subunits.create({
                 data: {
-                    ...data,
+                    ...subunitData,
                     code: newCode,
                     createdby: req.user?.id || 1,
                     log_inst: data.log_inst || 1,
@@ -212,9 +213,10 @@ exports.subunitsController = {
                         .json({ message: 'Subunit with this code already exists' });
                 }
             }
+            const { product_id, ...updateData } = data;
             const subunit = await prisma_client_1.default.subunits.update({
                 where: { id: Number(id) },
-                data,
+                data: updateData,
                 include: {
                     subunits_unit_of_measurement: true,
                 },

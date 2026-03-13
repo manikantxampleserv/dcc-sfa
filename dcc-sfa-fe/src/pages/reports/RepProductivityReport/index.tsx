@@ -32,7 +32,7 @@ const RepProductivityReport: React.FC = () => {
   const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useRepProductivityReport(
+  const { data: reportData, isFetching } = useRepProductivityReport(
     {
       start_date: startDate,
       end_date: endDate,
@@ -273,7 +273,7 @@ const RepProductivityReport: React.FC = () => {
         }
         columns={repsColumns}
         data={reps}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />

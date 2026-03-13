@@ -42,7 +42,7 @@ const SurveyBuilder: React.FC = () => {
 
   const {
     data: surveysResponse,
-    isLoading,
+    isFetching,
     error,
   } = useSurveys(
     {
@@ -324,28 +324,28 @@ const SurveyBuilder: React.FC = () => {
           value={totalSurveys}
           icon={<FileText className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Published"
           value={publishedSurveys}
           icon={<PlayArrow className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active"
           value={activeSurveys}
           icon={<Settings className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Total Responses"
           value={totalResponses}
           icon={<BarChart3 className="w-6 h-6" />}
-          color="teal"
-          isLoading={isLoading}
+          color="red"
+          isLoading={isFetching}
         />
       </div>
 
@@ -458,7 +458,7 @@ const SurveyBuilder: React.FC = () => {
         }
         getRowId={survey => survey.id}
         initialOrderBy="title"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

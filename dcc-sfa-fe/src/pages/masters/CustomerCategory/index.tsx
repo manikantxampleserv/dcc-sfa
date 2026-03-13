@@ -34,7 +34,7 @@ const CustomerCategoryPage: React.FC = () => {
 
   const {
     data: customerCategoriesResponse,
-    isLoading,
+    isFetching,
     error,
   } = useCustomerCategories(
     {
@@ -242,21 +242,21 @@ const CustomerCategoryPage: React.FC = () => {
           value={totalCustomerCategories}
           icon={<Users className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Categories"
           value={activeCustomerCategories}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Categories"
           value={inactiveCustomerCategories}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Total Conditions"
@@ -266,7 +266,7 @@ const CustomerCategoryPage: React.FC = () => {
           )}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -357,7 +357,7 @@ const CustomerCategoryPage: React.FC = () => {
         }
         getRowId={customerCategory => customerCategory.id}
         initialOrderBy="category_name"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

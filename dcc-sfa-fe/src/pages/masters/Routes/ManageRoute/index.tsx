@@ -62,6 +62,8 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
     setSelectedRoute(null);
     setDrawerOpen(false);
     formik.resetForm();
+    formik.setFieldValue('parent_id', null);
+    formik.setFieldValue('depot_id', null);
   };
 
   const createRouteMutation = useCreateRoute();
@@ -140,7 +142,7 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
     },
   });
 
-  // Auto-select depot when zone is selected
+  // Auto-select depot when zone is selected, clear depot when zone is cleared
   useEffect(() => {
     if (formik.values.parent_id) {
       const selectedZone = zones.find(
@@ -151,7 +153,13 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
           'depot_id',
           selectedZone.zone_depots.id.toString()
         );
+      } else {
+        // Clear depot if zone has no associated depot
+        formik.setFieldValue('depot_id', null);
       }
+    } else {
+      // Clear depot when zone is cleared
+      formik.setFieldValue('depot_id', null);
     }
   }, [formik.values.parent_id, zones]);
 
@@ -312,7 +320,13 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
             </Select>
 
             {/* Depot Selection */}
-            <Select name="depot_id" label="Depot" formik={formik} required>
+            <Select
+              key={`depot-${formik.values.parent_id || 'empty'}`}
+              name="depot_id"
+              label="Depot"
+              formik={formik}
+              required
+            >
               {depots.map(depot => (
                 <MenuItem key={depot.id} value={depot.id.toString()}>
                   {depot.name} ({depot.code})

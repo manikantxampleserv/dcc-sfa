@@ -35,7 +35,7 @@ const ApiTokensPage: React.FC = () => {
 
   const {
     data: tokensResponse,
-    isLoading,
+    isFetching,
     error,
   } = useApiTokens(
     {
@@ -393,28 +393,28 @@ const ApiTokensPage: React.FC = () => {
           value={totalTokens}
           icon={<Key className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Tokens"
           value={activeTokens}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Revoked Tokens"
           value={revokedTokens}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Expired Tokens"
           value={expiredTokens}
           icon={<Shield className="w-6 h-6" />}
           color="orange"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -467,7 +467,7 @@ const ApiTokensPage: React.FC = () => {
         }
         getRowId={token => token.id}
         initialOrderBy="id"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

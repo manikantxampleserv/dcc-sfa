@@ -580,7 +580,7 @@ exports.productsController = {
             if (!existingProduct) {
                 return res.status(404).json({ message: 'Product not found' });
             }
-            const { code, batch_lots, ...restData } = req.body;
+            const { code, batch_lots, subunit_id, ...restData } = req.body;
             const batchLots = batch_lots || [];
             // Validation for tracking_type === 'NONE'
             if (restData.tracking_type === 'NONE' && batchLots.length > 0) {
@@ -590,6 +590,7 @@ exports.productsController = {
             }
             const updateData = {
                 ...restData,
+                subunit_id: subunit_id || undefined,
                 ...(code && code.trim() !== '' && { code }),
                 updatedate: new Date(),
                 updatedby: userId,
@@ -605,6 +606,20 @@ exports.productsController = {
                     return res
                         .status(400)
                         .json({ message: 'Product code already exists' });
+                }
+            }
+            if (updateData.subunit_id !== undefined &&
+                updateData.subunit_id !== null) {
+                const subunitExists = await prisma_client_1.default.unit_of_measurement.findFirst({
+                    where: {
+                        id: Number(updateData.subunit_id || undefined),
+                        is_active: 'Y',
+                    },
+                });
+                if (!subunitExists) {
+                    return res.status(400).json({
+                        message: 'Invalid subunit. The specified subunit does not exist or is inactive.',
+                    });
                 }
             }
             if (batch_lots !== undefined) {

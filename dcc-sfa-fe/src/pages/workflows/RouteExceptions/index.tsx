@@ -35,7 +35,7 @@ const RouteExceptions: React.FC = () => {
   const [limit] = useState(10);
   const { isRead } = usePermission('exception');
 
-  const isLoading = false;
+  const isFetching = false;
   const exceptions: RouteException[] = [];
 
   const totalExceptions = exceptions.length;
@@ -167,28 +167,28 @@ const RouteExceptions: React.FC = () => {
             value={totalExceptions}
             icon={<AlertTriangle className="w-6 h-6" />}
             color="blue"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Open Exceptions"
             value={openExceptions}
             icon={<AlertTriangle className="w-6 h-6" />}
             color="red"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Resolved Exceptions"
             value={resolvedExceptions}
             icon={<Truck className="w-6 h-6" />}
             color="green"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Critical Exceptions"
             value={criticalExceptions}
             icon={<AlertTriangle className="w-6 h-6" />}
             color="orange"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
         </div>
       )}
@@ -196,7 +196,7 @@ const RouteExceptions: React.FC = () => {
       <Table
         columns={columns}
         data={exceptions}
-        loading={isLoading}
+        loading={isFetching}
         page={page - 1}
         onPageChange={newPage => setPage(newPage + 1)}
         rowsPerPage={limit}
