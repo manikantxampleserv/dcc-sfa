@@ -15,141 +15,15 @@ import {
   TableSortLabel as MuiTableSortLabel,
   Paper,
   Skeleton,
-  Switch,
   Typography,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import { visuallyHidden } from '@mui/utils';
 import classNames from 'classnames';
 import { ArrowUpDown, Lock } from 'lucide-react';
 import React, { useMemo, useState, type ReactNode } from 'react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { generateTableId } from '../../utils/generateTableId';
-
-const IOSSwitch = styled((props: any) => (
-  <Switch focusVisibleClassName=".Mui-focusVisible" disableRipple {...props} />
-))(({ theme }) => ({
-  width: 36,
-  height: 22,
-  padding: 0,
-  '& .MuiSwitch-switchBase': {
-    padding: 0,
-    margin: 2,
-    transitionDuration: '300ms',
-    '&.Mui-checked': {
-      transform: 'translateX(14px)',
-      color: '#fff',
-      '& + .MuiSwitch-track': {
-        backgroundColor: '#65C466',
-        opacity: 1,
-        border: 0,
-        ...theme.applyStyles('dark', {
-          backgroundColor: '#2ECA45',
-        }),
-      },
-      '&.Mui-disabled + .MuiSwitch-track': {
-        opacity: 0.5,
-      },
-    },
-    '&.Mui-focusVisible .MuiSwitch-thumb': {
-      color: '#33cf4d',
-      border: '6px solid #fff',
-    },
-    '&.Mui-disabled .MuiSwitch-thumb': {
-      color: theme.palette.grey[100],
-      ...theme.applyStyles('dark', {
-        color: theme.palette.grey[600],
-      }),
-    },
-    '&.Mui-disabled + .MuiSwitch-track': {
-      opacity: 0.7,
-      ...theme.applyStyles('dark', {
-        opacity: 0.3,
-      }),
-    },
-  },
-  '& .MuiSwitch-thumb': {
-    boxSizing: 'border-box',
-    width: 18,
-    height: 18,
-  },
-  '& .MuiSwitch-track': {
-    borderRadius: 22 / 2,
-    backgroundColor: '#E9E9EA',
-    opacity: 1,
-    transition: theme.transitions.create(['background-color'], {
-      duration: 500,
-    }),
-    ...theme.applyStyles('dark', {
-      backgroundColor: '#39393D',
-    }),
-  },
-}));
-
-const CustomSwitch = styled((props: any) => (
-  <Switch focusVisibleClassName=".Mui-focusVisible" disableRipple {...props} />
-))(({ theme }) => ({
-  width: 44,
-  height: 24,
-  padding: 0,
-  '& .MuiSwitch-switchBase': {
-    padding: 0,
-    margin: 2,
-    transitionDuration: '200ms',
-    '&.Mui-checked': {
-      transform: 'translateX(20px)',
-      color: theme.palette.primary.main,
-      '& + .MuiSwitch-track': {
-        backgroundColor: theme.palette.primary.main,
-        opacity: 0.2,
-        border: `2px solid ${theme.palette.primary.main}`,
-      },
-      '&.Mui-disabled + .MuiSwitch-track': {
-        opacity: 0.1,
-      },
-    },
-    '&.Mui-focusVisible .MuiSwitch-thumb': {
-      color: theme.palette.primary.main,
-      border: '3px solid #fff',
-      boxShadow: '0 0 0 6px rgba(25, 118, 210, 0.16)',
-    },
-    '&.Mui-disabled .MuiSwitch-thumb': {
-      color: theme.palette.grey[300],
-      ...theme.applyStyles('dark', {
-        color: theme.palette.grey[600],
-      }),
-    },
-    '&.Mui-disabled + .MuiSwitch-track': {
-      opacity: 0.3,
-      ...theme.applyStyles('dark', {
-        opacity: 0.1,
-      }),
-    },
-  },
-  '& .MuiSwitch-thumb': {
-    boxSizing: 'border-box',
-    width: 20,
-    height: 20,
-    backgroundColor: '#fff',
-    border: '2px solid #E0E0E0',
-    transition: theme.transitions.create(['border-color', 'transform'], {
-      duration: 200,
-    }),
-  },
-  '& .MuiSwitch-track': {
-    borderRadius: 24 / 2,
-    backgroundColor: '#F5F5F5',
-    border: '2px solid #E0E0E0',
-    opacity: 1,
-    transition: theme.transitions.create(['background-color', 'border-color'], {
-      duration: 200,
-    }),
-    ...theme.applyStyles('dark', {
-      backgroundColor: '#424242',
-      borderColor: '#616161',
-    }),
-  },
-}));
+import { CustomSwitch } from '../CustomSwitch';
 
 /**
  * Configuration for a table column
@@ -255,6 +129,8 @@ export interface TableProps<T = any> {
   compact?: boolean;
   /** Unique identifier for this table (used for localStorage persistence) */
   tableId?: string;
+  /** Unique identifier for this table (used for localStorage persistence) */
+  filterColunm?: boolean;
 }
 
 /** Sort order type with three states */
@@ -489,6 +365,7 @@ export default function Table<T extends Record<string, any>>(
     noAccessMessage = 'You do not have permission to access this content',
     compact = false,
     tableId,
+    filterColunm = true,
   } = props;
 
   const [order, setOrder] = useState<Order>(initialOrder);
@@ -710,14 +587,20 @@ export default function Table<T extends Record<string, any>>(
           <>
             <Box className="!p-3 flex items-start justify-between gap-2">
               {props.actions}{' '}
-              <IconButton
-                className="!bg-blue-500/20 !size-9.5 !rounded !mt-px"
-                onClick={handleColumnFilterClick}
-              >
-                <FilterList className="!text-blue-500" />
-              </IconButton>
+              {filterColunm &&
+                hideableColumns &&
+                hideableColumns.length > 0 && (
+                  <Box className="!relative">
+                    <IconButton
+                      className="!bg-blue-500/20 !size-9.5 !rounded !mt-px"
+                      onClick={handleColumnFilterClick}
+                    >
+                      <FilterList className="!text-blue-500" />
+                    </IconButton>
+                    <Divider className="!border-gray-200" />
+                  </Box>
+                )}
             </Box>
-            <Divider className="!border-gray-200" />
           </>
         )}
         <Menu
@@ -751,12 +634,11 @@ export default function Table<T extends Record<string, any>>(
               {hideableColumns.map(column => {
                 const columnId = String(column.id);
                 const isVisible = columnVisibility[columnId] !== false;
-
                 return (
                   <FormControlLabel
                     key={columnId}
                     control={
-                      <IOSSwitch
+                      <CustomSwitch
                         checked={isVisible}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           handleColumnVisibilityChange(
@@ -801,5 +683,3 @@ export default function Table<T extends Record<string, any>>(
     </Box>
   );
 }
-
-export { CustomSwitch };

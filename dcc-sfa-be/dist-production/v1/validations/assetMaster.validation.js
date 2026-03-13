@@ -33,13 +33,13 @@ exports.createAssetMasterValidation = [
         .withMessage('Current status must not exceed 50 characters')
         .isIn([
         'Available',
-        'In Use',
+        'Installed',
         'Under Maintenance',
         'Retired',
         'Lost',
         'Damaged',
     ])
-        .withMessage('Current status must be one of: Available, In Use, Under Maintenance, Retired, Lost, Damaged'),
+        .withMessage('Current status must be one of: Available, Installed, Under Maintenance, Retired, Lost, Damaged'),
     (0, express_validator_1.body)('assigned_to')
         .optional({ checkFalsy: true })
         .isLength({ max: 100 })
@@ -78,13 +78,13 @@ exports.updateAssetMasterValidation = [
         .withMessage('Current status must not exceed 50 characters')
         .isIn([
         'Available',
-        'In Use',
+        'Installed',
         'Under Maintenance',
         'Retired',
         'Lost',
         'Damaged',
     ])
-        .withMessage('Current status must be one of: Available, In Use, Under Maintenance, Retired, Lost, Damaged'),
+        .withMessage('Current status must be one of: Available, Installed, Under Maintenance, Retired, Lost, Damaged'),
     (0, express_validator_1.body)('assigned_to')
         .optional({ checkFalsy: true })
         .isLength({ max: 100 })

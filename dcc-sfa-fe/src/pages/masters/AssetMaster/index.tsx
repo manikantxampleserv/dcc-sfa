@@ -120,7 +120,7 @@ const AssetMasterManagement: React.FC = () => {
       'primary' | 'success' | 'secondary' | 'error' | 'warning' | 'default'
     > = {
       Available: 'success',
-      'In Use': 'primary',
+      Installed: 'primary',
       'Under Maintenance': 'warning',
       Retired: 'secondary',
       Lost: 'error',
@@ -152,12 +152,29 @@ const AssetMasterManagement: React.FC = () => {
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.serial_number} • {row.asset_master_asset_types?.name}
-              {row.asset_master_asset_sub_types?.name && (
-                <span> • {row.asset_master_asset_sub_types.name}</span>
-              )}
+              {row.serial_number}
             </Typography>
           </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'asset_master_asset_types',
+      label: 'Asset Type',
+      render: value => (
+        <Box className="flex items-center gap-1">
+          <Settings className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">{value?.name || 'Not specified'}</span>
+        </Box>
+      ),
+    },
+    {
+      id: 'asset_master_asset_sub_types',
+      label: 'Asset Sub-Type',
+      render: value => (
+        <Box className="flex items-center gap-1">
+          <Wrench className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">{value?.name || 'Not specified'}</span>
         </Box>
       ),
     },

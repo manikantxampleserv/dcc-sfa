@@ -873,8 +873,9 @@ const ManageVanInventory: React.FC<ManageVanInventoryProps> = ({
           <Table
             data={formik.values.van_inventory_items}
             compact
+            filterColunm={false}
             actions={
-              <Box className="!flex !justify-between !items-center">
+              <Box className="!flex !justify-between !items-center !w-full">
                 <Typography variant="body1" className="!font-semibold">
                   Inventory Items{' '}
                 </Typography>

@@ -37,7 +37,7 @@ if (!process.env.DATABASE_URL) {
 const startServer = async () => {
     const port = process.env.PORT || 4000;
     try {
-        const app = (0, app_1.createApp)();
+        const app = await (0, app_1.createApp)();
         if (await (0, killPort_1.isPortInUse)(port)) {
             logger_1.default.warn(`Port ${port} is in use. Attempting to kill existing processes...`);
             await (0, killPort_1.killPort)(port);
@@ -48,6 +48,7 @@ const startServer = async () => {
             attendance_cron_service_1.AttendanceCronService.startMidnightStatusReset();
             logger_1.default.info('Attendance cron jobs started');
             logger_1.default.success(`Server running at http://localhost:${port}`);
+            logger_1.default.info(`GraphQL Playground available at http://localhost:${port}/graphql`);
         });
     }
     catch (error) {

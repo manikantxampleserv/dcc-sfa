@@ -173,36 +173,6 @@ const CoolerInstallationsManagement: React.FC = () => {
 
   const coolerInstallationColumns: TableColumn<CoolerInstallation>[] = [
     {
-      id: 'cooler_info',
-      label: 'Cooler Info',
-      sortable: false,
-      render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
-          <Avatar
-            alt={row.code}
-            className="!rounded !bg-blue-100 !text-blue-500"
-          >
-            <Droplets className="w-5 h-5" />
-          </Avatar>
-          <Box>
-            <Typography
-              variant="body1"
-              className="!text-gray-900 !leading-tight"
-            >
-              {row.code}
-            </Typography>
-            <Typography
-              variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
-            >
-              {row.brand ? `${row.brand}` : 'Unknown Brand'}
-              {row.model ? `• ${row.model}` : ''}
-            </Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
       id: 'customer',
       label: 'Customer',
       sortable: false,
@@ -236,7 +206,9 @@ const CoolerInstallationsManagement: React.FC = () => {
       sortable: false,
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
-          <Package className="w-4 h-4 text-gray-400" />
+          <Avatar className="!rounded !bg-primary-100 !text-primary-500">
+            <Package className="w-5 h-5" />
+          </Avatar>
           <Box className="flex flex-col">
             <Typography
               variant="body1"
@@ -254,51 +226,7 @@ const CoolerInstallationsManagement: React.FC = () => {
         </Box>
       ),
     },
-    {
-      id: 'installation_details',
-      label: 'Installation Details',
-      sortable: false,
-      render: (_value, row) => (
-        <Box className="flex flex-col gap-1">
-          <Box className="flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-gray-400" />
-            <span className="text-xs">
-              {row.install_date
-                ? formatDate(row.install_date)
-                : 'Not installed'}
-            </span>
-          </Box>
-          {row.capacity && (
-            <Box className="flex items-center gap-1">
-              <Package className="w-3 h-3 text-gray-400" />
-              <span className="text-xs">{row.capacity}L</span>
-            </Box>
-          )}
-        </Box>
-      ),
-    },
-    {
-      id: 'cooler_type',
-      label: 'Cooler Type',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.cooler_type?.name || (
-            <span className="italic text-gray-400">No Type</span>
-          )}
-        </Typography>
-      ),
-    },
-    {
-      id: 'cooler_sub_type',
-      label: 'Cooler Sub Type',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.cooler_sub_type?.name || (
-            <span className="italic text-gray-400">No Sub Type</span>
-          )}
-        </Typography>
-      ),
-    },
+
     {
       id: 'status',
       label: 'Status',
@@ -350,6 +278,29 @@ const CoolerInstallationsManagement: React.FC = () => {
               {row.technician?.email || 'No email'}
             </Typography>
           </Box>
+        </Box>
+      ),
+    },
+    {
+      id: 'installation_details',
+      label: 'Installation Details',
+      sortable: false,
+      render: (_value, row) => (
+        <Box className="flex flex-col gap-1">
+          <Box className="flex items-center gap-1">
+            <Calendar className="w-3 h-3 text-gray-400" />
+            <span className="text-xs">
+              {row.install_date
+                ? formatDate(row.install_date)
+                : 'Not installed'}
+            </span>
+          </Box>
+          {row.capacity && (
+            <Box className="flex items-center gap-1">
+              <Package className="w-3 h-3 text-gray-400" />
+              <span className="text-xs">{row.capacity}L</span>
+            </Box>
+          )}
         </Box>
       ),
     },

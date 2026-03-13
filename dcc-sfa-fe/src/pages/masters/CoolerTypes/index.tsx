@@ -29,7 +29,7 @@ const CoolerTypesPage: React.FC = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const { isCreate, isUpdate, isDelete, isRead } = usePermission('cooler-type');
+  const { isCreate, isUpdate, isDelete, isRead } = usePermission('asset-type');
 
   const {
     data: coolerTypesResponse,

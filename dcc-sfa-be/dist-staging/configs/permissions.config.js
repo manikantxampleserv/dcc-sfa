@@ -107,6 +107,7 @@ const MODULE_DISPLAY_NAMES = {
     outlet: 'Outlet',
     'outlet-group': 'Outlet Group',
     'asset-type': 'Asset Type',
+    'asset-sub-types': 'Asset Sub Types',
     'asset-master': 'Asset Master',
     warehouse: 'Warehouse',
     vehicle: 'Vehicle',

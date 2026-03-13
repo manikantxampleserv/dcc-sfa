@@ -1,7 +1,7 @@
 "use strict";
 /**
  * @fileoverview Permissions Seeder
- * @description Creates 11 sample permissions for testing and development
+ * @description Generates permissions for all system modules dynamically
  * @author DCC-SFA Team
  * @version 1.0.0
  */
@@ -33,6 +33,7 @@ const MODULE_MAPPING = {
     outlet: 'Outlet Master',
     'outlet-group': 'Outlet Group',
     'asset-type': 'Asset Type',
+    'asset-sub-types': 'Asset Sub Types',
     'asset-master': 'Asset Master',
     warehouse: 'Warehouse',
     vehicle: 'Vehicle',
@@ -42,7 +43,6 @@ const MODULE_MAPPING = {
     'unit-of-measurement': 'Unit Of Measurement',
     'subunit-of-measurement': 'Subunit Of Measurement',
     product: 'Product',
-    // pricelist: 'Price List',
     'sales-target-group': 'Sales Target Group',
     'sales-target': 'Sales Target',
     'sales-bonus-rule': 'Sales Bonus Rule',
@@ -50,7 +50,6 @@ const MODULE_MAPPING = {
     survey: 'Survey',
     promotions: 'Promotions',
     order: 'Order',
-    // delivery: 'Delivery Schedule',
     return: 'Return Request',
     payment: 'Payment',
     invoice: 'Invoice',
@@ -77,15 +76,11 @@ const MODULE_MAPPING = {
     'product-target-group': 'Product Target Group',
     'product-web-order': 'Product Web Order',
     'inventory-items': 'Inventory Items',
-    'cooler-type': 'Cooler Type',
-    'cooler-sub-type': 'Cooler Sub Type',
+    coolers: 'Coolers',
     location: 'GPS Tracking',
     'route-effectiveness': 'Route Effectiveness',
-    // 'erp-sync': 'ERP Sync',
     report: 'Report',
     approval: 'Approval Workflow',
-    // exception: 'Exception',
-    // alert: 'Alert',
     profile: 'Profile',
     'tax-master': 'Tax Master',
     'login-history': 'Login History',
@@ -110,13 +105,6 @@ const ACTIONS = [
     { key: 'delete', name: 'DELETE', description: 'Remove records' },
 ];
 /**
- * @constant mockPermissions
- * @description Generated permissions array populated during module iteration
- * @type {MockPermission[]}
- */
-const mockPermissions = [];
-exports.mockPermissions = mockPermissions;
-/**
  * @constant READ_ONLY_MODULES
  * @description Modules that should not have delete permissions (read-only or system modules)
  * @type {string[]}
@@ -126,7 +114,6 @@ const READ_ONLY_MODULES = [
     'report',
     'location',
     'route-effectiveness',
-    'erp-sync',
     'profile',
     'login-history',
 ];
@@ -134,6 +121,8 @@ const READ_ONLY_MODULES = [
  * @description Generates CRUD permissions for each module based on available actions
  * @description Iterates through all modules and actions to create permission entries
  */
+const mockPermissions = [];
+exports.mockPermissions = mockPermissions;
 MODULES.forEach(moduleKey => {
     ACTIONS.forEach(action => {
         if (READ_ONLY_MODULES.includes(moduleKey) && action.key === 'delete') {
@@ -306,7 +295,6 @@ async function addModulePermissions(moduleKey, createdBy = 1) {
         }
         const moduleNameForPermission = moduleKey.replace(/-/g, '_').toLowerCase();
         const permissionsToAdd = [];
-        const addedPermissions = [];
         let skippedCount = 0;
         for (const action of ACTIONS) {
             if (READ_ONLY_MODULES.includes(moduleKey) && action.key === 'delete') {

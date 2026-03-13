@@ -908,9 +908,6 @@ exports.requestsController = {
                 result.request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
                 result.request.reference_id) {
                 try {
-                    await prisma_client_1.default.asset_movement_contracts.deleteMany({
-                        where: { asset_movement_id: result.request.reference_id },
-                    });
                     await (0, approvalWorkflow_helper_1.generateContractOnApproval)(result.request.reference_id);
                 }
                 catch (contractError) {

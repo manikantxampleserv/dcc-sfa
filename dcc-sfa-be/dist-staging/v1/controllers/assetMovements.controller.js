@@ -859,6 +859,45 @@ exports.assetMovementsController = {
             res.status(500).json({ message: error.message });
         }
     },
+    // async generateContract(req: Request, res: Response) {
+    //   try {
+    //     const { id } = req.params;
+    //     const contractService = new ContractGenerationService();
+    //     const assetMovement = await prisma.asset_movements.findUnique({
+    //       where: { id: Number(id) },
+    //     });
+    //     if (!assetMovement) {
+    //       return res.status(404).json({ message: 'Asset movement not found' });
+    //     }
+    //     if (assetMovement.approval_status !== 'A') {
+    //       return res.status(400).json({
+    //         message: 'Asset movement must be approved before generating contract',
+    //       });
+    //     }
+    //     const existingContract =
+    //       await contractService.getContractByAssetMovementId(Number(id));
+    //     if (existingContract) {
+    //       return res
+    //         .status(400)
+    //         .json({ message: 'Contract already exists for this asset movement' });
+    //     }
+    //     const contractRecord = await contractService.generateContractOnApproval(
+    //       Number(id)
+    //     );
+    //     res.status(201).json({
+    //       message: 'Contract generated and uploaded successfully',
+    //       data: {
+    //         contract_id: contractRecord.id,
+    //         contract_number: contractRecord.contract_number,
+    //         contract_url: contractRecord.contract_url,
+    //         contract_date: contractRecord.contract_date,
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Generate Contract Error:', error);
+    //     res.status(500).json({ message: error.message });
+    //   }
+    // },
     async generateContract(req, res) {
         try {
             const { id } = req.params;
@@ -896,6 +935,24 @@ exports.assetMovementsController = {
             res.status(500).json({ message: error.message });
         }
     },
+    // async downloadContract(req: Request, res: Response) {
+    //   try {
+    //     const { id } = req.params;
+    //     const contractService = new ContractGenerationService();
+    //     const contract = await contractService.getContractByAssetMovementId(
+    //       Number(id)
+    //     );
+    //     if (!contract) {
+    //       return res
+    //         .status(404)
+    //         .json({ message: 'Contract not found for this asset movement' });
+    //     }
+    //     res.redirect(302, contract.contract_url);
+    //   } catch (error: any) {
+    //     console.error('Download Contract Error:', error);
+    //     res.status(500).json({ message: error.message });
+    //   }
+    // },
     async downloadContract(req, res) {
         try {
             const { id } = req.params;

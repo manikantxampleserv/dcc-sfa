@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
-import { parse } from 'path';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
-import type { orders, survey_responses } from '@prisma/client';
 
 interface VisitSerialized {
   id: number;

@@ -32,7 +32,7 @@ const CoolerSubTypesPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } =
-    usePermission('cooler-sub-type');
+    usePermission('asset-sub-types');
 
   const { data: coolerTypesDropdown } = useCoolerTypesDropdown();
 

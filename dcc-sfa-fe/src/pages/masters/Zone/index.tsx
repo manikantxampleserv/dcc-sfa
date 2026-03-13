@@ -162,9 +162,29 @@ const ZonesManagement: React.FC = () => {
       id: 'zone_depots',
       label: 'Depot',
       render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.zone_depots?.name || 'No Depot'}
-        </Typography>
+        <Box className="!flex !gap-2 !items-center">
+          <Avatar
+            alt={row.zone_depots?.name}
+            src="mkx"
+            className="!rounded !bg-primary-100 !text-primary-600"
+          >
+            <MapPin className="w-5 h-5" />
+          </Avatar>
+          <Box>
+            <Typography
+              variant="body1"
+              className="!text-gray-900 !leading-tight"
+            >
+              {row.zone_depots?.name || 'No Depot'}
+            </Typography>
+            <Typography
+              variant="caption"
+              className="!text-gray-500 !text-xs !block !mt-0.5"
+            >
+              {row.zone_depots?.code}
+            </Typography>
+          </Box>
+        </Box>
       ),
     },
     {

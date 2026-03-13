@@ -113,7 +113,6 @@ const ImportAssetMaintenance: React.FC<ImportAssetMaintenanceProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Asset Maintenance"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -324,7 +323,7 @@ const ImportAssetMaintenance: React.FC<ImportAssetMaintenanceProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 

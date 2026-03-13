@@ -10,7 +10,7 @@ const storage = multer_1.default.memoryStorage();
 exports.uploadExcel = (0, multer_1.default)({
     storage,
     limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (_req, file, cb) => {
         const allowedTypes = [
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -29,7 +29,7 @@ exports.uploadExcel = (0, multer_1.default)({
 exports.upload = (0, multer_1.default)({
     storage,
     limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (_req, file, cb) => {
         const allowedTypes = [
             'image/jpeg',
             'image/png',

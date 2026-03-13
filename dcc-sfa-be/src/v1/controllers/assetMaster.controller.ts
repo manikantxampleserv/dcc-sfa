@@ -352,15 +352,18 @@ export const assetMasterController = {
       const { id } = req.params;
       const existingAsset = await prisma.asset_master.findUnique({
         where: { id: Number(id) },
+        include: {
+          asset_master_asset_types: true,
+          asset_master_asset_sub_types: true,
+        },
       });
       if (!existingAsset)
         return res.status(404).json({ message: 'Asset not found' });
 
-      const data = {
-        ...req.body,
-        asset_sub_type_id: req.body.asset_sub_type_id
-          ? Number(req.body.asset_sub_type_id)
-          : existingAsset.asset_sub_type_id,
+      const data: any = {
+        name: req.body.name,
+        code: req.body.code,
+        serial_number: req.body.serial_number,
         assigned_to: req.body.assigned_to
           ? String(req.body.assigned_to)
           : existingAsset.assigned_to,
@@ -370,9 +373,24 @@ export const assetMasterController = {
         warranty_expiry: req.body.warranty_expiry
           ? new Date(req.body.warranty_expiry)
           : existingAsset.warranty_expiry,
+        current_location: req.body.current_location,
+        current_status: req.body.current_status,
+        is_active: req.body.is_active,
         updatedate: new Date(),
         updatedby: req.user?.id,
       };
+
+      if (req.body.asset_type_id) {
+        data.asset_master_asset_types = {
+          connect: { id: Number(req.body.asset_type_id) },
+        };
+      }
+
+      if (req.body.asset_sub_type_id) {
+        data.asset_master_asset_sub_types = {
+          connect: { id: Number(req.body.asset_sub_type_id) },
+        };
+      }
 
       const asset = await prisma.asset_master.update({
         where: { id: Number(id) },

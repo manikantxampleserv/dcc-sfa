@@ -19,13 +19,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useFormik } from 'formik';
 import { useLogin } from 'hooks/useAuth';
 import { userQueryKeys } from 'hooks/useUsers';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { type LoginRequest } from 'services/auth/authService';
 import tokenService from 'services/auth/tokenService';
 import Button from 'shared/Button';
 import Input from 'shared/Input';
 import * as Yup from 'yup';
+import ForgetPasswordModal from '../ForgetPassword';
 
 /**
  * Validation schema for login form
@@ -59,6 +60,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   // Get redirect path from location state or default to dashboard
   const from = (location.state as any)?.from?.pathname || '/';
@@ -108,8 +110,6 @@ const Login: React.FC = () => {
    * @param values - Form values containing email and password
    */
   const handleLogin = async (values: LoginFormValues) => {
-    console.log(values);
-
     // Store remember me preference
     if (values.rememberMe) {
       localStorage.setItem('dcc_sfa_remember_email', values.email);
@@ -338,13 +338,14 @@ const Login: React.FC = () => {
                 </span>
               }
             />
-            {/* <MuiLink
-              component={Link}
-              to="#"
-              className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium no-underline hover:underline transition-colors"
+            <MuiLink
+              onClick={() => {
+                setForgotOpen(true);
+              }}
+              className="text-blue-600 hover:text-blue-700 text-xs lg:!text-sm font-medium no-underline hover:underline transition-colors"
             >
-              Forgot Your Password?
-            </MuiLink> */}
+              Forgot your password?
+            </MuiLink>
           </div>
 
           <Button
@@ -358,6 +359,12 @@ const Login: React.FC = () => {
             {loginMutation.isPending ? 'Signing In...' : 'Log In'}
           </Button>
         </form>
+
+        <ForgetPasswordModal
+          open={forgotOpen}
+          onClose={() => setForgotOpen(false)}
+          defaultEmail={formik.values.email}
+        />
 
         {/* Footer */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0 mt-8 sm:mt-12 text-xs text-gray-500">

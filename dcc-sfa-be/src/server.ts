@@ -34,7 +34,7 @@ export const startServer = async () => {
   const port = process.env.PORT || 4000;
 
   try {
-    const app = createApp();
+    const app = await createApp();
 
     if (await isPortInUse(port)) {
       logger.warn(
@@ -49,6 +49,9 @@ export const startServer = async () => {
       AttendanceCronService.startMidnightStatusReset();
       logger.info('Attendance cron jobs started');
       logger.success(`Server running at http://localhost:${port}`);
+      logger.info(
+        `GraphQL Playground available at http://localhost:${port}/graphql`
+      );
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

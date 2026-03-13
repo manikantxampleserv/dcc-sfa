@@ -313,7 +313,7 @@ const UsersManagement: React.FC = () => {
         columns={userColumns}
         actions={
           isRead || isCreate ? (
-            <div className="flex justify-between w-full items-center flex-wrap gap-2">
+            <div className="flex justify-between w-full flex-wrap gap-2">
               <div className="flex items-center flex-wrap gap-2">
                 <SearchInput
                   placeholder="Search Users"

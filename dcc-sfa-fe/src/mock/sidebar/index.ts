@@ -342,16 +342,16 @@ const menuItems: MenuItem[] = [
             label: 'Asset Maintenance',
             href: '/transactions/maintenance',
           },
-          {
-            id: 'cooler-types',
-            label: 'Cooler Types',
-            href: '/masters/cooler-types',
-          },
-          {
-            id: 'cooler-sub-types',
-            label: 'Cooler Sub Types',
-            href: '/masters/cooler-sub-types',
-          },
+          // {
+          //   id: 'cooler-types',
+          //   label: 'Cooler Types',
+          //   href: '/masters/cooler-types',
+          // },
+          // {
+          //   id: 'cooler-sub-types',
+          //   label: 'Cooler Sub Types',
+          //   href: '/masters/cooler-sub-types',
+          // },
           {
             id: 'cooler-installations',
             label: 'Cooler Installations',

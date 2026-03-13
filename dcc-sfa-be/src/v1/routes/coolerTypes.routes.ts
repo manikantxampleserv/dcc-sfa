@@ -18,7 +18,7 @@ router.post(
   '/cooler-types',
   authenticateToken,
   auditCreate('cooler_types'),
-  requirePermission([{ module: 'cooler-type', action: 'create' }]),
+  requirePermission([{ module: 'asset-type', action: 'create' }]),
   createCoolerTypeValidation,
   validate,
   coolerTypesController.createCoolerType
@@ -27,7 +27,7 @@ router.post(
 router.get(
   '/cooler-types/:id',
   authenticateToken,
-  requirePermission([{ module: 'cooler-type', action: 'read' }]),
+  requirePermission([{ module: 'asset-type', action: 'read' }]),
   validate,
   coolerTypesController.getCoolerTypeById
 );
@@ -35,7 +35,7 @@ router.get(
 router.get(
   '/cooler-types',
   authenticateToken,
-  requirePermission([{ module: 'cooler-type', action: 'read' }]),
+  requirePermission([{ module: 'asset-type', action: 'read' }]),
   coolerTypesController.getCoolerTypes
 );
 
@@ -49,7 +49,7 @@ router.put(
   '/cooler-types/:id',
   authenticateToken,
   auditUpdate('cooler_types'),
-  requirePermission([{ module: 'cooler-type', action: 'update' }]),
+  requirePermission([{ module: 'asset-type', action: 'update' }]),
   coolerTypesController.updateCoolerType
 );
 
@@ -57,7 +57,7 @@ router.delete(
   '/cooler-types/:id',
   authenticateToken,
   auditDelete('cooler_types'),
-  requirePermission([{ module: 'cooler-type', action: 'delete' }]),
+  requirePermission([{ module: 'asset-type', action: 'delete' }]),
   coolerTypesController.deleteCoolerType
 );
 

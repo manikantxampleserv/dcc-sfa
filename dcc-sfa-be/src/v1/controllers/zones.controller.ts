@@ -124,15 +124,17 @@ export const zonesController = {
           return res.status(400).json({ message: 'Zone code already exists' });
         }
       } else {
-        if (!data.depot_id) {
+        const depotId = data.depot_id || data.parent_id;
+
+        if (!depotId) {
           return res.status(400).json({
             message:
-              'Either zone code or depot ID is required. Provide a zone code or depot ID for auto-generation.',
+              'Either zone code or depot ID (parent_id) is required. Provide a zone code or depot ID for auto-generation.',
           });
         }
 
         try {
-          newCode = await generateZoneCode(data.depot_id);
+          newCode = await generateZoneCode(depotId);
         } catch (error: any) {
           return res.status(400).json({ message: error.message });
         }
@@ -152,7 +154,8 @@ export const zonesController = {
           .json({ message: 'Zone with this name already exists' });
       }
 
-      if (data.depot_id && !data.parent_id) {
+      // Ensure parent_id is set to depot_id for consistency
+      if (!data.parent_id) {
         data.parent_id = data.depot_id;
       }
 
