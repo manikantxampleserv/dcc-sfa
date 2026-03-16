@@ -99,7 +99,6 @@ const ManagePayment: React.FC<ManagePaymentProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Payment' : 'Create Payment'}
-      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

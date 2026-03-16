@@ -86,6 +86,7 @@ const MODULE_MAPPING = {
     'login-history': 'Login History',
     token: 'Token',
     setting: 'Setting',
+    templates: 'email-templates',
 };
 /**
  * @constant MODULES
