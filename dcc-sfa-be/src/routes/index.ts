@@ -92,6 +92,8 @@ import inventoryItemRoutes from '../v1/routes/inventoryItem.routes';
 import subunitsRoutes from '../v1/routes/subunits.routes';
 import assetSubTypes from '../v1/routes/assetSubTypes.routes';
 import templates from '../v1/routes/templates.routes';
+import columnPreference from '../v1/routes/columnPreference.routes';
+
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -186,6 +188,7 @@ routes.use('/v1', inventoryItemRoutes);
 routes.use('/v1', subunitsRoutes);
 routes.use('/v1', assetSubTypes);
 routes.use('/v1', templates);
+routes.use('/v1', columnPreference);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
