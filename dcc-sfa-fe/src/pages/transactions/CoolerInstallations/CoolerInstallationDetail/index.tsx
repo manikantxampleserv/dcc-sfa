@@ -399,12 +399,6 @@ const CoolerInstallationDetail: React.FC = () => {
               {cooler.code}
             </Typography>
 
-            <Typography variant="body2" className="!text-gray-600 !mb-3">
-              {cooler.brand && cooler.model
-                ? `${cooler.brand} ${cooler.model}`
-                : 'Unknown Model'}
-            </Typography>
-
             <Chip
               label={getStatusLabel(cooler.status)}
               color={getStatusColor(cooler.status)}
@@ -579,56 +573,6 @@ const CoolerInstallationDetail: React.FC = () => {
                 </Typography>
                 <Typography variant="body1" className="!text-gray-800">
                   {cooler.technician?.name || 'No technician assigned'}
-                </Typography>
-              </div>
-
-              <div className="!space-y-1">
-                <Typography
-                  variant="body2"
-                  className="!font-bold !text-gray-900"
-                >
-                  Brand & Model
-                </Typography>
-                <Typography variant="body1" className="!text-gray-800">
-                  {cooler.brand && cooler.model
-                    ? `${cooler.brand} ${cooler.model}`
-                    : 'Unknown Brand & Model'}
-                </Typography>
-              </div>
-
-              <div className="!space-y-1">
-                <Typography
-                  variant="body2"
-                  className="!font-bold !text-gray-900"
-                >
-                  Serial Number
-                </Typography>
-                <Typography variant="body1" className="!text-gray-800">
-                  {cooler.serial_number || 'Not provided'}
-                </Typography>
-              </div>
-
-              <div className="!space-y-1">
-                <Typography
-                  variant="body2"
-                  className="!font-bold !text-gray-900"
-                >
-                  Cooler Type
-                </Typography>
-                <Typography variant="body1" className="!text-gray-800">
-                  {cooler.cooler_type?.name || 'Not specified'}
-                </Typography>
-              </div>
-
-              <div className="!space-y-1">
-                <Typography
-                  variant="body2"
-                  className="!font-bold !text-gray-900"
-                >
-                  Cooler Sub Type
-                </Typography>
-                <Typography variant="body1" className="!text-gray-800">
-                  {cooler.cooler_sub_type?.name || 'Not specified'}
                 </Typography>
               </div>
 
