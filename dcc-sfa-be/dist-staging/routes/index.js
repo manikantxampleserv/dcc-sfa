@@ -214,7 +214,7 @@ routes.get('/', (_, res) => {
 routes.get('/v1/health', (_, res) => {
     res.json({
         status: 'OK',
-        message: 'DCC SFA is alive, well-fed, and caffeinated.',
+        message: 'DCC SFA is alive, well-fed, and caffeinateds.',
         uptime: process.uptime().toFixed(2) + 's',
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development',
