@@ -7,6 +7,8 @@ import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssig
 import dotenv from 'dotenv';
 import { resolve } from 'path';
 import { setupGraphQL } from './graphql/server';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec, swaggerUiOptions } from './configs/swagger';
 
 // First check if DATABASE_URL is already set in environment variables
 if (!process.env.DATABASE_URL) {
@@ -55,6 +57,12 @@ export const createApp = async (): Promise<Application> => {
   app.use(responseHandler);
 
   app.use('/api', routes);
+
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, swaggerUiOptions)
+  );
 
   scheduleCustomerCategoryAssignment();
 

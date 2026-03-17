@@ -483,6 +483,72 @@ async function createStockMovement(
   });
 }
 
+/**
+ * @swagger
+ * /api/v1/van-inventory/salesperson/{salesperson_id}:
+ *   get:
+ *     summary: Get salesperson inventory items
+ *     tags: [Van Inventory]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: salesperson_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Salesperson ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Items per page
+ *       - in: query
+ *         name: product_id
+ *         schema:
+ *           type: integer
+ *         description: Filter by product ID
+ *     responses:
+ *       200:
+ *         description: Salesperson inventory retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     salesperson_id:
+ *                       type: integer
+ *                     salesperson_name:
+ *                       type: string
+ *                     total_van_inventories:
+ *                       type: integer
+ *                     items:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/VanInventoryItem'
+ *                 pagination:
+ *                   $ref: '#/components/schemas/Pagination'
+ *       400:
+ *         description: Bad request - Salesperson ID required
+ *       404:
+ *         description: Salesperson not found
+ *       500:
+ *         description: Internal server error
+ */
 export const vanInventoryController = {
   async getSalespersonInventoryItems(req: Request, res: Response) {
     try {
