@@ -149,7 +149,7 @@ const OrdersManagement: React.FC = () => {
     const normalizedStatus = status?.slice(0, 1)?.toUpperCase();
     const labels = {
       P: 'Pending',
-      R: 'Pending',
+      R: 'Rejected',
       A: 'Approved',
     };
     return labels[normalizedStatus as keyof typeof labels] || 'Pending';

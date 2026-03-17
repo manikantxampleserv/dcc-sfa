@@ -96,6 +96,7 @@ const inventoryItem_routes_1 = __importDefault(require("../v1/routes/inventoryIt
 const subunits_routes_1 = __importDefault(require("../v1/routes/subunits.routes"));
 const assetSubTypes_routes_1 = __importDefault(require("../v1/routes/assetSubTypes.routes"));
 const templates_routes_1 = __importDefault(require("../v1/routes/templates.routes"));
+const columnPreference_routes_1 = __importDefault(require("../v1/routes/columnPreference.routes"));
 const routes = (0, express_1.Router)();
 routes.use('/v1', auth_routes_1.default);
 routes.use('/v1', user_routes_1.default);
@@ -189,6 +190,7 @@ routes.use('/v1', inventoryItem_routes_1.default);
 routes.use('/v1', subunits_routes_1.default);
 routes.use('/v1', assetSubTypes_routes_1.default);
 routes.use('/v1', templates_routes_1.default);
+routes.use('/v1', columnPreference_routes_1.default);
 routes.get('/', (_, res) => {
     res.json({
         name: 'DCC-SFA API',

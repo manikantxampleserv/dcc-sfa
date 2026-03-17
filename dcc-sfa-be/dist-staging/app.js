@@ -13,6 +13,8 @@ const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignm
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = require("path");
 const server_1 = require("./graphql/server");
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const swagger_1 = require("./configs/swagger");
 // First check if DATABASE_URL is already set in environment variables
 if (!process.env.DATABASE_URL) {
     // Load environment variables from the root directory
@@ -51,6 +53,7 @@ const createApp = async () => {
     app.use((0, cors_1.default)({ origin: '*', credentials: true }));
     app.use(response_middleware_1.responseHandler);
     app.use('/api', routes_1.default);
+    app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.swaggerSpec, swagger_1.swaggerUiOptions));
     (0, customerCategoryAssignment_job_1.scheduleCustomerCategoryAssignment)();
     return app;
 };
