@@ -89,7 +89,7 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
 
   const categoryId = normalizedValue ? Number(normalizedValue) : undefined;
 
-  const { data: dropdownResponse, isLoading: isLoading } =
+  const { data: dropdownResponse, isLoading: isFetching } =
     useProductCategoriesDropdown({
       search: effectiveSearch,
       category_id: categoryId && !effectiveSearch ? categoryId : undefined,
@@ -106,7 +106,7 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
     if (
       normalizedValue &&
       !selectedCategoryData &&
-      !isLoading &&
+      !isFetching &&
       searchResults.length > 0
     ) {
       const found = searchResults.find(
@@ -125,7 +125,7 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
     selectedCategoryData,
     inputValue,
     searchResults,
-    isLoading,
+    isFetching,
   ]);
 
   const selectedCategory = React.useMemo(() => {
@@ -260,7 +260,7 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
       options={categories}
       getOptionLabel={(option: ProductCategory) => option.category_name}
       value={selectedCategory}
-      loading={isLoading}
+      loading={isFetching}
       onChange={handleChange}
       inputValue={inputValue}
       onInputChange={handleInputChange}
@@ -306,7 +306,7 @@ const ProductCategorySelect: React.FC<ProductCategorySelectProps> = ({
         />
       )}
       noOptionsText={
-        debouncedSearch && !isLoading
+        debouncedSearch && !isFetching
           ? 'No categories found'
           : 'Type to search categories'
       }

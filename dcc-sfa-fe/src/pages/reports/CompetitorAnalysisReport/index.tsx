@@ -20,7 +20,7 @@ const CompetitorAnalysisReport: React.FC = () => {
   const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useCompetitorAnalysisReport(
+  const { data: reportData, isFetching } = useCompetitorAnalysisReport(
     {
       start_date: startDate,
       end_date: endDate,
@@ -276,7 +276,7 @@ const CompetitorAnalysisReport: React.FC = () => {
         }
         columns={activitiesColumns}
         data={activities}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -289,7 +289,7 @@ const CompetitorAnalysisReport: React.FC = () => {
         }
         columns={brandsColumns}
         data={brandsSummary}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />

@@ -20,7 +20,7 @@ const AssetMovementStatusReport: React.FC = () => {
   const [assetStatus, setAssetStatus] = useState('all');
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useAssetMovementStatusReport(
+  const { data: reportData, isFetching } = useAssetMovementStatusReport(
     {
       start_date: startDate,
       end_date: endDate,
@@ -437,7 +437,7 @@ const AssetMovementStatusReport: React.FC = () => {
         }
         columns={assetColumns}
         data={reportData?.data?.assets || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -452,7 +452,7 @@ const AssetMovementStatusReport: React.FC = () => {
         }
         columns={movementsColumns}
         data={reportData?.data?.movements || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -467,7 +467,7 @@ const AssetMovementStatusReport: React.FC = () => {
         }
         columns={customerAssetsColumns}
         data={reportData?.data?.customer_assets || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -482,7 +482,7 @@ const AssetMovementStatusReport: React.FC = () => {
         }
         columns={warrantyClaimsColumns}
         data={reportData?.data?.warranty_claims || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />

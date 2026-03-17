@@ -31,7 +31,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
   const [status, setStatus] = useState('all');
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useVisitFrequencyCompletionReport(
+  const { data: reportData, isFetching } = useVisitFrequencyCompletionReport(
     {
       start_date: startDate,
       end_date: endDate,
@@ -456,7 +456,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
         }
         columns={visitsColumns}
         data={reportData?.data?.visits || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -472,7 +472,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
         }
         columns={tasksColumns}
         data={reportData?.data?.tasks || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
       />
 
@@ -486,7 +486,7 @@ const VisitFrequencyCompletionReport: React.FC = () => {
         }
         columns={gpsLogsColumns}
         data={reportData?.data?.gps_logs || []}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />

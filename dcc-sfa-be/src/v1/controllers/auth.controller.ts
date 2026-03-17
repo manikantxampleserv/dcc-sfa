@@ -366,7 +366,7 @@ export const forgotPassword = async (req: any, res: any) => {
     });
 
     if (!user) {
-      return res.success('No email found ');
+      return res.error('No user associated with this email', 400);
     }
 
     const otpCode = generateOTP(6);

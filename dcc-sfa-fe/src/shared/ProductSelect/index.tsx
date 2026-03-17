@@ -99,7 +99,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
 
   const productId = normalizedValue ? Number(normalizedValue) : undefined;
 
-  const { data: dropdownResponse, isLoading } = useProductsDropdown({
+  const { data: dropdownResponse, isFetching } = useProductsDropdown({
     search: effectiveSearch,
     product_id: productId && !effectiveSearch ? productId : undefined,
   });
@@ -120,7 +120,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
     if (
       normalizedValue &&
       !selectedProductData &&
-      !isLoading &&
+      !isFetching &&
       searchResults.length > 0
     ) {
       const found = searchResults.find(
@@ -139,7 +139,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
         }, 100);
       }
     }
-  }, [normalizedValue, isLoading, searchResults.length]);
+  }, [normalizedValue, isFetching, searchResults.length]);
 
   // Get selected product from state or search results
   const selectedProduct = React.useMemo(() => {
@@ -255,7 +255,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
       options={products}
       getOptionLabel={(option: Product) => option.name}
       value={selectedProduct}
-      loading={isLoading}
+      loading={isFetching}
       onChange={handleChange}
       inputValue={inputValue}
       onInputChange={handleInputChange}
@@ -302,7 +302,7 @@ const ProductSelect: React.FC<ProductSelectProps> = ({
         />
       )}
       noOptionsText={
-        debouncedSearch && !isLoading
+        debouncedSearch && !isFetching
           ? 'No products found'
           : 'Type to search products'
       }

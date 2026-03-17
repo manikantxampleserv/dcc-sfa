@@ -14,8 +14,8 @@ import {
   TextField,
   type AutocompleteProps,
 } from '@mui/material';
-import React, { useMemo, useCallback } from 'react';
 import type { FormikProps } from 'formik';
+import React, { useCallback, useMemo } from 'react';
 
 interface Option {
   value: any;
@@ -113,19 +113,17 @@ const Select: React.FC<CustomSelectProps> = ({
     return parsedOptions;
   }, [children]);
 
-  // FIXED: Extract only the specific field value instead of watching entire formik object
   const currentValue = useMemo(() => {
     if (value !== undefined) return value;
-    if (formik && name) return formik.values[name] || null;
+    if (formik && name) {
+      const formValue = formik.values[name];
+      return formValue === '' ? null : formValue;
+    }
     return null;
-  }, [value, formik?.values[name], name]); // Only watch the specific field
+  }, [value, formik?.values[name], name]);
 
   const selectedOption = useMemo(() => {
-    if (
-      currentValue === null ||
-      currentValue === undefined ||
-      currentValue === ''
-    ) {
+    if (currentValue === null || currentValue === undefined) {
       return null;
     }
     const found = options.find(option => {
@@ -136,7 +134,6 @@ const Select: React.FC<CustomSelectProps> = ({
     return found || null;
   }, [currentValue, options]);
 
-  // FIXED: Use useCallback to memoize handlers
   const handleChange = useCallback(
     (_event: any, newValue: Option | null) => {
       const newValueToSet = newValue?.value ?? null;
@@ -159,7 +156,7 @@ const Select: React.FC<CustomSelectProps> = ({
       }
     },
     [formik, name, setValue, onChange]
-  ); // FIXED: Proper dependencies
+  );
 
   const handleBlur = useCallback(() => {
     if (formik && name) {
@@ -169,9 +166,8 @@ const Select: React.FC<CustomSelectProps> = ({
     if (onBlur) {
       onBlur({ target: { name } } as any);
     }
-  }, [formik, name, onBlur]); // FIXED: Proper dependencies
+  }, [formik, name, onBlur]);
 
-  // FIXED: Extract error state without watching entire formik
   const error = useMemo(() => {
     if (!formik || !name) return false;
     return formik.touched?.[name] && formik.errors?.[name];
@@ -227,21 +223,13 @@ const Select: React.FC<CustomSelectProps> = ({
           <TextField
             {...params}
             label={label}
-            placeholder={placeholder}
             required={required}
             error={!!error}
-            name={name}
             size={size}
-            sx={{ minWidth: '160px' }}
-            slotProps={{
-              input: {
-                ...params.InputProps,
-                readOnly: false,
-              },
-              htmlInput: {
-                ...params.inputProps,
-                required: false,
-              },
+            placeholder={selectedOption ? '' : placeholder}
+            inputProps={{
+              ...params.inputProps,
+              value: selectedOption ? params.inputProps.value : '',
             }}
           />
         )}

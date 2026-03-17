@@ -81,6 +81,7 @@ export const BACKEND_MODULES = [
   'login-history',
   'token',
   'setting',
+  'templates',
 ] as const;
 
 export type BackendModule = (typeof BACKEND_MODULES)[number];
@@ -172,6 +173,7 @@ const MANUAL_PERMISSION_OVERRIDES: Record<string, BackendModule> = {
   'login-history': 'login-history',
   'api-tokens': 'token',
   'system-settings': 'setting',
+  'email-templates': 'templates',
 };
 
 /**

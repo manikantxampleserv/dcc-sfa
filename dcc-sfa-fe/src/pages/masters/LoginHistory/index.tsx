@@ -35,7 +35,7 @@ const LoginHistoryPage: React.FC = () => {
 
   const {
     data: loginHistoryResponse,
-    isLoading,
+    isFetching,
     error,
   } = useLoginHistory(
     {
@@ -240,28 +240,28 @@ const LoginHistoryPage: React.FC = () => {
           value={totalLogins}
           icon={<History className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Successful"
           value={successfulLogins}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Failed"
           value={failedLogins}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Today's Logins"
           value={todayLogins}
           icon={<TrendingUp className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -325,7 +325,7 @@ const LoginHistoryPage: React.FC = () => {
         }
         getRowId={loginHistory => loginHistory.id}
         initialOrderBy="login_time"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

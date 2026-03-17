@@ -31,7 +31,7 @@ const OutstandingCollectionReport: React.FC = () => {
   const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useOutstandingCollectionReport(
+  const { data: reportData, isFetching } = useOutstandingCollectionReport(
     {
       start_date: startDate,
       end_date: endDate,
@@ -391,7 +391,7 @@ const OutstandingCollectionReport: React.FC = () => {
         }
         columns={outstandingColumns}
         data={outstandingInvoices}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -405,7 +405,7 @@ const OutstandingCollectionReport: React.FC = () => {
         }
         columns={customerSummaryColumns}
         data={customerSummary}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -418,7 +418,7 @@ const OutstandingCollectionReport: React.FC = () => {
         }
         columns={collectionsColumns}
         data={collections}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />

@@ -51,7 +51,7 @@ const ReturnRequests: React.FC = () => {
 
   const {
     data: returnRequestsResponse,
-    isLoading,
+    isFetching,
     error,
   } = useReturnRequests(
     {
@@ -400,56 +400,56 @@ const ReturnRequests: React.FC = () => {
           value={totalRequests}
           icon={<FileText className="w-4 h-4" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Pending"
           value={pendingRequests}
           icon={<Clock className="w-4 h-4" />}
           color="yellow"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Approved"
           value={approvedRequests}
           icon={<CheckCircle className="w-4 h-4" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Rejected"
           value={rejectedRequests}
           icon={<XCircle className="w-4 h-4" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Processing"
           value={processingRequests}
           icon={<Clock className="w-4 h-4" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Completed"
           value={completedRequests}
           icon={<CheckCircle className="w-4 h-4" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Cancelled"
           value={cancelledRequests}
           icon={<XCircle className="w-4 h-4" />}
           color="gray"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="New"
           value={newRequestsThisMonth}
           icon={<Calendar className="w-4 h-4" />}
           color="gray"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -542,7 +542,7 @@ const ReturnRequests: React.FC = () => {
           )
         }
         getRowId={returnRequest => returnRequest.id}
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

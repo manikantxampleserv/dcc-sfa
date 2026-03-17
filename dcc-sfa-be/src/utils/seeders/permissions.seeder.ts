@@ -90,6 +90,7 @@ const MODULE_MAPPING: Record<string, string> = {
   'login-history': 'Login History',
   token: 'Token',
   setting: 'Setting',
+  templates: 'email-templates',
 };
 
 /**

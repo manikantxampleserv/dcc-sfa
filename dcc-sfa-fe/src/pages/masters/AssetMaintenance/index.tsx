@@ -44,7 +44,7 @@ const AssetMaintenanceManagement: React.FC = () => {
 
   const {
     data: assetMaintenanceResponse,
-    isLoading,
+    isFetching,
     error,
   } = useAssetMaintenances(
     {
@@ -301,28 +301,28 @@ const AssetMaintenanceManagement: React.FC = () => {
           value={totalMaintenances}
           icon={<Wrench className="w-6 h-6" />}
           color="blue"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Active Maintenance"
           value={activeMaintenances}
           icon={<CheckCircle className="w-6 h-6" />}
           color="green"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="Inactive Maintenance"
           value={inactiveMaintenances}
           icon={<Block className="w-6 h-6" />}
           color="red"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
         <StatsCard
           title="This Month"
           value={maintenancesThisMonth}
           icon={<Calendar className="w-6 h-6" />}
           color="purple"
-          isLoading={isLoading}
+          isLoading={isFetching}
         />
       </div>
 
@@ -411,7 +411,7 @@ const AssetMaintenanceManagement: React.FC = () => {
         }
         getRowId={maintenance => maintenance.id}
         initialOrderBy="maintenance_date"
-        loading={isLoading}
+        loading={isFetching}
         totalCount={totalCount}
         page={currentPage}
         rowsPerPage={limit}

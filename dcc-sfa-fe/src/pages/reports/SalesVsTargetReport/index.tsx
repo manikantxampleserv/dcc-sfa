@@ -24,7 +24,7 @@ const SalesVsTargetReport: React.FC = () => {
   const { formatCurrency } = useCurrency();
   const { isRead } = usePermission('report');
 
-  const { data: reportData, isLoading } = useSalesVsTargetReport(
+  const { data: reportData, isFetching } = useSalesVsTargetReport(
     {
       start_date: startDate,
       end_date: endDate,
@@ -322,28 +322,28 @@ const SalesVsTargetReport: React.FC = () => {
             value={summary.total_salespeople}
             icon={<Users className="w-6 h-6" />}
             color="blue"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Categories"
             value={summary.total_categories}
             icon={<BarChart3 className="w-6 h-6" />}
             color="purple"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Target Amount"
             value={formatCurrency(summary.total_target_amount).toLocaleString()}
             icon={<Target className="w-6 h-6" />}
             color="orange"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
           <StatsCard
             title="Actual Sales"
             value={formatCurrency(summary.total_actual_sales)}
             icon={<TrendingUp className="w-6 h-6" />}
             color="green"
-            isLoading={isLoading}
+            isLoading={isFetching}
           />
         </div>
       )}
@@ -358,7 +358,7 @@ const SalesVsTargetReport: React.FC = () => {
           </Box>
         }
         data={performance}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
@@ -373,7 +373,7 @@ const SalesVsTargetReport: React.FC = () => {
         }
         columns={categoryColumns}
         data={categoryPerformance}
-        loading={isLoading}
+        loading={isFetching}
         pagination={false}
         isPermission={isRead}
       />
