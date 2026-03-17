@@ -28,6 +28,7 @@ model users {
   updatedate                                                        DateTime?                    @db.DateTime
   updatedby                                                         Int?
   log_inst                                                          Int?
+  platform                                                          String?                      @db.NVarChar(20)
   api_tokens_api_tokens_user_idTousers                              api_tokens[]                 @relation("api_tokens_user_idTousers")
   approval_work_flow_approver                                       approval_work_flow[]         @relation("ApprovalWorkFlowApprover")
   approval_workflows_approval_workflows_final_approved_byTousers    approval_workflows[]         @relation("approval_workflows_final_approved_byTousers")
@@ -2846,24 +2847,6 @@ model password_reset_otps {
   @@index([otp_code])
   @@index([expires_at])
 }
-
-// model user_column_preferences {
-//   id                           Int       @id @default(autoincrement())
-//   user_id                      Int
-//   module_name                  String    @db.NVarChar(100)
-//   column_name                  String    @db.NVarChar(100)
-//   is_visible                   Boolean   @default(false)
-//   position                     Int       @default(0)
-//   is_active                    String    @default("Y") @db.Char(1)
-//   createdate                   DateTime  @default(now()) @db.DateTime
-//   createdby                    Int
-//   updatedate                   DateTime? @db.DateTime
-//   updatedby                    Int?
-//   user_column_preferences_user users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-//   @@unique([user_id, module_name, column_name])
-//   @@index([user_id, module_name])
-// }
 
 model user_column_preferences {
   id          Int       @id @default(autoincrement())

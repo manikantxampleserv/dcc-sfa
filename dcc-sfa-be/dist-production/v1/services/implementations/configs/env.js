@@ -1,0 +1,92 @@
+import dotenv from 'dotenv';
+import { resolve } from 'path';
+import logger from './logger';
+if (process.env.DATABASE_URL) {
+    console.log('DATABASE_URL found in environment variables');
+}
+else {
+    const isProduction = process.env.NODE_ENV === 'production' ||
+        process.env.NODE_ENV === 'prod' ||
+        process.env.env === 'production';
+    logger.info(`Environment detection - NODE_ENV: ${process.env.NODE_ENV}, isProduction: ${isProduction}`);
+    const possiblePaths = [
+        ...(isProduction
+            ? [
+                resolve(process.cwd(), '.env.production'),
+                resolve(__dirname, '../../.env.production'),
+                resolve(__dirname, '../../../.env.production'),
+            ]
+            : []),
+        resolve(process.cwd(), '.env'),
+        resolve(__dirname, '../../.env'),
+        resolve(__dirname, '../../../.env'),
+        '.env',
+    ];
+    let envLoaded = false;
+    for (const path of possiblePaths) {
+        try {
+            const result = dotenv.config({ path, quiet: true });
+            if (result.error) {
+                continue;
+            }
+            if (process.env.DATABASE_URL) {
+                envLoaded = true;
+                break;
+            }
+        }
+        catch (error) {
+            continue;
+        }
+    }
+    if (!envLoaded && !process.env.DATABASE_URL) {
+        console.warn('Warning: DATABASE_URL not found in any .env file');
+        console.warn('Attempted paths:', possiblePaths);
+        console.warn('Available env vars:', Object.keys(process.env).filter(key => key.includes('DATABASE')));
+        console.warn('Current working directory:', process.cwd());
+        console.warn('Module directory:', __dirname);
+        console.warn('NODE_ENV:', process.env.NODE_ENV);
+    }
+}
+const validateB2Config = () => {
+    const required = {
+        BACKBLAZE_B2_KEY_ID: process.env.BACKBLAZE_B2_KEY_ID,
+        BACKBLAZE_B2_APPLICATION_KEY: process.env.BACKBLAZE_B2_APPLICATION_KEY,
+        BACKBLAZE_B2_BUCKET_ID: process.env.BACKBLAZE_B2_BUCKET_ID,
+        BACKBLAZE_B2_BUCKET_NAME: process.env.BACKBLAZE_B2_BUCKET_NAME,
+    };
+    const missing = Object.entries(required)
+        .filter(([_, value]) => !value)
+        .map(([key]) => key);
+    if (missing.length > 0) {
+        console.warn(' Missing B2 environment variables:', missing);
+    }
+};
+validateB2Config();
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is required but not found in environment variables');
+}
+export const config = {
+    database: {
+        url: process.env.DATABASE_URL,
+    },
+    jwt: {
+        secret: process.env.JWT_SECRET,
+    },
+    server: {
+        port: parseInt(process.env.PORT || '4000'),
+    },
+    b2: {
+        keyId: process.env.BACKBLAZE_B2_KEY_ID,
+        applicationKey: process.env.BACKBLAZE_B2_APPLICATION_KEY,
+        bucketId: process.env.BACKBLAZE_B2_BUCKET_ID,
+        bucketName: process.env.BACKBLAZE_B2_BUCKET_NAME,
+        bucketUrl: process.env.BACKBLAZE_BUCKET_URL,
+    },
+    smtp: {
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '465'),
+        username: process.env.SMTP_USERNAME,
+        password: process.env.SMTP_PASSWORD,
+        mailHost: process.env.MAIL_HOST,
+    },
+};

@@ -5,6 +5,14 @@ export declare class DepotsImportExportService extends ImportExportService<any> 
     protected displayName: string;
     protected uniqueFields: string[];
     protected searchFields: string[];
+    constructor();
+    protected masterTableConfigs: {
+        masterTable: any;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }[];
     protected columns: ColumnDefinition[];
     protected getSampleData(): Promise<any[]>;
     protected getColumnDescription(key: string): string;

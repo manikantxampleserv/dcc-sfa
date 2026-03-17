@@ -5,6 +5,13 @@ export declare class CustomersImportExportService extends ImportExportService<an
     protected displayName: string;
     protected uniqueFields: string[];
     protected searchFields: string[];
+    protected masterTableConfigs: {
+        masterTable: any;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }[];
     private generateCustomerCode;
     protected columns: ColumnDefinition[];
     protected getSampleData(): Promise<any[]>;

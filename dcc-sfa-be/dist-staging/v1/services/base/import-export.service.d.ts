@@ -18,6 +18,14 @@ export declare abstract class ImportExportService<T> {
     exportToPDF(options?: ExportOptions): Promise<Buffer>;
     importData(data: any[], userId: number, options?: ImportOptions): Promise<ImportResult>;
     batchImport(data: any[], userId: number, batchSize?: number, options?: ImportOptions): Promise<ImportResult>;
+    protected masterTableConfigs: Array<{
+        masterTable: keyof PrismaClient;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }>;
+    protected getMasterTableData(config: any): Promise<any[]>;
     protected abstract getSampleData(): Promise<any[]>;
     protected abstract getColumnDescription(key: string): string;
     protected abstract transformDataForExport(data: any[]): Promise<any[]>;

@@ -52,6 +52,57 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
         'city',
         'contact_person',
     ];
+    masterTableConfigs = [
+        {
+            masterTable: 'zones',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Zones',
+            description: 'Use the ID from this sheet in the Zone ID column',
+        },
+        {
+            masterTable: 'customer_type',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'type_name', 'type_code'],
+            sheetName: 'Ref - Customer Types',
+            description: 'Use the ID from this sheet in the Customer Type ID column',
+        },
+        {
+            masterTable: 'customer_channel',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'channel_name', 'channel_code'],
+            sheetName: 'Ref - Customer Channels',
+            description: 'Use the ID from this sheet in the Customer Channel ID column',
+        },
+        {
+            masterTable: 'routes',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Routes',
+            description: 'Use the ID from this sheet in the Route ID column',
+        },
+        {
+            masterTable: 'users',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+            sheetName: 'Ref - Salespersons',
+            description: 'Use the ID from this sheet in the Salesperson ID column',
+        },
+        {
+            masterTable: 'depots',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Depots',
+            description: 'Use the ID from this sheet in the Depot ID column',
+        },
+        {
+            masterTable: 'customer_category',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'category_name', 'category_code'],
+            sheetName: 'Ref - Customer Categories',
+            description: 'Use the ID from this sheet in the Customer Category ID column',
+        },
+    ];
     async generateCustomerCode(name, tx) {
         try {
             const client = tx || prisma_client_1.default;
@@ -123,6 +174,22 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
             type: 'number',
             transform: value => (value ? parseInt(value) : null),
             description: 'ID of the zone this customer belongs to (optional)',
+        },
+        {
+            key: 'depot_id',
+            header: 'Depot ID',
+            width: 15,
+            type: 'number',
+            transform: value => (value ? parseInt(value) : null),
+            description: 'ID of the depot this customer belongs to (optional) - see Ref - Depots sheet',
+        },
+        {
+            key: 'customer_category_id',
+            header: 'Customer Category ID',
+            width: 22,
+            type: 'number',
+            transform: value => (value ? parseInt(value) : null),
+            description: 'ID of the customer category (optional) - see Ref - Customer Categories sheet',
         },
         {
             key: 'customer_type_id',

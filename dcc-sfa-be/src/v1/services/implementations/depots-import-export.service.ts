@@ -9,6 +9,32 @@ export class DepotsImportExportService extends ImportExportService<any> {
   protected uniqueFields = ['code'];
   protected searchFields = ['name', 'code', 'address', 'city', 'email'];
 
+  constructor() {
+    super();
+    console.log(
+      'DepotsImportExportService constructor - masterTableConfigs:',
+      this.masterTableConfigs
+    );
+  }
+
+  protected masterTableConfigs = [
+    {
+      masterTable: 'companies' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Companies',
+      description: 'Use the ID from this sheet in the Company ID column',
+    },
+    {
+      masterTable: 'users' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+      sheetName: 'Ref - Users',
+      description:
+        'Use the ID from this sheet for Manager ID, Supervisor ID, Coordinator ID columns',
+    },
+  ];
+
   protected columns: ColumnDefinition[] = [
     {
       key: 'parent_id',
@@ -199,113 +225,55 @@ export class DepotsImportExportService extends ImportExportService<any> {
   protected async getSampleData(): Promise<any[]> {
     return [
       {
+        name: 'Main Depot',
+        code: 'DEP001',
         parent_id: 1,
-        name: 'Main Depot - North Region',
-        code: 'DEP-NORTH-001',
-        address: '123 Industrial Park, Building A',
-        city: 'New York',
-        state: 'NY',
-        zipcode: '10001',
-        phone_number: '+1-212-555-0100',
-        email: 'north.depot@company.com',
         manager_id: 1,
         supervisor_id: 2,
         coordinator_id: 3,
-        latitude: 40.7128,
-        longitude: -74.006,
+        address: '123 Main Street',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        phone_number: '+91-9876543210',
+        email: 'depot@example.com',
         is_active: 'Y',
-      },
-      {
-        parent_id: 1,
-        name: 'Secondary Depot - South Region',
-        code: 'DEP-SOUTH-001',
-        address: '456 Logistics Avenue, Suite 200',
-        city: 'Atlanta',
-        state: 'GA',
-        zipcode: '30301',
-        phone_number: '+1-404-555-0200',
-        email: 'south.depot@company.com',
-        manager_id: 4,
-        supervisor_id: 5,
-        coordinator_id: 6,
-        latitude: 33.749,
-        longitude: -84.388,
-        is_active: 'Y',
-      },
-      {
-        parent_id: 1,
-        name: 'Warehouse Depot - West Region',
-        code: 'DEP-WEST-001',
-        address: '789 Distribution Center Blvd',
-        city: 'Los Angeles',
-        state: 'CA',
-        zipcode: '90001',
-        phone_number: '+1-213-555-0300',
-        email: 'west.depot@company.com',
-        manager_id: 7,
-        supervisor_id: 8,
-        coordinator_id: '',
-        latitude: 34.0522,
-        longitude: -118.2437,
-        is_active: 'N',
       },
     ];
   }
 
   protected getColumnDescription(key: string): string {
-    const column = this.columns.find(col => col.key === key);
-    return column?.description || '';
+    const descriptions: Record<string, string> = {
+      name: 'Full name of the depot',
+      code: 'Unique code identifier for the depot',
+      parent_id: 'Company ID - refer to Companies sheet',
+      manager_id: 'User ID of the depot manager - refer to Users sheet',
+      supervisor_id: 'User ID of the supervisor - refer to Users sheet',
+      coordinator_id: 'User ID of the coordinator - refer to Users sheet',
+    };
+    return descriptions[key] || '';
   }
-
   protected async transformDataForExport(data: any[]): Promise<any[]> {
     return data.map(depot => ({
-      parent_id: depot.parent_id,
       name: depot.name,
       code: depot.code,
-      address: depot.address || '',
-      city: depot.city || '',
-      state: depot.state || '',
-      zipcode: depot.zipcode || '',
-      phone_number: depot.phone_number || '',
-      email: depot.email || '',
-      manager_id: depot.manager_id || '',
-      supervisor_id: depot.supervisor_id || '',
-      coordinator_id: depot.coordinator_id || '',
-      latitude: depot.latitude ? depot.latitude.toString() : '',
-      longitude: depot.longitude ? depot.longitude.toString() : '',
-      is_active: depot.is_active || 'Y',
-      created_date: depot.createdate?.toISOString().split('T')[0] || '',
-      created_by: depot.createdby || '',
-      updated_date: depot.updatedate?.toISOString().split('T')[0] || '',
-      updated_by: depot.updatedby || '',
+      parent_id: depot.parent_id,
+      manager_id: depot.manager_id,
+      supervisor_id: depot.supervisor_id,
+      coordinator_id: depot.coordinator_id,
+      address: depot.address,
+      city: depot.city,
+      state: depot.state,
+      phone_number: depot.phone_number,
+      email: depot.email,
+      is_active: depot.is_active,
     }));
   }
 
   protected async checkDuplicate(data: any, tx?: any): Promise<string | null> {
     const model = tx ? tx.depots : prisma.depots;
-
-    const existingCode = await model.findFirst({
-      where: { code: data.code },
-    });
-
-    if (existingCode) {
-      return `Depot with code ${data.code} already exists`;
-    }
-
-    const existingName = await model.findFirst({
-      where: {
-        name: data.name,
-        parent_id: data.parent_id,
-      },
-    });
-
-    if (existingName) {
-      return `Depot with name ${data.name} already exists in this company`;
-    }
-
-    return null;
+    const existing = await model.findFirst({ where: { code: data.code } });
+    return existing ? `Depot with code '${data.code}' already exists` : null;
   }
-
   protected async validateForeignKeys(
     data: any,
     tx?: any

@@ -1,0 +1,1 @@
+{"version":3,"file":"columnPreferences.controller.d.ts","sourceRoot":"","sources":["../../../src/v1/controllers/columnPreferences.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAG5C,MAAM,WAAW,iBAAiB;IAChC,CAAC,UAAU,EAAE,MAAM,GAAG,OAAO,CAAC;CAC/B;AAED,eAAO,MAAM,2BAA2B;+BACL,OAAO,OAAO,QAAQ;+BAmCtB,OAAO,OAAO,QAAQ;CA+DxD,CAAC"}

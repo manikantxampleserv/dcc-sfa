@@ -11,6 +11,7 @@ import { ParseResultWithErrors } from '../../../types/import-export-errors.types
 import { ImportExportErrorHandler } from './import-export-error.service';
 import prisma from '../../../configs/prisma.client';
 import { PrismaClient } from '@prisma/client';
+import { config } from 'dotenv';
 
 export abstract class ImportExportService<T> {
   protected abstract modelName: keyof PrismaClient;
@@ -233,6 +234,60 @@ export abstract class ImportExportService<T> {
         };
       }
     });
+    console.log('DEBUG: masterTableConfigs =', this.masterTableConfigs);
+    console.log(
+      'DEBUG: masterTableConfigs.length =',
+      this.masterTableConfigs?.length
+    );
+    for (const config of this.masterTableConfigs) {
+      const masterData = await this.getMasterTableData(config);
+      console.log(
+        `generateTemplate: sheet='${config.sheetName}' rows=${masterData.length}`
+      );
+
+      if (masterData.length > 0) {
+        const masterSheet = workbook.addWorksheet(config.sheetName);
+
+        const masterColumns = config.masterDisplayFields.map(field => ({
+          header: field
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, l => l.toUpperCase()),
+          key: field,
+          width: 20,
+        }));
+
+        masterSheet.columns = masterColumns;
+
+        const masterHeader = masterSheet.getRow(1);
+        masterHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        masterHeader.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF4472C4' },
+        };
+        masterHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+        masterHeader.height = 25;
+
+        masterData.forEach((data, index) => {
+          const row = masterSheet.addRow(data);
+          row.eachCell(cell => {
+            cell.border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' },
+            };
+          });
+          if (index % 2 === 0) {
+            row.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF2F2F2' },
+            };
+          }
+        });
+      }
+    }
 
     const instructionSheet = workbook.addWorksheet('Instructions');
     instructionSheet.columns = [
@@ -266,6 +321,26 @@ export abstract class ImportExportService<T> {
         };
       }
     });
+
+    if (this.masterTableConfigs.length > 0) {
+      instructionSheet.addRow([]);
+      instructionSheet.addRow(['MASTER TABLE REFERENCES:', '', '', '']);
+      instructionSheet.addRow([
+        'Use the following sheets for reference data:',
+        '',
+        '',
+        '',
+      ]);
+
+      this.masterTableConfigs.forEach(config => {
+        instructionSheet.addRow([
+          `- ${config.sheetName}: ${config.description}`,
+          '',
+          '',
+          '',
+        ]);
+      });
+    }
 
     instructionSheet.addRow([]);
     instructionSheet.addRow(['GENERAL INSTRUCTIONS:', '', '', '']);
@@ -659,6 +734,78 @@ export abstract class ImportExportService<T> {
     };
   }
 
+  protected masterTableConfigs: Array<{
+    masterTable: keyof PrismaClient;
+    masterKey: string;
+    masterDisplayFields: string[];
+    sheetName: string;
+    description: string;
+  }> = [];
+
+  protected async getMasterTableData(config: any): Promise<any[]> {
+    const { masterTable, masterDisplayFields } = config;
+
+    try {
+      const model = (prisma as any)[masterTable];
+
+      if (!model || typeof model.findMany !== 'function') {
+        console.warn(`getMasterTableData: model '${masterTable}' not found`);
+        return [];
+      }
+
+      const selectFields = masterDisplayFields.reduce(
+        (acc: Record<string, boolean>, field: string) => ({
+          ...acc,
+          [field]: true,
+        }),
+        {}
+      );
+
+      try {
+        const result = await model.findMany({
+          select: selectFields,
+          where: { is_active: 'Y' },
+          orderBy: { id: 'asc' },
+          take: 200,
+        });
+        console.log(
+          `getMasterTableData [${masterTable}]: ${result.length} rows (with is_active filter)`
+        );
+        return result;
+      } catch (e1) {
+        console.warn(
+          `getMasterTableData [${masterTable}] failed with is_active filter:`,
+          (e1 as any)?.message
+        );
+      }
+
+      // Step 2: fallback — no filter, just id ordering
+      try {
+        const result = await model.findMany({
+          select: selectFields,
+          orderBy: { id: 'asc' },
+          take: 200,
+        });
+        console.log(
+          `getMasterTableData [${masterTable}]: ${result.length} rows (no filter fallback)`
+        );
+        return result;
+      } catch (e2) {
+        console.warn(
+          `getMasterTableData [${masterTable}] failed without filter:`,
+          (e2 as any)?.message
+        );
+      }
+
+      return [];
+    } catch (error) {
+      console.warn(
+        `getMasterTableData [${masterTable}] outer error:`,
+        (error as any)?.message
+      );
+      return [];
+    }
+  }
   protected abstract getSampleData(): Promise<any[]>;
   protected abstract getColumnDescription(key: string): string;
   protected abstract transformDataForExport(data: any[]): Promise<any[]>;

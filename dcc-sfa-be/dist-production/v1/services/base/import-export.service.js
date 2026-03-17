@@ -216,6 +216,50 @@ class ImportExportService {
                 };
             }
         });
+        console.log('DEBUG: masterTableConfigs =', this.masterTableConfigs);
+        console.log('DEBUG: masterTableConfigs.length =', this.masterTableConfigs?.length);
+        for (const config of this.masterTableConfigs) {
+            const masterData = await this.getMasterTableData(config);
+            console.log(`generateTemplate: sheet='${config.sheetName}' rows=${masterData.length}`);
+            if (masterData.length > 0) {
+                const masterSheet = workbook.addWorksheet(config.sheetName);
+                const masterColumns = config.masterDisplayFields.map(field => ({
+                    header: field
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, l => l.toUpperCase()),
+                    key: field,
+                    width: 20,
+                }));
+                masterSheet.columns = masterColumns;
+                const masterHeader = masterSheet.getRow(1);
+                masterHeader.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                masterHeader.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF4472C4' },
+                };
+                masterHeader.alignment = { vertical: 'middle', horizontal: 'center' };
+                masterHeader.height = 25;
+                masterData.forEach((data, index) => {
+                    const row = masterSheet.addRow(data);
+                    row.eachCell(cell => {
+                        cell.border = {
+                            top: { style: 'thin' },
+                            left: { style: 'thin' },
+                            bottom: { style: 'thin' },
+                            right: { style: 'thin' },
+                        };
+                    });
+                    if (index % 2 === 0) {
+                        row.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'FFF2F2F2' },
+                        };
+                    }
+                });
+            }
+        }
         const instructionSheet = workbook.addWorksheet('Instructions');
         instructionSheet.columns = [
             { header: 'Field', key: 'field', width: 25 },
@@ -245,6 +289,24 @@ class ImportExportService {
                 };
             }
         });
+        if (this.masterTableConfigs.length > 0) {
+            instructionSheet.addRow([]);
+            instructionSheet.addRow(['MASTER TABLE REFERENCES:', '', '', '']);
+            instructionSheet.addRow([
+                'Use the following sheets for reference data:',
+                '',
+                '',
+                '',
+            ]);
+            this.masterTableConfigs.forEach(config => {
+                instructionSheet.addRow([
+                    `- ${config.sheetName}: ${config.description}`,
+                    '',
+                    '',
+                    '',
+                ]);
+            });
+        }
         instructionSheet.addRow([]);
         instructionSheet.addRow(['GENERAL INSTRUCTIONS:', '', '', '']);
         const instructions = [
@@ -568,6 +630,52 @@ class ImportExportService {
             data: allImportedData,
             detailedErrors: allDetailedErrors.length > 0 ? allDetailedErrors : undefined,
         };
+    }
+    masterTableConfigs = [];
+    async getMasterTableData(config) {
+        const { masterTable, masterDisplayFields } = config;
+        try {
+            const model = prisma_client_1.default[masterTable];
+            if (!model || typeof model.findMany !== 'function') {
+                console.warn(`getMasterTableData: model '${masterTable}' not found`);
+                return [];
+            }
+            const selectFields = masterDisplayFields.reduce((acc, field) => ({
+                ...acc,
+                [field]: true,
+            }), {});
+            try {
+                const result = await model.findMany({
+                    select: selectFields,
+                    where: { is_active: 'Y' },
+                    orderBy: { id: 'asc' },
+                    take: 200,
+                });
+                console.log(`getMasterTableData [${masterTable}]: ${result.length} rows (with is_active filter)`);
+                return result;
+            }
+            catch (e1) {
+                console.warn(`getMasterTableData [${masterTable}] failed with is_active filter:`, e1?.message);
+            }
+            // Step 2: fallback — no filter, just id ordering
+            try {
+                const result = await model.findMany({
+                    select: selectFields,
+                    orderBy: { id: 'asc' },
+                    take: 200,
+                });
+                console.log(`getMasterTableData [${masterTable}]: ${result.length} rows (no filter fallback)`);
+                return result;
+            }
+            catch (e2) {
+                console.warn(`getMasterTableData [${masterTable}] failed without filter:`, e2?.message);
+            }
+            return [];
+        }
+        catch (error) {
+            console.warn(`getMasterTableData [${masterTable}] outer error:`, error?.message);
+            return [];
+        }
     }
 }
 exports.ImportExportService = ImportExportService;

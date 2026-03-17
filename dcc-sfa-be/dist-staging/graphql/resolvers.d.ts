@@ -177,6 +177,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             } | null;
             cooler_inspections: {
                 id: number;
@@ -335,6 +336,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             } | null;
             cooler_inspections: {
                 id: number;
@@ -493,6 +495,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             } | null;
             cooler_inspections: {
                 id: number;
@@ -649,6 +652,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             };
             coolers: {
                 brand: string | null;
@@ -759,6 +763,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             };
             coolers: {
                 brand: string | null;
@@ -869,6 +874,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             };
             coolers: {
                 brand: string | null;
@@ -979,6 +985,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             };
             coolers: {
                 brand: string | null;
@@ -1229,6 +1236,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             } | null;
             cooler_types: {
                 name: string;
@@ -1363,6 +1371,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             } | null;
             cooler_types: {
                 name: string;
@@ -1499,6 +1508,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             } | null;
             cooler_types: {
                 name: string;
@@ -1633,6 +1643,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             };
             coolers: {
                 brand: string | null;
@@ -1741,6 +1752,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             };
             coolers: {
                 brand: string | null;
@@ -1851,6 +1863,7 @@ export declare const resolvers: {
                 updatedate: Date | null;
                 updatedby: number | null;
                 log_inst: number | null;
+                platform: string | null;
             };
             coolers: {
                 brand: string | null;

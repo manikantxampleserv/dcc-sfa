@@ -1,0 +1,260 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createApprovalWorkflow = createApprovalWorkflow;
+exports.createOrderApprovalWorkflow = createOrderApprovalWorkflow;
+exports.createAssetMovementApprovalWorkflow = createAssetMovementApprovalWorkflow;
+exports.generateContractOnApproval = generateContractOnApproval;
+const crypto_1 = require("crypto");
+const prisma_client_1 = __importDefault(require("../configs/prisma.client"));
+const contractGeneration_service_1 = require("../services/contractGeneration.service");
+/**
+ * Create an approval workflow with steps
+ */
+async function createApprovalWorkflow(params) {
+    try {
+        const { workflow_type, reference_type, reference_id, reference_number, requested_by, priority = 'medium', request_data, steps, createdby = 1, } = params;
+        const referenceIdUuid = reference_id || (0, crypto_1.randomUUID)();
+        let workflowSteps = steps || [];
+        if (!steps || steps.length === 0) {
+            switch (workflow_type.toLowerCase()) {
+                case 'order':
+                    workflowSteps = [
+                        {
+                            step_number: 1,
+                            step_name: 'Salesperson Review',
+                            assigned_role: 'Salesperson',
+                            is_required: false,
+                        },
+                        {
+                            step_number: 2,
+                            step_name: 'Manager Approval',
+                            assigned_role: 'Manager',
+                            is_required: true,
+                        },
+                        {
+                            step_number: 3,
+                            step_name: 'Finance Approval',
+                            assigned_role: 'Finance',
+                            is_required: true,
+                        },
+                        {
+                            step_number: 4,
+                            step_name: 'Final Approval',
+                            assigned_role: 'Director',
+                            is_required: true,
+                        },
+                    ];
+                    break;
+                case 'return':
+                    workflowSteps = [
+                        {
+                            step_number: 1,
+                            step_name: 'Request Submitted',
+                            is_required: false,
+                        },
+                        {
+                            step_number: 2,
+                            step_name: 'Initial Review',
+                            assigned_role: 'Customer Service',
+                            is_required: true,
+                        },
+                        {
+                            step_number: 3,
+                            step_name: 'Approval Decision',
+                            assigned_role: 'Manager',
+                            is_required: true,
+                        },
+                        {
+                            step_number: 4,
+                            step_name: 'Processing',
+                            assigned_role: 'Operations',
+                            is_required: true,
+                        },
+                    ];
+                    break;
+                case 'expense':
+                    workflowSteps = [
+                        {
+                            step_number: 1,
+                            step_name: 'Expense Submitted',
+                            is_required: false,
+                        },
+                        {
+                            step_number: 2,
+                            step_name: 'Manager Approval',
+                            assigned_role: 'Manager',
+                            is_required: true,
+                        },
+                        {
+                            step_number: 3,
+                            step_name: 'Finance Approval',
+                            assigned_role: 'Finance',
+                            is_required: true,
+                        },
+                    ];
+                    break;
+                case 'asset_movement':
+                    workflowSteps = [
+                        {
+                            step_number: 1,
+                            step_name: 'Movement Initiated',
+                            is_required: false,
+                        },
+                        {
+                            step_number: 2,
+                            step_name: 'Supervisor Review',
+                            assigned_role: 'Supervisor',
+                            is_required: true,
+                        },
+                        {
+                            step_number: 3,
+                            step_name: 'Manager Approval',
+                            assigned_role: 'Manager',
+                            is_required: true,
+                        },
+                        {
+                            step_number: 4,
+                            step_name: 'Operations Confirmation',
+                            assigned_role: 'Operations',
+                            is_required: true,
+                        },
+                    ];
+                    break;
+                default:
+                    workflowSteps = [
+                        {
+                            step_number: 1,
+                            step_name: 'Request Submitted',
+                            is_required: false,
+                        },
+                        {
+                            step_number: 2,
+                            step_name: 'Review',
+                            assigned_role: 'Manager',
+                            is_required: true,
+                        },
+                        {
+                            step_number: 3,
+                            step_name: 'Approval',
+                            assigned_role: 'Director',
+                            is_required: true,
+                        },
+                    ];
+            }
+        }
+        const totalSteps = workflowSteps.length;
+        const firstStepAutoCompleted = workflowSteps[0]?.step_number === 1 &&
+            (workflowSteps[0]?.assigned_role === 'Salesperson' ||
+                workflowSteps[0]?.is_required === false);
+        const initialCurrentStep = firstStepAutoCompleted ? 2 : 1;
+        const initialStatus = 'P';
+        const approvalWorkflow = await prisma_client_1.default.approval_workflows.create({
+            data: {
+                workflow_type,
+                reference_id: referenceIdUuid,
+                reference_type,
+                reference_number,
+                requested_by,
+                request_date: new Date(),
+                priority,
+                status: initialStatus,
+                current_step: initialCurrentStep,
+                total_steps: totalSteps,
+                request_data: request_data ? JSON.stringify(request_data) : null,
+                is_active: 'Y',
+                createdate: new Date(),
+                createdby,
+            },
+        });
+        const stepsToCreate = workflowSteps.map(step => ({
+            workflow_id: approvalWorkflow.id,
+            step_number: step.step_number,
+            step_name: step.step_name,
+            assigned_role: step.assigned_role || '',
+            assigned_user_id: step.assigned_user_id || null,
+            status: step.step_number === 1 && firstStepAutoCompleted
+                ? 'completed'
+                : 'pending',
+            is_required: step.is_required !== false,
+            due_date: step.due_date || null,
+            is_active: 'Y',
+            createdate: new Date(),
+            createdby,
+        }));
+        await prisma_client_1.default.workflow_steps.createMany({
+            data: stepsToCreate,
+        });
+        const workflowWithSteps = await prisma_client_1.default.approval_workflows.findUnique({
+            where: { id: approvalWorkflow.id },
+            include: {
+                workflow_steps: {
+                    orderBy: { step_number: 'asc' },
+                },
+                users_approval_workflows_requested_byTousers: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+        });
+        if (!workflowWithSteps) {
+            throw new Error('Failed to create approval workflow');
+        }
+        console.log(`Approval workflow created: ${workflow_type} - ${reference_number} (ID: ${workflowWithSteps.id})`);
+        return workflowWithSteps;
+    }
+    catch (error) {
+        console.error('Error creating approval workflow:', error);
+        throw error;
+    }
+}
+async function createOrderApprovalWorkflow(orderId, orderNumber, requestedBy, priority = 'medium', orderData, createdby) {
+    const referenceIdUuid = (0, crypto_1.randomUUID)();
+    return await createApprovalWorkflow({
+        workflow_type: 'order',
+        reference_type: 'order',
+        reference_id: referenceIdUuid,
+        reference_number: orderNumber,
+        requested_by: requestedBy,
+        priority,
+        request_data: {
+            ...(orderData || {}),
+            order_id: orderId,
+        },
+        createdby: createdby || requestedBy,
+    });
+}
+async function createAssetMovementApprovalWorkflow(assetMovementId, movementNumber, requestedBy, priority = 'medium', assetMovementData, createdby) {
+    const referenceIdUuid = (0, crypto_1.randomUUID)();
+    return await createApprovalWorkflow({
+        workflow_type: 'asset_movement',
+        reference_type: 'asset_movement',
+        reference_id: referenceIdUuid,
+        reference_number: movementNumber,
+        requested_by: requestedBy,
+        priority,
+        request_data: {
+            ...(assetMovementData || {}),
+            asset_movement_id: assetMovementId,
+        },
+        createdby: createdby || requestedBy,
+    });
+}
+async function generateContractOnApproval(assetMovementId) {
+    try {
+        const contractService = new contractGeneration_service_1.ContractGenerationService();
+        const contractRecord = await contractService.generateContractOnApproval(assetMovementId);
+        console.log(`Contract generated for asset movement: ${assetMovementId}`);
+        return contractRecord;
+    }
+    catch (error) {
+        console.error('Error generating contract:', error);
+        throw error;
+    }
+}
+//# sourceMappingURL=approvalWorkflow.helper.js.map
