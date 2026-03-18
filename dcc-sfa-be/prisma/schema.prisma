@@ -14,6 +14,7 @@ model users {
   name                                                              String                       @db.NVarChar(255)
   parent_id                                                         Int?
   depot_id                                                          Int?
+  sap_code                                                          String?                      @db.VarChar(250)
   zone_id                                                           Int?
   phone_number                                                      String?                      @db.NVarChar(20)
   address                                                           String?                      @db.NVarChar(500)
