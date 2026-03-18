@@ -94,7 +94,7 @@ export const register = async (req: any, res: any) => {
 
 export const login = async (req: any, res: any) => {
   try {
-    const { email, username, password } = req.body;
+    const { email, username, password, platform } = req.body;
 
     if (!password) {
       return res.error('Password is required', 400);
@@ -114,6 +114,26 @@ export const login = async (req: any, res: any) => {
       return res.error('Password must be a string', 400);
     }
 
+    // const user = await prisma.users.findFirst({
+    //   where: {
+    //     OR: [{ email: identifier }, { employee_id: identifier }],
+    //   },
+    //   include: {
+    //     user_role: true,
+    //   },
+    // });
+
+    // if (!user) {
+    //   console.log(
+    //     `Failed login attempt for unknown user: ${identifier} from IP: ${getClientIP(req)}`
+    //   );
+    //   return res.error('User not found', 404);
+    // }
+
+    if (platform && !['mobile', 'web'].includes(platform)) {
+      return res.error('Invalid platform. Must be "mobile" or "web"', 400);
+    }
+
     const user = await prisma.users.findFirst({
       where: {
         OR: [{ email: identifier }, { employee_id: identifier }],
@@ -128,6 +148,22 @@ export const login = async (req: any, res: any) => {
         `Failed login attempt for unknown user: ${identifier} from IP: ${getClientIP(req)}`
       );
       return res.error('User not found', 404);
+    }
+
+    if (user.platform) {
+      if (!platform) {
+        return res.error(
+          'Platform is required for this account. This account is restricted to specific platform access.',
+          401
+        );
+      }
+
+      if (user.platform !== platform) {
+        return res.error(
+          `Access denied: This account is restricted to ${user.platform} only. Cannot login from ${platform}.`,
+          403
+        );
+      }
     }
 
     if (user.is_active !== 'Y') {
