@@ -9,7 +9,13 @@ import {
   type DropResult,
 } from '@hello-pangea/dnd';
 import { GripVertical, User } from 'lucide-react';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import { routeValidationSchema } from 'schemas/route.schema';
 import type { Depot } from 'services/masters/Depots';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -71,13 +77,6 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
 
   const { data: routeTypesResponse } = useRouteTypes({ status: 'active' });
   const routeTypes = routeTypesResponse?.data || [];
-
-  const { data: usersResponse, isFetching: isFetchingUsers } = useUsersDropdown(
-    {
-      search: availableSearch,
-    }
-  );
-  const users = (usersResponse?.data || []) as SalespersonOption[];
 
   const formik = useFormik({
     initialValues: {
@@ -142,7 +141,16 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
     },
   });
 
-  // Auto-select depot when zone is selected, clear depot when zone is cleared
+  const { data: usersResponse, isFetching: isFetchingUsers } = useUsersDropdown(
+    {
+      search: availableSearch,
+      depot_id: formik.values.depot_id
+        ? Number(formik.values.depot_id)
+        : undefined,
+    }
+  );
+  const users = (usersResponse?.data || []) as SalespersonOption[];
+
   useEffect(() => {
     if (formik.values.parent_id) {
       const selectedZone = zones.find(
@@ -154,14 +162,24 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
           selectedZone.zone_depots.id.toString()
         );
       } else {
-        // Clear depot if zone has no associated depot
         formik.setFieldValue('depot_id', null);
       }
     } else {
-      // Clear depot when zone is cleared
       formik.setFieldValue('depot_id', null);
     }
   }, [formik.values.parent_id, zones]);
+
+  const previousDepotId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      formik.values.depot_id &&
+      formik.values.depot_id !== previousDepotId.current
+    ) {
+      formik.setFieldValue('sales_persons', []);
+      previousDepotId.current = formik.values.depot_id;
+    }
+  }, [formik.values.depot_id, formik]);
 
   const initialSelectedUsers = useMemo(() => {
     const sps = selectedRoute?.salespersons || [];
@@ -311,7 +329,13 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
             </Select>
 
             {/* Zone Selection */}
-            <Select name="parent_id" label="Zone" formik={formik} required>
+            <Select
+              name="parent_id"
+              label="Zone"
+              formik={formik}
+              required
+              disableClearable={false}
+            >
               {zones.map(zone => (
                 <MenuItem key={zone.id} value={zone.id.toString()}>
                   {zone.name}
@@ -425,7 +449,8 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
                         variant="subtitle1"
                         className="!font-semibold !text-blue-600"
                       >
-                        Available ({availableUsers.length})
+                        Available (
+                        {formik.values.depot_id ? availableUsers.length : 0})
                       </Typography>
                       <Box className="!mt-2">
                         <SearchInput
@@ -433,16 +458,9 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
                           value={availableSearch}
                           onChange={setAvailableSearch}
                           className="!w-full"
+                          disabled={!formik.values.depot_id}
                         />
                       </Box>
-                      {isFetchingUsers && (
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-500"
-                        >
-                          Loading...
-                        </Typography>
-                      )}
                     </Box>
                     <Box className="!flex-1 !overflow-hidden">
                       <Droppable droppableId="available-users">
@@ -457,7 +475,39 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
                               transition: 'background-color 0.2s ease',
                             }}
                           >
-                            {availableUsers.length > 0 ? (
+                            {!formik.values.depot_id ? (
+                              <Box className="!flex !flex-col !items-center !justify-center !h-full !text-center">
+                                <User className="!w-12 !h-12 !text-gray-300 !mb-2" />
+                                <Typography
+                                  variant="body2"
+                                  className="!text-gray-500"
+                                >
+                                  Please select a depot first
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  className="!text-gray-400 !block !mt-1"
+                                >
+                                  Users will be filtered based on the selected
+                                  depot
+                                </Typography>
+                              </Box>
+                            ) : isFetchingUsers ? (
+                              <Box className="!space-y-2">
+                                {[...Array(3)].map((_, index) => (
+                                  <Box
+                                    key={index}
+                                    className="!flex !items-center !gap-3 !p-2 !bg-gray-50 !rounded-lg"
+                                  >
+                                    <Box className="!w-8 !h-8 !bg-gray-200 !rounded-full" />
+                                    <Box className="!flex-1 !space-y-1">
+                                      <Box className="!h-4 !bg-gray-200 !rounded !w-3/4" />
+                                      <Box className="!h-3 !bg-gray-200 !rounded !w-1/2" />
+                                    </Box>
+                                  </Box>
+                                ))}
+                              </Box>
+                            ) : availableUsers.length > 0 ? (
                               availableUsers.map((u, index) => (
                                 <Draggable
                                   key={u.id}
@@ -486,8 +536,16 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
                                   className="!text-gray-500"
                                 >
                                   {availableSearch
-                                    ? 'No users found'
-                                    : 'All users are assigned'}
+                                    ? 'No users found matching your search'
+                                    : 'No users available for this depot'}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  className="!text-gray-400 !mt-1"
+                                >
+                                  {availableSearch
+                                    ? 'Try adjusting your search terms'
+                                    : 'Check if users are assigned to this depot'}
                                 </Typography>
                               </Box>
                             )}

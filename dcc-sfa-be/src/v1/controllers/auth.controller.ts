@@ -1,16 +1,15 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '../../configs/jwt.config';
-import { getClientIP } from '../../utils/ipUtils';
 import prisma from '../../configs/prisma.client';
+import { getClientIP } from '../../utils/ipUtils';
+import { sendEmail } from '../../utils/mailer';
 import {
   generateOTP,
+  isValidEmail,
   storeOTP,
   verifyOTP,
-  isValidEmail,
 } from '../../utils/otp.util';
-import { generateEmailContent } from '../../utils/emailTemplates';
-import { sendEmail } from '../../utils/mailer';
 
 const truncateString = (str: string | undefined, maxLength: number): string => {
   if (!str) return 'Unknown';
@@ -154,14 +153,14 @@ export const login = async (req: any, res: any) => {
       if (!platform) {
         return res.error(
           'Platform is required for this account. This account is restricted to specific platform access.',
-          401
+          400
         );
       }
 
       if (user.platform !== platform) {
         return res.error(
           `Access denied: This account is restricted to ${user.platform} only. Cannot login from ${platform}.`,
-          403
+          400
         );
       }
     }
@@ -191,7 +190,7 @@ export const login = async (req: any, res: any) => {
 
       return res.error(
         'Your account is inactive. Please contact administrator to activate your account.',
-        403
+        400
       );
     }
 

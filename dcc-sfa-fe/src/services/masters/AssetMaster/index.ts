@@ -20,6 +20,8 @@ export interface AssetMaster {
   asset_type_id: number;
   asset_sub_type_id?: number | null;
   serial_number: string;
+  barcode?: string | null;
+  nfc_tag_code?: string | null;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
   current_location?: string | null;
@@ -122,6 +124,8 @@ export interface CreateAssetMasterPayload {
   asset_type_id: number;
   asset_sub_type_id?: number | null;
   serial_number: string;
+  barcode?: string | null;
+  nfc_tag_code?: string | null;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
   current_location?: string | null;
@@ -135,6 +139,8 @@ export interface UpdateAssetMasterPayload {
   asset_type_id?: number;
   asset_sub_type_id?: number | null;
   serial_number?: string;
+  barcode?: string | null;
+  nfc_tag_code?: string | null;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
   current_location?: string | null;

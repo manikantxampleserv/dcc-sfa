@@ -82,6 +82,7 @@ export const assetMasterValidationSchema = Yup.object({
         'Available',
         'Installed',
         'Under Maintenance',
+        'Under Investigation',
         'Retired',
         'Lost',
         'Damaged',

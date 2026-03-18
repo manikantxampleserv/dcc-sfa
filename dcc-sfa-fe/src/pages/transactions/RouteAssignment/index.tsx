@@ -3,11 +3,13 @@ import {
   Avatar,
   AvatarGroup,
   Box,
+  MenuItem,
   Pagination,
   Skeleton,
   Tooltip,
   Typography,
 } from '@mui/material';
+import { useDepots } from 'hooks/useDepots';
 import { usePermission } from 'hooks/usePermission';
 import {
   useRouteAssignments,
@@ -18,8 +20,10 @@ import {
 import { RouteIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { Depot } from 'services/masters/Depots';
 import Button from 'shared/Button';
 import SearchInput from 'shared/SearchInput';
+import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import ManageAssignRoute from './ManageAssignRoute';
 
@@ -29,19 +33,28 @@ const RouteAssignmentManagement: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(12);
+  const [selectedDepot, setSelectedDepot] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RouteAssignment | null>(
     null
   );
   const [selectedRouteIds, setSelectedRouteIds] = useState<number[]>([]);
 
+  const { data: depotsResponse } = useDepots({ isActive: 'Y', limit: 1000 });
+  const depots = depotsResponse?.data || [];
+
   const { data: assignmentsResponse, isFetching } = useRouteAssignments(
-    { page, limit, search },
+    {
+      page,
+      limit,
+      search,
+      depot_id: selectedDepot ? Number(selectedDepot) : undefined,
+    },
     { enabled: isRead }
   );
 
   const { data: routesResponse } = useRoutes(
-    { page: 1, limit: 500, status: 'active' },
+    { page: 1, limit: 1000, status: 'active' },
     { enabled: isRead }
   );
 
@@ -94,55 +107,8 @@ const RouteAssignmentManagement: React.FC = () => {
     setPage(1);
   }, []);
 
-  // Skeleton Loader Component
   const SkeletonLoader = () => (
     <>
-      {/* Stats Cards Skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        {[1, 2, 3, 4].map(i => (
-          <div
-            key={i}
-            className="bg-white shadow-sm p-4 rounded-lg border border-gray-100"
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <Skeleton
-                variant="circular"
-                width={40}
-                height={40}
-                className="!bg-gray-200"
-              />
-              <div className="flex-1">
-                <Skeleton
-                  variant="text"
-                  width="40%"
-                  height={16}
-                  className="!bg-gray-200"
-                />
-                <Skeleton
-                  variant="text"
-                  width="60%"
-                  height={24}
-                  className="!bg-gray-300 !mt-1"
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Search Bar Skeleton */}
-      <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100 mb-4">
-        <div className="flex items-center flex-wrap gap-4">
-          <Skeleton
-            variant="rectangular"
-            width={320}
-            height={40}
-            className="!bg-gray-200 !rounded-lg"
-          />
-        </div>
-      </div>
-
-      {/* Salesperson Cards Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
         {[1, 2, 3, 4, 5, 6].map(i => (
           <div
@@ -211,16 +177,6 @@ const RouteAssignmentManagement: React.FC = () => {
           </div>
         ))}
       </div>
-
-      {/* Pagination Skeleton */}
-      <div className="flex justify-center mt-6">
-        <Skeleton
-          variant="rectangular"
-          width={300}
-          height={40}
-          className="!bg-gray-200 !rounded"
-        />
-      </div>
     </>
   );
 
@@ -237,9 +193,7 @@ const RouteAssignmentManagement: React.FC = () => {
         </Box>
       </Box>
 
-      {isRead && isFetching && <SkeletonLoader />}
-
-      {isRead && !isFetching && (
+      {isRead && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <StatsCard
             icon={<RouteIcon />}
@@ -265,7 +219,7 @@ const RouteAssignmentManagement: React.FC = () => {
           />
           <StatsCard
             icon={<Person />}
-            title="Total Salespersons"
+            title="Total Sales Persons"
             value={totalSalespersons}
             color="blue"
             isLoading={isFetching}
@@ -281,7 +235,7 @@ const RouteAssignmentManagement: React.FC = () => {
         </div>
       )}
 
-      {isRead && !isFetching && (
+      {isRead && (
         <div className="bg-white shadow-sm p-4 rounded-lg border border-gray-100 mb-4">
           <div className="flex items-center flex-wrap gap-4">
             <SearchInput
@@ -290,6 +244,22 @@ const RouteAssignmentManagement: React.FC = () => {
               onChange={handleSearchChange}
               className="!w-80"
             />
+            <Select
+              value={selectedDepot}
+              onChange={e => {
+                setSelectedDepot(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Filter by Depot"
+              className="!w-96"
+              disableClearable={false}
+            >
+              {depots.map((depot: Depot) => (
+                <MenuItem key={depot.id} value={depot.id.toString()}>
+                  {depot.name} ({depot.code})
+                </MenuItem>
+              ))}
+            </Select>
           </div>
         </div>
       )}
@@ -373,6 +343,7 @@ const RouteAssignmentManagement: React.FC = () => {
           ))}
         </div>
       )}
+      {isRead && isFetching && <SkeletonLoader />}
 
       {isRead && !isFetching && assignments.length === 0 && (
         <div className="col-span-full text-center py-12">

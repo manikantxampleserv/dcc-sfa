@@ -1,6 +1,7 @@
 import { Close as CloseIcon } from '@mui/icons-material';
 import { Box, IconButton, MenuItem, Typography } from '@mui/material';
 import { useFormik } from 'formik';
+import { useDepots } from 'hooks/useDepots';
 import { useRolesDropdown } from 'hooks/useRoles';
 import { useCreateUser, useUpdateUser, type User } from 'hooks/useUsers';
 import React, { useState } from 'react';
@@ -32,7 +33,12 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
   const { data: rolesResponse, isLoading: rolesLoading } = useRolesDropdown({
     enabled: drawerOpen,
   });
+  const { data: depotsResponse } = useDepots({
+    limit: 1000,
+    isActive: 'Y',
+  });
   const roles = rolesResponse?.data || [];
+  const depots = depotsResponse?.data || [];
 
   const createUserMutation = useCreateUser({
     onSuccess: () => {
@@ -50,11 +56,14 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     name: selectedUser?.name || '',
     email: selectedUser?.email || '',
     role_id: selectedUser?.role_id || '',
+    depot_id: selectedUser?.depot_id?.toString() || '',
+    sap_code: selectedUser?.sap_code || '',
     phone_number: selectedUser?.phone_number || '',
     employee_id: selectedUser?.employee_id || '',
     address: selectedUser?.address || '',
     joining_date: formatForDateInput(selectedUser?.joining_date),
     reporting_to: selectedUser?.reporting_to || '',
+    platform: selectedUser?.platform || 'both',
     password: '',
     is_active: selectedUser?.is_active || 'Y',
     isEdit: !!selectedUser,
@@ -70,11 +79,17 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
         formData.append('name', values.name);
         formData.append('email', values.email);
         formData.append('role_id', values.role_id.toString());
+        formData.append('depot_id', values.depot_id.toString());
+        formData.append('sap_code', values.sap_code);
         formData.append('phone_number', values.phone_number);
         formData.append('employee_id', values.employee_id);
         formData.append('address', values.address);
         formData.append('joining_date', values.joining_date);
         formData.append('reporting_to', values.reporting_to.toString());
+        formData.append(
+          'platform',
+          values.platform !== 'both' ? values.platform : ''
+        );
         formData.append('is_active', values.is_active);
 
         if (values.password) {
@@ -165,29 +180,13 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
             User Information
           </p>
 
-          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
+          <Box className="grid grid-cols-2 gap-4">
             <Input
               name="name"
               formik={formik}
               label="Full Name"
               placeholder="Enter full name"
               required
-            />
-            <Input
-              name="employee_id"
-              formik={formik}
-              label="User Code"
-              placeholder="Enter user code"
-            />
-          </div>
-
-          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
-            <Input
-              name="email"
-              formik={formik}
-              label="Email"
-              placeholder="Enter email address"
-              type="email"
             />
             <Select
               name="role_id"
@@ -206,28 +205,68 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                 ))
               )}
             </Select>
-          </div>
+            <Input
+              name="employee_id"
+              formik={formik}
+              label="User Code"
+              placeholder="Enter user code"
+            />
 
-          <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
+            <Input
+              name="sap_code"
+              formik={formik}
+              label="SAP Code"
+              placeholder="Enter SAP code"
+            />
+
             <Input
               name="phone_number"
               formik={formik}
               label="Phone Number"
-              placeholder="Enter phone number"
+              placeholder="Enter Phone Number"
             />
+            <Input
+              name="email"
+              formik={formik}
+              label="Email"
+              placeholder="Enter email address"
+              type="email"
+            />
+            <Select
+              name="depot_id"
+              label="Depot"
+              formik={formik}
+              fullWidth
+              required
+            >
+              {depots.map(depot => (
+                <MenuItem key={depot.id} value={depot.id}>
+                  {depot.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
+              <UserSelect
+                name="reporting_to"
+                label="Reporting Manager"
+                formik={formik}
+                required
+              />
+            </div>
             <Input
               name="joining_date"
               formik={formik}
               label="Joining Date"
               type="date"
+              required
             />
-          </div>
-          <UserSelect
-            name="reporting_to"
-            label="Reporting Manager"
-            formik={formik}
-            required
-          />
+            <Select name="platform" formik={formik} label="Platform" fullWidth>
+              <MenuItem value="both">Both</MenuItem>
+              <MenuItem value="mobile">Mobile</MenuItem>
+              <MenuItem value="web">Web</MenuItem>
+            </Select>
+          </Box>
           <Box className="md:!col-span-2">
             <ActiveInactiveField name="is_active" formik={formik} required />
           </Box>

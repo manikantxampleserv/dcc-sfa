@@ -138,12 +138,6 @@ const BrandsPage: React.FC = () => {
             >
               {row.name}
             </Typography>
-            <Typography
-              variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
-            >
-              Code: {row.code}
-            </Typography>
           </Box>
         </Box>
       ),

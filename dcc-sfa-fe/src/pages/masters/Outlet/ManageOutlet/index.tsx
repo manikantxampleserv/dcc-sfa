@@ -6,6 +6,7 @@ import {
   useUpdateCustomer,
   type Customer,
 } from 'hooks/useCustomers';
+import { useCustomerCategories } from 'hooks/useCustomerCategory';
 import { useCustomerTypes } from 'hooks/useCustomerType';
 import React from 'react';
 import { customerValidationSchema } from 'schemas/customer.schema';
@@ -17,7 +18,6 @@ import DepotSelect from 'shared/DepotSelect';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
-import UserSelect from 'shared/UserSelect';
 
 interface ManageOutletProps {
   selectedOutlet?: Customer | null;
@@ -55,9 +55,14 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
     limit: 1000,
     is_active: 'Y',
   });
+  const { data: customerCategoriesResponse } = useCustomerCategories({
+    limit: 1000,
+    is_active: 'Y',
+  });
 
   const customerTypes = customerTypesResponse?.data || [];
   const customerChannels = customerChannelsResponse?.data || [];
+  const customerCategories = customerCategoriesResponse?.data || [];
 
   const formik = useFormik({
     initialValues: {
@@ -68,9 +73,9 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       customer_type_id: selectedOutlet?.customer_type_id?.toString() || '',
       customer_channel_id:
         selectedOutlet?.customer_channel_id?.toString() || '',
+      customer_category_id:
+        selectedOutlet?.customer_category_id?.toString() || '',
       type: selectedOutlet?.type || 'Retail',
-      internal_code_one: selectedOutlet?.internal_code_one || '',
-      internal_code_two: selectedOutlet?.internal_code_two || '',
       contact_person: selectedOutlet?.contact_person || '',
       phone_number: selectedOutlet?.phone_number || '',
       email: selectedOutlet?.email || '',
@@ -83,7 +88,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       credit_limit: selectedOutlet?.credit_limit || '',
       outstanding_amount: selectedOutlet?.outstanding_amount || '0',
       route_id: selectedOutlet?.route_id?.toString() || '',
-      salesperson_id: selectedOutlet?.salesperson_id?.toString() || '',
       nfc_tag_code: selectedOutlet?.nfc_tag_code || '',
       last_visit_date: selectedOutlet?.last_visit_date
         ? selectedOutlet.last_visit_date.split('T')[0]
@@ -105,9 +109,10 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
           customer_channel_id: values.customer_channel_id
             ? Number(values.customer_channel_id)
             : undefined,
+          customer_category_id: values.customer_category_id
+            ? Number(values.customer_category_id)
+            : undefined,
           type: values.type,
-          internal_code_one: values.internal_code_one,
-          internal_code_two: values.internal_code_two,
           contact_person: values.contact_person,
           phone_number: values.phone_number,
           email: values.email,
@@ -120,9 +125,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
           credit_limit: values.credit_limit,
           outstanding_amount: values.outstanding_amount || '0',
           route_id: values.route_id ? Number(values.route_id) : undefined,
-          salesperson_id: values.salesperson_id
-            ? Number(values.salesperson_id)
-            : undefined,
           nfc_tag_code: values.nfc_tag_code,
           last_visit_date: values.last_visit_date
             ? new Date(values.last_visit_date).toISOString()
@@ -186,6 +188,14 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               ))}
             </Select>
 
+            <Select name="route_id" label="Route" formik={formik}>
+              {routes.map(route => (
+                <MenuItem key={route.id} value={route.id.toString()}>
+                  {route.name} ({route.code})
+                </MenuItem>
+              ))}
+            </Select>
+
             <Select
               name="customer_type_id"
               label="Customer Type"
@@ -210,6 +220,18 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               ))}
             </Select>
 
+            <Select
+              name="customer_category_id"
+              label="Customer Category"
+              formik={formik}
+            >
+              {customerCategories.map(cc => (
+                <MenuItem key={cc.id} value={cc.id.toString()}>
+                  {cc.category_name}
+                </MenuItem>
+              ))}
+            </Select>
+
             <Input
               name="contact_person"
               label="Contact Person"
@@ -229,34 +251,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               label="Email"
               type="email"
               placeholder="Enter email address"
-              formik={formik}
-            />
-
-            <Input
-              name="internal_code_one"
-              label="Internal Code One"
-              placeholder="Enter internal code one"
-              formik={formik}
-            />
-
-            <Input
-              name="internal_code_two"
-              label="Internal Code Two"
-              placeholder="Enter internal code two"
-              formik={formik}
-            />
-
-            <Select name="route_id" label="Route" formik={formik}>
-              {routes.map(route => (
-                <MenuItem key={route.id} value={route.id.toString()}>
-                  {route.name} ({route.code})
-                </MenuItem>
-              ))}
-            </Select>
-
-            <UserSelect
-              name="salesperson_id"
-              label="Sales Person"
               formik={formik}
             />
 

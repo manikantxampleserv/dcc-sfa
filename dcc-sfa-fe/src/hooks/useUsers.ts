@@ -102,8 +102,14 @@ export const useUserProfile = (
  * @param options - React Query options
  * @returns Query result with users data
  */
+export interface GetUsersDropdownParams {
+  search?: string;
+  user_id?: number;
+  depot_id?: number;
+}
+
 export const useUsersDropdown = (
-  params?: { search?: string; user_id?: number },
+  params?: GetUsersDropdownParams,
   options?: Omit<
     UseQueryOptions<ApiResponse<userService.UserDropdown[]>>,
     'queryKey' | 'queryFn'

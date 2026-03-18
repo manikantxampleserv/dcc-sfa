@@ -242,7 +242,6 @@ export const assetMovementsController = {
         case 'maintenance':
         case 'repair':
           assetStatusUpdate = 'Under Maintenance';
-
           console.log(
             `Maintenance records will be created after approval for maintenance/repair movement`
           );
