@@ -35,11 +35,12 @@ exports.createAssetMasterValidation = [
         'Available',
         'Installed',
         'Under Maintenance',
+        'Under Investigation',
         'Retired',
         'Lost',
         'Damaged',
     ])
-        .withMessage('Current status must be one of: Available, Installed, Under Maintenance, Retired, Lost, Damaged'),
+        .withMessage('Current status must be one of: Available, Installed, Under Maintenance, Under Investigation, Retired, Lost, Damaged'),
     (0, express_validator_1.body)('assigned_to')
         .optional({ checkFalsy: true })
         .isLength({ max: 100 })
@@ -80,11 +81,12 @@ exports.updateAssetMasterValidation = [
         'Available',
         'Installed',
         'Under Maintenance',
+        'Under Investigation',
         'Retired',
         'Lost',
         'Damaged',
     ])
-        .withMessage('Current status must be one of: Available, Installed, Under Maintenance, Retired, Lost, Damaged'),
+        .withMessage('Current status must be one of: Available, Installed, Under Maintenance, Under Investigation, Retired, Lost, Damaged'),
     (0, express_validator_1.body)('assigned_to')
         .optional({ checkFalsy: true })
         .isLength({ max: 100 })
