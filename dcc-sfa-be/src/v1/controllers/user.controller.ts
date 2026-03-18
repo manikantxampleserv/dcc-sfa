@@ -69,6 +69,20 @@ const serializeUser = (
         symbol: user.companies.companies_currencies.symbol,
       }
     : null,
+  routes: user.route_salespersons
+    ? user.route_salespersons.map((rs: any) => ({
+        id: rs.route.id,
+        name: rs.route.name,
+        code: rs.route.code,
+        description: rs.route.description,
+        start_location: rs.route.start_location,
+        end_location: rs.route.end_location,
+        estimated_distance: rs.route.estimated_distance,
+        estimated_time: rs.route.estimated_time,
+        role: rs.role,
+        assigned_at: rs.assigned_at,
+      }))
+    : [],
 });
 
 export const userController = {
@@ -635,6 +649,25 @@ export const userController = {
               id: true,
               name: true,
               email: true,
+            },
+          },
+          route_salespersons: {
+            where: {
+              is_active: 'Y',
+            },
+            include: {
+              route: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  description: true,
+                  start_location: true,
+                  end_location: true,
+                  estimated_distance: true,
+                  estimated_time: true,
+                },
+              },
             },
           },
         },
