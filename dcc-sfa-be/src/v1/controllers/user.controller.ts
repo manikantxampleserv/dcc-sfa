@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { paginate } from '../../utils/paginate';
+import { platform } from 'os';
 const serializeUser = (
   user: any,
   includeCreatedAt = false,
@@ -22,6 +23,7 @@ const serializeUser = (
   reporting_to: Number(user.reporting_to),
   profile_image: user.profile_image,
   last_login: user.last_login,
+  platform: user.platform,
   is_active: user.is_active,
   ...(includeCreatedAt && { created_at: user.createdate }),
   ...(includeUpdatedAt && { updated_at: user.updatedate }),
@@ -108,6 +110,7 @@ export const userController = {
         joining_date,
         reporting_to,
         is_active,
+        platform,
       } = req.body;
 
       const existingUser = await prisma.users.findFirst({
@@ -168,6 +171,7 @@ export const userController = {
           depot_id,
           zone_id,
           phone_number,
+          platform,
           address,
           employee_id,
           joining_date: joining_date ? new Date(joining_date) : null,
