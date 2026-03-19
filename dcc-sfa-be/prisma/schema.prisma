@@ -317,7 +317,7 @@ model asset_maintenance {
 model asset_master {
   id                           Int                     @id(map: "PK__asset_ma__3213E83FB367A2E5") @default(autoincrement())
   asset_type_id                Int
-  brand                        String?
+  brand_id                     Int?
   barcode                      String?
   nfc_tag                      String?
   name                         String                  @db.VarChar(255)
@@ -342,6 +342,7 @@ model asset_master {
   asset_movement_assets_asset  asset_movement_assets[]
   asset_master_warranty_claims asset_warranty_claims[]
   cooler_asset_master          coolers[]
+  asset_master_brand           brands?                 @relation(fields: [brand_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model asset_sub_types {
@@ -1531,6 +1532,7 @@ model brands {
   log_inst             Int?
   customer_asset_brand customer_assets[]
   product_brands       products[]
+  asset_master_brand   asset_master[]
 }
 
 model unit_of_measurement {
@@ -2862,4 +2864,49 @@ model user_column_preferences {
   updatedby   Int?
 
   @@unique([createdby, route])
+}
+
+model regions {
+  id               Int         @id @default(autoincrement())
+  name             String      @db.NVarChar(100)
+  code             String?     @unique @db.NVarChar(50)
+  description      String?     @db.NVarChar(500)
+  is_active        String      @default("Y") @db.Char(1)
+  createdate       DateTime?   @default(now()) @db.DateTime
+  createdby        Int
+  updatedate       DateTime?   @db.DateTime
+  updatedby        Int?
+  log_inst         Int?
+  district_regions districts[]
+}
+
+model districts {
+  id               Int       @id @default(autoincrement())
+  region_id        Int
+  name             String    @db.NVarChar(100)
+  code             String?   @unique @db.NVarChar(50)
+  description      String?   @db.NVarChar(500)
+  is_active        String    @default("Y") @db.Char(1)
+  createdate       DateTime? @default(now()) @db.DateTime
+  createdby        Int
+  updatedate       DateTime? @db.DateTime
+  updatedby        Int?
+  log_inst         Int?
+  district_regions regions   @relation(fields: [region_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  cities_districts cities[]
+}
+
+model cities {
+  id               Int       @id @default(autoincrement())
+  district_id      Int
+  name             String    @db.NVarChar(100)
+  code             String?   @unique @db.NVarChar(50)
+  description      String?   @db.NVarChar(500)
+  is_active        String    @default("Y") @db.Char(1)
+  createdate       DateTime? @default(now()) @db.DateTime
+  createdby        Int
+  updatedate       DateTime? @db.DateTime
+  updatedby        Int?
+  log_inst         Int?
+  cities_districts districts @relation(fields: [district_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
