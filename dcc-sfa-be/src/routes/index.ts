@@ -95,6 +95,7 @@ import templates from '../v1/routes/templates.routes';
 import columnPreference from '../v1/routes/columnPreference.routes';
 import regions from '../v1/routes/regions.routes';
 import districts from '../v1/routes/districts.routes';
+import cities from '../v1/routes/cities.routes';
 const routes = Router();
 
 routes.use('/v1', auth);
@@ -192,6 +193,7 @@ routes.use('/v1', templates);
 routes.use('/v1', columnPreference);
 routes.use('/v1', regions);
 routes.use('/v1', districts);
+routes.use('/v1', cities);
 
 routes.get('/', (_: any, res: any) => {
   res.json({
