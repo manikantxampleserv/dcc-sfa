@@ -91,7 +91,6 @@ export const districtsController = {
         });
       }
 
-      // Check if region exists
       const region = await prisma.regions.findUnique({
         where: { id: Number(data.region_id) },
       });
