@@ -79,6 +79,9 @@ const serializeCustomer = async (customer: any) => {
     updatedate: customer.updatedate || null,
     updatedby: customer.updatedby || null,
     log_inst: customer.log_inst,
+    city_id: customer.city_id || null,
+    district_id: customer.district_id || null,
+    region_id: customer.region_id || null,
     customer_zones: customer.customer_zones
       ? {
           id: customer.customer_zones.id,
@@ -101,7 +104,27 @@ const serializeCustomer = async (customer: any) => {
           outlet_group: customer.customer_routes.outlet_group || null,
         }
       : null,
-
+    customer_city: customer.customers_city
+      ? {
+          id: customer.customers_city.id,
+          name: customer.customers_city.name,
+          code: customer.customers_city.code,
+        }
+      : null,
+    customer_district: customer.customers_districts
+      ? {
+          id: customer.customers_districts.id,
+          name: customer.customers_districts.name,
+          code: customer.customers_districts.code,
+        }
+      : null,
+    customer_region: customer.customers_regions
+      ? {
+          id: customer.customers_regions.id,
+          name: customer.customers_regions.name,
+          code: customer.customers_regions.code,
+        }
+      : null,
     customer_users: customer.customer_users
       ? {
           id: customer.customer_users.id,
@@ -172,6 +195,9 @@ const checkIfCustomerChanged = (existing: any, incoming: any): boolean => {
     'salesperson_id',
     'nfc_tag_code',
     'is_active',
+    'city_id',
+    'district_id',
+    'region_id',
   ];
   let hasAnyChange = false;
 
@@ -466,36 +492,10 @@ export const customerController = {
         'last_visit_date',
         'is_active',
         'log_inst',
+        'city_id',
+        'district_id',
+        'region_id',
       ];
-
-      // const validationErrors = [];
-      // for (let i = 0; i < customersData.length; i++) {
-      //   const customer = customersData[i];
-
-      //   if (!customer.name) {
-      //     validationErrors.push({
-      //       index: i,
-      //       customer: customer,
-      //       reason: 'Customer name is required',
-      //     });
-      //   }
-
-      //   // if (!customer.email && !customer.phone_number) {
-      //   //   validationErrors.push({
-      //   //     index: i,
-      //   //     customer: customer,
-      //   //     reason: 'Either email or phone_number is required',
-      //   //   });
-      //   // }
-      // }
-
-      // if (validationErrors.length > 0) {
-      //   return res.status(400).json({
-      //     success: false,
-      //     message: 'Validation failed',
-      //     errors: validationErrors,
-      //   });
-      // }
 
       const results = {
         created: [] as any[],
@@ -580,6 +580,60 @@ export const customerController = {
               continue;
             }
 
+            if (
+              customerData.city_id !== undefined &&
+              customerData.city_id !== null
+            ) {
+              const cityExists = await prisma.cities.findUnique({
+                where: { id: customerData.city_id },
+                select: { id: true },
+              });
+
+              if (!cityExists) {
+                results.errors.push({
+                  customer: customerData,
+                  reason: `City with ID ${customerData.city_id} does not exist`,
+                });
+                continue;
+              }
+            }
+
+            if (
+              customerData.district_id !== undefined &&
+              customerData.district_id !== null
+            ) {
+              const districtExists = await prisma.districts.findUnique({
+                where: { id: customerData.district_id },
+                select: { id: true },
+              });
+
+              if (!districtExists) {
+                results.errors.push({
+                  customer: customerData,
+                  reason: `District with ID ${customerData.district_id} does not exist`,
+                });
+                continue;
+              }
+            }
+
+            // Validate region_id if provided
+            if (
+              customerData.region_id !== undefined &&
+              customerData.region_id !== null
+            ) {
+              const regionExists = await prisma.regions.findUnique({
+                where: { id: customerData.region_id },
+                select: { id: true },
+              });
+
+              if (!regionExists) {
+                results.errors.push({
+                  customer: customerData,
+                  reason: `Region with ID ${customerData.region_id} does not exist`,
+                });
+                continue;
+              }
+            }
             const cleanData: any = {};
             Object.keys(customerData).forEach(key => {
               if (allowedFields.includes(key)) {
@@ -1045,8 +1099,18 @@ export const customerController = {
 
   async getAllCustomers(req: any, res: any) {
     try {
-      const { page, limit, search, type, salesperson_id, route_id, isActive } =
-        req.query;
+      const {
+        page,
+        limit,
+        search,
+        type,
+        salesperson_id,
+        route_id,
+        isActive,
+        city_id,
+        district_id,
+        region_id,
+      } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -1060,6 +1124,9 @@ export const customerController = {
             { phone_number: { contains: searchLower } },
           ],
         }),
+        ...(city_id && { city_id: Number(city_id) }),
+        ...(district_id && { district_id: Number(district_id) }),
+        ...(region_id && { region_id: Number(region_id) }),
         ...(type && type !== 'All' && { type }),
         ...(salesperson_id && {
           salesperson_id: parseInt(salesperson_id as string, 10),
@@ -1100,6 +1167,27 @@ export const customerController = {
               code: true,
             },
           },
+          customers_city: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          customers_districts: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          customers_regions: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
           customer_type_customer: {
             select: {
               id: true,
@@ -1115,6 +1203,7 @@ export const customerController = {
               level: true,
             },
           },
+
           customer_channel_customer: {
             select: {
               id: true,
@@ -1223,6 +1312,27 @@ export const customerController = {
               id: true,
               channel_name: true,
               channel_code: true,
+            },
+          },
+          customers_city: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          customers_districts: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          customers_regions: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
             },
           },
           outlet_images_customers: {
