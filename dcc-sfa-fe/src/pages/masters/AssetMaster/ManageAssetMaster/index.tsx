@@ -48,6 +48,8 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
       asset_type_id: selectedAsset?.asset_type_id || 0,
       asset_sub_type_id: selectedAsset?.asset_sub_type_id || 0,
       serial_number: selectedAsset?.serial_number || '',
+      barcode: selectedAsset?.barcode || '',
+      nfc_tag_code: selectedAsset?.nfc_tag_code || '',
       purchase_date: selectedAsset?.purchase_date
         ? selectedAsset.purchase_date.split('T')[0]
         : null,
@@ -55,7 +57,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
         ? selectedAsset.warranty_expiry.split('T')[0]
         : null,
       warranty_period: '1',
-      current_location: selectedAsset?.current_location || '',
       current_status: selectedAsset?.current_status || 'Available',
       assigned_to: selectedAsset?.assigned_to || '',
       is_active: selectedAsset?.is_active || 'Y',
@@ -72,7 +73,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
             : null,
           purchase_date: values.purchase_date || null,
           warranty_expiry: values.warranty_expiry || null,
-          current_location: values.current_location || null,
           current_status: values.current_status || null,
           assigned_to: values.assigned_to || null,
         };
@@ -191,6 +191,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     { value: 'Available', label: 'Available' },
     { value: 'Installed', label: 'Installed' },
     { value: 'Under Maintenance', label: 'Under Maintenance' },
+    { value: 'Under Investigation', label: 'Under Investigation' },
     { value: 'Retired', label: 'Retired' },
     { value: 'Lost', label: 'Lost' },
     { value: 'Damaged', label: 'Damaged' },
@@ -248,6 +249,20 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
             />
 
             <Input
+              name="barcode"
+              label="Barcode"
+              placeholder="Enter barcode"
+              formik={formik}
+            />
+
+            <Input
+              name="nfc_tag_code"
+              label="NFC Tag"
+              placeholder="Enter NFC Tag"
+              formik={formik}
+            />
+
+            <Input
               name="purchase_date"
               label="Purchase Date"
               type="date"
@@ -275,13 +290,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               slotProps={{ inputLabel: { shrink: true } }}
             />
 
-            <Input
-              name="current_location"
-              label="Current Location"
-              placeholder="Enter current location"
-              formik={formik}
-            />
-
             <Select
               name="current_status"
               label="Current Status"
@@ -301,7 +309,12 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               placeholder="Search user..."
             />
 
-            <ActiveInactiveField name="is_active" formik={formik} required />
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              required
+              className="col-span-2"
+            />
           </Box>
 
           <Box className="!space-y-3">

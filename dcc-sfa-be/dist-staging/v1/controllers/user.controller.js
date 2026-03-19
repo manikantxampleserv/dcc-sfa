@@ -14,8 +14,9 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
     email: user.email,
     name: user.name,
     role_id: Number(user.role_id),
+    sap_code: user.sap_code,
     parent_id: user.parent_id,
-    depot_id: user.depot_id,
+    depot_id: Number(user.depot_id),
     zone_id: user.zone_id,
     phone_number: user.phone_number,
     address: user.address,
@@ -24,6 +25,7 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
     reporting_to: Number(user.reporting_to),
     profile_image: user.profile_image,
     last_login: user.last_login,
+    platform: user.platform || null,
     is_active: user.is_active,
     ...(includeCreatedAt && { created_at: user.createdate }),
     ...(includeUpdatedAt && { updated_at: user.updatedate }),
@@ -68,6 +70,20 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             symbol: user.companies.companies_currencies.symbol,
         }
         : null,
+    routes: user.route_salespersons
+        ? user.route_salespersons.map((rs) => ({
+            id: rs.route.id,
+            name: rs.route.name,
+            code: rs.route.code,
+            description: rs.route.description,
+            start_location: rs.route.start_location,
+            end_location: rs.route.end_location,
+            estimated_distance: rs.route.estimated_distance,
+            estimated_time: rs.route.estimated_time,
+            role: rs.role,
+            assigned_at: rs.assigned_at,
+        }))
+        : [],
 });
 exports.userController = {
     async createUser(req, res) {
@@ -77,7 +93,7 @@ exports.userController = {
                 res.validationError(errors.array(), 400);
                 return;
             }
-            const { email, password, name, role_id, parent_id, depot_id, zone_id, phone_number, address, employee_id, joining_date, reporting_to, is_active, } = req.body;
+            const { email, password, name, role_id, parent_id, depot_id, zone_id, phone_number, address, sap_code, employee_id, joining_date, reporting_to, is_active, platform, } = req.body;
             const existingUser = await prisma_client_1.default.users.findFirst({
                 where: { email },
             });
@@ -123,9 +139,11 @@ exports.userController = {
                     name,
                     role_id: Number(role_id),
                     parent_id,
-                    depot_id,
+                    depot_id: Number(depot_id),
                     zone_id,
                     phone_number,
+                    sap_code,
+                    platform: platform || null,
                     address,
                     employee_id,
                     joining_date: joining_date ? new Date(joining_date) : null,
@@ -370,6 +388,7 @@ exports.userController = {
             const updateData = {
                 ...userData,
                 ...(profile_image_url && { profile_image: profile_image_url }),
+                depot_id: Number(userData.depot_id),
                 updatedby: currentUserId,
                 updatedate: new Date(),
             };
@@ -528,6 +547,25 @@ exports.userController = {
                             email: true,
                         },
                     },
+                    route_salespersons: {
+                        where: {
+                            is_active: 'Y',
+                        },
+                        include: {
+                            route: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    code: true,
+                                    description: true,
+                                    start_location: true,
+                                    end_location: true,
+                                    estimated_distance: true,
+                                    estimated_time: true,
+                                },
+                            },
+                        },
+                    },
                 },
             });
             if (!user) {
@@ -621,32 +659,24 @@ exports.userController = {
     },
     async getUsersDropdown(req, res) {
         try {
-            const { search = '', user_id } = req.query;
+            const { search = '', user_id, depot_id } = req.query;
             const searchLower = search.toLowerCase().trim();
             const userId = user_id ? Number(user_id) : null;
+            const depotId = depot_id ? Number(depot_id) : null;
             const where = {
                 is_active: 'Y',
             };
+            if (depotId) {
+                where.depot_id = depotId;
+            }
             if (userId) {
                 where.id = userId;
             }
             else if (searchLower) {
                 where.OR = [
-                    {
-                        name: {
-                            contains: searchLower,
-                        },
-                    },
-                    {
-                        email: {
-                            contains: searchLower,
-                        },
-                    },
-                    {
-                        employee_id: {
-                            contains: searchLower,
-                        },
-                    },
+                    { name: { contains: searchLower } },
+                    { email: { contains: searchLower } },
+                    { employee_id: { contains: searchLower } },
                 ];
             }
             const users = await prisma_client_1.default.users.findMany({
@@ -655,6 +685,7 @@ exports.userController = {
                     id: true,
                     name: true,
                     email: true,
+                    depot_id: true,
                 },
                 orderBy: {
                     name: 'asc',

@@ -58,6 +58,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -71,6 +72,8 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -136,6 +139,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -149,6 +153,8 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -163,6 +169,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -227,6 +234,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -240,6 +248,8 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -322,6 +332,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -386,6 +397,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -399,6 +411,8 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -481,6 +495,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -545,6 +560,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -558,6 +574,8 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -638,6 +656,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -749,6 +768,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -860,6 +880,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -971,6 +992,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1101,6 +1123,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1114,6 +1137,8 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -1147,6 +1172,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1160,6 +1186,8 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -1195,6 +1223,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1208,6 +1237,8 @@ export declare const resolvers: {
             warranty_expiry: Date | null;
             asset_type_id: number;
             assigned_to: string | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -1222,6 +1253,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1264,6 +1296,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1277,6 +1310,8 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -1357,6 +1392,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1399,6 +1435,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1412,6 +1449,8 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -1494,6 +1533,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1536,6 +1576,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1549,6 +1590,8 @@ export declare const resolvers: {
                 warranty_expiry: Date | null;
                 asset_type_id: number;
                 assigned_to: string | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -1629,6 +1672,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1738,6 +1782,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
@@ -1849,6 +1894,7 @@ export declare const resolvers: {
                 password_hash: string;
                 parent_id: number | null;
                 depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;

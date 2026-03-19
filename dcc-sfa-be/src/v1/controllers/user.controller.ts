@@ -3,7 +3,7 @@ import { validationResult } from 'express-validator';
 import prisma from '../../configs/prisma.client';
 import { deleteFile, uploadFile } from '../../utils/blackbaze';
 import { paginate } from '../../utils/paginate';
-import { platform } from 'os';
+
 const serializeUser = (
   user: any,
   includeCreatedAt = false,
@@ -24,7 +24,7 @@ const serializeUser = (
   reporting_to: Number(user.reporting_to),
   profile_image: user.profile_image,
   last_login: user.last_login,
-  platform: user.platform,
+  platform: user.platform || null,
   is_active: user.is_active,
   ...(includeCreatedAt && { created_at: user.createdate }),
   ...(includeUpdatedAt && { updated_at: user.updatedate }),
@@ -174,7 +174,7 @@ export const userController = {
           zone_id,
           phone_number,
           sap_code,
-          platform,
+          platform: platform || null,
           address,
           employee_id,
           joining_date: joining_date ? new Date(joining_date) : null,
@@ -462,6 +462,7 @@ export const userController = {
       const updateData: any = {
         ...userData,
         ...(profile_image_url && { profile_image: profile_image_url }),
+        depot_id: Number(userData.depot_id),
         updatedby: currentUserId,
         updatedate: new Date(),
       };
@@ -807,33 +808,26 @@ export const userController = {
 
   async getUsersDropdown(req: any, res: any): Promise<void> {
     try {
-      const { search = '', user_id } = req.query;
+      const { search = '', user_id, depot_id } = req.query;
       const searchLower = search.toLowerCase().trim();
       const userId = user_id ? Number(user_id) : null;
+      const depotId = depot_id ? Number(depot_id) : null;
 
       const where: any = {
         is_active: 'Y',
       };
 
+      if (depotId) {
+        where.depot_id = depotId;
+      }
+
       if (userId) {
         where.id = userId;
       } else if (searchLower) {
         where.OR = [
-          {
-            name: {
-              contains: searchLower,
-            },
-          },
-          {
-            email: {
-              contains: searchLower,
-            },
-          },
-          {
-            employee_id: {
-              contains: searchLower,
-            },
-          },
+          { name: { contains: searchLower } },
+          { email: { contains: searchLower } },
+          { employee_id: { contains: searchLower } },
         ];
       }
 
@@ -843,6 +837,7 @@ export const userController = {
           id: true,
           name: true,
           email: true,
+          depot_id: true,
         },
         orderBy: {
           name: 'asc',

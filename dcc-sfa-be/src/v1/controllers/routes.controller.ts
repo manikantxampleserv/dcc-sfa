@@ -235,7 +235,17 @@ export const routesController = {
           ],
         }),
         user_role: {
-          name: { contains: 'Sales' },
+          name: {
+            notIn: [
+              'admin',
+              'Admin',
+              'ADMIN',
+              'subadmin',
+              'Sub Admin',
+              'superadmin',
+              'Super Admin',
+            ],
+          },
         },
         ...(depot_id && { depot_id: parseInt(depot_id as string, 10) }),
         ...(zone_id && { zone_id: parseInt(zone_id as string, 10) }),

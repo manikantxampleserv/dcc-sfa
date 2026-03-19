@@ -312,6 +312,12 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                 Invoice Information
               </Typography>
             </Box>
+            <CustomerSelect
+              name="customer_id"
+              label="Customer"
+              formik={formik}
+              required
+            />
 
             <Select name="parent_id" label="Order" formik={formik} required>
               {orders.map(order => (
@@ -320,13 +326,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                 </MenuItem>
               ))}
             </Select>
-
-            <CustomerSelect
-              name="customer_id"
-              label="Customer"
-              formik={formik}
-              required
-            />
 
             <Input
               name="invoice_date"

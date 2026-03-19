@@ -24,8 +24,10 @@ interface User {
   phone_number?: string | null;
   address?: string | null;
   employee_id?: string | null;
+  sap_code?: string | null;
   joining_date?: string | null;
   reporting_to?: number | null;
+  platform?: string | null;
   profile_image?: string | null;
   last_login?: string | null;
   is_active: string;
@@ -58,6 +60,18 @@ interface User {
   } | null;
   permissions?: string[];
   recent_activities?: RecentActivity;
+  routes?: Array<{
+    id: number;
+    name: string;
+    code: string;
+    description: string;
+    start_location: string;
+    end_location: string;
+    estimated_distance: number;
+    estimated_time: string;
+    role: string;
+    assigned_at: string;
+  }>;
 }
 
 interface ManageUserPayload {
@@ -71,8 +85,10 @@ interface ManageUserPayload {
   phone_number?: string;
   address?: string;
   employee_id?: string;
+  sap_code?: string;
   joining_date?: string;
   reporting_to?: number;
+  platform?: string;
   profile_image?: string;
   is_active?: string;
 }

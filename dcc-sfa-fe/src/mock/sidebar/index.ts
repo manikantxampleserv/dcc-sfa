@@ -116,16 +116,6 @@ const menuItems: MenuItem[] = [
         icon: MdStore,
         children: [
           {
-            id: 'outlet-groups',
-            label: 'Outlet Groups',
-            href: '/masters/outlet-groups',
-          },
-          {
-            id: 'outlet-master',
-            label: 'Outlet Master',
-            href: '/masters/outlets',
-          },
-          {
             id: 'outlet-type',
             label: 'Outlet Type',
             href: '/masters/outlet-type',
@@ -139,6 +129,16 @@ const menuItems: MenuItem[] = [
             id: 'outlet-category',
             label: 'Outlet Category',
             href: '/masters/outlet-category',
+          },
+          {
+            id: 'outlet-master',
+            label: 'Outlet Master',
+            href: '/masters/outlets',
+          },
+          {
+            id: 'outlet-groups',
+            label: 'Outlet Groups',
+            href: '/masters/outlet-groups',
           },
         ],
       },

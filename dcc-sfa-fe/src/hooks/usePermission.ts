@@ -126,8 +126,14 @@ export const usePermission = (module: Module) => {
       apiError?.errorType === 'NETWORK_ERROR' ||
       apiError?.errorType === 'TIMEOUT' ||
       (apiError?.statusCode === 0 && !apiError?.response) ||
-      (!apiError?.response && (apiError?.code === 'ERR_NETWORK' || apiError?.code === 'ECONNREFUSED' || apiError?.code === 'ETIMEDOUT' || apiError?.code === 'ENOTFOUND')) ||
-      (apiError?.message && (apiError.message.includes('Network') || apiError.message.includes('network')))
+      (!apiError?.response &&
+        (apiError?.code === 'ERR_NETWORK' ||
+          apiError?.code === 'ECONNREFUSED' ||
+          apiError?.code === 'ETIMEDOUT' ||
+          apiError?.code === 'ENOTFOUND')) ||
+      (apiError?.message &&
+        (apiError.message.includes('Network') ||
+          apiError.message.includes('network')))
     );
   }, [error]);
 
