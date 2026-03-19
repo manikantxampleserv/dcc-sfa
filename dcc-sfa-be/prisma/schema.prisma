@@ -1521,6 +1521,7 @@ model tax_master {
 model brands {
   id                   Int               @id @default(autoincrement())
   name                 String            @db.NVarChar(255)
+  is_asset_brand       String?           @default("N") @db.Char(1)
   code                 String            @db.NVarChar(50)
   description          String?           @db.NVarChar(500)
   logo                 String?           @db.NVarChar(500)

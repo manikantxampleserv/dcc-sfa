@@ -8,6 +8,7 @@ interface BrandSerialized {
   name: string;
   code: string;
   description?: string | null;
+  is_asset_brand?: string;
   logo?: string | null;
   is_active: string;
   createdate?: Date | null;
@@ -40,6 +41,7 @@ const serializeBrand = (b: any): BrandSerialized => ({
   id: b.id,
   name: b.name,
   code: b.code,
+  is_asset_brand: b.is_asset_brand,
   description: b.description,
   logo: b.logo,
   is_active: b.is_active,

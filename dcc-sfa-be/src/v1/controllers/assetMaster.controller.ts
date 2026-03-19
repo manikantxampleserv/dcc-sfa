@@ -358,18 +358,6 @@ export const assetMasterController = {
         }
       }
 
-      const duplicateAsset = await prisma.asset_master.findFirst({
-        where: {
-          asset_type_id: Number(asset_type_id),
-        },
-      });
-
-      if (duplicateAsset) {
-        return res.status(409).json({
-          message: 'Asset with this asset type  already exists',
-        });
-      }
-
       const existingSerial = await prisma.asset_master.findFirst({
         where: {
           serial_number: serial_number,
@@ -455,189 +443,6 @@ export const assetMasterController = {
       res.status(500).json({ message: error.message });
     }
   },
-
-  // async getAllAssetMaster(req: any, res: any) {
-  //   try {
-  //     const { page, limit, search, status } = req.query;
-  //     const pageNum = parseInt(page as string, 10) || 1;
-  //     const limitNum = parseInt(limit as string, 10) || 10;
-  //     const searchLower = search ? (search as string).toLowerCase() : '';
-  //     const statusLower = status ? (status as string).toLowerCase() : '';
-
-  //     const filters: any = {
-  //       ...(search && {
-  //         OR: [
-  //           { name: { contains: searchLower } },
-  //           { code: { contains: searchLower } },
-  //           { serial_number: { contains: searchLower } },
-  //           { current_location: { contains: searchLower } },
-  //           { current_status: { contains: searchLower } },
-  //           { assigned_to: { contains: searchLower } },
-  //         ],
-  //       }),
-  //       ...(statusLower === 'active' && { is_active: 'Y' }),
-  //       ...(statusLower === 'inactive' && { is_active: 'N' }),
-  //     };
-
-  //     const { data, pagination } = await paginate({
-  //       model: prisma.asset_master,
-  //       filters,
-  //       page: pageNum,
-  //       limit: limitNum,
-  //       orderBy: { createdate: 'desc' },
-  //       include: {
-  //         asset_master_image: true,
-  //         asset_maintenance_master: true,
-  //         asset_movement_assets_asset: {
-  //           include: {
-  //             asset_movement_assets_movement: {
-  //               select: {
-  //                 id: true,
-  //                 movement_type: true,
-  //                 movement_date: true,
-  //                 from_direction: true,
-  //                 to_direction: true,
-  //                 notes: true,
-  //               },
-  //             },
-  //           },
-  //         },
-  //         asset_master_warranty_claims: true,
-  //         asset_master_asset_types: true,
-  //         asset_master_asset_sub_types: true,
-  //       },
-  //     });
-
-  //     const totalAssets = await prisma.asset_master.count();
-  //     const activeAssets = await prisma.asset_master.count({
-  //       where: { is_active: 'Y' },
-  //     });
-  //     const inactiveAssets = await prisma.asset_master.count({
-  //       where: { is_active: 'N' },
-  //     });
-
-  //     const now = new Date();
-  //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  //     const assetsThisMonth = await prisma.asset_master.count({
-  //       where: {
-  //         createdate: {
-  //           gte: startOfMonth,
-  //           lte: endOfMonth,
-  //         },
-  //       },
-  //     });
-
-  //     res.success(
-  //       'Assets retrieved successfully',
-  //       data.map((asset: any) => serializeAssetMaster(asset)),
-  //       200,
-  //       pagination,
-  //       {
-  //         total_assets: totalAssets,
-  //         active_assets: activeAssets,
-  //         inactive_assets: inactiveAssets,
-  //         assets_this_month: assetsThisMonth,
-  //       }
-  //     );
-  //   } catch (error: any) {
-  //     console.error('Get Assets Error:', error);
-  //     res.status(500).json({ message: error.message });
-  //   }
-  // },
-
-  // async getAssetMasterById(req: Request, res: Response) {
-  //   try {
-  //     const { id } = req.params;
-  //     const asset = await prisma.asset_master.findUnique({
-  //       where: { id: Number(id) },
-  //       include: {
-  //         asset_master_image: true,
-  //         asset_maintenance_master: true,
-  //         asset_master_warranty_claims: true,
-  //         asset_master_asset_types: true,
-  //         asset_master_asset_sub_types: true,
-  //       },
-  //     });
-
-  //     if (!asset) return res.status(404).json({ message: 'Asset not found' });
-
-  //     res.json({
-  //       message: 'Asset fetched successfully',
-  //       data: serializeAssetMaster(asset),
-  //     });
-  //   } catch (error: any) {
-  //     console.error('Get Asset Error:', error);
-  //     res.status(500).json({ message: error.message });
-  //   }
-  // },
-
-  // async updateAssetMaster(req: Request, res: Response) {
-  //   try {
-  //     const { id } = req.params;
-  //     const existingAsset = await prisma.asset_master.findUnique({
-  //       where: { id: Number(id) },
-  //       include: {
-  //         asset_master_asset_types: true,
-  //         asset_master_asset_sub_types: true,
-  //       },
-  //     });
-  //     if (!existingAsset)
-  //       return res.status(404).json({ message: 'Asset not found' });
-
-  //     const data: any = {
-  //       name: req.body.name,
-  //       code: req.body.code,
-  //       serial_number: req.body.serial_number,
-  //       assigned_to: req.body.assigned_to
-  //         ? String(req.body.assigned_to)
-  //         : existingAsset.assigned_to,
-  //       purchase_date: req.body.purchase_date
-  //         ? new Date(req.body.purchase_date)
-  //         : existingAsset.purchase_date,
-  //       warranty_expiry: req.body.warranty_expiry
-  //         ? new Date(req.body.warranty_expiry)
-  //         : existingAsset.warranty_expiry,
-  //       current_location: req.body.current_location,
-  //       current_status: req.body.current_status,
-  //       is_active: req.body.is_active,
-  //       updatedate: new Date(),
-  //       updatedby: req.user?.id,
-  //     };
-
-  //     if (req.body.asset_type_id) {
-  //       data.asset_master_asset_types = {
-  //         connect: { id: Number(req.body.asset_type_id) },
-  //       };
-  //     }
-
-  //     if (req.body.asset_sub_type_id) {
-  //       data.asset_master_asset_sub_types = {
-  //         connect: { id: Number(req.body.asset_sub_type_id) },
-  //       };
-  //     }
-
-  //     const asset = await prisma.asset_master.update({
-  //       where: { id: Number(id) },
-  //       data,
-  //       include: {
-  //         asset_master_image: true,
-  //         asset_maintenance_master: true,
-  //         asset_master_warranty_claims: true,
-  //         asset_master_asset_types: true,
-  //         asset_master_asset_sub_types: true,
-  //       },
-  //     });
-
-  //     res.json({
-  //       message: 'Asset updated successfully',
-  //       data: serializeAssetMaster(asset),
-  //     });
-  //   } catch (error: any) {
-  //     console.error('Update Asset Error:', error);
-  //     res.status(500).json({ message: error.message });
-  //   }
-  // },
 
   async getAllAssetMaster(req: any, res: any) {
     try {
@@ -1064,6 +869,7 @@ export const assetMasterController = {
       res.status(500).json({ message: error.message });
     }
   },
+
   async deleteAssetMaster(req: Request, res: Response) {
     try {
       const { id } = req.params;
