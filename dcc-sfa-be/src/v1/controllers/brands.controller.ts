@@ -92,11 +92,15 @@ export const brandsController = {
 
   async getAllBrands(req: any, res: any) {
     try {
-      const { page, limit, search, status } = req.query;
+      const { page, limit, search, status, is_asset_brand } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
       const statusLower = status ? (status as string).toLowerCase() : '';
+      const isAssetBrand = is_asset_brand
+        ? (is_asset_brand as string).toUpperCase()
+        : '';
+
       const filters: any = {
         ...(search && {
           OR: [
@@ -109,6 +113,8 @@ export const brandsController = {
         }),
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
+        ...(isAssetBrand === 'N' && { is_asset_brand: 'N' }),
+        ...(isAssetBrand === 'Y' && { is_asset_brand: 'Y' }),
       };
 
       const { data, pagination } = await paginate({
@@ -126,6 +132,7 @@ export const brandsController = {
       const inactiveBrands = await prisma.brands.count({
         where: { is_active: 'N' },
       });
+
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
