@@ -45,6 +45,12 @@ const menuItems: MenuItem[] = [
         icon: MdDashboard,
         href: '/dashboard/executive',
       },
+      {
+        id: 'grading-dashboard',
+        label: 'Grading Dashboard',
+        icon: MdBarChart,
+        href: '/dashboard/grading-dashboard',
+      },
     ],
   },
   {
@@ -70,7 +76,11 @@ const menuItems: MenuItem[] = [
           { id: 'depots', label: 'Depots', href: '/masters/depots' },
           { id: 'zones', label: 'Zones', href: '/masters/zones' },
           { id: 'region-master', label: 'Regions', href: '/masters/regions' },
-          { id: 'district-master', label: 'Districts', href: '/masters/districts' },
+          {
+            id: 'district-master',
+            label: 'Districts',
+            href: '/masters/districts',
+          },
           { id: 'city-master', label: 'Cities', href: '/masters/cities' },
           { id: 'currency', label: 'Currency', href: '/masters/currency' },
         ],
@@ -170,11 +180,11 @@ const menuItems: MenuItem[] = [
             label: 'Unit of Measurement',
             href: '/masters/unit-of-measurement',
           },
-          {
-            id: 'sub-unit-of-measurement',
-            label: 'Sub Unit of Measurement',
-            href: '/masters/sub-unit-of-measurement',
-          },
+          // {
+          //   id: 'sub-unit-of-measurement',
+          //   label: 'Sub Unit of Measurement',
+          //   href: '/masters/sub-unit-of-measurement',
+          // },
           {
             id: 'product-flavours',
             label: 'Flavours',

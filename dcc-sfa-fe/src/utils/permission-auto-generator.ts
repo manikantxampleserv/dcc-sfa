@@ -95,6 +95,7 @@ export type BackendModule = (typeof BACKEND_MODULES)[number];
  */
 const MANUAL_PERMISSION_OVERRIDES: Record<string, BackendModule> = {
   'executive-dashboard': 'dashboard',
+  'grading-dashboard': 'dashboard',
   'company-master': 'company',
   'user-master': 'user',
   'role-permission': 'role',

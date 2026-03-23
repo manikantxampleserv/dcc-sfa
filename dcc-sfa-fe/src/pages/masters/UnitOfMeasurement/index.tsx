@@ -153,14 +153,6 @@ const UnitOfMeasurementPage: React.FC = () => {
                 Symbol: {row.symbol}
               </Typography>
             )}
-            {row.category && (
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !block !mt-0.5"
-              >
-                Category: {row.category}
-              </Typography>
-            )}
           </Box>
         </Box>
       ),
@@ -242,7 +234,7 @@ const UnitOfMeasurementPage: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Units"
           value={totalUnits}

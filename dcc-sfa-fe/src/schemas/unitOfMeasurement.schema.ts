@@ -18,6 +18,11 @@ export const unitOfMeasurementValidationSchema = Yup.object({
     .max(10, 'Symbol must not exceed 10 characters')
     .nullable()
     .transform(value => (value === '' ? null : value)),
+  sub_unit: Yup.string().oneOf(['case', 'pcs'], 'Invalid sub unit').nullable(),
+  conversion_rate: Yup.number()
+    .typeError('Conversion rate must be a number')
+    .positive('Conversion rate must be a positive number')
+    .nullable(),
   is_active: Yup.string()
     .required('Status is required')
     .oneOf(['Y', 'N'], 'Status must be either Active or Inactive'),

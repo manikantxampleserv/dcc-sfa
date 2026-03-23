@@ -318,18 +318,18 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                           </Typography>
                         )}
                       </div>
-                      <div className="!flex !gap-2 !shrink-0">
+                      <div className="!flex !gap-2 items-center !shrink-0">
                         <Button
                           variant="contained"
                           color="success"
                           size="small"
-                          startIcon={<Check className="!w-4 !h-4" />}
+                          startIcon={<Check className="!w-3 !h-3" />}
                           onClick={() => handleApproveClick(request)}
                           disabled={
                             approvalStatus?.toUpperCase() !== 'P' &&
                             approvalStatus?.toUpperCase() !== 'PENDING'
                           }
-                          className="!text-xs !h-8 !px-3"
+                          className="!text-[11px] !py-1"
                         >
                           Approve
                         </Button>
@@ -343,7 +343,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                             approvalStatus?.toUpperCase() !== 'P' &&
                             approvalStatus?.toUpperCase() !== 'PENDING'
                           }
-                          className="!text-xs !h-8 !px-3"
+                          className="!text-[11px] !py-1"
                         >
                           Reject
                         </Button>

@@ -1,9 +1,6 @@
 import { Router } from 'express';
+import { authenticateToken } from '../../middlewares/auth.middleware';
 import { customerCategoryGradingController } from '../controllers/customerCategoryGrading.controller';
-import {
-  authenticateToken,
-  requirePermission,
-} from '../../middlewares/auth.middleware';
 
 const router = Router();
 

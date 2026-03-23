@@ -5,12 +5,26 @@ import { paginate } from '../../utils/paginate';
 export const customerCategoryGradingController = {
   async getPendingGradingRequests(req: Request, res: Response) {
     try {
-      const { page = 1, limit = 10, change_type } = req.query;
-
+      const { page = 1, limit = 10, change_type, search } = req.query;
       const whereClause: any = {
         status: 'P',
         ...(change_type && { change_type: change_type as string }),
       };
+
+      if (search) {
+        whereClause.OR = [
+          {
+            category_grading_customers: {
+              name: { contains: search as string },
+            },
+          },
+          {
+            category_grading_customers: {
+              code: { contains: search as string },
+            },
+          },
+        ];
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.customer_category_grading,

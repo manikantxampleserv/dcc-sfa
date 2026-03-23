@@ -15,6 +15,7 @@ import type { ApiErrorClass } from 'types/api.types';
 interface ApiMutationConfig<TData, TError, TVariables> {
   mutationFn: (variables: TVariables) => Promise<TData>;
   loadingMessage: string;
+  successMessage?: string; // Optional: Custom success message
   invalidateQueries?: string[] | string[][];
   onSuccess?: (data: TData, variables: TVariables) => void;
   onError?: (error: TError, variables: TVariables) => void;
@@ -49,7 +50,8 @@ export const useApiMutation = <TData = any, TError = any, TVariables = any>(
          * Extract success message from different possible response structures
          * @type {string}
          */
-        let successMessage = 'Operation completed successfully!';
+        let successMessage =
+          config.successMessage || 'Operation completed successfully!';
 
         if (data && typeof data === 'object') {
           /**

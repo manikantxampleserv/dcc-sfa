@@ -17,10 +17,10 @@ import {
   useUnitOfMeasurement,
   type UnitOfMeasurement,
 } from 'hooks/useUnitOfMeasurement';
-import {
-  useSubUnitOfMeasurements,
-  type SubUnitOfMeasurement,
-} from 'hooks/useSubUnitOfMeasurement';
+// import {
+//   useSubUnitOfMeasurements,
+//   type SubUnitOfMeasurement,
+// } from 'hooks/useSubUnitOfMeasurement';
 import React, { useRef, useState } from 'react';
 import { productValidationSchema } from 'schemas/product.schema';
 import {
@@ -257,20 +257,20 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   });
 
   // Sub Units hook that depends on selected unit of measurement
-  const { data: subUnitsResponse } = useSubUnitOfMeasurements(
-    formik.values.unit_of_measurement
-      ? {
-          limit: 1000,
-          isActive: 'Y',
-          unitOfMeasurementId: Number(formik.values.unit_of_measurement),
-        }
-      : {
-          limit: 1000,
-          isActive: 'Y',
-        }
-  );
+  // const { data: subUnitsResponse } = useSubUnitOfMeasurements(
+  //   formik.values.unit_of_measurement
+  //     ? {
+  //         limit: 1000,
+  //         isActive: 'Y',
+  //         unitOfMeasurementId: Number(formik.values.unit_of_measurement),
+  //       }
+  //     : {
+  //         limit: 1000,
+  //         isActive: 'Y',
+  //       }
+  // );
 
-  const subUnits = subUnitsResponse?.data || [];
+  // const subUnits = subUnitsResponse?.data || [];
 
   const handleUnitChange = (event: any) => {
     const newUnitId = event.target.value;
@@ -337,7 +337,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
               ))}
             </Select>
 
-            <Select
+            {/* <Select
               name="subunit_id"
               label="Sub Unit of Measurement"
               formik={formik}
@@ -349,7 +349,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
                   {subUnit.name} {subUnit.code && `(${subUnit.code})`}
                 </MenuItem>
               ))}
-            </Select>
+            </Select> */}
 
             <Input
               name="base_price"

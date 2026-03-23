@@ -1,4 +1,4 @@
-import { Box } from '@mui/material';
+import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateUnitOfMeasurement,
@@ -11,6 +11,7 @@ import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import Select from 'shared/Select';
 
 interface ManageUnitOfMeasurementProps {
   selectedUnit?: UnitOfMeasurement | null;
@@ -42,6 +43,8 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
       description: selectedUnit?.description || '',
       category: selectedUnit?.category || '',
       symbol: selectedUnit?.symbol || '',
+      sub_unit: selectedUnit?.sub_unit || '',
+      conversion_rate: selectedUnit?.conversion_rate || '',
       is_active: selectedUnit?.is_active || 'Y',
     },
     validationSchema: unitOfMeasurementValidationSchema,
@@ -53,6 +56,12 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
           description: values.description,
           category: values.category,
           symbol: values.symbol,
+          sub_unit: values.sub_unit
+            ? (values.sub_unit as 'case' | 'pcs')
+            : undefined,
+          conversion_rate: values.conversion_rate
+            ? Number(values.conversion_rate)
+            : undefined,
           is_active: values.is_active,
         };
 
@@ -82,15 +91,32 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <Input
-                name="name"
-                label="Unit Name"
-                placeholder="Enter unit name"
-                formik={formik}
-                required
-              />
-            </Box>
+            <Input
+              name="name"
+              label="Unit Name"
+              placeholder="Enter unit name"
+              formik={formik}
+              required
+            />
+            <Input
+              name="symbol"
+              label="Symbol"
+              placeholder="Enter symbol (e.g., kg, L, m)"
+              formik={formik}
+            />
+
+            <Select name="sub_unit" label="Sub Unit" formik={formik}>
+              <MenuItem value="case">Case</MenuItem>
+              <MenuItem value="pcs">PCs</MenuItem>
+            </Select>
+
+            <Input
+              name="conversion_rate"
+              label="Conversion Rate"
+              placeholder="Enter conversion rate"
+              type="number"
+              formik={formik}
+            />
 
             <Box className="md:!col-span-2">
               <Input
@@ -103,19 +129,12 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
               />
             </Box>
 
-            <Input
+            {/* <Input
               name="category"
               label="Category"
               placeholder="Enter category (e.g., Weight, Volume, Length)"
               formik={formik}
-            />
-
-            <Input
-              name="symbol"
-              label="Symbol"
-              placeholder="Enter symbol (e.g., kg, L, m)"
-              formik={formik}
-            />
+            /> */}
 
             <Box className="md:!col-span-2">
               <ActiveInactiveField name="is_active" formik={formik} required />

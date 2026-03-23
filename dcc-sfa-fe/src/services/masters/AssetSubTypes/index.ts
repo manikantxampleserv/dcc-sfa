@@ -19,6 +19,10 @@ interface AssetSubType {
   createdate?: string | null;
   updatedate?: string | null;
   updatedby?: number | null;
+  asset_type?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface ManageAssetSubTypePayload {

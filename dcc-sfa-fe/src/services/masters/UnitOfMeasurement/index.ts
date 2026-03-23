@@ -14,6 +14,8 @@ interface UnitOfMeasurement {
   description?: string | null;
   category?: string | null;
   symbol?: string | null;
+  sub_unit?: 'crate' | 'case' | 'pcs' | null;
+  conversion_rate?: number | null;
   is_active: string;
   createdate?: string | null;
   createdby: number;
@@ -28,6 +30,8 @@ interface ManageUnitOfMeasurementPayload {
   description?: string;
   category?: string;
   symbol?: string;
+  sub_unit?: 'case' | 'pcs';
+  conversion_rate?: number;
   is_active?: string;
 }
 
@@ -36,6 +40,8 @@ interface UpdateUnitOfMeasurementPayload {
   description?: string;
   category?: string;
   symbol?: string;
+  sub_unit?: 'case' | 'pcs';
+  conversion_rate?: number;
   is_active?: string;
 }
 

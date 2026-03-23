@@ -101,6 +101,7 @@ import ReturnRequestDetail from 'pages/transactions/ReturnRequests/ReturnRequest
 import SurveyAnswers from 'pages/transactions/VisitLogging';
 import VisitDetail from 'pages/transactions/VisitLogging/VisitDetail';
 import AlertsReminders from 'pages/workflows/AlertsReminders';
+import OutletCategoryReminders from 'pages/dashboard/OutletCategoryReminders';
 import ApprovalSetup from 'pages/workflows/ApprovalSetup';
 import ApprovalWorkflows from 'pages/workflows/ApprovalWorkflows';
 import RouteExceptions from 'pages/workflows/RouteExceptions';
@@ -139,6 +140,14 @@ const router = createBrowserRouter(
         {
           path: '/dashboard/executive',
           element: <ExecutiveDashboard />,
+        },
+        {
+          path: '/dashboard/grading-dashboard',
+          element: (
+            <PermissionGuard module="dashboard" action="read">
+              <OutletCategoryReminders />
+            </PermissionGuard>
+          ),
         },
 
         {

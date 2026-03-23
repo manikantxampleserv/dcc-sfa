@@ -220,8 +220,8 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               name="code"
               label="Outlet Code"
               placeholder="Enter outlet code"
-              helperText="Leave empty to auto-generate outlet code"
               formik={formik}
+              required
             />
 
             <DepotSelect

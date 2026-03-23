@@ -84,11 +84,55 @@ const ThemeContext = ({ children }: { children: React.ReactNode }) => {
       },
       MuiChip: {
         styleOverrides: {
+          root: {
+            borderRadius: '6px',
+            fontWeight: 500,
+            fontSize: '0.75rem',
+            height: 'auto',
+            padding: '2px 0',
+            '& .MuiChip-label': {
+              paddingLeft: '8px',
+              paddingRight: '8px',
+            },
+          },
           colorPrimary: {
-            backgroundColor: primaryColors[100],
-            color: primaryColors[800],
+            backgroundColor: primaryColors[50],
+            color: primaryColors[600],
+            border: `1px solid ${primaryColors[100]}`,
             '&:hover': {
-              backgroundColor: primaryColors[200],
+              backgroundColor: primaryColors[100],
+            },
+          },
+          colorSuccess: {
+            backgroundColor: '#f0fdf4',
+            color: '#16a34a',
+            border: '1px solid #dcfce7',
+            '&:hover': {
+              backgroundColor: '#dcfce7',
+            },
+          },
+          colorError: {
+            backgroundColor: '#fef2f2',
+            color: '#dc2626',
+            border: '1px solid #fee2e2',
+            '&:hover': {
+              backgroundColor: '#fee2e2',
+            },
+          },
+          colorWarning: {
+            backgroundColor: '#fffbeb',
+            color: '#d97706',
+            border: '1px solid #fef3c7',
+            '&:hover': {
+              backgroundColor: '#fef3c7',
+            },
+          },
+          colorInfo: {
+            backgroundColor: '#f0f9ff',
+            color: '#0284c7',
+            border: '1px solid #e0f2fe',
+            '&:hover': {
+              backgroundColor: '#e0f2fe',
             },
           },
         },
