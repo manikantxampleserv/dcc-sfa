@@ -476,7 +476,6 @@ export const customerController = {
 
       const allowedFields = [
         'name',
-        'depot_id',
         'type',
         'contact_person',
         'phone_number',
@@ -492,9 +491,6 @@ export const customerController = {
         'last_visit_date',
         'is_active',
         'log_inst',
-        'city_id',
-        'district_id',
-        'region_id',
       ];
 
       const results = {
@@ -555,24 +551,41 @@ export const customerController = {
               customerData.zone_id ||
               customerData.zones_id;
             const route_id = customerData.route_id;
+            let final_depot_id = depot_id;
+
+            if (!final_depot_id && route_id) {
+              const route = await prisma.routes.findUnique({
+                where: { id: route_id },
+                select: { depot_id: true },
+              });
+              final_depot_id = route?.depot_id;
+            }
             const salesperson_id = customerData.salesperson_id;
             const customer_type_id = customerData.customer_type_id;
             const customer_channel_id = customerData.customer_channel_id;
 
-            if (depot_id !== undefined && depot_id !== null) {
+            // if (depot_id !== undefined && depot_id !== null) {
+            //   const depotExists = await prisma.depots.findUnique({
+            //     where: { id: depot_id },
+            //     select: { id: true },
+            //   });
+            if (final_depot_id !== undefined && final_depot_id !== null) {
               const depotExists = await prisma.depots.findUnique({
-                where: { id: depot_id },
+                where: { id: final_depot_id },
                 select: { id: true },
               });
 
               if (!depotExists) {
                 results.errors.push({
                   customer: customerData,
-                  reason: `Depot with ID ${depot_id} does not exist`,
+                  reason: `Depot with ID ${final_depot_id} does not exist`,
                 });
                 continue;
               }
-            } else if (depot_id === undefined || depot_id === null) {
+            } else if (
+              final_depot_id === undefined ||
+              final_depot_id === null
+            ) {
               results.errors.push({
                 customer: customerData,
                 reason: 'Depot selection is required',
@@ -616,7 +629,6 @@ export const customerController = {
               }
             }
 
-            // Validate region_id if provided
             if (
               customerData.region_id !== undefined &&
               customerData.region_id !== null
@@ -664,6 +676,9 @@ export const customerController = {
             }
 
             let whereConditions: any = {};
+            // if (final_depot_id && !cleanData.depot_id) {
+            //   cleanData.depot_id = final_depot_id;
+            // }
 
             if (cleanData.email && cleanData.phone_number) {
               whereConditions.OR = [
@@ -773,6 +788,74 @@ export const customerController = {
                 }
               }
 
+              if (customer_channel_id !== undefined) {
+                if (customer_channel_id === null) {
+                  updateData.customer_channel_customer = { disconnect: true };
+                } else {
+                  const channelExists =
+                    await prisma.customer_channel.findUnique({
+                      where: { id: customer_channel_id },
+                    });
+                  if (channelExists) {
+                    updateData.customer_channel_customer = {
+                      connect: { id: customer_channel_id },
+                    };
+                  }
+                }
+              }
+
+              if (final_depot_id !== undefined && final_depot_id !== null) {
+                const depotExists = await prisma.depots.findUnique({
+                  where: { id: final_depot_id },
+                });
+                if (depotExists) {
+                  updateData.customer_depot = {
+                    connect: { id: final_depot_id },
+                  };
+                }
+              }
+              if (
+                customerData.city_id !== undefined &&
+                customerData.city_id !== null
+              ) {
+                const cityExists = await prisma.cities.findUnique({
+                  where: { id: customerData.city_id },
+                });
+                if (cityExists) {
+                  updateData.customers_city = {
+                    connect: { id: customerData.city_id },
+                  };
+                }
+              }
+
+              if (
+                customerData.district_id !== undefined &&
+                customerData.district_id !== null
+              ) {
+                const districtExists = await prisma.districts.findUnique({
+                  where: { id: customerData.district_id },
+                });
+                if (districtExists) {
+                  updateData.customers_districts = {
+                    connect: { id: customerData.district_id },
+                  };
+                }
+              }
+
+              // ADD THIS: Region relationship handling
+              if (
+                customerData.region_id !== undefined &&
+                customerData.region_id !== null
+              ) {
+                const regionExists = await prisma.regions.findUnique({
+                  where: { id: customerData.region_id },
+                });
+                if (regionExists) {
+                  updateData.customers_regions = {
+                    connect: { id: customerData.region_id },
+                  };
+                }
+              }
               await prisma.customers.update({
                 where: { id: existingCustomer.id },
                 data: updateData,
@@ -790,7 +873,7 @@ export const customerController = {
               }
             } else {
               if (!cleanData.code) {
-                let uniqueCode = await generateCustomerCode(depot_id);
+                let uniqueCode = await generateCustomerCode(final_depot_id);
                 let attempts = 0;
                 const maxAttempts = 10;
 
@@ -828,7 +911,78 @@ export const customerController = {
                   createData.customer_routes = { connect: { id: route_id } };
                 }
               }
+              if (route_id !== undefined && route_id !== null) {
+                const routeExists = await prisma.routes.findUnique({
+                  where: { id: route_id },
+                });
+                if (routeExists) {
+                  createData.customer_routes = { connect: { id: route_id } };
+                }
+              }
 
+              if (final_depot_id !== undefined && final_depot_id !== null) {
+                const depotExists = await prisma.depots.findUnique({
+                  where: { id: final_depot_id },
+                });
+                if (depotExists) {
+                  createData.customer_depot = {
+                    connect: { id: final_depot_id },
+                  };
+                }
+              }
+              if (final_depot_id !== undefined && final_depot_id !== null) {
+                const depotExists = await prisma.depots.findUnique({
+                  where: { id: final_depot_id },
+                });
+                if (depotExists) {
+                  createData.customer_depot = {
+                    connect: { id: final_depot_id },
+                  };
+                }
+              }
+
+              if (
+                customerData.city_id !== undefined &&
+                customerData.city_id !== null
+              ) {
+                const cityExists = await prisma.cities.findUnique({
+                  where: { id: customerData.city_id },
+                });
+                if (cityExists) {
+                  createData.customers_city = {
+                    connect: { id: customerData.city_id },
+                  };
+                }
+              }
+
+              // ADD THIS: District relationship handling
+              if (
+                customerData.district_id !== undefined &&
+                customerData.district_id !== null
+              ) {
+                const districtExists = await prisma.districts.findUnique({
+                  where: { id: customerData.district_id },
+                });
+                if (districtExists) {
+                  createData.customers_districts = {
+                    connect: { id: customerData.district_id },
+                  };
+                }
+              }
+
+              if (
+                customerData.region_id !== undefined &&
+                customerData.region_id !== null
+              ) {
+                const regionExists = await prisma.regions.findUnique({
+                  where: { id: customerData.region_id },
+                });
+                if (regionExists) {
+                  createData.customers_regions = {
+                    connect: { id: customerData.region_id },
+                  };
+                }
+              }
               if (salesperson_id !== undefined && salesperson_id !== null) {
                 const userExists = await prisma.users.findUnique({
                   where: { id: salesperson_id },
