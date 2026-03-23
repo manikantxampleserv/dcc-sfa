@@ -151,6 +151,7 @@
 //   );
 //   logger.info('Customer Category Assignment cronjob scheduled');
 // };
+
 import cron from 'node-cron';
 import prisma from '../configs/prisma.client';
 import logger from '../configs/logger';
@@ -171,6 +172,24 @@ function getChangeType(
   if (newLevel > currentLevel) return 'upgrade';
   if (newLevel < currentLevel) return 'downgrade';
   return 'no_change';
+}
+async function getLowestCategory() {
+  const lowestCategory = await prisma.customer_category.findFirst({
+    where: {
+      is_active: 'Y',
+    },
+    orderBy: {
+      level: 'asc',
+    },
+    select: {
+      id: true,
+      category_name: true,
+      category_code: true,
+      level: true,
+    },
+  });
+
+  return lowestCategory;
 }
 
 export const scheduleCustomerCategoryAssignment = () => {
@@ -232,6 +251,137 @@ export const scheduleCustomerCategoryAssignment = () => {
 
         console.log(` Found ${validCategories.length} category levels`);
 
+        // const lowestCategory = await getLowestCategory();
+
+        // if (!lowestCategory) {
+        //   console.warn('  No active customer categories found');
+        //   return;
+        // }
+
+        // console.log(
+        //   ` Using lowest category: ${lowestCategory.category_name} (Level: ${lowestCategory.level})`
+        // );
+
+        // const customers = await prisma.customers.findMany({
+        //   where: {
+        //     is_active: 'Y',
+        //   },
+        //   select: {
+        //     id: true,
+        //     name: true,
+        //     customer_category_id: true,
+        //   },
+        // });
+
+        // console.log(` Processing ${customers.length} customers...\n`);
+
+        // console.log(` Processing ${customers.length} customers...\n`);
+
+        // for (const customer of customers) {
+        //   results.totalProcessed++;
+
+        //   try {
+        //     const orderSales = await prisma.orders.aggregate({
+        //       where: {
+        //         parent_id: customer.id,
+        //         status: {
+        //           in: ['approved', 'pending', 'confirmed'],
+        //         },
+        //         is_active: 'Y',
+        //       },
+        //       _sum: {
+        //         total_amount: true,
+        //       },
+        //     });
+
+        //     const totalSales = Number(orderSales._sum?.total_amount || 0);
+
+        //     let assignedCategory = null;
+        //     for (let i = validCategories.length - 1; i >= 0; i--) {
+        //       if (totalSales >= validCategories[i].thresholdValue) {
+        //         assignedCategory = validCategories[i];
+        //         break;
+        //       }
+        //     }
+
+        //     if (!assignedCategory && validCategories.length > 0) {
+        //       assignedCategory = validCategories[0];
+        //     }
+
+        //     const newCategoryId = assignedCategory?.id || null;
+        //     const currentCategoryId = customer.customer_category_id;
+
+        //     if (newCategoryId !== currentCategoryId) {
+        //       const changeType = getChangeType(
+        //         currentCategoryId,
+        //         newCategoryId,
+        //         validCategories
+        //       );
+
+        //       const existingRequest =
+        //         await prisma.customer_category_grading.findFirst({
+        //           where: {
+        //             customer_id: customer.id,
+        //             action_taken: 'N',
+        //           },
+        //         });
+
+        //       if (existingRequest) {
+        //         await prisma.customer_category_grading.update({
+        //           where: { id: existingRequest.id },
+        //           data: {
+        //             current_category_id: currentCategoryId,
+        //             upcoming_category_id: newCategoryId,
+        //             change_type: changeType,
+        //             status: 'P',
+        //             updatedate: new Date(),
+        //             updatedby: 1,
+        //           },
+        //         });
+
+        //         results.totalUpdated++;
+        //         console.log(
+        //           `   ${customer.name}  Updated existing ${changeType} request (Sales: ₹${totalSales})`
+        //         );
+        //       } else {
+        //         await prisma.customer_category_grading.create({
+        //           data: {
+        //             customer_id: customer.id,
+        //             current_category_id: currentCategoryId,
+        //             upcoming_category_id: newCategoryId,
+        //             status: 'P',
+        //             change_type: changeType,
+        //             action_taken: 'N',
+        //             createdby: 1,
+        //           },
+        //         });
+
+        //         results.totalUpdated++;
+        //         console.log(
+        //           `   ${customer.name} → ${changeType} request created (Sales: ₹${totalSales})`
+        //         );
+        //       }
+        //     } else {
+        //       results.totalUnchanged++;
+        //     }
+        //   } catch (error: any) {
+        //     results.totalFailed++;
+        //     console.error(` ${customer.name}: ${error.message}`);
+        //   }
+        // }
+
+        // Get lowest category once
+        const lowestCategory = await getLowestCategory();
+
+        if (!lowestCategory) {
+          console.warn('  No active customer categories found');
+          return;
+        }
+
+        console.log(
+          ` Using lowest category: ${lowestCategory.category_name} (Level: ${lowestCategory.level})`
+        );
+
         const customers = await prisma.customers.findMany({
           where: {
             is_active: 'Y',
@@ -265,15 +415,25 @@ export const scheduleCustomerCategoryAssignment = () => {
             const totalSales = Number(orderSales._sum?.total_amount || 0);
 
             let assignedCategory = null;
-            for (let i = validCategories.length - 1; i >= 0; i--) {
-              if (totalSales >= validCategories[i].thresholdValue) {
-                assignedCategory = validCategories[i];
-                break;
-              }
-            }
 
-            if (!assignedCategory && validCategories.length > 0) {
-              assignedCategory = validCategories[0];
+            // If customer has no category, assign lowest category
+            if (!customer.customer_category_id) {
+              assignedCategory = lowestCategory;
+              console.log(
+                `   ${customer.name} → Auto-assigned ${lowestCategory.category_name} (No previous category)`
+              );
+            } else {
+              // Existing logic for customers with categories
+              for (let i = validCategories.length - 1; i >= 0; i--) {
+                if (totalSales >= validCategories[i].thresholdValue) {
+                  assignedCategory = validCategories[i];
+                  break;
+                }
+              }
+
+              if (!assignedCategory && validCategories.length > 0) {
+                assignedCategory = validCategories[0];
+              }
             }
 
             const newCategoryId = assignedCategory?.id || null;
@@ -325,8 +485,11 @@ export const scheduleCustomerCategoryAssignment = () => {
                 });
 
                 results.totalUpdated++;
+                const action = !currentCategoryId
+                  ? 'auto-assigned'
+                  : `${changeType} request created`;
                 console.log(
-                  `   ${customer.name} → ${changeType} request created (Sales: ₹${totalSales})`
+                  `   ${customer.name} → ${action} (Sales: ₹${totalSales})`
                 );
               }
             } else {
@@ -337,7 +500,6 @@ export const scheduleCustomerCategoryAssignment = () => {
             console.error(` ${customer.name}: ${error.message}`);
           }
         }
-
         const endTime = new Date();
         const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
@@ -360,3 +522,76 @@ export const scheduleCustomerCategoryAssignment = () => {
   );
   logger.info('Customer Category Assignment cronjob scheduled');
 };
+
+export async function assignLowestCategoryToUncategorizedCustomers() {
+  try {
+    console.log(
+      'Starting one-time assignment of lowest category to uncategorized customers...'
+    );
+
+    const lowestCategory = await getLowestCategory();
+
+    if (!lowestCategory) {
+      console.error('No active customer categories found');
+      return;
+    }
+
+    const uncategorizedCustomers = await prisma.customers.findMany({
+      where: {
+        is_active: 'Y',
+        customer_category_id: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        customer_category_id: true,
+      },
+    });
+
+    console.log(
+      `Found ${uncategorizedCustomers.length} uncategorized customers`
+    );
+
+    let updated = 0;
+    let failed = 0;
+
+    for (const customer of uncategorizedCustomers) {
+      try {
+        await prisma.customers.update({
+          where: { id: customer.id },
+          data: {
+            customer_category_id: lowestCategory.id,
+            updatedate: new Date(),
+            updatedby: 1,
+          },
+        });
+
+        await prisma.customer_category_grading.create({
+          data: {
+            customer_id: customer.id,
+            current_category_id: null,
+            upcoming_category_id: lowestCategory.id,
+            change_type: 'auto_assignment',
+            status: 'C',
+            action_taken: 'A',
+            approver_id: 1,
+            approved_date: new Date(),
+            createdby: 1,
+          },
+        });
+
+        updated++;
+        console.log(`✓ ${customer.name} → ${lowestCategory.category_name}`);
+      } catch (error: any) {
+        failed++;
+        console.error(`✗ ${customer.name}: ${error.message}`);
+      }
+    }
+
+    console.log(`Assignment completed: ${updated} updated, ${failed} failed`);
+    return { updated, failed };
+  } catch (error: any) {
+    console.error('One-time assignment failed:', error.message);
+    throw error;
+  }
+}

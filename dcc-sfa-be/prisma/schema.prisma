@@ -2451,6 +2451,8 @@ model customer_category {
   customer_group_customer_category_customer_category customer_group_customer_category[]
   customers_customer_category                        customers[]
   promotion_customer_categorys                       promotion_customer_category[]
+  customer_category_grading_current_category         customer_category_grading[]        @relation("CurrentCategoryGrading")
+  customer_category_grading_upcoming_category        customer_category_grading[]        @relation("UpcomingCategoryGrading")
 }
 
 model customer_category_condition {
@@ -2953,20 +2955,22 @@ model alerts {
 }
 
 model customer_category_grading {
-  id                         Int       @id @default(autoincrement())
-  customer_id                Int
-  current_category_id        Int?
-  upcoming_category_id       Int?
-  change_type                String    @db.VarChar(20)
-  action_taken               String    @default("N") @db.VarChar(20)
-  approver_id                Int?
-  approved_date              DateTime?
-  status                     String?   @default("P") @db.VarChar(20)
-  createdate                 DateTime  @default(now())
-  createdby                  Int
-  updatedate                 DateTime?
-  updatedby                  Int?
-  log_inst                   Int?
-  category_grading_customers customers @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  approver_users             users?    @relation(fields: [approver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                                          Int                @id @default(autoincrement())
+  customer_id                                 Int
+  current_category_id                         Int?
+  upcoming_category_id                        Int?
+  change_type                                 String             @db.VarChar(20)
+  action_taken                                String             @default("N") @db.VarChar(20)
+  approver_id                                 Int?
+  approved_date                               DateTime?
+  status                                      String?            @default("P") @db.VarChar(20)
+  createdate                                  DateTime           @default(now())
+  createdby                                   Int
+  updatedate                                  DateTime?
+  updatedby                                   Int?
+  log_inst                                    Int?
+  category_grading_customers                  customers          @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  approver_users                              users?             @relation(fields: [approver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  customer_category_grading_current_category  customer_category? @relation("CurrentCategoryGrading", fields: [current_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer_category_grading_upcoming_category customer_category? @relation("UpcomingCategoryGrading", fields: [upcoming_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }

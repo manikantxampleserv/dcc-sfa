@@ -391,14 +391,6 @@ export class CustomersImportExportService extends ImportExportService<any> {
       transform: value => (value ? parseInt(value) : null),
       description: 'ID of the assigned route (optional)',
     },
-    // {
-    //   key: 'salesperson_id',
-    //   header: 'Salesperson ID',
-    //   width: 15,
-    //   type: 'number',
-    //   transform: value => (value ? parseInt(value) : null),
-    //   description: 'ID of the assigned salesperson/user (optional)',
-    // },
     {
       key: 'nfc_tag_code',
       header: 'NFC Tag Code',
@@ -711,12 +703,6 @@ export class CustomersImportExportService extends ImportExportService<any> {
           }
 
           const preparedData = await this.prepareDataForImport(row, userId);
-
-          // if (!preparedData.code) {
-          //   const generatedCode = await this.generateCustomerCode(row.name, tx);
-          //   preparedData.code = generatedCode;
-          // }
-          // console.log('Prepeared Code ', preparedData.code);
           const created = await tx.customers.create({
             data: preparedData,
           });
