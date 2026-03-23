@@ -14,6 +14,11 @@ router.get(
   authenticateToken,
   customerCategoryGradingController.getGradingRequestById
 );
+router.get(
+  '/customerCategoryGrading',
+  authenticateToken,
+  customerCategoryGradingController.getAllGradingRequests
+);
 router.put(
   '/customerCategoryGrading/:id/process',
   authenticateToken,

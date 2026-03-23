@@ -5,32 +5,38 @@ import { paginate } from '../../utils/paginate';
 export const customerCategoryGradingController = {
   async getPendingGradingRequests(req: Request, res: Response) {
     try {
-      const { page = 1, limit = 10, change_type, search } = req.query;
+      const { page, limit, change_type, search, name } = req.query;
+
       const whereClause: any = {
         status: 'P',
         ...(change_type && { change_type: change_type as string }),
       };
 
-      if (search) {
+      const searchTerm = (search || name) as string;
+
+      if (searchTerm) {
         whereClause.OR = [
           {
             category_grading_customers: {
-              name: { contains: search as string },
+              name: { contains: searchTerm },
             },
           },
           {
             category_grading_customers: {
-              code: { contains: search as string },
+              code: { contains: searchTerm },
             },
           },
         ];
       }
 
+      const pageNumber = parseInt(page as string) || 1;
+      const limitNumber = parseInt(limit as string) || 10;
+
       const { data, pagination } = await paginate({
         model: prisma.customer_category_grading,
         filters: whereClause,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
+        page: pageNumber,
+        limit: limitNumber,
         orderBy: { createdate: 'desc' },
         include: {
           category_grading_customers: {
@@ -186,6 +192,86 @@ export const customerCategoryGradingController = {
       return res.status(200).json({
         message: `Bulk ${action} completed`,
         results,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  },
+
+  async getAllGradingRequests(req: Request, res: Response) {
+    try {
+      const {
+        page,
+        limit,
+        status,
+        change_type,
+        search,
+        name,
+        start_date,
+        end_date,
+      } = req.query;
+
+      const whereClause: any = {
+        ...(status && { status: status as string }),
+        ...(change_type && { change_type: change_type as string }),
+      };
+
+      const searchTerm = (search || name) as string;
+
+      if (searchTerm) {
+        whereClause.OR = [
+          {
+            category_grading_customers: {
+              name: { contains: searchTerm },
+            },
+          },
+          {
+            category_grading_customers: {
+              code: { contains: searchTerm },
+            },
+          },
+        ];
+      }
+
+      if (start_date || end_date) {
+        whereClause.createdate = {};
+        if (start_date) {
+          whereClause.createdate.gte = new Date(start_date as string);
+        }
+        if (end_date) {
+          whereClause.createdate.lte = new Date(end_date as string);
+        }
+      }
+
+      const pageNumber = parseInt(page as string) || 1;
+      const limitNumber = parseInt(limit as string) || 10;
+
+      const { data, pagination } = await paginate({
+        model: prisma.customer_category_grading,
+        filters: whereClause,
+        page: pageNumber,
+        limit: limitNumber,
+        orderBy: { createdate: 'desc' },
+        include: {
+          category_grading_customers: {
+            select: { id: true, name: true, code: true },
+          },
+          approver_users: {
+            select: { id: true, name: true, email: true },
+          },
+          customer_category_grading_current_category: {
+            select: { id: true, category_name: true },
+          },
+          customer_category_grading_upcoming_category: {
+            select: { id: true, category_name: true },
+          },
+        },
+      });
+
+      return res.status(200).json({
+        message: 'All grading requests retrieved',
+        data,
+        pagination,
       });
     } catch (error: any) {
       return res.status(500).json({ message: error.message });
