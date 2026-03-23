@@ -144,6 +144,7 @@ export class CustomersImportExportService extends ImportExportService<any> {
       key: 'code',
       header: 'Code',
       width: 15,
+      required: true,
       type: 'string',
       validation: value => {
         if (!value) return true;
@@ -225,28 +226,7 @@ export class CustomersImportExportService extends ImportExportService<any> {
       description:
         'Type of customer: Retailer, Wholesaler, Distributor, Direct, Online, Corporate, or Individual (optional)',
     },
-    // {
-    //   key: 'internal_code_one',
-    //   header: 'Internal Code One',
-    //   width: 20,
-    //   type: 'string',
-    //   validation: value =>
-    //     !value ||
-    //     value.length <= 50 ||
-    //     'Internal code one must be less than 50 characters',
-    //   description: 'First internal code (optional, max 50 chars)',
-    // },
-    // {
-    //   key: 'internal_code_two',
-    //   header: 'Internal Code Two',
-    //   width: 20,
-    //   type: 'string',
-    //   validation: value =>
-    //     !value ||
-    //     value.length <= 50 ||
-    //     'Internal code two must be less than 50 characters',
-    //   description: 'Second internal code (optional, max 50 chars)',
-    // },
+
     {
       key: 'contact_person',
       header: 'Contact Person',
@@ -652,7 +632,7 @@ export class CustomersImportExportService extends ImportExportService<any> {
     const preparedData: any = {
       name: data.name,
       short_name: data.short_name || null,
-      code: data.code || null,
+      code: data.code,
       zones_id: data.zones_id || null,
       customer_type_id: data.customer_type_id || null,
       customer_channel_id: data.customer_channel_id || null,
@@ -732,11 +712,11 @@ export class CustomersImportExportService extends ImportExportService<any> {
 
           const preparedData = await this.prepareDataForImport(row, userId);
 
-          if (!preparedData.code) {
-            const generatedCode = await this.generateCustomerCode(row.name, tx);
-            preparedData.code = generatedCode;
-          }
-          console.log('Prepeared Code ', preparedData.code);
+          // if (!preparedData.code) {
+          //   const generatedCode = await this.generateCustomerCode(row.name, tx);
+          //   preparedData.code = generatedCode;
+          // }
+          // console.log('Prepeared Code ', preparedData.code);
           const created = await tx.customers.create({
             data: preparedData,
           });
