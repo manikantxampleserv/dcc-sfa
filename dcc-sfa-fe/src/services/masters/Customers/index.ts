@@ -28,6 +28,9 @@ interface Customer {
   longitude?: string | null;
   credit_limit?: string | null;
   outstanding_amount: string;
+  region_id?: number | null;
+  district_id?: number | null;
+  city_id?: number | null;
   route_id?: number | null;
   salesperson_id?: number | null;
   nfc_tag_code?: string | null;
@@ -38,6 +41,21 @@ interface Customer {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  region?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  district?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  city_detail?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
   customer_zones?: {
     id: number;
     name: string;
@@ -95,6 +113,9 @@ interface ManageCustomerPayload {
   longitude?: string;
   credit_limit?: string;
   outstanding_amount?: string;
+  region_id?: number;
+  district_id?: number;
+  city_id?: number;
   route_id?: number;
   salesperson_id?: number;
   nfc_tag_code?: string;
@@ -105,32 +126,8 @@ interface ManageCustomerPayload {
 /**
  * Payload for updating an existing customer
  */
-interface UpdateCustomerPayload {
-  name?: string;
-  short_name?: string;
-  depot_id?: number;
-  zones_id?: number;
-  customer_type_id?: number;
-  customer_channel_id?: number;
-  type?: string;
-  internal_code_one?: string;
-  internal_code_two?: string;
-  contact_person?: string;
-  phone_number?: string;
-  email?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipcode?: string;
-  latitude?: string;
-  longitude?: string;
-  credit_limit?: string;
-  outstanding_amount?: string;
-  route_id?: number;
-  salesperson_id?: number;
-  nfc_tag_code?: string;
-  last_visit_date?: string;
-  is_active?: string;
+interface UpdateCustomerPayload extends Partial<ManageCustomerPayload> {
+  id: number;
 }
 
 /**

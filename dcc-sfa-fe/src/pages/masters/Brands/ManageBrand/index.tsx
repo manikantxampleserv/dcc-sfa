@@ -7,6 +7,7 @@ import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
+import YesNoField from 'shared/YesNoField';
 
 interface ManageBrandProps {
   selectedBrand?: Brand | null;
@@ -37,6 +38,7 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
       name: selectedBrand?.name || '',
       description: selectedBrand?.description || '',
       is_active: selectedBrand?.is_active || 'Y',
+      is_asset_brand: selectedBrand?.is_asset_brand || 'N',
     },
     validationSchema: brandValidationSchema,
     enableReinitialize: true,
@@ -46,6 +48,7 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
           name: values.name,
           description: values.description,
           is_active: values.is_active,
+          is_asset_brand: values.is_asset_brand,
         };
 
         if (isEdit && selectedBrand) {
@@ -84,6 +87,14 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
               />
             </Box>
 
+            <Box className="grid grid-cols-2 col-span-2">
+              <ActiveInactiveField name="is_active" formik={formik} />
+              <YesNoField
+                name="is_asset_brand"
+                label="Asset Brand"
+                formik={formik}
+              />
+            </Box>
             <Box className="md:!col-span-2">
               <Input
                 name="description"
@@ -93,10 +104,6 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
                 multiline
                 rows={3}
               />
-            </Box>
-
-            <Box className="md:!col-span-2">
-              <ActiveInactiveField name="is_active" formik={formik} required />
             </Box>
           </Box>
 

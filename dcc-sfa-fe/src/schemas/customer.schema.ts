@@ -11,6 +11,11 @@ export const customerValidationSchema = yup.object().shape({
     .required('Depot is required')
     .matches(/^\d+$/, 'Depot must be a valid number'),
   zones_id: yup.string().nullable(),
+  customer_channel_id: yup.string().nullable(),
+  customer_category_id: yup.string().nullable(),
+  region_id: yup.string().nullable(),
+  district_id: yup.string().nullable(),
+  city_id: yup.string().nullable(),
   type: yup.string().nullable(),
   contact_person: yup
     .string()

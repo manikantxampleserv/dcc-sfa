@@ -239,21 +239,16 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'row.city',
+      id: 'city_detail.name',
       label: 'Location',
       render: (_value, row) => (
         <Box>
           <Box className="flex items-center text-gray-900">
             <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-            {row.city && row.state && row.zipcode
-              ? `${row.city}${row.state ? `, ${row.state}` : ''}${row.zipcode ? `, ${row.zipcode}` : ''}`
-              : row.city
-                ? row.city
-                : row.state
-                  ? row.state
-                  : row.zipcode
-                    ? row.zipcode
-                    : 'N/A'}
+            {row.city_detail?.name ||
+              row.district?.name ||
+              row.region?.name ||
+              'N/A'}
           </Box>
         </Box>
       ),
@@ -372,14 +367,20 @@ const OutletsManagement: React.FC = () => {
         />
         <StatsCard
           title="Total Credit Limit"
-          value={formatCurrency(totalCreditLimit.toString())}
+          value={formatCurrency(totalCreditLimit.toString()).replaceAll(
+            '.00',
+            ''
+          )}
           icon={<CreditCard className="w-6 h-6" />}
           color="purple"
           isLoading={isFetching}
         />
         <StatsCard
           title="Outstanding Amount"
-          value={formatCurrency(totalOutstanding.toString())}
+          value={formatCurrency(totalOutstanding.toString()).replaceAll(
+            '.00',
+            ''
+          )}
           icon={<AlertCircle className="w-6 h-6" />}
           color="red"
           isLoading={isFetching}
@@ -413,7 +414,6 @@ const OutletsManagement: React.FC = () => {
                     <Select
                       value={statusFilter}
                       onChange={e => setStatusFilter(e.target.value)}
-                      className="!min-w-32"
                       size="small"
                       disableClearable
                     >

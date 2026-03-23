@@ -10,7 +10,6 @@ import {
   Delete,
   Computer,
   Language,
-  Route as RouteIcon,
 } from '@mui/icons-material';
 import { Alert, Avatar, Chip, Skeleton, Typography, Box } from '@mui/material';
 import classNames from 'classnames';
@@ -535,47 +534,6 @@ const UserDetail: React.FC = () => {
             </div>
           </div>
         </InfoCard>
-
-        {user.routes && user.routes.length > 0 && (
-          <InfoCard title="Assigned Routes" icon={RouteIcon}>
-            <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-              {user.routes.map((route: any) => (
-                <Box
-                  key={route.id}
-                  className="!border !border-gray-200 !rounded-lg !p-4 !bg-gray-50 hover:!bg-white hover:!shadow-sm !transition-all"
-                >
-                  <div className="!flex !justify-between !items-start !mb-2">
-                    <Typography
-                      variant="body2"
-                      className="!font-bold !text-gray-900"
-                    >
-                      {route.name}
-                    </Typography>
-                    <Chip
-                      label={route.code}
-                      size="small"
-                      className="!text-[10px] !h-5"
-                    />
-                  </div>
-                  <div className="!space-y-1">
-                    <Typography
-                      variant="caption"
-                      className="!text-gray-500 !block"
-                    >
-                      Role: {route.role}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      className="!text-gray-500 !block"
-                    >
-                      Assigned: {formatDate(route.assigned_at)}
-                    </Typography>
-                  </div>
-                </Box>
-              ))}
-            </div>
-          </InfoCard>
-        )}
 
         {user.recent_activities && (
           <InfoCard title="Recent Audit Logs" icon={History}>

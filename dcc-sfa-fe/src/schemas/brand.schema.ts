@@ -13,4 +13,7 @@ export const brandValidationSchema = Yup.object({
   is_active: Yup.string()
     .required('Status is required')
     .oneOf(['Y', 'N'], 'Status must be either Active or Inactive'),
+  is_asset_brand: Yup.string()
+    .required('Asset Brand status is required')
+    .oneOf(['Y', 'N'], 'Asset Brand must be either Yes or No'),
 });

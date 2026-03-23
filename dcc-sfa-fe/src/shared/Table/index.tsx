@@ -21,7 +21,6 @@ import { visuallyHidden } from '@mui/utils';
 import classNames from 'classnames';
 import { ArrowUpDown, Lock } from 'lucide-react';
 import React, { useMemo, useState, useEffect, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
 import {
   useUserPreferences,
   useSaveUserPreferences,
@@ -373,7 +372,6 @@ export default function Table<T extends Record<string, any>>(
   } = props;
 
   const [order, setOrder] = useState<Order>(initialOrder);
-  const location = useLocation();
   const [orderBy, setOrderBy] = useState<keyof T | ''>(() => {
     if (initialOrderBy && initialOrder !== 'none') {
       const column = columns.find(col => col.id === initialOrderBy);
@@ -393,12 +391,9 @@ export default function Table<T extends Record<string, any>>(
     initialColumnVisibility[String(column.id)] = column.isVisible !== false;
   });
 
-  // Generate unique table ID based on provided tableId, current route, or column hash
+  // Generate unique table ID automatically
   const autoTableId = useMemo(() => generateTableId(columns), [columns]);
-  const currentRoute = location.pathname.startsWith('/')
-    ? location.pathname.substring(1)
-    : location.pathname;
-  const activeTableId = tableId || currentRoute || autoTableId;
+  const activeTableId = tableId || autoTableId;
 
   const { data: preferencesResponse } = useUserPreferences();
   const savePreferences = useSaveUserPreferences();

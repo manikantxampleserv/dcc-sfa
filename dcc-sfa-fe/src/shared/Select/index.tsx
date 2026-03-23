@@ -34,6 +34,7 @@ interface CustomSelectProps
   placeholder?: string;
   name?: string;
   label?: string;
+  loading?: boolean;
   children?: React.ReactNode;
   value?: any;
   required?: boolean;
@@ -46,6 +47,7 @@ const Select: React.FC<CustomSelectProps> = ({
   size = 'small',
   setValue,
   label,
+  loading,
   value,
   required,
   children,
@@ -178,6 +180,7 @@ const Select: React.FC<CustomSelectProps> = ({
   return (
     <FormControl fullWidth={fullWidth} error={!!error}>
       <Autocomplete
+        loading={loading}
         options={options}
         value={selectedOption}
         onChange={handleChange}

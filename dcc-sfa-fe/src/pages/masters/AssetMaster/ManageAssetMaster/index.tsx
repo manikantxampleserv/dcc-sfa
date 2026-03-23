@@ -8,6 +8,7 @@ import {
 } from 'hooks/useAssetMaster';
 import { useAssetTypes } from 'hooks/useAssetTypes';
 import { useAssetSubTypes } from 'hooks/useAssetSubTypes';
+import { useBrands } from 'hooks/useBrands';
 import React, { useEffect, useRef, useState } from 'react';
 import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -42,11 +43,19 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
   });
   const assetTypes = assetTypesResponse?.data || [];
 
+  const { data: brandsResponse } = useBrands({
+    page: 1,
+    limit: 1000,
+    status: 'active',
+  });
+  const brands = brandsResponse?.data || [];
+
   const formik = useFormik({
     initialValues: {
       name: selectedAsset?.name || '',
       asset_type_id: selectedAsset?.asset_type_id || 0,
       asset_sub_type_id: selectedAsset?.asset_sub_type_id || 0,
+      brand_id: selectedAsset?.brand_id || 0,
       serial_number: selectedAsset?.serial_number || '',
       barcode: selectedAsset?.barcode || '',
       nfc_tag_code: selectedAsset?.nfc_tag_code || '',
@@ -71,6 +80,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
           asset_sub_type_id: values.asset_sub_type_id
             ? Number(values.asset_sub_type_id)
             : null,
+          brand_id: values.brand_id ? Number(values.brand_id) : null,
           purchase_date: values.purchase_date || null,
           warranty_expiry: values.warranty_expiry || null,
           current_status: values.current_status || null,
@@ -236,6 +246,14 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               {assetSubTypes.map(subType => (
                 <MenuItem key={subType.id} value={subType.id}>
                   {subType.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select name="brand_id" label="Brand" formik={formik}>
+              {brands.map((brand: any) => (
+                <MenuItem key={brand.id} value={brand.id}>
+                  {brand.name}
                 </MenuItem>
               ))}
             </Select>

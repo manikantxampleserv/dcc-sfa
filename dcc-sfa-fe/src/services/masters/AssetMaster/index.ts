@@ -1,5 +1,6 @@
 import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from 'types/api.types';
+import type { Brand } from '../Brands';
 
 export interface AssetSubType {
   id: number;
@@ -19,6 +20,7 @@ export interface AssetMaster {
   name: string;
   asset_type_id: number;
   asset_sub_type_id?: number | null;
+  brand_id?: number | null;
   serial_number: string;
   barcode?: string | null;
   nfc_tag_code?: string | null;
@@ -39,6 +41,7 @@ export interface AssetMaster {
   asset_master_warranty_claims?: AssetWarrantyClaim[];
   asset_master_asset_types?: AssetType;
   asset_master_asset_sub_types?: AssetSubType;
+  asset_master_brands?: Brand;
 }
 
 export interface AssetImage {
@@ -123,6 +126,7 @@ export interface CreateAssetMasterPayload {
   name: string;
   asset_type_id: number;
   asset_sub_type_id?: number | null;
+  brand_id?: number | null;
   serial_number: string;
   barcode?: string | null;
   nfc_tag_code?: string | null;
@@ -138,6 +142,7 @@ export interface UpdateAssetMasterPayload {
   name?: string;
   asset_type_id?: number;
   asset_sub_type_id?: number | null;
+  brand_id?: number | null;
   serial_number?: string;
   barcode?: string | null;
   nfc_tag_code?: string | null;

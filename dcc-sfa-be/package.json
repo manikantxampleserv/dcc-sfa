@@ -13,13 +13,13 @@
     "start": "cross-env NODE_ENV=development node dist/index.js",
     "start:staging": "cross-env NODE_ENV=development node dist-staging/index.js",
     "start:production": "cross-env NODE_ENV=production node dist-production/index.js",
-    "dev": "cross-env NODE_ENV=development nodemon --exec \"node --no-deprecation -r ts-node/register\" src/index.ts",
+    "dev": "cross-env NODE_ENV=development nodemon --exec ts-node src/index.ts",
     "prisma:generate": "npx prisma generate",
     "seed:clean": "ts-node src/utils/seeders/index.ts clear",
     "seed:all": "ts-node src/utils/seeders/index.ts seed",
     "seed": "ts-node src/utils/seeders/index.ts",
-    "seed:permissions": "ts-node src/utils/seeders/index.ts seed permissions",
-    "lint": "echo \"No linting configured for backend yet\""
+    "lint": "echo \"No linting configured for backend yet\"",
+    "check:env": "node -e \"console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET'); console.log('NODE_ENV:', process.env.NODE_ENV); console.log('Working Directory:', process.cwd());\""
   },
   "devDependencies": {
     "@types/backblaze-b2": "^1.5.6",
@@ -27,14 +27,12 @@
     "@types/bcryptjs": "^2.4.3",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
-    "@types/express": "5.0.3",
+    "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mssql": "^9.1.8",
     "@types/node": "^24.3.0",
     "@types/nodemailer": "^6.4.17",
     "@types/pdfkit": "^0.17.3",
-    "@types/swagger-jsdoc": "^6.0.4",
-    "@types/swagger-ui-express": "^4.1.6",
     "cross-env": "^7.0.3",
     "nodemon": "^3.1.7",
     "prisma": "^7.1.0",
@@ -64,8 +62,6 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.5",
     "pdfkit": "^0.17.2",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.0",
     "winston": "^3.17.0",
     "xlsx": "^0.18.5"
   }

@@ -24,6 +24,21 @@ export const assetMasterValidationSchema = Yup.object({
       return value;
     }),
 
+  brand_id: Yup.number()
+    .nullable()
+    .positive('Brand must be valid')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined ||
+        originalValue === 0
+      ) {
+        return null;
+      }
+      return value;
+    }),
+
   serial_number: Yup.string()
     .required('Serial number is required')
     .min(1, 'Serial number must be at least 1 character')
@@ -32,6 +47,32 @@ export const assetMasterValidationSchema = Yup.object({
       /^[A-Za-z0-9\-_]+$/,
       'Serial number can only contain letters, numbers, hyphens, and underscores'
     ),
+
+  barcode: Yup.string()
+    .nullable()
+    .max(100, 'Barcode must not exceed 100 characters')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      )
+        return null;
+      return value;
+    }),
+
+  nfc_tag_code: Yup.string()
+    .nullable()
+    .max(100, 'NFC tag code must not exceed 100 characters')
+    .transform((value, originalValue) => {
+      if (
+        originalValue === '' ||
+        originalValue === null ||
+        originalValue === undefined
+      )
+        return null;
+      return value;
+    }),
 
   purchase_date: Yup.date()
     .nullable()

@@ -60,6 +60,9 @@ import { OutletTypesImportExportService } from './implementations/outletTypes-im
 import { CustomerChannelsImportExportService } from './implementations/customerChannels-import-export.service';
 import { OutletCategoriesImportExportService } from './implementations/outletCategories-import-export.service';
 import { AuditLogsImportExportService } from './implementations/auditLogs-import-export.service';
+import { RegionsImportExportService } from './implementations/regions-import-export.service';
+import { DistrictsImportExportService } from './implementations/districts-import-export.service';
+import { CitiesImportExportService } from './implementations/cities-import-export.service';
 
 type ServiceConstructor = new () => ImportExportService<any>;
 
@@ -131,6 +134,9 @@ export class ImportExportFactory {
     ['outlet_channels', CustomerChannelsImportExportService],
     ['customer_channel', CustomerChannelsImportExportService],
     ['customer_category', OutletCategoriesImportExportService],
+    ['regions', RegionsImportExportService],
+    ['districts', DistrictsImportExportService],
+    ['cities', CitiesImportExportService],
     ['audit_logs', AuditLogsImportExportService],
   ]);
 

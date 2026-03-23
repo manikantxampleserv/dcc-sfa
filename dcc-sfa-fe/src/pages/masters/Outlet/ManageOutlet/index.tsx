@@ -8,6 +8,9 @@ import {
 } from 'hooks/useCustomers';
 import { useCustomerCategories } from 'hooks/useCustomerCategory';
 import { useCustomerTypes } from 'hooks/useCustomerType';
+import { useRegions } from 'hooks/useRegion';
+import { useDistricts } from 'hooks/useDistrict';
+import { useCities } from 'hooks/useCity';
 import React from 'react';
 import { customerValidationSchema } from 'schemas/customer.schema';
 import type { Route } from 'services/masters/Routes';
@@ -60,6 +63,9 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
     is_active: 'Y',
   });
 
+  const { data: regionsResponse } = useRegions({ limit: 1000, is_active: 'Y' });
+  const regions = regionsResponse?.data || [];
+
   const customerTypes = customerTypesResponse?.data || [];
   const customerChannels = customerChannelsResponse?.data || [];
   const customerCategories = customerCategoriesResponse?.data || [];
@@ -75,13 +81,14 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
         selectedOutlet?.customer_channel_id?.toString() || '',
       customer_category_id:
         selectedOutlet?.customer_category_id?.toString() || '',
+      region_id: selectedOutlet?.region_id?.toString() || '',
+      district_id: selectedOutlet?.district_id?.toString() || '',
+      city_id: selectedOutlet?.city_id?.toString() || '',
       type: selectedOutlet?.type || 'Retail',
       contact_person: selectedOutlet?.contact_person || '',
       phone_number: selectedOutlet?.phone_number || '',
       email: selectedOutlet?.email || '',
       address: selectedOutlet?.address || '',
-      city: selectedOutlet?.city || '',
-      state: selectedOutlet?.state || '',
       zipcode: selectedOutlet?.zipcode || '',
       latitude: selectedOutlet?.latitude || '',
       longitude: selectedOutlet?.longitude || '',
@@ -112,13 +119,16 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
           customer_category_id: values.customer_category_id
             ? Number(values.customer_category_id)
             : undefined,
+          region_id: values.region_id ? Number(values.region_id) : undefined,
+          district_id: values.district_id
+            ? Number(values.district_id)
+            : undefined,
+          city_id: values.city_id ? Number(values.city_id) : undefined,
           type: values.type,
           contact_person: values.contact_person,
           phone_number: values.phone_number,
           email: values.email,
           address: values.address,
-          city: values.city,
-          state: values.state,
           zipcode: values.zipcode,
           latitude: values.latitude,
           longitude: values.longitude,
@@ -147,6 +157,47 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       }
     },
   });
+
+  const { data: districtsResponse, isFetching: isFetchingDistricts } =
+    useDistricts(
+      {
+        region_id: formik.values.region_id
+          ? Number(formik.values.region_id)
+          : undefined,
+        limit: 1000,
+        is_active: 'Y',
+      },
+      { enabled: !!formik.values.region_id }
+    );
+  const districts = districtsResponse?.data || [];
+
+  const { data: citiesResponse, isFetching: isFetchingCities } = useCities(
+    {
+      district_id: formik.values.district_id
+        ? Number(formik.values.district_id)
+        : undefined,
+      limit: 1000,
+      is_active: 'Y',
+    },
+    { enabled: !!formik.values.district_id }
+  );
+  const cities = citiesResponse?.data || [];
+
+  const handleRegionChange = (e: any) => {
+    formik.setFieldValue('region_id', e.target.value);
+    formik.setFieldValue('district_id', '');
+    formik.setFieldValue('city_id', '');
+  };
+
+  const handleDistrictChange = (e: any) => {
+    formik.setFieldValue('district_id', e.target.value);
+    formik.setFieldValue('city_id', '');
+  };
+
+  const handleCityChange = (e: any) => {
+    const cityId = e.target.value;
+    formik.setFieldValue('city_id', cityId);
+  };
 
   return (
     <CustomDrawer
@@ -196,11 +247,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               ))}
             </Select>
 
-            <Select
-              name="customer_type_id"
-              label="Customer Type"
-              formik={formik}
-            >
+            <Select name="customer_type_id" label="Outlet Type" formik={formik}>
               {customerTypes.map(ct => (
                 <MenuItem key={ct.id} value={ct.id.toString()}>
                   {ct.type_name}
@@ -210,8 +257,9 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
 
             <Select
               name="customer_channel_id"
-              label="Customer Channel"
+              label="Outlet Channel"
               formik={formik}
+              disabled={isFetchingDistricts}
             >
               {customerChannels.map(cc => (
                 <MenuItem key={cc.id} value={cc.id.toString()}>
@@ -222,12 +270,55 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
 
             <Select
               name="customer_category_id"
-              label="Customer Category"
+              label="Outlet Category"
               formik={formik}
             >
               {customerCategories.map(cc => (
                 <MenuItem key={cc.id} value={cc.id.toString()}>
                   {cc.category_name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="region_id"
+              label="Region"
+              formik={formik}
+              onChange={handleRegionChange}
+            >
+              {regions.map(region => (
+                <MenuItem key={region.id} value={region.id.toString()}>
+                  {region.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="district_id"
+              label="District"
+              formik={formik}
+              loading={isFetchingDistricts}
+              disabled={!formik.values.region_id}
+              onChange={handleDistrictChange}
+            >
+              {districts.map(district => (
+                <MenuItem key={district.id} value={district.id.toString()}>
+                  {district.name}
+                </MenuItem>
+              ))}
+            </Select>
+
+            <Select
+              name="city_id"
+              label="City"
+              formik={formik}
+              disabled={!formik.values.district_id}
+              loading={isFetchingCities}
+              onChange={handleCityChange}
+            >
+              {cities.map(city => (
+                <MenuItem key={city.id} value={city.id.toString()}>
+                  {city.name}
                 </MenuItem>
               ))}
             </Select>
@@ -251,20 +342,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               label="Email"
               type="email"
               placeholder="Enter email address"
-              formik={formik}
-            />
-
-            <Input
-              name="city"
-              label="City"
-              placeholder="Enter city"
-              formik={formik}
-            />
-
-            <Input
-              name="state"
-              label="State"
-              placeholder="Enter state"
               formik={formik}
             />
 

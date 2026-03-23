@@ -14,6 +14,9 @@ import AssetSubTypesPage from 'pages/masters/AssetSubTypes';
 import BatchLotsManagement from 'pages/masters/BatchLots';
 import BatchLotDetail from 'pages/masters/BatchLots/BatchLotDetail';
 import BrandsManagement from 'pages/masters/Brands';
+import RegionsPage from 'pages/masters/Region';
+import DistrictsPage from 'pages/masters/District';
+import CitiesPage from 'pages/masters/City';
 import CompaniesManagement from 'pages/masters/Companies';
 import CompetitorActivityManagement from 'pages/masters/CompetitorActivity';
 import CustomerCategoryPage from 'pages/masters/CustomerCategory';
@@ -199,6 +202,30 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="zone" action="read">
               <ZonesManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/regions',
+          element: (
+            <PermissionGuard module="region" action="read">
+              <RegionsPage />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/districts',
+          element: (
+            <PermissionGuard module="district" action="read">
+              <DistrictsPage />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/cities',
+          element: (
+            <PermissionGuard module="city" action="read">
+              <CitiesPage />
             </PermissionGuard>
           ),
         },

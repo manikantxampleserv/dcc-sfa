@@ -863,9 +863,24 @@ const OutletDetail: React.FC = () => {
                 <Typography variant="body1" className="!font-medium">
                   {customer.address || 'N/A'}
                 </Typography>
-                {customer.city && (
+                {customer.region && (
                   <Typography variant="body2" className="!text-gray-600">
-                    {customer.city}, {customer.state} {customer.zipcode}
+                    Region: {customer.region.name}
+                  </Typography>
+                )}
+                {customer.district && (
+                  <Typography variant="body2" className="!text-gray-600">
+                    District: {customer.district.name}
+                  </Typography>
+                )}
+                {customer.city_detail && (
+                  <Typography variant="body2" className="!text-gray-600">
+                    City Master: {customer.city_detail.name}
+                  </Typography>
+                )}
+                {customer.zipcode && (
+                  <Typography variant="body2" className="!text-gray-600">
+                    Zip Code: {customer.zipcode}
                   </Typography>
                 )}
               </div>
