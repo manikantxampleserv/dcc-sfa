@@ -228,6 +228,23 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
+      id: 'customer_category.category_name',
+      label: 'Category',
+      render: (_value, row) => (
+        <Chip
+          label={row.customer_category?.category_name || 'Unassigned'}
+          size="small"
+          variant="filled"
+          className="!font-medium"
+          sx={{
+            backgroundColor: row.customer_category ? 'primary.50' : 'grey.100',
+            color: row.customer_category ? 'primary.700' : 'grey.600',
+            border: 'none',
+          }}
+        />
+      ),
+    },
+    {
       id: 'email',
       label: 'Email',
       render: (_value, row) => (

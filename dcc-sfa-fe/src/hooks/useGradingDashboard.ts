@@ -8,7 +8,7 @@ const CACHE_TIME = 3 * 60 * 1000; // 3 minutes
 interface PendingRequestsParams {
   page?: number;
   limit?: number;
-  change_type?: 'all' | 'upgrade' | 'downgrade';
+  change_type?: 'all' | 'upgrade' | 'downgrade' | 'no_change';
   search?: string;
 }
 

@@ -127,7 +127,7 @@ interface ManageCustomerPayload {
  * Payload for updating an existing customer
  */
 interface UpdateCustomerPayload extends Partial<ManageCustomerPayload> {
-  id: number;
+  id?: number;
 }
 
 /**

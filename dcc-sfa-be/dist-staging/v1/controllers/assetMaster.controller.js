@@ -29,6 +29,10 @@ const serializeAssetMaster = (asset) => ({
     code: asset.code,
     asset_type_id: asset.asset_type_id,
     asset_sub_type_id: asset.asset_sub_type_id,
+    // brand_id: asset.brand_id,
+    brand_id: asset.asset_master_brand?.id ?? null,
+    barcode: asset.barcode,
+    nfc_tag: asset.nfc_tag,
     serial_number: asset.serial_number,
     purchase_date: asset.purchase_date ? new Date(asset.purchase_date) : null,
     warranty_expiry: asset.warranty_expiry
@@ -49,11 +53,175 @@ const serializeAssetMaster = (asset) => ({
     asset_master_warranty_claims: asset.asset_master_warranty_claims || [],
     asset_master_asset_types: asset.asset_master_asset_types || null,
     asset_master_asset_sub_types: asset.asset_master_asset_sub_types || null,
+    asset_master_brand: asset.asset_master_brand || null,
 });
 exports.assetMasterController = {
+    // async createAssetMaster(req: any, res: any) {
+    //   try {
+    //     const {
+    //       name,
+    //       code,
+    //       asset_type_id,
+    //       asset_sub_type_id,
+    //       brand_id,
+    //       barcode,
+    //       nfc_tag,
+    //       serial_number,
+    //       purchase_date,
+    //       warranty_expiry,
+    //       current_location,
+    //       current_status,
+    //       assigned_to,
+    //       is_active,
+    //     } = req.body;
+    //     let assetImages: any[] = [];
+    //     if (req.body.assetImages) {
+    //       try {
+    //         assetImages = JSON.parse(req.body.assetImages);
+    //       } catch {
+    //         assetImages = [];
+    //       }
+    //     }
+    //     if (!name || !asset_type_id || !serial_number) {
+    //       return res.status(400).json({
+    //         message: 'name, asset_type_id and serial_number are required',
+    //       });
+    //     }
+    //     if (barcode) {
+    //       const existingBarcode = await prisma.asset_master.findFirst({
+    //         where: { barcode: barcode },
+    //       });
+    //       if (existingBarcode) {
+    //         return res.status(409).json({
+    //           message: 'Asset with this barcode already exists',
+    //         });
+    //       }
+    //     }
+    //     if (nfc_tag) {
+    //       const existingNfcTag = await prisma.asset_master.findFirst({
+    //         where: { nfc_tag: nfc_tag },
+    //       });
+    //       if (existingNfcTag) {
+    //         return res.status(409).json({
+    //           message: 'Asset with this NFC tag already exists',
+    //         });
+    //       }
+    //     }
+    //     let assetCode: string;
+    //     if (code && code.trim() !== '') {
+    //       assetCode = code.trim();
+    //       const existingAsset = await prisma.asset_master.findFirst({
+    //         where: { code: assetCode },
+    //       });
+    //       if (existingAsset) {
+    //         return res.status(400).json({ message: 'Asset code already exists' });
+    //       }
+    //     } else {
+    //       assetCode = await generateAssetCode(name);
+    //       let attempts = 0;
+    //       while (attempts < 10) {
+    //         const existing = await prisma.asset_master.findFirst({
+    //           where: { code: assetCode },
+    //         });
+    //         if (!existing) break;
+    //         assetCode = await generateAssetCode(name);
+    //         attempts++;
+    //       }
+    //       if (attempts >= 10) {
+    //         return res
+    //           .status(500)
+    //           .json({ message: 'Unable to generate unique asset code' });
+    //       }
+    //     }
+    //     const duplicateAsset = await prisma.asset_master.findFirst({
+    //       where: {
+    //         asset_type_id: Number(asset_type_id),
+    //       },
+    //     });
+    //     if (duplicateAsset) {
+    //       return res.status(409).json({
+    //         message: 'Asset with this asset type  already exists',
+    //       });
+    //     }
+    //     const existingSerial = await prisma.asset_master.findFirst({
+    //       where: {
+    //         serial_number: serial_number,
+    //       },
+    //     });
+    //     if (existingSerial) {
+    //       return res.status(409).json({
+    //         message: 'Asset with this serial number already exists',
+    //       });
+    //     }
+    //     const assetData = {
+    //       name,
+    //       code: assetCode,
+    //       asset_type_id: Number(asset_type_id),
+    //       asset_sub_type_id: asset_sub_type_id ? Number(asset_sub_type_id) : null,
+    //       brand_id: brand_id ? Number(brand_id) : null,
+    //       barcode: barcode || null,
+    //       nfc_tag: nfc_tag || null,
+    //       serial_number,
+    //       purchase_date: purchase_date ? new Date(purchase_date) : null,
+    //       warranty_expiry: warranty_expiry ? new Date(warranty_expiry) : null,
+    //       current_location,
+    //       current_status,
+    //       assigned_to: assigned_to ? String(assigned_to) : null,
+    //       createdate: new Date(),
+    //       createdby: req.user?.id || 1,
+    //       is_active: is_active || 'Y',
+    //       log_inst: 1,
+    //     };
+    //     const newAsset = await prisma.asset_master.create({
+    //       data: assetData,
+    //     });
+    //     if (req.files && req.files.length > 0) {
+    //       for (let i = 0; i < req.files.length; i++) {
+    //         const file = req.files[i];
+    //         const caption = assetImages[i]?.caption || null;
+    //         const fileName = `asset-images/${Date.now()}-${file.originalname}`;
+    //         const imageUrl = await uploadFile(
+    //           file.buffer,
+    //           fileName,
+    //           file.mimetype
+    //         );
+    //         await prisma.asset_images.create({
+    //           data: {
+    //             asset_id: newAsset.id,
+    //             image_url: imageUrl,
+    //             caption,
+    //             uploaded_by: req.user?.name || 'System',
+    //             uploaded_at: new Date(),
+    //             is_active: 'Y',
+    //             createdate: new Date(),
+    //             createdby: req.user?.id || 1,
+    //             log_inst: 1,
+    //           },
+    //         });
+    //       }
+    //     }
+    //     const createdAsset = await prisma.asset_master.findUnique({
+    //       where: { id: newAsset.id },
+    //       include: {
+    //         asset_master_image: true,
+    //         asset_maintenance_master: true,
+    //         asset_master_warranty_claims: true,
+    //         asset_master_asset_types: true,
+    //         asset_master_asset_sub_types: true,
+    //       },
+    //     });
+    //     res.status(201).json({
+    //       message: 'Asset created successfully with images',
+    //       data: serializeAssetMaster(createdAsset),
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Create Asset Error:', error);
+    //     res.status(500).json({ message: error.message });
+    //   }
+    // },
     async createAssetMaster(req, res) {
         try {
-            const { name, code, asset_type_id, asset_sub_type_id, serial_number, purchase_date, warranty_expiry, current_location, current_status, assigned_to, is_active, } = req.body;
+            const { name, code, asset_type_id, asset_sub_type_id, brand_id, barcode, nfc_tag, serial_number, purchase_date, warranty_expiry, current_location, current_status, assigned_to, is_active, } = req.body;
             let assetImages = [];
             if (req.body.assetImages) {
                 try {
@@ -67,6 +235,26 @@ exports.assetMasterController = {
                 return res.status(400).json({
                     message: 'name, asset_type_id and serial_number are required',
                 });
+            }
+            if (barcode) {
+                const existingBarcode = await prisma_client_1.default.asset_master.findFirst({
+                    where: { barcode: barcode },
+                });
+                if (existingBarcode) {
+                    return res.status(409).json({
+                        message: 'Asset with this barcode already exists',
+                    });
+                }
+            }
+            if (nfc_tag) {
+                const existingNfcTag = await prisma_client_1.default.asset_master.findFirst({
+                    where: { nfc_tag: nfc_tag },
+                });
+                if (existingNfcTag) {
+                    return res.status(409).json({
+                        message: 'Asset with this NFC tag already exists',
+                    });
+                }
             }
             let assetCode;
             if (code && code.trim() !== '') {
@@ -96,16 +284,6 @@ exports.assetMasterController = {
                         .json({ message: 'Unable to generate unique asset code' });
                 }
             }
-            const duplicateAsset = await prisma_client_1.default.asset_master.findFirst({
-                where: {
-                    asset_type_id: Number(asset_type_id),
-                },
-            });
-            if (duplicateAsset) {
-                return res.status(409).json({
-                    message: 'Asset with this asset type  already exists',
-                });
-            }
             const existingSerial = await prisma_client_1.default.asset_master.findFirst({
                 where: {
                     serial_number: serial_number,
@@ -121,6 +299,9 @@ exports.assetMasterController = {
                 code: assetCode,
                 asset_type_id: Number(asset_type_id),
                 asset_sub_type_id: asset_sub_type_id ? Number(asset_sub_type_id) : null,
+                brand_id: brand_id ? Number(brand_id) : null,
+                barcode: barcode || null,
+                nfc_tag: nfc_tag || null,
                 serial_number,
                 purchase_date: purchase_date ? new Date(purchase_date) : null,
                 warranty_expiry: warranty_expiry ? new Date(warranty_expiry) : null,
@@ -164,6 +345,7 @@ exports.assetMasterController = {
                     asset_master_warranty_claims: true,
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
                 },
             });
             res.status(201).json({
@@ -189,6 +371,8 @@ exports.assetMasterController = {
                         { name: { contains: searchLower } },
                         { code: { contains: searchLower } },
                         { serial_number: { contains: searchLower } },
+                        { barcode: { contains: searchLower } },
+                        { nfc_tag: { contains: searchLower } },
                         { current_location: { contains: searchLower } },
                         { current_status: { contains: searchLower } },
                         { assigned_to: { contains: searchLower } },
@@ -223,6 +407,7 @@ exports.assetMasterController = {
                     asset_master_warranty_claims: true,
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
                 },
             });
             const totalAssets = await prisma_client_1.default.asset_master.count();
@@ -266,6 +451,7 @@ exports.assetMasterController = {
                     asset_master_warranty_claims: true,
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
                 },
             });
             if (!asset)
@@ -280,6 +466,122 @@ exports.assetMasterController = {
             res.status(500).json({ message: error.message });
         }
     },
+    // async updateAssetMaster(req: Request, res: Response) {
+    //   try {
+    //     const { id } = req.params;
+    //     const existingAsset = await prisma.asset_master.findUnique({
+    //       where: { id: Number(id) },
+    //       include: {
+    //         asset_master_asset_types: true,
+    //         asset_master_asset_sub_types: true,
+    //         asset_master_brand: true,
+    //       },
+    //     });
+    //     if (!existingAsset)
+    //       return res.status(404).json({ message: 'Asset not found' });
+    //     if (req.body.barcode && req.body.barcode !== existingAsset.barcode) {
+    //       const existingBarcode = await prisma.asset_master.findFirst({
+    //         where: { barcode: req.body.barcode },
+    //       });
+    //       if (existingBarcode) {
+    //         return res.status(409).json({
+    //           message: 'Asset with this barcode already exists',
+    //         });
+    //       }
+    //     }
+    //     if (req.body.nfc_tag && req.body.nfc_tag !== existingAsset.nfc_tag) {
+    //       const existingNfcTag = await prisma.asset_master.findFirst({
+    //         where: { nfc_tag: req.body.nfc_tag },
+    //       });
+    //       if (existingNfcTag) {
+    //         return res.status(409).json({
+    //           message: 'Asset with this NFC tag already exists',
+    //         });
+    //       }
+    //     }
+    //     const data: any = {
+    //       name: req.body.name,
+    //       code: req.body.code,
+    //       serial_number: req.body.serial_number,
+    //       barcode:
+    //         req.body.barcode !== undefined
+    //           ? req.body.barcode
+    //           : existingAsset.barcode,
+    //       nfc_tag:
+    //         req.body.nfc_tag !== undefined
+    //           ? req.body.nfc_tag
+    //           : existingAsset.nfc_tag,
+    //       assigned_to: req.body.assigned_to
+    //         ? String(req.body.assigned_to)
+    //         : existingAsset.assigned_to,
+    //       purchase_date: req.body.purchase_date
+    //         ? new Date(req.body.purchase_date)
+    //         : existingAsset.purchase_date,
+    //       warranty_expiry: req.body.warranty_expiry
+    //         ? new Date(req.body.warranty_expiry)
+    //         : existingAsset.warranty_expiry,
+    //       current_location: req.body.current_location,
+    //       current_status: req.body.current_status,
+    //       is_active: req.body.is_active,
+    //       updatedate: new Date(),
+    //       updatedby: req.user?.id,
+    //     };
+    //     if (req.body.asset_type_id) {
+    //       data.asset_master_asset_types = {
+    //         connect: { id: Number(req.body.asset_type_id) },
+    //       };
+    //     }
+    //     if (req.body.asset_sub_type_id) {
+    //       data.asset_master_asset_sub_types = {
+    //         connect: { id: Number(req.body.asset_sub_type_id) },
+    //       };
+    //     }
+    //     if (req.body.brand_id) {
+    //       data.asset_master_brand = {
+    //         connect: { id: Number(req.body.brand_id) },
+    //       };
+    //     }
+    //     if (req.body.asset_type_id) {
+    //       data.asset_master_asset_types = {
+    //         connect: { id: Number(req.body.asset_type_id) },
+    //       };
+    //     }
+    //     if (req.body.asset_sub_type_id) {
+    //       data.asset_master_asset_sub_types = {
+    //         connect: { id: Number(req.body.asset_sub_type_id) },
+    //       };
+    //     }
+    //     if (req.body.asset_type_id) {
+    //       data.asset_master_asset_types = {
+    //         connect: { id: Number(req.body.asset_type_id) },
+    //       };
+    //     }
+    //     if (req.body.asset_sub_type_id) {
+    //       data.asset_master_asset_sub_types = {
+    //         connect: { id: Number(req.body.asset_sub_type_id) },
+    //       };
+    //     }
+    //     const asset = await prisma.asset_master.update({
+    //       where: { id: Number(id) },
+    //       data,
+    //       include: {
+    //         asset_master_image: true,
+    //         asset_maintenance_master: true,
+    //         asset_master_warranty_claims: true,
+    //         asset_master_asset_types: true,
+    //         asset_master_asset_sub_types: true,
+    //         asset_master_brand: true,
+    //       },
+    //     });
+    //     res.json({
+    //       message: 'Asset updated successfully',
+    //       data: serializeAssetMaster(asset),
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Update Asset Error:', error);
+    //     res.status(500).json({ message: error.message });
+    //   }
+    // },
     async updateAssetMaster(req, res) {
         try {
             const { id } = req.params;
@@ -288,14 +590,45 @@ exports.assetMasterController = {
                 include: {
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
                 },
             });
             if (!existingAsset)
                 return res.status(404).json({ message: 'Asset not found' });
+            if (req.body.barcode &&
+                req.body.barcode !== '' &&
+                req.body.barcode !== existingAsset.barcode) {
+                const existingBarcode = await prisma_client_1.default.asset_master.findFirst({
+                    where: { barcode: req.body.barcode },
+                });
+                if (existingBarcode) {
+                    return res
+                        .status(409)
+                        .json({ message: 'Asset with this barcode already exists' });
+                }
+            }
+            if (req.body.nfc_tag &&
+                req.body.nfc_tag !== '' &&
+                req.body.nfc_tag !== existingAsset.nfc_tag) {
+                const existingNfcTag = await prisma_client_1.default.asset_master.findFirst({
+                    where: { nfc_tag: req.body.nfc_tag },
+                });
+                if (existingNfcTag) {
+                    return res
+                        .status(409)
+                        .json({ message: 'Asset with this NFC tag already exists' });
+                }
+            }
             const data = {
                 name: req.body.name,
                 code: req.body.code,
                 serial_number: req.body.serial_number,
+                barcode: req.body.barcode !== undefined && req.body.barcode !== ''
+                    ? req.body.barcode
+                    : existingAsset.barcode,
+                nfc_tag: req.body.nfc_tag !== undefined && req.body.nfc_tag !== ''
+                    ? req.body.nfc_tag
+                    : existingAsset.nfc_tag,
                 assigned_to: req.body.assigned_to
                     ? String(req.body.assigned_to)
                     : existingAsset.assigned_to,
@@ -321,6 +654,11 @@ exports.assetMasterController = {
                     connect: { id: Number(req.body.asset_sub_type_id) },
                 };
             }
+            if (req.body.brand_id && req.body.brand_id !== '') {
+                data.asset_master_brand = {
+                    connect: { id: Number(req.body.brand_id) },
+                };
+            }
             const asset = await prisma_client_1.default.asset_master.update({
                 where: { id: Number(id) },
                 data,
@@ -330,11 +668,65 @@ exports.assetMasterController = {
                     asset_master_warranty_claims: true,
                     asset_master_asset_types: true,
                     asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
+                },
+            });
+            if (req.files && req.files.length > 0) {
+                const files = req.files;
+                let assetImages = [];
+                if (req.body.assetImages) {
+                    try {
+                        assetImages = JSON.parse(req.body.assetImages);
+                    }
+                    catch {
+                        assetImages = [];
+                    }
+                }
+                const existingImages = await prisma_client_1.default.asset_images.findMany({
+                    where: { asset_id: asset.id },
+                });
+                for (const img of existingImages) {
+                    if (img.image_url) {
+                        await (0, blackbaze_1.deleteFile)(img.image_url);
+                    }
+                }
+                await prisma_client_1.default.asset_images.deleteMany({
+                    where: { asset_id: asset.id },
+                });
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const caption = assetImages[i]?.caption || null;
+                    const fileName = `asset-images/${Date.now()}-${file.originalname}`;
+                    const imageUrl = await (0, blackbaze_1.uploadFile)(file.buffer, fileName, file.mimetype);
+                    await prisma_client_1.default.asset_images.create({
+                        data: {
+                            asset_id: asset.id,
+                            image_url: imageUrl,
+                            caption,
+                            uploaded_by: req.user?.name || 'Admin',
+                            uploaded_at: new Date(),
+                            is_active: 'Y',
+                            createdate: new Date(),
+                            createdby: req.user?.id || 1,
+                            log_inst: 1,
+                        },
+                    });
+                }
+            }
+            const updatedAsset = await prisma_client_1.default.asset_master.findUnique({
+                where: { id: Number(id) },
+                include: {
+                    asset_master_image: true,
+                    asset_maintenance_master: true,
+                    asset_master_warranty_claims: true,
+                    asset_master_asset_types: true,
+                    asset_master_asset_sub_types: true,
+                    asset_master_brand: true,
                 },
             });
             res.json({
                 message: 'Asset updated successfully',
-                data: serializeAssetMaster(asset),
+                data: serializeAssetMaster(updatedAsset),
             });
         }
         catch (error) {

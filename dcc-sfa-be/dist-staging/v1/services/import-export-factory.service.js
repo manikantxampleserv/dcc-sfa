@@ -62,6 +62,9 @@ const outletTypes_import_export_service_1 = require("./implementations/outletTyp
 const customerChannels_import_export_service_1 = require("./implementations/customerChannels-import-export.service");
 const outletCategories_import_export_service_1 = require("./implementations/outletCategories-import-export.service");
 const auditLogs_import_export_service_1 = require("./implementations/auditLogs-import-export.service");
+const regions_import_export_service_1 = require("./implementations/regions-import-export.service");
+const districts_import_export_service_1 = require("./implementations/districts-import-export.service");
+const cities_import_export_service_1 = require("./implementations/cities-import-export.service");
 class ImportExportFactory {
     static services = new Map([
         ['zones', zones_import_export_service_1.ZonesImportExportService],
@@ -127,6 +130,9 @@ class ImportExportFactory {
         ['outlet_channels', customerChannels_import_export_service_1.CustomerChannelsImportExportService],
         ['customer_channel', customerChannels_import_export_service_1.CustomerChannelsImportExportService],
         ['customer_category', outletCategories_import_export_service_1.OutletCategoriesImportExportService],
+        ['regions', regions_import_export_service_1.RegionsImportExportService],
+        ['districts', districts_import_export_service_1.DistrictsImportExportService],
+        ['cities', cities_import_export_service_1.CitiesImportExportService],
         ['audit_logs', auditLogs_import_export_service_1.AuditLogsImportExportService],
     ]);
     static getService(tableName) {

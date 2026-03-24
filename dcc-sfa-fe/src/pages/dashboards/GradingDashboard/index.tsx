@@ -1,4 +1,4 @@
-import { MenuItem, Chip } from '@mui/material';
+import { MenuItem, Chip, Tooltip, Avatar } from '@mui/material';
 import {
   ArcElement,
   BarElement,
@@ -19,6 +19,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import Button from 'shared/Button';
 import StatsCard from 'shared/StatsCard';
@@ -42,22 +43,18 @@ ChartJS.register(
   Legend
 );
 
-const OutletCategoryReminders: React.FC = () => {
+const GradingDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [typeFilter, setTypeFilter] = useState<'all' | 'upgrade' | 'downgrade'>(
-    'all'
-  );
+  const [typeFilter, setTypeFilter] = useState<
+    'all' | 'upgrade' | 'downgrade' | 'no_change'
+  >('all');
 
-  const { data: statsData, isFetching: isFetchingStats } = useGradingStats();
+  const { data: statsData } = useGradingStats();
   const { data: requestsData, isFetching: isFetchingRequests } =
-    usePendingGradingRequests({
-      search,
-      page,
-      limit,
-      change_type: typeFilter,
-    });
+    usePendingGradingRequests({ search, page, limit, change_type: typeFilter });
 
   const processRequestMutation = useProcessGradingRequest();
 
@@ -74,15 +71,8 @@ const OutletCategoryReminders: React.FC = () => {
     setPage(newPage + 1);
   };
 
-  const filteredData = requestsData?.data?.filter(
-    item =>
-      item.category_grading_customers.name
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      item.category_grading_customers.code
-        .toLowerCase()
-        .includes(search.toLowerCase())
-  );
+  // Search is handled by the API now, so we can use data directly
+  const tableData = requestsData?.data || [];
 
   const stats = {
     total: statsData?.pending ?? 0,
@@ -122,12 +112,20 @@ const OutletCategoryReminders: React.FC = () => {
       label: 'Outlet',
       sortable: true,
       render: (_, row) => (
-        <div className="flex flex-row items-center gap-2">
-          <div className="p-2 bg-blue-50 rounded">
-            <Store className="w-5 h-h text-blue-600" />
-          </div>
+        <div
+          className="flex flex-row items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors group"
+          onClick={() =>
+            navigate(`/masters/outlets/${row.category_grading_customers.id}`)
+          }
+        >
+          <Avatar
+            variant="rounded"
+            className="!bg-blue-50 !text-blue-600 group-hover:!bg-blue-100 transition-colors !w-10 !h-10"
+          >
+            <Store className="w-5 h-5" />
+          </Avatar>
           <div>
-            <div className="text-sm font-semibold text-gray-900">
+            <div className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
               {row.category_grading_customers.name}
             </div>
             <div className="text-xs text-gray-500">
@@ -143,8 +141,8 @@ const OutletCategoryReminders: React.FC = () => {
       sortable: true,
       render: (_, row) => {
         const categoryName =
-          statsData?.all_categories.find(c => c.id === row.current_category_id)
-            ?.category_name || 'Unknown';
+          row.customer_category_grading_current_category?.category_name ||
+          'Unassigned';
         return <Chip label={categoryName} variant="filled" />;
       },
     },
@@ -154,20 +152,27 @@ const OutletCategoryReminders: React.FC = () => {
       sortable: true,
       render: (_, row) => {
         const categoryName =
-          statsData?.all_categories.find(c => c.id === row.upcoming_category_id)
-            ?.category_name || 'Unknown';
+          row.customer_category_grading_upcoming_category?.category_name ||
+          'Unknown';
+
+        let icon = null;
+        let color: 'success' | 'error' | 'info' = 'info';
+
+        if (row.change_type === 'upgrade') {
+          icon = <ArrowUpCircle className="w-4 h-4 text-green-500" />;
+          color = 'success';
+        } else if (row.change_type === 'downgrade') {
+          icon = <ArrowDownCircle className="w-4 h-4 text-red-500" />;
+          color = 'error';
+        } else if (row.change_type === 'no_change') {
+          icon = <CheckCircle2 className="w-4 h-4 text-blue-500" />;
+          color = 'info';
+        }
+
         return (
           <div className="flex flex-row items-center gap-2">
-            {row.change_type === 'upgrade' ? (
-              <ArrowUpCircle className="w-4 h-4 text-green-500" />
-            ) : (
-              <ArrowDownCircle className="w-4 h-4 text-red-500" />
-            )}
-            <Chip
-              label={categoryName}
-              color={row.change_type === 'upgrade' ? 'success' : 'error'}
-              variant="filled"
-            />
+            {icon}
+            <Chip label={categoryName} color={color} variant="filled" />
           </div>
         );
       },
@@ -176,18 +181,42 @@ const OutletCategoryReminders: React.FC = () => {
       id: 'reason',
       label: 'Condition & Performance',
       hideable: true,
-      render: (_, row) => (
-        <div>
-          <div className="text-sm text-gray-700 leading-relaxed">
-            {row.reason || 'No reason provided'}
+      render: (_, row) => {
+        const conditions =
+          row.customer_category_grading_upcoming_category
+            ?.customer_category_condition_customer_category || [];
+        return (
+          <div className="space-y-1">
+            {conditions.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {conditions.map(cond => (
+                  <Tooltip
+                    key={cond.id}
+                    title={cond.condition_description || ''}
+                    arrow
+                  >
+                    <Chip
+                      label={`${cond.condition_type.replace(/_/g, ' ')} ${cond.condition_operator} ${cond.threshold_value}`}
+                      size="small"
+                      variant="outlined"
+                      className="!text-[10px] !h-5"
+                    />
+                  </Tooltip>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-700 leading-relaxed">
+                {row.reason || 'No performance data available'}
+              </div>
+            )}
+            {row.notes && (
+              <div className="text-xs text-blue-600 font-medium italic">
+                Notes: {row.notes}
+              </div>
+            )}
           </div>
-          {row.notes && (
-            <div className="text-xs text-blue-600 font-medium">
-              Notes: {row.notes}
-            </div>
-          )}
-        </div>
-      ),
+        );
+      },
     },
     {
       id: 'status',
@@ -240,13 +269,19 @@ const OutletCategoryReminders: React.FC = () => {
             <Button
               size="small"
               variant="contained"
-              color={row.change_type === 'upgrade' ? 'success' : 'error'}
+              color={
+                row.change_type === 'upgrade'
+                  ? 'success'
+                  : row.change_type === 'downgrade'
+                    ? 'error'
+                    : 'primary'
+              }
               startIcon={<CheckCircle2 className="w-3 h-3" />}
               onClick={() => handleAction(row.id, 'approve')}
               disabled={processRequestMutation.isPending}
               className="!text-[11px] !py-1"
             >
-              Change
+              {row.change_type === 'no_change' ? 'Same' : 'Change'}
             </Button>
           </div>
         );
@@ -323,13 +358,12 @@ const OutletCategoryReminders: React.FC = () => {
       </div>
 
       <Table
-        data={filteredData || []}
-        columns={columns}
+        data={tableData}
         getRowId={row => row.id}
         tableId="grading-dashboard-table"
         initialOrder="asc"
         stickyHeader
-        maxHeight="500px"
+        columns={columns}
         loading={isFetchingRequests}
         totalCount={requestsData?.pagination?.total_count || 0}
         page={page - 1}
@@ -353,9 +387,10 @@ const OutletCategoryReminders: React.FC = () => {
                 className="!w-48"
                 disableClearable
               >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="grade">Upgrades Only</MenuItem>
-                <MenuItem value="degrade">Downgrades Only</MenuItem>
+                <MenuItem value="all">All Type</MenuItem>
+                <MenuItem value="upgrade">Upgrades</MenuItem>
+                <MenuItem value="downgrade">Downgrades</MenuItem>
+                <MenuItem value="no_change">No Change</MenuItem>
               </Select>
             </div>
           </div>
@@ -365,4 +400,4 @@ const OutletCategoryReminders: React.FC = () => {
   );
 };
 
-export default OutletCategoryReminders;
+export default GradingDashboard;

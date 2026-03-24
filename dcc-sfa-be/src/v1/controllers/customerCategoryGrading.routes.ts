@@ -5,11 +5,6 @@ import { customerCategoryGradingController } from '../controllers/customerCatego
 const router = Router();
 
 router.get(
-  '/customerCategoryGrading/pending',
-  authenticateToken,
-  customerCategoryGradingController.getPendingGradingRequests
-);
-router.get(
   '/customerCategoryGrading/:id',
   authenticateToken,
   customerCategoryGradingController.getGradingRequestById

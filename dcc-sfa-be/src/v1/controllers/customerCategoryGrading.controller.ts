@@ -3,61 +3,6 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 
 export const customerCategoryGradingController = {
-  async getPendingGradingRequests(req: Request, res: Response) {
-    try {
-      const { page, limit, change_type, search, name } = req.query;
-
-      const whereClause: any = {
-        status: 'P',
-        ...(change_type && { change_type: change_type as string }),
-      };
-
-      const searchTerm = (search || name) as string;
-
-      if (searchTerm) {
-        whereClause.OR = [
-          {
-            category_grading_customers: {
-              name: { contains: searchTerm },
-            },
-          },
-          {
-            category_grading_customers: {
-              code: { contains: searchTerm },
-            },
-          },
-        ];
-      }
-
-      const pageNumber = parseInt(page as string) || 1;
-      const limitNumber = parseInt(limit as string) || 10;
-
-      const { data, pagination } = await paginate({
-        model: prisma.customer_category_grading,
-        filters: whereClause,
-        page: pageNumber,
-        limit: limitNumber,
-        orderBy: { createdate: 'desc' },
-        include: {
-          category_grading_customers: {
-            select: { id: true, name: true, code: true },
-          },
-          approver_users: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-      });
-
-      return res.status(200).json({
-        message: 'Pending grading requests retrieved',
-        data,
-        pagination,
-      });
-    } catch (error: any) {
-      return res.status(500).json({ message: error.message });
-    }
-  },
-
   async getGradingRequestById(req: Request, res: Response) {
     try {
       const requestId = Number(req.params.id);
@@ -260,10 +205,20 @@ export const customerCategoryGradingController = {
             select: { id: true, name: true, email: true },
           },
           customer_category_grading_current_category: {
-            select: { id: true, category_name: true },
+            select: {
+              id: true,
+              category_name: true,
+              level: true,
+              customer_category_condition_customer_category: true,
+            },
           },
           customer_category_grading_upcoming_category: {
-            select: { id: true, category_name: true },
+            select: {
+              id: true,
+              category_name: true,
+              level: true,
+              customer_category_condition_customer_category: true,
+            },
           },
         },
       });
