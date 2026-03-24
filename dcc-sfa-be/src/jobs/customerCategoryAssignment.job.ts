@@ -370,7 +370,6 @@ export const scheduleCustomerCategoryAssignment = () => {
         //   }
         // }
 
-        // Get lowest category once
         const lowestCategory = await getLowestCategory();
 
         if (!lowestCategory) {
@@ -413,17 +412,27 @@ export const scheduleCustomerCategoryAssignment = () => {
             });
 
             const totalSales = Number(orderSales._sum?.total_amount || 0);
+            console.log(
+              `  ${customer.name}: Sales: ₹${totalSales}, Current Category: ${customer.customer_category_id}`
+            );
 
             let assignedCategory = null;
 
-            // If customer has no category, assign lowest category
             if (!customer.customer_category_id) {
-              assignedCategory = lowestCategory;
+              for (let i = validCategories.length - 1; i >= 0; i--) {
+                if (totalSales >= validCategories[i].thresholdValue) {
+                  assignedCategory = validCategories[i];
+                  break;
+                }
+              }
+
+              if (!assignedCategory && validCategories.length > 0) {
+                assignedCategory = validCategories[0];
+              }
               console.log(
-                `   ${customer.name} → Auto-assigned ${lowestCategory.category_name} (No previous category)`
+                `    Assigned Category: ${assignedCategory?.categoryName || 'None'} (ID: ${assignedCategory?.id})`
               );
             } else {
-              // Existing logic for customers with categories
               for (let i = validCategories.length - 1; i >= 0; i--) {
                 if (totalSales >= validCategories[i].thresholdValue) {
                   assignedCategory = validCategories[i];
@@ -439,7 +448,72 @@ export const scheduleCustomerCategoryAssignment = () => {
             const newCategoryId = assignedCategory?.id || null;
             const currentCategoryId = customer.customer_category_id;
 
-            if (newCategoryId !== currentCategoryId) {
+            console.log(
+              `    Comparison: newCategoryId=${newCategoryId}, currentCategoryId=${currentCategoryId}`
+            );
+            console.log(
+              `    Condition newCategoryId !== currentCategoryId: ${newCategoryId !== currentCategoryId}`
+            );
+
+            if (!currentCategoryId && newCategoryId) {
+              console.log(
+                `     Auto-assigning category to ${customer.name} (no previous category)`
+              );
+
+              const existingRequest =
+                await prisma.customer_category_grading.findFirst({
+                  where: {
+                    customer_id: customer.id,
+                    action_taken: 'N',
+                  },
+                });
+
+              if (existingRequest) {
+                await prisma.customer_category_grading.update({
+                  where: { id: existingRequest.id },
+                  data: {
+                    current_category_id: newCategoryId,
+                    upcoming_category_id: newCategoryId,
+                    change_type: 'no_change',
+                    status: 'C',
+                    action_taken: 'A',
+                    approver_id: 1,
+                    approved_date: new Date(),
+                    updatedate: new Date(),
+                    updatedby: 1,
+                  },
+                });
+
+                results.totalUpdated++;
+                console.log(
+                  `   ${customer.name} → Updated existing auto-assignment request (Sales: ₹${totalSales})`
+                );
+              } else {
+                await prisma.customer_category_grading.create({
+                  data: {
+                    customer_id: customer.id,
+                    current_category_id: newCategoryId,
+                    upcoming_category_id: newCategoryId,
+                    change_type: 'no_change',
+                    status: 'C',
+                    action_taken: 'A',
+                    approver_id: 1,
+                    approved_date: new Date(),
+                    createdate: new Date(),
+                    updatedate: new Date(),
+                    createdby: 1,
+                    updatedby: 1,
+                  },
+                });
+
+                results.totalUpdated++;
+                console.log(
+                  `   ${customer.name} → Auto-assignment request created (Sales: ₹${totalSales})`
+                );
+              }
+            } else if (newCategoryId !== currentCategoryId) {
+              console.log(`     Category change detected for ${customer.name}`);
+
               const changeType = getChangeType(
                 currentCategoryId,
                 newCategoryId,
@@ -469,7 +543,7 @@ export const scheduleCustomerCategoryAssignment = () => {
 
                 results.totalUpdated++;
                 console.log(
-                  `   ${customer.name}  Updated existing ${changeType} request (Sales: ₹${totalSales})`
+                  `   ${customer.name} → Updated existing ${changeType} request (Sales: ₹${totalSales})`
                 );
               } else {
                 await prisma.customer_category_grading.create({
@@ -480,24 +554,34 @@ export const scheduleCustomerCategoryAssignment = () => {
                     status: 'P',
                     change_type: changeType,
                     action_taken: 'N',
+                    createdate: new Date(),
+                    updatedate: new Date(),
                     createdby: 1,
+                    updatedby: 1,
                   },
                 });
 
                 results.totalUpdated++;
-                const action = !currentCategoryId
-                  ? 'auto-assigned'
-                  : `${changeType} request created`;
                 console.log(
-                  `   ${customer.name} → ${action} (Sales: ₹${totalSales})`
+                  `   ${customer.name}  ${changeType} request created (Sales: ${totalSales})`
                 );
               }
             } else {
+              console.log(
+                `     No category change needed for ${customer.name}`
+              );
               results.totalUnchanged++;
             }
           } catch (error: any) {
             results.totalFailed++;
             console.error(` ${customer.name}: ${error.message}`);
+            console.error(` Full error:`, JSON.stringify(error, null, 2));
+
+            if (error.code === 'P2002') {
+              console.error(` Unique constraint violation`);
+            } else if (error.code === 'P2003') {
+              console.error(` Foreign key constraint violation`);
+            }
           }
         }
         const endTime = new Date();
@@ -571,7 +655,7 @@ export async function assignLowestCategoryToUncategorizedCustomers() {
             customer_id: customer.id,
             current_category_id: null,
             upcoming_category_id: lowestCategory.id,
-            change_type: 'auto_assignment',
+            change_type: 'no_change',
             status: 'C',
             action_taken: 'A',
             approver_id: 1,
