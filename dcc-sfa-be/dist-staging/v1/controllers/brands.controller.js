@@ -27,6 +27,7 @@ const serializeBrand = (b) => ({
     id: b.id,
     name: b.name,
     code: b.code,
+    is_asset_brand: b.is_asset_brand,
     description: b.description,
     logo: b.logo,
     is_active: b.is_active,
@@ -69,11 +70,14 @@ exports.brandsController = {
     },
     async getAllBrands(req, res) {
         try {
-            const { page, limit, search, status } = req.query;
+            const { page, limit, search, status, is_asset_brand } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
             const statusLower = status ? status.toLowerCase() : '';
+            const isAssetBrand = is_asset_brand
+                ? is_asset_brand.toUpperCase()
+                : '';
             const filters = {
                 ...(search && {
                     OR: [
@@ -86,6 +90,8 @@ exports.brandsController = {
                 }),
                 ...(statusLower === 'active' && { is_active: 'Y' }),
                 ...(statusLower === 'inactive' && { is_active: 'N' }),
+                ...(isAssetBrand === 'N' && { is_asset_brand: 'N' }),
+                ...(isAssetBrand === 'Y' && { is_asset_brand: 'Y' }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.brands,

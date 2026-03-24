@@ -2577,9 +2577,6 @@ export const visitsController = {
   },
   async getAllVisits(req: any, res: any) {
     try {
-      console.log('Request Query:', req.query);
-      console.log('Request User:', req.user);
-
       const {
         page,
         limit,
@@ -2596,20 +2593,6 @@ export const visitsController = {
         Math.max(1, parseInt(limit as string, 10) || 10)
       );
       const searchLower = search ? (search as string).toLowerCase().trim() : '';
-
-      console.log('Parsed Pagination:', { pageNum, limitNum });
-      console.log('Search Term:', searchLower);
-
-      const allowedStatuses = [
-        'pending',
-        'completed',
-        'cancelled',
-        'in_progress',
-      ];
-      if (status && !allowedStatuses.includes(status as string)) {
-        console.log('Invalid status:', status);
-        return res.status(400).json({ message: 'Invalid status value' });
-      }
 
       if (isActive && !['Y', 'N'].includes(isActive as string)) {
         console.log('Invalid isActive:', isActive);

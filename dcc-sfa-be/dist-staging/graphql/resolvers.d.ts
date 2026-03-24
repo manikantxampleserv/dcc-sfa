@@ -58,7 +58,6 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
-            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -71,6 +70,7 @@ export declare const resolvers: {
             serial_number: string;
             warranty_expiry: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
             barcode: string | null;
             nfc_tag: string | null;
@@ -139,7 +139,6 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
-            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -152,6 +151,7 @@ export declare const resolvers: {
             serial_number: string;
             warranty_expiry: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
             barcode: string | null;
             nfc_tag: string | null;
@@ -234,7 +234,6 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -247,6 +246,7 @@ export declare const resolvers: {
                 serial_number: string;
                 warranty_expiry: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
                 barcode: string | null;
                 nfc_tag: string | null;
@@ -282,6 +282,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -397,7 +400,6 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -410,6 +412,7 @@ export declare const resolvers: {
                 serial_number: string;
                 warranty_expiry: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
                 barcode: string | null;
                 nfc_tag: string | null;
@@ -445,6 +448,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -560,7 +566,6 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -573,6 +578,7 @@ export declare const resolvers: {
                 serial_number: string;
                 warranty_expiry: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
                 barcode: string | null;
                 nfc_tag: string | null;
@@ -608,6 +614,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -1123,7 +1132,6 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
-            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1136,6 +1144,7 @@ export declare const resolvers: {
             serial_number: string;
             warranty_expiry: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
             barcode: string | null;
             nfc_tag: string | null;
@@ -1172,7 +1181,6 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
-            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1185,6 +1193,7 @@ export declare const resolvers: {
             serial_number: string;
             warranty_expiry: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
             barcode: string | null;
             nfc_tag: string | null;
@@ -1223,7 +1232,6 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
-            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1236,6 +1244,7 @@ export declare const resolvers: {
             serial_number: string;
             warranty_expiry: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
             barcode: string | null;
             nfc_tag: string | null;
@@ -1296,7 +1305,6 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1309,6 +1317,7 @@ export declare const resolvers: {
                 serial_number: string;
                 warranty_expiry: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
                 barcode: string | null;
                 nfc_tag: string | null;
@@ -1344,6 +1353,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -1435,7 +1447,6 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1448,6 +1459,7 @@ export declare const resolvers: {
                 serial_number: string;
                 warranty_expiry: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
                 barcode: string | null;
                 nfc_tag: string | null;
@@ -1483,6 +1495,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -1576,7 +1591,6 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
-                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1589,6 +1603,7 @@ export declare const resolvers: {
                 serial_number: string;
                 warranty_expiry: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
                 barcode: string | null;
                 nfc_tag: string | null;
@@ -1624,6 +1639,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;

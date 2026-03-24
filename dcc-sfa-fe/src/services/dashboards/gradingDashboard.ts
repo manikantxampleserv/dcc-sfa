@@ -23,12 +23,23 @@ export interface GradingStats {
   }[];
 }
 
+export interface CategoryCondition {
+  id: number;
+  customer_category_id: number;
+  condition_type: string;
+  condition_operator: string;
+  threshold_value: string;
+  product_category_id: number | null;
+  condition_description: string | null;
+  is_active: string;
+}
+
 export interface PendingGradingRequest {
   id: number;
   customer_id: number;
-  current_category_id: number;
-  upcoming_category_id: number;
-  change_type: 'upgrade' | 'downgrade';
+  current_category_id: number | null;
+  upcoming_category_id: number | null;
+  change_type: 'upgrade' | 'downgrade' | 'no_change';
   status: 'P' | 'C' | 'R';
   action_taken: 'A' | 'R' | 'N';
   createdate: string;
@@ -39,6 +50,23 @@ export interface PendingGradingRequest {
     name: string;
     code: string;
   };
+  approver_users: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+  customer_category_grading_current_category: {
+    id: number;
+    category_name: string;
+    level: number;
+    customer_category_condition_customer_category: CategoryCondition[];
+  } | null;
+  customer_category_grading_upcoming_category: {
+    id: number;
+    category_name: string;
+    level: number;
+    customer_category_condition_customer_category: CategoryCondition[];
+  } | null;
 }
 
 export interface ProcessGradingPayload {
@@ -61,14 +89,13 @@ export const getGradingStats = async (): Promise<GradingStats> => {
 export const getPendingGradingRequests = async (params: {
   page?: number;
   limit?: number;
-  change_type?: 'all' | 'upgrade' | 'downgrade';
+  change_type?: 'all' | 'upgrade' | 'downgrade' | 'no_change';
   search?: string;
 }): Promise<ApiResponse<PendingGradingRequest[]>> => {
   const { change_type, search, ...restParams } = params;
   const queryParams: Record<string, any> = {
     ...restParams,
   };
-
   if (change_type && change_type !== 'all') {
     queryParams.change_type = change_type;
   }
@@ -76,8 +103,9 @@ export const getPendingGradingRequests = async (params: {
   if (search) {
     queryParams.search = search;
   }
+
   const response = await api.get<ApiResponse<PendingGradingRequest[]>>(
-    '/customerCategoryGrading/pending',
+    '/customerCategoryGrading',
     {
       params: queryParams,
     }

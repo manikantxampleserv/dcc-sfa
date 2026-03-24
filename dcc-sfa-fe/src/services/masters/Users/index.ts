@@ -27,6 +27,7 @@ interface User {
   sap_code?: string | null;
   joining_date?: string | null;
   reporting_to?: number | null;
+  platform?: string | null;
   profile_image?: string | null;
   last_login?: string | null;
   is_active: string;
@@ -75,6 +76,7 @@ interface ManageUserPayload {
   sap_code?: string;
   joining_date?: string;
   reporting_to?: number;
+  platform?: string;
   profile_image?: string;
   is_active?: string;
 }
@@ -90,8 +92,10 @@ interface UpdateUserPayload {
   phone_number?: string;
   address?: string;
   employee_id?: string;
+  sap_code?: string;
   joining_date?: string;
   reporting_to?: number;
+  platform?: string;
   profile_image?: string;
   is_active?: string;
 }

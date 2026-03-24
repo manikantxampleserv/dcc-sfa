@@ -77,6 +77,9 @@ const serializeCustomer = async (customer) => {
         updatedate: customer.updatedate || null,
         updatedby: customer.updatedby || null,
         log_inst: customer.log_inst,
+        city_id: customer.city_id || null,
+        district_id: customer.district_id || null,
+        region_id: customer.region_id || null,
         customer_zones: customer.customer_zones
             ? {
                 id: customer.customer_zones.id,
@@ -96,6 +99,27 @@ const serializeCustomer = async (customer) => {
                 estimated_time: customer.customer_routes.estimated_time || null,
                 route_type: customer.customer_routes.route_type || null,
                 outlet_group: customer.customer_routes.outlet_group || null,
+            }
+            : null,
+        customer_city: customer.customers_city
+            ? {
+                id: customer.customers_city.id,
+                name: customer.customers_city.name,
+                code: customer.customers_city.code,
+            }
+            : null,
+        customer_district: customer.customers_districts
+            ? {
+                id: customer.customers_districts.id,
+                name: customer.customers_districts.name,
+                code: customer.customers_districts.code,
+            }
+            : null,
+        customer_region: customer.customers_regions
+            ? {
+                id: customer.customers_regions.id,
+                name: customer.customers_regions.name,
+                code: customer.customers_regions.code,
             }
             : null,
         customer_users: customer.customer_users
@@ -167,6 +191,9 @@ const checkIfCustomerChanged = (existing, incoming) => {
         'salesperson_id',
         'nfc_tag_code',
         'is_active',
+        'city_id',
+        'district_id',
+        'region_id',
     ];
     let hasAnyChange = false;
     for (const field of fieldsToCompare) {
@@ -394,7 +421,6 @@ exports.customerController = {
             }
             const allowedFields = [
                 'name',
-                'depot_id',
                 'type',
                 'contact_person',
                 'phone_number',
@@ -411,31 +437,6 @@ exports.customerController = {
                 'is_active',
                 'log_inst',
             ];
-            // const validationErrors = [];
-            // for (let i = 0; i < customersData.length; i++) {
-            //   const customer = customersData[i];
-            //   if (!customer.name) {
-            //     validationErrors.push({
-            //       index: i,
-            //       customer: customer,
-            //       reason: 'Customer name is required',
-            //     });
-            //   }
-            //   // if (!customer.email && !customer.phone_number) {
-            //   //   validationErrors.push({
-            //   //     index: i,
-            //   //     customer: customer,
-            //   //     reason: 'Either email or phone_number is required',
-            //   //   });
-            //   // }
-            // }
-            // if (validationErrors.length > 0) {
-            //   return res.status(400).json({
-            //     success: false,
-            //     message: 'Validation failed',
-            //     errors: validationErrors,
-            //   });
-            // }
             const results = {
                 created: [],
                 updated: [],
@@ -476,28 +477,84 @@ exports.customerController = {
                             customerData.zone_id ||
                             customerData.zones_id;
                         const route_id = customerData.route_id;
+                        let final_depot_id = depot_id;
+                        if (!final_depot_id && route_id) {
+                            const route = await prisma_client_1.default.routes.findUnique({
+                                where: { id: route_id },
+                                select: { depot_id: true },
+                            });
+                            final_depot_id = route?.depot_id;
+                        }
                         const salesperson_id = customerData.salesperson_id;
                         const customer_type_id = customerData.customer_type_id;
                         const customer_channel_id = customerData.customer_channel_id;
-                        if (depot_id !== undefined && depot_id !== null) {
+                        // if (depot_id !== undefined && depot_id !== null) {
+                        //   const depotExists = await prisma.depots.findUnique({
+                        //     where: { id: depot_id },
+                        //     select: { id: true },
+                        //   });
+                        if (final_depot_id !== undefined && final_depot_id !== null) {
                             const depotExists = await prisma_client_1.default.depots.findUnique({
-                                where: { id: depot_id },
+                                where: { id: final_depot_id },
                                 select: { id: true },
                             });
                             if (!depotExists) {
                                 results.errors.push({
                                     customer: customerData,
-                                    reason: `Depot with ID ${depot_id} does not exist`,
+                                    reason: `Depot with ID ${final_depot_id} does not exist`,
                                 });
                                 continue;
                             }
                         }
-                        else if (depot_id === undefined || depot_id === null) {
+                        else if (final_depot_id === undefined ||
+                            final_depot_id === null) {
                             results.errors.push({
                                 customer: customerData,
                                 reason: 'Depot selection is required',
                             });
                             continue;
+                        }
+                        if (customerData.city_id !== undefined &&
+                            customerData.city_id !== null) {
+                            const cityExists = await prisma_client_1.default.cities.findUnique({
+                                where: { id: customerData.city_id },
+                                select: { id: true },
+                            });
+                            if (!cityExists) {
+                                results.errors.push({
+                                    customer: customerData,
+                                    reason: `City with ID ${customerData.city_id} does not exist`,
+                                });
+                                continue;
+                            }
+                        }
+                        if (customerData.district_id !== undefined &&
+                            customerData.district_id !== null) {
+                            const districtExists = await prisma_client_1.default.districts.findUnique({
+                                where: { id: customerData.district_id },
+                                select: { id: true },
+                            });
+                            if (!districtExists) {
+                                results.errors.push({
+                                    customer: customerData,
+                                    reason: `District with ID ${customerData.district_id} does not exist`,
+                                });
+                                continue;
+                            }
+                        }
+                        if (customerData.region_id !== undefined &&
+                            customerData.region_id !== null) {
+                            const regionExists = await prisma_client_1.default.regions.findUnique({
+                                where: { id: customerData.region_id },
+                                select: { id: true },
+                            });
+                            if (!regionExists) {
+                                results.errors.push({
+                                    customer: customerData,
+                                    reason: `Region with ID ${customerData.region_id} does not exist`,
+                                });
+                                continue;
+                            }
                         }
                         const cleanData = {};
                         Object.keys(customerData).forEach(key => {
@@ -524,6 +581,9 @@ exports.customerController = {
                             }
                         }
                         let whereConditions = {};
+                        // if (final_depot_id && !cleanData.depot_id) {
+                        //   cleanData.depot_id = final_depot_id;
+                        // }
                         if (cleanData.email && cleanData.phone_number) {
                             whereConditions.OR = [
                                 { email: cleanData.email },
@@ -623,6 +683,65 @@ exports.customerController = {
                                     }
                                 }
                             }
+                            if (customer_channel_id !== undefined) {
+                                if (customer_channel_id === null) {
+                                    updateData.customer_channel_customer = { disconnect: true };
+                                }
+                                else {
+                                    const channelExists = await prisma_client_1.default.customer_channel.findUnique({
+                                        where: { id: customer_channel_id },
+                                    });
+                                    if (channelExists) {
+                                        updateData.customer_channel_customer = {
+                                            connect: { id: customer_channel_id },
+                                        };
+                                    }
+                                }
+                            }
+                            if (final_depot_id !== undefined && final_depot_id !== null) {
+                                const depotExists = await prisma_client_1.default.depots.findUnique({
+                                    where: { id: final_depot_id },
+                                });
+                                if (depotExists) {
+                                    updateData.customer_depot = {
+                                        connect: { id: final_depot_id },
+                                    };
+                                }
+                            }
+                            if (customerData.city_id !== undefined &&
+                                customerData.city_id !== null) {
+                                const cityExists = await prisma_client_1.default.cities.findUnique({
+                                    where: { id: customerData.city_id },
+                                });
+                                if (cityExists) {
+                                    updateData.customers_city = {
+                                        connect: { id: customerData.city_id },
+                                    };
+                                }
+                            }
+                            if (customerData.district_id !== undefined &&
+                                customerData.district_id !== null) {
+                                const districtExists = await prisma_client_1.default.districts.findUnique({
+                                    where: { id: customerData.district_id },
+                                });
+                                if (districtExists) {
+                                    updateData.customers_districts = {
+                                        connect: { id: customerData.district_id },
+                                    };
+                                }
+                            }
+                            // ADD THIS: Region relationship handling
+                            if (customerData.region_id !== undefined &&
+                                customerData.region_id !== null) {
+                                const regionExists = await prisma_client_1.default.regions.findUnique({
+                                    where: { id: customerData.region_id },
+                                });
+                                if (regionExists) {
+                                    updateData.customers_regions = {
+                                        connect: { id: customerData.region_id },
+                                    };
+                                }
+                            }
                             await prisma_client_1.default.customers.update({
                                 where: { id: existingCustomer.id },
                                 data: updateData,
@@ -640,7 +759,7 @@ exports.customerController = {
                         }
                         else {
                             if (!cleanData.code) {
-                                let uniqueCode = await generateCustomerCode(depot_id);
+                                let uniqueCode = await generateCustomerCode(final_depot_id);
                                 let attempts = 0;
                                 const maxAttempts = 10;
                                 while (attempts < maxAttempts) {
@@ -670,6 +789,68 @@ exports.customerController = {
                                 });
                                 if (routeExists) {
                                     createData.customer_routes = { connect: { id: route_id } };
+                                }
+                            }
+                            if (route_id !== undefined && route_id !== null) {
+                                const routeExists = await prisma_client_1.default.routes.findUnique({
+                                    where: { id: route_id },
+                                });
+                                if (routeExists) {
+                                    createData.customer_routes = { connect: { id: route_id } };
+                                }
+                            }
+                            if (final_depot_id !== undefined && final_depot_id !== null) {
+                                const depotExists = await prisma_client_1.default.depots.findUnique({
+                                    where: { id: final_depot_id },
+                                });
+                                if (depotExists) {
+                                    createData.customer_depot = {
+                                        connect: { id: final_depot_id },
+                                    };
+                                }
+                            }
+                            if (final_depot_id !== undefined && final_depot_id !== null) {
+                                const depotExists = await prisma_client_1.default.depots.findUnique({
+                                    where: { id: final_depot_id },
+                                });
+                                if (depotExists) {
+                                    createData.customer_depot = {
+                                        connect: { id: final_depot_id },
+                                    };
+                                }
+                            }
+                            if (customerData.city_id !== undefined &&
+                                customerData.city_id !== null) {
+                                const cityExists = await prisma_client_1.default.cities.findUnique({
+                                    where: { id: customerData.city_id },
+                                });
+                                if (cityExists) {
+                                    createData.customers_city = {
+                                        connect: { id: customerData.city_id },
+                                    };
+                                }
+                            }
+                            // ADD THIS: District relationship handling
+                            if (customerData.district_id !== undefined &&
+                                customerData.district_id !== null) {
+                                const districtExists = await prisma_client_1.default.districts.findUnique({
+                                    where: { id: customerData.district_id },
+                                });
+                                if (districtExists) {
+                                    createData.customers_districts = {
+                                        connect: { id: customerData.district_id },
+                                    };
+                                }
+                            }
+                            if (customerData.region_id !== undefined &&
+                                customerData.region_id !== null) {
+                                const regionExists = await prisma_client_1.default.regions.findUnique({
+                                    where: { id: customerData.region_id },
+                                });
+                                if (regionExists) {
+                                    createData.customers_regions = {
+                                        connect: { id: customerData.region_id },
+                                    };
                                 }
                             }
                             if (salesperson_id !== undefined && salesperson_id !== null) {
@@ -915,7 +1096,7 @@ exports.customerController = {
     },
     async getAllCustomers(req, res) {
         try {
-            const { page, limit, search, type, salesperson_id, route_id, isActive } = req.query;
+            const { page, limit, search, type, salesperson_id, route_id, isActive, city_id, district_id, region_id, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -928,6 +1109,9 @@ exports.customerController = {
                         { phone_number: { contains: searchLower } },
                     ],
                 }),
+                ...(city_id && { city_id: Number(city_id) }),
+                ...(district_id && { district_id: Number(district_id) }),
+                ...(region_id && { region_id: Number(region_id) }),
                 ...(type && type !== 'All' && { type }),
                 ...(salesperson_id && {
                     salesperson_id: parseInt(salesperson_id, 10),
@@ -961,6 +1145,27 @@ exports.customerController = {
                     },
                     customer_users: true,
                     customer_depot: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_city: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_districts: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_regions: {
                         select: {
                             id: true,
                             name: true,
@@ -1076,6 +1281,27 @@ exports.customerController = {
                             id: true,
                             channel_name: true,
                             channel_code: true,
+                        },
+                    },
+                    customers_city: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_districts: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_regions: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
                         },
                     },
                     outlet_images_customers: {
