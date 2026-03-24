@@ -319,6 +319,7 @@ model asset_master {
   id                           Int                     @id(map: "PK__asset_ma__3213E83FB367A2E5") @default(autoincrement())
   asset_type_id                Int
   brand_id                     Int?
+  brand                        String?                 @db.VarChar(255)
   barcode                      String?
   nfc_tag                      String?
   name                         String                  @db.VarChar(255)

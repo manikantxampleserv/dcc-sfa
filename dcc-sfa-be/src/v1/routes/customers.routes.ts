@@ -24,6 +24,12 @@ router.post(
   validate,
   customerController.createCustomers
 );
+
+router.post(
+  '/customers/location-change-request',
+  authenticateToken,
+  customerController.createLocationChangeRequest
+);
 router.get(
   '/customers',
   authenticateToken,
