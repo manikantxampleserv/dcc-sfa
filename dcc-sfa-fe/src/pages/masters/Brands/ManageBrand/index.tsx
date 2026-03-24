@@ -1,7 +1,8 @@
-import { Box } from '@mui/material';
+import { Box, IconButton, Typography } from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import { useFormik } from 'formik';
 import { useCreateBrand, useUpdateBrand, type Brand } from 'hooks/useBrands';
-import React from 'react';
+import React, { useState } from 'react';
 import { brandValidationSchema } from 'schemas/brand.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
@@ -22,16 +23,31 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
   drawerOpen,
   setDrawerOpen,
 }) => {
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const isEdit = !!selectedBrand;
 
   const handleCancel = () => {
     setSelectedBrand(null);
     setDrawerOpen(false);
+    setUploadedFile(null);
     formik.resetForm();
   };
 
   const createBrandMutation = useCreateBrand();
   const updateBrandMutation = useUpdateBrand();
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      formik.setFieldValue('logo', file);
+    }
+  };
+
+  const removeUploadedFile = () => {
+    setUploadedFile(null);
+    formik.setFieldValue('logo', null);
+  };
 
   const formik = useFormik({
     initialValues: {
@@ -39,25 +55,29 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
       description: selectedBrand?.description || '',
       is_active: selectedBrand?.is_active || 'Y',
       is_asset_brand: selectedBrand?.is_asset_brand || 'N',
+      logo: null,
     },
     validationSchema: brandValidationSchema,
     enableReinitialize: true,
     onSubmit: async values => {
       try {
-        const brandData = {
-          name: values.name,
-          description: values.description,
-          is_active: values.is_active,
-          is_asset_brand: values.is_asset_brand,
-        };
+        const formData = new FormData();
+        formData.append('name', values.name);
+        formData.append('description', values.description || '');
+        formData.append('is_active', values.is_active);
+        formData.append('is_asset_brand', values.is_asset_brand);
+
+        if (uploadedFile) {
+          formData.append('logo', uploadedFile);
+        }
 
         if (isEdit && selectedBrand) {
           await updateBrandMutation.mutateAsync({
             id: selectedBrand.id,
-            data: brandData,
+            data: formData,
           });
         } else {
-          await createBrandMutation.mutateAsync(brandData);
+          await createBrandMutation.mutateAsync(formData);
         }
 
         handleCancel();
@@ -85,6 +105,54 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
                 formik={formik}
                 required
               />
+            </Box>
+
+            <Box className="md:!col-span-2">
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer flex flex-col items-center gap-2 hover:bg-gray-50"
+                onClick={() => document.getElementById('logo-upload')?.click()}
+              >
+                <input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleFileUpload}
+                />
+                {uploadedFile ? (
+                  <div className="flex items-center gap-2">
+                    <Typography variant="body2">{uploadedFile.name}</Typography>
+                    <IconButton
+                      size="small"
+                      onClick={e => {
+                        e.stopPropagation();
+                        removeUploadedFile();
+                      }}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </div>
+                ) : (
+                  <>
+                    <Button variant="contained" component="span">
+                      Upload Logo
+                    </Button>
+                    <Typography variant="body2" color="text.secondary">
+                      JPG, PNG or GIF. Max size of 5MB
+                    </Typography>
+                    {selectedBrand?.logo && (
+                      <Typography variant="caption" color="text.secondary">
+                        Current: {selectedBrand.logo.split('/').pop()}
+                      </Typography>
+                    )}
+                  </>
+                )}
+              </div>
+              {formik.touched.logo && formik.errors.logo && (
+                <Typography variant="caption" color="error" className="!mt-1">
+                  {formik.errors.logo}
+                </Typography>
+              )}
             </Box>
 
             <Box className="grid grid-cols-2 col-span-2">

@@ -551,11 +551,11 @@ const InventoryDetail: React.FC = () => {
                       >
                         {product.product_name?.charAt(0) || 'P'}
                       </Avatar>
-                      <div>
+                      <div className="flex flex-col">
                         <h3 className="font-semibold text-gray-900 text-sm">
                           {product.product_name || 'Unknown Product'}
                         </h3>
-                        <p className="text-xs text-gray-500 truncate text-ellipsis w-[90%]">
+                        <p className="text-xs text-gray-500 truncate text-ellipsis">
                           {product.product_code || 'N/A'}
                         </p>
                       </div>

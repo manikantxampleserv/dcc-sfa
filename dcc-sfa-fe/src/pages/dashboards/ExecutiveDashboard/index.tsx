@@ -805,6 +805,25 @@ const ExecutiveDashboard: React.FC = () => {
                     }
                   }
 
+                  // Fallback for types that might not have reference_details populated yet
+                  if (
+                    (!request.reference_details ||
+                      Object.keys(request.reference_details).length === 0) &&
+                    request.request_data
+                  ) {
+                    try {
+                      const data = JSON.parse(request.request_data);
+                      if (request.request_type === 'CUSTOMER_CREATION') {
+                        referenceNumber =
+                          data.customer_data?.code || `NEW-CUST-${request.id}`;
+                      } else if (request.request_type === 'LOCATION_RESET') {
+                        referenceNumber = `LOC-${request.reference_id || request.id}`;
+                      }
+                    } catch (e) {
+                      console.error('Error parsing request data:', e);
+                    }
+                  }
+
                   const approvalStatus =
                     request.approvals?.[0]?.status || request.status;
 
@@ -843,6 +862,24 @@ const ExecutiveDashboard: React.FC = () => {
                             {' '}
                             for asset movement{' '}
                             <span className="font-semibold text-green-600">
+                              {referenceNumber}
+                            </span>
+                          </>
+                        )}
+                        {request.request_type === 'CUSTOMER_CREATION' && (
+                          <>
+                            {' '}
+                            for new customer{' '}
+                            <span className="font-semibold text-purple-600">
+                              {referenceNumber}
+                            </span>
+                          </>
+                        )}
+                        {request.request_type === 'LOCATION_RESET' && (
+                          <>
+                            {' '}
+                            for relocation{' '}
+                            <span className="font-semibold text-orange-600">
                               {referenceNumber}
                             </span>
                           </>

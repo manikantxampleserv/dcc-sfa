@@ -113,7 +113,9 @@ export const brandsController = {
         }),
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
-        ...(isAssetBrand === 'N' && { is_asset_brand: 'N' }),
+        ...(isAssetBrand === 'N' && {
+          OR: [{ is_asset_brand: 'N' }, { is_asset_brand: null }],
+        }),
         ...(isAssetBrand === 'Y' && { is_asset_brand: 'Y' }),
       };
 

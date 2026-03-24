@@ -195,7 +195,7 @@ const OutletsManagement: React.FC = () => {
             </Typography>
             <Typography
               variant="caption"
-              className="!text-gray-500 !text-xs !block !mt-0.5"
+              className="!text-gray-400 !text-xs !block !mt-0.5"
             >
               {row.code}
             </Typography>
@@ -204,53 +204,61 @@ const OutletsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'customer_type.type_name',
+      id: 'customer_type',
       label: 'Outlet Type',
-      render: (_value, row) => (
-        <Chip
-          icon={getBusinessTypeIcon(row.customer_type?.type_name || '')}
-          label={row.customer_type?.type_name || 'N/A'}
-          size="small"
-          variant="outlined"
-          className="!capitalize !px-1"
-          color={getBusinessTypeChipColor(row.customer_type?.type_name || '')}
-        />
-      ),
+      render: value =>
+        value ? (
+          <Chip
+            icon={getBusinessTypeIcon(value?.type_name || '')}
+            label={value?.type_name || 'N/A'}
+            size="small"
+            variant="outlined"
+            className="!capitalize !px-1"
+            color={getBusinessTypeChipColor(value?.type_name || '')}
+          />
+        ) : (
+          <span className="italic text-gray-400 text-xs">No Outlet Type</span>
+        ),
     },
 
     {
-      id: 'customer_channel.channel_name',
+      id: 'customer_channel',
       label: 'Outlet Channel',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.customer_channel?.channel_name || 'N/A'}
-        </Typography>
-      ),
+      render: value =>
+        value ? (
+          <Typography variant="body2" className="!text-gray-700">
+            {value?.channel_name || 'N/A'}
+          </Typography>
+        ) : (
+          <span className="italic text-gray-400 text-xs">
+            No Outlet Channel
+          </span>
+        ),
     },
     {
-      id: 'customer_category.category_name',
+      id: 'customer_category',
       label: 'Category',
-      render: (_value, row) => (
-        <Chip
-          label={row.customer_category?.category_name || 'Unassigned'}
-          size="small"
-          variant="filled"
-          className="!font-medium"
-          sx={{
-            backgroundColor: row.customer_category ? 'primary.50' : 'grey.100',
-            color: row.customer_category ? 'primary.700' : 'grey.600',
-            border: 'none',
-          }}
-        />
-      ),
+      render: value =>
+        value ? (
+          <Chip
+            label={value?.category_name || 'Unassigned'}
+            size="small"
+            variant="filled"
+            className="!font-medium"
+          />
+        ) : (
+          <span className="italic text-gray-400 text-xs">
+            No Outlet Category
+          </span>
+        ),
     },
     {
       id: 'email',
       label: 'Email',
-      render: (_value, row) => (
+      render: value => (
         <Typography variant="body2" className="!text-gray-700">
-          {row.email || (
-            <span className="!text-gray-500 !text-xs italic">No Email</span>
+          {value || (
+            <span className="!text-gray-400 !text-xs italic">No Email</span>
           )}
         </Typography>
       ),
@@ -264,8 +272,11 @@ const OutletsManagement: React.FC = () => {
             <MapPin className="w-4 h-4 text-gray-400 mr-2" />
             {row.city_detail?.name ||
               row.district?.name ||
-              row.region?.name ||
-              'N/A'}
+              row.region?.name || (
+                <span className="!text-gray-400 !text-xs italic">
+                  No Location
+                </span>
+              )}
           </Box>
         </Box>
       ),
@@ -276,7 +287,7 @@ const OutletsManagement: React.FC = () => {
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
           {row.customer_routes?.name || (
-            <span className="!text-gray-500 !text-xs italic">No Route</span>
+            <span className="!text-gray-400 !text-xs italic">No Route</span>
           )}
         </Typography>
       ),
@@ -287,7 +298,7 @@ const OutletsManagement: React.FC = () => {
       render: (_value, row) => (
         <Typography variant="body2" className="!text-gray-700">
           {row.customer_users?.name || (
-            <span className="!text-gray-500 !text-xs italic">
+            <span className="!text-gray-400 !text-xs italic">
               No Salesperson
             </span>
           )}
@@ -361,13 +372,13 @@ const OutletsManagement: React.FC = () => {
           <p className="!font-bold text-xl !text-gray-900">
             Outlets Management
           </p>
-          <p className="!text-gray-500 text-sm">
+          <p className="!text-gray-400 text-sm">
             Manage customer outlets, distributors, retailers, and wholesalers
           </p>
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Outlets"
           value={totalCustomers}

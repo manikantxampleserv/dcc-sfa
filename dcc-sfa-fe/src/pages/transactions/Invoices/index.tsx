@@ -409,8 +409,8 @@ const InvoicesManagement: React.FC = () => {
         columns={invoiceColumns}
         actions={
           isRead || isCreate ? (
-            <div className="flex justify-between gap-3 items-center flex-wrap">
-              <div className="flex flex-wrap items-center gap-3">
+            <div className="flex justify-between w-full gap-3 items-center flex-wrap">
+              <div className="flex flex-wrap justify-between items-center gap-3">
                 {isRead && (
                   <>
                     <SearchInput

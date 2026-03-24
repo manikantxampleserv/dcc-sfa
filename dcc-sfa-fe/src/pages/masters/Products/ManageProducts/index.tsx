@@ -91,27 +91,42 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
 
-  const { data: subCategoriesResponse } = useProductSubCategories({
-    limit: 1000,
-    status: 'active',
-  });
+  const { data: subCategoriesResponse } = useProductSubCategories(
+    {
+      limit: 1000,
+      status: 'active',
+    },
+    { enabled: drawerOpen }
+  );
 
-  const { data: brandsResponse } = useBrands({ limit: 1000, status: 'active' });
+  const { data: brandsResponse } = useBrands(
+    { limit: 1000, status: 'active', is_asset_brand: 'N' },
+    { enabled: drawerOpen }
+  );
 
-  const { data: unitsResponse } = useUnitOfMeasurement({
-    limit: 1000,
-    status: 'active',
-  });
+  const { data: unitsResponse } = useUnitOfMeasurement(
+    {
+      limit: 1000,
+      status: 'active',
+    },
+    { enabled: drawerOpen }
+  );
 
-  const { data: routeTypesResponse } = useRouteTypes({
-    limit: 1000,
-    status: 'active',
-  });
+  const { data: routeTypesResponse } = useRouteTypes(
+    {
+      limit: 1000,
+      status: 'active',
+    },
+    { enabled: drawerOpen }
+  );
 
-  const { data: taxMastersResponse } = useTaxMasters({
-    limit: 1000,
-    isActive: 'Y',
-  });
+  const { data: taxMastersResponse } = useTaxMasters(
+    {
+      limit: 1000,
+      isActive: 'Y',
+    },
+    { enabled: drawerOpen }
+  );
 
   const subCategories = subCategoriesResponse?.data || [];
   const brands = brandsResponse?.data || [];
@@ -122,31 +137,37 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   const { data: productTypesResponse } = useQuery({
     queryKey: ['product-types-dropdown'],
     queryFn: () => fetchProductTypesDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productTargetGroupsResponse } = useQuery({
     queryKey: ['product-target-groups-dropdown'],
     queryFn: () => fetchProductTargetGroupsDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productWebOrdersResponse } = useQuery({
     queryKey: ['product-web-orders-dropdown'],
     queryFn: () => fetchProductWebOrdersDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productVolumesResponse } = useQuery({
     queryKey: ['product-volumes-dropdown'],
     queryFn: () => fetchProductVolumesDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productFlavoursResponse } = useQuery({
     queryKey: ['product-flavours-dropdown'],
     queryFn: () => fetchProductFlavoursDropdown(),
+    enabled: drawerOpen,
   });
 
   const { data: productShelfLifeResponse } = useQuery({
     queryKey: ['product-shelf-life-dropdown'],
     queryFn: () => fetchProductShelfLifeDropdown(),
+    enabled: drawerOpen,
   });
 
   const productTypes = productTypesResponse?.data || [];

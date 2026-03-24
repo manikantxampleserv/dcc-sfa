@@ -113,7 +113,7 @@ const OutletDetail: React.FC = () => {
         </Box>
 
         {/* Info Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {[1, 2, 3, 4].map(index => (
             <div
               key={index}
@@ -787,7 +787,7 @@ const OutletDetail: React.FC = () => {
       </Box>
 
       {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         {/* Customer Type Card */}
         <StatsCard
           title="Customer Type"

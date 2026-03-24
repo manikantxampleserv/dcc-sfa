@@ -253,7 +253,7 @@ const PriceListsManagement: React.FC = () => {
         </Box>
       </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatsCard
           title="Total Price Lists"
           value={totalPriceLists}

@@ -287,7 +287,7 @@ const ApprovalSetup: React.FC = () => {
         columns={columns}
         actions={
           isRead || isCreate ? (
-            <div className="flex justify-between gap-3 items-center flex-wrap">
+            <div className="flex justify-between w-full gap-3 items-center flex-wrap">
               <div className="flex flex-wrap items-center gap-3">
                 {isRead && (
                   <>

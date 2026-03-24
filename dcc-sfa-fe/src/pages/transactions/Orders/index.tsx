@@ -181,7 +181,10 @@ const OrdersManagement: React.FC = () => {
       id: 'order_number',
       label: 'Order Info',
       render: (_value, row) => (
-        <Box className="!flex !gap-2 !items-center">
+        <Box
+          className="!flex !gap-2 !items-center"
+          onClick={() => navigate(`/transactions/orders/${row.id}`)}
+        >
           <Avatar
             alt={row.order_number}
             className="!rounded !bg-primary-100 !text-primary-500"
@@ -192,7 +195,6 @@ const OrdersManagement: React.FC = () => {
             <Typography
               variant="body1"
               className="!text-gray-900 !leading-tight !cursor-pointer !hover:!text-primary-600 !transition-colors"
-              onClick={() => navigate(`/transactions/orders/${row.id}`)}
             >
               {row.order_number}
             </Typography>
@@ -453,7 +455,7 @@ const OrdersManagement: React.FC = () => {
         columns={orderColumns}
         actions={
           isRead || isCreate ? (
-            <div className="flex justify-between gap-3 items-center flex-wrap">
+            <div className="flex justify-between gap-3 items-center flex-wrap w-full">
               <div className="flex flex-wrap items-center gap-3">
                 {isRead && (
                   <>

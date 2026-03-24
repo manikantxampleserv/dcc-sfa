@@ -50,20 +50,32 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
   const createCustomerMutation = useCreateCustomer();
   const updateCustomerMutation = useUpdateCustomer();
 
-  const { data: customerTypesResponse } = useCustomerTypes({
-    limit: 1000,
-    is_active: 'Y',
-  });
-  const { data: customerChannelsResponse } = useCustomerChannels({
-    limit: 1000,
-    is_active: 'Y',
-  });
-  const { data: customerCategoriesResponse } = useCustomerCategories({
-    limit: 1000,
-    is_active: 'Y',
-  });
+  const { data: customerTypesResponse } = useCustomerTypes(
+    {
+      limit: 1000,
+      is_active: 'Y',
+    },
+    { enabled: drawerOpen }
+  );
+  const { data: customerChannelsResponse } = useCustomerChannels(
+    {
+      limit: 1000,
+      is_active: 'Y',
+    },
+    { enabled: drawerOpen }
+  );
+  const { data: customerCategoriesResponse } = useCustomerCategories(
+    {
+      limit: 1000,
+      is_active: 'Y',
+    },
+    { enabled: drawerOpen }
+  );
 
-  const { data: regionsResponse } = useRegions({ limit: 1000, is_active: 'Y' });
+  const { data: regionsResponse } = useRegions(
+    { limit: 1000, is_active: 'Y' },
+    { enabled: drawerOpen }
+  );
   const regions = regionsResponse?.data || [];
 
   const customerTypes = customerTypesResponse?.data || [];
@@ -167,7 +179,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
         limit: 1000,
         is_active: 'Y',
       },
-      { enabled: !!formik.values.region_id }
+      { enabled: drawerOpen && !!formik.values.region_id }
     );
   const districts = districtsResponse?.data || [];
 
@@ -179,7 +191,7 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
       limit: 1000,
       is_active: 'Y',
     },
-    { enabled: !!formik.values.district_id }
+    { enabled: drawerOpen && !!formik.values.district_id }
   );
   const cities = citiesResponse?.data || [];
 
