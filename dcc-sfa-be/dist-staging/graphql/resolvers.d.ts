@@ -58,6 +58,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -139,6 +140,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -234,6 +236,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -400,6 +403,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -566,6 +570,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1132,6 +1137,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1181,6 +1187,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1232,6 +1239,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1305,6 +1313,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1447,6 +1456,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1591,6 +1601,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;

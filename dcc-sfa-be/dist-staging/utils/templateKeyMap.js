@@ -16,6 +16,12 @@ const templateKeyMap = {
     systemNotificationSetupCreated: 'system_notification_created',
     systemNotificationSetupUpdated: 'system_notification_updated',
     systemNotificationSetupDeleted: 'system_notification_deleted',
+    locationResetNotifyApprover: 'location_reset_notify_approver',
+    locationResetApproved: 'location_reset_approved',
+    locationResetRejected: 'location_reset_rejected',
+    customerCreationNotifyApprover: 'customerCreationNotifyApprover',
+    customerCreationApproved: 'customerCreationApproved',
+    customerCreationRejected: 'customerCreationRejected',
 };
 exports.default = templateKeyMap;
 //# sourceMappingURL=templateKeyMap.js.map

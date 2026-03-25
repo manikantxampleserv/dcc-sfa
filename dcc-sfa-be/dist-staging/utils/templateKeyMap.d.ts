@@ -14,6 +14,12 @@ declare const templateKeyMap: {
     systemNotificationSetupCreated: string;
     systemNotificationSetupUpdated: string;
     systemNotificationSetupDeleted: string;
+    locationResetNotifyApprover: string;
+    locationResetApproved: string;
+    locationResetRejected: string;
+    customerCreationNotifyApprover: string;
+    customerCreationApproved: string;
+    customerCreationRejected: string;
 };
 export default templateKeyMap;
 //# sourceMappingURL=templateKeyMap.d.ts.map

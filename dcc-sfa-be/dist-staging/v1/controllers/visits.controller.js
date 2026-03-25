@@ -38,14 +38,39 @@ function serializeVisit(visit) {
         updatedate: visit.updatedate,
         updatedby: visit.updatedby,
         log_inst: visit.log_inst,
+        invoices: visit.invoices || [],
+        visit_attachments: visit.visit_attachments || [],
+        // images: {
+        //   self: visit.self_image ? visit.self_image.split(',').filter(Boolean) : [],
+        //   customer: visit.customer_image
+        //     ? visit.customer_image.split(',').filter(Boolean)
+        //     : [],
+        //   cooler: visit.cooler_image
+        //     ? visit.cooler_image.split(',').filter(Boolean)
+        //     : [],
+        // },
         images: {
-            self: visit.self_image ? visit.self_image.split(',').filter(Boolean) : [],
-            customer: visit.customer_image
-                ? visit.customer_image.split(',').filter(Boolean)
-                : [],
-            cooler: visit.cooler_image
-                ? visit.cooler_image.split(',').filter(Boolean)
-                : [],
+            self: visit.visit_attachments
+                ? visit.visit_attachments
+                    .filter((att) => att.file_type === 'self_image')
+                    .map((att) => att.file_url)
+                : visit.self_image
+                    ? visit.self_image.split(',').filter(Boolean)
+                    : [],
+            customer: visit.visit_attachments
+                ? visit.visit_attachments
+                    .filter((att) => att.file_type === 'customer_image')
+                    .map((att) => att.file_url)
+                : visit.customer_image
+                    ? visit.customer_image.split(',').filter(Boolean)
+                    : [],
+            cooler: visit.visit_attachments
+                ? visit.visit_attachments
+                    .filter((att) => att.file_type === 'cooler_image')
+                    .map((att) => att.file_url)
+                : visit.cooler_image
+                    ? visit.cooler_image.split(',').filter(Boolean)
+                    : [],
         },
         customer: visit.visit_customers
             ? {
@@ -218,6 +243,19 @@ const deleteOldImages = async (imageUrls) => {
         console.error('Error deleting old images:', error);
     }
 };
+async function generateInvoiceNumberInTransaction(tx) {
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const prefix = `INV-${today}`;
+    const existingCount = await tx.invoices.count({
+        where: {
+            invoice_number: {
+                startsWith: prefix,
+            },
+        },
+    });
+    const sequence = (existingCount + 1).toString().padStart(4, '0');
+    return `${prefix}-${sequence}`;
+}
 exports.visitsController = {
     async createVisits(req, res) {
         try {
@@ -352,7 +390,7 @@ exports.visitsController = {
     //     const organizedFiles = (req as any).organizedFiles || {};
     //     console.log(`\n Starting bulk upsert for ${dataArray.length} visit(s)`);
     //     console.log(
-    //       `📎 Files received: ${Object.keys(organizedFiles).length > 0 ? Object.keys(organizedFiles).join(', ') : 'None'}`
+    //       ` Files received: ${Object.keys(organizedFiles).length > 0 ? Object.keys(organizedFiles).join(', ') : 'None'}`
     //     );
     //     const results = {
     //       created: [] as any[],
@@ -501,15 +539,6 @@ exports.visitsController = {
     //           ...(visit.next_visit_date && {
     //             next_visit_date: new Date(visit.next_visit_date),
     //           }),
-    //           ...(selfImageUrls.length > 0 && {
-    //             self_image: selfImageUrls.join(','),
-    //           }),
-    //           ...(customerImageUrls.length > 0 && {
-    //             customer_image: customerImageUrls.join(','),
-    //           }),
-    //           ...(coolerImageUrls.length > 0 && {
-    //             cooler_image: coolerImageUrls.join(','),
-    //           }),
     //           is_active: visit.is_active || 'Y',
     //         };
     //         console.log(
@@ -520,17 +549,14 @@ exports.visitsController = {
     //         console.log(
     //           `Cooler inspections to process: ${cooler_inspections?.length || 0}`
     //         );
-    //         let oldSelfImages: string | null = null;
-    //         let oldCustomerImages: string | null = null;
-    //         let oldCoolerImages: string | null = null;
+    //         let oldSelfImages: string[] = [];
+    //         let oldCustomerImages: string[] = [];
+    //         let oldCoolerImages: string[] = [];
     //         if (isUpdate) {
     //           const existingVisit = await prisma.visits.findUnique({
     //             where: { id: visitIdToUpdate },
     //             select: {
     //               id: true,
-    //               self_image: true,
-    //               customer_image: true,
-    //               cooler_image: true,
     //             },
     //           });
     //           if (!existingVisit) {
@@ -541,9 +567,22 @@ exports.visitsController = {
     //             });
     //             continue;
     //           }
-    //           oldSelfImages = existingVisit.self_image;
-    //           oldCustomerImages = existingVisit.customer_image;
-    //           oldCoolerImages = existingVisit.cooler_image;
+    //           // Retrieve existing attachments
+    //           const existingAttachments = await prisma.visit_attachments.findMany(
+    //             {
+    //               where: { visit_id: visitIdToUpdate },
+    //               select: { id: true, file_url: true, file_type: true },
+    //             }
+    //           );
+    //           oldSelfImages = existingAttachments
+    //             .filter(att => att.file_type === 'self_image' && att.file_url)
+    //             .map(att => att.file_url!);
+    //           oldCustomerImages = existingAttachments
+    //             .filter(att => att.file_type === 'customer_image' && att.file_url)
+    //             .map(att => att.file_url!);
+    //           oldCoolerImages = existingAttachments
+    //             .filter(att => att.file_type === 'cooler_image' && att.file_url)
+    //             .map(att => att.file_url!);
     //         }
     //         try {
     //           const result = await prisma.$transaction(
@@ -573,6 +612,80 @@ exports.visitsController = {
     //                 });
     //               }
     //               const visitId = visitRecord.id;
+    //               // Handle image attachments - delete old ones and create new ones
+    //               if (isUpdate) {
+    //                 // Delete existing attachments if new images are uploaded
+    //                 if (selfImageUrls.length > 0) {
+    //                   await tx.visit_attachments.deleteMany({
+    //                     where: {
+    //                       visit_id: visitId,
+    //                       file_type: 'self_image',
+    //                     },
+    //                   });
+    //                 }
+    //                 if (customerImageUrls.length > 0) {
+    //                   await tx.visit_attachments.deleteMany({
+    //                     where: {
+    //                       visit_id: visitId,
+    //                       file_type: 'customer_image',
+    //                     },
+    //                   });
+    //                 }
+    //                 if (coolerImageUrls.length > 0) {
+    //                   await tx.visit_attachments.deleteMany({
+    //                     where: {
+    //                       visit_id: visitId,
+    //                       file_type: 'cooler_image',
+    //                     },
+    //                   });
+    //                 }
+    //               }
+    //               // Create new attachments
+    //               const attachmentData: any[] = [];
+    //               if (selfImageUrls.length > 0) {
+    //                 selfImageUrls.forEach((url, index) => {
+    //                   attachmentData.push({
+    //                     visit_id: visitId,
+    //                     file_name: `self_image_${index + 1}`,
+    //                     file_url: url,
+    //                     file_type: 'self_image',
+    //                     description: 'Self image captured during visit',
+    //                     createdby: visit.createdby || (req as any).user?.id || 1,
+    //                   });
+    //                 });
+    //               }
+    //               if (customerImageUrls.length > 0) {
+    //                 customerImageUrls.forEach((url, index) => {
+    //                   attachmentData.push({
+    //                     visit_id: visitId,
+    //                     file_name: `customer_image_${index + 1}`,
+    //                     file_url: url,
+    //                     file_type: 'customer_image',
+    //                     description: 'Customer image captured during visit',
+    //                     createdby: visit.createdby || (req as any).user?.id || 1,
+    //                   });
+    //                 });
+    //               }
+    //               if (coolerImageUrls.length > 0) {
+    //                 coolerImageUrls.forEach((url, index) => {
+    //                   attachmentData.push({
+    //                     visit_id: visitId,
+    //                     file_name: `cooler_image_${index + 1}`,
+    //                     file_url: url,
+    //                     file_type: 'cooler_image',
+    //                     description: 'Cooler image captured during visit',
+    //                     createdby: visit.createdby || (req as any).user?.id || 1,
+    //                   });
+    //                 });
+    //               }
+    //               if (attachmentData.length > 0) {
+    //                 await tx.visit_attachments.createMany({
+    //                   data: attachmentData,
+    //                 });
+    //                 console.log(
+    //                   `Created ${attachmentData.length} attachment records`
+    //                 );
+    //               }
     //               if (orders && orders.length > 0) {
     //                 console.log(`Processing ${orders.length} order(s)...`);
     //                 for (const orderData of orders) {
@@ -771,7 +884,7 @@ exports.visitsController = {
     //               }
     //               if (cooler_inspections && cooler_inspections.length > 0) {
     //                 console.log(
-    //                   `   ❄️  Processing ${cooler_inspections.length} cooler inspection(s)...`
+    //                   `    Processing ${cooler_inspections.length} cooler inspection(s)...`
     //                 );
     //                 for (const inspection of cooler_inspections) {
     //                   let coolerId = inspection.cooler?.id;
@@ -1027,11 +1140,15 @@ exports.visitsController = {
     //                   ),
     //                 })
     //               );
+    //               // Retrieve visit attachments
+    //               const relatedAttachments = await tx.visit_attachments.findMany({
+    //                 where: { visit_id: visitId },
+    //               });
     //               console.log(
     //                 ` Visit ${isUpdate ? 'updated' : 'created'} successfully (ID: ${visitId})`
     //               );
     //               console.log(
-    //                 `Orders: ${orderIds.length}, Payments: ${paymentIds.length}, Inspections: ${inspectionIds.length}, Surveys: ${surveyResponseIds.length}`
+    //                 `Orders: ${orderIds.length}, Payments: ${paymentIds.length}, Inspections: ${inspectionIds.length}, Surveys: ${surveyResponseIds.length}, Attachments: ${relatedAttachments.length}`
     //               );
     //               return {
     //                 ...visitWithBasicRelations,
@@ -1039,11 +1156,7 @@ exports.visitsController = {
     //                 payments: relatedPayments,
     //                 cooler_inspections: relatedInspections,
     //                 survey_responses: surveyResponsesWithAnswers,
-    //                 images: {
-    //                   self: selfImageUrls,
-    //                   customer: customerImageUrls,
-    //                   cooler: coolerImageUrls,
-    //                 },
+    //                 visit_attachments: relatedAttachments,
     //               };
     //             },
     //             {
@@ -1052,23 +1165,32 @@ exports.visitsController = {
     //             }
     //           );
     //           if (isUpdate) {
-    //             if (selfImageUrls.length > 0 && oldSelfImages) {
+    //             if (selfImageUrls.length > 0 && oldSelfImages.length > 0) {
     //               console.log(`  Deleting old self images`);
-    //               await deleteOldImages(oldSelfImages).catch(err =>
-    //                 console.error('Failed to delete old self images:', err)
-    //               );
+    //               for (const oldImage of oldSelfImages) {
+    //                 await deleteOldImages(oldImage).catch(err =>
+    //                   console.error('Failed to delete old self image:', err)
+    //                 );
+    //               }
     //             }
-    //             if (customerImageUrls.length > 0 && oldCustomerImages) {
+    //             if (
+    //               customerImageUrls.length > 0 &&
+    //               oldCustomerImages.length > 0
+    //             ) {
     //               console.log(`Deleting old customer images`);
-    //               await deleteOldImages(oldCustomerImages).catch(err =>
-    //                 console.error('Failed to delete old customer images:', err)
-    //               );
+    //               for (const oldImage of oldCustomerImages) {
+    //                 await deleteOldImages(oldImage).catch(err =>
+    //                   console.error('Failed to delete old customer image:', err)
+    //                 );
+    //               }
     //             }
-    //             if (coolerImageUrls.length > 0 && oldCoolerImages) {
+    //             if (coolerImageUrls.length > 0 && oldCoolerImages.length > 0) {
     //               console.log(`Deleting old cooler images`);
-    //               await deleteOldImages(oldCoolerImages).catch(err =>
-    //                 console.error('Failed to delete old cooler images:', err)
-    //               );
+    //               for (const oldImage of oldCoolerImages) {
+    //                 await deleteOldImages(oldImage).catch(err =>
+    //                   console.error('Failed to delete old cooler image:', err)
+    //                 );
+    //               }
     //             }
     //           }
     //           if (isUpdate) {
@@ -1143,7 +1265,6 @@ exports.visitsController = {
     //     });
     //   }
     // },
-    //II
     async bulkUpsertVisits(req, res) {
         try {
             const inputData = req.body;
@@ -1194,6 +1315,7 @@ exports.visitsController = {
                         visit_id: item.visit_id,
                     },
                     orders: item.orders || [],
+                    invoices: item.invoices || [],
                     payments: item.payments || [],
                     cooler_inspections: item.cooler_inspections || [],
                     survey: item.survey,
@@ -1228,7 +1350,7 @@ exports.visitsController = {
             for (let index = 0; index < dataArray.length; index++) {
                 const data = dataArray[index];
                 try {
-                    const { visit, orders, payments, cooler_inspections, survey } = data;
+                    const { visit, invoices, orders, payments, cooler_inspections, survey, } = data;
                     if (!visit) {
                         results.failed.push({
                             visitIndex: index,
@@ -1349,7 +1471,7 @@ exports.visitsController = {
                     };
                     console.log(` Processing visit ${isUpdate ? 'update' : 'creation'} for customer ${visit.customer_id}`);
                     console.log(` Payments to process: ${payments?.length || 0}`);
-                    console.log(`Orders to process: ${orders?.length || 0}`);
+                    console.log(`Invoices to process: ${invoices?.length || 0}`);
                     console.log(`Cooler inspections to process: ${cooler_inspections?.length || 0}`);
                     let oldSelfImages = [];
                     let oldCustomerImages = [];
@@ -1369,7 +1491,6 @@ exports.visitsController = {
                             });
                             continue;
                         }
-                        // Retrieve existing attachments
                         const existingAttachments = await prisma_client_1.default.visit_attachments.findMany({
                             where: { visit_id: visitIdToUpdate },
                             select: { id: true, file_url: true, file_type: true },
@@ -1386,7 +1507,7 @@ exports.visitsController = {
                     }
                     try {
                         const result = await prisma_client_1.default.$transaction(async (tx) => {
-                            const orderIds = [];
+                            const invoiceIds = [];
                             const paymentIds = [];
                             const inspectionIds = [];
                             const surveyResponseIds = [];
@@ -1412,9 +1533,7 @@ exports.visitsController = {
                                 });
                             }
                             const visitId = visitRecord.id;
-                            // Handle image attachments - delete old ones and create new ones
                             if (isUpdate) {
-                                // Delete existing attachments if new images are uploaded
                                 if (selfImageUrls.length > 0) {
                                     await tx.visit_attachments.deleteMany({
                                         where: {
@@ -1440,7 +1559,6 @@ exports.visitsController = {
                                     });
                                 }
                             }
-                            // Create new attachments
                             const attachmentData = [];
                             if (selfImageUrls.length > 0) {
                                 selfImageUrls.forEach((url, index) => {
@@ -1484,54 +1602,76 @@ exports.visitsController = {
                                 });
                                 console.log(`Created ${attachmentData.length} attachment records`);
                             }
-                            if (orders && orders.length > 0) {
-                                console.log(`Processing ${orders.length} order(s)...`);
-                                for (const orderData of orders) {
-                                    const orderItems = orderData.items || [];
-                                    const processedOrderData = {
-                                        order_number: orderData.order_number ||
-                                            `ORD-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-                                        parent_id: visit.customer_id,
-                                        salesperson_id: visit.sales_person_id,
-                                        order_date: orderData.order_date
-                                            ? new Date(orderData.order_date)
+                            if (invoices && invoices.length > 0) {
+                                console.log(`Processing ${invoices.length} invoice(s)...`);
+                                for (const invoiceData of invoices) {
+                                    const invoiceItems = invoiceData.items || [];
+                                    const createdOrder = await tx.orders.create({
+                                        data: {
+                                            order_number: `ORD-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                                            parent_id: visit.customer_id,
+                                            salesperson_id: visit.sales_person_id,
+                                            order_date: new Date(),
+                                            status: 'completed',
+                                            total_amount: invoiceData.total_amount || 0,
+                                            createdate: new Date(),
+                                            createdby: visit.createdby || req.user?.id || 1,
+                                            log_inst: 1,
+                                        },
+                                    });
+                                    let invoiceNumber = invoiceData.invoice_number;
+                                    if (!invoiceNumber) {
+                                        invoiceNumber =
+                                            await generateInvoiceNumberInTransaction(tx);
+                                    }
+                                    else {
+                                        // Validate user-provided invoice number doesn't exist
+                                        const existingInvoice = await tx.invoices.findFirst({
+                                            where: { invoice_number: invoiceNumber },
+                                        });
+                                        if (existingInvoice) {
+                                            throw new Error(`Invoice number ${invoiceNumber} already exists`);
+                                        }
+                                    }
+                                    const processedInvoiceData = {
+                                        customer_id: visit.customer_id,
+                                        invoice_number: invoiceNumber,
+                                        parent_id: createdOrder.id,
+                                        invoice_date: invoiceData.invoice_date
+                                            ? new Date(invoiceData.invoice_date)
                                             : new Date(),
-                                        delivery_date: orderData.delivery_date
-                                            ? new Date(orderData.delivery_date)
+                                        due_date: invoiceData.due_date
+                                            ? new Date(invoiceData.due_date)
                                             : undefined,
-                                        status: orderData.status || 'draft',
-                                        priority: orderData.priority || 'medium',
-                                        order_type: orderData.order_type || 'regular',
-                                        payment_method: orderData.payment_method || 'credit',
-                                        payment_terms: orderData.payment_terms || 'Net 30',
-                                        subtotal: orderData.subtotal || 0,
-                                        discount_amount: orderData.discount_amount || 0,
-                                        tax_amount: orderData.tax_amount || 0,
-                                        shipping_amount: orderData.shipping_amount || 0,
-                                        total_amount: orderData.total_amount || 0,
-                                        notes: orderData.notes,
-                                        shipping_address: orderData.shipping_address,
-                                        approval_status: orderData.approval_status || 'pending',
-                                        approved_by: orderData.approved_by,
-                                        approved_at: orderData.approved_at
-                                            ? new Date(orderData.approved_at)
-                                            : undefined,
-                                        is_active: orderData.is_active || 'Y',
+                                        status: invoiceData.status || 'paid',
+                                        salesperson_id: invoiceData.salesperson_id || null,
+                                        payment_method: invoiceData.payment_method || 'cash',
+                                        subtotal: invoiceData.subtotal || 0,
+                                        discount_amount: invoiceData.discount_amount || 0,
+                                        tax_amount: invoiceData.tax_amount || 0,
+                                        shipping_amount: invoiceData.shipping_amount || 0,
+                                        total_amount: invoiceData.total_amount || 0,
+                                        amount_paid: invoiceData.amount_paid || 0,
+                                        balance_due: invoiceData.balance_due || 0,
+                                        notes: invoiceData.notes,
+                                        billing_address: invoiceData.billing_address,
+                                        is_active: invoiceData.is_active || 'Y',
+                                        currency_id: invoiceData.currency_id,
                                     };
-                                    let createdOrder = undefined;
-                                    if (orderData.order_id || orderData.id) {
-                                        const orderIdToUpdate = orderData.id || orderData.order_id;
-                                        createdOrder = await tx.orders.update({
-                                            where: { id: orderIdToUpdate },
+                                    let createdInvoice = undefined;
+                                    if (invoiceData.invoice_id || invoiceData.id) {
+                                        const invoiceIdToUpdate = invoiceData.id || invoiceData.invoice_id;
+                                        createdInvoice = await tx.invoices.update({
+                                            where: { id: invoiceIdToUpdate },
                                             data: {
-                                                ...processedOrderData,
+                                                ...processedInvoiceData,
                                                 updatedate: new Date(),
                                                 updatedby: req.user?.id || visit.createdby || 1,
                                             },
                                         });
-                                        orderIds.push(createdOrder.id);
-                                        if (orderItems.length > 0) {
-                                            for (const item of orderItems) {
+                                        invoiceIds.push(createdInvoice.id);
+                                        if (invoiceItems.length > 0) {
+                                            for (const item of invoiceItems) {
                                                 const itemData = {
                                                     product_id: item.product_id,
                                                     product_name: item.product_name,
@@ -1545,25 +1685,24 @@ exports.visitsController = {
                                                 };
                                                 if (item.item_id || item.id) {
                                                     const itemIdToUpdate = item.id || item.item_id;
-                                                    console.log(`Attempting to update order item ${itemIdToUpdate} for order ${createdOrder.id}`);
-                                                    // Check if item exists
-                                                    const existingItem = await tx.order_items.findFirst({
+                                                    console.log(`Attempting to update invoice item ${itemIdToUpdate} for invoice ${createdInvoice.id}`);
+                                                    const existingItem = await tx.invoice_items.findFirst({
                                                         where: { id: itemIdToUpdate },
                                                     });
-                                                    console.log(`Order item exists: ${!!existingItem}`);
+                                                    console.log(`Invoice item exists: ${!!existingItem}`);
                                                     if (existingItem) {
                                                         console.log(`Item details:`, existingItem);
                                                     }
-                                                    await tx.order_items.update({
+                                                    await tx.invoice_items.update({
                                                         where: { id: itemIdToUpdate },
                                                         data: itemData,
                                                     });
                                                 }
                                                 else {
-                                                    await tx.order_items.create({
+                                                    await tx.invoice_items.create({
                                                         data: {
                                                             ...itemData,
-                                                            parent_id: createdOrder.id,
+                                                            parent_id: createdInvoice.id,
                                                         },
                                                     });
                                                 }
@@ -1571,19 +1710,19 @@ exports.visitsController = {
                                         }
                                     }
                                     else {
-                                        createdOrder = await tx.orders.create({
+                                        createdInvoice = await tx.invoices.create({
                                             data: {
-                                                ...processedOrderData,
+                                                ...processedInvoiceData,
                                                 createdate: new Date(),
                                                 createdby: visit.createdby || req.user?.id || 1,
                                                 log_inst: 1,
                                             },
                                         });
-                                        orderIds.push(createdOrder.id);
-                                        if (orderItems.length > 0) {
-                                            await tx.order_items.createMany({
-                                                data: orderItems.map(item => ({
-                                                    parent_id: createdOrder.id,
+                                        invoiceIds.push(createdInvoice.id);
+                                        if (invoiceItems.length > 0) {
+                                            await tx.invoice_items.createMany({
+                                                data: invoiceItems.map(item => ({
+                                                    parent_id: createdInvoice.id,
                                                     product_id: item.product_id,
                                                     product_name: item.product_name,
                                                     unit: item.unit,
@@ -1597,8 +1736,8 @@ exports.visitsController = {
                                             });
                                         }
                                     }
-                                    if (createdOrder) {
-                                        console.log(`Order ${createdOrder.order_number} processed`);
+                                    if (createdInvoice) {
+                                        console.log(`Invoice ${createdInvoice.invoice_number} processed`);
                                     }
                                 }
                             }
@@ -1851,15 +1990,20 @@ exports.visitsController = {
                                     visits_salesperson: true,
                                     visit_routes: true,
                                     visit_zones: true,
+                                    visit_attachments: true,
                                 },
                             });
-                            const relatedOrders = orderIds.length > 0
-                                ? await tx.orders.findMany({
+                            const relatedInvoices = invoiceIds.length > 0
+                                ? await tx.invoices.findMany({
                                     where: {
-                                        id: { in: orderIds },
+                                        id: { in: invoiceIds },
                                     },
                                     include: {
-                                        order_items: true,
+                                        invoice_items: {
+                                            include: {
+                                                invoice_items_products: true,
+                                            },
+                                        },
                                     },
                                 })
                                 : [];
@@ -1903,10 +2047,10 @@ exports.visitsController = {
                                 where: { visit_id: visitId },
                             });
                             console.log(` Visit ${isUpdate ? 'updated' : 'created'} successfully (ID: ${visitId})`);
-                            console.log(`Orders: ${orderIds.length}, Payments: ${paymentIds.length}, Inspections: ${inspectionIds.length}, Surveys: ${surveyResponseIds.length}, Attachments: ${relatedAttachments.length}`);
+                            console.log(`Invoices: ${invoiceIds.length}, Payments: ${paymentIds.length}, Inspections: ${inspectionIds.length}, Surveys: ${surveyResponseIds.length}, Attachments: ${relatedAttachments.length}`);
                             return {
                                 ...visitWithBasicRelations,
-                                orders: relatedOrders,
+                                invoices: relatedInvoices,
                                 payments: relatedPayments,
                                 cooler_inspections: relatedInspections,
                                 survey_responses: surveyResponsesWithAnswers,
