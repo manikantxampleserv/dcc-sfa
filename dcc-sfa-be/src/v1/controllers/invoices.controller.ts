@@ -113,6 +113,13 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
     discount_amount: Number(item.discount_amount),
     tax_amount: Number(item.tax_amount),
     notes: item.notes,
+    tracking_type: item.tracking_type,
+    product_batches: item.product_batches
+      ? JSON.parse(item.product_batches)
+      : [],
+    product_serials: item.product_serials
+      ? JSON.parse(item.product_serials)
+      : [],
     product: item.invoice_items_products
       ? {
           id: item.invoice_items_products.id,
@@ -234,6 +241,13 @@ export const invoicesController = {
                   (Number(item.discount_amount) || 0) +
                   (Number(item.tax_amount) || 0),
                 notes: item.notes || null,
+                tracking_type: item.tracking_type || null,
+                product_batches: item.product_batches
+                  ? JSON.stringify(item.product_batches)
+                  : null,
+                product_serials: item.product_serials
+                  ? JSON.stringify(item.product_serials)
+                  : null,
               };
             }),
           });
@@ -764,6 +778,13 @@ export const invoicesController = {
             (Number(data.discount_amount) || 0) +
             (Number(data.tax_amount) || 0),
           notes: data.notes || null,
+          tracking_type: data.tracking_type || null,
+          product_batches: data.product_batches
+            ? JSON.stringify(data.product_batches)
+            : null,
+          product_serials: data.product_serials
+            ? JSON.stringify(data.product_serials)
+            : null,
         },
         include: {
           invoice_items_products: true,
@@ -841,6 +862,16 @@ export const invoicesController = {
                 (Number(data.tax_amount) || 0)
               : undefined,
           notes: data.notes !== undefined ? data.notes : undefined,
+          tracking_type:
+            data.tracking_type !== undefined ? data.tracking_type : undefined,
+          product_batches:
+            data.product_batches !== undefined
+              ? JSON.stringify(data.product_batches)
+              : undefined,
+          product_serials:
+            data.product_serials !== undefined
+              ? JSON.stringify(data.product_serials)
+              : undefined,
         },
         include: {
           invoice_items_products: true,
@@ -936,6 +967,13 @@ export const invoicesController = {
                     (Number(item.discount_amount) || 0) +
                     (Number(item.tax_amount) || 0),
                   notes: item.notes || null,
+                  tracking_type: item.tracking_type || null,
+                  product_batches: item.product_batches
+                    ? JSON.stringify(item.product_batches)
+                    : null,
+                  product_serials: item.product_serials
+                    ? JSON.stringify(item.product_serials)
+                    : null,
                 },
               });
               newInvoiceItems.push(invoiceItem);

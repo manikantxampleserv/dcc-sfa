@@ -40,7 +40,6 @@ const Input: React.FC<InputProps> = ({
     [name || '']: false,
   });
 
-  // FIXED: Use useCallback to memoize handlers
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const newValue = event.target.value;
@@ -53,7 +52,7 @@ const Input: React.FC<InputProps> = ({
       }
     },
     [formik, name, setValue, onChange]
-  ); // FIXED: Proper dependencies
+  );
 
   const handleDateChange = useCallback(
     (newValue: Dayjs | null) => {
@@ -84,21 +83,6 @@ const Input: React.FC<InputProps> = ({
     [formik, name, setValue]
   );
 
-  const handleDateBlur = useCallback(() => {
-    const syntheticEvent = {
-      target: {
-        name: name,
-        id: name,
-      },
-    } as React.FocusEvent<HTMLInputElement>;
-
-    if (formik?.handleBlur && name) {
-      formik.handleBlur(syntheticEvent);
-    } else if (onBlur) {
-      onBlur(syntheticEvent);
-    }
-  }, [formik, name, onBlur]);
-
   const handleDateTimeChange = useCallback(
     (newValue: Dayjs | null) => {
       const dateTimeValue = newValue ? newValue.format('YYYY-MM-DDTHH:mm') : '';
@@ -111,7 +95,6 @@ const Input: React.FC<InputProps> = ({
     [formik, name, setValue]
   );
 
-  // FIXED: Extract error state without watching entire formik
   const error = useMemo(() => {
     if (!formik || !name) return false;
     return formik.touched?.[name as string] && formik.errors?.[name as string];
@@ -123,12 +106,11 @@ const Input: React.FC<InputProps> = ({
 
   const errorMessage = typeof error === 'string' ? error : undefined;
 
-  // FIXED: Extract only the specific field value instead of watching entire formik object
   const currentValue = useMemo(() => {
     if (value !== undefined) return value;
     if (formik && name) return formik.values[name as string];
     return '';
-  }, [value, formik?.values[name as string], name]); // Only watch the specific field
+  }, [value, formik?.values[name as string], name]);
 
   const dateValue = useMemo(
     () =>
@@ -154,7 +136,6 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateChange}
-        onClose={handleDateBlur}
         views={['year']}
         format="YYYY"
         disabled={rest.disabled}
@@ -193,7 +174,6 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateChange}
-        onClose={handleDateBlur}
         format="DD/MM/YYYY"
         disabled={rest.disabled}
         slotProps={{
@@ -231,7 +211,6 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={timeValue}
         onChange={handleTimeChange}
-        onClose={handleDateBlur}
         disabled={rest.disabled}
         slotProps={{
           textField: {
@@ -263,7 +242,6 @@ const Input: React.FC<InputProps> = ({
         label={label}
         value={dateValue}
         onChange={handleDateTimeChange}
-        onClose={handleDateBlur}
         disabled={rest.disabled}
         slotProps={{
           textField: {

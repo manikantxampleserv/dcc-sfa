@@ -1,33 +1,63 @@
 import * as Yup from 'yup';
+import dayjs from 'dayjs';
 
 export const invoiceValidationSchema = Yup.object({
-  invoice_number: Yup.string()
-    .optional()
-    .max(50, 'Invoice number must not exceed 50 characters'),
+  invoice_method: Yup.string()
+    .required('Invoice method is required')
+    .oneOf(['order', 'direct'], 'Please select a valid invoice method'),
 
   parent_id: Yup.number()
-    .required('Order is required')
+    .when(['invoice_method'], (values: any[], schema: Yup.NumberSchema) => {
+      const [invoice_method] = values;
+      return invoice_method === 'order'
+        ? schema.required('Order is required when based on order')
+        : schema.optional();
+    })
     .positive('Order must be a positive number'),
 
   customer_id: Yup.number()
-    .required('Customer is required')
+    .when(['invoice_method'], (values: any[], schema: Yup.NumberSchema) => {
+      const [invoice_method] = values;
+      return invoice_method === 'direct'
+        ? schema.required('Customer is required when direct invoice')
+        : schema.optional();
+    })
     .positive('Customer must be a positive number'),
 
   currency_id: Yup.number()
     .optional()
     .positive('Currency must be a positive number'),
 
-  invoice_date: Yup.string().required('Invoice date is required'),
+  invoice_date: Yup.string()
+    .required('Invoice date is required')
+    .matches(
+      /^\d{2}\/\d{2}\/\d{4}$/,
+      'Invoice date must be in DD/MM/YYYY format'
+    )
+    .test('valid-date', 'Invoice date must be a valid date', function (value) {
+      if (!value) return false;
+      return dayjs(value, 'DD/MM/YYYY').isValid();
+    }),
 
   due_date: Yup.string()
     .optional()
+    .matches(/^\d{2}\/\d{2}\/\d{4}$/, 'Due date must be in DD/MM/YYYY format')
+    .test('valid-date', 'Due date must be a valid date', function (value) {
+      if (!value) return true; // Optional field
+      return dayjs(value, 'DD/MM/YYYY').isValid();
+    })
     .test(
       'due-date-after-invoice',
       'Due date must be after invoice date',
       function (value) {
         const { invoice_date } = this.parent;
         if (!value || !invoice_date) return true;
-        return new Date(value) >= new Date(invoice_date);
+        return (
+          dayjs(value, 'DD/MM/YYYY').isAfter(
+            dayjs(invoice_date, 'DD/MM/YYYY')
+          ) ||
+          dayjs(value, 'DD/MM/YYYY').isSame(dayjs(invoice_date, 'DD/MM/YYYY'))
+        );
       }
     ),
 

@@ -1,4 +1,6 @@
+import { Tag } from '@mui/icons-material';
 import { Box, MenuItem, Typography } from '@mui/material';
+import dayjs from 'dayjs';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
 import {
@@ -6,9 +8,17 @@ import {
   useInvoice,
   useUpdateInvoice,
 } from 'hooks/useInvoices';
-import { useOrders } from 'hooks/useOrders';
+import { useOrders, useOrder } from 'hooks/useOrders';
+import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
 import { Package, Plus } from 'lucide-react';
-import React, { useState, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
+import { toast } from 'react-toastify';
 import { invoiceValidationSchema } from 'schemas/invoice.schema';
 import type { Invoice } from 'services/masters/Invoices';
 import { DeleteButton } from 'shared/ActionButton';
@@ -19,6 +29,8 @@ import Input from 'shared/Input';
 import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
+import ManageInvoiceBatch from './ManageInvoiceBatch';
+import ManageInvoiceSerial from './ManageInvoiceSerial';
 
 interface ManageInvoiceProps {
   open: boolean;
@@ -26,11 +38,15 @@ interface ManageInvoiceProps {
   invoice?: Invoice | null;
 }
 
-interface InvoiceItemFormData {
+export interface InvoiceItemFormData {
   product_id: number | '';
+  product_name?: string;
+  tracking_type?: string | null;
   quantity: string;
   unit_price: string;
   notes: string;
+  product_batches?: ProductBatch[];
+  product_serials?: ProductSerial[];
 }
 
 const ManageInvoice: React.FC<ManageInvoiceProps> = ({
@@ -40,6 +56,9 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
 }) => {
   const isEdit = !!invoice;
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItemFormData[]>([]);
+  const [isBatchSelectorOpen, setIsBatchSelectorOpen] = useState(false);
+  const [isSerialSelectorOpen, setIsSerialSelectorOpen] = useState(false);
+  const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
   // Track the last loaded invoice ID to prevent unnecessary updates
   const lastLoadedInvoiceId = useRef<number | null>(null);
@@ -48,81 +67,104 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const { data: currenciesResponse } = useCurrencies({ limit: 1000 });
   const { data: invoiceResponse } = useInvoice(invoice?.id || 0);
 
-  const orders = ordersResponse?.data || [];
   const currencies = currenciesResponse?.data || [];
+  const orders = ordersResponse?.data || [];
+
+  const invoiceData = invoiceResponse?.data || invoice;
 
   const createInvoiceMutation = useCreateInvoice();
   const updateInvoiceMutation = useUpdateInvoice();
 
-  const handleCancel = () => {
-    onClose();
-    setInvoiceItems([]);
-    formik.resetForm();
-    (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
-      null;
-  };
+  const totals = React.useMemo(() => {
+    const subtotal = invoiceItems.reduce(
+      (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
+      0
+    );
 
-  // FIX: Simplified useEffect with proper tracking
-  useEffect(() => {
-    const currentInvoiceId = invoice?.id;
+    const totalAmount = subtotal;
+    const balanceDue = totalAmount;
 
-    // Only update if the invoice ID has actually changed
-    if (currentInvoiceId !== lastLoadedInvoiceId.current) {
-      if (invoice && invoiceResponse?.data) {
-        const items =
-          invoiceResponse.data.invoice_items?.map(item => ({
-            product_id: item.product_id,
-            quantity: item.quantity.toString(),
-            unit_price: item.unit_price.toString(),
-            notes: item.notes || '',
-          })) || [];
-        setInvoiceItems(items);
-        (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
-          currentInvoiceId ?? null;
-      } else if (!invoice) {
-        setInvoiceItems([]);
-        (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
-          null;
-      }
-    }
-  }, [invoice?.id, invoiceResponse?.data]); // Keep original dependencies but use ref for tracking
+    return {
+      subtotal,
+      total_amount: totalAmount,
+      balance_due: balanceDue,
+    };
+  }, [invoiceItems]);
 
   const formik = useFormik({
     initialValues: {
-      invoice_number: invoice?.invoice_number || '',
-      parent_id: invoice?.parent_id || '',
-      customer_id: invoice?.customer_id || '',
+      invoice_method: 'order',
+      parent_id: invoiceData?.parent_id || '',
+      customer_id: invoiceData?.customer_id || '',
       currency_id:
-        invoice?.currency_id ||
+        invoiceData?.currency_id ||
         (currencies.length > 0 ? currencies[0].id.toString() : ''),
-      invoice_date: invoice?.invoice_date
-        ? invoice.invoice_date.split('T')[0]
-        : '',
-      due_date: invoice?.due_date ? invoice.due_date.split('T')[0] : '',
-      status: invoice?.status || 'draft',
-      payment_method: invoice?.payment_method || 'credit',
-      subtotal: invoice?.subtotal || 0,
-      total_amount: invoice?.total_amount || 0,
-      balance_due: invoice?.balance_due || 0,
-      notes: invoice?.notes || '',
-      billing_address: invoice?.billing_address || '',
-      is_active: invoice?.is_active || 'Y',
+      invoice_date:
+        invoiceData?.invoice_date?.split('T')[0] ||
+        dayjs().format('DD/MM/YYYY'),
+      due_date: invoiceData?.due_date ? invoiceData.due_date.split('T')[0] : '',
+      status: invoiceData?.status || 'draft',
+      payment_method: invoiceData?.payment_method || 'credit',
+      subtotal: invoiceData?.subtotal || 0,
+      total_amount: invoiceData?.total_amount || 0,
+      balance_due: invoiceData?.balance_due || 0,
+      notes: invoiceData?.notes || '',
+      billing_address: invoiceData?.billing_address || '',
+      is_active: invoiceData?.is_active || 'Y',
       invoice_items: [],
     },
     validationSchema: invoiceValidationSchema,
     enableReinitialize: true,
     onSubmit: async values => {
       try {
+        if (invoiceItems?.length === 0) {
+          toast.error('Please add at least one item to the invoice.');
+          return;
+        }
+
+        // Validation for batches and serials
+        for (let i = 0; i < invoiceItems.length; i += 1) {
+          const item = invoiceItems[i];
+          const quantity = Number(item.quantity);
+          const trackingType = (item.tracking_type || '').toLowerCase();
+
+          if (trackingType === 'batch' && quantity > 0) {
+            const totalBatchQty = (item.product_batches || []).reduce(
+              (sum, b) => sum + (Number(b.quantity) || 0),
+              0
+            );
+            if (totalBatchQty !== quantity) {
+              toast.error(
+                `Item ${i + 1}: Batch quantity mismatch (${totalBatchQty}/${quantity}).`
+              );
+              return;
+            }
+          }
+
+          if (trackingType === 'serial' && quantity > 0) {
+            const selectedSerials = (item.product_serials || []).filter(
+              (s: any) => s.selected !== false
+            );
+            if (selectedSerials.length !== quantity) {
+              toast.error(
+                `Item ${i + 1}: Serial count mismatch (${selectedSerials.length}/${quantity}).`
+              );
+              return;
+            }
+          }
+        }
+
         const submitData = {
           ...values,
-          invoice_date: new Date(values.invoice_date).toISOString(),
+          invoice_date: dayjs(values.invoice_date, 'DD/MM/YYYY').toISOString(),
           parent_id: Number(values.parent_id),
+          invoice_method: values.invoice_method,
           customer_id: Number(values.customer_id),
           currency_id: values.currency_id
             ? Number(values.currency_id)
             : undefined,
           due_date: values.due_date
-            ? new Date(values.due_date).toISOString()
+            ? dayjs(values.due_date, 'DD/MM/YYYY').toISOString()
             : undefined,
           notes: values.notes,
           billing_address: values.billing_address,
@@ -136,6 +178,9 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               quantity: Number(item.quantity),
               unit_price: Number(item.unit_price),
               notes: item.notes,
+              tracking_type: item.tracking_type,
+              product_batches: item.product_batches,
+              product_serials: item.product_serials,
             })),
         };
 
@@ -154,12 +199,126 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     },
   });
 
+  const selectedOrderId = Number(formik.values.parent_id);
+  const { data: selectedOrderResponse } = useOrder(
+    formik.values.invoice_method === 'order' ? selectedOrderId : 0
+  );
+
+  const initialParentId = useRef<number | string | null>(
+    invoice?.parent_id || null
+  );
+
+  const formikSyncRef = useRef<string>('');
+  const invoiceItemsStr = useMemo(
+    () => JSON.stringify(invoiceItems),
+    [invoiceItems]
+  );
+
+  useEffect(() => {
+    if (!open) return;
+
+    const currentFormikStr = JSON.stringify(formik.values.invoice_items || []);
+
+    if (
+      invoiceItemsStr !== currentFormikStr &&
+      formikSyncRef.current !== invoiceItemsStr
+    ) {
+      formik.setFieldValue('invoice_items', invoiceItems, false);
+      formikSyncRef.current = invoiceItemsStr;
+    }
+  }, [open, invoiceItemsStr]);
+
+  const handleCancel = () => {
+    onClose();
+    setInvoiceItems([]);
+    formik.resetForm();
+    (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
+      null;
+    initialParentId.current = null;
+    setSelectedRowIndex(null);
+  };
+
+  useEffect(() => {
+    const currentInvoiceId = invoice?.id;
+
+    if (currentInvoiceId !== lastLoadedInvoiceId.current) {
+      if (invoice && invoiceResponse?.data) {
+        const items =
+          invoiceResponse.data.invoice_items?.map(item => ({
+            product_id: item.product_id,
+            product_name: item.product_name || '',
+            tracking_type: item.tracking_type || null,
+            quantity: item.quantity.toString(),
+            unit_price: item.unit_price.toString(),
+            notes: item.notes || '',
+            product_batches: item.product_batches || [],
+            product_serials: item.product_serials || [],
+          })) || [];
+        setInvoiceItems(items);
+        (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
+          currentInvoiceId ?? null;
+        initialParentId.current = invoice.parent_id;
+      } else if (!invoice) {
+        setInvoiceItems([]);
+        (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
+          null;
+        initialParentId.current = null;
+      }
+    }
+  }, [invoice?.id, invoiceResponse?.data]);
+
+  useEffect(() => {
+    if (
+      formik.values.invoice_method === 'order' &&
+      selectedOrderResponse?.data &&
+      (formik.values.parent_id !== initialParentId.current || !isEdit)
+    ) {
+      const order = selectedOrderResponse.data;
+
+      if (order.customer?.id) {
+        formik.setFieldValue('customer_id', order.customer.id);
+      }
+
+      if (order.currency_id) {
+        formik.setFieldValue('currency_id', order.currency_id.toString());
+      }
+
+      if (order.order_date) {
+        const orderDate = dayjs(order.order_date);
+        formik.setFieldValue('invoice_date', orderDate.format('DD/MM/YYYY'));
+      }
+
+      if (order.order_items && order.order_items.length > 0) {
+        const items = order.order_items.map(item => ({
+          product_id: item.product_id,
+          product_name: item.product_name || '',
+          tracking_type: item.tracking_type || null,
+          quantity: item.quantity.toString(),
+          unit_price: item.unit_price.toString(),
+          notes: item.notes || '',
+          product_batches: item.product_batches || [],
+          product_serials: item.product_serials || [],
+        }));
+        setInvoiceItems(items);
+      }
+    }
+  }, [
+    selectedOrderResponse?.data,
+    formik.values.invoice_method,
+    formik.values.parent_id,
+    isEdit,
+  ]);
+
   const addInvoiceItem = () => {
     const newItem: InvoiceItemFormData = {
       product_id: '',
+      product_name: '',
+      tracking_type: null,
       quantity: '1',
       unit_price: '0',
       notes: '',
+      product_batches: [],
+      product_serials: [],
     };
     const updatedItems = [...invoiceItems, newItem];
     setInvoiceItems(updatedItems);
@@ -184,6 +343,33 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     setInvoiceItems(updatedItems);
   };
 
+  const handleProductChange = useCallback(
+    (rowIndex: number, _event: any, product: any) => {
+      const updatedItems = [...invoiceItems];
+      const trackingType = product?.tracking_type || null;
+      const trackingLower = trackingType ? trackingType.toLowerCase() : null;
+      const isBatchOrSerial =
+        trackingLower === 'batch' || trackingLower === 'serial';
+
+      updatedItems[rowIndex] = {
+        ...updatedItems[rowIndex],
+        product_id: product ? product.id : '',
+        product_name: product ? product.name : '',
+        tracking_type: trackingType,
+        unit_price: product ? String(product.unit_price) : '0',
+        quantity:
+          product && isBatchOrSerial
+            ? '0'
+            : updatedItems[rowIndex].quantity || '1',
+        product_batches: [],
+        product_serials: [],
+      };
+
+      setInvoiceItems(updatedItems);
+    },
+    [invoiceItems]
+  );
+
   const invoiceItemsWithIndex = React.useMemo(
     () =>
       invoiceItems.map((item, index) => ({
@@ -203,11 +389,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
         <ProductSelect
           value={row.product_id}
           onChange={(_event, product) =>
-            updateInvoiceItem(
-              row._index,
-              'product_id',
-              product ? String(product.id) : ''
-            )
+            handleProductChange(row._index, _event, product)
           }
           size="small"
           className="!min-w-60"
@@ -215,20 +397,64 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       ),
     },
     {
+      id: 'tracking_type',
+      label: 'Tracking',
+      render: (_value, row) => {
+        const tracking = (row.tracking_type || '').toLowerCase();
+        const canManage =
+          tracking === 'batch' || tracking === 'serial' ? tracking : null;
+
+        return (
+          <Box className="!flex !justify-between !items-center !min-w-52">
+            <Typography
+              variant="body2"
+              className="!text-gray-700 !uppercase !text-xs"
+            >
+              {tracking || 'none'}
+            </Typography>
+
+            {canManage && (
+              <Button
+                type="button"
+                startIcon={<Tag />}
+                variant="text"
+                size="small"
+                onClick={() => {
+                  setSelectedRowIndex(row._index);
+                  if (canManage === 'batch') {
+                    setIsBatchSelectorOpen(true);
+                  } else {
+                    setIsSerialSelectorOpen(true);
+                  }
+                }}
+              >
+                {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
+              </Button>
+            )}
+          </Box>
+        );
+      },
+    },
+    {
       id: 'quantity',
       label: 'Quantity',
-      render: (_value, row) => (
-        <Input
-          value={row.quantity}
-          onChange={e =>
-            updateInvoiceItem(row._index, 'quantity', e.target.value)
-          }
-          placeholder="1"
-          type="number"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
+      render: (_value, row) => {
+        const tracking = (row.tracking_type || '').toLowerCase();
+        const isNoneTracking = !tracking || tracking === 'none';
+        return (
+          <Input
+            value={row.quantity}
+            onChange={e =>
+              updateInvoiceItem(row._index, 'quantity', e.target.value)
+            }
+            placeholder="1"
+            type="number"
+            size="small"
+            className="!min-w-20"
+            disabled={!isNoneTracking}
+          />
+        );
+      },
     },
     {
       id: 'unit_price',
@@ -278,22 +504,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     }).format(amount);
   };
 
-  const totals = React.useMemo(() => {
-    const subtotal = invoiceItems.reduce(
-      (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
-      0
-    );
-
-    const totalAmount = subtotal;
-    const balanceDue = totalAmount;
-
-    return {
-      subtotal,
-      total_amount: totalAmount,
-      balance_due: balanceDue,
-    };
-  }, [invoiceItems]);
-
   return (
     <CustomDrawer
       open={open}
@@ -304,20 +514,14 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-5 mb-10">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
-            <Box className="md:!col-span-2">
-              <Typography
-                variant="h6"
-                className="!font-semibold !text-gray-900"
-              >
-                Invoice Information
-              </Typography>
-            </Box>
-            <CustomerSelect
-              name="customer_id"
-              label="Customer"
+            <Select
+              name="invoice_method"
+              label="Invoice Method"
               formik={formik}
-              required
-            />
+            >
+              <MenuItem value="order">Based of Order</MenuItem>
+              <MenuItem value="direct">Direct Invoice</MenuItem>
+            </Select>
 
             <Select name="parent_id" label="Order" formik={formik} required>
               {orders.map(order => (
@@ -326,6 +530,13 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                 </MenuItem>
               ))}
             </Select>
+
+            <CustomerSelect
+              name="customer_id"
+              label="Customer"
+              formik={formik}
+              required
+            />
 
             <Input
               name="invoice_date"
@@ -421,16 +632,14 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               </Button>
             </Box>
 
-            {invoiceItems.length > 0 && (
-              <Table
-                data={invoiceItemsWithIndex}
-                columns={invoiceItemsColumns}
-                getRowId={row => row._index.toString()}
-                pagination={false}
-                sortable={false}
-                emptyMessage="No invoice items added yet."
-              />
-            )}
+            <Table
+              data={invoiceItemsWithIndex}
+              columns={invoiceItemsColumns}
+              getRowId={row => row._index.toString()}
+              pagination={false}
+              sortable={false}
+              emptyMessage="No invoice items added yet."
+            />
 
             {invoiceItems.length === 0 && (
               <Box className="!text-center !py-8 !text-gray-500">
@@ -498,6 +707,22 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           </Box>
         </form>
       </Box>
+      <ManageInvoiceBatch
+        isOpen={isBatchSelectorOpen}
+        setIsOpen={setIsBatchSelectorOpen}
+        selectedRowIndex={selectedRowIndex}
+        setSelectedRowIndex={setSelectedRowIndex}
+        invoiceItems={invoiceItems}
+        setInvoiceItems={setInvoiceItems}
+      />
+      <ManageInvoiceSerial
+        isOpen={isSerialSelectorOpen}
+        setIsOpen={setIsSerialSelectorOpen}
+        selectedRowIndex={selectedRowIndex}
+        setSelectedRowIndex={setSelectedRowIndex}
+        invoiceItems={invoiceItems}
+        setInvoiceItems={setInvoiceItems}
+      />
     </CustomDrawer>
   );
 };

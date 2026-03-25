@@ -1114,6 +1114,9 @@ model invoice_items {
   tax_amount             Decimal? @default(0, map: "DF__invoice_i__tax_a__1DB06A4F") @db.Decimal(18, 2)
   total_amount           Decimal? @db.Decimal(18, 2)
   notes                  String?  @db.NVarChar(500)
+  tracking_type          String?  @db.NVarChar(20)
+  product_batches        String?  @db.NVarChar(Max)
+  product_serials        String?  @db.NVarChar(Max)
   invoices               invoices @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__paren__1EA48E88")
   invoice_items_products products @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__produ__1F98B2C1")
 }

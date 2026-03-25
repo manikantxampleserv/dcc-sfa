@@ -2,6 +2,8 @@ import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
 interface OrderItem {
+  product_batches: never[];
+  product_serials: never[];
   tracking_type: string | null;
   id?: number;
   parent_id?: number;
