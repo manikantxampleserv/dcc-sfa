@@ -438,6 +438,17 @@ async function updateInventoryStock(
       });
     }
   } else if (loadingType === 'U') {
+    if (existingStock) {
+      await tx.inventory_stock.update({
+        where: { id: existingStock.id },
+        data: {
+          current_stock: 0,
+          available_stock: 0,
+          updatedate: new Date(),
+          updatedby: userId,
+        },
+      });
+    }
     return;
   } else {
     throw new Error(`Invalid loading type: ${loadingType}`);
@@ -4218,6 +4229,106 @@ export const vanInventoryController = {
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve salesperson inventory',
+        error: error.message,
+      });
+    }
+  },
+
+  async unloadVanInventory(req: Request, res: Response) {
+    try {
+      const { vanInventoryId } = req.params;
+      const userId = (req as any).user?.id || 1;
+
+      if (!vanInventoryId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Van inventory ID is required',
+        });
+      }
+
+      const vanInventoryIdNum = parseInt(vanInventoryId as string, 10);
+
+      const vanInventory = await prisma.van_inventory.findUnique({
+        where: { id: vanInventoryIdNum },
+        include: {
+          van_inventory_items_inventory: {
+            include: {
+              van_inventory_items_products: true,
+            },
+          },
+        },
+      });
+
+      if (!vanInventory) {
+        return res.status(404).json({
+          success: false,
+          message: 'Van inventory not found',
+        });
+      }
+
+      const result = await prisma.$transaction(async tx => {
+        for (const item of vanInventory.van_inventory_items_inventory) {
+          const product = item.van_inventory_items_products;
+          if (!product) continue;
+
+          await updateInventoryStock(
+            tx,
+            item.product_id,
+            vanInventory.location_id,
+            item.quantity || 0,
+            'U',
+            item.batch_lot_id || null,
+            null,
+            userId
+          );
+
+          await createStockMovement(tx, {
+            product_id: item.product_id,
+            batch_id: item.batch_lot_id || null,
+            serial_id: null,
+            movement_type: 'VAN_UNLOAD',
+            reference_type: 'VAN_INVENTORY',
+            reference_id: vanInventoryIdNum,
+            from_location_id: vanInventory.location_id,
+            to_location_id: null,
+            quantity: item.quantity || 0,
+            remarks: `Van unloaded from ${vanInventory.vehicle_id ? `vehicle ${vanInventory.vehicle_id}` : 'location'}`,
+            van_inventory_id: vanInventoryIdNum,
+            createdby: userId,
+          });
+
+          await tx.van_inventory_items.update({
+            where: { id: item.id },
+            data: {
+              quantity: 0,
+            },
+          });
+        }
+
+        await tx.van_inventory.update({
+          where: { id: vanInventoryIdNum },
+          data: {
+            status: 'U',
+            updatedate: new Date(),
+            updatedby: userId,
+          },
+        });
+      });
+
+      return res.json({
+        success: true,
+        message: 'Van inventory unloaded successfully',
+        data: {
+          van_inventory_id: vanInventoryIdNum,
+          items_unloaded: vanInventory.van_inventory_items_inventory.length,
+          unloaded_date: new Date(),
+        },
+      });
+    } catch (error: any) {
+      console.error('Unload Van Inventory Error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to unload van inventory',
         error: error.message,
       });
     }

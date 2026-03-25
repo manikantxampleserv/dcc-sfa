@@ -203,9 +203,6 @@ interface BulkVisitInput {
       tax_amount?: number;
       total_amount?: number;
       notes?: string;
-      tracking_type?: string;
-      product_batches?: string;
-      product_serials?: string;
     }>;
   }>;
   orders?: Array<{
@@ -1737,7 +1734,7 @@ export const visitsController = {
             visit_id: item.visit_id,
           },
           orders: item.orders || [],
-          invoices: item.invoices || [], // Changed from orders
+          invoices: item.invoices || [],
 
           payments: item.payments || [],
           cooler_inspections: item.cooler_inspections || [],
@@ -2044,7 +2041,6 @@ export const visitsController = {
                   }
                 }
 
-                // Create new attachments
                 const attachmentData: any[] = [];
 
                 if (selfImageUrls.length > 0) {
@@ -2171,9 +2167,6 @@ export const visitsController = {
                             tax_amount: item.tax_amount || 0,
                             total_amount: item.total_amount,
                             notes: item.notes,
-                            tracking_type: item.tracking_type,
-                            product_batches: item.product_batches,
-                            product_serials: item.product_serials,
                           };
 
                           if (item.item_id || (item as any).id) {
@@ -2237,9 +2230,6 @@ export const visitsController = {
                             tax_amount: item.tax_amount || 0,
                             total_amount: item.total_amount,
                             notes: item.notes,
-                            tracking_type: item.tracking_type,
-                            product_batches: item.product_batches,
-                            product_serials: item.product_serials,
                           })),
                         });
                       }

@@ -99,5 +99,12 @@ router.post(
   '/products/batches/bulk',
   vanInventoryController.getBulkProductBatches
 );
+router.post(
+  '/van-inventory/:vanInventoryId/unload',
+  authenticateToken,
+  auditUpdate('van_inventory'),
+  requirePermission([{ module: 'van-stock', action: 'update' }]),
+  vanInventoryController.unloadVanInventory
+);
 
 export default router;
