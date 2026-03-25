@@ -4289,7 +4289,7 @@ export const vanInventoryController = {
             movement_type: 'VAN_UNLOAD',
             reference_type: 'VAN_INVENTORY',
             reference_id: vanInventoryIdNum,
-            from_location_id: vanInventory.location_id,
+            from_location_id: null,
             to_location_id: null,
             quantity: item.quantity || 0,
             remarks: `Van unloaded from ${vanInventory.vehicle_id ? `vehicle ${vanInventory.vehicle_id}` : 'location'}`,

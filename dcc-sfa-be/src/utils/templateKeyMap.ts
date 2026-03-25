@@ -17,9 +17,9 @@ const templateKeyMap = {
   locationResetNotifyApprover: 'location_reset_notify_approver',
   locationResetApproved: 'location_reset_approved',
   locationResetRejected: 'location_reset_rejected',
-  customerCreationNotifyApprover: 'customer_creation_notify_approver',
-  customerCreationApproved: 'customer_creation_approved',
-  customerCreationRejected: 'customer_creation_rejected',
+  customerCreationNotifyApprover: 'customerCreationNotifyApprover',
+  customerCreationApproved: 'customerCreationApproved',
+  customerCreationRejected: 'customerCreationRejected',
 };
 
 export default templateKeyMap;
