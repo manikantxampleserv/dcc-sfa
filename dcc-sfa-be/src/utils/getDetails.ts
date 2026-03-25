@@ -113,7 +113,67 @@ async function getRequestDetailsByType(
           payment_method: order.payment_method || 'N/A',
           notes: order.notes || '',
         };
+      case 'LOCATION_RESET':
+        console.log(' LOCATION_RESET case triggered');
+        console.log(' reference_id:', reference_id);
 
+        const customer = await prisma.customers.findUnique({
+          where: { id: reference_id },
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            email: true,
+            phone_number: true,
+            address: true,
+            city: true,
+            state: true,
+            zipcode: true,
+            contact_person: true,
+            type: true,
+            latitude: true,
+            longitude: true,
+            is_active: true,
+            createdate: true,
+          },
+        });
+
+        console.log(customer);
+
+        if (!customer) {
+          console.log(' returning {}');
+          return {};
+        }
+
+        const result = {
+          customer_id: customer.id,
+          customer_code: customer.code || 'N/A',
+          customer_name: customer.name || 'N/A',
+          customer_email: customer.email || 'N/A',
+          customer_phone: customer.phone_number || 'N/A',
+          customer_address: customer.address || 'N/A',
+          customer_city: customer.city || 'N/A',
+          customer_state: customer.state || 'N/A',
+          customer_zipcode: customer.zipcode || 'N/A',
+          customer_contact_person: customer.contact_person || 'N/A',
+          customer_type: customer.type || 'N/A',
+          current_latitude: customer.latitude,
+          current_longitude: customer.longitude,
+          customer_status: customer.is_active || 'N/A',
+          created_date: customer.createdate
+            ? new Date(customer.createdate).toLocaleDateString()
+            : 'N/A',
+        };
+
+        console.log(result);
+        return result;
+
+      case 'CUSTOMER_CREATION':
+        return {
+          customer_status: 'Pending Creation',
+          customer_id: 'Pending',
+          message: 'Customer creation request - customer not yet created',
+        };
       case 'ASSET_MOVEMENT_APPROVAL':
         const assetMovement = await prisma.asset_movements.findUnique({
           where: { id: reference_id },

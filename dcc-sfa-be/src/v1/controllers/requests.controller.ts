@@ -450,7 +450,6 @@ export const createRequest = async (data: {
           });
         }
 
-        // ✅ ADD CUSTOMER CREATION NOTIFICATION LOGIC
         if (data.request_type === 'CUSTOMER_CREATION') {
           const requestData = JSON.parse(data.request_data || '{}');
           const customerData = requestData.customer_data;
