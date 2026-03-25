@@ -574,6 +574,22 @@ const deleteOldImages = async (imageUrls: string | null): Promise<void> => {
   }
 };
 
+async function generateInvoiceNumberInTransaction(tx: any): Promise<string> {
+  const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+  const prefix = `INV-${today}`;
+
+  const existingCount = await tx.invoices.count({
+    where: {
+      invoice_number: {
+        startsWith: prefix,
+      },
+    },
+  });
+
+  const sequence = (existingCount + 1).toString().padStart(4, '0');
+  return `${prefix}-${sequence}`;
+}
+
 export const visitsController = {
   async createVisits(req: Request, res: Response) {
     try {
@@ -2110,11 +2126,25 @@ export const visitsController = {
                         log_inst: 1,
                       },
                     });
+                    let invoiceNumber = invoiceData.invoice_number;
+                    if (!invoiceNumber) {
+                      invoiceNumber =
+                        await generateInvoiceNumberInTransaction(tx);
+                    } else {
+                      // Validate user-provided invoice number doesn't exist
+                      const existingInvoice = await tx.invoices.findFirst({
+                        where: { invoice_number: invoiceNumber },
+                      });
+                      if (existingInvoice) {
+                        throw new Error(
+                          `Invoice number ${invoiceNumber} already exists`
+                        );
+                      }
+                    }
                     const processedInvoiceData = {
                       customer_id: visit.customer_id,
-                      invoice_number:
-                        invoiceData.invoice_number ||
-                        `INV-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                      invoice_number: invoiceNumber,
+
                       parent_id: createdOrder.id,
                       invoice_date: invoiceData.invoice_date
                         ? new Date(invoiceData.invoice_date)
@@ -2177,7 +2207,6 @@ export const visitsController = {
                               `Attempting to update invoice item ${itemIdToUpdate} for invoice ${createdInvoice.id}`
                             );
 
-                            // Check if item exists
                             const existingItem =
                               await tx.invoice_items.findFirst({
                                 where: { id: itemIdToUpdate },
@@ -2552,7 +2581,11 @@ export const visitsController = {
                           id: { in: invoiceIds },
                         },
                         include: {
-                          invoice_items: true,
+                          invoice_items: {
+                            include: {
+                              invoice_items_products: true,
+                            },
+                          },
                         },
                       })
                     : [];
@@ -2739,6 +2772,7 @@ export const visitsController = {
       });
     }
   },
+
   async getAllVisits(req: any, res: any) {
     try {
       const {
