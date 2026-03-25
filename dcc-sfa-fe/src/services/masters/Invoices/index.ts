@@ -21,6 +21,8 @@ interface InvoiceItem {
 interface Invoice {
   id: number;
   invoice_number: string;
+  invoice_method: 'order' | 'direct';
+  salesperson_id?: number | null;
   parent_id: number;
   customer_id: number;
   invoice_date?: string | null;
@@ -70,7 +72,7 @@ interface Invoice {
 
 interface ManageInvoicePayload {
   invoice_number?: string;
-  parent_id: number;
+  parent_id?: number | null;
   customer_id: number;
   currency_id?: number;
   invoice_date?: string;
@@ -92,7 +94,7 @@ interface ManageInvoicePayload {
 
 interface UpdateInvoicePayload {
   invoice_number?: string;
-  parent_id?: number;
+  parent_id?: number | null;
   customer_id?: number;
   currency_id?: number;
   invoice_date?: string;

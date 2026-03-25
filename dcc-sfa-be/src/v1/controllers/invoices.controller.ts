@@ -22,6 +22,8 @@ interface InvoiceSerialized {
   notes?: string;
   billing_address?: string;
   is_active: string;
+  invoice_method?: string;
+  salesperson_id?: number;
   createdate?: string;
   createdby: number;
   updatedate?: string;
@@ -78,6 +80,8 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
   notes: invoice.notes,
   billing_address: invoice.billing_address,
   is_active: invoice.is_active,
+  invoice_method: invoice.parent_id ? 'order' : 'direct',
+  salesperson_id: invoice.salesperson_id,
   createdate: invoice.createdate?.toISOString(),
   createdby: invoice.createdby,
   updatedate: invoice.updatedate?.toISOString(),
@@ -166,8 +170,14 @@ export const invoicesController = {
         const newInvoice = await tx.invoices.create({
           data: {
             invoice_number: invoiceNumber,
-            parent_id: data.parent_id ? Number(data.parent_id) : 0,
+            parent_id:
+              data.parent_id && data.invoice_method !== 'direct'
+                ? Number(data.parent_id)
+                : null,
             customer_id: Number(data.customer_id),
+            salesperson_id: data.salesperson_id
+              ? Number(data.salesperson_id)
+              : null,
             currency_id: data.currency_id ? Number(data.currency_id) : null,
             invoice_date: new Date(data.invoice_date),
             due_date: data.due_date ? new Date(data.due_date) : null,
@@ -514,9 +524,15 @@ export const invoicesController = {
         await tx.invoices.update({
           where: { id: Number(id) },
           data: {
-            parent_id: data.parent_id ? Number(data.parent_id) : undefined,
+            parent_id:
+              data.parent_id && data.invoice_method !== 'direct'
+                ? Number(data.parent_id)
+                : null,
             customer_id: data.customer_id
               ? Number(data.customer_id)
+              : undefined,
+            salesperson_id: data.salesperson_id
+              ? Number(data.salesperson_id)
               : undefined,
             currency_id: data.currency_id
               ? Number(data.currency_id)

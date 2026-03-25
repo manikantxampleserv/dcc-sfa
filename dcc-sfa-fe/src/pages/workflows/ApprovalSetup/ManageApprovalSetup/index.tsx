@@ -326,7 +326,6 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
               required
               disabled={!!requestType}
             >
-              <MenuItem value="">Select Request Type</MenuItem>
               {requestTypes.map((type: RequestType) => (
                 <MenuItem key={type.value} value={type.value}>
                   {type.label}

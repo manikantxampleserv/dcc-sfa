@@ -27,6 +27,8 @@ interface UserSelectProps {
   name?: string;
   /** Label text displayed above the input */
   label?: string;
+  /** Whether to disable the input */
+  disabled?: boolean;
   /** Whether the field is required */
   required?: boolean;
   /** Whether the input should take full width */
@@ -95,6 +97,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
   name = 'salesperson_id',
   label = 'Sales Person',
   required = false,
+  disabled = false,
   fullWidth = true,
   size = 'small',
   formik,
@@ -342,6 +345,7 @@ const UserSelect: React.FC<UserSelectProps> = ({
       }
       size={size}
       fullWidth={fullWidth}
+      disabled={disabled}
       className={className}
       filterOptions={options => options}
       renderOption={(props, option: User) => (

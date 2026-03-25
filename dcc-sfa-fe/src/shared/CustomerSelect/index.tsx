@@ -20,6 +20,7 @@ interface CustomerSelectProps {
   label: string;
   required?: boolean;
   fullWidth?: boolean;
+  disabled?: boolean;
   formik?: FormikProps<any>;
   setValue?: (value: any) => void;
   value?: string | number;
@@ -32,6 +33,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
   label,
   required = false,
   fullWidth = true,
+  disabled = false,
   formik,
   setValue,
   value,
@@ -252,6 +254,7 @@ const CustomerSelect: React.FC<CustomerSelectProps> = ({
       }
       size="small"
       fullWidth={fullWidth}
+      disabled={disabled}
       filterOptions={options => options}
       renderOption={(props, option: Customer) => (
         <Box

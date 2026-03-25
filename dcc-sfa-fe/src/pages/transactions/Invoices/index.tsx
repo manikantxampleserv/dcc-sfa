@@ -1,18 +1,17 @@
-import { Add, Download, Upload } from '@mui/icons-material';
+import { Add, Download, Upload, Visibility } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { useExportToExcel } from 'hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import { useDeleteInvoice, useInvoices, type Invoice } from 'hooks/useInvoices';
 import { useCurrency } from 'hooks/useCurrency';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { useDeleteInvoice, useInvoices, type Invoice } from 'hooks/useInvoices';
+import { usePermission } from 'hooks/usePermission';
 import {
   AlertTriangle,
   Calendar,
   CheckCircle as CheckCircleIcon,
   Clock,
-  CreditCard,
+  // CreditCard,
   DollarSign,
   FileText,
-  Package,
   Receipt,
   XCircle,
 } from 'lucide-react';
@@ -94,15 +93,15 @@ const InvoicesManagement: React.FC = () => {
     setDetailDrawerOpen(true);
   }, []);
 
-  const handleManageItems = useCallback((invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setItemsDrawerOpen(true);
-  }, []);
+  // const handleManageItems = useCallback((invoice: Invoice) => {
+  //   setSelectedInvoice(invoice);
+  //   setItemsDrawerOpen(true);
+  // }, []);
 
-  const handlePaymentTracking = useCallback((invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    setPaymentTrackingDrawerOpen(true);
-  }, []);
+  // const handlePaymentTracking = useCallback((invoice: Invoice) => {
+  //   setSelectedInvoice(invoice);
+  //   setPaymentTrackingDrawerOpen(true);
+  // }, []);
 
   const handleDeleteInvoice = useCallback(
     async (id: number) => {
@@ -170,10 +169,10 @@ const InvoicesManagement: React.FC = () => {
     }
   };
 
-  const isOverdue = (invoice: Invoice) => {
-    if (!invoice.due_date || !invoice.balance_due) return false;
-    return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
-  };
+  // const isOverdue = (invoice: Invoice) => {
+  //   if (!invoice.due_date || !invoice.balance_due) return false;
+  //   return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
+  // };
 
   const invoiceColumns: TableColumn<Invoice>[] = [
     {
@@ -232,13 +231,13 @@ const InvoicesManagement: React.FC = () => {
             size="small"
             className={`!text-xs !capitalize ${getStatusColor(row.status || 'draft')} !min-w-20`}
           />
-          {isOverdue(row) && (
+          {/* {isOverdue(row) && (
             <Chip
               label="OVERDUE"
               size="small"
               className="!text-xs !bg-red-100 !text-red-800 !font-bold"
             />
-          )}
+          )} */}
         </Box>
       ),
     },
@@ -310,7 +309,7 @@ const InvoicesManagement: React.FC = () => {
                     <ActionButton
                       onClick={() => handleViewInvoice(row)}
                       tooltip="View invoice details"
-                      icon={<FileText />}
+                      icon={<Visibility className="!text-[20px]" />}
                       color="success"
                     />
                     {/* <ActionButton
@@ -319,12 +318,12 @@ const InvoicesManagement: React.FC = () => {
                       icon={<Package />}
                       color="info"
                     /> */}
-                    <ActionButton
+                    {/* <ActionButton
                       onClick={() => handlePaymentTracking(row)}
                       tooltip="Track payments"
                       icon={<CreditCard />}
                       color="secondary"
-                    />
+                    /> */}
                   </>
                 )}
                 {isUpdate && (

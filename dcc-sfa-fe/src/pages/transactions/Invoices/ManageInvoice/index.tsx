@@ -75,32 +75,16 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const currencies = currenciesResponse?.data || [];
   const orders = ordersResponse?.data || [];
 
-  const invoiceData = invoiceResponse?.data || invoice;
+  const invoiceData = invoice?.id ? invoiceResponse?.data || invoice : null;
 
   const createInvoiceMutation = useCreateInvoice();
   const updateInvoiceMutation = useUpdateInvoice();
 
-  const totals = React.useMemo(() => {
-    const subtotal = invoiceItems.reduce(
-      (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
-      0
-    );
-
-    const totalAmount = subtotal;
-    const balanceDue = totalAmount;
-
-    return {
-      subtotal,
-      total_amount: totalAmount,
-      balance_due: balanceDue,
-    };
-  }, [invoiceItems]);
-
   const formik = useFormik({
     initialValues: {
-      invoice_method: 'order',
-      parent_id: invoiceData?.parent_id || '',
-      salesperson_id: '',
+      invoice_method: invoice?.invoice_method || 'order',
+      parent_id: invoice?.parent_id || '',
+      salesperson_id: invoice?.salesperson_id || '',
       customer_id: invoiceData?.customer_id || '',
       currency_id:
         invoiceData?.currency_id ||
@@ -111,8 +95,8 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       due_date: invoiceData?.due_date
         ? dayjs(invoiceData.due_date).format('YYYY-MM-DD')
         : '',
-      status: invoiceData?.status || 'draft',
-      payment_method: invoiceData?.payment_method || 'credit',
+      status: invoiceData?.status || 'paid',
+      payment_method: invoiceData?.payment_method || 'cash',
       subtotal: invoiceData?.subtotal || 0,
       total_amount: invoiceData?.total_amount || 0,
       balance_due: invoiceData?.balance_due || 0,
@@ -214,11 +198,10 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             }
           }
         }
-
         const submitData = {
           ...values,
           invoice_date: new Date(values.invoice_date).toISOString(),
-          parent_id: Number(values.parent_id),
+          parent_id: values.parent_id ? Number(values.parent_id) : null,
           invoice_method: values.invoice_method,
           customer_id: Number(values.customer_id),
           currency_id: values.currency_id
@@ -250,15 +233,36 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             id: invoice.id,
             ...submitData,
           });
+          toast.success('Invoice updated successfully!');
         } else {
           await createInvoiceMutation.mutateAsync(submitData);
+          toast.success('Invoice created successfully!');
         }
+
         handleCancel();
-      } catch (error) {
-        console.log('Error submitting invoice:', error);
+      } catch (error: any) {
+        console.error('Error submitting invoice:', error);
+        toast.error(error.message || 'Failed to save invoice');
       }
     },
   });
+
+  const totals = React.useMemo(() => {
+    const subtotal = invoiceItems.reduce(
+      (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
+      0
+    );
+
+    const totalAmount = subtotal;
+    // If status is paid, balance due should be 0, otherwise it's the total amount
+    const balanceDue = formik.values.status === 'paid' ? 0 : totalAmount;
+
+    return {
+      subtotal,
+      total_amount: totalAmount,
+      balance_due: balanceDue,
+    };
+  }, [invoiceItems, formik.values.status]);
 
   const salespersonId = formik.values.salesperson_id
     ? Number(formik.values.salesperson_id)
@@ -631,24 +635,54 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               name="invoice_method"
               label="Invoice Method"
               formik={formik}
+              disableClearable
+              onChange={e => {
+                const newMethod = e.target.value;
+                formik.setFieldValue('invoice_method', newMethod);
+                formik.setFieldValue('parent_id', '');
+                formik.setFieldValue('customer_id', '');
+                formik.setFieldValue('salesperson_id', '');
+                formik.setFieldValue('invoice_items', []);
+                setInvoiceItems([]);
+                formikSyncRef.current = '';
+              }}
             >
               <MenuItem value="order">Based of Order</MenuItem>
               <MenuItem value="direct">Direct Invoice</MenuItem>
             </Select>
 
-            <Select name="parent_id" label="Order" formik={formik} required>
-              {orders.map(order => (
-                <MenuItem key={order.id} value={order.id}>
-                  {order.order_number} - {order.customer?.name}
-                </MenuItem>
-              ))}
-            </Select>
-
+            {formik.values.invoice_method === 'order' && (
+              <Select
+                name="parent_id"
+                label="Order"
+                formik={formik}
+                onChange={e => {
+                  const selectedOrderId = e.target.value;
+                  if (!selectedOrderId) {
+                    formik.setFieldValue('customer_id', '');
+                    formik.setFieldValue('salesperson_id', '');
+                    formik.setFieldValue('invoice_items', []);
+                    setInvoiceItems([]);
+                    formikSyncRef.current = '';
+                  }
+                }}
+              >
+                {orders.map(order => (
+                  <MenuItem key={order.id} value={order.id}>
+                    {order.order_number} - {order.customer?.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            )}
             <CustomerSelect
               name="customer_id"
               label="Customer"
               formik={formik}
               required
+              disabled={
+                formik.values.invoice_method === 'order' &&
+                !!formik.values.parent_id
+              }
             />
 
             <UserSelect
@@ -656,6 +690,10 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               label="Salesperson"
               formik={formik}
               required
+              disabled={
+                formik.values.invoice_method === 'order' &&
+                !!formik.values.parent_id
+              }
             />
 
             <Input
@@ -675,7 +713,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               slotProps={{ inputLabel: { shrink: true } }}
             />
 
-            <Select
+            {/* <Select
               name="currency_id"
               label="Currency"
               formik={formik}
@@ -686,7 +724,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                   {currency.code}
                 </MenuItem>
               ))}
-            </Select>
+            </Select> */}
 
             <Select name="status" label="Status" formik={formik} required>
               <MenuItem value="draft">Draft</MenuItem>
