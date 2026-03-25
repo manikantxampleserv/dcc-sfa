@@ -87,6 +87,7 @@ model users {
   workflow_steps_workflow_steps_processed_byTousers                 workflow_steps[]             @relation("workflow_steps_processed_byTousers")
   zone_supervisor                                                   zones[]
   approver_users                                                    customer_category_grading[]
+  invoices                                                          invoices[]
 }
 
 model attendance {
@@ -1122,58 +1123,63 @@ model invoice_items {
 }
 
 model invoices {
-  id                 Int             @id(map: "PK__invoices__3213E83F14772822") @default(autoincrement())
-  invoice_number     String          @unique(map: "UQ__invoices__8081A63A5B749F42") @db.NVarChar(50)
-  parent_id          Int
-  customer_id        Int
-  invoice_date       DateTime?       @default(now(), map: "DF__invoices__invoic__09A971A2")
-  due_date           DateTime?
-  status             String?         @default("draft", map: "DF__invoices__status__0B91BA14") @db.NVarChar(20)
-  payment_method     String?         @default("credit", map: "DF__invoices__paymen__0D7A0286") @db.NVarChar(20)
-  subtotal           Decimal?        @default(0, map: "DF__invoices__subtot__0E6E26BF") @db.Decimal(18, 2)
-  discount_amount    Decimal?        @default(0, map: "DF__invoices__discou__0F624AF8") @db.Decimal(18, 2)
-  tax_amount         Decimal?        @default(0, map: "DF__invoices__tax_am__10566F31") @db.Decimal(18, 2)
-  shipping_amount    Decimal?        @default(0, map: "DF__invoices__shippi__114A936A") @db.Decimal(18, 2)
-  total_amount       Decimal?        @default(0, map: "DF__invoices__total___123EB7A3") @db.Decimal(18, 2)
-  amount_paid        Decimal?        @default(0, map: "DF__invoices__amount__1332DBDC") @db.Decimal(18, 2)
-  balance_due        Decimal?        @db.Decimal(19, 2)
-  notes              String?
-  billing_address    String?
-  is_active          String          @default("Y", map: "DF__invoices__is_act__14270015") @db.Char(1)
-  createdate         DateTime?       @default(now(), map: "DF__invoices__create__151B244E") @db.DateTime
-  createdby          Int
-  updatedate         DateTime?       @db.DateTime
-  updatedby          Int?
-  log_inst           Int?
-  currency_id        Int?
-  invoice_items      invoice_items[]
-  currencies         currencies?     @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__invoices__curren__65370702")
-  orders             orders          @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoices__parent__160F4887")
-  invoices_customers customers       @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  payment_lines      payment_lines[]
-  refund_lines       refund_lines[]
+  id                   Int             @id(map: "PK__invoices__3213E83F14772822") @default(autoincrement())
+  invoice_number       String          @unique(map: "UQ__invoices__8081A63A5B749F42") @db.NVarChar(50)
+  parent_id            Int?
+  salesperson_id       Int?
+  customer_id          Int
+  invoice_date         DateTime?       @default(now(), map: "DF__invoices__invoic__09A971A2")
+  due_date             DateTime?
+  status               String?         @default("draft", map: "DF__invoices__status__0B91BA14") @db.NVarChar(20)
+  payment_method       String?         @default("credit", map: "DF__invoices__paymen__0D7A0286") @db.NVarChar(20)
+  subtotal             Decimal?        @default(0, map: "DF__invoices__subtot__0E6E26BF") @db.Decimal(18, 2)
+  discount_amount      Decimal?        @default(0, map: "DF__invoices__discou__0F624AF8") @db.Decimal(18, 2)
+  tax_amount           Decimal?        @default(0, map: "DF__invoices__tax_am__10566F31") @db.Decimal(18, 2)
+  shipping_amount      Decimal?        @default(0, map: "DF__invoices__shippi__114A936A") @db.Decimal(18, 2)
+  total_amount         Decimal?        @default(0, map: "DF__invoices__total___123EB7A3") @db.Decimal(18, 2)
+  amount_paid          Decimal?        @default(0, map: "DF__invoices__amount__1332DBDC") @db.Decimal(18, 2)
+  balance_due          Decimal?        @db.Decimal(19, 2)
+  notes                String?
+  billing_address      String?
+  is_active            String          @default("Y", map: "DF__invoices__is_act__14270015") @db.Char(1)
+  createdate           DateTime?       @default(now(), map: "DF__invoices__create__151B244E") @db.DateTime
+  createdby            Int
+  updatedate           DateTime?       @db.DateTime
+  updatedby            Int?
+  log_inst             Int?
+  currency_id          Int?
+  invoice_items        invoice_items[]
+  currencies           currencies?     @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__invoices__curren__65370702")
+  orders               orders?         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  invoices_customers   customers       @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  invoices_salesperson users?          @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payment_lines        payment_lines[]
+  refund_lines         refund_lines[]
+  loginHistory         login_history?  @relation(fields: [login_historyId], references: [id])
+  login_historyId      Int?
 }
 
 model login_history {
-  id                                 Int       @id(map: "PK__login_hi__3213E83F66E8EA30") @default(autoincrement())
+  id                                 Int        @id(map: "PK__login_hi__3213E83F66E8EA30") @default(autoincrement())
   user_id                            Int
-  login_time                         DateTime? @default(now(), map: "DF__login_his__login__47FBA9D6") @db.DateTime
-  logout_time                        DateTime? @db.DateTime
-  ip_address                         String?   @db.NVarChar(50)
-  device_info                        String?   @db.NVarChar(255)
-  os_info                            String?   @db.NVarChar(100)
-  app_version                        String?   @db.NVarChar(50)
-  location_latitude                  Decimal?  @db.Decimal(10, 8)
-  location_longitude                 Decimal?  @db.Decimal(10, 8)
-  login_status                       String?   @default("success", map: "DF__login_his__login__49E3F248") @db.NVarChar(20)
-  failure_reason                     String?   @db.NVarChar(255)
-  is_active                          String    @default("Y", map: "DF__login_his__is_ac__4AD81681") @db.Char(1)
-  createdate                         DateTime? @default(now(), map: "DF__login_his__creat__4BCC3ABA") @db.DateTime
+  login_time                         DateTime?  @default(now(), map: "DF__login_his__login__47FBA9D6") @db.DateTime
+  logout_time                        DateTime?  @db.DateTime
+  ip_address                         String?    @db.NVarChar(50)
+  device_info                        String?    @db.NVarChar(255)
+  os_info                            String?    @db.NVarChar(100)
+  app_version                        String?    @db.NVarChar(50)
+  location_latitude                  Decimal?   @db.Decimal(10, 8)
+  location_longitude                 Decimal?   @db.Decimal(10, 8)
+  login_status                       String?    @default("success", map: "DF__login_his__login__49E3F248") @db.NVarChar(20)
+  failure_reason                     String?    @db.NVarChar(255)
+  is_active                          String     @default("Y", map: "DF__login_his__is_ac__4AD81681") @db.Char(1)
+  createdate                         DateTime?  @default(now(), map: "DF__login_his__creat__4BCC3ABA") @db.DateTime
   createdby                          Int
-  updatedate                         DateTime? @db.DateTime
+  updatedate                         DateTime?  @db.DateTime
   updatedby                          Int?
   log_inst                           Int?
-  users_login_history_user_idTousers users     @relation("login_history_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction, map: "FK__login_his__user___4CC05EF3")
+  users_login_history_user_idTousers users      @relation("login_history_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction, map: "FK__login_his__user___4CC05EF3")
+  invoices_salesperson               invoices[]
 }
 
 model notifications {
