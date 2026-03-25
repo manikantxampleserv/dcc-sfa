@@ -313,12 +313,12 @@ const InvoicesManagement: React.FC = () => {
                       icon={<FileText />}
                       color="success"
                     />
-                    <ActionButton
+                    {/* <ActionButton
                       onClick={() => handleManageItems(row)}
                       tooltip="Manage invoice items"
                       icon={<Package />}
                       color="info"
-                    />
+                    /> */}
                     <ActionButton
                       onClick={() => handlePaymentTracking(row)}
                       tooltip="Track payments"

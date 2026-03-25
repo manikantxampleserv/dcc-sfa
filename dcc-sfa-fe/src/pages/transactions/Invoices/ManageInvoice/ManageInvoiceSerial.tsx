@@ -1,8 +1,23 @@
 import { Close } from '@mui/icons-material';
 import { Box, Dialog, Divider, Checkbox } from '@mui/material';
+import type {
+  ProductBatch,
+  ProductSerial,
+} from 'services/masters/VanInventory';
+
+// Extend ProductSerial to include selected property
+type ProductSerialWithSelected = ProductSerial & {
+  selected?: boolean;
+};
+
+const INITIAL_SERIAL: ProductSerial = {
+  serial_number: '',
+  quantity: 1,
+  product_id: 0,
+};
+
 import React from 'react';
 import { toast } from 'react-toastify';
-import type { ProductSerial } from 'hooks/useVanInventory';
 import { ActionButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import type { InvoiceItemFormData } from './index';
@@ -14,6 +29,10 @@ interface ManageInvoiceSerialProps {
   setSelectedRowIndex: (rowIndex: number | null) => void;
   invoiceItems: InvoiceItemFormData[];
   setInvoiceItems: (items: InvoiceItemFormData[]) => void;
+  inventoryByProductId?: Record<
+    number,
+    { batches: ProductBatch[]; serials: ProductSerial[] }
+  >;
 }
 
 const ManageInvoiceSerial: React.FC<ManageInvoiceSerialProps> = ({
@@ -23,17 +42,50 @@ const ManageInvoiceSerial: React.FC<ManageInvoiceSerialProps> = ({
   setSelectedRowIndex,
   invoiceItems,
   setInvoiceItems,
+  inventoryByProductId,
 }) => {
-  const [productSerials, setProductSerials] = React.useState<ProductSerial[]>([]);
+  const [productSerials, setProductSerials] = React.useState<
+    ProductSerialWithSelected[]
+  >([]);
 
   React.useEffect(() => {
     if (!isOpen || selectedRowIndex === null) return;
     const item = invoiceItems[selectedRowIndex];
     if (!item) return;
-
-    const existing = (item.product_serials || []) as ProductSerial[];
-    setProductSerials(existing.map(s => ({ ...s, selected: (s as any).selected !== false })));
-  }, [isOpen, selectedRowIndex, invoiceItems]);
+    let rawSerials = (item.product_serials || []) as ProductSerial[];
+    if (
+      rawSerials.length === 0 &&
+      inventoryByProductId &&
+      typeof item.product_id === 'number'
+    ) {
+      const inventoryEntry = inventoryByProductId[item.product_id];
+      if (inventoryEntry && inventoryEntry.serials.length > 0) {
+        rawSerials = inventoryEntry.serials;
+      }
+    }
+    const normalizedSerials: ProductSerialWithSelected[] =
+      rawSerials.length > 0
+        ? rawSerials.map(existing => {
+            const serial = existing as ProductSerialWithSelected;
+            const isSelected = serial.selected === false ? false : true;
+            return {
+              ...INITIAL_SERIAL,
+              ...(existing || {}),
+              product_id: Number(item.product_id || 0),
+              quantity: 1,
+              serial_number: existing?.serial_number || '',
+              selected: isSelected,
+            };
+          })
+        : [
+            {
+              ...INITIAL_SERIAL,
+              product_id: Number(item.product_id || 0),
+              selected: true,
+            },
+          ];
+    setProductSerials(normalizedSerials);
+  }, [isOpen, selectedRowIndex, invoiceItems, inventoryByProductId]);
 
   const handleClose = React.useCallback(() => {
     setIsOpen(false);
@@ -44,7 +96,7 @@ const ManageInvoiceSerial: React.FC<ManageInvoiceSerialProps> = ({
   const handleToggleSelected = React.useCallback((rowIndex: number) => {
     setProductSerials(prev => {
       const updated = [...prev];
-      const current = updated[rowIndex] as ProductSerial & { selected?: boolean };
+      const current = updated[rowIndex] as ProductSerialWithSelected;
       updated[rowIndex] = {
         ...current,
         selected: current.selected === false,
@@ -53,10 +105,38 @@ const ManageInvoiceSerial: React.FC<ManageInvoiceSerialProps> = ({
     });
   }, []);
 
+  const isFormValid = React.useMemo(() => {
+    if (selectedRowIndex === null) return false;
+
+    const selectedSerials = productSerials.filter(s => {
+      const serial = s as ProductSerialWithSelected;
+      return serial.selected !== false;
+    });
+
+    if (selectedSerials.length === 0) return false;
+
+    const trimmedSerials = selectedSerials.map(s =>
+      (s.serial_number || '').trim()
+    );
+    if (trimmedSerials.some(s => s.length === 0)) return false;
+
+    const seen = new Set<string>();
+    for (const s of trimmedSerials) {
+      const key = s.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+    }
+
+    return true;
+  }, [selectedRowIndex, productSerials]);
+
   const handleSubmit = React.useCallback(() => {
     if (selectedRowIndex === null) return;
 
-    const selectedSerials = productSerials.filter(s => (s as any).selected !== false);
+    const selectedSerials = productSerials.filter(s => {
+      const serial = s as ProductSerialWithSelected;
+      return serial.selected !== false;
+    });
 
     if (selectedSerials.length === 0) {
       toast.error('At least one serial number must be selected.');
@@ -75,7 +155,13 @@ const ManageInvoiceSerial: React.FC<ManageInvoiceSerialProps> = ({
     };
     setInvoiceItems(updatedItems);
     handleClose();
-  }, [selectedRowIndex, productSerials, invoiceItems, setInvoiceItems, handleClose]);
+  }, [
+    selectedRowIndex,
+    productSerials,
+    invoiceItems,
+    setInvoiceItems,
+    handleClose,
+  ]);
 
   return (
     <Dialog
@@ -102,7 +188,7 @@ const ManageInvoiceSerial: React.FC<ManageInvoiceSerialProps> = ({
       <Box className="!p-2 min-h-[40vh]">
         <div className="max-h-[50vh] overflow-y-auto flex flex-col gap-2">
           {productSerials.map((row, rowIndex) => {
-            const serial = row as ProductSerial & { selected?: boolean };
+            const serial = row as ProductSerialWithSelected;
             return (
               <div
                 key={`${row.serial_number}-${rowIndex}`}
@@ -134,6 +220,7 @@ const ManageInvoiceSerial: React.FC<ManageInvoiceSerialProps> = ({
           variant="contained"
           color="primary"
           onClick={handleSubmit}
+          disabled={!isFormValid}
         >
           Update
         </Button>

@@ -1,5 +1,4 @@
 import * as Yup from 'yup';
-import dayjs from 'dayjs';
 
 export const invoiceValidationSchema = Yup.object({
   invoice_method: Yup.string()
@@ -27,37 +26,23 @@ export const invoiceValidationSchema = Yup.object({
   currency_id: Yup.number()
     .optional()
     .positive('Currency must be a positive number'),
-
-  invoice_date: Yup.string()
-    .required('Invoice date is required')
-    .matches(
-      /^\d{2}\/\d{2}\/\d{4}$/,
-      'Invoice date must be in DD/MM/YYYY format'
-    )
-    .test('valid-date', 'Invoice date must be a valid date', function (value) {
-      if (!value) return false;
-      return dayjs(value, 'DD/MM/YYYY').isValid();
-    }),
-
+  invoice_date: Yup.string().required('Invoice date is required'),
   due_date: Yup.string()
     .optional()
-    .matches(/^\d{2}\/\d{2}\/\d{4}$/, 'Due date must be in DD/MM/YYYY format')
-    .test('valid-date', 'Due date must be a valid date', function (value) {
-      if (!value) return true; // Optional field
-      return dayjs(value, 'DD/MM/YYYY').isValid();
-    })
     .test(
       'due-date-after-invoice',
       'Due date must be after invoice date',
       function (value) {
         const { invoice_date } = this.parent;
         if (!value || !invoice_date) return true;
-        return (
-          dayjs(value, 'DD/MM/YYYY').isAfter(
-            dayjs(invoice_date, 'DD/MM/YYYY')
-          ) ||
-          dayjs(value, 'DD/MM/YYYY').isSame(dayjs(invoice_date, 'DD/MM/YYYY'))
-        );
+        const dueDate = new Date(value.split('/').reverse().join('-'));
+        const invDate = new Date(invoice_date.split('/').reverse().join('-'));
+        if (isNaN(dueDate.getTime())) {
+          const isoDueDate = new Date(value);
+          const isoInvDate = new Date(invoice_date);
+          return isoDueDate >= isoInvDate;
+        }
+        return dueDate >= invDate;
       }
     ),
 

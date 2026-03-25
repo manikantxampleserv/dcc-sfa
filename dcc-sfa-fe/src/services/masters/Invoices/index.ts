@@ -2,9 +2,9 @@ import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
 interface InvoiceItem {
-  tracking_type: null;
-  product_batches: never[];
   product_serials: never[];
+  product_batches: never[];
+  tracking_type: null;
   id?: number;
   parent_id?: number;
   product_id: number;
