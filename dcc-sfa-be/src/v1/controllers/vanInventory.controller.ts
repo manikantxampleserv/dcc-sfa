@@ -4393,7 +4393,7 @@ export const vanInventoryController = {
           await prisma.van_inventory.update({
             where: { id: vanInventory.id },
             data: {
-              status: 'U',
+              loading_type: 'U',
               updatedate: new Date(),
               updatedby: userIdNum,
             },
