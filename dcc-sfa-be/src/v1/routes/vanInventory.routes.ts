@@ -100,7 +100,7 @@ router.post(
   vanInventoryController.getBulkProductBatches
 );
 router.post(
-  '/van-inventory/:vanInventoryId/unload',
+  '/van-inventory/unload',
   authenticateToken,
   auditUpdate('van_inventory'),
   requirePermission([{ module: 'van-stock', action: 'update' }]),

@@ -1152,8 +1152,7 @@ model invoices {
   invoices_salesperson users?          @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   payment_lines        payment_lines[]
   refund_lines         refund_lines[]
-  loginHistory         login_history?  @relation(fields: [login_historyId], references: [id])
-  login_historyId      Int?
+
 }
 
 model login_history {
@@ -1176,7 +1175,6 @@ model login_history {
   updatedby                          Int?
   log_inst                           Int?
   users_login_history_user_idTousers users      @relation("login_history_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction, map: "FK__login_his__user___4CC05EF3")
-  invoices_salesperson               invoices[]
 }
 
 model notifications {
