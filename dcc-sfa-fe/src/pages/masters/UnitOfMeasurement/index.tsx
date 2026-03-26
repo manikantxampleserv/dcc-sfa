@@ -166,7 +166,11 @@ const UnitOfMeasurementPage: React.FC = () => {
             variant="body2"
             className="!text-gray-900 !max-w-xs !truncate"
           >
-            {row.description}
+            {row.description || (
+              <span className="italic text-gray-400 text-xs">
+                No Description
+              </span>
+            )}
           </Typography>
         </Tooltip>
       ),

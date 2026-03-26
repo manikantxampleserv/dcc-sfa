@@ -1554,6 +1554,8 @@ model unit_of_measurement {
   description                  String?    @db.NVarChar(500)
   category                     String?    @db.NVarChar(50)
   symbol                       String?    @db.NVarChar(10)
+  sub_unit                     String?    @db.NVarChar(50)
+  conversion_rate              Float?     @db.Float
   is_active                    String     @default("Y") @db.Char(1)
   createdate                   DateTime?  @default(now()) @db.DateTime
   createdby                    Int

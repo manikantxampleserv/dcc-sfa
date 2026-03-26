@@ -39,7 +39,6 @@ export interface Request {
     payment_method?: string;
     status?: string;
     notes?: string;
-
     movement_number?: string;
     movement_type?: string;
     from_location?: string;

@@ -9,6 +9,8 @@ interface UnitSerialized {
   description?: string | null;
   category?: string | null;
   symbol?: string | null;
+  sub_unit?: string | null;
+  conversion_rate?: number | null;
   is_active: string;
   createdate?: Date | null;
   createdby: number;
@@ -35,6 +37,8 @@ const serializeUnit = (unit: any): UnitSerialized => ({
   description: unit.description,
   category: unit.category,
   symbol: unit.symbol,
+  sub_unit: unit.sub_unit,
+  conversion_rate: unit.conversion_rate,
   is_active: unit.is_active,
   createdate: unit.createdate,
   createdby: unit.createdby,
@@ -73,6 +77,8 @@ export const unitMeasurementController = {
           description: data.description || null,
           category: data.category || null,
           symbol: data.symbol || null,
+          sub_unit: data.sub_unit || null,
+          conversion_rate: data.conversion_rate || null,
           is_active: data.is_active || 'Y',
           createdate: new Date(),
           createdby: req.user?.id || data.createdby || 1,
@@ -206,7 +212,13 @@ export const unitMeasurementController = {
         return res.status(404).json({ message: 'Unit not found' });
 
       const data = {
-        ...req.body,
+        name: req.body.name,
+        description: req.body.description || '',
+        category: req.body.category || '',
+        symbol: req.body.symbol || '',
+        sub_unit: req.body.sub_unit || '',
+        conversion_rate: req.body.conversion_rate || null,
+        is_active: req.body.is_active || 'Y',
         updatedate: new Date(),
         updatedby: req.user?.id,
       };

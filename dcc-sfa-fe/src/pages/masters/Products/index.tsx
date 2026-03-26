@@ -476,7 +476,6 @@ const ProductsManagement: React.FC = () => {
                         setStatusFilter(e.target.value);
                         setPage(1);
                       }}
-                      className="!min-w-32"
                       size="small"
                       disableClearable
                     >
