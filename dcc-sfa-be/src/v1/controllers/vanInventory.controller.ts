@@ -4285,17 +4285,16 @@ export const vanInventoryController = {
 
   async unloadVanInventory(req: Request, res: Response) {
     try {
-      const { user_id } = req.body;
-      const userId = (req as any).user?.id || 1;
+      const userId = (req as any).user?.id;
 
-      if (!user_id) {
-        return res.status(400).json({
+      if (!userId) {
+        return res.status(401).json({
           success: false,
-          message: 'User ID is required in request body',
+          message: 'User not authenticated or token invalid',
         });
       }
 
-      const userIdNum = parseInt(user_id as string, 10);
+      const userIdNum = parseInt(userId.toString(), 10);
 
       const vanInventories = await prisma.van_inventory.findMany({
         where: {
@@ -4315,7 +4314,7 @@ export const vanInventoryController = {
       if (vanInventories.length === 0) {
         return res.status(404).json({
           success: false,
-          message: 'No active van inventory found for the specified user',
+          message: 'No active van inventory found for the authenticated user',
         });
       }
 
@@ -4350,7 +4349,7 @@ export const vanInventoryController = {
                     current_stock: 0,
                     available_stock: 0,
                     updatedate: new Date(),
-                    updatedby: userId,
+                    updatedby: userIdNum,
                   },
                 });
               }
@@ -4370,13 +4369,12 @@ export const vanInventoryController = {
                   remarks: `Van unloaded from ${vanInventory.vehicle_id ? `vehicle ${vanInventory.vehicle_id}` : 'location'} for user ${userIdNum}`,
                   is_active: 'Y',
                   createdate: new Date(),
-                  createdby: userId,
+                  createdby: userIdNum,
                   log_inst: 1,
                   van_inventory_id: vanInventory.id,
                 },
               });
 
-              // Update van inventory item quantity
               await prisma.van_inventory_items.update({
                 where: { id: item.id },
                 data: {
@@ -4397,7 +4395,7 @@ export const vanInventoryController = {
             data: {
               status: 'U',
               updatedate: new Date(),
-              updatedby: userId,
+              updatedby: userIdNum,
             },
           });
 
