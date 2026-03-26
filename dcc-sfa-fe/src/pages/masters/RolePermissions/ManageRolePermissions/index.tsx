@@ -378,7 +378,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                               className="!text-primary-600"
                             />
                             <span className="!font-medium !text-gray-900 !capitalize">
-                              {module.module}
+                              {module.module?.replaceAll('-', '')}
                             </span>
                           </div>
                         </TableCell>
@@ -432,7 +432,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
                 createRoleMutation.isPending || updateRoleMutation.isPending
               }
             >
-              {isEdit ? 'Update Role' : 'Create Role'}
+              {isEdit ? 'Update' : 'Create'}
             </Button>
           </div>
         </Box>

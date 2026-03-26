@@ -81,9 +81,8 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
   ) => {
     if (amount === null || amount === undefined) return 'N/A';
 
-    // Use the invoice's currency if available, otherwise default to TZS
     const currencyId = invoiceData?.currency_id || 1;
-    const currencies: Currency[] = []; // You can pass currencies if you have them loaded
+    const currencies: Currency[] = [];
 
     return formatCurrency(amount, undefined, currencies, currencyId);
   };
@@ -106,7 +105,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         size="large"
       >
         <div className="!p-6 !space-y-6">
-          {/* Header Skeleton */}
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <Skeleton
               variant="circular"
@@ -134,7 +132,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             />
           </div>
 
-          {/* Content Skeleton */}
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             {[1, 2, 3, 4].map(item => (
               <div
@@ -232,7 +229,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       size="large"
     >
       <div className="!p-5 mb-10 !space-y-5">
-        {/* Header Card */}
         <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
           <div className="absolute top-3 right-3">
             <div
@@ -340,7 +336,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         </div>
 
         <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-          {/* Invoice Information */}
           <InfoCard title="Invoice Information" icon={Info}>
             <div className="!space-y-3">
               <div className="!flex !justify-between">
@@ -392,7 +387,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             </div>
           </InfoCard>
 
-          {/* Customer Information */}
           <InfoCard title="Customer Information" icon={Package}>
             <div className="!space-y-3">
               <div className="!flex !justify-between">
@@ -431,7 +425,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             </div>
           </InfoCard>
 
-          {/* Amount Breakdown */}
           <InfoCard title="Amount Breakdown" icon={DollarSign}>
             <div className="!space-y-3">
               <div className="!flex !justify-between">
@@ -503,7 +496,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             </div>
           </InfoCard>
 
-          {/* Invoice Items */}
           <InfoCard title="Invoice Items" icon={Package}>
             <div className="!space-y-2">
               {invoiceData.invoice_items &&
@@ -576,7 +568,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
           </InfoCard>
         </div>
 
-        {/* Notes and Billing Address */}
         {(invoiceData.notes || invoiceData.billing_address) && (
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             {invoiceData.notes && (
