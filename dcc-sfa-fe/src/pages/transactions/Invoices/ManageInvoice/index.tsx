@@ -214,6 +214,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           billing_address: values.billing_address,
           subtotal: totals.subtotal,
           total_amount: totals.total_amount,
+          amount_paid: values.status === 'paid' ? totals.total_amount : 0,
           balance_due: totals.balance_due,
           invoiceItems: invoiceItems
             .filter(item => item.product_id !== '')
@@ -233,10 +234,8 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             id: invoice.id,
             ...submitData,
           });
-          toast.success('Invoice updated successfully!');
         } else {
           await createInvoiceMutation.mutateAsync(submitData);
-          toast.success('Invoice created successfully!');
         }
 
         handleCancel();

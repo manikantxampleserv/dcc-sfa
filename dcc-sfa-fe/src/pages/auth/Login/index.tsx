@@ -295,8 +295,8 @@ const Login: React.FC = () => {
           <Input
             name="email"
             type="text"
-            label="Email"
-            placeholder="Enter your email"
+            label="Username"
+            placeholder="Enter your email or employee code"
             formik={formik}
             required
             className="!mt-4"

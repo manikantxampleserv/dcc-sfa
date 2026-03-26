@@ -17,6 +17,7 @@ import React from 'react';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import { formatDate } from 'utils/dateUtils';
+import { formatCurrency, type Currency } from 'utils/currencyUtils';
 
 interface InvoiceDetailProps {
   open: boolean;
@@ -75,12 +76,15 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     }
   };
 
-  const formatCurrency = (amount: number | null | undefined) => {
+  const formatCurrencyWithInvoiceCurrency = (
+    amount: number | null | undefined
+  ) => {
     if (amount === null || amount === undefined) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+
+    const currencyId = invoiceData?.currency_id || 1;
+    const currencies: Currency[] = [];
+
+    return formatCurrency(amount, undefined, currencies, currencyId);
   };
 
   const isOverdue = (invoice: Invoice) => {
@@ -101,7 +105,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
         size="large"
       >
         <div className="!p-6 !space-y-6">
-          {/* Header Skeleton */}
           <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <Skeleton
               variant="circular"
@@ -129,7 +132,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             />
           </div>
 
-          {/* Content Skeleton */}
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             {[1, 2, 3, 4].map(item => (
               <div
@@ -227,7 +229,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
       size="large"
     >
       <div className="!p-5 mb-10 !space-y-5">
-        {/* Header Card */}
         <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
           <div className="absolute top-3 right-3">
             <div
@@ -294,7 +295,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 variant="body2"
                 className="!font-semibold !text-gray-900"
               >
-                {formatCurrency(invoiceData.total_amount)}
+                {formatCurrencyWithInvoiceCurrency(invoiceData.total_amount)}
               </Typography>
             </div>
 
@@ -309,7 +310,11 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 variant="body2"
                 className="!font-semibold !text-green-600"
               >
-                {formatCurrency(invoiceData.amount_paid)}
+                {formatCurrencyWithInvoiceCurrency(
+                  invoiceData.balance_due === 0
+                    ? invoiceData.total_amount
+                    : invoiceData.amount_paid
+                )}
               </Typography>
             </div>
 
@@ -324,14 +329,13 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                 variant="body2"
                 className="!font-semibold !text-red-600"
               >
-                {formatCurrency(invoiceData.balance_due)}
+                {formatCurrencyWithInvoiceCurrency(invoiceData.balance_due)}
               </Typography>
             </div>
           </div>
         </div>
 
         <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-          {/* Invoice Information */}
           <InfoCard title="Invoice Information" icon={Info}>
             <div className="!space-y-3">
               <div className="!flex !justify-between">
@@ -367,21 +371,22 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                   {invoiceData.payment_method?.replaceAll('_', ' ') || 'N/A'}
                 </Typography>
               </div>
-              <div className="!flex !justify-between">
-                <Typography variant="body2" className="!text-gray-600">
-                  Order Number:
-                </Typography>
-                <Typography
-                  variant="body2"
-                  className="!font-semibold !text-gray-900"
-                >
-                  #{invoiceData.parent_id}
-                </Typography>
-              </div>
+              {invoiceData.parent_id && (
+                <div className="!flex !justify-between">
+                  <Typography variant="body2" className="!text-gray-600">
+                    Order Number:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    className="!font-semibold !text-gray-900"
+                  >
+                    #{invoiceData.parent_id}
+                  </Typography>
+                </div>
+              )}
             </div>
           </InfoCard>
 
-          {/* Customer Information */}
           <InfoCard title="Customer Information" icon={Package}>
             <div className="!space-y-3">
               <div className="!flex !justify-between">
@@ -420,7 +425,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             </div>
           </InfoCard>
 
-          {/* Amount Breakdown */}
           <InfoCard title="Amount Breakdown" icon={DollarSign}>
             <div className="!space-y-3">
               <div className="!flex !justify-between">
@@ -431,7 +435,12 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                   variant="body2"
                   className="!font-semibold !text-gray-900"
                 >
-                  {formatCurrency(invoiceData.subtotal)}
+                  {formatCurrencyWithInvoiceCurrency(
+                    invoiceData.subtotal ||
+                      Number(invoiceData.total_amount) -
+                        Number(invoiceData.tax_amount) +
+                        Number(invoiceData.discount_amount)
+                  )}
                 </Typography>
               </div>
               <div className="!flex !justify-between">
@@ -442,7 +451,10 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                   variant="body2"
                   className="!font-semibold !text-green-600"
                 >
-                  -{formatCurrency(invoiceData.discount_amount)}
+                  -
+                  {formatCurrencyWithInvoiceCurrency(
+                    invoiceData.discount_amount
+                  )}
                 </Typography>
               </div>
               <div className="!flex !justify-between">
@@ -453,7 +465,7 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                   variant="body2"
                   className="!font-semibold !text-gray-900"
                 >
-                  {formatCurrency(invoiceData.tax_amount)}
+                  {formatCurrencyWithInvoiceCurrency(invoiceData.tax_amount)}
                 </Typography>
               </div>
               <div className="!flex !justify-between">
@@ -464,7 +476,9 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                   variant="body2"
                   className="!font-semibold !text-gray-900"
                 >
-                  {formatCurrency(invoiceData.shipping_amount)}
+                  {formatCurrencyWithInvoiceCurrency(
+                    invoiceData.shipping_amount
+                  )}
                 </Typography>
               </div>
               <div className="!border-t !border-gray-300 !pt-2 !mt-2">
@@ -473,14 +487,15 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                     Total:
                   </Typography>
                   <Typography variant="subtitle2" className="!font-bold">
-                    {formatCurrency(invoiceData.total_amount)}
+                    {formatCurrencyWithInvoiceCurrency(
+                      invoiceData.total_amount
+                    )}
                   </Typography>
                 </div>
               </div>
             </div>
           </InfoCard>
 
-          {/* Invoice Items */}
           <InfoCard title="Invoice Items" icon={Package}>
             <div className="!space-y-2">
               {invoiceData.invoice_items &&
@@ -491,17 +506,30 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                     className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
                   >
                     <div className="!flex !justify-between !items-start !mb-1">
+                      <div>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {item.product?.name ||
+                            item.product_name ||
+                            `Product #${item.product_id}`}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !block !mt-0.5"
+                        >
+                          Tracking:{' '}
+                          {item.tracking_type ||
+                            item.product?.tracking_type ||
+                            'None'}
+                        </Typography>
+                      </div>
                       <Typography
                         variant="body2"
                         className="!font-semibold !text-gray-900"
                       >
-                        {item.product_name || `Product #${item.product_id}`}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        className="!font-semibold !text-gray-900"
-                      >
-                        {formatCurrency(
+                        {formatCurrencyWithInvoiceCurrency(
                           item.unit_price * item.quantity -
                             (item.discount_amount || 0) || 0
                         )}
@@ -509,7 +537,8 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                     </div>
                     <div className="!flex !justify-between !text-xs !text-gray-500">
                       <span>
-                        Qty: {item.quantity} × {formatCurrency(item.unit_price)}
+                        Qty: {item.quantity} ×{' '}
+                        {formatCurrencyWithInvoiceCurrency(item.unit_price)}
                       </span>
                       {item.discount_amount && item.discount_amount > 0 && (
                         <span className="!text-green-600">
@@ -539,7 +568,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
           </InfoCard>
         </div>
 
-        {/* Notes and Billing Address */}
         {(invoiceData.notes || invoiceData.billing_address) && (
           <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
             {invoiceData.notes && (
@@ -558,17 +586,6 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
             )}
           </div>
         )}
-
-        {/* Back Button */}
-        <div className="!flex !justify-end">
-          <Button
-            variant="outlined"
-            startIcon={<ArrowLeft />}
-            onClick={handleBack}
-          >
-            Back to Invoices
-          </Button>
-        </div>
       </div>
     </CustomDrawer>
   );

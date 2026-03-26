@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 export declare const customerController: {
     uploadCustomerImages(req: any, res: any): Promise<any>;
     bulkUpsertCustomers(req: any, res: any): Promise<any>;
+    createLocationChangeRequest(req: any, res: any): Promise<any>;
     createCustomers(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     getAllCustomers(req: any, res: any): Promise<void>;
     getCustomersById(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;

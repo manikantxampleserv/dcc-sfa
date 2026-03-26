@@ -2990,31 +2990,33 @@ export const visitsController = {
                           await generateInvoiceNumberInTransaction(tx);
                         console.log('Generated invoice number:', invoiceNumber);
                       }
+                    }
+                    const processedInvoiceData = {
+                      customer_id: visit.customer_id,
+                      invoice_number: invoiceNumber,
 
-                      const processedInvoiceData = {
-                        customer_id: visit.customer_id,
-                        invoice_number: invoiceNumber,
-                        invoice_date: invoiceData.invoice_date
-                          ? new Date(invoiceData.invoice_date)
-                          : new Date(),
-                        due_date: invoiceData.due_date
-                          ? new Date(invoiceData.due_date)
-                          : undefined,
-                        status: invoiceData.status || 'draft',
-                        salesperson_id: invoiceData.salesperson_id || null,
-                        payment_method: invoiceData.payment_method || 'credit',
-                        subtotal: invoiceData.subtotal || 0,
-                        discount_amount: invoiceData.discount_amount || 0,
-                        tax_amount: invoiceData.tax_amount || 0,
-                        shipping_amount: invoiceData.shipping_amount || 0,
-                        total_amount: invoiceData.total_amount || 0,
-                        amount_paid: invoiceData.amount_paid || 0,
-                        balance_due: invoiceData.balance_due,
-                        notes: invoiceData.notes,
-                        billing_address: invoiceData.billing_address,
-                        is_active: invoiceData.is_active || 'Y',
-                        currency_id: invoiceData.currency_id,
-                      };
+                      parent_id: createdOrder.id,
+                      invoice_date: invoiceData.invoice_date
+                        ? new Date(invoiceData.invoice_date)
+                        : new Date(),
+                      due_date: invoiceData.due_date
+                        ? new Date(invoiceData.due_date)
+                        : undefined,
+                      status: invoiceData.status || 'paid',
+                      salesperson_id: invoiceData.salesperson_id || null,
+                      payment_method: invoiceData.payment_method || 'cash',
+                      subtotal: invoiceData.subtotal || 0,
+                      discount_amount: invoiceData.discount_amount || 0,
+                      tax_amount: invoiceData.tax_amount || 0,
+                      shipping_amount: invoiceData.shipping_amount || 0,
+                      total_amount: invoiceData.total_amount || 0,
+                      amount_paid: invoiceData.amount_paid || 0,
+                      balance_due: invoiceData.balance_due || 0,
+                      notes: invoiceData.notes,
+                      billing_address: invoiceData.billing_address,
+                      is_active: invoiceData.is_active || 'Y',
+                      currency_id: invoiceData.currency_id,
+                    };
 
                       let createdInvoice: any = undefined;
 

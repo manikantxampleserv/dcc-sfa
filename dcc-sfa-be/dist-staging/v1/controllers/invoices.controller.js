@@ -26,6 +26,8 @@ const serializeInvoice = (invoice) => ({
     notes: invoice.notes,
     billing_address: invoice.billing_address,
     is_active: invoice.is_active,
+    invoice_method: invoice.parent_id ? 'order' : 'direct',
+    salesperson_id: invoice.salesperson_id,
     createdate: invoice.createdate?.toISOString(),
     createdby: invoice.createdby,
     updatedate: invoice.updatedate?.toISOString(),
@@ -60,11 +62,13 @@ const serializeInvoice = (invoice) => ({
         discount_amount: Number(item.discount_amount),
         tax_amount: Number(item.tax_amount),
         notes: item.notes,
+        tracking_type: item.invoice_items_products?.tracking_type || null,
         product: item.invoice_items_products
             ? {
                 id: item.invoice_items_products.id,
                 name: item.invoice_items_products.name,
                 code: item.invoice_items_products.code,
+                tracking_type: item.invoice_items_products.tracking_type || null,
             }
             : undefined,
     })),
@@ -103,8 +107,13 @@ exports.invoicesController = {
                 const newInvoice = await tx.invoices.create({
                     data: {
                         invoice_number: invoiceNumber,
-                        parent_id: data.parent_id ? Number(data.parent_id) : 0,
+                        parent_id: data.parent_id && data.invoice_method !== 'direct'
+                            ? Number(data.parent_id)
+                            : null,
                         customer_id: Number(data.customer_id),
+                        salesperson_id: data.salesperson_id
+                            ? Number(data.salesperson_id)
+                            : null,
                         currency_id: data.currency_id ? Number(data.currency_id) : null,
                         invoice_date: new Date(data.invoice_date),
                         due_date: data.due_date ? new Date(data.due_date) : null,
@@ -146,27 +155,88 @@ exports.invoicesController = {
                         },
                     });
                     const productMap = new Map(products.map(p => [p.id, p]));
-                    await tx.invoice_items.createMany({
-                        data: data.invoiceItems.map((item) => {
-                            const product = productMap.get(Number(item.product_id));
-                            return {
+                    for (const item of data.invoiceItems) {
+                        const product = productMap.get(Number(item.product_id));
+                        const quantity = Number(item.quantity);
+                        const unitPrice = Number(item.unit_price);
+                        const discountAmount = Number(item.discount_amount) || 0;
+                        const taxAmount = Number(item.tax_amount) || 0;
+                        const totalAmount = quantity * unitPrice - discountAmount + taxAmount;
+                        let trackingNotes = '';
+                        const trackingType = product?.tracking_type?.toUpperCase();
+                        if (trackingType === 'BATCH' && item.product_batches) {
+                            const batchData = Array.isArray(item.product_batches)
+                                ? item.product_batches
+                                : JSON.parse(item.product_batches || '[]');
+                            trackingNotes = `Batches: ${batchData.map((b) => b.batch_number || b.batch_lot_id).join(', ')}`;
+                            // If this is a direct invoice (not from order), deduct stock
+                            if (data.invoice_method !== 'order') {
+                                for (const batch of batchData) {
+                                    const batchQty = Number(batch.quantity);
+                                    if (batchQty > 0) {
+                                        // Update van inventory
+                                        const vanItem = await tx.van_inventory_items.findFirst({
+                                            where: {
+                                                product_id: product?.id,
+                                                batch_lot_id: batch.batch_lot_id,
+                                            },
+                                        });
+                                        if (vanItem) {
+                                            await tx.van_inventory_items.update({
+                                                where: { id: vanItem.id },
+                                                data: { quantity: { decrement: batchQty } },
+                                            });
+                                        }
+                                        // Update batch lot
+                                        await tx.batch_lots.update({
+                                            where: { id: batch.batch_lot_id },
+                                            data: { remaining_quantity: { decrement: batchQty } },
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        else if (trackingType === 'SERIAL' && item.product_serials) {
+                            const serialData = Array.isArray(item.product_serials)
+                                ? item.product_serials
+                                : JSON.parse(item.product_serials || '[]');
+                            const selectedSerials = serialData.filter((s) => s.selected !== false);
+                            trackingNotes = `Serials: ${selectedSerials.map((s) => s.serial_number).join(', ')}`;
+                            if (data.invoice_method !== 'order') {
+                                for (const serial of selectedSerials) {
+                                    await tx.serial_numbers.update({
+                                        where: { id: serial.id },
+                                        data: { status: 'sold', sold_date: new Date() },
+                                    });
+                                    // Remove from van inventory
+                                    await tx.van_inventory_items.deleteMany({
+                                        where: {
+                                            product_id: product?.id,
+                                            serial_id: serial.id,
+                                        },
+                                    });
+                                }
+                            }
+                        }
+                        await tx.invoice_items.create({
+                            data: {
                                 parent_id: newInvoice.id,
                                 product_id: Number(item.product_id),
                                 product_name: product?.name || '',
                                 unit: product?.product_unit_of_measurement?.name ||
                                     product?.product_unit_of_measurement?.symbol ||
                                     'pcs',
-                                quantity: Number(item.quantity),
-                                unit_price: Number(item.unit_price),
-                                discount_amount: Number(item.discount_amount) || 0,
-                                tax_amount: Number(item.tax_amount) || 0,
-                                total_amount: Number(item.quantity) * Number(item.unit_price) -
-                                    (Number(item.discount_amount) || 0) +
-                                    (Number(item.tax_amount) || 0),
-                                notes: item.notes || null,
-                            };
-                        }),
-                    });
+                                quantity: quantity,
+                                unit_price: unitPrice,
+                                discount_amount: discountAmount,
+                                tax_amount: taxAmount,
+                                total_amount: totalAmount,
+                                notes: item.notes
+                                    ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
+                                    : trackingNotes || null,
+                            },
+                        });
+                    }
                 }
                 return newInvoice;
             });
@@ -343,7 +413,109 @@ exports.invoicesController = {
             if (!existingInvoice) {
                 return res.status(404).json({ message: 'Invoice not found' });
             }
-            const completeInvoice = await prisma_client_1.default.invoices.findUnique({
+            await prisma_client_1.default.$transaction(async (tx) => {
+                // Update invoice basic info
+                await tx.invoices.update({
+                    where: { id: Number(id) },
+                    data: {
+                        parent_id: data.parent_id && data.invoice_method !== 'direct'
+                            ? Number(data.parent_id)
+                            : null,
+                        customer_id: data.customer_id
+                            ? Number(data.customer_id)
+                            : undefined,
+                        salesperson_id: data.salesperson_id
+                            ? Number(data.salesperson_id)
+                            : undefined,
+                        currency_id: data.currency_id
+                            ? Number(data.currency_id)
+                            : undefined,
+                        invoice_date: data.invoice_date
+                            ? new Date(data.invoice_date)
+                            : undefined,
+                        due_date: data.due_date ? new Date(data.due_date) : undefined,
+                        status: data.status,
+                        payment_method: data.payment_method,
+                        subtotal: data.subtotal !== undefined ? Number(data.subtotal) : 0,
+                        discount_amount: data.discount_amount !== undefined
+                            ? Number(data.discount_amount)
+                            : 0,
+                        tax_amount: data.tax_amount !== undefined ? Number(data.tax_amount) : 0,
+                        shipping_amount: data.shipping_amount !== undefined
+                            ? Number(data.shipping_amount)
+                            : 0,
+                        total_amount: data.total_amount !== undefined ? Number(data.total_amount) : 0,
+                        amount_paid: data.amount_paid !== undefined ? Number(data.amount_paid) : 0,
+                        balance_due: data.balance_due !== undefined ? Number(data.balance_due) : 0,
+                        notes: data.notes !== undefined ? data.notes : undefined,
+                        billing_address: data.billing_address !== undefined
+                            ? data.billing_address
+                            : undefined,
+                        is_active: data.is_active || 'Y',
+                        updatedate: new Date(),
+                    },
+                });
+                // Sync items if provided
+                if (data.invoiceItems && Array.isArray(data.invoiceItems)) {
+                    // Delete old items
+                    await tx.invoice_items.deleteMany({
+                        where: { parent_id: Number(id) },
+                    });
+                    // Create new items
+                    if (data.invoiceItems.length > 0) {
+                        const productIds = data.invoiceItems.map((item) => Number(item.product_id));
+                        const products = await tx.products.findMany({
+                            where: { id: { in: productIds } },
+                            include: {
+                                product_unit_of_measurement: true,
+                            },
+                        });
+                        const productMap = new Map(products.map(p => [p.id, p]));
+                        for (const item of data.invoiceItems) {
+                            const product = productMap.get(Number(item.product_id));
+                            const quantity = Number(item.quantity);
+                            const unitPrice = Number(item.unit_price);
+                            const discountAmount = Number(item.discount_amount) || 0;
+                            const taxAmount = Number(item.tax_amount) || 0;
+                            const totalAmount = quantity * unitPrice - discountAmount + taxAmount;
+                            let trackingNotes = '';
+                            const trackingType = product?.tracking_type?.toUpperCase();
+                            if (trackingType === 'BATCH' && item.product_batches) {
+                                const batchData = Array.isArray(item.product_batches)
+                                    ? item.product_batches
+                                    : JSON.parse(item.product_batches || '[]');
+                                trackingNotes = `Batches: ${batchData.map((b) => b.batch_number || b.batch_lot_id).join(', ')}`;
+                            }
+                            else if (trackingType === 'SERIAL' && item.product_serials) {
+                                const serialData = Array.isArray(item.product_serials)
+                                    ? item.product_serials
+                                    : JSON.parse(item.product_serials || '[]');
+                                const selectedSerials = serialData.filter((s) => s.selected !== false);
+                                trackingNotes = `Serials: ${selectedSerials.map((s) => s.serial_number).join(', ')}`;
+                            }
+                            await tx.invoice_items.create({
+                                data: {
+                                    parent_id: Number(id),
+                                    product_id: Number(item.product_id),
+                                    product_name: product?.name || '',
+                                    unit: product?.product_unit_of_measurement?.name ||
+                                        product?.product_unit_of_measurement?.symbol ||
+                                        'pcs',
+                                    quantity: quantity,
+                                    unit_price: unitPrice,
+                                    discount_amount: discountAmount,
+                                    tax_amount: taxAmount,
+                                    total_amount: totalAmount,
+                                    notes: item.notes
+                                        ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
+                                        : trackingNotes || null,
+                                },
+                            });
+                        }
+                    }
+                }
+            });
+            const updatedInvoice = await prisma_client_1.default.invoices.findUnique({
                 where: { id: Number(id) },
                 include: {
                     invoices_customers: {
@@ -365,7 +537,7 @@ exports.invoicesController = {
             });
             res.json({
                 message: 'Invoice updated successfully',
-                data: serializeInvoice(completeInvoice),
+                data: serializeInvoice(updatedInvoice),
             });
         }
         catch (error) {

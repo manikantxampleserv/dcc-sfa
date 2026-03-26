@@ -707,16 +707,17 @@ export const vanInventoryController = {
       }
       const items = await prisma.van_inventory_items.findMany({
         where: { parent_id: { in: vanIds } },
-        include: {
+        select: {
+          id: true,
+          product_id: true,
+          quantity: true,
           van_inventory_items_products: {
             select: {
               id: true,
               name: true,
               code: true,
-              base_price: true,
               tracking_type: true,
-              tax_id: true,
-
+              base_price: true,
               product_tax_master: {
                 select: {
                   id: true,
@@ -728,8 +729,44 @@ export const vanInventoryController = {
               },
             },
           },
+          van_inventory_items_batch_lot: {
+            select: {
+              id: true,
+              remaining_quantity: true,
+            },
+          },
         },
       });
+
+      // Group items by product and calculate remaining quantity based on tracking type
+      const productInventoryMap = new Map<number, number>();
+
+      items.forEach(it => {
+        const productId = it.van_inventory_items_products?.id;
+        const trackingType =
+          it.van_inventory_items_products?.tracking_type?.toLowerCase() ||
+          'none';
+
+        if (productId) {
+          const currentRemaining = productInventoryMap.get(productId) || 0;
+          let itemRemaining = 0;
+
+          if (trackingType === 'batch') {
+            // For batch tracking, use remaining_quantity from batch_lot
+            itemRemaining =
+              it.van_inventory_items_batch_lot?.remaining_quantity || 0;
+          } else if (trackingType === 'serial') {
+            // For serial tracking, count available serials (not implemented yet, use quantity as fallback)
+            itemRemaining = it.quantity || 0;
+          } else {
+            // For 'none' tracking type, use the item quantity directly
+            itemRemaining = it.quantity || 0;
+          }
+
+          productInventoryMap.set(productId, currentRemaining + itemRemaining);
+        }
+      });
+
       const map = new Map<
         number,
         {
@@ -751,28 +788,33 @@ export const vanInventoryController = {
       items.forEach(it => {
         const p = it.van_inventory_items_products;
         if (p) {
-          if (
-            !search ||
-            (p.name &&
-              p.name.toLowerCase().includes((search as string).toLowerCase()))
-          ) {
-            map.set(p.id, {
-              id: it.id,
-              name: p.name || 'N/A',
-              code: p.code || '',
-              unit_price: Number(p.base_price || 0),
-              product_id: p.id,
-              tracking_type: p.tracking_type || null,
-              tax_details: p.product_tax_master
-                ? {
-                    id: p.product_tax_master.id,
-                    name: p.product_tax_master.name,
-                    code: p.product_tax_master.code,
-                    tax_rate: Number(p.product_tax_master.tax_rate),
-                    description: p.product_tax_master.description,
-                  }
-                : null,
-            });
+          const productRemainingQuantity = productInventoryMap.get(p.id) || 0;
+
+          // Only include products that have remaining inventory
+          if (productRemainingQuantity > 0) {
+            if (
+              !search ||
+              (p.name &&
+                p.name.toLowerCase().includes((search as string).toLowerCase()))
+            ) {
+              map.set(p.id, {
+                id: it.id,
+                name: p.name || 'N/A',
+                code: p.code || '',
+                unit_price: Number(p.base_price || 0),
+                product_id: p.id,
+                tracking_type: p.tracking_type || null,
+                tax_details: p.product_tax_master
+                  ? {
+                      id: p.product_tax_master.id,
+                      name: p.product_tax_master.name,
+                      code: p.product_tax_master.code,
+                      tax_rate: Number(p.product_tax_master.tax_rate),
+                      description: p.product_tax_master.description,
+                    }
+                  : null,
+              });
+            }
           }
         }
       });
@@ -3091,7 +3133,7 @@ export const vanInventoryController = {
               });
             }
 
-            if (batchInfo) {
+            if (batchInfo && batchInfo.remaining_quantity > 0) {
               const existingBatch = productData.batches.find(
                 (b: any) => b.batch_lot_id === batchInfo!.batch_lot_id
               );

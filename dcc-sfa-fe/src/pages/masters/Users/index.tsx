@@ -109,17 +109,23 @@ const UsersManagement: React.FC = () => {
       ),
     },
     {
+      id: 'employee_id',
+      label: 'Code',
+      render: value =>
+        value || <span className="italic text-xs text-gray-400">No Code</span>,
+    },
+    {
       id: 'email',
       label: 'Email Address',
-      render: (_value, row) =>
-        row.email || <span className="italic text-gray-400"> No Email </span>,
+      render: value =>
+        value || <span className="italic text-xs text-gray-400">No Email</span>,
     },
     {
       id: 'role',
       label: 'Role',
-      render: (_value, row) =>
-        row.role?.name || (
-          <span className="italic text-gray-400"> No Role </span>
+      render: value =>
+        value?.name || (
+          <span className="italic text-xs text-gray-400"> No Role </span>
         ),
     },
     {
@@ -140,23 +146,21 @@ const UsersManagement: React.FC = () => {
     {
       id: 'phone_number',
       label: 'Phone',
-      render: (_value, row) =>
-        row.phone_number || (
-          <span className="italic text-gray-400"> No Phone </span>
+      render: value =>
+        value || (
+          <span className="italic text-xs text-gray-400"> No Phone </span>
         ),
     },
     {
       id: 'address',
       label: 'Address',
-      render: (_value, row) =>
-        row.address ? (
-          <Tooltip title={row.address} placement="top" arrow>
-            <span className="truncate text-ellipsis max-w-72">
-              {row.address}
-            </span>
+      render: value =>
+        value ? (
+          <Tooltip title={value} placement="top" arrow>
+            <span className="truncate text-ellipsis max-w-72">{value}</span>
           </Tooltip>
         ) : (
-          <span className="italic text-gray-400"> No Address </span>
+          <span className="italic text-xs text-gray-400"> No Address </span>
         ),
     },
     {
@@ -164,7 +168,7 @@ const UsersManagement: React.FC = () => {
       label: 'Join Date',
       render: (_value, row) =>
         formatDate(row.joining_date) || (
-          <span className="italic text-gray-400"> No Date </span>
+          <span className="italic text-xs text-gray-400"> No Date </span>
         ),
     },
     {
@@ -172,7 +176,7 @@ const UsersManagement: React.FC = () => {
       label: 'Reports To',
       render: (_value, row) =>
         row.reporting_manager?.name || (
-          <span className="italic text-gray-400"> No Reports To </span>
+          <span className="italic text-xs text-gray-400"> No Reports To </span>
         ),
     },
     ...(isUpdate || isDelete

@@ -117,11 +117,13 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
     discount_amount: Number(item.discount_amount),
     tax_amount: Number(item.tax_amount),
     notes: item.notes,
+    tracking_type: item.invoice_items_products?.tracking_type || null,
     product: item.invoice_items_products
       ? {
           id: item.invoice_items_products.id,
           name: item.invoice_items_products.name,
           code: item.invoice_items_products.code,
+          tracking_type: item.invoice_items_products.tracking_type || null,
         }
       : undefined,
   })),

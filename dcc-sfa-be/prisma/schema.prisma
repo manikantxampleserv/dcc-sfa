@@ -1152,7 +1152,10 @@ model invoices {
   invoices_salesperson users?          @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   payment_lines        payment_lines[]
   refund_lines         refund_lines[]
+<<<<<<< HEAD
 
+=======
+>>>>>>> fb30be5ea7645f3aadba34a9c024937999b8ad8b
 }
 
 model login_history {

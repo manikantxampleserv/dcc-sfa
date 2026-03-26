@@ -276,14 +276,14 @@ const InvoicesManagement: React.FC = () => {
           >
             Paid: {formatCurrency(row.amount_paid || 0)}
           </Typography>
-          {row.balance_due && row.balance_due > 0 && (
+          {row.balance_due && row.balance_due > 0 ? (
             <Typography
               variant="caption"
               className="!text-red-600 !text-xs !block !mt-0.5"
             >
               Balance: {formatCurrency(row.balance_due || 0)}
             </Typography>
-          )}
+          ) : null}
         </Box>
       ),
     },
