@@ -114,7 +114,6 @@ const ImportOrder: React.FC<ImportOrderProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Orders"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

@@ -353,7 +353,9 @@ const ManageProduct: React.FC<ManageProductProps> = ({
             >
               {units.map((unit: UnitOfMeasurement) => (
                 <MenuItem key={unit.id} value={unit.id}>
-                  {unit.name} {unit.symbol && `(${unit.symbol})`}
+                  {unit.name}
+                  {unit.conversion_rate &&
+                    `(${unit.conversion_rate}${unit.sub_unit})`}
                 </MenuItem>
               ))}
             </Select>

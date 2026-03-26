@@ -87,7 +87,9 @@ const ExecutiveDashboard: React.FC = () => {
 
   const handleModalClose = () => {
     setApprovalModalOpen(false);
-    setSelectedRequest(null);
+    setTimeout(() => {
+      setSelectedRequest(null);
+    }, 5000);
   };
 
   const CHART_COLORS = {

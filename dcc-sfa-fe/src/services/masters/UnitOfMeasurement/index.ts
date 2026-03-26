@@ -14,7 +14,7 @@ interface UnitOfMeasurement {
   description?: string | null;
   category?: string | null;
   symbol?: string | null;
-  sub_unit?: 'crate' | 'case' | 'pcs' | null;
+  sub_unit?: 'case' | 'pcs' | null;
   conversion_rate?: number | null;
   is_active: string;
   createdate?: string | null;

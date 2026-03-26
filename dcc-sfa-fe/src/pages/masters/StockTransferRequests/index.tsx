@@ -374,7 +374,6 @@ const StockTransferRequestsManagement: React.FC = () => {
                   <Select
                     value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value)}
-                    className="!min-w-32"
                     size="small"
                   >
                     <MenuItem value="all">All Status</MenuItem>

@@ -604,7 +604,7 @@ export const vanInventoryController = {
           },
         });
       }
-      const itemsRaw = await prisma.van_inventory_items.findMany({
+      const itemsRaw = (await prisma.van_inventory_items.findMany({
         where: {
           parent_id: { in: vanIds },
           ...(product_id
@@ -617,6 +617,7 @@ export const vanInventoryController = {
               id: true,
               name: true,
               code: true,
+              unit_of_measurement: true,
               tracking_type: true,
             },
           },
@@ -630,11 +631,11 @@ export const vanInventoryController = {
           },
         },
         orderBy: { id: 'desc' },
-      });
+      })) as any;
       const totalCount = itemsRaw.length;
       const startIndex = (pageNum - 1) * limitNum;
       const paginated = itemsRaw.slice(startIndex, startIndex + limitNum);
-      const data = paginated.map(it => ({
+      const data = paginated.map((it: any) => ({
         item_id: it.id,
         van_inventory_id: it.parent_id,
         product_id: it.product_id,
@@ -643,6 +644,8 @@ export const vanInventoryController = {
         product_code: it.van_inventory_items_products?.code || null,
         tracking_type: it.van_inventory_items_products?.tracking_type || null,
         unit: it.unit || null,
+        unit_of_measurement:
+          it.van_inventory_items_products?.product_unit_of_measurement,
         quantity: it.quantity,
         unit_price: Number(it.unit_price || 0),
         discount_amount: Number(it.discount_amount || 0),
@@ -3089,6 +3092,8 @@ export const vanInventoryController = {
                 product_id: productId,
                 product_name: product?.name || null,
                 product_code: product?.code || null,
+                product_unit_of_measurement:
+                  product?.product_unit_of_measurement,
                 unit_price: item.unit_price ? Number(item.unit_price) : null,
                 tracking_type: product?.tracking_type || 'none',
                 total_quantity: 0,
@@ -3640,7 +3645,6 @@ export const vanInventoryController = {
               const product = item.van_inventory_items_products;
               const batch = item.van_inventory_items_batch_lot;
 
-              // FIX: Normalize tracking_type to lowercase for comparison
               const trackingType = (
                 product?.tracking_type || 'none'
               ).toLowerCase();
@@ -3770,6 +3774,7 @@ export const vanInventoryController = {
                   product_id: productId,
                   product_name: product?.name || null,
                   product_code: product?.code || null,
+                  unit_of_measurment: product.product_unit_of_measurement,
                   unit_price: product?.base_price
                     ? Number(product.base_price)
                     : null,
@@ -3954,6 +3959,7 @@ export const vanInventoryController = {
                       name: true,
                       code: true,
                       base_price: true,
+                      product_unit_of_measurement: true,
                       tracking_type: true,
                       tax_id: true,
                       product_tax_master: {
@@ -4138,6 +4144,7 @@ export const vanInventoryController = {
                   code: true,
                   base_price: true,
                   tracking_type: true,
+                  product_unit_of_measurement: true,
                   tax_id: true,
                   product_tax_master: {
                     select: {

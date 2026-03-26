@@ -312,16 +312,19 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                     </Typography>
                   </Box>
                 </Box>
-                <Typography
-                  variant="caption"
-                  className="!text-xs !text-gray-500"
-                >
-                  {userLoading ? (
-                    <Skeleton width={150} height={12} />
-                  ) : (
-                    currentUser?.email || 'user@example.com'
-                  )}
-                </Typography>
+
+                {currentUser?.email && (
+                  <Typography
+                    variant="caption"
+                    className="!text-xs !text-gray-500"
+                  >
+                    {userLoading ? (
+                      <Skeleton width={150} height={12} />
+                    ) : (
+                      currentUser?.email
+                    )}
+                  </Typography>
+                )}
               </Box>
 
               <MenuItem onClick={handleProfileClick} className="!px-4 !py-2">
@@ -330,8 +333,10 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 </ListItemIcon>
                 <ListItemText
                   primary="My Profile"
-                  primaryTypographyProps={{
-                    className: '!text-sm !text-gray-700',
+                  slotProps={{
+                    primary: {
+                      className: '!text-sm !text-gray-700',
+                    },
                   }}
                 />
               </MenuItem>
@@ -342,8 +347,10 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 </ListItemIcon>
                 <ListItemText
                   primary="Settings"
-                  primaryTypographyProps={{
-                    className: '!text-sm !text-gray-700',
+                  slotProps={{
+                    primary: {
+                      className: '!text-sm !text-gray-700',
+                    },
                   }}
                 />
               </MenuItem>
@@ -365,8 +372,10 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                 </ListItemIcon>
                 <ListItemText
                   primary={isLoggingOut ? 'Signing out...' : 'Logout'}
-                  primaryTypographyProps={{
-                    className: '!text-sm !text-red-600',
+                  slotProps={{
+                    primary: {
+                      className: '!text-sm !text-red-600',
+                    },
                   }}
                 />
               </MenuItem>

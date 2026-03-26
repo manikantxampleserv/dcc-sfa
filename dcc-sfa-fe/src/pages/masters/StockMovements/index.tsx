@@ -370,18 +370,6 @@ const StockMovementsManagement: React.FC = () => {
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
                   </Select>
-                  {/* <Select
-                    value={movementTypeFilter}
-                    onChange={e => setMovementTypeFilter(e.target.value)}
-                    className="!min-w-32"
-                    size="small"
-                    disableClearable
-                  >
-                    <MenuItem value="all">All Types</MenuItem>
-                    <MenuItem value="IN">Stock In</MenuItem>
-                    <MenuItem value="OUT">Stock Out</MenuItem>
-                    <MenuItem value="TRANSFER">Transfer</MenuItem>
-                  </Select> */}
                 </div>
               )}
               <div className="flex items-center flex-wrap gap-2">
