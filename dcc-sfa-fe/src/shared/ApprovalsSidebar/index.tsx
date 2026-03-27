@@ -128,6 +128,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
       ) {
         return request.reference_details.order_number;
       }
+
       if (
         request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
         request.reference_details.movement_number
@@ -160,22 +161,14 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
             `LOC-${request.reference_id || request.id}`
           );
         }
-        return (
-          data.order_number ||
-          data.reference_number ||
-          data.movement_number ||
-          `REQ-${request.id}`
-        );
-      } catch {
-        return `REQ-${request.id}`;
+      } catch (e) {
+        console.error('Error parsing request data:', e);
       }
     }
 
-    if (request.reference_id) {
-      return `#${request.reference_id}`;
-    }
-
-    return `REQ-${request.id}`;
+    return request.reference_id
+      ? `#${request.reference_id}`
+      : `REQ-${request.id}`;
   };
 
   return (

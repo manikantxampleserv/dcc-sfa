@@ -76,13 +76,52 @@ const ApprovalWorkflows: React.FC = () => {
   };
 
   const getReferenceNumber = (request: Request): string => {
-    if (request.reference_details?.order_number) {
-      return request.reference_details.order_number;
+    if (request.reference_details) {
+      if (
+        request.request_type === 'ORDER_APPROVAL' &&
+        request.reference_details.order_number
+      ) {
+        return request.reference_details.order_number;
+      }
+      if (
+        request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+        request.reference_details.movement_number
+      ) {
+        return request.reference_details.movement_number;
+      }
+      if (
+        request.request_type === 'LOCATION_RESET' &&
+        request.reference_details.customer_code
+      ) {
+        return request.reference_details.customer_code;
+      }
     }
-    if (request.reference_id) {
-      return `#${request.reference_id}`;
+
+    if (request.request_data) {
+      try {
+        const data = JSON.parse(request.request_data);
+        if (request.request_type === 'CUSTOMER_CREATION') {
+          return (
+            data.customer_data?.code ||
+            request.reference_details?.customer_code ||
+            `NEW-CUST-${request.id}`
+          );
+        }
+        if (request.request_type === 'LOCATION_RESET') {
+          return (
+            data.customer_code ||
+            request.reference_details?.customer_code ||
+            `LOC-${request.reference_id || request.id}`
+          );
+        }
+      } catch (e) {
+        console.error('Error parsing request data:', e);
+      }
     }
-    return `REQ-${request.id}`;
+
+    return request.reference_id
+      ? `#${request.reference_id}`
+      : `REQ-${request.id}`;
   };
 
   const getStatusColor = (status: string | null) => {
