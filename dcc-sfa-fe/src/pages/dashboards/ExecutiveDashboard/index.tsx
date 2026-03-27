@@ -791,40 +791,56 @@ const ExecutiveDashboard: React.FC = () => {
                     );
 
                   // Get reference number
-                  let referenceNumber = `#${request.reference_id}`;
-                  if (request.reference_details) {
-                    if (
-                      request.request_type === 'ORDER_APPROVAL' &&
-                      request.reference_details.order_number
-                    ) {
-                      referenceNumber = request.reference_details.order_number;
-                    } else if (
-                      request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
-                      request.reference_details.movement_number
-                    ) {
-                      referenceNumber =
-                        request.reference_details.movement_number;
-                    }
-                  }
-
-                  // Fallback for types that might not have reference_details populated yet
-                  if (
-                    (!request.reference_details ||
-                      Object.keys(request.reference_details).length === 0) &&
-                    request.request_data
-                  ) {
-                    try {
-                      const data = JSON.parse(request.request_data);
-                      if (request.request_type === 'CUSTOMER_CREATION') {
-                        referenceNumber =
-                          data.customer_data?.code || `NEW-CUST-${request.id}`;
-                      } else if (request.request_type === 'LOCATION_RESET') {
-                        referenceNumber = `LOC-${request.reference_id || request.id}`;
+                  const getReferenceNumber = (req: Request): string => {
+                    if (req.reference_details) {
+                      if (
+                        req.request_type === 'ORDER_APPROVAL' &&
+                        req.reference_details.order_number
+                      ) {
+                        return req.reference_details.order_number;
                       }
-                    } catch (e) {
-                      console.error('Error parsing request data:', e);
+                      if (
+                        req.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
+                        req.reference_details.movement_number
+                      ) {
+                        return req.reference_details.movement_number;
+                      }
+                      if (
+                        req.request_type === 'LOCATION_RESET' &&
+                        req.reference_details.customer_code
+                      ) {
+                        return req.reference_details.customer_code;
+                      }
                     }
-                  }
+
+                    if (req.request_data) {
+                      try {
+                        const data = JSON.parse(req.request_data);
+                        if (req.request_type === 'CUSTOMER_CREATION') {
+                          return (
+                            data.customer_data?.code ||
+                            req.reference_details?.customer_code ||
+                            `NEW-CUST-${req.id}`
+                          );
+                        }
+                        if (req.request_type === 'LOCATION_RESET') {
+                          return (
+                            data.customer_code ||
+                            req.reference_details?.customer_code ||
+                            `LOC-${req.reference_id || req.id}`
+                          );
+                        }
+                      } catch (e) {
+                        console.error('Error parsing request data:', e);
+                      }
+                    }
+
+                    return req.reference_id
+                      ? `#${req.reference_id}`
+                      : `REQ-${req.id}`;
+                  };
+
+                  const referenceNumber = getReferenceNumber(request);
 
                   const approvalStatus =
                     request.approvals?.[0]?.status || request.status;

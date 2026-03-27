@@ -443,7 +443,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                     </div>
 
                     {request.reference_details.customer_name && (
-                      <div className="!space-y-1">
+                      <div className="!space-y-1 md:!col-span-2">
                         <Typography
                           variant="caption"
                           className="!text-gray-500 !text-xs !uppercase !tracking-wide"
@@ -455,23 +455,6 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({
                           className="!font-semibold !text-gray-900"
                         >
                           {request.reference_details.customer_name}
-                        </Typography>
-                      </div>
-                    )}
-
-                    {request.reference_details.customer_code && (
-                      <div className="!space-y-1">
-                        <Typography
-                          variant="caption"
-                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                        >
-                          Customer Code
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          className="!font-semibold !text-gray-900"
-                        >
-                          {request.reference_details.customer_code}
                         </Typography>
                       </div>
                     )}
