@@ -13,6 +13,43 @@ export class AssetMasterImportExportService extends ImportExportService<any> {
     'assigned_to',
   ];
 
+  protected masterTableConfigs = [
+    {
+      masterTable: 'asset_types' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'description'],
+      sheetName: 'Ref - Asset Types',
+      description: 'Use the ID from this sheet in the Asset Type ID column',
+    },
+    {
+      masterTable: 'brands' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Brands',
+      description: 'Use the ID from this sheet in the Brand ID column',
+    },
+    {
+      masterTable: 'users' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+      sheetName: 'Ref - Users',
+      description: 'Use the ID from this sheet in the Assigned To column',
+    },
+    {
+      masterTable: 'depots' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Depots',
+      description: 'Use the ID from this sheet in the Current Location column',
+    },
+    {
+      masterTable: 'customers' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Customers',
+      description: 'Use the ID from this sheet for customer locations',
+    },
+  ];
   protected columns: ColumnDefinition[] = [
     {
       key: 'name',
