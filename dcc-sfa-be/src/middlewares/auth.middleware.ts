@@ -265,7 +265,8 @@ export const requirePermission = (permissions: PermissionItem[]) => {
       return res.status(403).json({
         success: false,
         message: userFriendlyMessage,
-        error: 'access_denied',
+        // error: 'access_denied',
+        error: userFriendlyMessage,
         required_permissions: requiredPermissions,
         meta: {
           timestamp: new Date().toISOString(),
