@@ -12,7 +12,7 @@ import {
   useRequestsByUsersWithoutPermission,
   useTakeActionOnRequest,
 } from 'hooks/useRequests';
-import { Check, FileText, X, MapPin, UserPlus, Info } from 'lucide-react';
+import { Check, FileText, Info, MapPin, UserPlus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Request } from 'services/requests';
@@ -114,42 +114,6 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
 
   const requestData = getParsedRequestData();
 
-  // const getStatusColor = (status: string | null) => {
-  //   if (!status) return 'default';
-  //   const normalizedStatus = status.toUpperCase();
-  //   switch (normalizedStatus) {
-  //     case 'A':
-  //     case 'APPROVED':
-  //       return 'success';
-  //     case 'R':
-  //     case 'REJECTED':
-  //       return 'error';
-  //     case 'P':
-  //     case 'PENDING':
-  //       return 'warning';
-  //     default:
-  //       return 'default';
-  //   }
-  // };
-
-  // const getStatusLabel = (status: string | null) => {
-  //   if (!status) return 'N/A';
-  //   const normalizedStatus = status.toUpperCase();
-  //   switch (normalizedStatus) {
-  //     case 'A':
-  //     case 'APPROVED':
-  //       return 'Approved';
-  //     case 'R':
-  //     case 'REJECTED':
-  //       return 'Rejected';
-  //     case 'P':
-  //     case 'PENDING':
-  //       return 'Pending';
-  //     default:
-  //       return status;
-  //   }
-  // };
-
   const formatRequestType = (type: string): string => {
     return type
       .replace(/_/g, ' ')
@@ -164,12 +128,18 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
       ) {
         return request.reference_details.order_number;
       }
-      // For ASSET_MOVEMENT_APPROVAL, use movement_number
       if (
         request.request_type === 'ASSET_MOVEMENT_APPROVAL' &&
         request.reference_details.movement_number
       ) {
         return request.reference_details.movement_number;
+      }
+
+      if (
+        request.request_type === 'LOCATION_RESET' &&
+        request.reference_details.customer_code
+      ) {
+        return request.reference_details.customer_code;
       }
     }
 
@@ -177,10 +147,18 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
       try {
         const data = JSON.parse(request.request_data);
         if (request.request_type === 'CUSTOMER_CREATION') {
-          return data.customer_data?.code || `NEW-CUST-${request.id}`;
+          return (
+            data.customer_data?.code ||
+            request.reference_details?.customer_code ||
+            `NEW-CUST-${request.id}`
+          );
         }
         if (request.request_type === 'LOCATION_RESET') {
-          return `LOC-${request.reference_id || request.id}`;
+          return (
+            data.customer_code ||
+            request.reference_details?.customer_code ||
+            `LOC-${request.reference_id || request.id}`
+          );
         }
         return (
           data.order_number ||
@@ -193,7 +171,6 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
       }
     }
 
-    // Fallback to reference_id or generated ID
     if (request.reference_id) {
       return `#${request.reference_id}`;
     }
@@ -280,7 +257,7 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
 
                     <Typography
                       variant="caption"
-                      className="!text-gray-600 !text-xs !leading-tight !block !mb-3"
+                      className="!text-gray-600 !text-xs !block !mb-3"
                     >
                       <span className="!font-medium !text-gray-800">
                         {requesterName}
@@ -462,7 +439,6 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
             <div className="!mb-4 !pb-4 !border-b !border-gray-200">
               {selectedRequest.reference_details ? (
                 <div className="!bg-gray-50 !rounded-md !p-4 !border !border-gray-200">
-                  {/* ORDER_APPROVAL Details */}
                   {selectedRequest.request_type === 'ORDER_APPROVAL' && (
                     <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
                       {selectedRequest.reference_details.order_number && (
@@ -603,7 +579,6 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                     </div>
                   )}
 
-                  {/* ASSET_MOVEMENT_APPROVAL Details */}
                   {selectedRequest.request_type ===
                     'ASSET_MOVEMENT_APPROVAL' && (
                     <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
@@ -745,97 +720,25 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                     </div>
                   )}
 
-                  {/* LOCATION_RESET Details */}
-                  {selectedRequest.request_type === 'LOCATION_RESET' &&
-                    requestData && (
-                      <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-2">
-                        <div className="md:!col-span-2 !flex !items-center !gap-1">
-                          <MapPin className="!w-4 !h-4 !text-orange-500" />
-                          <Typography
-                            variant="subtitle2"
-                            className="!font-bold !text-gray-800"
-                          >
-                            GPS Relocation Details
-                          </Typography>
-                        </div>
-
+                  {selectedRequest.request_type === 'LOCATION_RESET' && (
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-2">
+                      {selectedRequest.reference_details.customer_name && (
                         <div className="!space-y-1">
                           <Typography
                             variant="caption"
                             className="!text-gray-500 !text-xs !uppercase !tracking-wide"
                           >
-                            New Coordinates
+                            Customer
                           </Typography>
                           <Typography
                             variant="body2"
                             className="!font-semibold !text-gray-900"
                           >
-                            {requestData.latitude}, {requestData.longitude}
+                            {selectedRequest.reference_details.customer_name}
                           </Typography>
                         </div>
-
-                        <div className="!space-y-1">
-                          <Typography
-                            variant="caption"
-                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                          >
-                            Old Coordinates
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            className="!font-medium !text-gray-600"
-                          >
-                            {requestData.old_latitude || 'N/A'},{' '}
-                            {requestData.old_longitude || 'N/A'}
-                          </Typography>
-                        </div>
-
-                        <div className="!space-y-1 md:!col-span-2">
-                          <Typography
-                            variant="caption"
-                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                          >
-                            Relocation Reason
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            className="!font-medium !text-gray-800 !italic"
-                          >
-                            {requestData.reason || 'No reason provided'}
-                          </Typography>
-                        </div>
-                      </div>
-                    )}
-
-                  {/* CUSTOMER_CREATION Details */}
-                  {selectedRequest.request_type === 'CUSTOMER_CREATION' &&
-                    requestData && (
-                      <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-                        <div className="!space-y-1 md:!col-span-2 !flex !items-center !gap-2 !mb-2">
-                          <UserPlus className="!w-4 !h-4 !text-purple-500" />
-                          <Typography
-                            variant="subtitle2"
-                            className="!font-bold !text-gray-800"
-                          >
-                            New Customer Information
-                          </Typography>
-                        </div>
-
-                        <div className="!space-y-1">
-                          <Typography
-                            variant="caption"
-                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                          >
-                            Customer Name
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            className="!font-semibold !text-gray-900"
-                          >
-                            {requestData.customer_data?.name || 'N/A'}
-                          </Typography>
-                        </div>
-
+                      )}
+                      {selectedRequest.reference_details.customer_code && (
                         <div className="!space-y-1">
                           <Typography
                             variant="caption"
@@ -847,87 +750,191 @@ const ApprovalsSidebar: React.FC<ApprovalsSidebarProps> = ({
                             variant="body2"
                             className="!font-semibold !text-gray-900"
                           >
-                            {requestData.customer_data?.code || 'N/A'}
+                            {selectedRequest.reference_details.customer_code}
                           </Typography>
                         </div>
+                      )}
 
-                        <div className="!space-y-1">
-                          <Typography
-                            variant="caption"
-                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                          >
-                            Email Address
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            className="!font-medium !text-gray-800"
-                          >
-                            {requestData.customer_data?.email || 'N/A'}
-                          </Typography>
-                        </div>
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          New Coordinates
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {selectedRequest.reference_details.new_latitude ||
+                            requestData?.latitude ||
+                            'N/A'}
+                          ,{' '}
+                          {selectedRequest.reference_details.new_longitude ||
+                            requestData?.longitude ||
+                            'N/A'}
+                        </Typography>
+                      </div>
 
-                        <div className="!space-y-1">
-                          <Typography
-                            variant="caption"
-                            className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                          >
-                            Phone Number
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            className="!font-medium !text-gray-800"
-                          >
-                            {requestData.customer_data?.phone_number || 'N/A'}
-                          </Typography>
-                        </div>
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Old Coordinates
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-medium !text-gray-600"
+                        >
+                          {requestData?.old_latitude || 'N/A'},{' '}
+                          {requestData?.old_longitude || 'N/A'}
+                        </Typography>
+                      </div>
 
+                      <div className="!space-y-1 md:!col-span-2">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Relocation Reason
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-medium !text-gray-800 !italic"
+                        >
+                          "{requestData?.reason || 'No reason provided'}"
+                        </Typography>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedRequest.request_type === 'CUSTOMER_CREATION' && (
+                    <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Customer Name
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {selectedRequest.reference_details.customer_name ||
+                            requestData?.customer_data?.name ||
+                            'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Customer Code
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-semibold !text-gray-900"
+                        >
+                          {selectedRequest.reference_details.customer_code ||
+                            requestData?.customer_data?.code ||
+                            'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Email Address
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-medium !text-gray-800"
+                        >
+                          {selectedRequest.reference_details.email ||
+                            requestData?.customer_data?.email ||
+                            'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Phone Number
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-medium !text-gray-800"
+                        >
+                          {selectedRequest.reference_details.phone_number ||
+                            requestData?.customer_data?.phone_number ||
+                            'N/A'}
+                        </Typography>
+                      </div>
+
+                      <div className="!space-y-1 md:!col-span-2">
+                        <Typography
+                          variant="caption"
+                          className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                        >
+                          Location
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          className="!font-medium !text-gray-800"
+                        >
+                          {selectedRequest.reference_details.city ||
+                            requestData?.customer_data?.city ||
+                            'N/A'}
+                          ,{' '}
+                          {selectedRequest.reference_details.state ||
+                            requestData?.customer_data?.state ||
+                            'N/A'}
+                        </Typography>
+                      </div>
+
+                      {(selectedRequest.reference_details.profile_picture ||
+                        requestData?.customer_data?.profile_picture) && (
                         <div className="!space-y-1 md:!col-span-2">
                           <Typography
                             variant="caption"
                             className="!text-gray-500 !text-xs !uppercase !tracking-wide"
                           >
-                            Location
+                            Profile Picture
                           </Typography>
-                          <Typography
-                            variant="body2"
-                            className="!font-medium !text-gray-800"
-                          >
-                            {requestData.customer_data?.city || 'N/A'},{' '}
-                            {requestData.customer_data?.state || 'N/A'}
-                          </Typography>
-                        </div>
-
-                        {requestData.customer_data?.profile_picture && (
-                          <div className="!space-y-1 md:!col-span-2">
-                            <Typography
-                              variant="caption"
-                              className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-                            >
-                              Profile Picture
-                            </Typography>
-                            <div className="!mt-1">
-                              <img
-                                src={requestData.customer_data.profile_picture.trim()}
-                                alt="Profile"
-                                className="!w-24 !h-24 !rounded-lg !object-cover !border !border-gray-200 shadow-sm"
-                                onError={e => {
-                                  (e.target as HTMLImageElement).src =
-                                    'https://via.placeholder.com/100?text=No+Image';
-                                }}
-                              />
-                            </div>
+                          <div className="!mt-1">
+                            <img
+                              src={(
+                                selectedRequest.reference_details
+                                  .profile_picture ||
+                                requestData?.customer_data?.profile_picture
+                              ).trim()}
+                              alt="Profile"
+                              className="!w-24 !h-24 !rounded-lg !object-cover !border !border-gray-200 shadow-sm"
+                              onError={e => {
+                                (e.target as HTMLImageElement).src =
+                                  'https://via.placeholder.com/100?text=No+Image';
+                              }}
+                            />
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="!bg-gray-50 !rounded-md !p-4 !border !border-gray-200">
-                  {/* LOCATION_RESET Details (Fallback if reference_details is empty) */}
                   {selectedRequest.request_type === 'LOCATION_RESET' &&
                   requestData ? (
                     <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
-                      <div className="!space-y-1 md:!col-span-2 !flex !items-center !gap-2 !mb-2">
+                      <div className="md:!col-span-2 !flex !items-center !gap-2 !mb-2">
                         <MapPin className="!w-4 !h-4 !text-orange-500" />
                         <Typography
                           variant="subtitle2"

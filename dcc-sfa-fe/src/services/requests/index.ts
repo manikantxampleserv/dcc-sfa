@@ -27,6 +27,18 @@ export interface Request {
     email: string;
   } | null;
   reference_details?: {
+    profile_picture: any;
+    state: any;
+    city: any;
+    phone_number: any;
+    email: any;
+    reason: any;
+    latitude: string;
+    longitude: string;
+    old_longitude: any;
+    old_latitude: any;
+    new_longitude: any;
+    new_latitude: any;
     order_number?: string;
     customer_name?: string;
     customer_code?: string;
