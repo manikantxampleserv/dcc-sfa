@@ -47,6 +47,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     page: 1,
     limit: 1000,
     status: 'active',
+    is_asset_brand: 'Y',
   });
   const brands = brandsResponse?.data || [];
 
