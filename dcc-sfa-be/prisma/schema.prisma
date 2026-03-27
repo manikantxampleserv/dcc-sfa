@@ -13,11 +13,11 @@ model users {
   password_hash                                                     String                       @db.NVarChar(255)
   name                                                              String                       @db.NVarChar(255)
   parent_id                                                         Int?
-  depot_id                                                          Int?
   sap_code                                                          String?                      @db.VarChar(250)
   zone_id                                                           Int?
   phone_number                                                      String?                      @db.NVarChar(20)
   address                                                           String?                      @db.NVarChar(500)
+  depot_id                                                          Int?
   employee_id                                                       String                       @db.NVarChar(50)
   joining_date                                                      DateTime?                    @db.Date
   reporting_to                                                      Int?
@@ -76,7 +76,6 @@ model users {
   survey_responses_submitted_by_users                               survey_responses[]           @relation("survey_responses_submitted_users")
   users                                                             users?                       @relation("usersTousers", fields: [reporting_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__reporting__403A8C7D")
   other_users                                                       users[]                      @relation("usersTousers")
-  user_depot                                                        depots?                      @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   companies                                                         companies?                   @relation(fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user_role                                                         roles                        @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   van_inventory_users                                               van_inventory[]              @relation("VanInventoryUsers")
@@ -88,6 +87,22 @@ model users {
   zone_supervisor                                                   zones[]
   approver_users                                                    customer_category_grading[]
   invoices                                                          invoices[]
+  user_depot                                                        depots?                      @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_depots_users                                                user_depots[]                @relation("UserDepotsUser")
+}
+
+model user_depots {
+  user_id              Int
+  depot_id             Int
+  is_active            String    @default("Y") @db.Char(1)
+  createdate           DateTime? @default(now()) @db.DateTime
+  createdby            Int
+  updatedate           DateTime? @db.DateTime
+  updatedby            Int?
+  users_depots_users   users     @relation("UserDepotsUser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_depots_depot_id depots    @relation("UserDepotsId", fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([user_id, depot_id])
 }
 
 model attendance {
@@ -227,9 +242,10 @@ model depots {
   promotion_depot              promotion_depot[]
   route_depots                 routes[]                @relation("DepotRoutes")
   serial_numbers               serial_numbers[]
-  user_depot                   users[]
   van_inventory_depot          van_inventory[]         @relation("VanInventoryDepot")
   zone_depots                  zones[]
+  user_depots_depot_id         user_depots[]           @relation("UserDepotsId")
+  user_depot                   users[]
 }
 
 model api_tokens {
@@ -1155,25 +1171,25 @@ model invoices {
 }
 
 model login_history {
-  id                                 Int        @id(map: "PK__login_hi__3213E83F66E8EA30") @default(autoincrement())
+  id                                 Int       @id(map: "PK__login_hi__3213E83F66E8EA30") @default(autoincrement())
   user_id                            Int
-  login_time                         DateTime?  @default(now(), map: "DF__login_his__login__47FBA9D6") @db.DateTime
-  logout_time                        DateTime?  @db.DateTime
-  ip_address                         String?    @db.NVarChar(50)
-  device_info                        String?    @db.NVarChar(255)
-  os_info                            String?    @db.NVarChar(100)
-  app_version                        String?    @db.NVarChar(50)
-  location_latitude                  Decimal?   @db.Decimal(10, 8)
-  location_longitude                 Decimal?   @db.Decimal(10, 8)
-  login_status                       String?    @default("success", map: "DF__login_his__login__49E3F248") @db.NVarChar(20)
-  failure_reason                     String?    @db.NVarChar(255)
-  is_active                          String     @default("Y", map: "DF__login_his__is_ac__4AD81681") @db.Char(1)
-  createdate                         DateTime?  @default(now(), map: "DF__login_his__creat__4BCC3ABA") @db.DateTime
+  login_time                         DateTime? @default(now(), map: "DF__login_his__login__47FBA9D6") @db.DateTime
+  logout_time                        DateTime? @db.DateTime
+  ip_address                         String?   @db.NVarChar(50)
+  device_info                        String?   @db.NVarChar(255)
+  os_info                            String?   @db.NVarChar(100)
+  app_version                        String?   @db.NVarChar(50)
+  location_latitude                  Decimal?  @db.Decimal(10, 8)
+  location_longitude                 Decimal?  @db.Decimal(10, 8)
+  login_status                       String?   @default("success", map: "DF__login_his__login__49E3F248") @db.NVarChar(20)
+  failure_reason                     String?   @db.NVarChar(255)
+  is_active                          String    @default("Y", map: "DF__login_his__is_ac__4AD81681") @db.Char(1)
+  createdate                         DateTime? @default(now(), map: "DF__login_his__creat__4BCC3ABA") @db.DateTime
   createdby                          Int
-  updatedate                         DateTime?  @db.DateTime
+  updatedate                         DateTime? @db.DateTime
   updatedby                          Int?
   log_inst                           Int?
-  users_login_history_user_idTousers users      @relation("login_history_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction, map: "FK__login_his__user___4CC05EF3")
+  users_login_history_user_idTousers users     @relation("login_history_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction, map: "FK__login_his__user___4CC05EF3")
 }
 
 model notifications {

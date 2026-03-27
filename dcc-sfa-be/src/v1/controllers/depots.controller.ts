@@ -140,7 +140,17 @@ export const depotsController = {
         },
         include: {
           depot_companies: true,
-          user_depot: true,
+          user_depots_depot_id: {
+            include: {
+              users_depots_users: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
           depots_manager: true,
           depots_supervisior: true,
           depots_coodrinator: true,
@@ -221,7 +231,17 @@ export const depotsController = {
         orderBy: { createdate: 'desc' },
         include: {
           depot_companies: true,
-          user_depot: true,
+          user_depots_depot_id: {
+            include: {
+              users_depots_users: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
           depots_manager: true,
           depots_supervisior: true,
           depots_coodrinator: true,
@@ -255,7 +275,17 @@ export const depotsController = {
         where: { id: Number(id) },
         include: {
           depot_companies: true,
-          user_depot: true,
+          user_depots_depot_id: {
+            include: {
+              users_depots_users: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
           depots_manager: true,
           depots_supervisior: true,
           depots_coodrinator: true,
@@ -294,7 +324,17 @@ export const depotsController = {
         data,
         include: {
           depot_companies: true,
-          user_depot: true,
+          user_depots_depot_id: {
+            include: {
+              users_depots_users: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
           depots_manager: true,
           depots_supervisior: true,
           depots_coodrinator: true,

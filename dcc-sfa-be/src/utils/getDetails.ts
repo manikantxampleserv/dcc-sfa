@@ -121,9 +121,6 @@ async function getRequestDetailsByType(
         break;
 
       case 'LOCATION_RESET':
-        console.log(' LOCATION_RESET case triggered');
-        console.log(' reference_id:', reference_id);
-
         const customer = await prisma.customers.findUnique({
           where: { id: reference_id || 0 },
           select: {
@@ -145,10 +142,7 @@ async function getRequestDetailsByType(
           },
         });
 
-        console.log(customer);
-
         if (!customer) {
-          console.log(' returning {}');
           return {};
         }
 
@@ -183,17 +177,11 @@ async function getRequestDetailsByType(
       //   };
 
       case 'CUSTOMER_CREATION':
-        console.log(' CUSTOMER_CREATION case triggered');
-        console.log(' request_data:', request_data);
-
         if (request_data) {
           try {
-            console.log(' Attempting to parse JSON...');
             const parsedData = JSON.parse(request_data);
-            console.log(' Parsed data:', parsedData);
 
             const customerData = parsedData.customer_data;
-            console.log(' customerData:', customerData);
 
             if (customerData) {
               const result = {
@@ -210,10 +198,7 @@ async function getRequestDetailsByType(
                 requested_date: parsedData.requested_date || 'N/A',
                 message: 'Customer creation request - customer not yet created',
               };
-              console.log(' Returning result:', result);
               return result;
-            } else {
-              console.log(' customerData is falsy');
             }
           } catch (parseError) {
             console.error(
@@ -221,11 +206,8 @@ async function getRequestDetailsByType(
               parseError
             );
           }
-        } else {
-          console.log(' request_data is falsy');
         }
 
-        console.log(' Returning default customer creation result');
         return {
           customer_status: 'Pending Creation',
           customer_id: 'Pending',
