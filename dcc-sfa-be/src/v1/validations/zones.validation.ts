@@ -21,7 +21,8 @@ export const createZoneValidation = [
     .withMessage('Description must be a string'),
 
   body('supervisor_id')
-    .optional()
+    .notEmpty()
+    .withMessage('Supervisor ID is required')
     .isInt()
     .withMessage('Supervisor ID must be a number'),
 
