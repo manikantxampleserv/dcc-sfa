@@ -9,15 +9,6 @@ export class CurrenciesImportExportService extends ImportExportService<any> {
   protected uniqueFields = ['code'];
   protected searchFields = ['code', 'name', 'symbol'];
 
-  protected masterTableConfigs = [
-    {
-      masterTable: 'companies' as any,
-      masterKey: 'id',
-      masterDisplayFields: ['id', 'name', 'code'],
-      sheetName: 'Ref - Companies',
-      description: 'Use the ID from this sheet for company references',
-    },
-  ];
   private async generateCurrencyCode(name: string, tx?: any): Promise<string> {
     try {
       const client = tx || prisma;
