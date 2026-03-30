@@ -44,6 +44,29 @@ class VanInventoryImportExportService extends import_export_service_1.ImportExpo
     displayName = 'Van Inventory';
     uniqueFields = ['id'];
     searchFields = ['user_id', 'status', 'loading_type'];
+    masterTableConfigs = [
+        {
+            masterTable: 'users',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+            sheetName: 'Ref - Users',
+            description: 'Use the ID from this sheet in the User ID column',
+        },
+        {
+            masterTable: 'vehicles',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'vehicle_number', 'make', 'model', 'type'],
+            sheetName: 'Ref - Vehicles',
+            description: 'Use the ID from this sheet for vehicle references',
+        },
+        {
+            masterTable: 'depots',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Depots',
+            description: 'Use the ID from this sheet for depot references',
+        },
+    ];
     columns = [
         {
             key: 'user_id',

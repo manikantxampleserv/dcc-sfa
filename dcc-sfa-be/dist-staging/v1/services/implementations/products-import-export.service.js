@@ -45,6 +45,29 @@ class ProductsImportExportService extends import_export_service_1.ImportExportSe
     displayName = 'Products';
     uniqueFields = ['name'];
     searchFields = ['name', 'code', 'description'];
+    masterTableConfigs = [
+        {
+            masterTable: 'product_categories',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'category_name', 'description'],
+            sheetName: 'Ref - Product Categories',
+            description: 'Use the ID from this sheet in the Product Category ID column',
+        },
+        {
+            masterTable: 'product_sub_categories',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'sub_category_name', 'description'],
+            sheetName: 'Ref - Product Sub Categories',
+            description: 'Use the ID from this sheet in the Product Sub Category ID column',
+        },
+        {
+            masterTable: 'brands',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Brands',
+            description: 'Use the ID from this sheet in the Brand ID column',
+        },
+    ];
     columns = [
         {
             key: 'name',

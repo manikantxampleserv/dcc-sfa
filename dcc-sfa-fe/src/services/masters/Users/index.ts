@@ -48,6 +48,11 @@ interface User {
     name: string;
     code: string;
   } | null;
+  depots?: Array<{
+    id: number;
+    name: string;
+    code: string;
+  }> | null;
   zone?: {
     id: number;
     name: string;

@@ -230,10 +230,10 @@ const Select: React.FC<CustomSelectProps> = ({
             error={!!error}
             size={size}
             placeholder={selectedOption ? '' : placeholder}
-            inputProps={{
-              ...params.inputProps,
-              value: selectedOption ? params.inputProps.value : '',
-            }}
+            // inputProps={{
+            //   ...params.inputProps,
+            //   value: selectedOption ? params.inputProps.value : '',
+            // }}
           />
         )}
         renderOption={(props: any, option: Option) => (

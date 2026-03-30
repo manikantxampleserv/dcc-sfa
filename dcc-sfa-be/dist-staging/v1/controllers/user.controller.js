@@ -85,106 +85,6 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
         : [],
 });
 exports.userController = {
-    // async createUser(req: any, res: any): Promise<void> {
-    //   try {
-    //     const errors = validationResult(req);
-    //     if (!errors.isEmpty()) {
-    //       res.validationError(errors.array(), 400);
-    //       return;
-    //     }
-    //     const {
-    //       email,
-    //       password,
-    //       name,
-    //       role_id,
-    //       parent_id,
-    //       depot_id,
-    //       zone_id,
-    //       phone_number,
-    //       address,
-    //       sap_code,
-    //       employee_id,
-    //       joining_date,
-    //       reporting_to,
-    //       is_active,
-    //       platform,
-    //     } = req.body;
-    //     const existingUser = await prisma.users.findFirst({
-    //       where: { email },
-    //     });
-    //     if (existingUser) {
-    //       res.error('Email already exists', 400);
-    //       return;
-    //     }
-    //     if (employee_id) {
-    //       const existingEmployee = await prisma.users.findFirst({
-    //         where: { employee_id },
-    //       });
-    //       if (existingEmployee) {
-    //         res.error('Employee ID already exists', 400);
-    //         return;
-    //       }
-    //     }
-    //     const hashedPassword = await bcrypt.hash(password, 10);
-    //     let profile_image_url: string | null = null;
-    //     const file = (req as any).file;
-    //     if (file) {
-    //       try {
-    //         const userFolder = req.user?.id ?? 'guest';
-    //         const fileExt = file.originalname.split('.').pop();
-    //         const fileName = `profiles/profile_${userFolder}_${Date.now()}.${fileExt}`;
-    //         console.log(' Uploading file:', {
-    //           originalName: file.originalname,
-    //           fileName,
-    //           mimetype: file.mimetype,
-    //           size: file.size,
-    //         });
-    //         profile_image_url = await uploadFile(
-    //           file.buffer,
-    //           fileName,
-    //           file.mimetype
-    //         );
-    //         console.log('File uploaded successfully:', profile_image_url);
-    //       } catch (uploadError: any) {
-    //         console.error(' File upload failed:', uploadError);
-    //         console.warn(' Continuing without profile image');
-    //       }
-    //     }
-    //     const newUser = await prisma.users.create({
-    //       data: {
-    //         email,
-    //         password_hash: hashedPassword,
-    //         name,
-    //         role_id: Number(role_id),
-    //         parent_id,
-    //         depot_id: Number(depot_id),
-    //         zone_id,
-    //         phone_number,
-    //         sap_code,
-    //         platform: platform || null,
-    //         address,
-    //         employee_id,
-    //         joining_date: joining_date ? new Date(joining_date) : null,
-    //         reporting_to: Number(reporting_to),
-    //         profile_image: profile_image_url,
-    //         is_active: is_active ?? 'Y',
-    //         createdby: req.user?.id ?? 0,
-    //         createdate: new Date(),
-    //         log_inst: 1,
-    //       },
-    //       include: {
-    //         user_role: true,
-    //         companies: true,
-    //         user_depot: true,
-    //         users: { select: { id: true, name: true, email: true } },
-    //       },
-    //     });
-    //     res.success('User created successfully', serializeUser(newUser), 201);
-    //   } catch (error: any) {
-    //     console.error('Error creating user:', error);
-    //     res.error(error.message);
-    //   }
-    // },
     async createUser(req, res) {
         try {
             const errors = (0, express_validator_1.validationResult)(req);
@@ -193,7 +93,6 @@ exports.userController = {
                 return;
             }
             const { email, password, name, role_id, parent_id, depot_ids, zone_id, phone_number, address, sap_code, employee_id, joining_date, reporting_to, is_active, platform, } = req.body;
-            // ✅ Parse depot_ids early, but don't use newUser yet
             let parsedDepotIds = [];
             if (typeof depot_ids === 'string') {
                 if (depot_ids.startsWith('[')) {
@@ -214,11 +113,12 @@ exports.userController = {
             else if (Array.isArray(depot_ids)) {
                 parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
             }
-            // ✅ Validate email/employee uniqueness BEFORE creating anything
-            const existingUser = await prisma_client_1.default.users.findFirst({ where: { email } });
-            if (existingUser) {
-                res.error('Email already exists', 400);
-                return;
+            if (email) {
+                const existingUser = await prisma_client_1.default.users.findFirst({ where: { email } });
+                if (existingUser) {
+                    res.error('Email already exists', 400);
+                    return;
+                }
             }
             if (employee_id) {
                 const existingEmployee = await prisma_client_1.default.users.findFirst({
@@ -230,7 +130,6 @@ exports.userController = {
                 }
             }
             const hashedPassword = await bcrypt_1.default.hash(password, 10);
-            // Handle profile image upload
             let profile_image_url = null;
             const file = req.file;
             if (file) {
@@ -245,7 +144,6 @@ exports.userController = {
                     console.warn('Continuing without profile image');
                 }
             }
-            // ✅ Create the user first
             const newUser = await prisma_client_1.default.users.create({
                 data: {
                     email,
@@ -273,7 +171,6 @@ exports.userController = {
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
-            // ✅ Now assign depots — newUser.id is available here
             if (parsedDepotIds.length > 0) {
                 await prisma_client_1.default.user_depots.createMany({
                     data: parsedDepotIds.map((depotId) => ({
@@ -284,7 +181,6 @@ exports.userController = {
                     })),
                 });
             }
-            // Fetch user with depots for response
             const userWithDepots = await prisma_client_1.default.users.findUnique({
                 where: { id: newUser.id },
                 include: {

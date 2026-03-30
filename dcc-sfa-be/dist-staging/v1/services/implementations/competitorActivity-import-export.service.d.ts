@@ -5,6 +5,13 @@ export declare class CompetitorActivityImportExportService extends ImportExportS
     protected displayName: string;
     protected uniqueFields: string[];
     protected searchFields: string[];
+    protected masterTableConfigs: {
+        masterTable: any;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }[];
     protected columns: ColumnDefinition[];
     protected getSampleData(): Promise<any[]>;
     protected getColumnDescription(key: string): string;

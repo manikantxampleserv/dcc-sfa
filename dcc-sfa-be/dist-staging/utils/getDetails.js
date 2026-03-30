@@ -82,11 +82,6 @@ const prisma_client_1 = __importDefault(require("../configs/prisma.client"));
 async function getRequestDetailsByType(request_type, reference_id, request_data) {
     if (!reference_id && !request_data)
         return {};
-    console.log('getRequestDetailsByType called with:', {
-        request_type,
-        reference_id,
-        request_data: request_data ? 'PRESENT' : 'NULL',
-    });
     try {
         switch (request_type) {
             case 'ORDER_APPROVAL':

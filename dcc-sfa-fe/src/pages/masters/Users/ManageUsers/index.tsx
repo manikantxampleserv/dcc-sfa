@@ -9,6 +9,7 @@ import validationSchema from 'schemas/masters/Users';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
+import DepotAssignment from 'shared/DepotAssignment';
 import Input from 'shared/Input';
 import Select from 'shared/Select';
 import UserSelect from 'shared/UserSelect';
@@ -56,7 +57,10 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     name: selectedUser?.name || '',
     email: selectedUser?.email || '',
     role_id: selectedUser?.role_id || '',
-    depot_id: selectedUser?.depot_id?.toString() || '',
+    depot_ids:
+      selectedUser?.depots && Array.isArray(selectedUser.depots)
+        ? selectedUser.depots.map((d: any) => d?.id?.toString()).filter(Boolean)
+        : [],
     sap_code: selectedUser?.sap_code || '',
     phone_number: selectedUser?.phone_number || '',
     employee_id: selectedUser?.employee_id || '',
@@ -79,7 +83,10 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
         formData.append('name', values.name);
         formData.append('email', values.email);
         formData.append('role_id', values.role_id.toString());
-        formData.append('depot_id', values.depot_id.toString());
+        formData.append(
+          'depot_ids',
+          JSON.stringify(values.depot_ids.map(Number))
+        );
         formData.append('sap_code', values.sap_code);
         formData.append('phone_number', values.phone_number);
         formData.append('employee_id', values.employee_id);
@@ -142,6 +149,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? `Edit User: ${selectedUser?.name}` : 'Create New User'}
+      size="large"
     >
       <Box component="form" onSubmit={handleSubmit} className="p-4">
         <div
@@ -176,11 +184,9 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
 
         {/* User Basic Information */}
         <Box className="mb-6 flex flex-col gap-2">
-          <p className="!font-semibold !mb-4 !text-gray-900">
-            User Information
-          </p>
+          <p className="!font-semibold !text-gray-900">User Information</p>
 
-          <Box className="grid grid-cols-2 gap-4">
+          <Box className="grid grid-cols-2 gap-5">
             <Input
               name="name"
               formik={formik}
@@ -210,6 +216,7 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               formik={formik}
               label="User Code"
               placeholder="Enter user code"
+              required
             />
 
             <Input
@@ -232,28 +239,33 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               placeholder="Enter email address"
               type="email"
             />
-            <Select
-              name="depot_id"
-              label="Depot"
-              formik={formik}
-              fullWidth
-              required
-            >
-              {depots.map(depot => (
-                <MenuItem key={depot.id} value={depot.id}>
-                  {depot.name}
-                </MenuItem>
-              ))}
-            </Select>
 
-            <div className="flex mb-4 sm:flex-row flex-col sm:gap-4 gap-2">
-              <UserSelect
-                name="reporting_to"
-                label="Reporting Manager"
+            {!isEdit && (
+              <Input
+                name="password"
                 formik={formik}
+                label="Password"
+                placeholder="Enter password"
+                type="password"
                 required
               />
-            </div>
+            )}
+
+            {isEdit && (
+              <Input
+                name="password"
+                formik={formik}
+                label="New Password (Optional)"
+                placeholder="Enter new password to change"
+                type="password"
+              />
+            )}
+            <UserSelect
+              name="reporting_to"
+              label="Reporting Manager"
+              formik={formik}
+              required
+            />
             <Input
               name="joining_date"
               formik={formik}
@@ -266,6 +278,22 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
               <MenuItem value="mobile">Mobile</MenuItem>
               <MenuItem value="web">Web</MenuItem>
             </Select>
+
+            <Box className="md:!col-span-2">
+              <Typography
+                variant="subtitle2"
+                className="!font-semibold !text-gray-700 !mb-2"
+              >
+                Depot Assignment *
+              </Typography>
+              <DepotAssignment
+                depots={depots}
+                selectedDepotIds={formik.values.depot_ids}
+                setSelectedDepotIds={ids =>
+                  formik.setFieldValue('depot_ids', ids)
+                }
+              />
+            </Box>
           </Box>
           <Box className="md:!col-span-2">
             <ActiveInactiveField name="is_active" formik={formik} required />
@@ -278,29 +306,6 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
             multiline
             rows={3}
           />
-
-          {!isEdit && (
-            <Input
-              name="password"
-              formik={formik}
-              label="Password"
-              placeholder="Enter password"
-              type="password"
-              required
-              className="!mt-4"
-            />
-          )}
-
-          {isEdit && (
-            <Input
-              name="password"
-              formik={formik}
-              label="New Password (Optional)"
-              placeholder="Enter new password to change"
-              type="password"
-              className="!mt-4"
-            />
-          )}
         </Box>
 
         <div className="flex gap-4 justify-end">

@@ -381,9 +381,25 @@ const UserDetail: React.FC = () => {
               >
                 Depot
               </Typography>
-              <Typography variant="body2" className="!font-bold !text-gray-900">
-                {user.depot?.name || 'Not assigned'}
-              </Typography>
+              {user.depots && user.depots.length > 0 ? (
+                <div className="!flex !flex-wrap !gap-1 !mt-1">
+                  {user.depots.map(depot => (
+                    <Chip
+                      key={depot.id}
+                      label={depot.name}
+                      size="small"
+                      variant="outlined"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Typography
+                  variant="body2"
+                  className="!font-bold !text-gray-900"
+                >
+                  {user.depot?.name || 'Not assigned'}
+                </Typography>
+              )}
             </div>
 
             <div className="!space-y-0.5">

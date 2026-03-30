@@ -49,6 +49,29 @@ class InvoicesImportExportService extends import_export_service_1.ImportExportSe
         'notes',
         'billing_address',
     ];
+    masterTableConfigs = [
+        {
+            masterTable: 'customers',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+            sheetName: 'Ref - Customers',
+            description: 'Use the ID from this sheet in the Customer ID column',
+        },
+        {
+            masterTable: 'orders',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'order_number', 'customer_id', 'order_date'],
+            sheetName: 'Ref - Orders',
+            description: 'Use the ID from this sheet in the Order ID column',
+        },
+        {
+            masterTable: 'currencies',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'code', 'name', 'symbol'],
+            sheetName: 'Ref - Currencies',
+            description: 'Use the ID from this sheet in the Currency ID column',
+        },
+    ];
     customerIds = new Set();
     orderIds = new Set();
     currencyIds = new Set();

@@ -544,7 +544,6 @@ exports.requestsController = {
                                 request_type: formatRequestType(request_type),
                                 action: 'created',
                                 company_name: 'SFA System',
-                                // request_detail: JSON.stringify(request_detail),
                                 ...request_detail,
                             });
                             await (0, mailer_1.sendEmail)({
@@ -705,7 +704,6 @@ exports.requestsController = {
             const customerCreationRequests = await prisma_client_1.default.sfa_d_requests.count({
                 where: { request_type: 'CUSTOMER_CREATION' },
             });
-            console.log(' CUSTOMER_CREATION requests in DB:', customerCreationRequests);
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.sfa_d_requests,
                 filters,
@@ -732,14 +730,17 @@ exports.requestsController = {
                     },
                 },
             });
-            console.log(' Applied filters:', filters);
-            console.log(' Total requests fetched:', data.length);
-            console.log('Request types being processed:', data.map((r) => ({
-                id: r.id,
-                request_type: r.request_type,
-                reference_id: r.reference_id,
-                has_request_data: !!r.request_data,
-            })));
+            // console.log(' Applied filters:', filters);
+            // console.log(' Total requests fetched:', data.length);
+            // console.log(
+            //   'Request types being processed:',
+            //   data.map((r: any) => ({
+            //     id: r.id,
+            //     request_type: r.request_type,
+            //     reference_id: r.reference_id,
+            //     has_request_data: !!r.request_data,
+            //   }))
+            // );
             const requestsWithDetails = await Promise.all(data.map(async (request) => {
                 const referenceDetails = await (0, getDetails_1.default)(request.request_type, request.reference_id, request.request_data);
                 return {
