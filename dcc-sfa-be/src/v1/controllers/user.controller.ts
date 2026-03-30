@@ -845,7 +845,6 @@ export const userController = {
       const updateData: any = {
         ...userData,
         ...(profile_image_url && { profile_image: profile_image_url }),
-        // Remove depot_id from user update
         updatedby: currentUserId,
         updatedate: new Date(),
       };
@@ -873,7 +872,6 @@ export const userController = {
         updateData.role_id = Number(updateData.role_id);
       }
 
-      // Update user
       const updatedUser = await prisma.users.update({
         where: { id: targetUserId },
         data: updateData,
@@ -881,7 +879,6 @@ export const userController = {
           user_role: true,
           companies: true,
           users_depots_users: {
-            // Include multiple depots
             include: {
               user_depots_depot_id: true,
             },
@@ -890,9 +887,7 @@ export const userController = {
         },
       });
 
-      // Update depot assignments if provided
       if (depot_ids !== undefined) {
-        // Remove existing depot assignments
         await prisma.user_depots.deleteMany({
           where: { user_id: targetUserId },
         });
@@ -1073,7 +1068,6 @@ export const userController = {
             },
           },
           users_depots_users: {
-            // Include multiple depots
             include: {
               user_depots_depot_id: true,
             },
@@ -1156,7 +1150,7 @@ export const userController = {
         employee_id,
         email,
         password,
-        depot_ids, // New field for multiple depots
+        depot_ids,
         ...userData
       } = req.body;
       console.log('Req.body', req.body);
@@ -1323,7 +1317,6 @@ export const userController = {
           id: true,
           name: true,
           email: true,
-          // Remove depot_id from select since it's no longer in users table
         },
         orderBy: {
           name: 'asc',
