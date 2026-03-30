@@ -735,7 +735,6 @@ exports.userController = {
             const updateData = {
                 ...userData,
                 ...(profile_image_url && { profile_image: profile_image_url }),
-                // Remove depot_id from user update
                 updatedby: currentUserId,
                 updatedate: new Date(),
             };
@@ -755,15 +754,13 @@ exports.userController = {
             if (updateData.role_id) {
                 updateData.role_id = Number(updateData.role_id);
             }
-            // Update user
-            const updatedUser = await prisma_client_1.default.users.update({
+            await prisma_client_1.default.users.update({
                 where: { id: targetUserId },
                 data: updateData,
                 include: {
                     user_role: true,
                     companies: true,
                     users_depots_users: {
-                        // Include multiple depots
                         include: {
                             user_depots_depot_id: true,
                         },
@@ -771,9 +768,7 @@ exports.userController = {
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
-            // Update depot assignments if provided
             if (depot_ids !== undefined) {
-                // Remove existing depot assignments
                 await prisma_client_1.default.user_depots.deleteMany({
                     where: { user_id: targetUserId },
                 });
@@ -923,7 +918,6 @@ exports.userController = {
                         },
                     },
                     users_depots_users: {
-                        // Include multiple depots
                         include: {
                             user_depots_depot_id: true,
                         },
@@ -986,8 +980,7 @@ exports.userController = {
                 res.error('User not found', 404);
                 return;
             }
-            const { createdate, updatedate, id, role_id, is_active, employee_id, email, password, depot_ids, // New field for multiple depots
-            ...userData } = req.body;
+            const { createdate, updatedate, id, role_id, is_active, employee_id, email, password, depot_ids, ...userData } = req.body;
             console.log('Req.body', req.body);
             let profile_image_url;
             const uploadedFile = req.file;
@@ -1134,7 +1127,6 @@ exports.userController = {
                     id: true,
                     name: true,
                     email: true,
-                    // Remove depot_id from select since it's no longer in users table
                 },
                 orderBy: {
                     name: 'asc',

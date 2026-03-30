@@ -872,7 +872,7 @@ export const userController = {
         updateData.role_id = Number(updateData.role_id);
       }
 
-      const updatedUser = await prisma.users.update({
+      await prisma.users.update({
         where: { id: targetUserId },
         data: updateData,
         include: {
