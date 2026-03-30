@@ -193,7 +193,6 @@ const formatPermissionErrorMessage = (permissions) => {
         const actionName = ACTION_DISPLAY_NAMES[action] || action;
         return `You don't have permission for ${actionName} the ${moduleName}.`;
     }
-    // Multiple permissions
     const permissionDescriptions = permissions.map(({ module, action }) => {
         const moduleName = MODULE_DISPLAY_NAMES[module] || module;
         const actionName = ACTION_DISPLAY_NAMES[action] || action;

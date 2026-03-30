@@ -322,11 +322,17 @@ exports.visitsController = {
     // async bulkUpsertVisits(req: Request, res: Response) {
     //   try {
     //     const inputData = req.body;
+    //     console.log('Received inputData:', JSON.stringify(inputData, null, 2));
     //     let dataArray: BulkVisitInput[] = [];
     //     if (typeof inputData.visits === 'string') {
+    //       console.log('Parsing visits as string...');
     //       try {
-    //         dataArray = JSON.parse(inputData.visits);
+    //         const cleanVisitsData = inputData.visits.trim();
+    //         dataArray = JSON.parse(cleanVisitsData);
+    //         console.log('Parsed dataArray:', dataArray);
     //       } catch (e) {
+    //         console.error('JSON parse error:', e);
+    //         console.error('Raw visits data:', JSON.stringify(inputData.visits));
     //         return res.status(400).json({
     //           success: false,
     //           message: 'Invalid visits JSON string',
@@ -366,6 +372,7 @@ exports.visitsController = {
     //           visit_id: item.visit_id,
     //         },
     //         orders: item.orders || [],
+    //         invoices: item.invoices || [],
     //         payments: item.payments || [],
     //         cooler_inspections: item.cooler_inspections || [],
     //         survey: item.survey,
@@ -400,7 +407,14 @@ exports.visitsController = {
     //     for (let index = 0; index < dataArray.length; index++) {
     //       const data = dataArray[index];
     //       try {
-    //         const { visit, orders, payments, cooler_inspections, survey } = data;
+    //         const {
+    //           visit,
+    //           invoices,
+    //           orders,
+    //           payments,
+    //           cooler_inspections,
+    //           survey,
+    //         } = data;
     //         if (!visit) {
     //           results.failed.push({
     //             visitIndex: index,
@@ -545,7 +559,7 @@ exports.visitsController = {
     //           ` Processing visit ${isUpdate ? 'update' : 'creation'} for customer ${visit.customer_id}`
     //         );
     //         console.log(` Payments to process: ${payments?.length || 0}`);
-    //         console.log(`Orders to process: ${orders?.length || 0}`);
+    //         console.log(`Invoices to process: ${invoices?.length || 0}`);
     //         console.log(
     //           `Cooler inspections to process: ${cooler_inspections?.length || 0}`
     //         );
@@ -567,7 +581,6 @@ exports.visitsController = {
     //             });
     //             continue;
     //           }
-    //           // Retrieve existing attachments
     //           const existingAttachments = await prisma.visit_attachments.findMany(
     //             {
     //               where: { visit_id: visitIdToUpdate },
@@ -587,7 +600,7 @@ exports.visitsController = {
     //         try {
     //           const result = await prisma.$transaction(
     //             async tx => {
-    //               const orderIds: number[] = [];
+    //               const invoiceIds: number[] = [];
     //               const paymentIds: number[] = [];
     //               const inspectionIds: number[] = [];
     //               const surveyResponseIds: number[] = [];
@@ -612,9 +625,7 @@ exports.visitsController = {
     //                 });
     //               }
     //               const visitId = visitRecord.id;
-    //               // Handle image attachments - delete old ones and create new ones
     //               if (isUpdate) {
-    //                 // Delete existing attachments if new images are uploaded
     //                 if (selfImageUrls.length > 0) {
     //                   await tx.visit_attachments.deleteMany({
     //                     where: {
@@ -640,7 +651,6 @@ exports.visitsController = {
     //                   });
     //                 }
     //               }
-    //               // Create new attachments
     //               const attachmentData: any[] = [];
     //               if (selfImageUrls.length > 0) {
     //                 selfImageUrls.forEach((url, index) => {
@@ -686,129 +696,886 @@ exports.visitsController = {
     //                   `Created ${attachmentData.length} attachment records`
     //                 );
     //               }
-    //               if (orders && orders.length > 0) {
-    //                 console.log(`Processing ${orders.length} order(s)...`);
-    //                 for (const orderData of orders) {
-    //                   const orderItems = orderData.items || [];
-    //                   const processedOrderData = {
-    //                     order_number:
-    //                       orderData.order_number ||
-    //                       `ORD-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-    //                     parent_id: visit.customer_id,
-    //                     salesperson_id: visit.sales_person_id,
-    //                     order_date: orderData.order_date
-    //                       ? new Date(orderData.order_date)
+    //               if (invoices && invoices.length > 0) {
+    //                 console.log(`Processing ${invoices.length} invoice(s)...`);
+    //                 for (const invoiceData of invoices) {
+    //                   const invoiceItems = invoiceData.items || [];
+    //                   const createdOrder = await tx.orders.create({
+    //                     data: {
+    //                       order_number: `ORD-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+    //                       parent_id: visit.customer_id,
+    //                       salesperson_id: visit.sales_person_id,
+    //                       order_date: new Date(),
+    //                       status: 'completed',
+    //                       total_amount: invoiceData.total_amount || 0,
+    //                       createdate: new Date(),
+    //                       createdby:
+    //                         visit.createdby || (req as any).user?.id || 1,
+    //                       log_inst: 1,
+    //                     },
+    //                   });
+    //                   let invoiceNumber = invoiceData.invoice_number;
+    //                   if (!invoiceNumber) {
+    //                     invoiceNumber =
+    //                       await generateInvoiceNumberInTransaction(tx);
+    //                   } else {
+    //                     // Validate user-provided invoice number doesn't exist
+    //                     const existingInvoice = await tx.invoices.findFirst({
+    //                       where: { invoice_number: invoiceNumber },
+    //                     });
+    //                     if (existingInvoice) {
+    //                       throw new Error(
+    //                         `Invoice number ${invoiceNumber} already exists`
+    //                       );
+    //                     }
+    //                   }
+    //                   const processedInvoiceData = {
+    //                     customer_id: visit.customer_id,
+    //                     invoice_number: invoiceNumber,
+    //                     parent_id: createdOrder.id,
+    //                     invoice_date: invoiceData.invoice_date
+    //                       ? new Date(invoiceData.invoice_date)
     //                       : new Date(),
-    //                     delivery_date: orderData.delivery_date
-    //                       ? new Date(orderData.delivery_date)
+    //                     due_date: invoiceData.due_date
+    //                       ? new Date(invoiceData.due_date)
     //                       : undefined,
-    //                     status: orderData.status || 'draft',
-    //                     priority: orderData.priority || 'medium',
-    //                     order_type: orderData.order_type || 'regular',
-    //                     payment_method: orderData.payment_method || 'credit',
-    //                     payment_terms: orderData.payment_terms || 'Net 30',
-    //                     subtotal: orderData.subtotal || 0,
-    //                     discount_amount: orderData.discount_amount || 0,
-    //                     tax_amount: orderData.tax_amount || 0,
-    //                     shipping_amount: orderData.shipping_amount || 0,
-    //                     total_amount: orderData.total_amount || 0,
-    //                     notes: orderData.notes,
-    //                     shipping_address: orderData.shipping_address,
-    //                     approval_status: orderData.approval_status || 'pending',
-    //                     approved_by: orderData.approved_by,
-    //                     approved_at: orderData.approved_at
-    //                       ? new Date(orderData.approved_at)
-    //                       : undefined,
-    //                     is_active: orderData.is_active || 'Y',
+    //                     status: invoiceData.status || 'draft',
+    //                     salesperson_id: invoiceData.salesperson_id || null,
+    //                     payment_method: invoiceData.payment_method || 'credit',
+    //                     subtotal: invoiceData.subtotal || 0,
+    //                     discount_amount: invoiceData.discount_amount || 0,
+    //                     tax_amount: invoiceData.tax_amount || 0,
+    //                     shipping_amount: invoiceData.shipping_amount || 0,
+    //                     total_amount: invoiceData.total_amount || 0,
+    //                     amount_paid: invoiceData.amount_paid || 0,
+    //                     balance_due: invoiceData.balance_due,
+    //                     notes: invoiceData.notes,
+    //                     billing_address: invoiceData.billing_address,
+    //                     is_active: invoiceData.is_active || 'Y',
+    //                     currency_id: invoiceData.currency_id,
     //                   };
-    //                   let createdOrder: any = undefined;
-    //                   if (orderData.order_id || (orderData as any).id) {
-    //                     const orderIdToUpdate =
-    //                       (orderData as any).id || orderData.order_id;
-    //                     createdOrder = await tx.orders.update({
-    //                       where: { id: orderIdToUpdate },
+    //                   let createdInvoice: any = undefined;
+    //                   if (invoiceData.invoice_id || (invoiceData as any).id) {
+    //                     const invoiceIdToUpdate =
+    //                       (invoiceData as any).id || invoiceData.invoice_id;
+    //                     createdInvoice = await tx.invoices.update({
+    //                       where: { id: invoiceIdToUpdate },
     //                       data: {
-    //                         ...processedOrderData,
+    //                         ...processedInvoiceData,
     //                         updatedate: new Date(),
     //                         updatedby:
     //                           (req as any).user?.id || visit.createdby || 1,
     //                       },
     //                     });
-    //                     orderIds.push(createdOrder.id);
-    //                     if (orderItems.length > 0) {
-    //                       for (const item of orderItems) {
-    //                         const itemData = {
-    //                           product_id: item.product_id,
-    //                           product_name: item.product_name,
-    //                           unit: item.unit,
-    //                           quantity: item.quantity,
-    //                           unit_price: item.unit_price,
-    //                           discount_amount: item.discount_amount || 0,
-    //                           tax_amount: item.tax_amount || 0,
-    //                           total_amount: item.total_amount,
-    //                           notes: item.notes,
-    //                         };
-    //                         if (item.item_id || (item as any).id) {
-    //                           const itemIdToUpdate =
-    //                             (item as any).id || item.item_id;
-    //                           console.log(
-    //                             `Attempting to update order item ${itemIdToUpdate} for order ${createdOrder.id}`
-    //                           );
-    //                           // Check if item exists
-    //                           const existingItem = await tx.order_items.findFirst(
-    //                             {
-    //                               where: { id: itemIdToUpdate },
-    //                             }
-    //                           );
-    //                           console.log(`Order item exists: ${!!existingItem}`);
-    //                           if (existingItem) {
-    //                             console.log(`Item details:`, existingItem);
+    //                     invoiceIds.push(createdInvoice.id);
+    //                     if (invoiceItems.length > 0) {
+    //                       if ((invoiceData as any).invoice_method === 'order') {
+    //                         // Order method with batch/serial deduction logic
+    //                         for (const item of invoiceItems) {
+    //                           const product = await tx.products.findUnique({
+    //                             where: { id: Number(item.product_id) },
+    //                           });
+    //                           if (!product) {
+    //                             throw new Error(
+    //                               `Product ${item.product_id} not found`
+    //                             );
     //                           }
-    //                           await tx.order_items.update({
-    //                             where: { id: itemIdToUpdate },
-    //                             data: itemData,
-    //                           });
-    //                         } else {
-    //                           await tx.order_items.create({
-    //                             data: {
-    //                               ...itemData,
-    //                               parent_id: createdOrder.id,
-    //                             },
-    //                           });
+    //                           const trackingType =
+    //                             (
+    //                               product.tracking_type as string
+    //                             )?.toUpperCase() || 'NONE';
+    //                           const quantity = parseInt(
+    //                             String(item.quantity),
+    //                             10
+    //                           );
+    //                           if (trackingType === 'BATCH') {
+    //                             console.log(
+    //                               'Processing BATCH deduction for invoice item'
+    //                             );
+    //                             const batchData =
+    //                               (item as any).product_batches ||
+    //                               (item as any).batches;
+    //                             if (!batchData || !Array.isArray(batchData)) {
+    //                               throw new Error(
+    //                                 `Batches are required for product "${product.name}"`
+    //                               );
+    //                             }
+    //                             let totalOrderedQty = 0;
+    //                             for (const batchOrder of batchData) {
+    //                               const batchQty = parseInt(
+    //                                 batchOrder.quantity,
+    //                                 10
+    //                               );
+    //                               totalOrderedQty += batchQty;
+    //                               const batchLot = await tx.batch_lots.findUnique(
+    //                                 {
+    //                                   where: { id: batchOrder.batch_lot_id },
+    //                                 }
+    //                               );
+    //                               if (!batchLot) {
+    //                                 throw new Error(
+    //                                   `Batch lot ${batchOrder.batch_lot_id} not found`
+    //                                 );
+    //                               }
+    //                               // Check and deduct from van inventory if van_inventory_id is provided
+    //                               if ((invoiceData as any).van_inventory_id) {
+    //                                 const vanItem =
+    //                                   await tx.van_inventory_items.findFirst({
+    //                                     where: {
+    //                                       product_id: product.id,
+    //                                       batch_lot_id: batchOrder.batch_lot_id,
+    //                                       van_inventory_items_inventory: {
+    //                                         is_active: 'Y',
+    //                                       },
+    //                                     },
+    //                                     include: {
+    //                                       van_inventory_items_inventory: true,
+    //                                     },
+    //                                   });
+    //                                 if (!vanItem) {
+    //                                   throw new Error(
+    //                                     `Batch ${batchOrder.batch_lot_id} not found in van inventory for product "${product.name}"`
+    //                                   );
+    //                                 }
+    //                                 if (vanItem.quantity < batchQty) {
+    //                                   throw new Error(
+    //                                     `Insufficient quantity in van for batch. Available: ${vanItem.quantity}, Requested: ${batchQty}`
+    //                                   );
+    //                                 }
+    //                                 const newVanItemQuantity =
+    //                                   vanItem.quantity - batchQty;
+    //                                 if (newVanItemQuantity > 0) {
+    //                                   await tx.van_inventory_items.update({
+    //                                     where: { id: vanItem.id },
+    //                                     data: { quantity: newVanItemQuantity },
+    //                                   });
+    //                                 } else {
+    //                                   await tx.van_inventory_items.delete({
+    //                                     where: { id: vanItem.id },
+    //                                   });
+    //                                 }
+    //                               }
+    //                               if (batchLot.remaining_quantity < batchQty) {
+    //                                 throw new Error(
+    //                                   `Insufficient quantity in batch lot. Available: ${batchLot.remaining_quantity}, Requested: ${batchQty}`
+    //                                 );
+    //                               }
+    //                               await tx.batch_lots.update({
+    //                                 where: { id: batchOrder.batch_lot_id },
+    //                                 data: {
+    //                                   remaining_quantity:
+    //                                     batchLot.remaining_quantity - batchQty,
+    //                                   updatedate: new Date(),
+    //                                 },
+    //                               });
+    //                               const productBatch =
+    //                                 await tx.product_batches.findFirst({
+    //                                   where: {
+    //                                     product_id: product.id,
+    //                                     batch_lot_id: batchOrder.batch_lot_id,
+    //                                     is_active: 'Y',
+    //                                   },
+    //                                 });
+    //                               if (productBatch) {
+    //                                 if (productBatch.quantity < batchQty) {
+    //                                   throw new Error(
+    //                                     `Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${batchQty}`
+    //                                   );
+    //                                 }
+    //                                 await tx.product_batches.update({
+    //                                   where: { id: productBatch.id },
+    //                                   data: {
+    //                                     quantity:
+    //                                       productBatch.quantity - batchQty,
+    //                                     updatedate: new Date(),
+    //                                   },
+    //                                 });
+    //                               }
+    //                               const inventoryStock =
+    //                                 await tx.inventory_stock.findFirst({
+    //                                   where: {
+    //                                     product_id: product.id,
+    //                                     batch_id: batchOrder.batch_lot_id,
+    //                                   },
+    //                                 });
+    //                               if (inventoryStock) {
+    //                                 const currentStock =
+    //                                   inventoryStock.current_stock ?? 0;
+    //                                 const availableStock =
+    //                                   inventoryStock.available_stock ?? 0;
+    //                                 if (currentStock < batchQty) {
+    //                                   throw new Error(
+    //                                     `Insufficient inventory stock for batch. Available: ${currentStock}, Requested: ${batchQty}`
+    //                                   );
+    //                                 }
+    //                                 await tx.inventory_stock.update({
+    //                                   where: { id: inventoryStock.id },
+    //                                   data: {
+    //                                     current_stock: currentStock - batchQty,
+    //                                     available_stock:
+    //                                       availableStock - batchQty,
+    //                                     updatedate: new Date(),
+    //                                     updatedby:
+    //                                       (req as any).user?.id ||
+    //                                       visit.createdby ||
+    //                                       1,
+    //                                   },
+    //                                 });
+    //                               }
+    //                               await tx.stock_movements.create({
+    //                                 data: {
+    //                                   product_id: product.id,
+    //                                   batch_id: batchOrder.batch_lot_id,
+    //                                   serial_id: null,
+    //                                   movement_type: 'SALE',
+    //                                   reference_type: 'INVOICE',
+    //                                   reference_id: createdInvoice.id,
+    //                                   from_location_id: (invoiceData as any)
+    //                                     .van_inventory_id
+    //                                     ? (
+    //                                         await tx.van_inventory.findUnique({
+    //                                           where: {
+    //                                             id: (invoiceData as any)
+    //                                               .van_inventory_id,
+    //                                           },
+    //                                         })
+    //                                       )?.location_id || null
+    //                                     : null,
+    //                                   to_location_id: null,
+    //                                   quantity: batchQty,
+    //                                   movement_date: new Date(),
+    //                                   remarks: `Sold via invoice ${createdInvoice.invoice_number} - Batch: ${batchLot.batch_number}`,
+    //                                   is_active: 'Y',
+    //                                   createdate: new Date(),
+    //                                   createdby:
+    //                                     (req as any).user?.id ||
+    //                                     visit.createdby ||
+    //                                     1,
+    //                                   log_inst: 1,
+    //                                   van_inventory_id: (invoiceData as any)
+    //                                     .van_inventory_id
+    //                                     ? Number(
+    //                                         (invoiceData as any).van_inventory_id
+    //                                       )
+    //                                     : null,
+    //                                 },
+    //                               });
+    //                               console.log(
+    //                                 `Deducted ${batchQty} from batch ${batchLot.batch_number}`
+    //                               );
+    //                             }
+    //                             if (totalOrderedQty !== quantity) {
+    //                               throw new Error(
+    //                                 `Total batch quantity (${totalOrderedQty}) does not match ordered quantity (${quantity})`
+    //                               );
+    //                             }
+    //                           } else if (trackingType === 'SERIAL') {
+    //                             console.log(
+    //                               'Processing SERIAL deduction for invoice item'
+    //                             );
+    //                             const serialData =
+    //                               (item as any).product_serials ||
+    //                               (item as any).serials;
+    //                             if (
+    //                               !serialData ||
+    //                               !Array.isArray(serialData) ||
+    //                               serialData.length === 0
+    //                             ) {
+    //                               throw new Error(
+    //                                 `Serial numbers required for "${product.name}"`
+    //                               );
+    //                             }
+    //                             for (const serialInput of serialData) {
+    //                               const serialNumber =
+    //                                 typeof serialInput === 'string'
+    //                                   ? serialInput
+    //                                   : serialInput.serial_number;
+    //                               if (!serialNumber) {
+    //                                 throw new Error('Serial number is required');
+    //                               }
+    //                               const serial =
+    //                                 await tx.serial_numbers.findUnique({
+    //                                   where: { serial_number: serialNumber },
+    //                                 });
+    //                               if (!serial) {
+    //                                 throw new Error(
+    //                                   `Serial number ${serialNumber} not found`
+    //                                 );
+    //                               }
+    //                               await tx.serial_numbers.update({
+    //                                 where: { id: serial.id },
+    //                                 data: {
+    //                                   status: 'sold',
+    //                                   customer_id: visit.customer_id,
+    //                                   sold_date: new Date(),
+    //                                   updatedate: new Date(),
+    //                                   updatedby:
+    //                                     (req as any).user?.id ||
+    //                                     visit.createdby ||
+    //                                     1,
+    //                                 },
+    //                               });
+    //                               const inventoryStock =
+    //                                 await tx.inventory_stock.findFirst({
+    //                                   where: {
+    //                                     product_id: product.id,
+    //                                     serial_number_id: serial.id,
+    //                                   },
+    //                                 });
+    //                               if (inventoryStock) {
+    //                                 const oldCurrent =
+    //                                   inventoryStock.current_stock || 0;
+    //                                 const oldAvailable =
+    //                                   inventoryStock.available_stock || 0;
+    //                                 const newCurrentStock = Math.max(
+    //                                   0,
+    //                                   oldCurrent - 1
+    //                                 );
+    //                                 const newAvailableStock = Math.max(
+    //                                   0,
+    //                                   oldAvailable - 1
+    //                                 );
+    //                                 await tx.inventory_stock.update({
+    //                                   where: { id: inventoryStock.id },
+    //                                   data: {
+    //                                     current_stock: newCurrentStock,
+    //                                     available_stock: newAvailableStock,
+    //                                     updatedate: new Date(),
+    //                                     updatedby:
+    //                                       (req as any).user?.id ||
+    //                                       visit.createdby ||
+    //                                       1,
+    //                                   },
+    //                                 });
+    //                               }
+    //                               // Check and deduct from van inventory if van_inventory_id is provided
+    //                               if ((invoiceData as any).van_inventory_id) {
+    //                                 const vanItem =
+    //                                   await tx.van_inventory_items.findFirst({
+    //                                     where: {
+    //                                       product_id: product.id,
+    //                                       serial_id: serial.id,
+    //                                       van_inventory_items_inventory: {
+    //                                         is_active: 'Y',
+    //                                       },
+    //                                     },
+    //                                     include: {
+    //                                       van_inventory_items_inventory: true,
+    //                                     },
+    //                                   });
+    //                                 if (vanItem && vanItem.quantity > 0) {
+    //                                   const newVanItemQuantity =
+    //                                     vanItem.quantity - 1;
+    //                                   if (newVanItemQuantity > 0) {
+    //                                     await tx.van_inventory_items.update({
+    //                                       where: { id: vanItem.id },
+    //                                       data: { quantity: newVanItemQuantity },
+    //                                     });
+    //                                   } else {
+    //                                     await tx.van_inventory_items.delete({
+    //                                       where: { id: vanItem.id },
+    //                                     });
+    //                                   }
+    //                                 }
+    //                               }
+    //                               await tx.stock_movements.create({
+    //                                 data: {
+    //                                   product_id: product.id,
+    //                                   batch_id: null,
+    //                                   serial_id: serial.id,
+    //                                   movement_type: 'SALE',
+    //                                   reference_type: 'INVOICE',
+    //                                   reference_id: createdInvoice.id,
+    //                                   from_location_id: (invoiceData as any)
+    //                                     .van_inventory_id
+    //                                     ? (
+    //                                         await tx.van_inventory.findUnique({
+    //                                           where: {
+    //                                             id: (invoiceData as any)
+    //                                               .van_inventory_id,
+    //                                           },
+    //                                         })
+    //                                       )?.location_id || null
+    //                                     : null,
+    //                                   to_location_id: null,
+    //                                   quantity: 1,
+    //                                   movement_date: new Date(),
+    //                                   remarks: `Sold via invoice ${createdInvoice.invoice_number} - Serial ${serialNumber}`,
+    //                                   is_active: 'Y',
+    //                                   createdate: new Date(),
+    //                                   createdby:
+    //                                     (req as any).user?.id ||
+    //                                     visit.createdby ||
+    //                                     1,
+    //                                   log_inst: 1,
+    //                                   van_inventory_id: (invoiceData as any)
+    //                                     .van_inventory_id
+    //                                     ? Number(
+    //                                         (invoiceData as any).van_inventory_id
+    //                                       )
+    //                                     : null,
+    //                                 },
+    //                               });
+    //                             }
+    //                           }
+    //                           // Create invoice item
+    //                           const itemData = {
+    //                             product_id: item.product_id,
+    //                             product_name: item.product_name || product.name,
+    //                             unit: item.unit,
+    //                             quantity: item.quantity,
+    //                             unit_price: item.unit_price,
+    //                             discount_amount: item.discount_amount || 0,
+    //                             tax_amount: item.tax_amount || 0,
+    //                             total_amount: item.total_amount,
+    //                             notes: item.notes,
+    //                           };
+    //                           if (item.item_id || (item as any).id) {
+    //                             const itemIdToUpdate =
+    //                               (item as any).id || item.item_id;
+    //                             await tx.invoice_items.update({
+    //                               where: { id: itemIdToUpdate },
+    //                               data: itemData,
+    //                             });
+    //                           } else {
+    //                             await tx.invoice_items.create({
+    //                               data: {
+    //                                 ...itemData,
+    //                                 parent_id: createdInvoice.id,
+    //                               },
+    //                             });
+    //                           }
+    //                         }
+    //                       } else {
+    //                         // Regular invoice processing (existing logic)
+    //                         for (const item of invoiceItems) {
+    //                           const itemData = {
+    //                             product_id: item.product_id,
+    //                             product_name: item.product_name,
+    //                             unit: item.unit,
+    //                             quantity: parseInt(String(item.quantity), 10),
+    //                             unit_price: item.unit_price,
+    //                             discount_amount: item.discount_amount || 0,
+    //                             tax_amount: item.tax_amount || 0,
+    //                             total_amount: item.total_amount,
+    //                             notes: item.notes,
+    //                           };
+    //                           if (item.item_id || (item as any).id) {
+    //                             const itemIdToUpdate =
+    //                               (item as any).id || item.item_id;
+    //                             await tx.invoice_items.update({
+    //                               where: { id: itemIdToUpdate },
+    //                               data: itemData,
+    //                             });
+    //                           } else {
+    //                             await tx.invoice_items.create({
+    //                               data: {
+    //                                 ...itemData,
+    //                                 parent_id: createdInvoice.id,
+    //                               },
+    //                             });
+    //                           }
     //                         }
     //                       }
     //                     }
     //                   } else {
-    //                     createdOrder = await tx.orders.create({
+    //                     createdInvoice = await tx.invoices.create({
     //                       data: {
-    //                         ...processedOrderData,
+    //                         ...processedInvoiceData,
     //                         createdate: new Date(),
     //                         createdby:
     //                           visit.createdby || (req as any).user?.id || 1,
     //                         log_inst: 1,
     //                       },
     //                     });
-    //                     orderIds.push(createdOrder.id);
-    //                     if (orderItems.length > 0) {
-    //                       await tx.order_items.createMany({
-    //                         data: orderItems.map(item => ({
-    //                           parent_id: createdOrder.id,
-    //                           product_id: item.product_id,
-    //                           product_name: item.product_name,
-    //                           unit: item.unit,
-    //                           quantity: item.quantity,
-    //                           unit_price: item.unit_price,
-    //                           discount_amount: item.discount_amount || 0,
-    //                           tax_amount: item.tax_amount || 0,
-    //                           total_amount: item.total_amount,
-    //                           notes: item.notes,
-    //                         })),
-    //                       });
+    //                     invoiceIds.push(createdInvoice.id);
+    //                     if (invoiceItems.length > 0) {
+    //                       if ((invoiceData as any).invoice_method === 'order') {
+    //                         // Order method with batch/serial deduction logic
+    //                         for (const item of invoiceItems) {
+    //                           const product = await tx.products.findUnique({
+    //                             where: { id: Number(item.product_id) },
+    //                           });
+    //                           if (!product) {
+    //                             throw new Error(
+    //                               `Product ${item.product_id} not found`
+    //                             );
+    //                           }
+    //                           const trackingType =
+    //                             (
+    //                               product.tracking_type as string
+    //                             )?.toUpperCase() || 'NONE';
+    //                           const quantity = parseInt(
+    //                             String(item.quantity),
+    //                             10
+    //                           );
+    //                           if (trackingType === 'BATCH') {
+    //                             console.log(
+    //                               'Processing BATCH deduction for invoice item'
+    //                             );
+    //                             const batchData =
+    //                               (item as any).product_batches ||
+    //                               (item as any).batches;
+    //                             if (!batchData || !Array.isArray(batchData)) {
+    //                               throw new Error(
+    //                                 `Batches are required for product "${product.name}"`
+    //                               );
+    //                             }
+    //                             let totalOrderedQty = 0;
+    //                             for (const batchOrder of batchData) {
+    //                               const batchQty = parseInt(
+    //                                 batchOrder.quantity,
+    //                                 10
+    //                               );
+    //                               totalOrderedQty += batchQty;
+    //                               const batchLot = await tx.batch_lots.findUnique(
+    //                                 {
+    //                                   where: { id: batchOrder.batch_lot_id },
+    //                                 }
+    //                               );
+    //                               if (!batchLot) {
+    //                                 throw new Error(
+    //                                   `Batch lot ${batchOrder.batch_lot_id} not found`
+    //                                 );
+    //                               }
+    //                               // Check and deduct from van inventory if van_inventory_id is provided
+    //                               if ((invoiceData as any).van_inventory_id) {
+    //                                 const vanItem =
+    //                                   await tx.van_inventory_items.findFirst({
+    //                                     where: {
+    //                                       product_id: product.id,
+    //                                       batch_lot_id: batchOrder.batch_lot_id,
+    //                                       van_inventory_items_inventory: {
+    //                                         is_active: 'Y',
+    //                                       },
+    //                                     },
+    //                                     include: {
+    //                                       van_inventory_items_inventory: true,
+    //                                     },
+    //                                   });
+    //                                 if (!vanItem) {
+    //                                   throw new Error(
+    //                                     `Batch ${batchOrder.batch_lot_id} not found in van inventory for product "${product.name}"`
+    //                                   );
+    //                                 }
+    //                                 if (vanItem.quantity < batchQty) {
+    //                                   throw new Error(
+    //                                     `Insufficient quantity in van for batch. Available: ${vanItem.quantity}, Requested: ${batchQty}`
+    //                                   );
+    //                                 }
+    //                                 const newVanItemQuantity =
+    //                                   vanItem.quantity - batchQty;
+    //                                 if (newVanItemQuantity > 0) {
+    //                                   await tx.van_inventory_items.update({
+    //                                     where: { id: vanItem.id },
+    //                                     data: { quantity: newVanItemQuantity },
+    //                                   });
+    //                                 } else {
+    //                                   await tx.van_inventory_items.delete({
+    //                                     where: { id: vanItem.id },
+    //                                   });
+    //                                 }
+    //                               }
+    //                               if (batchLot.remaining_quantity < batchQty) {
+    //                                 throw new Error(
+    //                                   `Insufficient quantity in batch lot. Available: ${batchLot.remaining_quantity}, Requested: ${batchQty}`
+    //                                 );
+    //                               }
+    //                               await tx.batch_lots.update({
+    //                                 where: { id: batchOrder.batch_lot_id },
+    //                                 data: {
+    //                                   remaining_quantity:
+    //                                     batchLot.remaining_quantity - batchQty,
+    //                                   updatedate: new Date(),
+    //                                 },
+    //                               });
+    //                               const productBatch =
+    //                                 await tx.product_batches.findFirst({
+    //                                   where: {
+    //                                     product_id: product.id,
+    //                                     batch_lot_id: batchOrder.batch_lot_id,
+    //                                     is_active: 'Y',
+    //                                   },
+    //                                 });
+    //                               if (productBatch) {
+    //                                 if (productBatch.quantity < batchQty) {
+    //                                   throw new Error(
+    //                                     `Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${batchQty}`
+    //                                   );
+    //                                 }
+    //                                 await tx.product_batches.update({
+    //                                   where: { id: productBatch.id },
+    //                                   data: {
+    //                                     quantity:
+    //                                       productBatch.quantity - batchQty,
+    //                                     updatedate: new Date(),
+    //                                   },
+    //                                 });
+    //                               }
+    //                               const inventoryStock =
+    //                                 await tx.inventory_stock.findFirst({
+    //                                   where: {
+    //                                     product_id: product.id,
+    //                                     batch_id: batchOrder.batch_lot_id,
+    //                                   },
+    //                                 });
+    //                               if (inventoryStock) {
+    //                                 const currentStock =
+    //                                   inventoryStock.current_stock ?? 0;
+    //                                 const availableStock =
+    //                                   inventoryStock.available_stock ?? 0;
+    //                                 if (currentStock < batchQty) {
+    //                                   throw new Error(
+    //                                     `Insufficient inventory stock for batch. Available: ${currentStock}, Requested: ${batchQty}`
+    //                                   );
+    //                                 }
+    //                                 await tx.inventory_stock.update({
+    //                                   where: { id: inventoryStock.id },
+    //                                   data: {
+    //                                     current_stock: currentStock - batchQty,
+    //                                     available_stock:
+    //                                       availableStock - batchQty,
+    //                                     updatedate: new Date(),
+    //                                     updatedby:
+    //                                       (req as any).user?.id ||
+    //                                       visit.createdby ||
+    //                                       1,
+    //                                   },
+    //                                 });
+    //                               }
+    //                               await tx.stock_movements.create({
+    //                                 data: {
+    //                                   product_id: product.id,
+    //                                   batch_id: batchOrder.batch_lot_id,
+    //                                   serial_id: null,
+    //                                   movement_type: 'SALE',
+    //                                   reference_type: 'INVOICE',
+    //                                   reference_id: createdInvoice.id,
+    //                                   from_location_id: (invoiceData as any)
+    //                                     .van_inventory_id
+    //                                     ? (
+    //                                         await tx.van_inventory.findUnique({
+    //                                           where: {
+    //                                             id: (invoiceData as any)
+    //                                               .van_inventory_id,
+    //                                           },
+    //                                         })
+    //                                       )?.location_id || null
+    //                                     : null,
+    //                                   to_location_id: null,
+    //                                   quantity: batchQty,
+    //                                   movement_date: new Date(),
+    //                                   remarks: `Sold via invoice ${createdInvoice.invoice_number} - Batch: ${batchLot.batch_number}`,
+    //                                   is_active: 'Y',
+    //                                   createdate: new Date(),
+    //                                   createdby:
+    //                                     (req as any).user?.id ||
+    //                                     visit.createdby ||
+    //                                     1,
+    //                                   log_inst: 1,
+    //                                   van_inventory_id: (invoiceData as any)
+    //                                     .van_inventory_id
+    //                                     ? Number(
+    //                                         (invoiceData as any).van_inventory_id
+    //                                       )
+    //                                     : null,
+    //                                 },
+    //                               });
+    //                               console.log(
+    //                                 `Deducted ${batchQty} from batch ${batchLot.batch_number}`
+    //                               );
+    //                             }
+    //                             if (totalOrderedQty !== quantity) {
+    //                               throw new Error(
+    //                                 `Total batch quantity (${totalOrderedQty}) does not match ordered quantity (${quantity})`
+    //                               );
+    //                             }
+    //                           } else if (trackingType === 'SERIAL') {
+    //                             console.log(
+    //                               'Processing SERIAL deduction for invoice item'
+    //                             );
+    //                             const serialData =
+    //                               (item as any).product_serials ||
+    //                               (item as any).serials;
+    //                             if (
+    //                               !serialData ||
+    //                               !Array.isArray(serialData) ||
+    //                               serialData.length === 0
+    //                             ) {
+    //                               throw new Error(
+    //                                 `Serial numbers required for "${product.name}"`
+    //                               );
+    //                             }
+    //                             for (const serialInput of serialData) {
+    //                               const serialNumber =
+    //                                 typeof serialInput === 'string'
+    //                                   ? serialInput
+    //                                   : serialInput.serial_number;
+    //                               if (!serialNumber) {
+    //                                 throw new Error('Serial number is required');
+    //                               }
+    //                               const serial =
+    //                                 await tx.serial_numbers.findUnique({
+    //                                   where: { serial_number: serialNumber },
+    //                                 });
+    //                               if (!serial) {
+    //                                 throw new Error(
+    //                                   `Serial number ${serialNumber} not found`
+    //                                 );
+    //                               }
+    //                               await tx.serial_numbers.update({
+    //                                 where: { id: serial.id },
+    //                                 data: {
+    //                                   status: 'sold',
+    //                                   customer_id: visit.customer_id,
+    //                                   sold_date: new Date(),
+    //                                   updatedate: new Date(),
+    //                                   updatedby:
+    //                                     (req as any).user?.id ||
+    //                                     visit.createdby ||
+    //                                     1,
+    //                                 },
+    //                               });
+    //                               const inventoryStock =
+    //                                 await tx.inventory_stock.findFirst({
+    //                                   where: {
+    //                                     product_id: product.id,
+    //                                     serial_number_id: serial.id,
+    //                                   },
+    //                                 });
+    //                               if (inventoryStock) {
+    //                                 const oldCurrent =
+    //                                   inventoryStock.current_stock || 0;
+    //                                 const oldAvailable =
+    //                                   inventoryStock.available_stock || 0;
+    //                                 const newCurrentStock = Math.max(
+    //                                   0,
+    //                                   oldCurrent - 1
+    //                                 );
+    //                                 const newAvailableStock = Math.max(
+    //                                   0,
+    //                                   oldAvailable - 1
+    //                                 );
+    //                                 await tx.inventory_stock.update({
+    //                                   where: { id: inventoryStock.id },
+    //                                   data: {
+    //                                     current_stock: newCurrentStock,
+    //                                     available_stock: newAvailableStock,
+    //                                     updatedate: new Date(),
+    //                                     updatedby:
+    //                                       (req as any).user?.id ||
+    //                                       visit.createdby ||
+    //                                       1,
+    //                                   },
+    //                                 });
+    //                               }
+    //                               // Check and deduct from van inventory if van_inventory_id is provided
+    //                               if ((invoiceData as any).van_inventory_id) {
+    //                                 const vanItem =
+    //                                   await tx.van_inventory_items.findFirst({
+    //                                     where: {
+    //                                       product_id: product.id,
+    //                                       serial_id: serial.id,
+    //                                       van_inventory_items_inventory: {
+    //                                         is_active: 'Y',
+    //                                       },
+    //                                     },
+    //                                     include: {
+    //                                       van_inventory_items_inventory: true,
+    //                                     },
+    //                                   });
+    //                                 if (vanItem && vanItem.quantity > 0) {
+    //                                   const newVanItemQuantity =
+    //                                     vanItem.quantity - 1;
+    //                                   if (newVanItemQuantity > 0) {
+    //                                     await tx.van_inventory_items.update({
+    //                                       where: { id: vanItem.id },
+    //                                       data: { quantity: newVanItemQuantity },
+    //                                     });
+    //                                   } else {
+    //                                     await tx.van_inventory_items.delete({
+    //                                       where: { id: vanItem.id },
+    //                                     });
+    //                                   }
+    //                                 }
+    //                               }
+    //                               await tx.stock_movements.create({
+    //                                 data: {
+    //                                   product_id: product.id,
+    //                                   batch_id: null,
+    //                                   serial_id: serial.id,
+    //                                   movement_type: 'SALE',
+    //                                   reference_type: 'INVOICE',
+    //                                   reference_id: createdInvoice.id,
+    //                                   from_location_id: (invoiceData as any)
+    //                                     .van_inventory_id
+    //                                     ? (
+    //                                         await tx.van_inventory.findUnique({
+    //                                           where: {
+    //                                             id: (invoiceData as any)
+    //                                               .van_inventory_id,
+    //                                           },
+    //                                         })
+    //                                       )?.location_id || null
+    //                                     : null,
+    //                                   to_location_id: null,
+    //                                   quantity: 1,
+    //                                   movement_date: new Date(),
+    //                                   remarks: `Sold via invoice ${createdInvoice.invoice_number} - Serial ${serialNumber}`,
+    //                                   is_active: 'Y',
+    //                                   createdate: new Date(),
+    //                                   createdby:
+    //                                     (req as any).user?.id ||
+    //                                     visit.createdby ||
+    //                                     1,
+    //                                   log_inst: 1,
+    //                                   van_inventory_id: (invoiceData as any)
+    //                                     .van_inventory_id
+    //                                     ? Number(
+    //                                         (invoiceData as any).van_inventory_id
+    //                                       )
+    //                                     : null,
+    //                                 },
+    //                               });
+    //                             }
+    //                           }
+    //                           // Create invoice item
+    //                           await tx.invoice_items.create({
+    //                             data: {
+    //                               product_id: item.product_id,
+    //                               product_name: item.product_name || product.name,
+    //                               unit: item.unit,
+    //                               quantity: parseInt(String(item.quantity), 10),
+    //                               unit_price: item.unit_price,
+    //                               discount_amount: item.discount_amount || 0,
+    //                               tax_amount: item.tax_amount || 0,
+    //                               total_amount: item.total_amount,
+    //                               notes: item.notes,
+    //                               parent_id: createdInvoice.id,
+    //                             },
+    //                           });
+    //                         }
+    //                       } else {
+    //                         await tx.invoice_items.createMany({
+    //                           data: invoiceItems.map(item => ({
+    //                             parent_id: createdInvoice.id,
+    //                             product_id: item.product_id,
+    //                             product_name: item.product_name,
+    //                             unit: item.unit,
+    //                             quantity: parseInt(String(item.quantity), 10),
+    //                             unit_price: item.unit_price,
+    //                             discount_amount: item.discount_amount || 0,
+    //                             tax_amount: item.tax_amount || 0,
+    //                             total_amount: item.total_amount,
+    //                             notes: item.notes,
+    //                           })),
+    //                         });
+    //                       }
     //                     }
     //                   }
-    //                   if (createdOrder) {
+    //                   if (createdInvoice) {
     //                     console.log(
-    //                       `Order ${createdOrder.order_number} processed`
+    //                       `Invoice ${createdInvoice.invoice_number} processed`
     //                     );
     //                   }
     //                 }
@@ -1084,16 +1851,21 @@ exports.visitsController = {
     //                   visits_salesperson: true,
     //                   visit_routes: true,
     //                   visit_zones: true,
+    //                   visit_attachments: true,
     //                 },
     //               });
-    //               const relatedOrders =
-    //                 orderIds.length > 0
-    //                   ? await tx.orders.findMany({
+    //               const relatedInvoices =
+    //                 invoiceIds.length > 0
+    //                   ? await tx.invoices.findMany({
     //                       where: {
-    //                         id: { in: orderIds },
+    //                         id: { in: invoiceIds },
     //                       },
     //                       include: {
-    //                         order_items: true,
+    //                         invoice_items: {
+    //                           include: {
+    //                             invoice_items_products: true,
+    //                           },
+    //                         },
     //                       },
     //                     })
     //                   : [];
@@ -1148,11 +1920,11 @@ exports.visitsController = {
     //                 ` Visit ${isUpdate ? 'updated' : 'created'} successfully (ID: ${visitId})`
     //               );
     //               console.log(
-    //                 `Orders: ${orderIds.length}, Payments: ${paymentIds.length}, Inspections: ${inspectionIds.length}, Surveys: ${surveyResponseIds.length}, Attachments: ${relatedAttachments.length}`
+    //                 `Invoices: ${invoiceIds.length}, Payments: ${paymentIds.length}, Inspections: ${inspectionIds.length}, Surveys: ${surveyResponseIds.length}, Attachments: ${relatedAttachments.length}`
     //               );
     //               return {
     //                 ...visitWithBasicRelations,
-    //                 orders: relatedOrders,
+    //                 invoices: relatedInvoices,
     //                 payments: relatedPayments,
     //                 cooler_inspections: relatedInspections,
     //                 survey_responses: surveyResponsesWithAnswers,
@@ -1265,15 +2037,22 @@ exports.visitsController = {
     //     });
     //   }
     // },
+    //II
     async bulkUpsertVisits(req, res) {
         try {
             const inputData = req.body;
+            console.log('Received inputData:', JSON.stringify(inputData, null, 2));
             let dataArray = [];
             if (typeof inputData.visits === 'string') {
+                console.log('Parsing visits as string...');
                 try {
-                    dataArray = JSON.parse(inputData.visits);
+                    const cleanVisitsData = inputData.visits.trim();
+                    dataArray = JSON.parse(cleanVisitsData);
+                    console.log('Parsed dataArray:', dataArray);
                 }
                 catch (e) {
+                    console.error('JSON parse error:', e);
+                    console.error('Raw visits data:', JSON.stringify(inputData.visits));
                     return res.status(400).json({
                         success: false,
                         message: 'Invalid visits JSON string',
@@ -1351,6 +2130,10 @@ exports.visitsController = {
                 const data = dataArray[index];
                 try {
                     const { visit, invoices, orders, payments, cooler_inspections, survey, } = data;
+                    console.log('=== DATA EXTRACTION ===');
+                    console.log('Full data object keys:', Object.keys(data));
+                    console.log('Invoices from data:', invoices);
+                    console.log('======================');
                     if (!visit) {
                         results.failed.push({
                             visitIndex: index,
@@ -1507,6 +2290,9 @@ exports.visitsController = {
                     }
                     try {
                         const result = await prisma_client_1.default.$transaction(async (tx) => {
+                            console.log('Raw invoices data:', invoices);
+                            console.log('Invoices type:', typeof invoices);
+                            console.log('Invoices length:', invoices?.length);
                             const invoiceIds = [];
                             const paymentIds = [];
                             const inspectionIds = [];
@@ -1604,270 +2390,670 @@ exports.visitsController = {
                             }
                             if (invoices && invoices.length > 0) {
                                 console.log(`Processing ${invoices.length} invoice(s)...`);
-                                for (const invoiceData of invoices) {
-                                    const invoiceItems = invoiceData.items || [];
-                                    const createdOrder = await tx.orders.create({
-                                        data: {
-                                            order_number: `ORD-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-                                            parent_id: visit.customer_id,
-                                            salesperson_id: visit.sales_person_id,
-                                            order_date: new Date(),
-                                            status: 'completed',
-                                            total_amount: invoiceData.total_amount || 0,
-                                            createdate: new Date(),
-                                            createdby: visit.createdby || req.user?.id || 1,
-                                            log_inst: 1,
-                                        },
-                                    });
-                                    let invoiceNumber = invoiceData.invoice_number;
-                                    if (!invoiceNumber) {
-                                        invoiceNumber =
-                                            await generateInvoiceNumberInTransaction(tx);
-                                    }
-                                    else {
-                                        // Validate user-provided invoice number doesn't exist
-                                        const existingInvoice = await tx.invoices.findFirst({
-                                            where: { invoice_number: invoiceNumber },
-                                        });
-                                        if (existingInvoice) {
-                                            throw new Error(`Invoice number ${invoiceNumber} already exists`);
+                                try {
+                                    for (const invoiceData of invoices) {
+                                        const invoiceItems = invoiceData.items || [];
+                                        console.log('Invoice data:', JSON.stringify(invoiceData, null, 2));
+                                        console.log('Invoice method:', invoiceData.invoice_method);
+                                        console.log('Invoice items:', invoiceItems);
+                                        console.log('Invoice items length:', invoiceItems.length);
+                                        let invoiceNumber = invoiceData.invoice_number;
+                                        if (!invoiceNumber) {
+                                            console.log('Generating invoice number...');
+                                            invoiceNumber =
+                                                await generateInvoiceNumberInTransaction(tx);
+                                            console.log('Generated invoice number:', invoiceNumber);
                                         }
-                                    }
-                                    const processedInvoiceData = {
-                                        customer_id: visit.customer_id,
-                                        invoice_number: invoiceNumber,
-                                        parent_id: createdOrder.id,
-                                        invoice_date: invoiceData.invoice_date
-                                            ? new Date(invoiceData.invoice_date)
-                                            : new Date(),
-                                        due_date: invoiceData.due_date
-                                            ? new Date(invoiceData.due_date)
-                                            : undefined,
-                                        status: invoiceData.status || 'paid',
-                                        salesperson_id: invoiceData.salesperson_id || null,
-                                        payment_method: invoiceData.payment_method || 'cash',
-                                        subtotal: invoiceData.subtotal || 0,
-                                        discount_amount: invoiceData.discount_amount || 0,
-                                        tax_amount: invoiceData.tax_amount || 0,
-                                        shipping_amount: invoiceData.shipping_amount || 0,
-                                        total_amount: invoiceData.total_amount || 0,
-                                        amount_paid: invoiceData.amount_paid || 0,
-                                        balance_due: invoiceData.balance_due || 0,
-                                        notes: invoiceData.notes,
-                                        billing_address: invoiceData.billing_address,
-                                        is_active: invoiceData.is_active || 'Y',
-                                        currency_id: invoiceData.currency_id,
-                                    };
-                                    let createdInvoice = undefined;
-                                    if (invoiceData.invoice_id || invoiceData.id) {
-                                        const invoiceIdToUpdate = invoiceData.id || invoiceData.invoice_id;
-                                        createdInvoice = await tx.invoices.update({
-                                            where: { id: invoiceIdToUpdate },
-                                            data: {
-                                                ...processedInvoiceData,
-                                                updatedate: new Date(),
-                                                updatedby: req.user?.id || visit.createdby || 1,
-                                            },
-                                        });
+                                        const processedInvoiceData = {
+                                            customer_id: visit.customer_id,
+                                            invoice_number: invoiceNumber,
+                                            invoice_date: invoiceData.invoice_date
+                                                ? new Date(invoiceData.invoice_date)
+                                                : new Date(),
+                                            due_date: invoiceData.due_date
+                                                ? new Date(invoiceData.due_date)
+                                                : undefined,
+                                            status: invoiceData.status || 'draft',
+                                            salesperson_id: invoiceData.salesperson_id || null,
+                                            payment_method: invoiceData.payment_method || 'credit',
+                                            subtotal: invoiceData.subtotal || 0,
+                                            discount_amount: invoiceData.discount_amount || 0,
+                                            tax_amount: invoiceData.tax_amount || 0,
+                                            shipping_amount: invoiceData.shipping_amount || 0,
+                                            total_amount: invoiceData.total_amount || 0,
+                                            amount_paid: invoiceData.amount_paid || 0,
+                                            balance_due: invoiceData.balance_due,
+                                            notes: invoiceData.notes,
+                                            billing_address: invoiceData.billing_address,
+                                            is_active: invoiceData.is_active || 'Y',
+                                            currency_id: invoiceData.currency_id,
+                                        };
+                                        let createdInvoice = undefined;
+                                        if (invoiceData.invoice_id || invoiceData.id) {
+                                            const invoiceIdToUpdate = invoiceData.id || invoiceData.invoice_id;
+                                            console.log('Updating existing invoice:', invoiceIdToUpdate);
+                                            createdInvoice = await tx.invoices.update({
+                                                where: { id: invoiceIdToUpdate },
+                                                data: {
+                                                    ...processedInvoiceData,
+                                                    updatedate: new Date(),
+                                                    updatedby: req.user?.id || visit.createdby || 1,
+                                                },
+                                            });
+                                        }
+                                        else {
+                                            console.log('Creating new invoice...');
+                                            createdInvoice = await tx.invoices.create({
+                                                data: {
+                                                    ...processedInvoiceData,
+                                                    createdate: new Date(),
+                                                    createdby: visit.createdby || req.user?.id || 1,
+                                                    log_inst: 1,
+                                                },
+                                            });
+                                        }
+                                        if (!createdInvoice) {
+                                            throw new Error('Failed to create/update invoice');
+                                        }
+                                        console.log('Invoice processed successfully:', createdInvoice.id);
                                         invoiceIds.push(createdInvoice.id);
                                         if (invoiceItems.length > 0) {
-                                            for (const item of invoiceItems) {
-                                                const itemData = {
-                                                    product_id: item.product_id,
-                                                    product_name: item.product_name,
-                                                    unit: item.unit,
-                                                    quantity: item.quantity,
-                                                    unit_price: item.unit_price,
-                                                    discount_amount: item.discount_amount || 0,
-                                                    tax_amount: item.tax_amount || 0,
-                                                    total_amount: item.total_amount,
-                                                    notes: item.notes,
-                                                };
-                                                if (item.item_id || item.id) {
-                                                    const itemIdToUpdate = item.id || item.item_id;
-                                                    console.log(`Attempting to update invoice item ${itemIdToUpdate} for invoice ${createdInvoice.id}`);
-                                                    const existingItem = await tx.invoice_items.findFirst({
-                                                        where: { id: itemIdToUpdate },
+                                            if (invoiceData.invoice_method === 'order') {
+                                                console.log('Processing inventory deduction for order method...');
+                                                for (const item of invoiceItems) {
+                                                    const product = await tx.products.findUnique({
+                                                        where: { id: Number(item.product_id) },
                                                     });
-                                                    console.log(`Invoice item exists: ${!!existingItem}`);
-                                                    if (existingItem) {
-                                                        console.log(`Item details:`, existingItem);
+                                                    if (!product) {
+                                                        throw new Error(`Product ${item.product_id} not found`);
                                                     }
-                                                    await tx.invoice_items.update({
-                                                        where: { id: itemIdToUpdate },
-                                                        data: itemData,
-                                                    });
+                                                    const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
+                                                    const quantity = parseInt(String(item.quantity), 10);
+                                                    console.log(`Processing ${trackingType} tracking for product ${product.name}`);
+                                                    if (trackingType === 'BATCH') {
+                                                        console.log('Processing BATCH deduction for invoice item');
+                                                        const batchData = item.product_batches ||
+                                                            item.batches;
+                                                        if (!batchData || !Array.isArray(batchData)) {
+                                                            throw new Error(`Batches are required for product "${product.name}"`);
+                                                        }
+                                                        let totalOrderedQty = 0;
+                                                        for (const batchOrder of batchData) {
+                                                            const batchQty = parseInt(batchOrder.quantity, 10);
+                                                            totalOrderedQty += batchQty;
+                                                            const batchLot = await tx.batch_lots.findUnique({
+                                                                where: { id: batchOrder.batch_lot_id },
+                                                            });
+                                                            if (!batchLot) {
+                                                                throw new Error(`Batch lot ${batchOrder.batch_lot_id} not found`);
+                                                            }
+                                                            const vanInventory = await tx.van_inventory.findFirst({
+                                                                where: {
+                                                                    user_id: visit.sales_person_id,
+                                                                    status: 'A',
+                                                                    is_active: 'Y',
+                                                                    van_inventory_items_inventory: {
+                                                                        some: {
+                                                                            product_id: product.id,
+                                                                            batch_lot_id: batchOrder.batch_lot_id,
+                                                                        },
+                                                                    },
+                                                                },
+                                                                include: {
+                                                                    van_inventory_items_inventory: true,
+                                                                },
+                                                                orderBy: {
+                                                                    document_date: 'desc',
+                                                                },
+                                                            });
+                                                            const vanItem = await tx.van_inventory_items.findFirst({
+                                                                where: {
+                                                                    product_id: product.id,
+                                                                    batch_lot_id: batchOrder.batch_lot_id,
+                                                                    parent_id: vanInventory?.id,
+                                                                },
+                                                            });
+                                                            if (!vanItem) {
+                                                                throw new Error(`Batch ${batchOrder.batch_lot_id} not found in van inventory for product "${product.name}"`);
+                                                            }
+                                                            if (vanItem.quantity < batchQty) {
+                                                                throw new Error(`Insufficient quantity in van for batch. Available: ${vanItem.quantity}, Requested: ${batchQty}`);
+                                                            }
+                                                            console.log(`BATCH DEDUCTION: Found van item:`, vanItem);
+                                                            console.log(`BATCH DEDUCTION: Current quantity: ${vanItem.quantity}, Deducting: ${batchQty}`);
+                                                            const newVanItemQuantity = vanItem.quantity - batchQty;
+                                                            if (newVanItemQuantity > 0) {
+                                                                console.log(`BATCH: Updating van item ${vanItem.id} from ${vanItem.quantity} to ${newVanItemQuantity}`);
+                                                                await tx.van_inventory_items.update({
+                                                                    where: { id: vanItem.id },
+                                                                    data: { quantity: newVanItemQuantity },
+                                                                });
+                                                                console.log(`BATCH: Van item updated successfully`);
+                                                            }
+                                                            else {
+                                                                console.log(`BATCH: Deleting van item ${vanItem.id} (quantity becomes 0)`);
+                                                                await tx.van_inventory_items.delete({
+                                                                    where: { id: vanItem.id },
+                                                                });
+                                                                console.log(`BATCH: Van item deleted successfully`);
+                                                            }
+                                                            if (batchLot.remaining_quantity < batchQty) {
+                                                                throw new Error(`Insufficient quantity in batch lot. Available: ${batchLot.remaining_quantity}, Requested: ${batchQty}`);
+                                                            }
+                                                            await tx.batch_lots.update({
+                                                                where: { id: batchOrder.batch_lot_id },
+                                                                data: {
+                                                                    remaining_quantity: batchLot.remaining_quantity - batchQty,
+                                                                    updatedate: new Date(),
+                                                                },
+                                                            });
+                                                            const productBatch = await tx.product_batches.findFirst({
+                                                                where: {
+                                                                    product_id: product.id,
+                                                                    batch_lot_id: batchOrder.batch_lot_id,
+                                                                    is_active: 'Y',
+                                                                },
+                                                            });
+                                                            if (productBatch) {
+                                                                if (productBatch.quantity < batchQty) {
+                                                                    throw new Error(`Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${batchQty}`);
+                                                                }
+                                                                await tx.product_batches.update({
+                                                                    where: { id: productBatch.id },
+                                                                    data: {
+                                                                        quantity: productBatch.quantity - batchQty,
+                                                                        updatedate: new Date(),
+                                                                    },
+                                                                });
+                                                            }
+                                                            const inventoryStock = await tx.inventory_stock.findFirst({
+                                                                where: {
+                                                                    product_id: product.id,
+                                                                    batch_id: batchOrder.batch_lot_id,
+                                                                },
+                                                            });
+                                                            if (inventoryStock) {
+                                                                const currentStock = inventoryStock.current_stock ?? 0;
+                                                                const availableStock = inventoryStock.available_stock ?? 0;
+                                                                if (currentStock < batchQty) {
+                                                                    throw new Error(`Insufficient inventory stock for batch. Available: ${currentStock}, Requested: ${batchQty}`);
+                                                                }
+                                                                await tx.inventory_stock.update({
+                                                                    where: { id: inventoryStock.id },
+                                                                    data: {
+                                                                        current_stock: currentStock - batchQty,
+                                                                        available_stock: availableStock - batchQty,
+                                                                        updatedate: new Date(),
+                                                                        updatedby: req.user?.id ||
+                                                                            visit.createdby ||
+                                                                            1,
+                                                                    },
+                                                                });
+                                                            }
+                                                            else {
+                                                                throw new Error(`Inventory stock not found for product ${product.name} and batch ${batchOrder.batch_lot_id}`);
+                                                            }
+                                                            await tx.stock_movements.create({
+                                                                data: {
+                                                                    product_id: product.id,
+                                                                    batch_id: batchOrder.batch_lot_id,
+                                                                    serial_id: null,
+                                                                    movement_type: 'SALE',
+                                                                    reference_type: 'INVOICE',
+                                                                    reference_id: createdInvoice.id,
+                                                                    from_location_id: vanInventory?.location_id || null,
+                                                                    to_location_id: null,
+                                                                    quantity: batchQty,
+                                                                    movement_date: new Date(),
+                                                                    remarks: `Sold via invoice ${createdInvoice.invoice_number} - Batch: ${batchLot.batch_number}`,
+                                                                    is_active: 'Y',
+                                                                    createdate: new Date(),
+                                                                    createdby: req.user?.id ||
+                                                                        visit.createdby ||
+                                                                        1,
+                                                                    log_inst: 1,
+                                                                    van_inventory_id: vanInventory?.id || null,
+                                                                },
+                                                            });
+                                                            console.log(` Deducted ${batchQty} from batch ${batchLot.batch_number}`);
+                                                        }
+                                                        if (totalOrderedQty !== quantity) {
+                                                            throw new Error(`Total batch quantity (${totalOrderedQty}) does not match ordered quantity (${quantity})`);
+                                                        }
+                                                        await tx.invoice_items.create({
+                                                            data: {
+                                                                parent_id: createdInvoice.id,
+                                                                product_id: product.id,
+                                                                product_name: product.name,
+                                                                unit: item.unit || 'pcs',
+                                                                quantity: totalOrderedQty,
+                                                                unit_price: Number(item.unit_price) || 0,
+                                                                discount_amount: Number(item.discount_amount) || 0,
+                                                                tax_amount: Number(item.tax_amount) || 0,
+                                                                total_amount: totalOrderedQty *
+                                                                    (Number(item.unit_price) || 0),
+                                                                notes: `Batches: ${batchData.map((b) => b.batch_lot_id).join(', ')}`,
+                                                            },
+                                                        });
+                                                    }
+                                                    else if (trackingType === 'SERIAL') {
+                                                        console.log('Processing SERIAL deduction for invoice item');
+                                                        const serialData = item.product_serials ||
+                                                            item.serials;
+                                                        if (!serialData ||
+                                                            !Array.isArray(serialData) ||
+                                                            serialData.length === 0) {
+                                                            throw new Error(`Serial numbers required for "${product.name}"`);
+                                                        }
+                                                        for (const serialInput of serialData) {
+                                                            const serialNumber = typeof serialInput === 'string'
+                                                                ? serialInput
+                                                                : serialInput.serial_number;
+                                                            if (!serialNumber) {
+                                                                throw new Error('Serial number is required');
+                                                            }
+                                                            const serial = await tx.serial_numbers.findUnique({
+                                                                where: { serial_number: serialNumber },
+                                                            });
+                                                            if (!serial) {
+                                                                throw new Error(`Serial number ${serialNumber} not found`);
+                                                            }
+                                                            const vanInventory = await tx.van_inventory.findFirst({
+                                                                where: {
+                                                                    user_id: visit.sales_person_id,
+                                                                    status: 'A',
+                                                                    is_active: 'Y',
+                                                                    van_inventory_items_inventory: {
+                                                                        some: {
+                                                                            product_id: product.id,
+                                                                            serial_id: { not: null },
+                                                                        },
+                                                                    },
+                                                                },
+                                                                include: {
+                                                                    van_inventory_items_inventory: true,
+                                                                },
+                                                            });
+                                                            await tx.serial_numbers.update({
+                                                                where: { id: serial.id },
+                                                                data: {
+                                                                    status: 'sold',
+                                                                    customer_id: visit.customer_id,
+                                                                    sold_date: new Date(),
+                                                                    updatedate: new Date(),
+                                                                    updatedby: req.user?.id ||
+                                                                        visit.createdby ||
+                                                                        1,
+                                                                },
+                                                            });
+                                                            console.log(` Serial ${serialNumber} marked as SOLD`);
+                                                            const vanItem = await tx.van_inventory_items.findFirst({
+                                                                where: {
+                                                                    product_id: product.id,
+                                                                    serial_id: serial.id,
+                                                                    parent_id: vanInventory?.id,
+                                                                },
+                                                            });
+                                                            console.log(`SERIAL DEDUCTION: Looking for van item with product_id=${product.id}, serial_id=${serial.id}`);
+                                                            console.log(`SERIAL DEDUCTION: Found van item:`, vanItem);
+                                                            if (vanItem && vanItem.quantity > 0) {
+                                                                console.log(`SERIAL DEDUCTION: Current quantity: ${vanItem.quantity}, Deducting: 1`);
+                                                                const newVanItemQuantity = vanItem.quantity - 1;
+                                                                if (newVanItemQuantity > 0) {
+                                                                    console.log(`SERIAL: Updating van item ${vanItem.id} from ${vanItem.quantity} to ${newVanItemQuantity}`);
+                                                                    await tx.van_inventory_items.update({
+                                                                        where: { id: vanItem.id },
+                                                                        data: { quantity: newVanItemQuantity },
+                                                                    });
+                                                                    console.log(`SERIAL: Van item updated successfully`);
+                                                                }
+                                                                else {
+                                                                    console.log(`SERIAL: Deleting van item ${vanItem.id} (quantity becomes 0)`);
+                                                                    await tx.van_inventory_items.delete({
+                                                                        where: { id: vanItem.id },
+                                                                    });
+                                                                    console.log(`SERIAL: Van item deleted successfully`);
+                                                                }
+                                                            }
+                                                            else {
+                                                                console.log(`SERIAL: No van item found or quantity is 0`);
+                                                            }
+                                                            const inventoryStock = await tx.inventory_stock.findFirst({
+                                                                where: {
+                                                                    product_id: product.id,
+                                                                    serial_number_id: serial.id,
+                                                                },
+                                                            });
+                                                            if (inventoryStock) {
+                                                                const oldCurrent = inventoryStock.current_stock || 0;
+                                                                const oldAvailable = inventoryStock.available_stock || 0;
+                                                                const newCurrentStock = Math.max(0, oldCurrent - 1);
+                                                                const newAvailableStock = Math.max(0, oldAvailable - 1);
+                                                                await tx.inventory_stock.update({
+                                                                    where: { id: inventoryStock.id },
+                                                                    data: {
+                                                                        current_stock: newCurrentStock,
+                                                                        available_stock: newAvailableStock,
+                                                                        updatedate: new Date(),
+                                                                        updatedby: req.user?.id ||
+                                                                            visit.createdby ||
+                                                                            1,
+                                                                    },
+                                                                });
+                                                                console.log(` DECREASED inventory_stock for ${serialNumber}: current ${oldCurrent}→${newCurrentStock}, available ${oldAvailable}→${newAvailableStock}`);
+                                                            }
+                                                            else {
+                                                                console.warn(` No inventory_stock found for serial ${serialNumber}`);
+                                                            }
+                                                            await tx.stock_movements.create({
+                                                                data: {
+                                                                    product_id: product.id,
+                                                                    batch_id: null,
+                                                                    serial_id: serial.id,
+                                                                    movement_type: 'SALE',
+                                                                    reference_type: 'INVOICE',
+                                                                    reference_id: createdInvoice.id,
+                                                                    from_location_id: vanInventory?.location_id || null,
+                                                                    to_location_id: null,
+                                                                    quantity: 1,
+                                                                    movement_date: new Date(),
+                                                                    remarks: `Sold via invoice ${createdInvoice.invoice_number} - Serial ${serialNumber}`,
+                                                                    is_active: 'Y',
+                                                                    createdate: new Date(),
+                                                                    createdby: req.user?.id ||
+                                                                        visit.createdby ||
+                                                                        1,
+                                                                    log_inst: 1,
+                                                                    van_inventory_id: vanInventory?.id || null,
+                                                                },
+                                                            });
+                                                            console.log(` SALE stock_movement created for ${serialNumber}`);
+                                                        }
+                                                        await tx.invoice_items.create({
+                                                            data: {
+                                                                parent_id: createdInvoice.id,
+                                                                product_id: product.id,
+                                                                product_name: product.name,
+                                                                unit: 'pcs',
+                                                                quantity: serialData.length,
+                                                                unit_price: Number(item.unit_price) || 0,
+                                                                discount_amount: Number(item.discount_amount) || 0,
+                                                                tax_amount: Number(item.tax_amount) || 0,
+                                                                total_amount: serialData.length *
+                                                                    (Number(item.unit_price) || 0),
+                                                                notes: `Serials: ${serialData.map((s) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
+                                                            },
+                                                        });
+                                                        console.log(`Invoice item created for ${serialData.length} serials`);
+                                                    }
+                                                    else {
+                                                        console.log('Processing NONE tracking for invoice item');
+                                                        const vanInventory = await tx.van_inventory.findFirst({
+                                                            where: {
+                                                                user_id: visit.sales_person_id,
+                                                                status: 'A',
+                                                                is_active: 'Y',
+                                                                van_inventory_items_inventory: {
+                                                                    some: {
+                                                                        product_id: product.id,
+                                                                        batch_lot_id: null,
+                                                                        serial_id: null,
+                                                                    },
+                                                                },
+                                                            },
+                                                            include: {
+                                                                van_inventory_items_inventory: true,
+                                                            },
+                                                            orderBy: {
+                                                                document_date: 'desc',
+                                                            },
+                                                        });
+                                                        const vanItem = await tx.van_inventory_items.findFirst({
+                                                            where: {
+                                                                product_id: product.id,
+                                                                parent_id: vanInventory?.id,
+                                                                batch_lot_id: null,
+                                                                serial_id: null,
+                                                            },
+                                                        });
+                                                        console.log(`NONE DEDUCTION: Looking for van item with product_id=${product.id}, batch_lot_id=null, serial_id=null`);
+                                                        console.log(`NONE DEDUCTION: Found van item:`, vanItem);
+                                                        if (!vanItem) {
+                                                            throw new Error(`Product "${product.name}" not found in van inventory`);
+                                                        }
+                                                        if (vanItem.quantity < quantity) {
+                                                            throw new Error(`Insufficient quantity in van for "${product.name}". Available: ${vanItem.quantity}, Requested: ${quantity}`);
+                                                        }
+                                                        console.log(`NONE DEDUCTION: Current quantity: ${vanItem.quantity}, Deducting: ${quantity}`);
+                                                        const newVanItemQuantity = vanItem.quantity - quantity;
+                                                        if (newVanItemQuantity > 0) {
+                                                            console.log(`NONE: Updating van item ${vanItem.id} from ${vanItem.quantity} to ${newVanItemQuantity}`);
+                                                            await tx.van_inventory_items.update({
+                                                                where: { id: vanItem.id },
+                                                                data: { quantity: newVanItemQuantity },
+                                                            });
+                                                            console.log(`NONE: Van item updated successfully`);
+                                                        }
+                                                        else {
+                                                            console.log(`NONE: Deleting van item ${vanItem.id} (quantity becomes 0)`);
+                                                            await tx.van_inventory_items.delete({
+                                                                where: { id: vanItem.id },
+                                                            });
+                                                            console.log(`NONE: Van item deleted successfully`);
+                                                        }
+                                                        const inventoryStock = await tx.inventory_stock.findFirst({
+                                                            where: {
+                                                                product_id: product.id,
+                                                                batch_id: null,
+                                                                serial_number_id: null,
+                                                                ...(vanInventory?.location_id && {
+                                                                    location_id: vanInventory.location_id,
+                                                                }),
+                                                            },
+                                                        });
+                                                        if (inventoryStock) {
+                                                            const newCurrentStock = Math.max(0, (inventoryStock.current_stock || 0) - quantity);
+                                                            const newAvailableStock = Math.max(0, (inventoryStock.available_stock || 0) -
+                                                                quantity);
+                                                            await tx.inventory_stock.update({
+                                                                where: { id: inventoryStock.id },
+                                                                data: {
+                                                                    current_stock: newCurrentStock,
+                                                                    available_stock: newAvailableStock,
+                                                                    updatedate: new Date(),
+                                                                    updatedby: req.user?.id ||
+                                                                        visit.createdby ||
+                                                                        1,
+                                                                },
+                                                            });
+                                                        }
+                                                        else {
+                                                            throw new Error(`Inventory stock not found for product ${product.name}`);
+                                                        }
+                                                        await tx.stock_movements.create({
+                                                            data: {
+                                                                product_id: product.id,
+                                                                batch_id: null,
+                                                                serial_id: null,
+                                                                movement_type: 'SALE',
+                                                                reference_type: 'INVOICE',
+                                                                reference_id: createdInvoice.id,
+                                                                from_location_id: vanInventory?.location_id || null,
+                                                                to_location_id: null,
+                                                                quantity: quantity,
+                                                                movement_date: new Date(),
+                                                                remarks: `Sold via invoice ${createdInvoice.invoice_number}`,
+                                                                is_active: 'Y',
+                                                                createdate: new Date(),
+                                                                createdby: req.user?.id ||
+                                                                    visit.createdby ||
+                                                                    1,
+                                                                log_inst: 1,
+                                                                van_inventory_id: vanInventory?.id || null,
+                                                            },
+                                                        });
+                                                        await tx.invoice_items.create({
+                                                            data: {
+                                                                parent_id: createdInvoice.id,
+                                                                product_id: product.id,
+                                                                product_name: product.name,
+                                                                unit: item.unit || 'pcs',
+                                                                quantity: quantity,
+                                                                unit_price: Number(item.unit_price) || 0,
+                                                                discount_amount: Number(item.discount_amount) || 0,
+                                                                tax_amount: Number(item.tax_amount) || 0,
+                                                                total_amount: quantity * (Number(item.unit_price) || 0),
+                                                                notes: item.notes || null,
+                                                            },
+                                                        });
+                                                        console.log(` Deducted ${quantity} units for NONE tracking product`);
+                                                    }
                                                 }
-                                                else {
+                                            }
+                                            else {
+                                                console.log('Processing non-order invoice items...');
+                                                for (const item of invoiceItems) {
                                                     await tx.invoice_items.create({
                                                         data: {
-                                                            ...itemData,
                                                             parent_id: createdInvoice.id,
+                                                            product_id: item.product_id,
+                                                            product_name: item.product_name,
+                                                            unit: item.unit || 'pcs',
+                                                            quantity: item.quantity,
+                                                            unit_price: Number(item.unit_price) || 0,
+                                                            discount_amount: Number(item.discount_amount) || 0,
+                                                            tax_amount: Number(item.tax_amount) || 0,
+                                                            total_amount: item.quantity *
+                                                                (Number(item.unit_price) || 0),
+                                                            notes: item.notes || null,
                                                         },
                                                     });
                                                 }
                                             }
-                                        }
-                                    }
-                                    else {
-                                        createdInvoice = await tx.invoices.create({
-                                            data: {
-                                                ...processedInvoiceData,
-                                                createdate: new Date(),
-                                                createdby: visit.createdby || req.user?.id || 1,
-                                                log_inst: 1,
-                                            },
-                                        });
-                                        invoiceIds.push(createdInvoice.id);
-                                        if (invoiceItems.length > 0) {
-                                            await tx.invoice_items.createMany({
-                                                data: invoiceItems.map(item => ({
-                                                    parent_id: createdInvoice.id,
-                                                    product_id: item.product_id,
-                                                    product_name: item.product_name,
-                                                    unit: item.unit,
-                                                    quantity: item.quantity,
-                                                    unit_price: item.unit_price,
-                                                    discount_amount: item.discount_amount || 0,
-                                                    tax_amount: item.tax_amount || 0,
-                                                    total_amount: item.total_amount,
-                                                    notes: item.notes,
-                                                })),
+                                            const subtotal = (await tx.invoice_items.aggregate({
+                                                where: { parent_id: createdInvoice.id },
+                                                _sum: { total_amount: true },
+                                            }))._sum.total_amount || 0;
+                                            await tx.invoices.update({
+                                                where: { id: createdInvoice.id },
+                                                data: {
+                                                    subtotal: subtotal,
+                                                    total_amount: subtotal,
+                                                    updatedate: new Date(),
+                                                    updatedby: req.user?.id || visit.createdby || 1,
+                                                },
                                             });
                                         }
-                                    }
-                                    if (createdInvoice) {
                                         console.log(`Invoice ${createdInvoice.invoice_number} processed`);
                                     }
                                 }
+                                catch (error) {
+                                    console.error('ERROR IN INVOICE PROCESSING:', error);
+                                    throw error;
+                                }
                             }
                             if (payments && payments.length > 0) {
-                                console.log(` Processing ${payments.length} payment(s)...`);
-                                for (const payment of payments) {
-                                    try {
-                                        let paymentNumber = payment.payment_number;
-                                        if (!paymentNumber) {
-                                            paymentNumber =
-                                                await generatePaymentNumberInTransaction(tx);
-                                        }
-                                        const processedPaymentData = {
-                                            payment_number: paymentNumber,
-                                            customer_id: payment.customer_id || visit.customer_id,
-                                            payment_date: payment.payment_date
-                                                ? new Date(payment.payment_date)
-                                                : new Date(),
-                                            collected_by: payment.collected_by,
-                                            method: payment.method,
-                                            reference_number: payment.reference_number,
-                                            total_amount: payment.total_amount,
-                                            notes: payment.notes,
-                                            is_active: payment.is_active || 'Y',
-                                            currency_id: payment.currency_id,
-                                        };
-                                        let paymentRecord;
-                                        if (payment.payment_id || payment.id) {
-                                            const paymentIdToUpdate = payment.id || payment.payment_id;
-                                            paymentRecord = await tx.payments.update({
-                                                where: { id: paymentIdToUpdate },
-                                                data: {
-                                                    ...processedPaymentData,
-                                                    updatedate: new Date(),
-                                                    updatedby: req.user?.id || visit.createdby || 1,
-                                                },
-                                            });
-                                        }
-                                        else {
-                                            paymentRecord = await tx.payments.upsert({
-                                                where: {
-                                                    payment_number: processedPaymentData.payment_number,
-                                                },
-                                                update: {
-                                                    ...processedPaymentData,
-                                                    updatedate: new Date(),
-                                                    updatedby: req.user?.id || visit.createdby || 1,
-                                                },
-                                                create: {
-                                                    ...processedPaymentData,
-                                                    createdate: new Date(),
-                                                    createdby: visit.createdby || req.user?.id || 1,
-                                                    log_inst: 1,
-                                                },
-                                            });
-                                        }
-                                        paymentIds.push(paymentRecord.id);
-                                        console.log(` Payment ${paymentRecord.payment_number} processed (₹${paymentRecord.total_amount})`);
+                                console.log(`Processing ${payments.length} payment(s)...`);
+                                for (const paymentData of payments) {
+                                    let paymentNumber = paymentData.payment_number;
+                                    if (!paymentNumber) {
+                                        paymentNumber =
+                                            await generatePaymentNumberInTransaction(tx);
                                     }
-                                    catch (paymentError) {
-                                        console.error('Payment processing failed:', paymentError.message);
-                                        throw paymentError;
+                                    else {
+                                        const existingPayment = await tx.payments.findFirst({
+                                            where: { payment_number: paymentNumber },
+                                        });
+                                        if (existingPayment) {
+                                            throw new Error(`Payment number ${paymentNumber} already exists`);
+                                        }
                                     }
+                                    const processedPaymentData = {
+                                        customer_id: visit.customer_id,
+                                        payment_number: paymentNumber,
+                                        payment_date: paymentData.payment_date
+                                            ? new Date(paymentData.payment_date)
+                                            : new Date(),
+                                        collected_by: paymentData.collected_by || visit.sales_person_id,
+                                        method: paymentData.method || 'cash',
+                                        reference_number: paymentData.reference_number || null,
+                                        total_amount: paymentData.total_amount || 0,
+                                        notes: paymentData.notes || null,
+                                        is_active: paymentData.is_active || 'Y',
+                                        currency_id: paymentData.currency_id,
+                                    };
+                                    let createdPayment = undefined;
+                                    if (paymentData.payment_id || paymentData.id) {
+                                        const paymentIdToUpdate = paymentData.id || paymentData.payment_id;
+                                        createdPayment = await tx.payments.update({
+                                            where: { id: paymentIdToUpdate },
+                                            data: {
+                                                ...processedPaymentData,
+                                                updatedate: new Date(),
+                                                updatedby: req.user?.id || visit.createdby || 1,
+                                            },
+                                        });
+                                        paymentIds.push(createdPayment.id);
+                                    }
+                                    else {
+                                        createdPayment = await tx.payments.create({
+                                            data: {
+                                                ...processedPaymentData,
+                                                createdate: new Date(),
+                                                createdby: req.user?.id || visit.createdby || 1,
+                                                log_inst: 1,
+                                            },
+                                        });
+                                        paymentIds.push(createdPayment.id);
+                                    }
+                                    console.log(`Payment ${createdPayment.payment_number} processed`);
                                 }
                             }
                             if (cooler_inspections && cooler_inspections.length > 0) {
-                                console.log(`    Processing ${cooler_inspections.length} cooler inspection(s)...`);
+                                console.log(`Processing ${cooler_inspections.length} cooler inspection(s)...`);
                                 for (const inspection of cooler_inspections) {
-                                    let coolerId = inspection.cooler?.id;
-                                    if (inspection.cooler) {
-                                        const coolerData = inspection.cooler;
-                                        const processedCoolerData = {
-                                            code: coolerData.code ||
-                                                `COOL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-                                            brand: coolerData.brand,
-                                            model: coolerData.model,
-                                            serial_number: coolerData.serial_number,
-                                            customer_id: coolerData.customer_id || visit.customer_id,
-                                            capacity: coolerData.capacity
-                                                ? typeof coolerData.capacity === 'number'
-                                                    ? coolerData.capacity
-                                                    : parseInt(String(coolerData.capacity).replace(/[^0-9]/g, '')) || null
-                                                : null,
-                                            install_date: coolerData.install_date
-                                                ? new Date(coolerData.install_date)
-                                                : undefined,
-                                            last_service_date: coolerData.last_service_date
-                                                ? new Date(coolerData.last_service_date)
-                                                : undefined,
-                                            next_service_due: coolerData.next_service_due
-                                                ? new Date(coolerData.next_service_due)
-                                                : undefined,
-                                            status: coolerData.status || 'working',
-                                            temperature: coolerData.temperature || undefined,
-                                            energy_rating: coolerData.energy_rating,
-                                            warranty_expiry: coolerData.warranty_expiry
-                                                ? new Date(coolerData.warranty_expiry)
-                                                : undefined,
-                                            maintenance_contract: coolerData.maintenance_contract,
-                                            technician_id: coolerData.technician_id,
-                                            last_scanned_date: coolerData.last_scanned_date
-                                                ? new Date(coolerData.last_scanned_date)
-                                                : undefined,
-                                            is_active: coolerData.is_active || 'Y',
-                                        };
-                                        if (coolerData.id) {
-                                            await tx.coolers.update({
-                                                where: { id: coolerData.id },
-                                                data: {
-                                                    ...processedCoolerData,
-                                                    updatedate: new Date(),
-                                                    updatedby: req.user?.id || visit.createdby || 1,
-                                                },
-                                            });
-                                            coolerId = coolerData.id;
-                                        }
-                                        else {
-                                            const newCooler = await tx.coolers.create({
-                                                data: {
-                                                    ...processedCoolerData,
-                                                    createdate: new Date(),
-                                                    createdby: visit.createdby || req.user?.id || 1,
-                                                    log_inst: 1,
-                                                },
-                                            });
-                                            coolerId = newCooler.id;
-                                        }
+                                    const coolerData = inspection.cooler || {};
+                                    let coolerId;
+                                    if (coolerData.id) {
+                                        const { id, customer_id, technician_id, capacity, ...coolerUpdateData } = coolerData;
+                                        await tx.coolers.update({
+                                            where: { id: coolerData.id },
+                                            data: {
+                                                ...coolerUpdateData,
+                                                ...(capacity !== undefined && {
+                                                    capacity: typeof capacity === 'string'
+                                                        ? parseFloat(capacity) || 0
+                                                        : capacity,
+                                                }),
+                                                updatedate: new Date(),
+                                                updatedby: req.user?.id || visit.createdby || 1,
+                                            },
+                                        });
+                                        coolerId = coolerData.id;
                                     }
-                                    if (!coolerId) {
-                                        throw new Error('Cooler ID is required for inspection');
+                                    else {
+                                        const { id, customer_id, technician_id, capacity, code, ...coolerCreateData } = coolerData;
+                                        const newCooler = await tx.coolers.create({
+                                            data: {
+                                                ...coolerCreateData,
+                                                ...(capacity !== undefined && {
+                                                    capacity: typeof capacity === 'string'
+                                                        ? parseFloat(capacity) || 0
+                                                        : capacity,
+                                                }),
+                                                code: code ||
+                                                    `COOLER-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                                                createdate: new Date(),
+                                                createdby: visit.createdby || req.user?.id || 1,
+                                                log_inst: 1,
+                                                coolers_customers: {
+                                                    connect: {
+                                                        id: visit.customer_id,
+                                                    },
+                                                },
+                                            },
+                                        });
+                                        coolerId = newCooler.id;
                                     }
                                     const processedInspectionData = {
                                         cooler_id: coolerId,
@@ -2042,7 +3228,6 @@ exports.visitsController = {
                                 ...response,
                                 survey_answers: surveyAnswersData.filter(answer => answer.parent_id === response.id),
                             }));
-                            // Retrieve visit attachments
                             const relatedAttachments = await tx.visit_attachments.findMany({
                                 where: { visit_id: visitId },
                             });

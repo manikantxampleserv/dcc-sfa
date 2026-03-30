@@ -82,15 +82,13 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <Input
-                name="name"
-                label="Asset Type Name"
-                placeholder="Enter asset type name"
-                formik={formik}
-                required
-              />
-            </Box>
+            <Input
+              name="name"
+              label="Asset Type Name"
+              placeholder="Enter asset type name"
+              formik={formik}
+              required
+            />
 
             <Input
               name="category"
@@ -99,14 +97,12 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
               formik={formik}
             />
 
-            <Input
-              name="brand"
-              label="Brand"
-              placeholder="Enter brand"
+            <ActiveInactiveField
+              name="is_active"
               formik={formik}
+              required
+              className="md:!col-span-2"
             />
-
-            <ActiveInactiveField name="is_active" formik={formik} required />
 
             <Box className="md:!col-span-2">
               <Input

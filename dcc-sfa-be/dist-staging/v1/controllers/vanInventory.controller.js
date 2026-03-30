@@ -102,6 +102,25 @@ const serializeVanInventory = (item) => {
                     total_amount: String(batchAmount),
                 });
             });
+            // } else if (trackingType === 'serial') {
+            //   if (serials.length > 0) {
+            //     productSerials.push(
+            //       ...serials.map((sn: any) => ({
+            //         type: 'serial',
+            //         ...sn,
+            //       }))
+            //     );
+            //   } else {
+            //     productSerials.push({
+            //       type: 'serial',
+            //       quantity: totalQuantity,
+            //       unit_price: items[0]?.unit_price || '0',
+            //       total_amount: String(totalAmount),
+            //       note: 'No serial numbers created yet',
+            //     });
+            //   }
+            // } else if (trackingType === 'none') {
+            // }
         }
         else if (trackingType === 'serial') {
             if (serials.length > 0) {
@@ -113,20 +132,12 @@ const serializeVanInventory = (item) => {
             else {
                 productSerials.push({
                     type: 'serial',
-                    quantity: totalQuantity,
+                    quantity: serials.length,
                     unit_price: items[0]?.unit_price || '0',
                     total_amount: String(totalAmount),
                     note: 'No serial numbers created yet',
                 });
             }
-        }
-        else if (trackingType === 'none') {
-            productSerials.push({
-                type: 'none',
-                quantity: totalQuantity,
-                unit_price: items[0]?.unit_price || '0',
-                total_amount: String(totalAmount),
-            });
         }
         const groupedProduct = {
             product_id: productId,
@@ -460,7 +471,7 @@ exports.vanInventoryController = {
                     },
                 });
             }
-            const itemsRaw = await prisma_client_1.default.van_inventory_items.findMany({
+            const itemsRaw = (await prisma_client_1.default.van_inventory_items.findMany({
                 where: {
                     parent_id: { in: vanIds },
                     ...(product_id
@@ -473,6 +484,7 @@ exports.vanInventoryController = {
                             id: true,
                             name: true,
                             code: true,
+                            unit_of_measurement: true,
                             tracking_type: true,
                         },
                     },
@@ -486,11 +498,11 @@ exports.vanInventoryController = {
                     },
                 },
                 orderBy: { id: 'desc' },
-            });
+            }));
             const totalCount = itemsRaw.length;
             const startIndex = (pageNum - 1) * limitNum;
             const paginated = itemsRaw.slice(startIndex, startIndex + limitNum);
-            const data = paginated.map(it => ({
+            const data = paginated.map((it) => ({
                 item_id: it.id,
                 van_inventory_id: it.parent_id,
                 product_id: it.product_id,
@@ -498,6 +510,7 @@ exports.vanInventoryController = {
                 product_code: it.van_inventory_items_products?.code || null,
                 tracking_type: it.van_inventory_items_products?.tracking_type || null,
                 unit: it.unit || null,
+                unit_of_measurement: it.van_inventory_items_products?.product_unit_of_measurement,
                 quantity: it.quantity,
                 unit_price: Number(it.unit_price || 0),
                 discount_amount: Number(it.discount_amount || 0),
@@ -2581,6 +2594,7 @@ exports.vanInventoryController = {
                                 product_id: productId,
                                 product_name: product?.name || null,
                                 product_code: product?.code || null,
+                                product_unit_of_measurement: product?.product_unit_of_measurement,
                                 unit_price: item.unit_price ? Number(item.unit_price) : null,
                                 tracking_type: product?.tracking_type || 'none',
                                 total_quantity: 0,
@@ -3062,7 +3076,6 @@ exports.vanInventoryController = {
                         }
                         const product = item.van_inventory_items_products;
                         const batch = item.van_inventory_items_batch_lot;
-                        // FIX: Normalize tracking_type to lowercase for comparison
                         const trackingType = (product?.tracking_type || 'none').toLowerCase();
                         let batchInfo = null;
                         let shouldSkipItem = false;
@@ -3168,6 +3181,7 @@ exports.vanInventoryController = {
                                 product_id: productId,
                                 product_name: product?.name || null,
                                 product_code: product?.code || null,
+                                unit_of_measurment: product.product_unit_of_measurement,
                                 unit_price: product?.base_price
                                     ? Number(product.base_price)
                                     : null,
@@ -3331,6 +3345,7 @@ exports.vanInventoryController = {
                                             name: true,
                                             code: true,
                                             base_price: true,
+                                            product_unit_of_measurement: true,
                                             tracking_type: true,
                                             tax_id: true,
                                             product_tax_master: {
@@ -3495,6 +3510,7 @@ exports.vanInventoryController = {
                                     code: true,
                                     base_price: true,
                                     tracking_type: true,
+                                    product_unit_of_measurement: true,
                                     tax_id: true,
                                     product_tax_master: {
                                         select: {
@@ -3617,19 +3633,155 @@ exports.vanInventoryController = {
             });
         }
     },
+    // async unloadVanInventory(req: Request, res: Response) {
+    //   try {
+    //     const userId = (req as any).user?.id;
+    //     if (!userId) {
+    //       return res.status(401).json({
+    //         success: false,
+    //         message: 'User not authenticated or token invalid',
+    //       });
+    //     }
+    //     const userIdNum = parseInt(userId.toString(), 10);
+    //     const vanInventories = await prisma.van_inventory.findMany({
+    //       where: {
+    //         user_id: userIdNum,
+    //         is_active: 'Y',
+    //         status: { not: 'U' },
+    //       },
+    //       include: {
+    //         van_inventory_items_inventory: {
+    //           include: {
+    //             van_inventory_items_products: true,
+    //           },
+    //         },
+    //       },
+    //     });
+    //     if (vanInventories.length === 0) {
+    //       return res.status(404).json({
+    //         success: false,
+    //         message: 'No active van inventory found for the authenticated user',
+    //       });
+    //     }
+    //     let totalItemsUnloaded = 0;
+    //     const processedVanInventoryIds: number[] = [];
+    //     const errors: string[] = [];
+    //     for (const vanInventory of vanInventories) {
+    //       try {
+    //         for (const item of vanInventory.van_inventory_items_inventory) {
+    //           const product = item.van_inventory_items_products;
+    //           if (!product) continue;
+    //           try {
+    //             const whereClause: any = {
+    //               product_id: item.product_id,
+    //               location_id: vanInventory.location_id ?? 1,
+    //             };
+    //             if (item.batch_lot_id !== null) {
+    //               whereClause.batch_id = item.batch_lot_id;
+    //             }
+    //             const existingStock = await prisma.inventory_stock.findFirst({
+    //               where: whereClause,
+    //             });
+    //             if (existingStock) {
+    //               await prisma.inventory_stock.update({
+    //                 where: { id: existingStock.id },
+    //                 data: {
+    //                   current_stock: 0,
+    //                   available_stock: 0,
+    //                   updatedate: new Date(),
+    //                   updatedby: userIdNum,
+    //                 },
+    //               });
+    //             }
+    //             await prisma.stock_movements.create({
+    //               data: {
+    //                 product_id: item.product_id,
+    //                 batch_id: item.batch_lot_id ?? null,
+    //                 serial_id: null,
+    //                 movement_type: 'VAN_UNLOAD',
+    //                 reference_type: 'VAN_INVENTORY',
+    //                 reference_id: vanInventory.id,
+    //                 from_location_id: null,
+    //                 to_location_id: null,
+    //                 quantity: item.quantity || 0,
+    //                 movement_date: new Date(),
+    //                 remarks: `Van unloaded from ${vanInventory.vehicle_id ? `vehicle ${vanInventory.vehicle_id}` : 'location'} for user ${userIdNum}`,
+    //                 is_active: 'Y',
+    //                 createdate: new Date(),
+    //                 createdby: userIdNum,
+    //                 log_inst: 1,
+    //                 van_inventory_id: vanInventory.id,
+    //               },
+    //             });
+    //             await prisma.van_inventory_items.update({
+    //               where: { id: item.id },
+    //               data: {
+    //                 quantity: 0,
+    //               },
+    //             });
+    //             totalItemsUnloaded++;
+    //           } catch (itemError: any) {
+    //             console.error(`Failed to process item ${item.id}:`, itemError);
+    //             errors.push(`Item ${item.id}: ${itemError.message}`);
+    //             continue;
+    //           }
+    //         }
+    //         await prisma.van_inventory.update({
+    //           where: { id: vanInventory.id },
+    //           data: {
+    //             loading_type: 'U',
+    //             updatedate: new Date(),
+    //             updatedby: userIdNum,
+    //           },
+    //         });
+    //         processedVanInventoryIds.push(vanInventory.id);
+    //       } catch (vanInventoryError: any) {
+    //         console.error(
+    //           `Failed to process van inventory ${vanInventory.id}:`,
+    //           vanInventoryError
+    //         );
+    //         errors.push(
+    //           `Van Inventory ${vanInventory.id}: ${vanInventoryError.message}`
+    //         );
+    //         continue;
+    //       }
+    //     }
+    //     return res.json({
+    //       success: true,
+    //       message: 'Van inventory unloaded successfully for user',
+    //       data: {
+    //         user_id: userIdNum,
+    //         van_inventories_processed: processedVanInventoryIds,
+    //         total_items_unloaded: totalItemsUnloaded,
+    //         unloaded_date: new Date(),
+    //         errors: errors.length > 0 ? errors : undefined,
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Unload Van Inventory Error:', error);
+    //     return res.status(500).json({
+    //       success: false,
+    //       message: 'Failed to unload van inventory',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
     async unloadVanInventory(req, res) {
         try {
-            const { vanInventoryId } = req.params;
-            const userId = req.user?.id || 1;
-            if (!vanInventoryId) {
-                return res.status(400).json({
+            const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({
                     success: false,
-                    message: 'Van inventory ID is required',
+                    message: 'User not authenticated or token invalid',
                 });
             }
-            const vanInventoryIdNum = parseInt(vanInventoryId, 10);
-            const vanInventory = await prisma_client_1.default.van_inventory.findUnique({
-                where: { id: vanInventoryIdNum },
+            const userIdNum = parseInt(userId.toString(), 10);
+            const vanInventories = await prisma_client_1.default.van_inventory.findMany({
+                where: {
+                    user_id: userIdNum,
+                    is_active: 'Y',
+                    status: { not: 'U' },
+                },
                 include: {
                     van_inventory_items_inventory: {
                         include: {
@@ -3638,55 +3790,120 @@ exports.vanInventoryController = {
                     },
                 },
             });
-            if (!vanInventory) {
+            if (vanInventories.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: 'Van inventory not found',
+                    message: 'No active van inventory found for authenticated user',
                 });
             }
-            const result = await prisma_client_1.default.$transaction(async (tx) => {
-                for (const item of vanInventory.van_inventory_items_inventory) {
-                    const product = item.van_inventory_items_products;
-                    if (!product)
-                        continue;
-                    await updateInventoryStock(tx, item.product_id, vanInventory.location_id, item.quantity || 0, 'U', item.batch_lot_id || null, null, userId);
-                    await createStockMovement(tx, {
-                        product_id: item.product_id,
-                        batch_id: item.batch_lot_id || null,
-                        serial_id: null,
-                        movement_type: 'VAN_UNLOAD',
-                        reference_type: 'VAN_INVENTORY',
-                        reference_id: vanInventoryIdNum,
-                        from_location_id: null,
-                        to_location_id: null,
-                        quantity: item.quantity || 0,
-                        remarks: `Van unloaded from ${vanInventory.vehicle_id ? `vehicle ${vanInventory.vehicle_id}` : 'location'}`,
-                        van_inventory_id: vanInventoryIdNum,
-                        createdby: userId,
-                    });
-                    await tx.van_inventory_items.update({
-                        where: { id: item.id },
+            let totalItemsUnloaded = 0;
+            const processedVanInventoryIds = [];
+            const errors = [];
+            for (const vanInventory of vanInventories) {
+                try {
+                    for (const item of vanInventory.van_inventory_items_inventory) {
+                        const product = item.van_inventory_items_products;
+                        if (!product)
+                            continue;
+                        try {
+                            const trackingType = product?.tracking_type?.toLowerCase() || 'none';
+                            if (trackingType === 'serial') {
+                                const serialStockRecords = await prisma_client_1.default.inventory_stock.findMany({
+                                    where: {
+                                        product_id: item.product_id,
+                                        location_id: vanInventory.location_id ?? 1,
+                                        serial_number_id: { not: null },
+                                    },
+                                });
+                                for (const stockRecord of serialStockRecords) {
+                                    await prisma_client_1.default.inventory_stock.update({
+                                        where: { id: stockRecord.id },
+                                        data: {
+                                            current_stock: 0,
+                                            available_stock: 0,
+                                            updatedate: new Date(),
+                                            updatedby: userIdNum,
+                                        },
+                                    });
+                                }
+                            }
+                            else {
+                                const whereClause = {
+                                    product_id: item.product_id,
+                                    location_id: vanInventory.location_id ?? 1,
+                                };
+                                if (item.batch_lot_id !== null) {
+                                    whereClause.batch_id = item.batch_lot_id;
+                                }
+                                const existingStock = await prisma_client_1.default.inventory_stock.findFirst({
+                                    where: whereClause,
+                                });
+                                if (existingStock) {
+                                    await prisma_client_1.default.inventory_stock.update({
+                                        where: { id: existingStock.id },
+                                        data: {
+                                            current_stock: 0,
+                                            available_stock: 0,
+                                            updatedate: new Date(),
+                                            updatedby: userIdNum,
+                                        },
+                                    });
+                                }
+                            }
+                            await prisma_client_1.default.stock_movements.create({
+                                data: {
+                                    product_id: item.product_id,
+                                    batch_id: item.batch_lot_id ?? null,
+                                    serial_id: null,
+                                    movement_type: 'VAN_UNLOAD',
+                                    reference_type: 'VAN_INVENTORY',
+                                    reference_id: vanInventory.id,
+                                    from_location_id: null,
+                                    to_location_id: null,
+                                    quantity: item.quantity || 0,
+                                    movement_date: new Date(),
+                                    remarks: `Van unloaded from ${vanInventory.vehicle_id ? `vehicle ${vanInventory.vehicle_id}` : 'location'} for user ${userIdNum}`,
+                                    is_active: 'Y',
+                                    createdate: new Date(),
+                                    createdby: userIdNum,
+                                    log_inst: 1,
+                                    van_inventory_id: vanInventory.id,
+                                },
+                            });
+                            console.log(`Processed item ${item.id} - quantity ${item.quantity} unloaded`);
+                            totalItemsUnloaded++;
+                        }
+                        catch (itemError) {
+                            console.error(`Failed to process item ${item.id}:`, itemError);
+                            errors.push(`Item ${item.id}: ${itemError.message}`);
+                            continue;
+                        }
+                    }
+                    await prisma_client_1.default.van_inventory.update({
+                        where: { id: vanInventory.id },
                         data: {
-                            quantity: 0,
+                            loading_type: 'U',
+                            updatedate: new Date(),
+                            updatedby: userIdNum,
                         },
                     });
+                    processedVanInventoryIds.push(vanInventory.id);
                 }
-                await tx.van_inventory.update({
-                    where: { id: vanInventoryIdNum },
-                    data: {
-                        status: 'U',
-                        updatedate: new Date(),
-                        updatedby: userId,
-                    },
-                });
-            });
+                catch (vanInventoryError) {
+                    console.error(`Failed to process van inventory ${vanInventory.id}:`, vanInventoryError);
+                    errors.push(`Van Inventory ${vanInventory.id}: ${vanInventoryError.message}`);
+                    continue;
+                }
+            }
             return res.json({
                 success: true,
-                message: 'Van inventory unloaded successfully',
+                message: 'Van inventory unloaded successfully for user',
                 data: {
-                    van_inventory_id: vanInventoryIdNum,
-                    items_unloaded: vanInventory.van_inventory_items_inventory.length,
+                    user_id: userIdNum,
+                    van_inventories_processed: processedVanInventoryIds,
+                    total_items_unloaded: totalItemsUnloaded,
                     unloaded_date: new Date(),
+                    errors: errors.length > 0 ? errors : undefined,
                 },
             });
         }

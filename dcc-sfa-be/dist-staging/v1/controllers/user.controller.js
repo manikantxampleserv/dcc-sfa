@@ -16,7 +16,6 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
     role_id: Number(user.role_id),
     sap_code: user.sap_code,
     parent_id: user.parent_id,
-    depot_id: Number(user.depot_id),
     zone_id: user.zone_id,
     phone_number: user.phone_number,
     address: user.address,
@@ -43,13 +42,13 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
             code: user.companies.code,
         }
         : null,
-    user_depot: user.user_depot
-        ? {
-            id: user.user_depot.id,
-            name: user.user_depot.name,
-            code: user.user_depot.code,
-        }
-        : null,
+    depots: user.users_depots_users
+        ? user.users_depots_users.map((ud) => ({
+            id: ud.user_depots_depot_id.id,
+            name: ud.user_depots_depot_id.name,
+            code: ud.user_depots_depot_id.code,
+        }))
+        : [],
     reporting_manager: user.users
         ? {
             id: user.users.id,
@@ -86,6 +85,106 @@ const serializeUser = (user, includeCreatedAt = false, includeUpdatedAt = false)
         : [],
 });
 exports.userController = {
+    // async createUser(req: any, res: any): Promise<void> {
+    //   try {
+    //     const errors = validationResult(req);
+    //     if (!errors.isEmpty()) {
+    //       res.validationError(errors.array(), 400);
+    //       return;
+    //     }
+    //     const {
+    //       email,
+    //       password,
+    //       name,
+    //       role_id,
+    //       parent_id,
+    //       depot_id,
+    //       zone_id,
+    //       phone_number,
+    //       address,
+    //       sap_code,
+    //       employee_id,
+    //       joining_date,
+    //       reporting_to,
+    //       is_active,
+    //       platform,
+    //     } = req.body;
+    //     const existingUser = await prisma.users.findFirst({
+    //       where: { email },
+    //     });
+    //     if (existingUser) {
+    //       res.error('Email already exists', 400);
+    //       return;
+    //     }
+    //     if (employee_id) {
+    //       const existingEmployee = await prisma.users.findFirst({
+    //         where: { employee_id },
+    //       });
+    //       if (existingEmployee) {
+    //         res.error('Employee ID already exists', 400);
+    //         return;
+    //       }
+    //     }
+    //     const hashedPassword = await bcrypt.hash(password, 10);
+    //     let profile_image_url: string | null = null;
+    //     const file = (req as any).file;
+    //     if (file) {
+    //       try {
+    //         const userFolder = req.user?.id ?? 'guest';
+    //         const fileExt = file.originalname.split('.').pop();
+    //         const fileName = `profiles/profile_${userFolder}_${Date.now()}.${fileExt}`;
+    //         console.log(' Uploading file:', {
+    //           originalName: file.originalname,
+    //           fileName,
+    //           mimetype: file.mimetype,
+    //           size: file.size,
+    //         });
+    //         profile_image_url = await uploadFile(
+    //           file.buffer,
+    //           fileName,
+    //           file.mimetype
+    //         );
+    //         console.log('File uploaded successfully:', profile_image_url);
+    //       } catch (uploadError: any) {
+    //         console.error(' File upload failed:', uploadError);
+    //         console.warn(' Continuing without profile image');
+    //       }
+    //     }
+    //     const newUser = await prisma.users.create({
+    //       data: {
+    //         email,
+    //         password_hash: hashedPassword,
+    //         name,
+    //         role_id: Number(role_id),
+    //         parent_id,
+    //         depot_id: Number(depot_id),
+    //         zone_id,
+    //         phone_number,
+    //         sap_code,
+    //         platform: platform || null,
+    //         address,
+    //         employee_id,
+    //         joining_date: joining_date ? new Date(joining_date) : null,
+    //         reporting_to: Number(reporting_to),
+    //         profile_image: profile_image_url,
+    //         is_active: is_active ?? 'Y',
+    //         createdby: req.user?.id ?? 0,
+    //         createdate: new Date(),
+    //         log_inst: 1,
+    //       },
+    //       include: {
+    //         user_role: true,
+    //         companies: true,
+    //         user_depot: true,
+    //         users: { select: { id: true, name: true, email: true } },
+    //       },
+    //     });
+    //     res.success('User created successfully', serializeUser(newUser), 201);
+    //   } catch (error: any) {
+    //     console.error('Error creating user:', error);
+    //     res.error(error.message);
+    //   }
+    // },
     async createUser(req, res) {
         try {
             const errors = (0, express_validator_1.validationResult)(req);
@@ -93,10 +192,30 @@ exports.userController = {
                 res.validationError(errors.array(), 400);
                 return;
             }
-            const { email, password, name, role_id, parent_id, depot_id, zone_id, phone_number, address, sap_code, employee_id, joining_date, reporting_to, is_active, platform, } = req.body;
-            const existingUser = await prisma_client_1.default.users.findFirst({
-                where: { email },
-            });
+            const { email, password, name, role_id, parent_id, depot_ids, zone_id, phone_number, address, sap_code, employee_id, joining_date, reporting_to, is_active, platform, } = req.body;
+            // ✅ Parse depot_ids early, but don't use newUser yet
+            let parsedDepotIds = [];
+            if (typeof depot_ids === 'string') {
+                if (depot_ids.startsWith('[')) {
+                    try {
+                        parsedDepotIds = JSON.parse(depot_ids);
+                    }
+                    catch {
+                        parsedDepotIds = [];
+                    }
+                }
+                else {
+                    parsedDepotIds = depot_ids
+                        .split(',')
+                        .map((id) => parseInt(id.trim()))
+                        .filter((id) => !isNaN(id));
+                }
+            }
+            else if (Array.isArray(depot_ids)) {
+                parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
+            }
+            // ✅ Validate email/employee uniqueness BEFORE creating anything
+            const existingUser = await prisma_client_1.default.users.findFirst({ where: { email } });
             if (existingUser) {
                 res.error('Email already exists', 400);
                 return;
@@ -111,6 +230,7 @@ exports.userController = {
                 }
             }
             const hashedPassword = await bcrypt_1.default.hash(password, 10);
+            // Handle profile image upload
             let profile_image_url = null;
             const file = req.file;
             if (file) {
@@ -118,20 +238,14 @@ exports.userController = {
                     const userFolder = req.user?.id ?? 'guest';
                     const fileExt = file.originalname.split('.').pop();
                     const fileName = `profiles/profile_${userFolder}_${Date.now()}.${fileExt}`;
-                    console.log(' Uploading file:', {
-                        originalName: file.originalname,
-                        fileName,
-                        mimetype: file.mimetype,
-                        size: file.size,
-                    });
                     profile_image_url = await (0, blackbaze_1.uploadFile)(file.buffer, fileName, file.mimetype);
-                    console.log('File uploaded successfully:', profile_image_url);
                 }
                 catch (uploadError) {
-                    console.error(' File upload failed:', uploadError);
-                    console.warn(' Continuing without profile image');
+                    console.error('File upload failed:', uploadError);
+                    console.warn('Continuing without profile image');
                 }
             }
+            // ✅ Create the user first
             const newUser = await prisma_client_1.default.users.create({
                 data: {
                     email,
@@ -139,7 +253,6 @@ exports.userController = {
                     name,
                     role_id: Number(role_id),
                     parent_id,
-                    depot_id: Number(depot_id),
                     zone_id,
                     phone_number,
                     sap_code,
@@ -157,20 +270,138 @@ exports.userController = {
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
-            res.success('User created successfully', serializeUser(newUser), 201);
+            // ✅ Now assign depots — newUser.id is available here
+            if (parsedDepotIds.length > 0) {
+                await prisma_client_1.default.user_depots.createMany({
+                    data: parsedDepotIds.map((depotId) => ({
+                        user_id: newUser.id,
+                        depot_id: depotId,
+                        createdby: req.user?.id ?? 0,
+                        createdate: new Date(),
+                    })),
+                });
+            }
+            // Fetch user with depots for response
+            const userWithDepots = await prisma_client_1.default.users.findUnique({
+                where: { id: newUser.id },
+                include: {
+                    user_role: true,
+                    companies: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
+                    users: { select: { id: true, name: true, email: true } },
+                },
+            });
+            res.success('User created successfully', serializeUser(userWithDepots), 201);
         }
         catch (error) {
             console.error('Error creating user:', error);
             res.error(error.message);
         }
     },
+    // async getUsers(req: any, res: any): Promise<void> {
+    //   try {
+    //     const {
+    //       page = '1',
+    //       limit = '10',
+    //       search = '',
+    //       isActive,
+    //       role_id,
+    //       depot_id,
+    //       zone_id,
+    //     } = req.query;
+    //     const page_num = parseInt(page as string, 10);
+    //     const limit_num = parseInt(limit as string, 10);
+    //     const searchLower = (search as string).toLowerCase();
+    //     const filters: any = {
+    //       is_active: isActive as string,
+    //       ...(search && {
+    //         OR: [
+    //           {
+    //             name: {
+    //               contains: searchLower,
+    //             },
+    //           },
+    //           {
+    //             email: {
+    //               contains: searchLower,
+    //             },
+    //           },
+    //           {
+    //             employee_id: {
+    //               contains: searchLower,
+    //             },
+    //           },
+    //         ],
+    //       }),
+    //       ...(role_id && { role_id: Number(role_id) }),
+    //       ...(depot_id && { depot_id: Number(depot_id) }),
+    //       ...(zone_id && { zone_id: Number(zone_id) }),
+    //     };
+    //     const { data, pagination } = await paginate({
+    //       model: prisma.users,
+    //       filters,
+    //       page: page_num,
+    //       limit: limit_num,
+    //       orderBy: { createdate: 'desc' },
+    //       include: {
+    //         user_role: true,
+    //         companies: true,
+    //         user_depot: true,
+    //         users: {
+    //           select: {
+    //             id: true,
+    //             name: true,
+    //             email: true,
+    //           },
+    //         },
+    //       },
+    //     });
+    //     const totalUsers = await prisma.users.count();
+    //     const activeUsers = await prisma.users.count({
+    //       where: { is_active: 'Y' },
+    //     });
+    //     const inactiveUsers = await prisma.users.count({
+    //       where: { is_active: 'N' },
+    //     });
+    //     const now = new Date();
+    //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    //     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    //     const newUsersThisMonth = await prisma.users.count({
+    //       where: {
+    //         createdate: {
+    //           gte: startOfMonth,
+    //           lt: endOfMonth,
+    //         },
+    //       },
+    //     });
+    //     res.success(
+    //       'Users retrieved successfully',
+    //       data.map((user: any) => serializeUser(user, true, true)),
+    //       200,
+    //       pagination,
+    //       {
+    //         total_users: totalUsers,
+    //         active_users: activeUsers,
+    //         inactive_users: inactiveUsers,
+    //         new_users: newUsersThisMonth,
+    //       }
+    //     );
+    //   } catch (error: any) {
+    //     console.error('Error fetching users:', error);
+    //     res.error(error.message);
+    //   }
+    // },
     async getUsers(req, res) {
         try {
-            const { page = '1', limit = '10', search = '', isActive, role_id, depot_id, zone_id, } = req.query;
+            const { page = '1', limit = '10', search = '', isActive, role_id, depot_id, // Keep for filtering
+            zone_id, } = req.query;
             const page_num = parseInt(page, 10);
             const limit_num = parseInt(limit, 10);
             const searchLower = search.toLowerCase();
@@ -196,7 +427,14 @@ exports.userController = {
                     ],
                 }),
                 ...(role_id && { role_id: Number(role_id) }),
-                ...(depot_id && { depot_id: Number(depot_id) }),
+                ...(depot_id && {
+                    users_depots_users: {
+                        some: {
+                            depot_id: Number(depot_id),
+                            is_active: 'Y',
+                        },
+                    },
+                }),
                 ...(zone_id && { zone_id: Number(zone_id) }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
@@ -208,7 +446,11 @@ exports.userController = {
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: {
                         select: {
                             id: true,
@@ -248,6 +490,71 @@ exports.userController = {
             res.error(error.message);
         }
     },
+    // async getUserById(req: any, res: any): Promise<void> {
+    //   try {
+    //     const errors = validationResult(req);
+    //     if (!errors.isEmpty()) {
+    //       res.validationError(errors.array(), 400);
+    //       return;
+    //     }
+    //     const id = Number(req.params.id);
+    //     const user = await prisma.users.findFirst({
+    //       where: { id },
+    //       include: {
+    //         user_role: true,
+    //         companies: true,
+    //         user_depot: true,
+    //         users: {
+    //           select: {
+    //             id: true,
+    //             name: true,
+    //             email: true,
+    //           },
+    //         },
+    //       },
+    //     });
+    //     if (!user) {
+    //       res.error('User not found', 404);
+    //       return;
+    //     }
+    //     const recentAuditLogs = await prisma.audit_logs.findMany({
+    //       where: {
+    //         changed_by: id,
+    //         is_active: 'Y',
+    //       },
+    //       orderBy: { changed_at: 'desc' },
+    //       take: 10,
+    //       select: {
+    //         id: true,
+    //         table_name: true,
+    //         record_id: true,
+    //         action: true,
+    //         changed_at: true,
+    //         ip_address: true,
+    //         device_info: true,
+    //       },
+    //     });
+    //     const serializedUser = serializeUser(user);
+    //     const responseData = {
+    //       ...serializedUser,
+    //       recent_activities: {
+    //         audit_logs: recentAuditLogs.map(log => ({
+    //           id: log.id,
+    //           table_name: log.table_name,
+    //           record_id: log.record_id,
+    //           action: log.action,
+    //           changed_at: log.changed_at,
+    //           ip_address: log.ip_address,
+    //           device_info: log.device_info,
+    //         })),
+    //       },
+    //     };
+    //     res.success('User fetched successfully', responseData, 200);
+    //   } catch (error: any) {
+    //     console.error('Error fetching user:', error);
+    //     res.error(error.message);
+    //   }
+    // },
     async getUserById(req, res) {
         try {
             const errors = (0, express_validator_1.validationResult)(req);
@@ -261,7 +568,11 @@ exports.userController = {
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: {
                         select: {
                             id: true,
@@ -314,6 +625,124 @@ exports.userController = {
             res.error(error.message);
         }
     },
+    // async updateUser(req: any, res: any): Promise<void> {
+    //   try {
+    //     const errors = validationResult(req);
+    //     if (!errors.isEmpty()) {
+    //       res.validationError(errors.array(), 400);
+    //       return;
+    //     }
+    //     const targetUserId = Number(req.params.id);
+    //     const currentUserId = req.user?.id;
+    //     if (!currentUserId) {
+    //       res.error('User not authenticated', 401);
+    //       return;
+    //     }
+    //     const existingUser = await prisma.users.findFirst({
+    //       where: { id: targetUserId },
+    //     });
+    //     if (!existingUser) {
+    //       res.error('User not found', 404);
+    //       return;
+    //     }
+    //     const { createdate, updatedate, password, id, is_active, ...userData } =
+    //       req.body;
+    //     if (userData.email && userData.email !== existingUser.email) {
+    //       const existingEmail = await prisma.users.findFirst({
+    //         where: {
+    //           email: userData.email,
+    //           id: { not: targetUserId },
+    //         },
+    //       });
+    //       if (existingEmail) {
+    //         res.error('Email already exists', 400);
+    //         return;
+    //       }
+    //     }
+    //     if (
+    //       userData.employee_id &&
+    //       userData.employee_id !== existingUser.employee_id
+    //     ) {
+    //       const existingEmployeeId = await prisma.users.findFirst({
+    //         where: {
+    //           employee_id: userData.employee_id,
+    //           id: { not: targetUserId },
+    //         },
+    //       });
+    //       if (existingEmployeeId) {
+    //         res.error('Employee ID already exists', 400);
+    //         return;
+    //       }
+    //     }
+    //     let profile_image_url: string | undefined;
+    //     const uploadedFile = (req as any).file;
+    //     if (uploadedFile) {
+    //       if (existingUser.profile_image) {
+    //         try {
+    //           const oldFileUrl = new URL(existingUser.profile_image);
+    //           const pathParts = oldFileUrl.pathname.split('/');
+    //           const fileName = pathParts.slice(3).join('/');
+    //           await deleteFile(fileName);
+    //         } catch (err) {
+    //           console.error('Error deleting old profile image:', err);
+    //         }
+    //       }
+    //       const fileExt = uploadedFile.originalname.split('.').pop();
+    //       const fileName = `profiles/profile_${targetUserId}_${Date.now()}.${fileExt}`;
+    //       try {
+    //         profile_image_url = await uploadFile(
+    //           uploadedFile.buffer,
+    //           fileName,
+    //           uploadedFile.mimetype
+    //         );
+    //       } catch (err) {
+    //         console.error('Error uploading new profile image:', err);
+    //         res.error('Failed to upload profile image', 500);
+    //         return;
+    //       }
+    //     }
+    //     const updateData: any = {
+    //       ...userData,
+    //       ...(profile_image_url && { profile_image: profile_image_url }),
+    //       depot_id: Number(userData.depot_id),
+    //       updatedby: currentUserId,
+    //       updatedate: new Date(),
+    //     };
+    //     if (password) {
+    //       updateData.password_hash = await bcrypt.hash(password, 10);
+    //     }
+    //     if (userData.joining_date) {
+    //       updateData.joining_date = new Date(userData.joining_date);
+    //     }
+    //     if (
+    //       userData.reporting_to !== undefined &&
+    //       userData.reporting_to !== null
+    //     ) {
+    //       updateData.reporting_to = Number(userData.reporting_to);
+    //     }
+    //     if (is_active !== undefined && is_active !== null) {
+    //       updateData.is_active = is_active;
+    //     }
+    //     if (updateData.role_id) {
+    //       updateData.role_id = Number(updateData.role_id);
+    //     }
+    //     const updatedUser = await prisma.users.update({
+    //       where: { id: targetUserId },
+    //       data: updateData,
+    //       include: {
+    //         user_role: true,
+    //         companies: true,
+    //         user_depot: true,
+    //         users: { select: { id: true, name: true, email: true } },
+    //       },
+    //     });
+    //     const serializedUser = serializeUser(updatedUser, true, true);
+    //     res.success('Profile updated successfully', serializedUser, 200);
+    //   } catch (error: any) {
+    //     console.error('Error updating user:', error);
+    //     res.error(error.message);
+    //   }
+    // },
     async updateUser(req, res) {
         try {
             const errors = (0, express_validator_1.validationResult)(req);
@@ -334,7 +763,29 @@ exports.userController = {
                 res.error('User not found', 404);
                 return;
             }
-            const { createdate, updatedate, password, id, is_active, ...userData } = req.body;
+            const { createdate, updatedate, password, id, is_active, depot_ids, ...userData } = req.body;
+            let parsedDepotIds = [];
+            if (depot_ids !== undefined) {
+                if (typeof depot_ids === 'string') {
+                    if (depot_ids.startsWith('[')) {
+                        try {
+                            parsedDepotIds = JSON.parse(depot_ids);
+                        }
+                        catch {
+                            parsedDepotIds = [];
+                        }
+                    }
+                    else {
+                        parsedDepotIds = depot_ids
+                            .split(',')
+                            .map((id) => parseInt(id.trim()))
+                            .filter((id) => !isNaN(id));
+                    }
+                }
+                else if (Array.isArray(depot_ids)) {
+                    parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
+                }
+            }
             if (userData.email && userData.email !== existingUser.email) {
                 const existingEmail = await prisma_client_1.default.users.findFirst({
                     where: {
@@ -388,7 +839,7 @@ exports.userController = {
             const updateData = {
                 ...userData,
                 ...(profile_image_url && { profile_image: profile_image_url }),
-                depot_id: Number(userData.depot_id),
+                // Remove depot_id from user update
                 updatedby: currentUserId,
                 updatedate: new Date(),
             };
@@ -408,17 +859,53 @@ exports.userController = {
             if (updateData.role_id) {
                 updateData.role_id = Number(updateData.role_id);
             }
+            // Update user
             const updatedUser = await prisma_client_1.default.users.update({
                 where: { id: targetUserId },
                 data: updateData,
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
+                    users_depots_users: {
+                        // Include multiple depots
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
-            const serializedUser = serializeUser(updatedUser, true, true);
+            // Update depot assignments if provided
+            if (depot_ids !== undefined) {
+                // Remove existing depot assignments
+                await prisma_client_1.default.user_depots.deleteMany({
+                    where: { user_id: targetUserId },
+                });
+                if (parsedDepotIds.length > 0) {
+                    await prisma_client_1.default.user_depots.createMany({
+                        data: parsedDepotIds.map((depotId) => ({
+                            user_id: targetUserId,
+                            depot_id: Number(depotId),
+                            createdby: currentUserId,
+                            createdate: new Date(),
+                        })),
+                    });
+                }
+            }
+            const finalUser = await prisma_client_1.default.users.findUnique({
+                where: { id: targetUserId },
+                include: {
+                    user_role: true,
+                    companies: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
+                    users: { select: { id: true, name: true, email: true } },
+                },
+            });
+            const serializedUser = serializeUser(finalUser, true, true);
             res.success('Profile updated successfully', serializedUser, 200);
         }
         catch (error) {
@@ -539,7 +1026,12 @@ exports.userController = {
                             companies_currencies: true,
                         },
                     },
-                    user_depot: true,
+                    users_depots_users: {
+                        // Include multiple depots
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: {
                         select: {
                             id: true,
@@ -598,7 +1090,8 @@ exports.userController = {
                 res.error('User not found', 404);
                 return;
             }
-            const { createdate, updatedate, id, role_id, is_active, employee_id, email, password, ...userData } = req.body;
+            const { createdate, updatedate, id, role_id, is_active, employee_id, email, password, depot_ids, // New field for multiple depots
+            ...userData } = req.body;
             console.log('Req.body', req.body);
             let profile_image_url;
             const uploadedFile = req.file;
@@ -640,17 +1133,72 @@ exports.userController = {
                 userData.reporting_to !== null) {
                 updateData.reporting_to = Number(userData.reporting_to);
             }
+            // Parse depot_ids if it's a string
+            let parsedDepotIds = [];
+            if (depot_ids !== undefined) {
+                if (typeof depot_ids === 'string') {
+                    if (depot_ids.startsWith('[')) {
+                        try {
+                            parsedDepotIds = JSON.parse(depot_ids);
+                        }
+                        catch {
+                            parsedDepotIds = [];
+                        }
+                    }
+                    else {
+                        parsedDepotIds = depot_ids
+                            .split(',')
+                            .map((id) => parseInt(id.trim()))
+                            .filter((id) => !isNaN(id));
+                    }
+                }
+                else if (Array.isArray(depot_ids)) {
+                    parsedDepotIds = depot_ids.map(Number).filter(id => !isNaN(id));
+                }
+            }
             const updatedUser = await prisma_client_1.default.users.update({
                 where: { id: userId },
                 data: updateData,
                 include: {
                     user_role: true,
                     companies: true,
-                    user_depot: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
                     users: { select: { id: true, name: true, email: true } },
                 },
             });
-            res.success('Profile updated successfully', serializeUser(updatedUser, true, true), 200);
+            if (depot_ids !== undefined) {
+                await prisma_client_1.default.user_depots.deleteMany({
+                    where: { user_id: userId },
+                });
+                if (parsedDepotIds.length > 0) {
+                    await prisma_client_1.default.user_depots.createMany({
+                        data: parsedDepotIds.map((depotId) => ({
+                            user_id: userId,
+                            depot_id: Number(depotId),
+                            createdby: userId,
+                            createdate: new Date(),
+                        })),
+                    });
+                }
+            }
+            const finalUser = await prisma_client_1.default.users.findUnique({
+                where: { id: userId },
+                include: {
+                    user_role: true,
+                    companies: true,
+                    users_depots_users: {
+                        include: {
+                            user_depots_depot_id: true,
+                        },
+                    },
+                    users: { select: { id: true, name: true, email: true } },
+                },
+            });
+            res.success('Profile updated successfully', serializeUser(finalUser, true, true), 200);
         }
         catch (error) {
             console.error('Error updating user profile:', error);
@@ -667,7 +1215,12 @@ exports.userController = {
                 is_active: 'Y',
             };
             if (depotId) {
-                where.depot_id = depotId;
+                where.users_depots_users = {
+                    some: {
+                        depot_id: depotId,
+                        is_active: 'Y',
+                    },
+                };
             }
             if (userId) {
                 where.id = userId;
@@ -685,7 +1238,7 @@ exports.userController = {
                     id: true,
                     name: true,
                     email: true,
-                    depot_id: true,
+                    // Remove depot_id from select since it's no longer in users table
                 },
                 orderBy: {
                     name: 'asc',
