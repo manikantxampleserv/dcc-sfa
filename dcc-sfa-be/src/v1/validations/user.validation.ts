@@ -18,7 +18,7 @@ export const createUserValidation = [
     .withMessage('Parent ID must be a number'),
   body('depot_id').optional().isInt().withMessage('Depot ID must be a number'),
   body('zone_id').optional().isInt().withMessage('Zone ID must be a number'),
-  body('employee_id').optional().isString(),
+  body('employee_id').notEmpty().withMessage('Employee ID is required'),
   body('joining_date')
     .optional()
     .isISO8601()

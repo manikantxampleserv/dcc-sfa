@@ -234,11 +234,7 @@ export abstract class ImportExportService<T> {
         };
       }
     });
-    console.log('DEBUG: masterTableConfigs =', this.masterTableConfigs);
-    console.log(
-      'DEBUG: masterTableConfigs.length =',
-      this.masterTableConfigs?.length
-    );
+
     for (const config of this.masterTableConfigs) {
       const masterData = await this.getMasterTableData(config);
       console.log(
