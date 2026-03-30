@@ -79,14 +79,19 @@ const prisma_client_1 = __importDefault(require("../configs/prisma.client"));
 //     };
 //   }
 // };
-async function getRequestDetailsByType(request_type, reference_id) {
-    if (!reference_id)
+async function getRequestDetailsByType(request_type, reference_id, request_data) {
+    if (!reference_id && !request_data)
         return {};
+    console.log('getRequestDetailsByType called with:', {
+        request_type,
+        reference_id,
+        request_data: request_data ? 'PRESENT' : 'NULL',
+    });
     try {
         switch (request_type) {
             case 'ORDER_APPROVAL':
                 const order = await prisma_client_1.default.orders.findUnique({
-                    where: { id: reference_id },
+                    where: { id: reference_id || 0 },
                     include: {
                         orders_customers: true,
                         orders_salesperson_users: true,
@@ -109,11 +114,10 @@ async function getRequestDetailsByType(request_type, reference_id) {
                     payment_method: order.payment_method || 'N/A',
                     notes: order.notes || '',
                 };
+                break;
             case 'LOCATION_RESET':
-                console.log(' LOCATION_RESET case triggered');
-                console.log(' reference_id:', reference_id);
                 const customer = await prisma_client_1.default.customers.findUnique({
-                    where: { id: reference_id },
+                    where: { id: reference_id || 0 },
                     select: {
                         id: true,
                         code: true,
@@ -132,9 +136,7 @@ async function getRequestDetailsByType(request_type, reference_id) {
                         createdate: true,
                     },
                 });
-                console.log(customer);
                 if (!customer) {
-                    console.log(' returning {}');
                     return {};
                 }
                 const result = {
@@ -158,15 +160,49 @@ async function getRequestDetailsByType(request_type, reference_id) {
                 };
                 console.log(result);
                 return result;
+                break;
+            // case 'CUSTOMER_CREATION':
+            //   return {
+            //     customer_status: 'Pending Creation',
+            //     customer_id: 'Pending',
+            //     message: 'Customer creation request - customer not yet created',
+            //   };
             case 'CUSTOMER_CREATION':
+                if (request_data) {
+                    try {
+                        const parsedData = JSON.parse(request_data);
+                        const customerData = parsedData.customer_data;
+                        if (customerData) {
+                            const result = {
+                                customer_status: 'Pending Creation',
+                                customer_id: 'Pending',
+                                customer_name: customerData.name || 'N/A',
+                                customer_code: customerData.code || 'N/A',
+                                customer_email: customerData.email || 'N/A',
+                                customer_phone: customerData.phone_number || 'N/A',
+                                customer_city: customerData.city || 'N/A',
+                                customer_state: customerData.state || 'N/A',
+                                platform_type: parsedData.platform_type || 'N/A',
+                                requested_by: parsedData.requested_by || 'N/A',
+                                requested_date: parsedData.requested_date || 'N/A',
+                                message: 'Customer creation request - customer not yet created',
+                            };
+                            return result;
+                        }
+                    }
+                    catch (parseError) {
+                        console.error(' Error parsing customer creation request data:', parseError);
+                    }
+                }
                 return {
                     customer_status: 'Pending Creation',
                     customer_id: 'Pending',
                     message: 'Customer creation request - customer not yet created',
                 };
+                break;
             case 'ASSET_MOVEMENT_APPROVAL':
                 const assetMovement = await prisma_client_1.default.asset_movements.findUnique({
-                    where: { id: reference_id },
+                    where: { id: reference_id || 0 },
                     include: {
                         asset_movement_assets: {
                             include: {

@@ -46,6 +46,7 @@ const serializeRequest = (request) => ({
                 email: approval.sfa_d_requests_approvals_approver.email,
             }
             : null,
+        reference_details: request.reference_details || null,
     })) || [],
 });
 const formatRequestType = (type) => {
@@ -574,6 +575,104 @@ exports.requestsController = {
             });
         }
     },
+    // async getAllRequests(req: any, res: any) {
+    //   try {
+    //     const {
+    //       page,
+    //       limit,
+    //       search,
+    //       request_type,
+    //       status,
+    //       requester_id,
+    //       startDate,
+    //       endDate,
+    //     } = req.query;
+    //     const pageNum = parseInt(page as string, 10) || 1;
+    //     const limitNum = parseInt(limit as string, 10) || 10;
+    //     const searchLower = search ? (search as string).toLowerCase() : '';
+    //     const filters: any = {};
+    //     if (search) {
+    //       filters.OR = [
+    //         { request_type: { contains: searchLower } },
+    //         { status: { contains: searchLower } },
+    //         { overall_status: { contains: searchLower } },
+    //       ];
+    //     }
+    //     if (request_type) {
+    //       filters.request_type = request_type as string;
+    //     }
+    //     if (status) {
+    //       filters.status = status as string;
+    //     }
+    //     if (requester_id) {
+    //       filters.requester_id = parseInt(requester_id as string, 10);
+    //     }
+    //     if (startDate && endDate) {
+    //       filters.createdate = {
+    //         gte: new Date(startDate as string),
+    //         lte: new Date(endDate as string),
+    //       };
+    //     }
+    //     const { data, pagination } = await paginate({
+    //       model: prisma.sfa_d_requests,
+    //       filters,
+    //       page: pageNum,
+    //       limit: limitNum,
+    //       orderBy: { createdate: 'desc' },
+    //       include: {
+    //         sfa_d_requests_requester: {
+    //           select: { id: true, name: true, email: true },
+    //         },
+    //         // sfa_d_requests_approvals_request: {
+    //         //   select: { id: true, sequence: true, status: true },
+    //         // },
+    //         sfa_d_requests_approvals_request: {
+    //           select: {
+    //             id: true,
+    //             approver_id: true,
+    //             sequence: true,
+    //             status: true,
+    //             remarks: true,
+    //             action_at: true,
+    //             sfa_d_requests_approvals_approver: {
+    //               select: { id: true, name: true, email: true },
+    //             },
+    //           },
+    //           orderBy: { sequence: 'asc' },
+    //         },
+    //       },
+    //     });
+    //     const totalRequests = await prisma.sfa_d_requests.count({
+    //       where: filters,
+    //     });
+    //     const pendingRequests = await prisma.sfa_d_requests.count({
+    //       where: { ...filters, status: 'P' },
+    //     });
+    //     const approvedRequests = await prisma.sfa_d_requests.count({
+    //       where: { ...filters, status: 'A' },
+    //     });
+    //     const rejectedRequests = await prisma.sfa_d_requests.count({
+    //       where: { ...filters, status: 'R' },
+    //     });
+    //     res.json({
+    //       message: 'Requests retrieved successfully',
+    //       data: data.map((request: any) => serializeRequest(request)),
+    //       pagination,
+    //       stats: {
+    //         total_requests: totalRequests,
+    //         pending_requests: pendingRequests,
+    //         approved_requests: approvedRequests,
+    //         rejected_requests: rejectedRequests,
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Get Requests Error:', error);
+    //     res.status(500).json({
+    //       message: 'Failed to retrieve requests',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
     async getAllRequests(req, res) {
         try {
             const { page, limit, search, request_type, status, requester_id, startDate, endDate, } = req.query;
@@ -603,6 +702,10 @@ exports.requestsController = {
                     lte: new Date(endDate),
                 };
             }
+            const customerCreationRequests = await prisma_client_1.default.sfa_d_requests.count({
+                where: { request_type: 'CUSTOMER_CREATION' },
+            });
+            console.log(' CUSTOMER_CREATION requests in DB:', customerCreationRequests);
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.sfa_d_requests,
                 filters,
@@ -614,10 +717,36 @@ exports.requestsController = {
                         select: { id: true, name: true, email: true },
                     },
                     sfa_d_requests_approvals_request: {
-                        select: { id: true, sequence: true, status: true },
+                        select: {
+                            id: true,
+                            approver_id: true,
+                            sequence: true,
+                            status: true,
+                            remarks: true,
+                            action_at: true,
+                            sfa_d_requests_approvals_approver: {
+                                select: { id: true, name: true, email: true },
+                            },
+                        },
+                        orderBy: { sequence: 'asc' },
                     },
                 },
             });
+            console.log(' Applied filters:', filters);
+            console.log(' Total requests fetched:', data.length);
+            console.log('Request types being processed:', data.map((r) => ({
+                id: r.id,
+                request_type: r.request_type,
+                reference_id: r.reference_id,
+                has_request_data: !!r.request_data,
+            })));
+            const requestsWithDetails = await Promise.all(data.map(async (request) => {
+                const referenceDetails = await (0, getDetails_1.default)(request.request_type, request.reference_id, request.request_data);
+                return {
+                    ...request,
+                    reference_details: referenceDetails,
+                };
+            }));
             const totalRequests = await prisma_client_1.default.sfa_d_requests.count({
                 where: filters,
             });
@@ -632,7 +761,7 @@ exports.requestsController = {
             });
             res.json({
                 message: 'Requests retrieved successfully',
-                data: data.map((request) => serializeRequest(request)),
+                data: requestsWithDetails.map((request) => serializeRequest(request)),
                 pagination,
                 stats: {
                     total_requests: totalRequests,
@@ -976,19 +1105,15 @@ exports.requestsController = {
                             }
                         }
                     }
-                    // ✅ ADD CUSTOMER CREATION LOGIC
                     if (request.request_type === 'CUSTOMER_CREATION' &&
                         action === 'A') {
                         const requestData = JSON.parse(request.request_data || '{}');
                         const customerData = requestData.customer_data;
                         const customerImages = requestData.customer_images || [];
-                        // ✅ REMOVE platform_type from customer data (not a valid field)
                         const { platform_type, ...customerDataWithoutPlatform } = customerData;
-                        // Create the customer
                         const createdCustomer = await tx.customers.create({
                             data: customerDataWithoutPlatform,
                         });
-                        // Create customer images if any
                         if (customerImages.length > 0) {
                             await tx.customer_image.createMany({
                                 data: customerImages.map((img) => ({
@@ -1257,6 +1382,9 @@ exports.requestsController = {
                             },
                         },
                     },
+                    sfa_d_requests_approvals_approver: {
+                        select: { id: true, name: true, email: true },
+                    },
                 },
                 orderBy: {
                     createdate: 'desc',
@@ -1287,7 +1415,7 @@ exports.requestsController = {
             });
             let requests = await Promise.all(filteredApprovals.map(async (approval) => {
                 const request = approval.sfa_d_requests_approvals_request;
-                const referenceDetails = await (0, getDetails_1.default)(request.request_type, request.reference_id);
+                const referenceDetails = await (0, getDetails_1.default)(request.request_type, request.reference_id, request.request_data);
                 return {
                     id: request.id,
                     requester_id: request.requester_id,
@@ -1309,7 +1437,7 @@ exports.requestsController = {
                             sequence: approval.sequence,
                             status: approval.status,
                             remarks: approval.remarks,
-                            approver: null,
+                            approver: approval.sfa_d_requests_approvals_approver,
                         },
                     ],
                 };
