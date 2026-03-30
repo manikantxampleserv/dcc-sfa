@@ -9,6 +9,31 @@ export class ProductsImportExportService extends ImportExportService<any> {
   protected uniqueFields = ['name'];
   protected searchFields = ['name', 'code', 'description'];
 
+  protected masterTableConfigs = [
+    {
+      masterTable: 'product_categories' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'category_name', 'description'],
+      sheetName: 'Ref - Product Categories',
+      description:
+        'Use the ID from this sheet in the Product Category ID column',
+    },
+    {
+      masterTable: 'product_sub_categories' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'sub_category_name', 'description'],
+      sheetName: 'Ref - Product Sub Categories',
+      description:
+        'Use the ID from this sheet in the Product Sub Category ID column',
+    },
+    {
+      masterTable: 'brands' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Brands',
+      description: 'Use the ID from this sheet in the Brand ID column',
+    },
+  ];
   protected columns: ColumnDefinition[] = [
     {
       key: 'name',

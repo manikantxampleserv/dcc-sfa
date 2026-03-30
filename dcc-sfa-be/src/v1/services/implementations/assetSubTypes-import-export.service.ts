@@ -12,6 +12,15 @@ export class AssetSubTypesImportExportService extends ImportExportService<any> {
   protected uniqueFields = ['name', 'asset_type_id'];
   protected searchFields = ['name', 'description', 'code'];
 
+  protected masterTableConfigs = [
+    {
+      masterTable: 'asset_types' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'description'],
+      sheetName: 'Ref - Asset Types',
+      description: 'Use the ID from this sheet in the Asset Type ID column',
+    },
+  ];
   // Add code counters to avoid database queries during import
   private codeCounters = new Map<string, number>();
 

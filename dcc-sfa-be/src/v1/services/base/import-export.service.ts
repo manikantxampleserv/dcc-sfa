@@ -762,9 +762,12 @@ export abstract class ImportExportService<T> {
       );
 
       try {
+        const whereClause =
+          masterTable === 'asset_master' ? {} : { is_active: 'Y' };
+
         const result = await model.findMany({
           select: selectFields,
-          where: { is_active: 'Y' },
+          where: whereClause,
           orderBy: { id: 'asc' },
           take: 200,
         });
@@ -779,7 +782,6 @@ export abstract class ImportExportService<T> {
         );
       }
 
-      // Step 2: fallback — no filter, just id ordering
       try {
         const result = await model.findMany({
           select: selectFields,

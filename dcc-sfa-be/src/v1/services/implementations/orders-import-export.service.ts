@@ -14,6 +14,29 @@ export class OrdersImportExportService extends ImportExportService<any> {
     'payment_method',
   ];
 
+  protected masterTableConfigs = [
+    {
+      masterTable: 'customers' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+      sheetName: 'Ref - Customers',
+      description: 'Use the ID from this sheet in the Customer ID column',
+    },
+    {
+      masterTable: 'users' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+      sheetName: 'Ref - Salespersons',
+      description: 'Use the ID from this sheet in the Salesperson ID column',
+    },
+    {
+      masterTable: 'currencies' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'code', 'name', 'symbol'],
+      sheetName: 'Ref - Currencies',
+      description: 'Use the ID from this sheet in the Currency ID column',
+    },
+  ];
   protected columns: ColumnDefinition[] = [
     {
       key: 'order_number',

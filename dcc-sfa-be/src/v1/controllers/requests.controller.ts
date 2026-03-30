@@ -682,7 +682,6 @@ export const requestsController = {
                   request_type: formatRequestType(request_type),
                   action: 'created',
                   company_name: 'SFA System',
-                  // request_detail: JSON.stringify(request_detail),
                   ...request_detail,
                 }
               );
@@ -877,10 +876,7 @@ export const requestsController = {
       const customerCreationRequests = await prisma.sfa_d_requests.count({
         where: { request_type: 'CUSTOMER_CREATION' },
       });
-      console.log(
-        ' CUSTOMER_CREATION requests in DB:',
-        customerCreationRequests
-      );
+
       const { data, pagination } = await paginate({
         model: prisma.sfa_d_requests,
         filters,
@@ -907,17 +903,17 @@ export const requestsController = {
           },
         },
       });
-      console.log(' Applied filters:', filters);
-      console.log(' Total requests fetched:', data.length);
-      console.log(
-        'Request types being processed:',
-        data.map((r: any) => ({
-          id: r.id,
-          request_type: r.request_type,
-          reference_id: r.reference_id,
-          has_request_data: !!r.request_data,
-        }))
-      );
+      // console.log(' Applied filters:', filters);
+      // console.log(' Total requests fetched:', data.length);
+      // console.log(
+      //   'Request types being processed:',
+      //   data.map((r: any) => ({
+      //     id: r.id,
+      //     request_type: r.request_type,
+      //     reference_id: r.reference_id,
+      //     has_request_data: !!r.request_data,
+      //   }))
+      // );
       const requestsWithDetails = await Promise.all(
         data.map(async (request: any) => {
           const referenceDetails = await getRequestDetailsByType(

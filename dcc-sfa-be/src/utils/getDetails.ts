@@ -85,11 +85,7 @@ async function getRequestDetailsByType(
   request_data?: string | null
 ): Promise<any> {
   if (!reference_id && !request_data) return {};
-  console.log('getRequestDetailsByType called with:', {
-    request_type,
-    reference_id,
-    request_data: request_data ? 'PRESENT' : 'NULL',
-  });
+
   try {
     switch (request_type) {
       case 'ORDER_APPROVAL':

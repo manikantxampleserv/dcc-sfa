@@ -12,7 +12,29 @@ export class InvoicesImportExportService extends ImportExportService<any> {
     'notes',
     'billing_address',
   ];
-
+  protected masterTableConfigs = [
+    {
+      masterTable: 'customers' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+      sheetName: 'Ref - Customers',
+      description: 'Use the ID from this sheet in the Customer ID column',
+    },
+    {
+      masterTable: 'orders' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'order_number', 'customer_id', 'order_date'],
+      sheetName: 'Ref - Orders',
+      description: 'Use the ID from this sheet in the Order ID column',
+    },
+    {
+      masterTable: 'currencies' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'code', 'name', 'symbol'],
+      sheetName: 'Ref - Currencies',
+      description: 'Use the ID from this sheet in the Currency ID column',
+    },
+  ];
   private customerIds: Set<number> = new Set();
   private orderIds: Set<number> = new Set();
   private currencyIds: Set<number> = new Set();

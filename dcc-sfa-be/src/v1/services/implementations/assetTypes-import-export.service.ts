@@ -8,6 +8,16 @@ export class AssetTypesImportExportService extends ImportExportService<any> {
   protected uniqueFields = ['name'];
   protected searchFields = ['name', 'description', 'category', 'brand'];
 
+  protected masterTableConfigs = [
+    {
+      masterTable: 'brands' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code'],
+      sheetName: 'Ref - Brands',
+      description: 'Use the ID from this sheet for brand references',
+    },
+  ];
+
   protected columns: ColumnDefinition[] = [
     {
       key: 'name',

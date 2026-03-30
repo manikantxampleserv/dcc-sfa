@@ -8,7 +8,30 @@ export class PaymentsImportExportService extends ImportExportService<any> {
   protected uniqueFields = ['payment_number'];
   protected searchFields = ['payment_number', 'reference_number', 'notes'];
 
-  // Cache for foreign key validation
+  protected masterTableConfigs = [
+    {
+      masterTable: 'customers' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+      sheetName: 'Ref - Customers',
+      description: 'Use the ID from this sheet in the Customer ID column',
+    },
+    {
+      masterTable: 'users' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+      sheetName: 'Ref - Users',
+      description:
+        'Use the ID from this sheet in the Collected By (User ID) column',
+    },
+    {
+      masterTable: 'currencies' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'code', 'name', 'symbol'],
+      sheetName: 'Ref - Currencies',
+      description: 'Use the ID from this sheet in the Currency ID column',
+    },
+  ];
   private customerIds: Set<number> = new Set();
   private userIds: Set<number> = new Set();
   private currencyIds: Set<number> = new Set();

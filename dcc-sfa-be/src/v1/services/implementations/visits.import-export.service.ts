@@ -14,6 +14,23 @@ export class VisitsImportExportService extends ImportExportService<any> {
     'customer_feedback',
   ];
 
+  protected masterTableConfigs = [
+    {
+      masterTable: 'customers' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+      sheetName: 'Ref - Customers',
+      description: 'Use the ID from this sheet in the Customer ID column',
+    },
+    {
+      masterTable: 'users' as any,
+      masterKey: 'id',
+      masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+      sheetName: 'Ref - Salespersons',
+      description: 'Use the ID from this sheet in the Salesperson ID column',
+    },
+  ];
+
   protected columns: ColumnDefinition[] = [
     {
       key: 'customer_id',
