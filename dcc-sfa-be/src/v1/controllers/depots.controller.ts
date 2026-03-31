@@ -23,6 +23,12 @@ interface DepotSerialized {
   createdate?: Date | null;
   updatedate?: Date | null;
   updatedby?: number | null;
+  region_id?: number | null;
+  city_id?: number | null;
+  district_id?: number | null;
+  depots_region?: { id: number; name: string; code?: string } | null;
+  depots_city?: { id: number; name: string; code?: string } | null;
+  depots_district?: { id: number; name: string; code?: string } | null;
   depot_companies?: {
     id: number;
     name: string;
@@ -69,6 +75,9 @@ const serializeDepot = (
   address: depot.address,
   city: depot.city,
   state: depot.state,
+  region_id: depot.region_id,
+  city_id: depot.city_id,
+  district_id: depot.district_id,
   zipcode: depot.zipcode,
   phone_number: depot.phone_number,
   email: depot.email,
@@ -118,6 +127,27 @@ const serializeDepot = (
         email: depot.depots_coodrinator.email,
       }
     : null,
+  depots_region: depot.depots_region
+    ? {
+        id: depot.depots_region.id,
+        name: depot.depots_region.name,
+        code: depot.depots_region.code,
+      }
+    : null,
+  depots_city: depot.depots_city
+    ? {
+        id: depot.depots_city.id,
+        name: depot.depots_city.name,
+        code: depot.depots_city.code,
+      }
+    : null,
+  depots_district: depot.depots_district
+    ? {
+        id: depot.depots_district.id,
+        name: depot.depots_district.name,
+        code: depot.depots_district.code,
+      }
+    : null,
 });
 
 export const depotsController = {
@@ -154,6 +184,9 @@ export const depotsController = {
           depots_manager: true,
           depots_supervisior: true,
           depots_coodrinator: true,
+          depots_region: true,
+          depots_city: true,
+          depots_district: true,
         },
       });
 
@@ -245,6 +278,9 @@ export const depotsController = {
           depots_manager: true,
           depots_supervisior: true,
           depots_coodrinator: true,
+          depots_region: true,
+          depots_city: true,
+          depots_district: true,
         },
       });
 
@@ -289,6 +325,9 @@ export const depotsController = {
           depots_manager: true,
           depots_supervisior: true,
           depots_coodrinator: true,
+          depots_region: true,
+          depots_city: true,
+          depots_district: true,
         },
       });
 
@@ -338,6 +377,9 @@ export const depotsController = {
           depots_manager: true,
           depots_supervisior: true,
           depots_coodrinator: true,
+          depots_region: true,
+          depots_city: true,
+          depots_district: true,
         },
       });
 

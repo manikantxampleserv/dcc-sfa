@@ -210,6 +210,9 @@ model depots {
   id                           Int                     @id(map: "PK__depots__3213E83F2BEB71BC") @default(autoincrement())
   parent_id                    Int
   name                         String                  @db.NVarChar(255)
+  region_id                    Int?
+  city_id                      Int?
+  district_id                  Int?
   code                         String                  @db.NVarChar(50)
   address                      String?                 @db.NVarChar(500)
   city                         String?                 @db.NVarChar(100)
@@ -246,6 +249,9 @@ model depots {
   zone_depots                  zones[]
   user_depots_depot_id         user_depots[]           @relation("UserDepotsId")
   user_depot                   users[]
+  depots_region                regions?                @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  depots_city                  cities?                 @relation(fields: [city_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  depots_district              districts?              @relation(fields: [district_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model api_tokens {
@@ -2913,6 +2919,7 @@ model regions {
   log_inst          Int?
   district_regions  districts[]
   customers_regions customers[]
+  depots_region     depots[]
 }
 
 model districts {
@@ -2930,6 +2937,7 @@ model districts {
   district_regions    regions     @relation(fields: [region_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   cities_districts    cities[]
   customers_districts customers[]
+  depots_district     depots[]
 }
 
 model cities {
@@ -2946,6 +2954,7 @@ model cities {
   log_inst         Int?
   cities_districts districts   @relation(fields: [district_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   customers_city   customers[]
+  depots_city      depots[]
 }
 
 model alerts {
