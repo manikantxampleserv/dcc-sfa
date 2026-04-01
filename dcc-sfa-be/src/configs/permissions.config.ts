@@ -181,7 +181,8 @@ export type Modules =
   | 'product-type'
   | 'product-target-group'
   | 'product-web-order'
-  | 'inventory-items';
+  | 'inventory-items'
+  | 'asset-master-brands';
 
 /**
  * @type Actions
