@@ -37,7 +37,20 @@ export const assetBrandsController = {
           .status(400)
           .json({ message: 'Asset brand name is required' });
       }
+      const existingName = await prisma.asset_brands.findFirst({
+        where: {
+          name: {
+            equals: data.name.trim(),
+          },
+        },
+      });
 
+      if (existingName) {
+        return res.status(400).json({
+          message:
+            'Asset brand name already exists. Please use a different name.',
+        });
+      }
       const generateCode = async (name: string): Promise<string> => {
         const words = name.toUpperCase().split(/\s+/);
         const firstWord = words[0];
@@ -81,6 +94,22 @@ export const assetBrandsController = {
       if (data.code && data.code.trim() !== '') {
         const existingCode = await prisma.asset_brands.findFirst({
           where: { code: data.code.trim() },
+        });
+
+        if (existingCode) {
+          return res.status(400).json({
+            message: 'Code already exists. Please use a different code.',
+          });
+        }
+      }
+
+      if (data.code && data.code.trim() !== '') {
+        const existingCode = await prisma.asset_brands.findFirst({
+          where: {
+            code: {
+              equals: data.code.trim(),
+            },
+          },
         });
 
         if (existingCode) {
