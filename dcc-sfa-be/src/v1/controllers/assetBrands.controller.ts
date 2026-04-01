@@ -2,50 +2,40 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 
-interface AssetSubTypeSerialized {
+interface AssetBrandSerialized {
   id: number;
   name: string;
   code: string;
-  asset_type_id: number | null;
   description?: string | null;
   is_active: string;
   createdby: number;
   createdate?: Date | null;
   updatedate?: Date | null;
   updatedby?: number | null;
-  asset_type?: {
-    id: number;
-    name: string;
-  } | null;
+  asset_count?: number;
 }
 
-const serializeAssetSubType = (assetSubType: any): AssetSubTypeSerialized => ({
-  id: assetSubType.id,
-  name: assetSubType.name,
-  code: assetSubType.code,
-  asset_type_id: assetSubType.asset_type_id,
-  description: assetSubType.description,
-  is_active: assetSubType.is_active,
-  createdby: assetSubType.createdby,
-  createdate: assetSubType.createdate,
-  updatedate: assetSubType.updatedate,
-  updatedby: assetSubType.updatedby,
-  asset_type: assetSubType.asset_sub_types_asset_types
-    ? {
-        id: assetSubType.asset_sub_types_asset_types.id,
-        name: assetSubType.asset_sub_types_asset_types.name,
-      }
-    : null,
+const serializeAssetBrand = (assetBrand: any): AssetBrandSerialized => ({
+  id: assetBrand.id,
+  name: assetBrand.name,
+  code: assetBrand.code,
+  description: assetBrand.description,
+  is_active: assetBrand.is_active,
+  createdby: assetBrand.createdby,
+  createdate: assetBrand.createdate,
+  updatedate: assetBrand.updatedate,
+  updatedby: assetBrand.updatedby,
+  asset_count: assetBrand._count?.asset_master_brands || 0,
 });
 
-export const assetSubTypesController = {
-  async createAssetSubType(req: Request, res: Response) {
+export const assetBrandsController = {
+  async createAssetBrand(req: Request, res: Response) {
     try {
       const data = req.body;
       if (!data.name) {
         return res
           .status(400)
-          .json({ message: 'Asset sub type name is required' });
+          .json({ message: 'Asset brand name is required' });
       }
 
       const generateCode = async (name: string): Promise<string> => {
@@ -56,9 +46,9 @@ export const assetSubTypesController = {
           abbreviation = firstWord;
         }
 
-        const baseCode = `AST-${abbreviation}`;
+        const baseCode = `AB-${abbreviation}`;
 
-        const existingCodes = await prisma.asset_sub_types.findMany({
+        const existingCodes = await prisma.asset_brands.findMany({
           where: {
             code: {
               startsWith: baseCode,
@@ -89,7 +79,7 @@ export const assetSubTypesController = {
       };
 
       if (data.code && data.code.trim() !== '') {
-        const existingCode = await prisma.asset_sub_types.findFirst({
+        const existingCode = await prisma.asset_brands.findFirst({
           where: { code: data.code.trim() },
         });
 
@@ -105,11 +95,10 @@ export const assetSubTypesController = {
           ? data.code.trim()
           : await generateCode(data.name);
 
-      const assetSubType = await prisma.asset_sub_types.create({
+      const assetBrand = await prisma.asset_brands.create({
         data: {
           ...data,
           code: finalCode,
-          asset_type_id: Number(data.asset_type_id),
           createdby: data.createdby ? Number(data.createdby) : 1,
           log_inst: data.log_inst || 1,
           createdate: new Date(),
@@ -117,31 +106,24 @@ export const assetSubTypesController = {
       });
 
       res.status(201).json({
-        message: 'Asset sub type created successfully',
-        data: serializeAssetSubType(assetSubType),
+        message: 'Asset brand created successfully',
+        data: serializeAssetBrand(assetBrand),
       });
     } catch (error: any) {
-      console.error('Create Asset Sub Type Error:', error);
+      console.error('Create Asset Brand Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
 
-  async getAssetSubTypes(req: Request, res: Response) {
+  async getAssetBrands(req: Request, res: Response) {
     try {
-      const {
-        page = '1',
-        limit = '10',
-        search = '',
-        isActive,
-        assetTypeId,
-      } = req.query;
+      const { page = '1', limit = '10', search = '', isActive } = req.query;
       const page_num = parseInt(page as string, 10);
       const limit_num = parseInt(limit as string, 10);
       const searchLower = (search as string).toLowerCase();
 
       const filters: any = {
         ...(isActive && { is_active: isActive as string }),
-        ...(assetTypeId && { asset_type_id: Number(assetTypeId) }),
         ...(search && {
           OR: [
             { name: { contains: searchLower } },
@@ -151,11 +133,11 @@ export const assetSubTypesController = {
         }),
       };
 
-      const totalAssetSubTypes = await prisma.asset_sub_types.count();
-      const activeAssetSubTypes = await prisma.asset_sub_types.count({
+      const totalAssetBrands = await prisma.asset_brands.count();
+      const activeAssetBrands = await prisma.asset_brands.count({
         where: { is_active: 'Y' },
       });
-      const inactiveAssetSubTypes = await prisma.asset_sub_types.count({
+      const inactiveAssetBrands = await prisma.asset_brands.count({
         where: { is_active: 'N' },
       });
 
@@ -163,7 +145,7 @@ export const assetSubTypesController = {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-      const newAssetSubTypesThisMonth = await prisma.asset_sub_types.count({
+      const newAssetBrandsThisMonth = await prisma.asset_brands.count({
         where: {
           createdate: {
             gte: startOfMonth,
@@ -173,23 +155,22 @@ export const assetSubTypesController = {
       });
 
       const stats = {
-        total_asset_sub_types: totalAssetSubTypes,
-        active_asset_sub_types: activeAssetSubTypes,
-        inactive_asset_sub_types: inactiveAssetSubTypes,
-        new_asset_sub_types: newAssetSubTypesThisMonth,
+        total_asset_brands: totalAssetBrands,
+        active_asset_brands: activeAssetBrands,
+        inactive_asset_brands: inactiveAssetBrands,
+        new_asset_brands: newAssetBrandsThisMonth,
       };
 
       const { data, pagination } = await paginate({
-        model: prisma.asset_sub_types,
+        model: prisma.asset_brands,
         filters,
         page: page_num,
         limit: limit_num,
         orderBy: { createdate: 'desc' },
         include: {
-          asset_sub_types_asset_types: {
+          _count: {
             select: {
-              id: true,
-              name: true,
+              asset_master_brands: true,
             },
           },
         },
@@ -197,8 +178,8 @@ export const assetSubTypesController = {
 
       res.json({
         success: true,
-        message: 'Asset sub types retrieved successfully',
-        data: data.map((d: any) => serializeAssetSubType(d)),
+        message: 'Asset brands retrieved successfully',
+        data: data.map((d: any) => serializeAssetBrand(d)),
         meta: {
           requestDuration: Date.now(),
           timestamp: new Date().toISOString(),
@@ -207,7 +188,7 @@ export const assetSubTypesController = {
         stats,
       });
     } catch (error: any) {
-      console.error('Get Asset Sub Types Error:', error);
+      console.error('Get Asset Brands Error:', error);
       res.status(500).json({
         success: false,
         message: error.message,
@@ -215,44 +196,52 @@ export const assetSubTypesController = {
     }
   },
 
-  async getAssetSubTypeById(req: Request, res: Response) {
+  async getAssetBrandById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const assetSubType = await prisma.asset_sub_types.findUnique({
+      const assetBrand = await prisma.asset_brands.findUnique({
         where: { id: Number(id) },
         include: {
-          asset_sub_types_asset_types: {
+          _count: {
+            select: {
+              asset_master_brands: true,
+            },
+          },
+          asset_master_brands: {
             select: {
               id: true,
               name: true,
+              code: true,
+              serial_number: true,
+              current_status: true,
             },
           },
         },
       });
 
-      if (!assetSubType) {
-        return res.status(404).json({ message: 'Asset sub type not found' });
+      if (!assetBrand) {
+        return res.status(404).json({ message: 'Asset brand not found' });
       }
 
       res.json({
-        message: 'Asset sub type fetched successfully',
-        data: serializeAssetSubType(assetSubType),
+        message: 'Asset brand fetched successfully',
+        data: serializeAssetBrand(assetBrand),
       });
     } catch (error: any) {
-      console.error('Get Asset Sub Type Error:', error);
+      console.error('Get Asset Brand Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
 
-  async updateAssetSubType(req: Request, res: Response) {
+  async updateAssetBrand(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const existingAssetSubType = await prisma.asset_sub_types.findUnique({
+      const existingAssetBrand = await prisma.asset_brands.findUnique({
         where: { id: Number(id) },
       });
 
-      if (!existingAssetSubType) {
-        return res.status(404).json({ message: 'Asset sub type not found' });
+      if (!existingAssetBrand) {
+        return res.status(404).json({ message: 'Asset brand not found' });
       }
 
       const generateCode = async (name: string): Promise<string> => {
@@ -263,9 +252,9 @@ export const assetSubTypesController = {
           abbreviation = firstWord;
         }
 
-        const baseCode = `AST-${abbreviation}`;
+        const baseCode = `AB-${abbreviation}`;
 
-        const existingCodes = await prisma.asset_sub_types.findMany({
+        const existingCodes = await prisma.asset_brands.findMany({
           where: {
             code: {
               startsWith: baseCode,
@@ -299,7 +288,7 @@ export const assetSubTypesController = {
       };
 
       if (req.body.code && req.body.code.trim() !== '') {
-        const existingCode = await prisma.asset_sub_types.findFirst({
+        const existingCode = await prisma.asset_brands.findFirst({
           where: {
             code: req.body.code.trim(),
             id: {
@@ -315,7 +304,7 @@ export const assetSubTypesController = {
         }
       }
 
-      const nameToUse = req.body.name || existingAssetSubType.name;
+      const nameToUse = req.body.name || existingAssetBrand.name;
       const finalCode =
         req.body.code && req.body.code.trim() !== ''
           ? req.body.code.trim()
@@ -324,71 +313,81 @@ export const assetSubTypesController = {
       const data = {
         ...req.body,
         code: finalCode,
-        ...(req.body.asset_type_id && {
-          asset_type_id: Number(req.body.asset_type_id),
-        }),
         updatedate: new Date(),
       };
 
-      const assetSubType = await prisma.asset_sub_types.update({
+      const assetBrand = await prisma.asset_brands.update({
         where: { id: Number(id) },
         data,
       });
 
       res.json({
-        message: 'Asset sub type updated successfully',
-        data: serializeAssetSubType(assetSubType),
+        message: 'Asset brand updated successfully',
+        data: serializeAssetBrand(assetBrand),
       });
     } catch (error: any) {
-      console.error('Update Asset Sub Type Error:', error);
+      console.error('Update Asset Brand Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
 
-  async deleteAssetSubType(req: Request, res: Response) {
+  async deleteAssetBrand(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const existingAssetSubType = await prisma.asset_sub_types.findUnique({
+      const existingAssetBrand = await prisma.asset_brands.findUnique({
         where: { id: Number(id) },
+        include: {
+          _count: {
+            select: {
+              asset_master_brands: true,
+            },
+          },
+        },
       });
 
-      if (!existingAssetSubType) {
-        return res.status(404).json({ message: 'Asset sub type not found' });
+      if (!existingAssetBrand) {
+        return res.status(404).json({ message: 'Asset brand not found' });
       }
 
-      await prisma.asset_sub_types.delete({ where: { id: Number(id) } });
+      if (existingAssetBrand._count.asset_master_brands > 0) {
+        return res.status(400).json({
+          message: 'Cannot delete asset brand. It is being used by assets.',
+          data: {
+            assetCount: existingAssetBrand._count.asset_master_brands,
+          },
+        });
+      }
 
-      res.json({ message: 'Asset sub type deleted successfully' });
+      await prisma.asset_brands.delete({ where: { id: Number(id) } });
+
+      res.json({ message: 'Asset brand deleted successfully' });
     } catch (error: any) {
-      console.error('Delete Asset Sub Type Error:', error);
+      console.error('Delete Asset Brand Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
 
-  async getAssetSubTypesDropdown(req: Request, res: Response) {
+  async getAssetBrandsDropdown(req: Request, res: Response) {
     try {
-      const { asset_type_id } = req.query;
-      const assetSubTypes = await prisma.asset_sub_types.findMany({
+      const assetBrands = await prisma.asset_brands.findMany({
         where: {
           is_active: 'Y',
-          ...(asset_type_id && { asset_type_id: Number(asset_type_id) }),
         },
         select: {
           id: true,
           name: true,
           code: true,
-          asset_type_id: true,
         },
         orderBy: { name: 'asc' },
       });
 
       res.json({
         success: true,
-        message: 'Asset sub types dropdown retrieved successfully',
-        data: assetSubTypes,
+        message: 'Asset brands dropdown retrieved successfully',
+        data: assetBrands,
       });
     } catch (error: any) {
-      console.error('Get Asset Sub Types Dropdown Error:', error);
+      console.error('Get Asset Brands Dropdown Error:', error);
       res.status(500).json({
         success: false,
         message: error.message,

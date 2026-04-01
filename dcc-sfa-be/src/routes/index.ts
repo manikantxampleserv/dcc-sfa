@@ -98,6 +98,7 @@ import districts from '../v1/routes/districts.routes';
 import cities from '../v1/routes/cities.routes';
 import alerts from '../v1/routes/alerts.routes';
 import customerCategoryGrading from '../v1/controllers/customerCategoryGrading.routes';
+import assetMasterBrands from '../v1/routes/assetMaterBrands.routes';
 
 const routes = Router();
 
@@ -199,6 +200,7 @@ routes.use('/v1', districts);
 routes.use('/v1', cities);
 routes.use('/v1', alerts);
 routes.use('/v1', customerCategoryGrading);
+routes.use('/v1', assetMasterBrands);
 
 routes.get('/', (_: any, res: any) => {
   res.json({

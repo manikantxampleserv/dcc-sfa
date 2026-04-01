@@ -341,7 +341,11 @@ model asset_maintenance {
 model asset_master {
   id                           Int                     @id(map: "PK__asset_ma__3213E83FB367A2E5") @default(autoincrement())
   asset_type_id                Int
+  asset_brand_id               Int?
   brand_id                     Int?
+  installation_date            DateTime?               @db.Date
+  last_scanned_date            DateTime?               @db.Date
+  last_read_by                 Int?
   brand                        String?                 @db.VarChar(255)
   barcode                      String?
   nfc_tag                      String?
@@ -362,18 +366,19 @@ model asset_master {
   asset_sub_type_id            Int?
   asset_master_image           asset_images[]
   asset_maintenance_master     asset_maintenance[]
-  asset_master_asset_sub_types asset_sub_types?        @relation(fields: [asset_sub_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  asset_master_asset_sub_types asset_sub_types?        @relation(fields: [asset_sub_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_master_asset_types     asset_types             @relation(fields: [asset_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   asset_movement_assets_asset  asset_movement_assets[]
   asset_master_warranty_claims asset_warranty_claims[]
   cooler_asset_master          coolers[]
   asset_master_brand           brands?                 @relation(fields: [brand_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  asset_master_brands          asset_brands?           @relation(fields: [asset_brand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model asset_sub_types {
   id                           Int            @id @default(autoincrement())
   name                         String         @db.VarChar(255)
-  asset_type_id                Int
+  asset_type_id                Int?
   description                  String?        @db.Text
   code                         String         @unique @db.VarChar(100)
   is_active                    String         @default("Y") @db.Char(1)
@@ -383,7 +388,21 @@ model asset_sub_types {
   updatedby                    Int?
   log_inst                     Int?
   asset_master_asset_sub_types asset_master[]
-  asset_sub_types_asset_types  asset_types    @relation(fields: [asset_type_id], references: [id], onUpdate: NoAction)
+  asset_sub_types_asset_types  asset_types?   @relation(fields: [asset_type_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+}
+
+model asset_brands {
+  id                  Int            @id @default(autoincrement())
+  name                String         @db.NVarChar(255)
+  code                String         @unique @db.NVarChar(50)
+  description         String?        @db.NVarChar(500)
+  is_active           String         @default("Y") @db.Char(1)
+  createdate          DateTime?      @default(now()) @db.DateTime
+  createdby           Int
+  updatedate          DateTime?      @db.DateTime
+  updatedby           Int?
+  log_inst            Int?
+  asset_master_brands asset_master[]
 }
 
 model asset_movements {
