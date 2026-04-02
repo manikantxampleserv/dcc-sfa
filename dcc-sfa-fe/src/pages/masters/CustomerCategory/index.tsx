@@ -131,7 +131,7 @@ const CustomerCategoryPage: React.FC = () => {
   const customerCategoryColumns: TableColumn<CustomerCategory>[] = [
     {
       id: 'category_name',
-      label: 'Category Name',
+      label: 'Outlet Category',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
@@ -228,10 +228,10 @@ const CustomerCategoryPage: React.FC = () => {
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Customer Category Management
+            Outlet Category Management
           </p>
           <p className="!text-gray-500 text-sm">
-            Manage customer categories and their conditions
+            Manage outlet categories and their conditions
           </p>
         </Box>
       </Box>
@@ -272,7 +272,7 @@ const CustomerCategoryPage: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load customer categories. Please try again.
+          Failed to load outlet categories. Please try again.
         </Alert>
       )}
 
@@ -286,7 +286,7 @@ const CustomerCategoryPage: React.FC = () => {
                 {isRead && (
                   <>
                     <SearchInput
-                      placeholder="Search Customer Categories..."
+                      placeholder="Search Outlet Categories..."
                       value={search}
                       onChange={handleSearchChange}
                       debounceMs={400}
@@ -309,8 +309,8 @@ const CustomerCategoryPage: React.FC = () => {
               <div className="flex gap-2 items-center">
                 {isRead && (
                   <PopConfirm
-                    title="Export Customer Categories"
-                    description="Are you sure you want to export the current customer categories data to Excel? This will include all filtered results."
+                    title="Export Outlet Categories"
+                    description="Are you sure you want to export the current outlet categories data to Excel? This will include all filtered results."
                     onConfirm={handleExportToExcel}
                     confirmText="Export"
                     cancelText="Cancel"
@@ -365,8 +365,8 @@ const CustomerCategoryPage: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No customer categories found matching "${search}"`
-            : 'No customer categories found in the system'
+            ? `No outlet categories found matching "${search}"`
+            : 'No outlet categories found in the system'
         }
       />
 

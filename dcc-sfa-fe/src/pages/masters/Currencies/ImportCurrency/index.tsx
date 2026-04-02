@@ -112,7 +112,6 @@ const ImportCurrency: React.FC<ImportCurrencyProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Currencies"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">

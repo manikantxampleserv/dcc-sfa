@@ -8,7 +8,6 @@ interface BrandSerialized {
   name: string;
   code: string;
   description?: string | null;
-  is_asset_brand?: string;
   logo?: string | null;
   is_active: string;
   createdate?: Date | null;
@@ -41,7 +40,6 @@ const serializeBrand = (b: any): BrandSerialized => ({
   id: b.id,
   name: b.name,
   code: b.code,
-  is_asset_brand: b.is_asset_brand,
   description: b.description,
   logo: b.logo,
   is_active: b.is_active,
@@ -92,14 +90,11 @@ export const brandsController = {
 
   async getAllBrands(req: any, res: any) {
     try {
-      const { page, limit, search, status, is_asset_brand } = req.query;
+      const { page, limit, search, status } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
       const statusLower = status ? (status as string).toLowerCase() : '';
-      const isAssetBrand = is_asset_brand
-        ? (is_asset_brand as string).toUpperCase()
-        : '';
 
       const filters: any = {
         ...(search && {
@@ -113,10 +108,6 @@ export const brandsController = {
         }),
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
-        ...(isAssetBrand === 'N' && {
-          OR: [{ is_asset_brand: 'N' }, { is_asset_brand: null }],
-        }),
-        ...(isAssetBrand === 'Y' && { is_asset_brand: 'Y' }),
       };
 
       const { data, pagination } = await paginate({

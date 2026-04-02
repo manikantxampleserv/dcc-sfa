@@ -184,15 +184,6 @@ const AssetTypesPage: React.FC = () => {
       ),
     },
     {
-      id: 'brand',
-      label: 'Brand',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-900">
-          {row.brand || <span className="italic text-gray-400">No Brand</span>}
-        </Typography>
-      ),
-    },
-    {
       id: 'is_active',
       label: 'Status',
       render: is_active => (

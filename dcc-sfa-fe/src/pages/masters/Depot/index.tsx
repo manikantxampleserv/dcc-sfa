@@ -194,7 +194,7 @@ const DepotsManagement: React.FC = () => {
               <span className="text-xs">{row.email}</span>
             </div>
           ) : (
-            <span className="italic text-gray-400">No Email</span>
+            <span className="italic text-xs text-gray-400">No Email</span>
           )}
           {row.phone_number && (
             <div className="flex items-center gap-1">
@@ -212,7 +212,9 @@ const DepotsManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <MapPin className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {[row.city, row.state].filter(Boolean).join(', ') || 'No Location'}
+            {[row.city, row.state].filter(Boolean).join(', ') || (
+              <span className="italic text-xs text-gray-400">No Location</span>
+            )}
           </span>
         </Box>
       ),

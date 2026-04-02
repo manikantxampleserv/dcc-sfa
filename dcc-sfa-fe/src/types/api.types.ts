@@ -107,6 +107,11 @@ export interface ApiResponse<T = any> {
     active_asset_types: number;
     inactive_asset_types: number;
     new_asset_types: number;
+    // Asset brand statistics
+    total_asset_brands?: number;
+    active_asset_brands?: number;
+    inactive_asset_brands?: number;
+    new_asset_brands?: number;
     // Asset sub type statistics
     total_asset_sub_types?: number;
     active_asset_sub_types?: number;

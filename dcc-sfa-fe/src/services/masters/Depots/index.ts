@@ -24,6 +24,9 @@ interface Depot {
   coordinator_id?: number | null;
   latitude?: number | null;
   longitude?: number | null;
+  region_id?: number | null;
+  city_id?: number | null;
+  district_id?: number | null;
   is_active: string;
   created_by: number;
   createdate?: string | null;
@@ -54,6 +57,9 @@ interface Depot {
     name: string;
     email: string;
   } | null;
+  depots_region?: { id: number; name: string; code?: string } | null;
+  depots_city?: { id: number; name: string; code?: string } | null;
+  depots_district?: { id: number; name: string; code?: string } | null;
   // Additional computed fields for display
   company_name?: string;
   manager_name?: string;
@@ -75,6 +81,9 @@ interface ManageDepotPayload {
   coordinator_id?: number;
   latitude?: number;
   longitude?: number;
+  region_id?: number;
+  district_id?: number;
+  city_id?: number;
   is_active?: string;
   createdby?: number;
 }
@@ -94,6 +103,9 @@ interface UpdateDepotPayload {
   coordinator_id?: number;
   latitude?: number;
   longitude?: number;
+  region_id?: number;
+  district_id?: number;
+  city_id?: number;
   is_active?: string;
   updatedby?: number;
 }

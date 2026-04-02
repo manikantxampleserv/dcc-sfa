@@ -90,7 +90,15 @@ const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
   log_inst: asset.log_inst,
   asset_master_image: asset.asset_master_image || [],
   asset_maintenance_master: asset.asset_maintenance_master || [],
-  asset_movement_assets_asset: asset.asset_movement_assets_asset || [],
+  asset_movement_assets_asset:
+    asset.asset_movement_assets_asset?.map((m: any) => ({
+      id: m.asset_movement_assets_movement?.id,
+      movement_type: m.asset_movement_assets_movement?.movement_type,
+      movement_date: m.asset_movement_assets_movement?.movement_date,
+      from_direction: m.asset_movement_assets_movement?.from_direction,
+      to_direction: m.asset_movement_assets_movement?.to_direction,
+      notes: m.asset_movement_assets_movement?.notes,
+    })) || [],
   asset_master_warranty_claims: asset.asset_master_warranty_claims || [],
   asset_master_asset_types: asset.asset_master_asset_types || null,
   asset_master_asset_sub_types: asset.asset_master_asset_sub_types || null,
@@ -406,6 +414,20 @@ export const assetMasterController = {
         include: {
           asset_master_image: true,
           asset_maintenance_master: true,
+          asset_movement_assets_asset: {
+            include: {
+              asset_movement_assets_movement: {
+                select: {
+                  id: true,
+                  movement_type: true,
+                  movement_date: true,
+                  from_direction: true,
+                  to_direction: true,
+                  notes: true,
+                },
+              },
+            },
+          },
           asset_master_warranty_claims: true,
           asset_master_asset_types: true,
           asset_master_asset_sub_types: true,

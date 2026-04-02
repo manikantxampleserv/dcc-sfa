@@ -24,9 +24,9 @@ export const assetMasterValidationSchema = Yup.object({
       return value;
     }),
 
-  brand_id: Yup.number()
+  asset_brand_id: Yup.number()
     .nullable()
-    .positive('Brand must be valid')
+    .positive('Asset brand must be valid')
     .transform((value, originalValue) => {
       if (
         originalValue === '' ||

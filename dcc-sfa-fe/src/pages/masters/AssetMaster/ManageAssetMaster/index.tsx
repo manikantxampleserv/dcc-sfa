@@ -8,7 +8,7 @@ import {
 } from 'hooks/useAssetMaster';
 import { useAssetTypes } from 'hooks/useAssetTypes';
 import { useAssetSubTypes } from 'hooks/useAssetSubTypes';
-import { useBrands } from 'hooks/useBrands';
+import { useAssetBrands } from 'hooks/useAssetBrands';
 import React, { useEffect, useRef, useState } from 'react';
 import { assetMasterValidationSchema } from 'schemas/assetMaster.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
@@ -43,20 +43,19 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
   });
   const assetTypes = assetTypesResponse?.data || [];
 
-  const { data: brandsResponse } = useBrands({
+  const { data: assetBrandsResponse } = useAssetBrands({
     page: 1,
     limit: 1000,
-    status: 'active',
-    is_asset_brand: 'Y',
+    isActive: 'Y',
   });
-  const brands = brandsResponse?.data || [];
+  const assetBrands = assetBrandsResponse?.data || [];
 
   const formik = useFormik({
     initialValues: {
       name: selectedAsset?.name || '',
       asset_type_id: selectedAsset?.asset_type_id || 0,
       asset_sub_type_id: selectedAsset?.asset_sub_type_id || 0,
-      brand_id: selectedAsset?.brand_id || 0,
+      asset_brand_id: selectedAsset?.asset_brand_id || 0,
       serial_number: selectedAsset?.serial_number || '',
       barcode: selectedAsset?.barcode || '',
       nfc_tag_code: selectedAsset?.nfc_tag_code || '',
@@ -81,7 +80,9 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
           asset_sub_type_id: values.asset_sub_type_id
             ? Number(values.asset_sub_type_id)
             : null,
-          brand_id: values.brand_id ? Number(values.brand_id) : null,
+          asset_brand_id: values.asset_brand_id
+            ? Number(values.asset_brand_id)
+            : null,
           purchase_date: values.purchase_date || null,
           warranty_expiry: values.warranty_expiry || null,
           current_status: values.current_status || null,
@@ -106,11 +107,9 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
     },
   });
 
-  const selectedAssetTypeId = formik.values.asset_type_id;
   const { data: assetSubTypesResponse } = useAssetSubTypes({
     page: 1,
     limit: 1000,
-    assetTypeId: selectedAssetTypeId ? Number(selectedAssetTypeId) : undefined,
   });
   const assetSubTypes = assetSubTypesResponse?.data || [];
 
@@ -242,7 +241,6 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               name="asset_sub_type_id"
               label="Asset Sub Type"
               formik={formik}
-              disabled={!selectedAssetTypeId}
             >
               {assetSubTypes.map(subType => (
                 <MenuItem key={subType.id} value={subType.id}>
@@ -251,8 +249,8 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               ))}
             </Select>
 
-            <Select name="brand_id" label="Brand" formik={formik}>
-              {brands.map((brand: any) => (
+            <Select name="asset_brand_id" label="Asset Brand" formik={formik}>
+              {assetBrands.map((brand: any) => (
                 <MenuItem key={brand.id} value={brand.id}>
                   {brand.name}
                 </MenuItem>
@@ -281,39 +279,7 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
               formik={formik}
             />
 
-            <Input
-              name="purchase_date"
-              label="Purchase Date"
-              type="date"
-              formik={formik}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-
-            <Select
-              name="warranty_period"
-              label="Warranty Period"
-              formik={formik}
-            >
-              <MenuItem value="1">1 Year</MenuItem>
-              <MenuItem value="2">2 Years</MenuItem>
-              <MenuItem value="3">3 Years</MenuItem>
-              <MenuItem value="4">4 Years</MenuItem>
-              <MenuItem value="5">5 Years</MenuItem>
-            </Select>
-
-            <Input
-              name="warranty_expiry"
-              label="Warranty Expiry"
-              type="date"
-              formik={formik}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-
-            <Select
-              name="current_status"
-              label="Current Status"
-              formik={formik}
-            >
+            <Select name="current_status" label="Asset Status" formik={formik}>
               {statusOptions.map(option => (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}

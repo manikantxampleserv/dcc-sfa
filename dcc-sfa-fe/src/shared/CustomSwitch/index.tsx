@@ -13,31 +13,30 @@ const CustomSwitch = styled((props: any) => (
     transitionDuration: '200ms',
     '&.Mui-checked': {
       transform: 'translateX(20px)',
-      color: theme.palette.primary.main,
+      color: '#fff',
       '& + .MuiSwitch-track': {
-        backgroundColor: theme.palette.primary.main,
-        opacity: 0.2,
-        border: `2px solid ${theme.palette.primary.main}`,
+        backgroundColor: '#1D4ED8',
+        opacity: 1,
+        border: 'none',
       },
       '&.Mui-disabled + .MuiSwitch-track': {
-        opacity: 0.1,
+        opacity: 0.5,
       },
     },
     '&.Mui-focusVisible .MuiSwitch-thumb': {
-      color: theme.palette.primary.main,
+      color: '#1D4ED8',
       border: '3px solid #fff',
-      boxShadow: '0 0 0 6px rgba(25, 118, 210, 0.16)',
     },
     '&.Mui-disabled .MuiSwitch-thumb': {
-      color: theme.palette.grey[300],
+      color: '#F3F4F6',
       ...theme.applyStyles('dark', {
-        color: theme.palette.grey[600],
+        color: '#4B5563',
       }),
     },
     '&.Mui-disabled + .MuiSwitch-track': {
-      opacity: 0.3,
+      opacity: 0.7,
       ...theme.applyStyles('dark', {
-        opacity: 0.1,
+        opacity: 0.3,
       }),
     },
   },
@@ -46,24 +45,21 @@ const CustomSwitch = styled((props: any) => (
     width: 20,
     height: 20,
     backgroundColor: '#fff',
-    border: '2px solid #E0E0E0',
     transition: theme.transitions.create(['border-color', 'transform'], {
       duration: 200,
     }),
   },
   '& .MuiSwitch-track': {
     borderRadius: 24 / 2,
-    backgroundColor: '#F5F5F5',
-    border: '2px solid #E0E0E0',
+    backgroundColor: '#DBEAFE',
     opacity: 1,
     transition: theme.transitions.create(['background-color', 'border-color'], {
       duration: 200,
     }),
     ...theme.applyStyles('dark', {
-      backgroundColor: '#424242',
-      borderColor: '#616161',
+      backgroundColor: '#1E3A8A',
     }),
   },
 }));
 
-export { CustomSwitch };
+export default CustomSwitch;

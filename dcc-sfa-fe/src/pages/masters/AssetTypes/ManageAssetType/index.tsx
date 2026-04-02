@@ -80,8 +80,8 @@ const ManageAssetType: React.FC<ManageAssetTypeProps> = ({
       size="medium"
     >
       <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+        <form onSubmit={formik.handleSubmit} className="!space-y-5">
+          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
             <Input
               name="name"
               label="Asset Type Name"

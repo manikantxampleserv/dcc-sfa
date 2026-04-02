@@ -24,8 +24,6 @@ import {
   useDeleteCustomer,
   type Customer,
 } from '../../../hooks/useCustomers';
-import { useRoutes } from '../../../hooks/useRoutes';
-import { useZones } from '../../../hooks/useZones';
 import { useExportToExcel } from '../../../hooks/useImportExport';
 import ImportCustomers from './ImportCustomers';
 import ManageOutlet from './ManageOutlet';
@@ -75,21 +73,7 @@ const OutletsManagement: React.FC = () => {
     }
   );
 
-  const { data: routesResponse } = useRoutes({
-    page: 1,
-    limit: 100,
-    status: 'active',
-  });
-
-  const { data: zonesResponse } = useZones({
-    page: 1,
-    limit: 100,
-    isActive: 'Y',
-  });
-
   const customers = customersResponse?.data || [];
-  const routes = routesResponse?.data || [];
-  const zones = zonesResponse?.data || [];
   const totalCount = customersResponse?.meta?.total || 0;
   const currentPage = (customersResponse?.meta?.page || 1) - 1;
 
@@ -536,8 +520,6 @@ const OutletsManagement: React.FC = () => {
         setSelectedOutlet={setSelectedOutlet}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
-        routes={routes}
-        zones={zones}
       />
 
       <ImportCustomers

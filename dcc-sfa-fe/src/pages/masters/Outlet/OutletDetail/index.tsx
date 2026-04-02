@@ -291,7 +291,7 @@ const OutletDetail: React.FC = () => {
     );
   }
 
-  // Attachments Table Columns
+
   const documentColumns: TableColumn<any>[] = [
     {
       id: 'document_type',
@@ -366,7 +366,7 @@ const OutletDetail: React.FC = () => {
     },
   ];
 
-  // Assets Table Columns
+
   const assetColumns: TableColumn<any>[] = [
     {
       id: 'code',
@@ -446,7 +446,7 @@ const OutletDetail: React.FC = () => {
     },
   ];
 
-  // Asset History Columns
+
   const historyColumns: TableColumn<any>[] = [
     {
       id: 'change_date',
@@ -497,7 +497,6 @@ const OutletDetail: React.FC = () => {
     },
   ];
 
-  // Flatten asset history from all assets
   const allAssetHistory = assets.flatMap((asset: any) =>
     (asset.customer_assets_history || []).map((history: any) => ({
       ...history,
@@ -506,7 +505,6 @@ const OutletDetail: React.FC = () => {
     }))
   );
 
-  // Transactions Table Columns
   const transactionColumns: TableColumn<any>[] = [
     {
       id: 'transaction_date',
@@ -566,7 +564,6 @@ const OutletDetail: React.FC = () => {
     },
   ];
 
-  // Feedbacks Table Columns
   const feedbackColumns: TableColumn<any>[] = [
     {
       id: 'feedback_date',
@@ -635,7 +632,6 @@ const OutletDetail: React.FC = () => {
     },
   ];
 
-  // Complaints Table Columns
   const complaintColumns: TableColumn<any>[] = [
     {
       id: 'complaint_date',

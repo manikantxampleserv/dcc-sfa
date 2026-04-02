@@ -15,7 +15,6 @@ interface Brand {
   description?: string | null;
   logo?: string | null;
   is_active: string;
-  is_asset_brand: string;
   createdate?: string | null;
   createdby: number;
   updatedate?: string | null;
@@ -27,14 +26,12 @@ interface ManageBrandPayload {
   name: string;
   description?: string;
   is_active?: string;
-  is_asset_brand?: string;
 }
 
 interface UpdateBrandPayload {
   name?: string;
   description?: string;
   is_active?: string;
-  is_asset_brand?: string;
 }
 
 interface UpdateBrandRequest {
@@ -47,7 +44,6 @@ interface GetBrandsParams {
   limit?: number;
   search?: string;
   status?: string;
-  is_asset_brand?: string;
 }
 
 /**

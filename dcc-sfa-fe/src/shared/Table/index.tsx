@@ -26,7 +26,7 @@ import {
   useSaveUserPreferences,
 } from '../../hooks/useUserPreferences';
 import { generateTableId } from '../../utils/generateTableId';
-import { CustomSwitch } from '../CustomSwitch';
+import CustomSwitch from '../CustomSwitch';
 
 /**
  * Configuration for a table column

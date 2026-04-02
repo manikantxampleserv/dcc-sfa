@@ -130,7 +130,7 @@ const CustomerChannelPage: React.FC = () => {
   const customerChannelColumns: TableColumn<CustomerChannel>[] = [
     {
       id: 'channel_name',
-      label: 'Channel Name',
+      label: 'Outlet Channel',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar

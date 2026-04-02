@@ -25,10 +25,11 @@ const regionValidationSchema = Yup.object({
     .required('Region name is required')
     .min(2, 'Region name must be at least 2 characters')
     .max(255, 'Region name must be less than 255 characters'),
-  code: Yup.string()
-    .max(50, 'Code must be less than 50 characters'),
-  description: Yup.string()
-    .max(500, 'Description must be less than 500 characters'),
+  code: Yup.string().max(50, 'Code must be less than 50 characters'),
+  description: Yup.string().max(
+    500,
+    'Description must be less than 500 characters'
+  ),
   is_active: Yup.string().oneOf(['Y', 'N']).required('Status is required'),
 });
 
@@ -108,7 +109,7 @@ const ManageRegion: React.FC<ManageRegionProps> = ({
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-5">
-          <Box className="!grid !grid-cols-1 !gap-5">
+          <Box className="!grid !grid-cols-2 !gap-5">
             <Input
               name="name"
               label="Region Name"
@@ -130,10 +131,11 @@ const ManageRegion: React.FC<ManageRegionProps> = ({
               placeholder="Enter description (optional)"
               formik={formik}
               multiline
+              className="col-span-2"
               rows={3}
             />
 
-            <Box>
+            <Box className="col-span-2">
               <ActiveInactiveField name="is_active" formik={formik} required />
             </Box>
           </Box>
@@ -144,8 +146,7 @@ const ManageRegion: React.FC<ManageRegionProps> = ({
               variant="outlined"
               onClick={handleCancel}
               disabled={
-                createRegionMutation.isPending ||
-                updateRegionMutation.isPending
+                createRegionMutation.isPending || updateRegionMutation.isPending
               }
             >
               Cancel
@@ -154,12 +155,10 @@ const ManageRegion: React.FC<ManageRegionProps> = ({
               type="submit"
               variant="contained"
               disabled={
-                createRegionMutation.isPending ||
-                updateRegionMutation.isPending
+                createRegionMutation.isPending || updateRegionMutation.isPending
               }
             >
-              {createRegionMutation.isPending ||
-              updateRegionMutation.isPending
+              {createRegionMutation.isPending || updateRegionMutation.isPending
                 ? isEdit
                   ? 'Updating...'
                   : 'Creating...'

@@ -34,6 +34,14 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
     formik.resetForm();
   };
 
+  const handleSubUnitChange = (e: any) => {
+    const value = e.target.value;
+    formik.setFieldValue('sub_unit', value);
+    if (!value) {
+      formik.setFieldValue('conversion_rate', '');
+    }
+  };
+
   const createUnitMutation = useCreateUnitOfMeasurement();
   const updateUnitMutation = useUpdateUnitOfMeasurement();
 
@@ -105,7 +113,13 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
               formik={formik}
             />
 
-            <Select name="sub_unit" label="Sub Unit" formik={formik}>
+            <Select
+              name="sub_unit"
+              label="Sub Unit"
+              formik={formik}
+              onChange={handleSubUnitChange}
+            >
+              <MenuItem value="">None</MenuItem>
               <MenuItem value="case">Case</MenuItem>
               <MenuItem value="pcs">PCs</MenuItem>
             </Select>
@@ -116,7 +130,13 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
               placeholder="Enter conversion rate"
               type="number"
               formik={formik}
+              required={!!formik.values.sub_unit}
+              disabled={!formik.values.sub_unit}
             />
+
+            <Box className="md:!col-span-2">
+              <ActiveInactiveField name="is_active" formik={formik} required />
+            </Box>
 
             <Box className="md:!col-span-2">
               <Input
@@ -127,17 +147,6 @@ const ManageUnitOfMeasurement: React.FC<ManageUnitOfMeasurementProps> = ({
                 multiline
                 rows={3}
               />
-            </Box>
-
-            {/* <Input
-              name="category"
-              label="Category"
-              placeholder="Enter category (e.g., Weight, Volume, Length)"
-              formik={formik}
-            /> */}
-
-            <Box className="md:!col-span-2">
-              <ActiveInactiveField name="is_active" formik={formik} required />
             </Box>
           </Box>
 

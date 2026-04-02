@@ -14,20 +14,23 @@ import {
   Calendar,
   Settings,
   Wrench,
+  Tag,
 } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { DeleteButton, EditButton, ViewButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
+import { useNavigate } from 'react-router-dom';
 import { formatDate } from 'utils/dateUtils';
 import ImportAssetMaster from './ImportAssetMaster';
 import ManageAssetMaster from './ManageAssetMaster';
 
 const AssetMasterManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedAsset, setSelectedAsset] = useState<AssetMaster | null>(null);
@@ -75,6 +78,13 @@ const AssetMasterManagement: React.FC = () => {
     setSelectedAsset(asset);
     setDrawerOpen(true);
   }, []);
+
+  const handleViewAsset = useCallback(
+    (id: number) => {
+      navigate(`/masters/asset-master/${id}`);
+    },
+    [navigate]
+  );
 
   const handleDeleteAsset = useCallback(
     async (id: number) => {
@@ -164,7 +174,25 @@ const AssetMasterManagement: React.FC = () => {
       render: value => (
         <Box className="flex items-center gap-1">
           <Settings className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">{value?.name || 'Not specified'}</span>
+          <span className="text-xs">
+            {value?.name || (
+              <span className="italic text-gray-400">Not specified</span>
+            )}
+          </span>
+        </Box>
+      ),
+    },
+    {
+      id: 'asset_brand',
+      label: 'Brand',
+      render: value => (
+        <Box className="flex items-center gap-1">
+          <Tag className="w-3 h-3 text-gray-400" />
+          <span className="text-xs">
+            {value?.name || (
+              <span className="italic text-gray-400">No brand</span>
+            )}
+          </span>
         </Box>
       ),
     },
@@ -174,7 +202,11 @@ const AssetMasterManagement: React.FC = () => {
       render: value => (
         <Box className="flex items-center gap-1">
           <Wrench className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">{value?.name || 'Not specified'}</span>
+          <span className="text-xs">
+            {value?.name || (
+              <span className="italic text-gray-400">No sub type</span>
+            )}
+          </span>
         </Box>
       ),
     },
@@ -185,7 +217,9 @@ const AssetMasterManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <MapPin className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {row.current_location || 'Not specified'}
+            {row.current_location || (
+              <span className="italic text-gray-400">No location</span>
+            )}
           </span>
         </Box>
       ),
@@ -207,7 +241,11 @@ const AssetMasterManagement: React.FC = () => {
       render: (_value, row) => (
         <Box className="flex items-center gap-1">
           <User className="w-3 h-3 text-gray-400" />
-          <span className="text-xs">{row.assigned_to || 'Unassigned'}</span>
+          <span className="text-xs">
+            {row.assigned_to || (
+              <span className="italic text-gray-400">Not assigned</span>
+            )}
+          </span>
         </Box>
       ),
     },
@@ -218,9 +256,11 @@ const AssetMasterManagement: React.FC = () => {
         <Box className="flex items-center gap-1">
           <Calendar className="w-3 h-3 text-gray-400" />
           <span className="text-xs">
-            {row.warranty_expiry
-              ? formatDate(row.warranty_expiry)
-              : 'No warranty'}
+            {row.warranty_expiry ? (
+              formatDate(row.warranty_expiry)
+            ) : (
+              <span className="italic text-gray-400">No warranty</span>
+            )}
           </span>
         </Box>
       ),
@@ -246,6 +286,10 @@ const AssetMasterManagement: React.FC = () => {
             sortable: false,
             render: (_value: any, row: AssetMaster) => (
               <div className="!flex !gap-2 !items-center">
+                <ViewButton
+                  onClick={() => handleViewAsset(row.id)}
+                  tooltip={`View ${row.serial_number}`}
+                />
                 {isUpdate && (
                   <EditButton
                     onClick={() => handleEditAsset(row)}
