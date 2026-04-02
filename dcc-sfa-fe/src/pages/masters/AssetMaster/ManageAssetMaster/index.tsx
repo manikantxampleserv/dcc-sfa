@@ -267,8 +267,8 @@ const ManageAssetMaster: React.FC<ManageAssetMasterProps> = ({
 
             <Input
               name="barcode"
-              label="Barcode"
-              placeholder="Enter barcode"
+              label="Asset Barcode"
+              placeholder="Enter asset barcode"
               formik={formik}
             />
 

@@ -250,20 +250,27 @@ const OutletsManagement: React.FC = () => {
     {
       id: 'city_detail.name',
       label: 'Location',
-      render: (_value, row) => (
-        <Box>
-          <Box className="flex items-center text-gray-900">
-            <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-            {row.city_detail?.name ||
-              row.district?.name ||
-              row.region?.name || (
+      render: (_value, row) => {
+        const locationParts = [
+          row.customer_city?.name,
+          row.customer_district?.name,
+          row.customer_region?.name,
+        ].filter(Boolean);
+        return (
+          <Box>
+            <Box className="flex items-center text-gray-900">
+              <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+              {locationParts.length > 0 ? (
+                locationParts.join(', ')
+              ) : (
                 <span className="!text-gray-400 !text-xs italic">
                   No Location
                 </span>
               )}
+            </Box>
           </Box>
-        </Box>
-      ),
+        );
+      },
     },
     {
       id: 'customer_routes.name',
@@ -272,19 +279,6 @@ const OutletsManagement: React.FC = () => {
         <Typography variant="body2" className="!text-gray-700">
           {row.customer_routes?.name || (
             <span className="!text-gray-400 !text-xs italic">No Route</span>
-          )}
-        </Typography>
-      ),
-    },
-    {
-      id: 'customer_users.name',
-      label: 'Salesperson',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!text-gray-700">
-          {row.customer_users?.name || (
-            <span className="!text-gray-400 !text-xs italic">
-              No Salesperson
-            </span>
           )}
         </Typography>
       ),

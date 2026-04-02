@@ -5,6 +5,9 @@ import type { ApiResponse } from '../../../types/api.types';
  * Customer entity interface
  */
 interface Customer {
+  customer_district: any;
+  customer_region: any;
+  customer_city: any;
   id: number;
   name: string;
   short_name?: string | null;

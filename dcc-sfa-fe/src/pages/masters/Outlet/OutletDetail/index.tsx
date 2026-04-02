@@ -34,6 +34,7 @@ import {
   Calendar,
   CreditCard,
   MapPin,
+  ExternalLink,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -50,7 +51,6 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
-
   return (
     <div
       role="tabpanel"
@@ -291,7 +291,6 @@ const OutletDetail: React.FC = () => {
     );
   }
 
-
   const documentColumns: TableColumn<any>[] = [
     {
       id: 'document_type',
@@ -365,7 +364,6 @@ const OutletDetail: React.FC = () => {
       ),
     },
   ];
-
 
   const assetColumns: TableColumn<any>[] = [
     {
@@ -445,7 +443,6 @@ const OutletDetail: React.FC = () => {
       ),
     },
   ];
-
 
   const historyColumns: TableColumn<any>[] = [
     {
@@ -777,6 +774,7 @@ const OutletDetail: React.FC = () => {
             Code: {customer.code}
             {customer.short_name && ` • Short: ${customer.short_name}`}
             {customer.email && ` • ${customer.email}`}
+            {customer.phone_number && ` • ${customer.phone_number}`}
             {customer.nfc_tag_code && ` • NFC: ${customer.nfc_tag_code}`}
           </Typography>
         </Box>
@@ -808,17 +806,17 @@ const OutletDetail: React.FC = () => {
           color="green"
         />
 
-        {/* Channel Card */}
+        {/* Route Card */}
         <StatsCard
-          title="Channel"
-          value={customer.customer_channel?.channel_name || 'N/A'}
+          title="Route"
+          value={customer.customer_routes?.name || 'N/A'}
           icon={<Schedule className="w-6 h-6" />}
           color="orange"
         />
       </div>
 
       {/* Detailed Information */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         {/* Contact Information */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <Typography
@@ -851,32 +849,49 @@ const OutletDetail: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <MapPin className="w-4 h-4 text-gray-400" />
+              <Building2 className="w-4 h-4 text-gray-400" />
               <div>
                 <Typography variant="body2" className="!text-gray-500">
-                  Address
+                  Outlet Channel
+                </Typography>
+                <Typography variant="body1" className="!font-medium">
+                  {customer.customer_channel?.channel_name || 'N/A'}
+                </Typography>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <MapPin className="w-4 h-4 text-gray-400 mt-1" />
+              <div className="space-y-1">
+                <Typography variant="body2" className="!text-gray-500">
+                  Address & Location
                 </Typography>
                 <Typography variant="body1" className="!font-medium">
                   {customer.address || 'N/A'}
                 </Typography>
-                {customer.region && (
+                {(customer.customer_city ||
+                  customer.customer_district ||
+                  customer.customer_region) && (
                   <Typography variant="body2" className="!text-gray-600">
-                    Region: {customer.region.name}
-                  </Typography>
-                )}
-                {customer.district && (
-                  <Typography variant="body2" className="!text-gray-600">
-                    District: {customer.district.name}
-                  </Typography>
-                )}
-                {customer.city_detail && (
-                  <Typography variant="body2" className="!text-gray-600">
-                    City Master: {customer.city_detail.name}
+                    {[
+                      customer.customer_city?.name,
+                      customer.customer_district?.name,
+                      customer.customer_region?.name,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
                   </Typography>
                 )}
                 {customer.zipcode && (
                   <Typography variant="body2" className="!text-gray-600">
                     Zip Code: {customer.zipcode}
+                  </Typography>
+                )}
+                {(customer.latitude || customer.longitude) && (
+                  <Typography
+                    variant="body2"
+                    className="!text-gray-400 !text-xs italic"
+                  >
+                    Coordinates: {customer.latitude}, {customer.longitude}
                   </Typography>
                 )}
               </div>
@@ -932,9 +947,70 @@ const OutletDetail: React.FC = () => {
                 </Typography>
               </div>
             </div>
+            {customer.depot && (
+              <div className="flex items-center gap-3">
+                <Building2 className="w-4 h-4 text-gray-400" />
+                <div>
+                  <Typography variant="body2" className="!text-gray-500">
+                    Associated Depot
+                  </Typography>
+                  <Typography variant="body1" className="!font-medium">
+                    {customer.depot.name} ({customer.depot.code})
+                  </Typography>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Map Section */}
+      {(customer.latitude || customer.longitude) && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <Typography
+                variant="h6"
+                className="!font-semibold !text-gray-900"
+              >
+                Outlet Location Map
+              </Typography>
+            </div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${customer.latitude},${customer.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open in Google Maps
+            </a>
+          </div>
+          <div className="w-full h-[400px] rounded-lg overflow-hidden border border-gray-100 shadow-inner">
+            <iframe
+              src={`https://maps.google.com/maps?q=${customer.latitude},${customer.longitude}&z=16&output=embed`}
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Location Map"
+            />
+          </div>
+          <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 bg-gray-50 p-3 rounded border border-gray-100">
+            <p>
+              <span className="font-semibold text-gray-700">Latitude:</span>{' '}
+              {customer.latitude}
+            </p>
+            <p>
+              <span className="font-semibold text-gray-700">Longitude:</span>{' '}
+              {customer.longitude}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -958,39 +1034,6 @@ const OutletDetail: React.FC = () => {
             <Tab
               icon={<History />}
               label={`Asset History (${allAssetHistory.length})`}
-              iconPosition="start"
-              className="!py-0 !min-h-14"
-              sx={{
-                '& .MuiButtonBase-root': {
-                  padding: 1,
-                },
-              }}
-            />
-            <Tab
-              icon={<Receipt />}
-              label={`Transactions (${transactions.length})`}
-              iconPosition="start"
-              className="!py-0 !min-h-14"
-              sx={{
-                '& .MuiButtonBase-root': {
-                  padding: 1,
-                },
-              }}
-            />
-            <Tab
-              icon={<Feedback />}
-              label={`Feedbacks (${feedbacks.length})`}
-              iconPosition="start"
-              className="!py-0 !min-h-14"
-              sx={{
-                '& .MuiButtonBase-root': {
-                  padding: 1,
-                },
-              }}
-            />
-            <Tab
-              icon={<ErrorIcon />}
-              label={`Complaints (${complaints.length})`}
               iconPosition="start"
               className="!py-0 !min-h-14"
               sx={{

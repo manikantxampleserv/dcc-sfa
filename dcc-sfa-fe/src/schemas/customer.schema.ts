@@ -42,12 +42,12 @@ export const customerValidationSchema = yup.object().shape({
     .nullable(),
   latitude: yup
     .string()
-    .matches(/^-?([1-8]?[1-9]|[1-9]0)\.{1}\d{1,6}$/, 'Invalid latitude format')
+    .matches(/^-?([0-8]?[0-9]|90)(\.[0-9]{1,20})?$/, 'Invalid latitude format')
     .nullable(),
   longitude: yup
     .string()
     .matches(
-      /^-?([1]?[1-7][1-9]|[1]?[1-8][0]|[1-9]?[0-9])\.{1}\d{1,6}$/,
+      /^-?([0-9]{1,2}|1[0-7][0-9]|180)(\.[0-9]{1,20})?$/,
       'Invalid longitude format'
     )
     .nullable(),
