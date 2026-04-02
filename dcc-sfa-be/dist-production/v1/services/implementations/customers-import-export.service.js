@@ -168,6 +168,22 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
             description: 'Short name of the customer (optional, max 50 chars)',
         },
         {
+            key: 'code',
+            header: 'Code',
+            width: 15,
+            required: true,
+            type: 'string',
+            validation: value => {
+                if (!value)
+                    return true;
+                if (value.length > 50)
+                    return 'Code must be less than 50 characters';
+                return true;
+            },
+            transform: value => (value ? value.toString().trim() : null),
+            description: 'Customer code (optional, will be auto-generated if not provided, max 50 chars)',
+        },
+        {
             key: 'zones_id',
             header: 'Zone ID',
             width: 15,
@@ -234,26 +250,6 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
                 return true;
             },
             description: 'Type of customer: Retailer, Wholesaler, Distributor, Direct, Online, Corporate, or Individual (optional)',
-        },
-        {
-            key: 'internal_code_one',
-            header: 'Internal Code One',
-            width: 20,
-            type: 'string',
-            validation: value => !value ||
-                value.length <= 50 ||
-                'Internal code one must be less than 50 characters',
-            description: 'First internal code (optional, max 50 chars)',
-        },
-        {
-            key: 'internal_code_two',
-            header: 'Internal Code Two',
-            width: 20,
-            type: 'string',
-            validation: value => !value ||
-                value.length <= 50 ||
-                'Internal code two must be less than 50 characters',
-            description: 'Second internal code (optional, max 50 chars)',
         },
         {
             key: 'contact_person',
@@ -424,14 +420,6 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
             type: 'number',
             transform: value => (value ? parseInt(value) : null),
             description: 'ID of the assigned route (optional)',
-        },
-        {
-            key: 'salesperson_id',
-            header: 'Salesperson ID',
-            width: 15,
-            type: 'number',
-            transform: value => (value ? parseInt(value) : null),
-            description: 'ID of the assigned salesperson/user (optional)',
         },
         {
             key: 'nfc_tag_code',
@@ -647,6 +635,7 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
         const preparedData = {
             name: data.name,
             short_name: data.short_name || null,
+            code: data.code,
             zones_id: data.zones_id || null,
             customer_type_id: data.customer_type_id || null,
             customer_channel_id: data.customer_channel_id || null,
@@ -710,8 +699,6 @@ class CustomersImportExportService extends import_export_service_1.ImportExportS
                         throw new Error(fkValidation);
                     }
                     const preparedData = await this.prepareDataForImport(row, userId);
-                    const generatedCode = await this.generateCustomerCode(row.name, tx);
-                    preparedData.code = generatedCode;
                     const created = await tx.customers.create({
                         data: preparedData,
                     });

@@ -33,9 +33,6 @@ exports.assetSubTypesController = {
                     .status(400)
                     .json({ message: 'Asset sub type name is required' });
             }
-            if (!data.asset_type_id) {
-                return res.status(400).json({ message: 'Asset type is required' });
-            }
             const generateCode = async (name) => {
                 const words = name.toUpperCase().split(/\s+/);
                 const firstWord = words[0];
@@ -251,7 +248,7 @@ exports.assetSubTypesController = {
                     where: {
                         code: req.body.code.trim(),
                         id: {
-                            not: Number(req.params.id), // Exclude current record
+                            not: Number(req.params.id),
                         },
                     },
                 });

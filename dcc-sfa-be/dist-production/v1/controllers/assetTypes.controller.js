@@ -165,6 +165,9 @@ exports.assetTypesController = {
             if (!existingAssetType) {
                 return res.status(404).json({ message: 'Asset type not found' });
             }
+            await prisma_client_1.default.asset_sub_types.deleteMany({
+                where: { asset_type_id: Number(id) },
+            });
             await prisma_client_1.default.asset_types.delete({ where: { id: Number(id) } });
             res.json({ message: 'Asset type deleted successfully' });
         }

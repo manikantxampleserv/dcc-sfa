@@ -7,10 +7,10 @@ exports.resetPassword = exports.verifyResetOtp = exports.forgotPassword = export
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const jwt_config_1 = require("../../configs/jwt.config");
-const ipUtils_1 = require("../../utils/ipUtils");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
-const otp_util_1 = require("../../utils/otp.util");
+const ipUtils_1 = require("../../utils/ipUtils");
 const mailer_1 = require("../../utils/mailer");
+const otp_util_1 = require("../../utils/otp.util");
 const truncateString = (str, maxLength) => {
     if (!str)
         return 'Unknown';
@@ -81,7 +81,7 @@ const register = async (req, res) => {
 exports.register = register;
 const login = async (req, res) => {
     try {
-        const { email, username, password } = req.body;
+        const { email, username, password, platform } = req.body;
         if (!password) {
             return res.error('Password is required', 400);
         }
@@ -95,6 +95,23 @@ const login = async (req, res) => {
         if (typeof password !== 'string') {
             return res.error('Password must be a string', 400);
         }
+        // const user = await prisma.users.findFirst({
+        //   where: {
+        //     OR: [{ email: identifier }, { employee_id: identifier }],
+        //   },
+        //   include: {
+        //     user_role: true,
+        //   },
+        // });
+        // if (!user) {
+        //   console.log(
+        //     `Failed login attempt for unknown user: ${identifier} from IP: ${getClientIP(req)}`
+        //   );
+        //   return res.error('User not found', 404);
+        // }
+        if (platform && !['mobile', 'web'].includes(platform)) {
+            return res.error('Invalid platform. Must be "mobile" or "web"', 400);
+        }
         const user = await prisma_client_1.default.users.findFirst({
             where: {
                 OR: [{ email: identifier }, { employee_id: identifier }],
@@ -106,6 +123,14 @@ const login = async (req, res) => {
         if (!user) {
             console.log(`Failed login attempt for unknown user: ${identifier} from IP: ${(0, ipUtils_1.getClientIP)(req)}`);
             return res.error('User not found', 404);
+        }
+        if (user.platform) {
+            if (!platform) {
+                return res.error('Platform is required for this account. This account is restricted to specific platform access.', 400);
+            }
+            if (user.platform !== platform) {
+                return res.error(`Access denied: This account is restricted to ${user.platform} only. Cannot login from ${platform}.`, 400);
+            }
         }
         if (user.is_active !== 'Y') {
             try {
@@ -129,7 +154,7 @@ const login = async (req, res) => {
             catch (error) {
                 console.error('Error creating failed login history:', error);
             }
-            return res.error('Your account is inactive. Please contact administrator to activate your account.', 403);
+            return res.error('Your account is inactive. Please contact administrator to activate your account.', 400);
         }
         const isMatch = await bcrypt_1.default.compare(password, user.password_hash);
         if (!isMatch) {

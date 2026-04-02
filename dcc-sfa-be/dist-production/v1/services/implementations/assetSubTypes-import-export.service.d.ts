@@ -5,6 +5,13 @@ export declare class AssetSubTypesImportExportService extends ImportExportServic
     protected displayName: string;
     protected uniqueFields: string[];
     protected searchFields: string[];
+    protected masterTableConfigs: {
+        masterTable: any;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }[];
     private codeCounters;
     protected columns: ColumnDefinition[];
     protected getSampleData(): Promise<any[]>;

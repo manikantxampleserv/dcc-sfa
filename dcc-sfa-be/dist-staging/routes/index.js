@@ -102,6 +102,7 @@ const districts_routes_1 = __importDefault(require("../v1/routes/districts.route
 const cities_routes_1 = __importDefault(require("../v1/routes/cities.routes"));
 const alerts_routes_1 = __importDefault(require("../v1/routes/alerts.routes"));
 const customerCategoryGrading_routes_1 = __importDefault(require("../v1/controllers/customerCategoryGrading.routes"));
+const assetMaterBrands_routes_1 = __importDefault(require("../v1/routes/assetMaterBrands.routes"));
 const routes = (0, express_1.Router)();
 routes.use('/v1', auth_routes_1.default);
 routes.use('/v1', user_routes_1.default);
@@ -201,6 +202,7 @@ routes.use('/v1', districts_routes_1.default);
 routes.use('/v1', cities_routes_1.default);
 routes.use('/v1', alerts_routes_1.default);
 routes.use('/v1', customerCategoryGrading_routes_1.default);
+routes.use('/v1', assetMaterBrands_routes_1.default);
 routes.get('/', (_, res) => {
     res.json({
         name: 'DCC-SFA API',

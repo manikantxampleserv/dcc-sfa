@@ -41,7 +41,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -70,9 +70,13 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
             brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
             barcode: string | null;
             nfc_tag: string | null;
             purchase_date: Date | null;
@@ -123,7 +127,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -152,9 +156,13 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
             brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
             barcode: string | null;
             nfc_tag: string | null;
             purchase_date: Date | null;
@@ -248,9 +256,13 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
                 brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
                 barcode: string | null;
                 nfc_tag: string | null;
                 purchase_date: Date | null;
@@ -415,9 +427,13 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
                 brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
                 barcode: string | null;
                 nfc_tag: string | null;
                 purchase_date: Date | null;
@@ -582,9 +598,13 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
                 brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
                 barcode: string | null;
                 nfc_tag: string | null;
                 purchase_date: Date | null;
@@ -1120,7 +1140,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -1149,9 +1169,13 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
             brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
             barcode: string | null;
             nfc_tag: string | null;
             purchase_date: Date | null;
@@ -1170,7 +1194,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -1199,9 +1223,13 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
             brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
             barcode: string | null;
             nfc_tag: string | null;
             purchase_date: Date | null;
@@ -1222,7 +1250,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -1251,9 +1279,13 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
             brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
             barcode: string | null;
             nfc_tag: string | null;
             purchase_date: Date | null;
@@ -1325,9 +1357,13 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
                 brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
                 barcode: string | null;
                 nfc_tag: string | null;
                 purchase_date: Date | null;
@@ -1468,9 +1504,13 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
                 brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
                 barcode: string | null;
                 nfc_tag: string | null;
                 purchase_date: Date | null;
@@ -1613,9 +1653,13 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
                 brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
                 barcode: string | null;
                 nfc_tag: string | null;
                 purchase_date: Date | null;

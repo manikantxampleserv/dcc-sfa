@@ -45,6 +45,43 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
     displayName = 'Users';
     uniqueFields = ['email', 'employee_id'];
     searchFields = ['name', 'email', 'employee_id', 'phone_number'];
+    masterTableConfigs = [
+        {
+            masterTable: 'roles',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'description'],
+            sheetName: 'Ref - Roles',
+            description: 'Use the ID from this sheet in the Role ID column',
+        },
+        {
+            masterTable: 'depots',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Depots',
+            description: 'Use the ID from this sheet in the Depot ID column',
+        },
+        {
+            masterTable: 'companies',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Companies',
+            description: 'Use the ID from this sheet in the Company ID column',
+        },
+        {
+            masterTable: 'zones',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Zones',
+            description: 'Use the ID from this sheet in the Zone ID column',
+        },
+        {
+            masterTable: 'users',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+            sheetName: 'Ref - Managers',
+            description: 'Use the ID from this sheet in the Reporting To column',
+        },
+    ];
     columns = [
         {
             key: 'email',
@@ -254,6 +291,26 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
             transform: value => (value ? value.toString().toUpperCase() : 'Y'),
             description: 'Active status - Y for Yes, N for No (defaults to Y)',
         },
+        {
+            key: 'platform',
+            header: 'Platform',
+            width: 15,
+            type: 'string',
+            required: false,
+            validation: value => {
+                if (!value)
+                    return true;
+                if (value.length > 20)
+                    return 'Platform must be less than 20 characters';
+                const validPlatforms = ['Web', 'Mobile', 'API', 'Desktop'];
+                if (!validPlatforms.includes(value)) {
+                    return `Platform must be one of: ${validPlatforms.join(', ')}`;
+                }
+                return true;
+            },
+            transform: value => (value ? value.toString().trim() : null),
+            description: 'User platform - Web, Mobile, API, or Desktop (optional)',
+        },
     ];
     async getSampleData() {
         const roles = await prisma_client_1.default.roles.findMany({
@@ -306,6 +363,7 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
                 joining_date: '2024-01-15',
                 address: '123 Main Street, City',
                 is_active: 'Y',
+                platform: 'web',
             },
             {
                 email: 'jane.smith@example.com',
@@ -321,6 +379,7 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
                 joining_date: '2024-02-01',
                 address: '456 Park Avenue, City',
                 is_active: 'Y',
+                platform: 'mobile',
             },
         ];
     }
@@ -362,6 +421,7 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
                 ? new Date(user.updatedate).toISOString().split('T')[0]
                 : '',
             updated_by: user.updatedby || '',
+            platform: user.platform || '',
         }));
     }
     async checkDuplicate(data, tx) {
@@ -494,6 +554,7 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
             reporting_to: data.reporting_to || null,
             profile_image: null,
             is_active: data.is_active || 'Y',
+            platform: data.platform || null,
             createdby: userId,
             createdate: new Date(),
             log_inst: 1,
@@ -528,6 +589,7 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
                 ? data.reporting_to
                 : existing.reporting_to,
             is_active: data.is_active || existing.is_active,
+            platform: data.platform !== undefined ? data.platform : existing.platform,
             updatedby: userId,
             updatedate: new Date(),
         };
@@ -598,6 +660,7 @@ class UserImportExportService extends import_export_service_1.ImportExportServic
             { header: 'Created By', key: 'created_by', width: 15 },
             { header: 'Updated Date', key: 'updated_date', width: 20 },
             { header: 'Updated By', key: 'updated_by', width: 15 },
+            { header: 'Platform', key: 'platform', width: 15 },
         ];
         worksheet.columns = exportColumns.map(col => ({
             header: col.header,

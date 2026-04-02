@@ -6,6 +6,13 @@ export declare class RouteImportExportService extends ImportExportService<routes
     protected displayName: string;
     protected uniqueFields: string[];
     protected searchFields: string[];
+    protected masterTableConfigs: {
+        masterTable: any;
+        masterKey: string;
+        masterDisplayFields: string[];
+        sheetName: string;
+        description: string;
+    }[];
     private generateRoutesCode;
     protected columns: ColumnDefinition[];
     protected getColumnDescription(key: string): string;

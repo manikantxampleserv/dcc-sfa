@@ -15,14 +15,12 @@ const path_1 = require("path");
 const server_1 = require("./graphql/server");
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swagger_1 = require("./configs/swagger");
-// First check if DATABASE_URL is already set in environment variables
 if (!process.env.DATABASE_URL) {
-    // Load environment variables from the root directory
     const possiblePaths = [
-        (0, path_1.resolve)(process.cwd(), '.env'), // Current working directory
-        (0, path_1.resolve)(__dirname, '../.env'), // Relative to compiled file
-        (0, path_1.resolve)(__dirname, '../../../.env'), // For production builds
-        '.env', // Fallback
+        (0, path_1.resolve)(process.cwd(), '.env'),
+        (0, path_1.resolve)(__dirname, '../.env'),
+        (0, path_1.resolve)(__dirname, '../../../.env'),
+        '.env',
     ];
     for (const path of possiblePaths) {
         try {

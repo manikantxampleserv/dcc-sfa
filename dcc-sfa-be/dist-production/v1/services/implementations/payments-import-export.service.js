@@ -11,7 +11,29 @@ class PaymentsImportExportService extends import_export_service_1.ImportExportSe
     displayName = 'Payments';
     uniqueFields = ['payment_number'];
     searchFields = ['payment_number', 'reference_number', 'notes'];
-    // Cache for foreign key validation
+    masterTableConfigs = [
+        {
+            masterTable: 'customers',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+            sheetName: 'Ref - Customers',
+            description: 'Use the ID from this sheet in the Customer ID column',
+        },
+        {
+            masterTable: 'users',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+            sheetName: 'Ref - Users',
+            description: 'Use the ID from this sheet in the Collected By (User ID) column',
+        },
+        {
+            masterTable: 'currencies',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'code', 'name', 'symbol'],
+            sheetName: 'Ref - Currencies',
+            description: 'Use the ID from this sheet in the Currency ID column',
+        },
+    ];
     customerIds = new Set();
     userIds = new Set();
     currencyIds = new Set();

@@ -32,20 +32,8 @@ const PriceListsManagement: React.FC = () => {
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('pricelist');
 
-  const {
-    data: priceListsResponse,
-    isFetching,
-    error,
-  } = usePriceLists(
-    {
-      search,
-      page,
-      limit,
-      status: statusFilter === 'all' ? undefined : statusFilter,
-    },
-    {
-      enabled: isRead,
-    }
+  const { data: priceListsResponse, isFetching, error,
+  } = usePriceLists( {   search,   page,   limit,   status: statusFilter === 'all' ? undefined : statusFilter, }, {   enabled: isRead, }
   );
 
   const priceLists = priceListsResponse?.data || [];
