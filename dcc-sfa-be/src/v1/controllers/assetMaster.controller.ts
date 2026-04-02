@@ -35,10 +35,16 @@ interface AssetMasterSerialized {
   asset_master_asset_types?: any;
   asset_master_asset_sub_types?: any;
   asset_master_brand?: any;
+  asset_master_last_read?: any;
   asset_brand?: {
     id: number;
     name: string;
     code: string;
+  } | null;
+  last_read_user: {
+    id: number;
+    name: string;
+    email: string;
   } | null;
 }
 
@@ -107,6 +113,13 @@ const serializeAssetMaster = (asset: any): AssetMasterSerialized => ({
         id: asset.asset_master_brands.id,
         name: asset.asset_master_brands.name,
         code: asset.asset_master_brands.code,
+      }
+    : null,
+  last_read_user: asset.asset_master_last_read
+    ? {
+        id: asset.asset_master_last_read.id,
+        name: asset.asset_master_last_read.name,
+        email: asset.asset_master_last_read.email,
       }
     : null,
 });
@@ -293,6 +306,13 @@ export const assetMasterController = {
               code: true,
             },
           },
+          asset_master_last_read: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
       });
 
@@ -363,6 +383,13 @@ export const assetMasterController = {
               id: true,
               name: true,
               code: true,
+            },
+          },
+          asset_master_last_read: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
             },
           },
         },
@@ -436,6 +463,13 @@ export const assetMasterController = {
             select: {
               id: true,
               name: true,
+            },
+          },
+          asset_master_last_read: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
             },
           },
         },
@@ -566,6 +600,13 @@ export const assetMasterController = {
               id: true,
               name: true,
               code: true,
+            },
+          },
+          asset_master_last_read: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
             },
           },
         },

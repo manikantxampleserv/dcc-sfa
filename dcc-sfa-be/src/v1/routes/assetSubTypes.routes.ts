@@ -16,6 +16,7 @@ const router = Router();
 router.post(
   '/asset-sub-types',
   authenticateToken,
+  requirePermission([{ module: 'asset-sub-types', action: 'create' }]),
   auditCreate('asset_sub_types'),
   validate,
   assetSubTypesController.createAssetSubType
@@ -24,7 +25,7 @@ router.post(
 router.get(
   '/asset-sub-types/:id',
   authenticateToken,
-  // requirePermission([{ module: 'asset-sub-type', action: 'read' }]),
+  requirePermission([{ module: 'asset-sub-types', action: 'read' }]),
   validate,
   assetSubTypesController.getAssetSubTypeById
 );
@@ -32,29 +33,30 @@ router.get(
 router.get(
   '/asset-sub-types',
   authenticateToken,
-  // requirePermission([{ module: 'asset-sub-type', action: 'read' }]),
+  requirePermission([{ module: 'asset-sub-types', action: 'read' }]),
   assetSubTypesController.getAssetSubTypes
 );
 
 router.get(
   '/asset-sub-types-dropdown',
   authenticateToken,
+  requirePermission([{ module: 'asset-sub-types', action: 'read' }]),
   assetSubTypesController.getAssetSubTypesDropdown
 );
 
 router.put(
   '/asset-sub-types/:id',
   authenticateToken,
+  requirePermission([{ module: 'asset-sub-types', action: 'update' }]),
   auditUpdate('asset_sub_types'),
-  // requirePermission([{ module: 'asset-sub-type', action: 'update' }]),
   assetSubTypesController.updateAssetSubType
 );
 
 router.delete(
   '/asset-sub-types/:id',
   authenticateToken,
+  requirePermission([{ module: 'asset-sub-types', action: 'delete' }]),
   auditDelete('asset_sub_types'),
-  // requirePermission([{ module: 'asset-sub-type', action: 'delete' }]),
   assetSubTypesController.deleteAssetSubType
 );
 
