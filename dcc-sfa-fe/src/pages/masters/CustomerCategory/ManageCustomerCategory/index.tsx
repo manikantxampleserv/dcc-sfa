@@ -40,17 +40,17 @@ interface ConditionFormData {
 
 const customerCategoryValidationSchema = Yup.object({
   category_name: Yup.string()
-    .required('Category name is required')
-    .min(2, 'Category name must be at least 2 characters')
-    .max(255, 'Category name must be less than 255 characters'),
+    .required('Outlet category name is required')
+    .min(2, 'Outlet category name must be at least 2 characters')
+    .max(255, 'Outlet category name must be less than 255 characters'),
   category_code: Yup.string()
-    .required('Category code is required')
-    .min(2, 'Category code must be at least 2 characters')
-    .max(50, 'Category code must be less than 50 characters'),
+    .required('Outlet category code is required'  )
+    .min(2, 'Outlet category code must be at least 2 characters')
+    .max(50, 'Outlet category code must be less than 50 characters'),
   level: Yup.string()
-    .required('Category level is required')
-    .min(1, 'Category level must be at least 1 character')
-    .max(10, 'Category level must be less than 10 characters'),
+    .required('Outlet category level is required')
+    .min(1, 'Outlet category level must be at least 1 character')
+    .max(10, 'Outlet category level must be less than 10 characters'),
   is_active: Yup.string().oneOf(['Y', 'N']).required('Status is required'),
 });
 
@@ -466,7 +466,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
-      title={isEdit ? 'Edit Customer Category' : 'Create Customer Category'}
+      title={isEdit ? 'Edit Outlet Category' : 'Create Outlet Category'}
       size="large"
     >
       <Box className="!p-6">
@@ -474,7 +474,7 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
           <Box className="!grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-2 !gap-6">
             <Input
               name="category_name"
-              label="Category Name"
+              label="Outlet Category Name"
               placeholder="Enter category name"
               formik={formik}
               required
@@ -482,8 +482,8 @@ const ManageCustomerCategory: React.FC<ManageCustomerCategoryProps> = ({
 
             <Input
               name="category_code"
-              label="Category Code"
-              placeholder="Enter category code"
+              label="Outlet Category Code"
+              placeholder="Enter outlet category code"
               formik={formik}
               required
             />

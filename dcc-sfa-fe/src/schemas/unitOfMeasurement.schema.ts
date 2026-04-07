@@ -22,7 +22,12 @@ export const unitOfMeasurementValidationSchema = Yup.object({
   conversion_rate: Yup.number()
     .typeError('Conversion rate must be a number')
     .positive('Conversion rate must be a positive number')
-    .nullable(),
+    .nullable()
+    .when('sub_unit', {
+      is: (val: string) => val && val.length > 0,
+      then: schema => schema.required('Conversion rate is required when sub unit is selected'),
+      otherwise: schema => schema.nullable(),
+    }),
   is_active: Yup.string()
     .required('Status is required')
     .oneOf(['Y', 'N'], 'Status must be either Active or Inactive'),

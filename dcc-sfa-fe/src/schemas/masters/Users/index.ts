@@ -13,9 +13,9 @@ const validationSchema = Yup.object({
     'Invalid phone number format'
   ),
   employee_id: Yup.string()
-    .required('Employee Code is required')
-    .max(50, 'Employee Code must not exceed 50 characters'),
-  reporting_to: Yup.number().required('Reporting to is required'),
+    .required('User Code is required')
+    .max(50, 'User Code must not exceed 50 characters'),
+  reporting_to: Yup.number().required('Reporting manager is required'),
   depot_ids: Yup.array()
     .min(1, 'At least one depot is required')
     .required('Depot is required'),

@@ -16,11 +16,6 @@ exports.createAssetSubTypeValidation = [
         .withMessage('Code must be a string')
         .isLength({ max: 100 })
         .withMessage('Code must be less than 100 characters'),
-    (0, express_validator_1.body)('asset_type_id')
-        .notEmpty()
-        .withMessage('Asset type is required')
-        .isInt()
-        .withMessage('Asset type must be a valid integer'),
     (0, express_validator_1.body)('description')
         .optional()
         .isString()

@@ -19,10 +19,6 @@ export const assetSubTypeValidationSchema = Yup.object({
     255,
     'Description must be less than 255 characters'
   ),
-  asset_type_id: Yup.number()
-    .required('Asset type is required')
-    .positive('Asset type must be a positive number')
-    .integer('Asset type must be an integer'),
   model: Yup.string().max(50, 'Model must be less than 50 characters'),
   manufacturer: Yup.string().max(100, 'Manufacturer must be less than 100 characters'),
   specifications: Yup.string().max(

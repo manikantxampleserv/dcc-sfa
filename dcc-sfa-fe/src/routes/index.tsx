@@ -7,7 +7,9 @@ import PrivacyPolicy from 'pages/auth/PrivacyPolicy';
 import ExecutiveDashboard from 'pages/dashboards/ExecutiveDashboard';
 import ApiTokensPage from 'pages/masters/ApiTokens';
 import AssetMaintenanceManagement from 'pages/masters/AssetMaintenance';
+import AssetBrandsManagement from 'pages/masters/AssetBrands';
 import AssetMasterManagement from 'pages/masters/AssetMaster';
+import AssetDetailsPage from 'pages/masters/AssetMaster/AssetDetails';
 import AssetMovementManagement from 'pages/masters/AssetMovement';
 import AssetTypesManagement from 'pages/masters/AssetTypes';
 import AssetSubTypesPage from 'pages/masters/AssetSubTypes';
@@ -343,6 +345,14 @@ const router = createBrowserRouter(
           ),
         },
         {
+          path: '/masters/asset-brands',
+          element: (
+            <PermissionGuard module="asset-brand" action="read">
+              <AssetBrandsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
           path: '/masters/asset-sub-types',
           element: (
             <PermissionGuard module="asset-type" action="read">
@@ -355,6 +365,14 @@ const router = createBrowserRouter(
           element: (
             <PermissionGuard module="asset-master" action="read">
               <AssetMasterManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/asset-master/:id',
+          element: (
+            <PermissionGuard module="asset-master" action="read">
+              <AssetDetailsPage />
             </PermissionGuard>
           ),
         },

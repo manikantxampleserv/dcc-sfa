@@ -126,7 +126,7 @@ const CustomerTypePage: React.FC = () => {
   const customerTypeColumns: TableColumn<CustomerType>[] = [
     {
       id: 'type_name',
-      label: 'Type Name',
+      label: 'Outlet Type',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar
@@ -207,10 +207,10 @@ const CustomerTypePage: React.FC = () => {
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
           <p className="!font-bold text-xl !text-gray-900">
-            Customer Type Management
+            Outlet Type Management
           </p>
           <p className="!text-gray-500 text-sm">
-            Manage customer types and their associations
+            Manage outlet types and their associations
           </p>
         </Box>
       </Box>
@@ -248,7 +248,7 @@ const CustomerTypePage: React.FC = () => {
 
       {error && (
         <Alert severity="error" className="!mb-4">
-          Failed to load customer types. Please try again.
+          Failed to load outlet types. Please try again.
         </Alert>
       )}
 
@@ -262,7 +262,7 @@ const CustomerTypePage: React.FC = () => {
                 {isRead && (
                   <>
                     <SearchInput
-                      placeholder="Search Customer Types..."
+                      placeholder="Search Outlet Types..."
                       value={search}
                       onChange={handleSearchChange}
                       debounceMs={400}
@@ -285,8 +285,8 @@ const CustomerTypePage: React.FC = () => {
               <div className="flex gap-2 items-center">
                 {isRead && (
                   <PopConfirm
-                    title="Export Customer Types"
-                    description="Are you sure you want to export the current customer types data to Excel? This will include all filtered results."
+                    title="Export Outlet Types"
+                    description="Are you sure you want to export the current outlet types data to Excel? This will include all filtered results."
                     onConfirm={handleExportToExcel}
                     confirmText="Export"
                     cancelText="Cancel"
@@ -341,8 +341,8 @@ const CustomerTypePage: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No customer types found matching "${search}"`
-            : 'No customer types found in the system'
+            ? `No outlet types found matching "${search}"`
+            : 'No outlet types found in the system'
         }
       />
 

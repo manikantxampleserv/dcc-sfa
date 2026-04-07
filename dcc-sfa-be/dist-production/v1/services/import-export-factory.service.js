@@ -9,6 +9,7 @@ const orders_import_export_service_1 = require("./implementations/orders-import-
 const currencies_import_export_service_1 = require("./implementations/currencies.import-export.service");
 const visits_import_export_service_1 = require("./implementations/visits.import-export.service");
 const assetTypes_import_export_service_1 = require("./implementations/assetTypes-import-export.service");
+const assetBrands_import_export_service_1 = require("./implementations/assetBrands-import-export.service");
 const assetSubTypes_import_export_service_1 = require("./implementations/assetSubTypes-import-export.service");
 const assetMaster_import_export_service_1 = require("./implementations/assetMaster-import-export.service");
 const warehouses_import_export_service_1 = require("./implementations/warehouses-import-export.service");
@@ -62,6 +63,9 @@ const outletTypes_import_export_service_1 = require("./implementations/outletTyp
 const customerChannels_import_export_service_1 = require("./implementations/customerChannels-import-export.service");
 const outletCategories_import_export_service_1 = require("./implementations/outletCategories-import-export.service");
 const auditLogs_import_export_service_1 = require("./implementations/auditLogs-import-export.service");
+const regions_import_export_service_1 = require("./implementations/regions-import-export.service");
+const districts_import_export_service_1 = require("./implementations/districts-import-export.service");
+const cities_import_export_service_1 = require("./implementations/cities-import-export.service");
 class ImportExportFactory {
     static services = new Map([
         ['zones', zones_import_export_service_1.ZonesImportExportService],
@@ -72,6 +76,7 @@ class ImportExportFactory {
         ['currencies', currencies_import_export_service_1.CurrenciesImportExportService],
         ['visits', visits_import_export_service_1.VisitsImportExportService],
         ['asset_types', assetTypes_import_export_service_1.AssetTypesImportExportService],
+        ['asset_brands', assetBrands_import_export_service_1.AssetBrandsImportExportService],
         ['asset_sub_types', assetSubTypes_import_export_service_1.AssetSubTypesImportExportService],
         ['asset_master', assetMaster_import_export_service_1.AssetMasterImportExportService],
         ['warehouses', warehouses_import_export_service_1.WarehousesImportExportService],
@@ -127,6 +132,9 @@ class ImportExportFactory {
         ['outlet_channels', customerChannels_import_export_service_1.CustomerChannelsImportExportService],
         ['customer_channel', customerChannels_import_export_service_1.CustomerChannelsImportExportService],
         ['customer_category', outletCategories_import_export_service_1.OutletCategoriesImportExportService],
+        ['regions', regions_import_export_service_1.RegionsImportExportService],
+        ['districts', districts_import_export_service_1.DistrictsImportExportService],
+        ['cities', cities_import_export_service_1.CitiesImportExportService],
         ['audit_logs', auditLogs_import_export_service_1.AuditLogsImportExportService],
     ]);
     static getService(tableName) {

@@ -44,6 +44,22 @@ class AssetMaintenanceImportExportService extends import_export_service_1.Import
     displayName = 'Asset Maintenance';
     uniqueFields = ['asset_id', 'maintenance_date', 'technician_id'];
     searchFields = ['issue_reported', 'action_taken', 'remarks'];
+    masterTableConfigs = [
+        {
+            masterTable: 'asset_master',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'serial_number', 'code'],
+            sheetName: 'Ref - Assets',
+            description: 'Use the ID from this sheet in the Asset ID column',
+        },
+        {
+            masterTable: 'users',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+            sheetName: 'Ref - Users',
+            description: 'Use the ID from this sheet in the Technician ID column',
+        },
+    ];
     columns = [
         {
             key: 'asset_id',

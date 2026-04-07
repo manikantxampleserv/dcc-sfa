@@ -44,6 +44,36 @@ class PromotionsImportExportService extends import_export_service_1.ImportExport
     displayName = 'Promotions';
     uniqueFields = ['code'];
     searchFields = ['name', 'code', 'type', 'description'];
+    masterTableConfigs = [
+        {
+            masterTable: 'customers',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+            sheetName: 'Ref - Customers',
+            description: 'Use the ID from this sheet for customer references',
+        },
+        {
+            masterTable: 'products',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code', 'description'],
+            sheetName: 'Ref - Products',
+            description: 'Use the ID from this sheet for product references',
+        },
+        {
+            masterTable: 'depots',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Depots',
+            description: 'Use the ID from this sheet for depot references',
+        },
+        {
+            masterTable: 'customer_types',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'type_name', 'type_code'],
+            sheetName: 'Ref - Customer Types',
+            description: 'Use the ID from this sheet for customer type references',
+        },
+    ];
     async generatePromotionCode(name, tx) {
         try {
             const client = tx || prisma_client_1.default;

@@ -41,7 +41,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -58,6 +58,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -69,8 +70,15 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -119,7 +127,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -136,6 +144,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -147,8 +156,15 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -162,10 +178,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -227,6 +244,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -238,8 +256,15 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -249,9 +274,9 @@ export declare const resolvers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 is_active: string;
                 createdate: Date | null;
                 createdby: number;
@@ -272,6 +297,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -321,10 +349,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -386,6 +415,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -397,8 +427,15 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -408,9 +445,9 @@ export declare const resolvers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 is_active: string;
                 createdate: Date | null;
                 createdby: number;
@@ -431,6 +468,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -480,10 +520,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -545,6 +586,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -556,8 +598,15 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -567,9 +616,9 @@ export declare const resolvers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 is_active: string;
                 createdate: Date | null;
                 createdby: number;
@@ -590,6 +639,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -637,10 +689,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -748,10 +801,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -859,10 +913,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -970,10 +1025,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -1084,7 +1140,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -1101,6 +1157,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1112,8 +1169,15 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -1130,7 +1194,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -1147,6 +1211,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1158,8 +1223,15 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -1178,7 +1250,7 @@ export declare const resolvers: {
                 updatedby: number | null;
                 log_inst: number | null;
                 code: string;
-                asset_type_id: number;
+                asset_type_id: number | null;
                 description: string | null;
             } | null;
             asset_master_asset_types: {
@@ -1195,6 +1267,7 @@ export declare const resolvers: {
                 description: string | null;
             };
         } & {
+            brand: string | null;
             name: string;
             id: number;
             is_active: string;
@@ -1206,8 +1279,15 @@ export declare const resolvers: {
             code: string;
             serial_number: string;
             warranty_expiry: Date | null;
+            last_scanned_date: Date | null;
             asset_type_id: number;
+            brand_id: number | null;
             assigned_to: string | null;
+            asset_brand_id: number | null;
+            installation_date: Date | null;
+            last_read_by: number | null;
+            barcode: string | null;
+            nfc_tag: string | null;
             purchase_date: Date | null;
             current_location: string | null;
             current_status: string | null;
@@ -1221,10 +1301,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -1264,6 +1345,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1275,8 +1357,15 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -1286,9 +1375,9 @@ export declare const resolvers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 is_active: string;
                 createdate: Date | null;
                 createdby: number;
@@ -1309,6 +1398,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -1356,10 +1448,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -1399,6 +1492,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1410,8 +1504,15 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -1421,9 +1522,9 @@ export declare const resolvers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 is_active: string;
                 createdate: Date | null;
                 createdby: number;
@@ -1444,6 +1545,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -1493,10 +1597,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -1536,6 +1641,7 @@ export declare const resolvers: {
                 description: string | null;
             } | null;
             cooler_asset_master: {
+                brand: string | null;
                 name: string;
                 id: number;
                 is_active: string;
@@ -1547,8 +1653,15 @@ export declare const resolvers: {
                 code: string;
                 serial_number: string;
                 warranty_expiry: Date | null;
+                last_scanned_date: Date | null;
                 asset_type_id: number;
+                brand_id: number | null;
                 assigned_to: string | null;
+                asset_brand_id: number | null;
+                installation_date: Date | null;
+                last_read_by: number | null;
+                barcode: string | null;
+                nfc_tag: string | null;
                 purchase_date: Date | null;
                 current_location: string | null;
                 current_status: string | null;
@@ -1558,9 +1671,9 @@ export declare const resolvers: {
                 name: string;
                 id: number;
                 email: string | null;
-                depot_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 is_active: string;
                 createdate: Date | null;
                 createdby: number;
@@ -1581,6 +1694,9 @@ export declare const resolvers: {
                 internal_code_two: string | null;
                 contact_person: string | null;
                 city: string | null;
+                district_id: number | null;
+                region_id: number | null;
+                city_id: number | null;
                 state: string | null;
                 zipcode: string | null;
                 credit_limit: import("@prisma/client-runtime-utils").Decimal | null;
@@ -1628,10 +1744,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -1737,10 +1854,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;
@@ -1848,10 +1966,11 @@ export declare const resolvers: {
                 role_id: number;
                 password_hash: string;
                 parent_id: number | null;
-                depot_id: number | null;
+                sap_code: string | null;
                 zone_id: number | null;
                 phone_number: string | null;
                 address: string | null;
+                depot_id: number | null;
                 employee_id: string;
                 joining_date: Date | null;
                 reporting_to: number | null;

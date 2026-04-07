@@ -44,6 +44,15 @@ class AssetTypesImportExportService extends import_export_service_1.ImportExport
     displayName = 'Asset Types';
     uniqueFields = ['name'];
     searchFields = ['name', 'description', 'category', 'brand'];
+    masterTableConfigs = [
+        {
+            masterTable: 'brands',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code'],
+            sheetName: 'Ref - Brands',
+            description: 'Use the ID from this sheet for brand references',
+        },
+    ];
     columns = [
         {
             key: 'name',

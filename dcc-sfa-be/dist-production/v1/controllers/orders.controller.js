@@ -143,159 +143,6 @@ async function generateOrderNumber(tx) {
     const fallbackOrderNumber = `ORD-${timestamp}`;
     return fallbackOrderNumber;
 }
-async function calculatePromotionsInternal(params) {
-    const { customer_id, depot_id, salesman_id, route_id, platform, order_date, order_lines, } = params;
-    const checkDate = new Date(order_date);
-    const customer = await prisma_client_1.default.customers.findUnique({
-        where: { id: customer_id },
-        select: { type: true },
-    });
-    const promotionsQuery = {
-        is_active: 'Y',
-        start_date: { lte: checkDate },
-        end_date: { gte: checkDate },
-    };
-    if (platform) {
-        promotionsQuery.promotion_channel_promotions = {
-            some: {
-                channel_type: platform,
-                is_active: 'Y',
-            },
-        };
-    }
-    const promotions = await prisma_client_1.default.promotions.findMany({
-        where: promotionsQuery,
-        include: {
-            promotion_depot_promotions: { where: { is_active: 'Y' } },
-            promotion_salesperson_promotions: { where: { is_active: 'Y' } },
-            promotion_routes_promotions: { where: { is_active: 'Y' } },
-            promotion_customer_category_promotions: { where: { is_active: 'Y' } },
-            promotion_customer_exclusion_promotions: true,
-            promotion_condition_promotions: {
-                where: { is_active: 'Y' },
-                include: {
-                    promotion_condition_products: {
-                        where: { is_active: 'Y' },
-                        include: {
-                            promotion_condition_productId: true,
-                            promotion_condition_categories: true,
-                        },
-                    },
-                },
-            },
-            promotion_level_promotions: {
-                where: { is_active: 'Y' },
-                include: {
-                    promotion_benefit_level: {
-                        where: { is_active: 'Y' },
-                        include: {
-                            promotion_benefit_products: true,
-                        },
-                    },
-                },
-                orderBy: { threshold_value: 'desc' },
-            },
-        },
-    });
-    const eligiblePromotions = [];
-    for (const promo of promotions) {
-        const isExcluded = promo.promotion_customer_exclusion_promotions.find((exc) => exc.customer_id === customer_id && exc.is_excluded === 'Y');
-        if (isExcluded)
-            continue;
-        let isEligible = false;
-        if (promo.promotion_depot_promotions.length === 0 &&
-            promo.promotion_salesperson_promotions.length === 0 &&
-            promo.promotion_routes_promotions.length === 0 &&
-            promo.promotion_customer_category_promotions.length === 0) {
-            isEligible = true;
-        }
-        else {
-            if (depot_id && promo.promotion_depot_promotions.length > 0) {
-                if (promo.promotion_depot_promotions.find((d) => d.depot_id === depot_id)) {
-                    isEligible = true;
-                }
-            }
-            if (salesman_id && promo.promotion_salesperson_promotions.length > 0) {
-                if (promo.promotion_salesperson_promotions.find((s) => s.salesperson_id === salesman_id)) {
-                    isEligible = true;
-                }
-            }
-            if (route_id && promo.promotion_routes_promotions.length > 0) {
-                if (promo.promotion_routes_promotions.find((r) => r.route_id === route_id)) {
-                    isEligible = true;
-                }
-            }
-            if (customer?.type &&
-                promo.promotion_customer_category_promotions.length > 0) {
-                for (const cat of promo.promotion_customer_category_promotions) {
-                    const category = await prisma_client_1.default.customer_category.findUnique({
-                        where: { id: cat.customer_category_id },
-                    });
-                    if (category && category.category_code === customer.type) {
-                        isEligible = true;
-                        break;
-                    }
-                }
-            }
-        }
-        if (!isEligible)
-            continue;
-        for (const condition of promo.promotion_condition_promotions) {
-            let totalQty = new client_1.Prisma.Decimal(0);
-            let totalValue = new client_1.Prisma.Decimal(0);
-            for (const line of order_lines) {
-                const productMatch = condition.promotion_condition_products.find((cp) => cp.product_id === line.product_id ||
-                    cp.category_id === line.category_id);
-                if (productMatch) {
-                    const lineQty = new client_1.Prisma.Decimal(line.quantity || 0);
-                    const linePrice = new client_1.Prisma.Decimal(line.unit_price || 0);
-                    const lineValue = lineQty.mul(linePrice);
-                    totalQty = totalQty.add(lineQty);
-                    totalValue = totalValue.add(lineValue);
-                }
-            }
-            const minValue = new client_1.Prisma.Decimal(condition.min_value || 0);
-            if (!totalValue.gte(minValue))
-                continue;
-            const applicableLevel = promo.promotion_level_promotions.find((lvl) => new client_1.Prisma.Decimal(lvl.threshold_value).lte(totalValue));
-            if (!applicableLevel)
-                continue;
-            let discountAmount = new client_1.Prisma.Decimal(0);
-            if (applicableLevel.discount_type === 'PERCENTAGE') {
-                const discountPercent = new client_1.Prisma.Decimal(applicableLevel.discount_value || 0);
-                discountAmount = totalValue.mul(discountPercent).div(100);
-            }
-            else if (applicableLevel.discount_type === 'FIXED_AMOUNT') {
-                discountAmount = new client_1.Prisma.Decimal(applicableLevel.discount_value || 0);
-            }
-            const freeProducts = [];
-            for (const benefit of applicableLevel.promotion_benefit_level) {
-                if (benefit.benefit_type === 'FREE_PRODUCT') {
-                    freeProducts.push({
-                        product_id: benefit.product_id,
-                        product_name: benefit.promotion_benefit_products?.name || null,
-                        product_code: benefit.promotion_benefit_products?.code || null,
-                        quantity: benefit.benefit_value.toNumber(),
-                        gift_limit: benefit.gift_limit || 0,
-                    });
-                }
-            }
-            eligiblePromotions.push({
-                promotion_id: promo.id,
-                promotion_name: promo.name,
-                promotion_code: promo.code,
-                level_number: applicableLevel.level_number,
-                discount_type: applicableLevel.discount_type,
-                discount_amount: discountAmount.toNumber(),
-                free_products: freeProducts,
-                qualified_quantity: totalQty.toNumber(),
-                qualified_value: totalValue.toNumber(),
-            });
-            break;
-        }
-    }
-    return eligiblePromotions;
-}
 exports.ordersController = {
     async createOrUpdateOrder(req, res) {
         const data = req.body;
@@ -1059,23 +906,85 @@ exports.ordersController = {
             if (result && !orderId) {
                 try {
                     await (0, helpers_1.createOrderNotification)(result.createdby || userId, result.id, result.order_number || '', 'created', userId);
-                    await (0, requests_controller_1.createRequest)({
-                        requester_id: result.salesperson_id,
-                        request_type: 'ORDER_APPROVAL',
-                        reference_id: result.id,
-                        createdby: userId,
-                        log_inst: 1,
+                    // Check if approval workflow exists before creating request
+                    const salesperson = await prisma_client_1.default.users.findUnique({
+                        where: { id: result.salesperson_id },
+                        select: {
+                            id: true,
+                            zone_id: true,
+                            depot_id: true,
+                        },
                     });
+                    if (salesperson) {
+                        let workflowSteps = null;
+                        // Check for workflow in the same order as createRequest function
+                        if (salesperson.zone_id && salesperson.depot_id) {
+                            workflowSteps = await prisma_client_1.default.approval_work_flow.findMany({
+                                where: {
+                                    request_type: 'ORDER_APPROVAL',
+                                    zone_id: salesperson.zone_id,
+                                    depot_id: salesperson.depot_id,
+                                    is_active: 'Y',
+                                },
+                            });
+                        }
+                        if ((!workflowSteps || workflowSteps.length === 0) &&
+                            salesperson.zone_id) {
+                            workflowSteps = await prisma_client_1.default.approval_work_flow.findMany({
+                                where: {
+                                    request_type: 'ORDER_APPROVAL',
+                                    zone_id: salesperson.zone_id,
+                                    depot_id: null,
+                                    is_active: 'Y',
+                                },
+                            });
+                        }
+                        if ((!workflowSteps || workflowSteps.length === 0) &&
+                            salesperson.depot_id) {
+                            workflowSteps = await prisma_client_1.default.approval_work_flow.findMany({
+                                where: {
+                                    request_type: 'ORDER_APPROVAL',
+                                    depot_id: salesperson.depot_id,
+                                    zone_id: null,
+                                    is_active: 'Y',
+                                },
+                            });
+                        }
+                        if (!workflowSteps || workflowSteps.length === 0) {
+                            workflowSteps = await prisma_client_1.default.approval_work_flow.findMany({
+                                where: {
+                                    request_type: 'ORDER_APPROVAL',
+                                    zone_id: null,
+                                    depot_id: null,
+                                    is_active: 'Y',
+                                },
+                            });
+                        }
+                        // Only create approval request if workflow exists
+                        if (workflowSteps && workflowSteps.length > 0) {
+                            await (0, requests_controller_1.createRequest)({
+                                requester_id: result.salesperson_id,
+                                request_type: 'ORDER_APPROVAL',
+                                reference_id: result.id,
+                                createdby: userId,
+                                log_inst: 1,
+                            });
+                            console.log('Approval request created - workflow found');
+                        }
+                        else {
+                            console.log('No approval workflow found - order processed without approval');
+                        }
+                    }
                 }
                 catch (error) {
-                    console.error('Error creating approval request:', error);
+                    console.error('Error checking approval workflow:', error);
                 }
             }
             const response = {
                 success: true,
                 message: orderId
                     ? 'Order updated successfully'
-                    : 'Order created successfully and sent for approval',
+                    : 'Order created successfully',
                 data: {
                     ...serializeOrder(result),
                     promotion_applied: appliedPromotion,

@@ -100,7 +100,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
   );
 
   const { data: brandsResponse } = useBrands(
-    { limit: 1000, status: 'active', is_asset_brand: 'N' },
+    { limit: 1000, status: 'active' },
     { enabled: drawerOpen }
   );
 
@@ -325,7 +325,7 @@ const ManageProduct: React.FC<ManageProductProps> = ({
 
             <Select
               name="sub_category_id"
-              label="Sub-Category"
+              label="Sub Category"
               formik={formik}
               required
             >

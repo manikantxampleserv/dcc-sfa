@@ -1,6 +1,5 @@
 import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from 'types/api.types';
-import type { Brand } from '../Brands';
 
 export interface AssetSubType {
   id: number;
@@ -16,10 +15,15 @@ export interface AssetSubType {
 }
 
 export interface AssetMaster {
+  asset_movement_assets_asset: AssetMovement[];
+  last_scanned_date: any;
+  installation_date: any;
+  code: string;
   id: number;
   name: string;
   asset_type_id: number;
   asset_sub_type_id?: number | null;
+  asset_brand_id?: number | null;
   brand_id?: number | null;
   serial_number: string;
   barcode?: string | null;
@@ -41,7 +45,11 @@ export interface AssetMaster {
   asset_master_warranty_claims?: AssetWarrantyClaim[];
   asset_master_asset_types?: AssetType;
   asset_master_asset_sub_types?: AssetSubType;
-  asset_master_brands?: Brand;
+  asset_brand?: {
+    id: number;
+    name: string;
+    code: string;
+  };
 }
 
 export interface AssetImage {

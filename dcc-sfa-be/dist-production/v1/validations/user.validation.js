@@ -20,7 +20,7 @@ exports.createUserValidation = [
         .withMessage('Parent ID must be a number'),
     (0, express_validator_1.body)('depot_id').optional().isInt().withMessage('Depot ID must be a number'),
     (0, express_validator_1.body)('zone_id').optional().isInt().withMessage('Zone ID must be a number'),
-    (0, express_validator_1.body)('employee_id').optional().isString(),
+    (0, express_validator_1.body)('employee_id').notEmpty().withMessage('Employee ID is required'),
     (0, express_validator_1.body)('joining_date')
         .optional()
         .isISO8601()

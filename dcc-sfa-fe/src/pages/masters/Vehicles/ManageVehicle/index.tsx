@@ -90,9 +90,9 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
       title={isEdit ? 'Edit Vehicle' : 'Create Vehicle'}
       size="medium"
     >
-      <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+      <Box className="!p-4">
+        <form onSubmit={formik.handleSubmit} className="!space-y-4">
+          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
             <Input
               name="vehicle_number"
               label="Vehicle Number"
@@ -158,14 +158,6 @@ const ManageVehicle: React.FC<ManageVehicleProps> = ({
               <MenuItem value="maintenance">Maintenance</MenuItem>
               <MenuItem value="out-of-service">Out of Service</MenuItem>
             </Select>
-
-            <Input
-              name="mileage"
-              label="Mileage (km)"
-              placeholder="Enter current mileage"
-              type="number"
-              formik={formik}
-            />
 
             <Box className="md:!col-span-2">
               <ActiveInactiveField name="is_active" formik={formik} required />

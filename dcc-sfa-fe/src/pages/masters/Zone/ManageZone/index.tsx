@@ -94,15 +94,7 @@ const ManageZone: React.FC<ManageZoneProps> = ({
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Select name="parent_id" label="Depot" formik={formik} required>
-              {depots.map(depot => (
-                <MenuItem key={depot.id} value={depot.id.toString()}>
-                  {depot.name} ({depot.code})
-                </MenuItem>
-              ))}
-            </Select>
-
+          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
             <Input
               name="name"
               label="Zone Name"
@@ -118,12 +110,19 @@ const ManageZone: React.FC<ManageZoneProps> = ({
               formik={formik}
               helperText="Leave empty to auto-generate zone code"
             />
-
+            <Select name="parent_id" label="Depot" formik={formik} required>
+              {depots.map(depot => (
+                <MenuItem key={depot.id} value={depot.id.toString()}>
+                  {depot.name} ({depot.code})
+                </MenuItem>
+              ))}
+            </Select>
             <Select
               name="supervisor_id"
               label="Zone Supervisor"
               formik={formik}
               disabled={supervisorsLoading}
+              required
             >
               {supervisors.map(supervisor => (
                 <MenuItem key={supervisor.id} value={supervisor.id.toString()}>

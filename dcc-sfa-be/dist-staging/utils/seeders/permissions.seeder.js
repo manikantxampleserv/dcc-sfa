@@ -33,6 +33,7 @@ const MODULE_MAPPING = {
     outlet: 'Outlet Master',
     'outlet-group': 'Outlet Group',
     'asset-type': 'Asset Type',
+    'asset-brand': 'Asset Brand',
     'asset-sub-types': 'Asset Sub Types',
     'asset-master': 'Asset Master',
     warehouse: 'Warehouse',

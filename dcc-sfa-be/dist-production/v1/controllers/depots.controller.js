@@ -30,6 +30,9 @@ const serializeDepot = (depot, includeCompany = false) => ({
     address: depot.address,
     city: depot.city,
     state: depot.state,
+    region_id: depot.region_id,
+    city_id: depot.city_id,
+    district_id: depot.district_id,
     zipcode: depot.zipcode,
     phone_number: depot.phone_number,
     email: depot.email,
@@ -78,6 +81,27 @@ const serializeDepot = (depot, includeCompany = false) => ({
             email: depot.depots_coodrinator.email,
         }
         : null,
+    depots_region: depot.depots_region
+        ? {
+            id: depot.depots_region.id,
+            name: depot.depots_region.name,
+            code: depot.depots_region.code,
+        }
+        : null,
+    depots_city: depot.depots_city
+        ? {
+            id: depot.depots_city.id,
+            name: depot.depots_city.name,
+            code: depot.depots_city.code,
+        }
+        : null,
+    depots_district: depot.depots_district
+        ? {
+            id: depot.depots_district.id,
+            name: depot.depots_district.name,
+            code: depot.depots_district.code,
+        }
+        : null,
 });
 exports.depotsController = {
     async createDepots(req, res) {
@@ -97,10 +121,23 @@ exports.depotsController = {
                 },
                 include: {
                     depot_companies: true,
-                    user_depot: true,
+                    user_depots_depot_id: {
+                        include: {
+                            users_depots_users: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                     depots_manager: true,
                     depots_supervisior: true,
                     depots_coodrinator: true,
+                    depots_region: true,
+                    depots_city: true,
+                    depots_district: true,
                 },
             });
             res.status(201).json({
@@ -164,10 +201,23 @@ exports.depotsController = {
                 orderBy: { createdate: 'desc' },
                 include: {
                     depot_companies: true,
-                    user_depot: true,
+                    user_depots_depot_id: {
+                        include: {
+                            users_depots_users: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                     depots_manager: true,
                     depots_supervisior: true,
                     depots_coodrinator: true,
+                    depots_region: true,
+                    depots_city: true,
+                    depots_district: true,
                 },
             });
             res.json({
@@ -197,10 +247,23 @@ exports.depotsController = {
                 where: { id: Number(id) },
                 include: {
                     depot_companies: true,
-                    user_depot: true,
+                    user_depots_depot_id: {
+                        include: {
+                            users_depots_users: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                     depots_manager: true,
                     depots_supervisior: true,
                     depots_coodrinator: true,
+                    depots_region: true,
+                    depots_city: true,
+                    depots_district: true,
                 },
             });
             if (!depot) {
@@ -231,10 +294,23 @@ exports.depotsController = {
                 data,
                 include: {
                     depot_companies: true,
-                    user_depot: true,
+                    user_depots_depot_id: {
+                        include: {
+                            users_depots_users: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
                     depots_manager: true,
                     depots_supervisior: true,
                     depots_coodrinator: true,
+                    depots_region: true,
+                    depots_city: true,
+                    depots_district: true,
                 },
             });
             res.json({

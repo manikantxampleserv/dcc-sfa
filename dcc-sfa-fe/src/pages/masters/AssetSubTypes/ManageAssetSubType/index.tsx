@@ -1,18 +1,16 @@
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import { useFormik } from 'formik';
 import {
   useCreateAssetSubType,
   useUpdateAssetSubType,
   type AssetSubType,
 } from 'hooks/useAssetSubTypes';
-import { useAssetTypes } from 'hooks/useAssetTypes';
 import React from 'react';
 import { assetSubTypeValidationSchema } from 'schemas/assetSubType.schema';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import Select from 'shared/Select';
 
 interface ManageAssetSubTypeProps {
   selectedAssetSubType?: AssetSubType | null;
@@ -29,13 +27,6 @@ const ManageAssetSubType: React.FC<ManageAssetSubTypeProps> = ({
 }) => {
   const isEdit = !!selectedAssetSubType;
 
-  // Fetch asset types for dropdown
-  const { data: assetTypesResponse } = useAssetTypes({
-    page: 1,
-    limit: 1000, // Get all asset types for dropdown
-  });
-
-  const assetTypes = assetTypesResponse?.data || [];
 
   const handleCancel = () => {
     setSelectedAssetSubType(null);
@@ -50,7 +41,6 @@ const ManageAssetSubType: React.FC<ManageAssetSubTypeProps> = ({
     initialValues: {
       name: selectedAssetSubType?.name || '',
       description: selectedAssetSubType?.description || '',
-      asset_type_id: selectedAssetSubType?.asset_type_id || '',
       is_active: selectedAssetSubType?.is_active || 'Y',
     },
     validationSchema: assetSubTypeValidationSchema,
@@ -60,9 +50,6 @@ const ManageAssetSubType: React.FC<ManageAssetSubTypeProps> = ({
         const assetSubTypeData = {
           name: values.name,
           description: values.description,
-          asset_type_id: values.asset_type_id
-            ? Number(values.asset_type_id)
-            : undefined,
           is_active: values.is_active,
         };
 
@@ -87,11 +74,11 @@ const ManageAssetSubType: React.FC<ManageAssetSubTypeProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Asset Sub Type' : 'Create Asset Sub Type'}
-      size="medium"
+      size="small"
     >
       <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
+        <form onSubmit={formik.handleSubmit} className="!space-y-4">
+          <Box className="!grid !grid-cols-1 md:!grid-cols-1 !gap-4">
             <Input
               name="name"
               label="Asset Sub Type Name"
@@ -100,19 +87,6 @@ const ManageAssetSubType: React.FC<ManageAssetSubTypeProps> = ({
               required
             />
 
-            <Select
-              name="asset_type_id"
-              label="Asset Type"
-              placeholder="Select asset type"
-              formik={formik}
-              required
-            >
-              {assetTypes.map(assetType => (
-                <MenuItem key={assetType.id} value={assetType.id}>
-                  {assetType.name}
-                </MenuItem>
-              ))}
-            </Select>
 
             <ActiveInactiveField
               name="is_active"

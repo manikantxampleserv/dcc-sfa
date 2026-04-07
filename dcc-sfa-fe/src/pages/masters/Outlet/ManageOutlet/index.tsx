@@ -1,20 +1,20 @@
 import { Box, MenuItem } from '@mui/material';
 import { useFormik } from 'formik';
+import { useCities } from 'hooks/useCity';
+import { useCustomerCategories } from 'hooks/useCustomerCategory';
 import { useCustomerChannels } from 'hooks/useCustomerChannel';
 import {
   useCreateCustomer,
   useUpdateCustomer,
   type Customer,
 } from 'hooks/useCustomers';
-import { useCustomerCategories } from 'hooks/useCustomerCategory';
 import { useCustomerTypes } from 'hooks/useCustomerType';
-import { useRegions } from 'hooks/useRegion';
 import { useDistricts } from 'hooks/useDistrict';
-import { useCities } from 'hooks/useCity';
+import { useRegions } from 'hooks/useRegion';
+import { useRoutes } from 'hooks/useRoutes';
+import { useZones } from 'hooks/useZones';
 import React from 'react';
 import { customerValidationSchema } from 'schemas/customer.schema';
-import type { Route } from 'services/masters/Routes';
-import type { Zone } from 'services/masters/Zones';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import DepotSelect from 'shared/DepotSelect';
@@ -27,8 +27,6 @@ interface ManageOutletProps {
   setSelectedOutlet: (outlet: Customer | null) => void;
   drawerOpen: boolean;
   setDrawerOpen: (drawerOpen: boolean) => void;
-  routes: Route[];
-  zones: Zone[];
 }
 
 const ManageOutlet: React.FC<ManageOutletProps> = ({
@@ -36,8 +34,6 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
   setSelectedOutlet,
   drawerOpen,
   setDrawerOpen,
-  routes,
-  zones,
 }) => {
   const isEdit = !!selectedOutlet;
 
@@ -195,6 +191,33 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
   );
   const cities = citiesResponse?.data || [];
 
+  const { data: zonesResponse, isFetching: isFetchingZones } = useZones(
+    {
+      parent_id: formik.values.depot_id
+        ? Number(formik.values.depot_id)
+        : undefined,
+      limit: 1000,
+      isActive: 'Y',
+    },
+    { enabled: drawerOpen && !!formik.values.depot_id }
+  );
+  const zones = zonesResponse?.data || [];
+
+  const { data: routesResponse, isFetching: isFetchingRoutes } = useRoutes(
+    {
+      parent_id: formik.values.zones_id
+        ? Number(formik.values.zones_id)
+        : undefined,
+      depot_id: formik.values.depot_id
+        ? Number(formik.values.depot_id)
+        : undefined,
+      limit: 1000,
+      status: 'active',
+    },
+    { enabled: drawerOpen && !!formik.values.zones_id }
+  );
+  const routes = routesResponse?.data || [];
+
   const handleRegionChange = (e: any) => {
     formik.setFieldValue('region_id', e.target.value);
     formik.setFieldValue('district_id', '');
@@ -209,6 +232,17 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
   const handleCityChange = (e: any) => {
     const cityId = e.target.value;
     formik.setFieldValue('city_id', cityId);
+  };
+
+  const handleDepotChange = (_: any, value: any) => {
+    formik.setFieldValue('depot_id', value?.id?.toString() || '');
+    formik.setFieldValue('zones_id', '');
+    formik.setFieldValue('route_id', '');
+  };
+
+  const handleZoneChange = (e: any) => {
+    formik.setFieldValue('zones_id', e.target.value);
+    formik.setFieldValue('route_id', '');
   };
 
   return (
@@ -241,9 +275,17 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               label="Depot"
               formik={formik}
               required
+              onChange={handleDepotChange}
             />
 
-            <Select name="zones_id" label="Zone" formik={formik}>
+            <Select
+              name="zones_id"
+              label="Zone"
+              formik={formik}
+              loading={isFetchingZones}
+              disabled={!formik.values.depot_id}
+              onChange={handleZoneChange}
+            >
               {zones.map(zone => (
                 <MenuItem key={zone.id} value={zone.id.toString()}>
                   {zone.name}
@@ -251,7 +293,13 @@ const ManageOutlet: React.FC<ManageOutletProps> = ({
               ))}
             </Select>
 
-            <Select name="route_id" label="Route" formik={formik}>
+            <Select
+              name="route_id"
+              label="Route"
+              formik={formik}
+              loading={isFetchingRoutes}
+              disabled={!formik.values.zones_id}
+            >
               {routes.map(route => (
                 <MenuItem key={route.id} value={route.id.toString()}>
                   {route.name} ({route.code})

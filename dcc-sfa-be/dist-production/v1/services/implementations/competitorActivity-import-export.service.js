@@ -49,6 +49,22 @@ class CompetitorActivityImportExportService extends import_export_service_1.Impo
         'promotion_details',
         'remarks',
     ];
+    masterTableConfigs = [
+        {
+            masterTable: 'customers',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+            sheetName: 'Ref - Customers',
+            description: 'Use the ID from this sheet in the Customer ID column',
+        },
+        {
+            masterTable: 'visits',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'visit_date', 'purpose', 'status'],
+            sheetName: 'Ref - Visits',
+            description: 'Use the ID from this sheet in the Visit ID column',
+        },
+    ];
     columns = [
         {
             key: 'customer_id',

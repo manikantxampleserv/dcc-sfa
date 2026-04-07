@@ -7,6 +7,7 @@ exports.customerController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const blackbaze_1 = require("../../utils/blackbaze");
+const requests_controller_1 = require("./requests.controller");
 const generateCustomerCode = async (depotId) => {
     const depot = await prisma_client_1.default.depots.findUnique({
         where: { id: depotId },
@@ -77,6 +78,9 @@ const serializeCustomer = async (customer) => {
         updatedate: customer.updatedate || null,
         updatedby: customer.updatedby || null,
         log_inst: customer.log_inst,
+        city_id: customer.city_id || null,
+        district_id: customer.district_id || null,
+        region_id: customer.region_id || null,
         customer_zones: customer.customer_zones
             ? {
                 id: customer.customer_zones.id,
@@ -96,6 +100,27 @@ const serializeCustomer = async (customer) => {
                 estimated_time: customer.customer_routes.estimated_time || null,
                 route_type: customer.customer_routes.route_type || null,
                 outlet_group: customer.customer_routes.outlet_group || null,
+            }
+            : null,
+        customer_city: customer.customers_city
+            ? {
+                id: customer.customers_city.id,
+                name: customer.customers_city.name,
+                code: customer.customers_city.code,
+            }
+            : null,
+        customer_district: customer.customers_districts
+            ? {
+                id: customer.customers_districts.id,
+                name: customer.customers_districts.name,
+                code: customer.customers_districts.code,
+            }
+            : null,
+        customer_region: customer.customers_regions
+            ? {
+                id: customer.customers_regions.id,
+                name: customer.customers_regions.name,
+                code: customer.customers_regions.code,
             }
             : null,
         customer_users: customer.customer_users
@@ -167,6 +192,9 @@ const checkIfCustomerChanged = (existing, incoming) => {
         'salesperson_id',
         'nfc_tag_code',
         'is_active',
+        'city_id',
+        'district_id',
+        'region_id',
     ];
     let hasAnyChange = false;
     for (const field of fieldsToCompare) {
@@ -308,6 +336,1421 @@ exports.customerController = {
             res.status(500).json({ success: false, message: err.message });
         }
     },
+    // async bulkUpsertCustomers(req: any, res: any) {
+    //   try {
+    //     if (!req.body) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Request body is missing',
+    //       });
+    //     }
+    //     if (!req.body.customers) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'customers field is required',
+    //       });
+    //     }
+    //     let customersData;
+    //     if (typeof req.body.customers === 'string') {
+    //       if (!req.body.customers.trim()) {
+    //         return res.status(400).json({
+    //           success: false,
+    //           message: 'customers field cannot be empty',
+    //         });
+    //       }
+    //       try {
+    //         customersData = JSON.parse(req.body.customers);
+    //       } catch (error: any) {
+    //         return res.status(400).json({
+    //           success: false,
+    //           message: 'Invalid JSON format for customers field',
+    //         });
+    //       }
+    //     } else {
+    //       // customersData = req.body.customers;
+    //       customersData = req.body.customers;
+    //       customersData.forEach((customer: any) => {
+    //         delete customer.code;
+    //       });
+    //     }
+    //     const uploadedFiles =
+    //       (req.files as {
+    //         outlet_images?: Express.Multer.File[];
+    //         profile_picture?: Express.Multer.File[];
+    //         customer_images?: Express.Multer.File[];
+    //         profile_pics?: Express.Multer.File[];
+    //       }) || {};
+    //     const customerImages =
+    //       uploadedFiles.outlet_images || uploadedFiles.customer_images || [];
+    //     const profilePics =
+    //       uploadedFiles.profile_picture || uploadedFiles.profile_pics || [];
+    //     if (!Array.isArray(customersData) || customersData.length === 0) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Invalid request. Expected an array of customers',
+    //       });
+    //     }
+    //     let imageMapping: Record<number, number[]> = {};
+    //     let profileMapping: Record<number, number> = {};
+    //     if (req.body.imageMapping) {
+    //       try {
+    //         imageMapping =
+    //           typeof req.body.imageMapping === 'string'
+    //             ? JSON.parse(req.body.imageMapping)
+    //             : req.body.imageMapping;
+    //       } catch (e) {
+    //         imageMapping = {};
+    //       }
+    //     }
+    //     if (req.body.profileMapping) {
+    //       try {
+    //         profileMapping =
+    //           typeof req.body.profileMapping === 'string'
+    //             ? JSON.parse(req.body.profileMapping)
+    //             : req.body.profileMapping;
+    //       } catch (e) {
+    //         profileMapping = {};
+    //       }
+    //     }
+    //     const hasImageMapping = Object.keys(imageMapping).length > 0;
+    //     const hasProfileMapping = Object.keys(profileMapping).length > 0;
+    //     if (!hasImageMapping && customerImages.length > 0) {
+    //       for (
+    //         let i = 0;
+    //         i < customersData.length && i < customerImages.length;
+    //         i++
+    //       ) {
+    //         imageMapping[i] = [i];
+    //       }
+    //     }
+    //     if (!hasProfileMapping && profilePics.length > 0) {
+    //       for (
+    //         let i = 0;
+    //         i < customersData.length && i < profilePics.length;
+    //         i++
+    //       ) {
+    //         profileMapping[i] = i;
+    //       }
+    //     }
+    //     const allowedFields = [
+    //       'name',
+    //       'type',
+    //       'contact_person',
+    //       'phone_number',
+    //       'email',
+    //       'address',
+    //       'city',
+    //       'state',
+    //       'zipcode',
+    //       'latitude',
+    //       'longitude',
+    //       'credit_limit',
+    //       'outstanding_amount',
+    //       'last_visit_date',
+    //       'is_active',
+    //       'log_inst',
+    //     ];
+    //     const results = {
+    //       created: [] as any[],
+    //       updated: [] as any[],
+    //       skipped: [] as any[],
+    //       errors: [] as any[],
+    //     };
+    //     const uploadedImageUrls: string[] = [];
+    //     const uploadedProfileUrls: string[] = [];
+    //     try {
+    //       for (let i = 0; i < customerImages.length; i++) {
+    //         const file = customerImages[i];
+    //         const fileName = `customer-images/${Date.now()}-${i}-${file.originalname}`;
+    //         try {
+    //           const imageUrl = await uploadFile(
+    //             file.buffer,
+    //             fileName,
+    //             file.mimetype
+    //           );
+    //           uploadedImageUrls.push(imageUrl);
+    //         } catch (uploadError: any) {
+    //           console.error(`Error uploading customer image ${i}:`, uploadError);
+    //           uploadedImageUrls.push('');
+    //         }
+    //       }
+    //       for (let i = 0; i < profilePics.length; i++) {
+    //         const file = profilePics[i];
+    //         const fileName = `customer-profiles/${Date.now()}-${i}-${file.originalname}`;
+    //         try {
+    //           const profileUrl = await uploadFile(
+    //             file.buffer,
+    //             fileName,
+    //             file.mimetype
+    //           );
+    //           uploadedProfileUrls.push(profileUrl);
+    //         } catch (uploadError: any) {
+    //           console.error(`Error uploading profile pic ${i}:`, uploadError);
+    //           uploadedProfileUrls.push('');
+    //         }
+    //       }
+    //       for (
+    //         let customerIndex = 0;
+    //         customerIndex < customersData.length;
+    //         customerIndex++
+    //       ) {
+    //         const customerData = customersData[customerIndex];
+    //         try {
+    //           const depot_id =
+    //             customerData.depot_id ||
+    //             customerData.zone_id ||
+    //             customerData.zones_id;
+    //           const route_id = customerData.route_id;
+    //           let final_depot_id = depot_id;
+    //           if (!final_depot_id && route_id) {
+    //             const route = await prisma.routes.findUnique({
+    //               where: { id: route_id },
+    //               select: { depot_id: true },
+    //             });
+    //             final_depot_id = route?.depot_id;
+    //           }
+    //           const salesperson_id = customerData.salesperson_id;
+    //           const customer_type_id = customerData.customer_type_id;
+    //           const customer_channel_id = customerData.customer_channel_id;
+    //           // if (depot_id !== undefined && depot_id !== null) {
+    //           //   const depotExists = await prisma.depots.findUnique({
+    //           //     where: { id: depot_id },
+    //           //     select: { id: true },
+    //           //   });
+    //           if (final_depot_id !== undefined && final_depot_id !== null) {
+    //             const depotExists = await prisma.depots.findUnique({
+    //               where: { id: final_depot_id },
+    //               select: { id: true },
+    //             });
+    //             if (!depotExists) {
+    //               results.errors.push({
+    //                 customer: customerData,
+    //                 reason: `Depot with ID ${final_depot_id} does not exist`,
+    //               });
+    //               continue;
+    //             }
+    //           } else if (
+    //             final_depot_id === undefined ||
+    //             final_depot_id === null
+    //           ) {
+    //             results.errors.push({
+    //               customer: customerData,
+    //               reason: 'Depot selection is required',
+    //             });
+    //             continue;
+    //           }
+    //           if (
+    //             customerData.city_id !== undefined &&
+    //             customerData.city_id !== null
+    //           ) {
+    //             const cityExists = await prisma.cities.findUnique({
+    //               where: { id: customerData.city_id },
+    //               select: { id: true },
+    //             });
+    //             if (!cityExists) {
+    //               results.errors.push({
+    //                 customer: customerData,
+    //                 reason: `City with ID ${customerData.city_id} does not exist`,
+    //               });
+    //               continue;
+    //             }
+    //           }
+    //           if (
+    //             customerData.district_id !== undefined &&
+    //             customerData.district_id !== null
+    //           ) {
+    //             const districtExists = await prisma.districts.findUnique({
+    //               where: { id: customerData.district_id },
+    //               select: { id: true },
+    //             });
+    //             if (!districtExists) {
+    //               results.errors.push({
+    //                 customer: customerData,
+    //                 reason: `District with ID ${customerData.district_id} does not exist`,
+    //               });
+    //               continue;
+    //             }
+    //           }
+    //           if (
+    //             customerData.region_id !== undefined &&
+    //             customerData.region_id !== null
+    //           ) {
+    //             const regionExists = await prisma.regions.findUnique({
+    //               where: { id: customerData.region_id },
+    //               select: { id: true },
+    //             });
+    //             if (!regionExists) {
+    //               results.errors.push({
+    //                 customer: customerData,
+    //                 reason: `Region with ID ${customerData.region_id} does not exist`,
+    //               });
+    //               continue;
+    //             }
+    //           }
+    //           const cleanData: any = {};
+    //           Object.keys(customerData).forEach(key => {
+    //             if (allowedFields.includes(key)) {
+    //               if (
+    //                 [
+    //                   'credit_limit',
+    //                   'outstanding_amount',
+    //                   'latitude',
+    //                   'longitude',
+    //                 ].includes(key)
+    //               ) {
+    //                 cleanData[key] =
+    //                   customerData[key] === '' ? null : customerData[key];
+    //               } else {
+    //                 cleanData[key] = customerData[key];
+    //               }
+    //             }
+    //           });
+    //           if (profileMapping[customerIndex] !== undefined) {
+    //             const profileIndex = profileMapping[customerIndex];
+    //             if (
+    //               profileIndex < uploadedProfileUrls.length &&
+    //               uploadedProfileUrls[profileIndex]
+    //             ) {
+    //               cleanData.profile_picture = uploadedProfileUrls[profileIndex];
+    //             }
+    //           }
+    //           let whereConditions: any = {};
+    //           // if (final_depot_id && !cleanData.depot_id) {
+    //           //   cleanData.depot_id = final_depot_id;
+    //           // }
+    //           if (cleanData.email && cleanData.phone_number) {
+    //             whereConditions.OR = [
+    //               { email: cleanData.email },
+    //               { phone_number: cleanData.phone_number },
+    //             ];
+    //           } else if (cleanData.email) {
+    //             whereConditions.email = cleanData.email;
+    //           } else if (cleanData.phone_number) {
+    //             whereConditions.phone_number = cleanData.phone_number;
+    //           }
+    //           const existingCustomer = await prisma.customers.findFirst({
+    //             where: whereConditions,
+    //           });
+    //           let customerId: number;
+    //           let oldProfilePic: string | null = null;
+    //           let isUpdate = false;
+    //           if (existingCustomer) {
+    //             const hasChanged = checkIfCustomerChanged(
+    //               existingCustomer,
+    //               customerData
+    //             );
+    //             const hasNewImages = imageMapping[customerIndex]?.length > 0;
+    //             const hasNewProfile = profileMapping[customerIndex] !== undefined;
+    //             if (!hasChanged && !hasNewImages && !hasNewProfile) {
+    //               results.skipped.push({
+    //                 code: existingCustomer.code,
+    //                 id: existingCustomer.id,
+    //                 name: existingCustomer.name,
+    //                 reason: 'No changes detected',
+    //               });
+    //               continue;
+    //             }
+    //             if (hasNewProfile && existingCustomer.profile_picture) {
+    //               oldProfilePic = existingCustomer.profile_picture;
+    //             }
+    //             const updateData: any = {
+    //               ...cleanData,
+    //               updatedate: new Date(),
+    //               updatedby: req.user?.id || 1,
+    //             };
+    //             if (route_id !== undefined) {
+    //               if (route_id === null) {
+    //                 updateData.customer_routes = { disconnect: true };
+    //               } else {
+    //                 const routeExists = await prisma.routes.findUnique({
+    //                   where: { id: route_id },
+    //                 });
+    //                 if (routeExists) {
+    //                   updateData.customer_routes = {
+    //                     connect: { id: route_id },
+    //                   };
+    //                 }
+    //               }
+    //             }
+    //             if (salesperson_id !== undefined) {
+    //               if (salesperson_id === null) {
+    //                 updateData.customer_users = { disconnect: true };
+    //               } else {
+    //                 const userExists = await prisma.users.findUnique({
+    //                   where: { id: salesperson_id },
+    //                 });
+    //                 if (userExists) {
+    //                   updateData.customer_users = {
+    //                     connect: { id: salesperson_id },
+    //                   };
+    //                 }
+    //               }
+    //             }
+    //             if (customer_type_id !== undefined) {
+    //               if (customer_type_id === null) {
+    //                 updateData.customer_type_customer = { disconnect: true };
+    //               } else {
+    //                 const typeExists = await prisma.customer_type.findUnique({
+    //                   where: { id: customer_type_id },
+    //                 });
+    //                 if (typeExists) {
+    //                   updateData.customer_type_customer = {
+    //                     connect: { id: customer_type_id },
+    //                   };
+    //                 }
+    //               }
+    //             }
+    //             if (customer_channel_id !== undefined) {
+    //               if (customer_channel_id === null) {
+    //                 updateData.customer_channel_customer = { disconnect: true };
+    //               } else {
+    //                 const channelExists =
+    //                   await prisma.customer_channel.findUnique({
+    //                     where: { id: customer_channel_id },
+    //                   });
+    //                 if (channelExists) {
+    //                   updateData.customer_channel_customer = {
+    //                     connect: { id: customer_channel_id },
+    //                   };
+    //                 }
+    //               }
+    //             }
+    //             if (customer_channel_id !== undefined) {
+    //               if (customer_channel_id === null) {
+    //                 updateData.customer_channel_customer = { disconnect: true };
+    //               } else {
+    //                 const channelExists =
+    //                   await prisma.customer_channel.findUnique({
+    //                     where: { id: customer_channel_id },
+    //                   });
+    //                 if (channelExists) {
+    //                   updateData.customer_channel_customer = {
+    //                     connect: { id: customer_channel_id },
+    //                   };
+    //                 }
+    //               }
+    //             }
+    //             if (final_depot_id !== undefined && final_depot_id !== null) {
+    //               const depotExists = await prisma.depots.findUnique({
+    //                 where: { id: final_depot_id },
+    //               });
+    //               if (depotExists) {
+    //                 updateData.customer_depot = {
+    //                   connect: { id: final_depot_id },
+    //                 };
+    //               }
+    //             }
+    //             if (
+    //               customerData.city_id !== undefined &&
+    //               customerData.city_id !== null
+    //             ) {
+    //               const cityExists = await prisma.cities.findUnique({
+    //                 where: { id: customerData.city_id },
+    //               });
+    //               if (cityExists) {
+    //                 updateData.customers_city = {
+    //                   connect: { id: customerData.city_id },
+    //                 };
+    //               }
+    //             }
+    //             if (
+    //               customerData.district_id !== undefined &&
+    //               customerData.district_id !== null
+    //             ) {
+    //               const districtExists = await prisma.districts.findUnique({
+    //                 where: { id: customerData.district_id },
+    //               });
+    //               if (districtExists) {
+    //                 updateData.customers_districts = {
+    //                   connect: { id: customerData.district_id },
+    //                 };
+    //               }
+    //             }
+    //             // ADD THIS: Region relationship handling
+    //             if (
+    //               customerData.region_id !== undefined &&
+    //               customerData.region_id !== null
+    //             ) {
+    //               const regionExists = await prisma.regions.findUnique({
+    //                 where: { id: customerData.region_id },
+    //               });
+    //               if (regionExists) {
+    //                 updateData.customers_regions = {
+    //                   connect: { id: customerData.region_id },
+    //                 };
+    //               }
+    //             }
+    //             await prisma.customers.update({
+    //               where: { id: existingCustomer.id },
+    //               data: updateData,
+    //             });
+    //             customerId = existingCustomer.id;
+    //             isUpdate = true;
+    //             if (oldProfilePic) {
+    //               try {
+    //                 await deleteFile(oldProfilePic);
+    //               } catch (deleteError) {
+    //                 console.error('Error deleting old profile pic:', deleteError);
+    //               }
+    //             }
+    //           } else {
+    //             if (!cleanData.code) {
+    //               let uniqueCode = await generateCustomerCode(final_depot_id);
+    //               let attempts = 0;
+    //               const maxAttempts = 10;
+    //               while (attempts < maxAttempts) {
+    //                 const codeExists = await prisma.customers.findUnique({
+    //                   where: { code: uniqueCode },
+    //                 });
+    //                 if (!codeExists) break;
+    //                 const timestamp = Date.now().toString().slice(-4);
+    //                 uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+    //                 attempts++;
+    //               }
+    //               if (attempts >= maxAttempts) {
+    //                 throw new Error('Failed to generate unique code');
+    //               }
+    //               cleanData.code = uniqueCode;
+    //             }
+    //             const createData: any = {
+    //               ...cleanData,
+    //               createdby: req.user?.id || 1,
+    //               log_inst: customerData.log_inst || 1,
+    //               createdate: new Date(),
+    //             };
+    //             if (route_id !== undefined && route_id !== null) {
+    //               const routeExists = await prisma.routes.findUnique({
+    //                 where: { id: route_id },
+    //               });
+    //               if (routeExists) {
+    //                 createData.customer_routes = { connect: { id: route_id } };
+    //               }
+    //             }
+    //             if (route_id !== undefined && route_id !== null) {
+    //               const routeExists = await prisma.routes.findUnique({
+    //                 where: { id: route_id },
+    //               });
+    //               if (routeExists) {
+    //                 createData.customer_routes = { connect: { id: route_id } };
+    //               }
+    //             }
+    //             if (final_depot_id !== undefined && final_depot_id !== null) {
+    //               const depotExists = await prisma.depots.findUnique({
+    //                 where: { id: final_depot_id },
+    //               });
+    //               if (depotExists) {
+    //                 createData.customer_depot = {
+    //                   connect: { id: final_depot_id },
+    //                 };
+    //               }
+    //             }
+    //             if (final_depot_id !== undefined && final_depot_id !== null) {
+    //               const depotExists = await prisma.depots.findUnique({
+    //                 where: { id: final_depot_id },
+    //               });
+    //               if (depotExists) {
+    //                 createData.customer_depot = {
+    //                   connect: { id: final_depot_id },
+    //                 };
+    //               }
+    //             }
+    //             if (
+    //               customerData.city_id !== undefined &&
+    //               customerData.city_id !== null
+    //             ) {
+    //               const cityExists = await prisma.cities.findUnique({
+    //                 where: { id: customerData.city_id },
+    //               });
+    //               if (cityExists) {
+    //                 createData.customers_city = {
+    //                   connect: { id: customerData.city_id },
+    //                 };
+    //               }
+    //             }
+    //             // ADD THIS: District relationship handling
+    //             if (
+    //               customerData.district_id !== undefined &&
+    //               customerData.district_id !== null
+    //             ) {
+    //               const districtExists = await prisma.districts.findUnique({
+    //                 where: { id: customerData.district_id },
+    //               });
+    //               if (districtExists) {
+    //                 createData.customers_districts = {
+    //                   connect: { id: customerData.district_id },
+    //                 };
+    //               }
+    //             }
+    //             if (
+    //               customerData.region_id !== undefined &&
+    //               customerData.region_id !== null
+    //             ) {
+    //               const regionExists = await prisma.regions.findUnique({
+    //                 where: { id: customerData.region_id },
+    //               });
+    //               if (regionExists) {
+    //                 createData.customers_regions = {
+    //                   connect: { id: customerData.region_id },
+    //                 };
+    //               }
+    //             }
+    //             if (salesperson_id !== undefined && salesperson_id !== null) {
+    //               const userExists = await prisma.users.findUnique({
+    //                 where: { id: salesperson_id },
+    //               });
+    //               if (userExists) {
+    //                 createData.customer_users = {
+    //                   connect: { id: salesperson_id },
+    //                 };
+    //               }
+    //             }
+    //             if (customer_type_id !== undefined && customer_type_id !== null) {
+    //               const typeExists = await prisma.customer_type.findUnique({
+    //                 where: { id: customer_type_id },
+    //               });
+    //               if (typeExists) {
+    //                 createData.customer_type_customer = {
+    //                   connect: { id: customer_type_id },
+    //                 };
+    //               }
+    //             }
+    //             if (
+    //               customer_channel_id !== undefined &&
+    //               customer_channel_id !== null
+    //             ) {
+    //               const channelExists = await prisma.customer_channel.findUnique({
+    //                 where: { id: customer_channel_id },
+    //               });
+    //               if (channelExists) {
+    //                 createData.customer_channel_customer = {
+    //                   connect: { id: customer_channel_id },
+    //                 };
+    //               }
+    //             }
+    //             const newCustomer = await prisma.customers.create({
+    //               data: createData,
+    //             });
+    //             customerId = newCustomer.id;
+    //             isUpdate = false;
+    //           }
+    //           if (
+    //             imageMapping[customerIndex] &&
+    //             Array.isArray(imageMapping[customerIndex])
+    //           ) {
+    //             const fileIndices = imageMapping[customerIndex];
+    //             for (const fileIndex of fileIndices) {
+    //               if (
+    //                 fileIndex < uploadedImageUrls.length &&
+    //                 uploadedImageUrls[fileIndex]
+    //               ) {
+    //                 await prisma.customer_image.create({
+    //                   data: {
+    //                     customer_id: customerId,
+    //                     image_url: uploadedImageUrls[fileIndex],
+    //                     is_active: 'Y',
+    //                     createdby: req.user?.id || 1,
+    //                     createdate: new Date(),
+    //                     log_inst: 1,
+    //                   },
+    //                 });
+    //               }
+    //             }
+    //           }
+    //           const customerToSerialize = await prisma.customers.findUnique({
+    //             where: { id: customerId },
+    //             include: {
+    //               customer_zones: true,
+    //               customer_routes: true,
+    //               customer_users: true,
+    //               customer_depot: {
+    //                 select: {
+    //                   id: true,
+    //                   name: true,
+    //                   code: true,
+    //                 },
+    //               },
+    //               customer_type_customer: {
+    //                 select: {
+    //                   id: true,
+    //                   type_name: true,
+    //                   type_code: true,
+    //                 },
+    //               },
+    //               customer_channel_customer: {
+    //                 select: {
+    //                   id: true,
+    //                   channel_name: true,
+    //                   channel_code: true,
+    //                 },
+    //               },
+    //               outlet_images_customers: {
+    //                 where: { is_active: 'Y' },
+    //                 orderBy: { createdate: 'desc' },
+    //                 select: {
+    //                   id: true,
+    //                   image_url: true,
+    //                   createdate: true,
+    //                   createdby: true,
+    //                 },
+    //               },
+    //             },
+    //           });
+    //           const serialized = await serializeCustomer(customerToSerialize);
+    //           if (isUpdate) {
+    //             results.updated.push(serialized);
+    //           } else {
+    //             results.created.push(serialized);
+    //           }
+    //         } catch (error: any) {
+    //           console.error('Error processing customer:', error);
+    //           results.errors.push({
+    //             customer: {
+    //               name: customerData.name,
+    //               email: customerData.email,
+    //               phone_number: customerData.phone_number,
+    //             },
+    //             reason: error.message || 'Unknown error occurred',
+    //             error_code: error.code,
+    //           });
+    //         }
+    //       }
+    //       if (results.errors.length > 0) {
+    //         return res.status(400).json({
+    //           success: false,
+    //           message: 'Bulk upsert completed with errors',
+    //           summary: {
+    //             total: customersData.length,
+    //             created: results.created.length,
+    //             updated: results.updated.length,
+    //             skipped: results.skipped.length,
+    //             errors: results.errors.length,
+    //             outlet_images_uploaded: uploadedImageUrls.filter(url => url)
+    //               .length,
+    //             profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
+    //               .length,
+    //           },
+    //           data: results,
+    //         });
+    //       }
+    //       res.status(200).json({
+    //         success: true,
+    //         message: 'Bulk upsert completed successfully',
+    //         summary: {
+    //           total: customersData.length,
+    //           created: results.created.length,
+    //           updated: results.updated.length,
+    //           skipped: results.skipped.length,
+    //           errors: results.errors.length,
+    //           outlet_images_uploaded: uploadedImageUrls.filter(url => url).length,
+    //           profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
+    //             .length,
+    //         },
+    //         data: results,
+    //       });
+    //     } catch (error: any) {
+    //       for (const imageUrl of [...uploadedImageUrls, ...uploadedProfileUrls]) {
+    //         if (imageUrl) {
+    //           try {
+    //             await deleteFile(imageUrl);
+    //           } catch (deleteError) {
+    //             console.error('Error cleaning up uploaded file:', deleteError);
+    //           }
+    //         }
+    //       }
+    //       throw error;
+    //     }
+    //   } catch (error: any) {
+    //     console.error('Bulk Upsert Error:', error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: 'Internal server error',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
+    //I- with approval
+    // async bulkUpsertCustomers(req: any, res: any) {
+    //   try {
+    //     if (!req.body) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Request body is missing',
+    //       });
+    //     }
+    //     if (!req.body.customers) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'customers field is required',
+    //       });
+    //     }
+    //     const platform_type =
+    //       req.headers['platform_type'] || req.body.platform_type || 'web';
+    //     let customersData;
+    //     if (typeof req.body.customers === 'string') {
+    //       if (!req.body.customers.trim()) {
+    //         return res.status(400).json({
+    //           success: false,
+    //           message: 'customers field cannot be empty',
+    //         });
+    //       }
+    //       try {
+    //         customersData = JSON.parse(req.body.customers);
+    //       } catch (error: any) {
+    //         return res.status(400).json({
+    //           success: false,
+    //           message: 'Invalid JSON format for customers field',
+    //         });
+    //       }
+    //     } else {
+    //       customersData = req.body.customers;
+    //       customersData.forEach((customer: any) => {
+    //         delete customer.code;
+    //       });
+    //     }
+    //     const uploadedFiles =
+    //       (req.files as {
+    //         outlet_images?: Express.Multer.File[];
+    //         profile_picture?: Express.Multer.File[];
+    //         customer_images?: Express.Multer.File[];
+    //         profile_pics?: Express.Multer.File[];
+    //       }) || {};
+    //     const customerImages =
+    //       uploadedFiles.outlet_images || uploadedFiles.customer_images || [];
+    //     const profilePics =
+    //       uploadedFiles.profile_picture || uploadedFiles.profile_pics || [];
+    //     if (!Array.isArray(customersData) || customersData.length === 0) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Invalid request. Expected an array of customers',
+    //       });
+    //     }
+    //     let imageMapping: Record<number, number[]> = {};
+    //     let profileMapping: Record<number, number> = {};
+    //     if (req.body.imageMapping) {
+    //       try {
+    //         imageMapping =
+    //           typeof req.body.imageMapping === 'string'
+    //             ? JSON.parse(req.body.imageMapping)
+    //             : req.body.imageMapping;
+    //       } catch (e) {
+    //         imageMapping = {};
+    //       }
+    //     }
+    //     if (req.body.profileMapping) {
+    //       try {
+    //         profileMapping =
+    //           typeof req.body.profileMapping === 'string'
+    //             ? JSON.parse(req.body.profileMapping)
+    //             : req.body.profileMapping;
+    //       } catch (e) {
+    //         profileMapping = {};
+    //       }
+    //     }
+    //     const hasImageMapping = Object.keys(imageMapping).length > 0;
+    //     const hasProfileMapping = Object.keys(profileMapping).length > 0;
+    //     if (!hasImageMapping && customerImages.length > 0) {
+    //       for (
+    //         let i = 0;
+    //         i < customersData.length && i < customerImages.length;
+    //         i++
+    //       ) {
+    //         imageMapping[i] = [i];
+    //       }
+    //     }
+    //     if (!hasProfileMapping && profilePics.length > 0) {
+    //       for (
+    //         let i = 0;
+    //         i < customersData.length && i < profilePics.length;
+    //         i++
+    //       ) {
+    //         profileMapping[i] = i;
+    //       }
+    //     }
+    //     const allowedFields = [
+    //       'name',
+    //       'type',
+    //       'contact_person',
+    //       'phone_number',
+    //       'email',
+    //       'address',
+    //       'city',
+    //       'state',
+    //       'zipcode',
+    //       'latitude',
+    //       'longitude',
+    //       'credit_limit',
+    //       'outstanding_amount',
+    //       'last_visit_date',
+    //       'is_active',
+    //       'log_inst',
+    //     ];
+    //     const results = {
+    //       created: [] as any[],
+    //       updated: [] as any[],
+    //       skipped: [] as any[],
+    //       errors: [] as any[],
+    //       customer_creation_requests: [] as any[],
+    //     };
+    //     const uploadedImageUrls: string[] = [];
+    //     const uploadedProfileUrls: string[] = [];
+    //     try {
+    //       for (let i = 0; i < customerImages.length; i++) {
+    //         const file = customerImages[i];
+    //         const fileName = `customer-images/${Date.now()}-${i}-${file.originalname}`;
+    //         try {
+    //           const imageUrl = await uploadFile(
+    //             file.buffer,
+    //             fileName,
+    //             file.mimetype
+    //           );
+    //           uploadedImageUrls.push(imageUrl);
+    //         } catch (uploadError: any) {
+    //           console.error(`Error uploading customer image ${i}:`, uploadError);
+    //           uploadedImageUrls.push('');
+    //         }
+    //       }
+    //       for (let i = 0; i < profilePics.length; i++) {
+    //         const file = profilePics[i];
+    //         const fileName = `customer-profiles/${Date.now()}-${i}-${file.originalname}`;
+    //         try {
+    //           const profileUrl = await uploadFile(
+    //             file.buffer,
+    //             fileName,
+    //             file.mimetype
+    //           );
+    //           uploadedProfileUrls.push(profileUrl);
+    //         } catch (uploadError: any) {
+    //           console.error(`Error uploading profile pic ${i}:`, uploadError);
+    //           uploadedProfileUrls.push('');
+    //         }
+    //       }
+    //       for (
+    //         let customerIndex = 0;
+    //         customerIndex < customersData.length;
+    //         customerIndex++
+    //       ) {
+    //         const customerData = customersData[customerIndex];
+    //         try {
+    //           const depot_id =
+    //             customerData.depot_id ||
+    //             customerData.zone_id ||
+    //             customerData.zones_id;
+    //           const route_id = customerData.route_id;
+    //           let final_depot_id = depot_id;
+    //           if (!final_depot_id && route_id) {
+    //             const route = await prisma.routes.findUnique({
+    //               where: { id: route_id },
+    //               select: { depot_id: true },
+    //             });
+    //             final_depot_id = route?.depot_id;
+    //           }
+    //           const salesperson_id = customerData.salesperson_id;
+    //           const customer_type_id = customerData.customer_type_id;
+    //           const customer_channel_id = customerData.customer_channel_id;
+    //           if (final_depot_id !== undefined && final_depot_id !== null) {
+    //             const depotExists = await prisma.depots.findUnique({
+    //               where: { id: final_depot_id },
+    //               select: { id: true },
+    //             });
+    //             if (!depotExists) {
+    //               results.errors.push({
+    //                 customer: customerData,
+    //                 reason: `Depot with ID ${final_depot_id} does not exist`,
+    //               });
+    //               continue;
+    //             }
+    //           } else if (
+    //             final_depot_id === undefined ||
+    //             final_depot_id === null
+    //           ) {
+    //             results.errors.push({
+    //               customer: customerData,
+    //               reason: 'Depot selection is required',
+    //             });
+    //             continue;
+    //           }
+    //           if (
+    //             customerData.city_id !== undefined &&
+    //             customerData.city_id !== null
+    //           ) {
+    //             const cityExists = await prisma.cities.findUnique({
+    //               where: { id: customerData.city_id },
+    //               select: { id: true },
+    //             });
+    //             if (!cityExists) {
+    //               results.errors.push({
+    //                 customer: customerData,
+    //                 reason: `City with ID ${customerData.city_id} does not exist`,
+    //               });
+    //               continue;
+    //             }
+    //           }
+    //           if (
+    //             customerData.district_id !== undefined &&
+    //             customerData.district_id !== null
+    //           ) {
+    //             const districtExists = await prisma.districts.findUnique({
+    //               where: { id: customerData.district_id },
+    //               select: { id: true },
+    //             });
+    //             if (!districtExists) {
+    //               results.errors.push({
+    //                 customer: customerData,
+    //                 reason: `District with ID ${customerData.district_id} does not exist`,
+    //               });
+    //               continue;
+    //             }
+    //           }
+    //           if (
+    //             customerData.region_id !== undefined &&
+    //             customerData.region_id !== null
+    //           ) {
+    //             const regionExists = await prisma.regions.findUnique({
+    //               where: { id: customerData.region_id },
+    //               select: { id: true },
+    //             });
+    //             if (!regionExists) {
+    //               results.errors.push({
+    //                 customer: customerData,
+    //                 reason: `Region with ID ${customerData.region_id} does not exist`,
+    //               });
+    //               continue;
+    //             }
+    //           }
+    //           const cleanData: any = {};
+    //           Object.keys(customerData).forEach(key => {
+    //             if (allowedFields.includes(key)) {
+    //               if (
+    //                 [
+    //                   'credit_limit',
+    //                   'outstanding_amount',
+    //                   'latitude',
+    //                   'longitude',
+    //                 ].includes(key)
+    //               ) {
+    //                 cleanData[key] =
+    //                   customerData[key] === '' ? null : customerData[key];
+    //               } else {
+    //                 cleanData[key] = customerData[key];
+    //               }
+    //             }
+    //           });
+    //           if (profileMapping[customerIndex] !== undefined) {
+    //             const profileIndex = profileMapping[customerIndex];
+    //             if (
+    //               profileIndex < uploadedProfileUrls.length &&
+    //               uploadedProfileUrls[profileIndex]
+    //             ) {
+    //               cleanData.profile_picture = uploadedProfileUrls[profileIndex];
+    //             }
+    //           }
+    //           let whereConditions: any = {};
+    //           if (cleanData.email && cleanData.phone_number) {
+    //             whereConditions.OR = [
+    //               { email: cleanData.email },
+    //               { phone_number: cleanData.phone_number },
+    //             ];
+    //           } else if (cleanData.email) {
+    //             whereConditions.email = cleanData.email;
+    //           } else if (cleanData.phone_number) {
+    //             whereConditions.phone_number = cleanData.phone_number;
+    //           }
+    //           const existingCustomer = await prisma.customers.findFirst({
+    //             where: whereConditions,
+    //           });
+    //           let customerId: number | undefined;
+    //           let oldProfilePic: string | null = null;
+    //           let isUpdate = false;
+    //           if (!existingCustomer) {
+    //             // Generate customer code for request
+    //             let uniqueCode = await generateCustomerCode(final_depot_id);
+    //             let attempts = 0;
+    //             const maxAttempts = 10;
+    //             while (attempts < maxAttempts) {
+    //               const codeExists = await prisma.customers.findUnique({
+    //                 where: { code: uniqueCode },
+    //               });
+    //               if (!codeExists) break;
+    //               const timestamp = Date.now().toString().slice(-4);
+    //               uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+    //               attempts++;
+    //             }
+    //             if (attempts >= maxAttempts) {
+    //               throw new Error('Failed to generate unique code');
+    //             }
+    //             const customerCreationData = {
+    //               ...cleanData,
+    //               code: uniqueCode,
+    //               createdby: req.user?.id || 1,
+    //               log_inst: customerData.log_inst || 1,
+    //               createdate: new Date(),
+    //               ...(route_id && {
+    //                 customer_routes: { connect: { id: route_id } },
+    //               }),
+    //               ...(final_depot_id && {
+    //                 customer_depot: { connect: { id: final_depot_id } },
+    //               }),
+    //               ...(customerData.city_id && {
+    //                 customers_city: { connect: { id: customerData.city_id } },
+    //               }),
+    //               ...(customerData.district_id && {
+    //                 customers_districts: {
+    //                   connect: { id: customerData.district_id },
+    //                 },
+    //               }),
+    //               ...(customerData.region_id && {
+    //                 customers_regions: {
+    //                   connect: { id: customerData.region_id },
+    //                 },
+    //               }),
+    //               ...(salesperson_id && {
+    //                 customer_users: { connect: { id: salesperson_id } },
+    //               }),
+    //               ...(customer_type_id && {
+    //                 customer_type_customer: { connect: { id: customer_type_id } },
+    //               }),
+    //               ...(customer_channel_id && {
+    //                 customer_channel_customer: {
+    //                   connect: { id: customer_channel_id },
+    //                 },
+    //               }),
+    //             };
+    //             // Handle images
+    //             const customerImageData = [];
+    //             if (
+    //               imageMapping[customerIndex] &&
+    //               Array.isArray(imageMapping[customerIndex])
+    //             ) {
+    //               const fileIndices = imageMapping[customerIndex];
+    //               for (const fileIndex of fileIndices) {
+    //                 if (
+    //                   fileIndex < uploadedImageUrls.length &&
+    //                   uploadedImageUrls[fileIndex]
+    //                 ) {
+    //                   customerImageData.push({
+    //                     image_url: uploadedImageUrls[fileIndex],
+    //                     is_active: 'Y',
+    //                     createdby: req.user?.id || 1,
+    //                     createdate: new Date(),
+    //                     log_inst: 1,
+    //                   });
+    //                 }
+    //               }
+    //             }
+    //             try {
+    //               const customerCreationRequest = await createRequest({
+    //                 requester_id: req.user?.id || 1,
+    //                 request_type: 'CUSTOMER_CREATION',
+    //                 reference_id: null, // No reference ID for new customers
+    //                 request_data: JSON.stringify({
+    //                   customer_data: customerCreationData,
+    //                   customer_images: customerImageData,
+    //                   platform_type,
+    //                   requested_by: req.user?.name || 'Unknown User',
+    //                   requested_date: new Date().toISOString(),
+    //                 }),
+    //                 createdby: req.user?.id || 1,
+    //                 log_inst: 1,
+    //               });
+    //               results.customer_creation_requests.push({
+    //                 customer_code: uniqueCode,
+    //                 customer_name: cleanData.name,
+    //                 customer_email: cleanData.email,
+    //                 customer_phone: cleanData.phone_number,
+    //                 request_id: customerCreationRequest.id,
+    //                 platform_type,
+    //                 status: 'approval_required',
+    //                 customer_data: customerCreationData,
+    //               });
+    //               console.log(`Customer creation request created: ${uniqueCode}`);
+    //             } catch (requestError: any) {
+    //               console.error(
+    //                 'Error creating customer creation request:',
+    //                 requestError
+    //               );
+    //               results.errors.push({
+    //                 customer: customerData,
+    //                 reason: `Failed to create customer creation request: ${requestError.message}`,
+    //               });
+    //               continue;
+    //             }
+    //             continue;
+    //           }
+    //           if (existingCustomer) {
+    //             const hasChanged = checkIfCustomerChanged(
+    //               existingCustomer,
+    //               customerData
+    //             );
+    //             const hasNewImages = imageMapping[customerIndex]?.length > 0;
+    //             const hasNewProfile = profileMapping[customerIndex] !== undefined;
+    //             if (!hasChanged && !hasNewImages && !hasNewProfile) {
+    //               results.skipped.push({
+    //                 code: existingCustomer.code,
+    //                 id: existingCustomer.id,
+    //                 name: existingCustomer.name,
+    //                 reason: 'No changes detected',
+    //               });
+    //               continue;
+    //             }
+    //             if (hasNewProfile && existingCustomer.profile_picture) {
+    //               oldProfilePic = existingCustomer.profile_picture;
+    //             }
+    //             const updateData: any = {
+    //               ...cleanData,
+    //               updatedate: new Date(),
+    //               updatedby: req.user?.id || 1,
+    //             };
+    //             if (route_id !== undefined) {
+    //               if (route_id === null) {
+    //                 updateData.customer_routes = { disconnect: true };
+    //               } else {
+    //                 const routeExists = await prisma.routes.findUnique({
+    //                   where: { id: route_id },
+    //                 });
+    //                 if (routeExists) {
+    //                   updateData.customer_routes = {
+    //                     connect: { id: route_id },
+    //                   };
+    //                 }
+    //               }
+    //             }
+    //             if (salesperson_id !== undefined) {
+    //               if (salesperson_id === null) {
+    //                 updateData.customer_users = { disconnect: true };
+    //               } else {
+    //                 const userExists = await prisma.users.findUnique({
+    //                   where: { id: salesperson_id },
+    //                 });
+    //                 if (userExists) {
+    //                   updateData.customer_users = {
+    //                     connect: { id: salesperson_id },
+    //                   };
+    //                 }
+    //               }
+    //             }
+    //             if (customer_type_id !== undefined) {
+    //               if (customer_type_id === null) {
+    //                 updateData.customer_type_customer = { disconnect: true };
+    //               } else {
+    //                 const typeExists = await prisma.customer_type.findUnique({
+    //                   where: { id: customer_type_id },
+    //                 });
+    //                 if (typeExists) {
+    //                   updateData.customer_type_customer = {
+    //                     connect: { id: customer_type_id },
+    //                   };
+    //                 }
+    //               }
+    //             }
+    //             if (customer_channel_id !== undefined) {
+    //               if (customer_channel_id === null) {
+    //                 updateData.customer_channel_customer = { disconnect: true };
+    //               } else {
+    //                 const channelExists =
+    //                   await prisma.customer_channel.findUnique({
+    //                     where: { id: customer_channel_id },
+    //                   });
+    //                 if (channelExists) {
+    //                   updateData.customer_channel_customer = {
+    //                     connect: { id: customer_channel_id },
+    //                   };
+    //                 }
+    //               }
+    //             }
+    //             if (final_depot_id !== undefined && final_depot_id !== null) {
+    //               const depotExists = await prisma.depots.findUnique({
+    //                 where: { id: final_depot_id },
+    //               });
+    //               if (depotExists) {
+    //                 updateData.customer_depot = {
+    //                   connect: { id: final_depot_id },
+    //                 };
+    //               }
+    //             }
+    //             if (
+    //               customerData.city_id !== undefined &&
+    //               customerData.city_id !== null
+    //             ) {
+    //               const cityExists = await prisma.cities.findUnique({
+    //                 where: { id: customerData.city_id },
+    //               });
+    //               if (cityExists) {
+    //                 updateData.customers_city = {
+    //                   connect: { id: customerData.city_id },
+    //                 };
+    //               }
+    //             }
+    //             if (
+    //               customerData.district_id !== undefined &&
+    //               customerData.district_id !== null
+    //             ) {
+    //               const districtExists = await prisma.districts.findUnique({
+    //                 where: { id: customerData.district_id },
+    //               });
+    //               if (districtExists) {
+    //                 updateData.customers_districts = {
+    //                   connect: { id: customerData.district_id },
+    //                 };
+    //               }
+    //             }
+    //             if (
+    //               customerData.region_id !== undefined &&
+    //               customerData.region_id !== null
+    //             ) {
+    //               const regionExists = await prisma.regions.findUnique({
+    //                 where: { id: customerData.region_id },
+    //               });
+    //               if (regionExists) {
+    //                 updateData.customers_regions = {
+    //                   connect: { id: customerData.region_id },
+    //                 };
+    //               }
+    //             }
+    //             await prisma.customers.update({
+    //               where: { id: existingCustomer.id },
+    //               data: updateData,
+    //             });
+    //             customerId = existingCustomer.id;
+    //             isUpdate = true;
+    //             if (oldProfilePic) {
+    //               try {
+    //                 await deleteFile(oldProfilePic);
+    //               } catch (deleteError) {
+    //                 console.error('Error deleting old profile pic:', deleteError);
+    //               }
+    //             }
+    //           }
+    //           if (customerId !== undefined) {
+    //             // Handle images for existing customers
+    //             if (
+    //               imageMapping[customerIndex] &&
+    //               Array.isArray(imageMapping[customerIndex])
+    //             ) {
+    //               const fileIndices = imageMapping[customerIndex];
+    //               for (const fileIndex of fileIndices) {
+    //                 if (
+    //                   fileIndex < uploadedImageUrls.length &&
+    //                   uploadedImageUrls[fileIndex]
+    //                 ) {
+    //                   await prisma.customer_image.create({
+    //                     data: {
+    //                       customer_id: customerId,
+    //                       image_url: uploadedImageUrls[fileIndex],
+    //                       is_active: 'Y',
+    //                       createdby: req.user?.id || 1,
+    //                       createdate: new Date(),
+    //                       log_inst: 1,
+    //                     },
+    //                   });
+    //                 }
+    //               }
+    //             }
+    //             const customerToSerialize = await prisma.customers.findUnique({
+    //               where: { id: customerId },
+    //               include: {
+    //                 customer_zones: true,
+    //                 customer_routes: true,
+    //                 customer_users: true,
+    //                 customer_depot: {
+    //                   select: {
+    //                     id: true,
+    //                     name: true,
+    //                     code: true,
+    //                   },
+    //                 },
+    //                 customer_type_customer: {
+    //                   select: {
+    //                     id: true,
+    //                     type_name: true,
+    //                     type_code: true,
+    //                   },
+    //                 },
+    //                 customer_channel_customer: {
+    //                   select: {
+    //                     id: true,
+    //                     channel_name: true,
+    //                     channel_code: true,
+    //                   },
+    //                 },
+    //                 outlet_images_customers: {
+    //                   where: { is_active: 'Y' },
+    //                   orderBy: { createdate: 'desc' },
+    //                   select: {
+    //                     id: true,
+    //                     image_url: true,
+    //                     createdate: true,
+    //                     createdby: true,
+    //                   },
+    //                 },
+    //               },
+    //             });
+    //             const serialized = await serializeCustomer(customerToSerialize);
+    //             if (isUpdate) {
+    //               results.updated.push(serialized);
+    //             }
+    //           }
+    //         } catch (error: any) {
+    //           console.error('Error processing customer:', error);
+    //           results.errors.push({
+    //             customer: customerData,
+    //             reason: error.message || 'Unknown error occurred',
+    //             error_code: error.code,
+    //           });
+    //         }
+    //       }
+    //       const summary = {
+    //         total: customersData.length,
+    //         created: results.created.length,
+    //         updated: results.updated.length,
+    //         skipped: results.skipped.length,
+    //         errors: results.errors.length,
+    //         customer_creation_requests: results.customer_creation_requests.length,
+    //         outlet_images_uploaded: uploadedImageUrls.filter(url => url).length,
+    //         profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
+    //           .length,
+    //       };
+    //       if (results.errors.length > 0) {
+    //         return res.status(400).json({
+    //           success: false,
+    //           message: 'Bulk upsert completed with errors',
+    //           summary,
+    //           data: {
+    //             ...results,
+    //             customer_creation_requests: results.customer_creation_requests,
+    //           },
+    //         });
+    //       }
+    //       res.status(200).json({
+    //         success: true,
+    //         message: 'Bulk upsert completed successfully',
+    //         summary,
+    //         data: {
+    //           ...results,
+    //           customer_creation_requests: results.customer_creation_requests,
+    //         },
+    //       });
+    //     } catch (error: any) {
+    //       for (const imageUrl of [...uploadedImageUrls, ...uploadedProfileUrls]) {
+    //         if (imageUrl) {
+    //           try {
+    //             await deleteFile(imageUrl);
+    //           } catch (deleteError) {
+    //             console.error('Error cleaning up uploaded file:', deleteError);
+    //           }
+    //         }
+    //       }
+    //       throw error;
+    //     }
+    //   } catch (error: any) {
+    //     console.error('Bulk Upsert Error:', error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: 'Internal server error',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
+    //II- with approval+ without approval
     async bulkUpsertCustomers(req, res) {
         try {
             if (!req.body) {
@@ -322,6 +1765,7 @@ exports.customerController = {
                     message: 'customers field is required',
                 });
             }
+            const platform_type = req.headers['platform_type'] || req.body.platform_type || 'web';
             let customersData;
             if (typeof req.body.customers === 'string') {
                 if (!req.body.customers.trim()) {
@@ -341,7 +1785,6 @@ exports.customerController = {
                 }
             }
             else {
-                // customersData = req.body.customers;
                 customersData = req.body.customers;
                 customersData.forEach((customer) => {
                     delete customer.code;
@@ -394,7 +1837,6 @@ exports.customerController = {
             }
             const allowedFields = [
                 'name',
-                'depot_id',
                 'type',
                 'contact_person',
                 'phone_number',
@@ -411,36 +1853,12 @@ exports.customerController = {
                 'is_active',
                 'log_inst',
             ];
-            // const validationErrors = [];
-            // for (let i = 0; i < customersData.length; i++) {
-            //   const customer = customersData[i];
-            //   if (!customer.name) {
-            //     validationErrors.push({
-            //       index: i,
-            //       customer: customer,
-            //       reason: 'Customer name is required',
-            //     });
-            //   }
-            //   // if (!customer.email && !customer.phone_number) {
-            //   //   validationErrors.push({
-            //   //     index: i,
-            //   //     customer: customer,
-            //   //     reason: 'Either email or phone_number is required',
-            //   //   });
-            //   // }
-            // }
-            // if (validationErrors.length > 0) {
-            //   return res.status(400).json({
-            //     success: false,
-            //     message: 'Validation failed',
-            //     errors: validationErrors,
-            //   });
-            // }
             const results = {
                 created: [],
                 updated: [],
                 skipped: [],
                 errors: [],
+                customer_creation_requests: [],
             };
             const uploadedImageUrls = [];
             const uploadedProfileUrls = [];
@@ -476,28 +1894,79 @@ exports.customerController = {
                             customerData.zone_id ||
                             customerData.zones_id;
                         const route_id = customerData.route_id;
+                        let final_depot_id = depot_id;
+                        if (!final_depot_id && route_id) {
+                            const route = await prisma_client_1.default.routes.findUnique({
+                                where: { id: route_id },
+                                select: { depot_id: true },
+                            });
+                            final_depot_id = route?.depot_id;
+                        }
                         const salesperson_id = customerData.salesperson_id;
                         const customer_type_id = customerData.customer_type_id;
                         const customer_channel_id = customerData.customer_channel_id;
-                        if (depot_id !== undefined && depot_id !== null) {
+                        if (final_depot_id !== undefined && final_depot_id !== null) {
                             const depotExists = await prisma_client_1.default.depots.findUnique({
-                                where: { id: depot_id },
+                                where: { id: final_depot_id },
                                 select: { id: true },
                             });
                             if (!depotExists) {
                                 results.errors.push({
                                     customer: customerData,
-                                    reason: `Depot with ID ${depot_id} does not exist`,
+                                    reason: `Depot with ID ${final_depot_id} does not exist`,
                                 });
                                 continue;
                             }
                         }
-                        else if (depot_id === undefined || depot_id === null) {
+                        else if (final_depot_id === undefined ||
+                            final_depot_id === null) {
                             results.errors.push({
                                 customer: customerData,
                                 reason: 'Depot selection is required',
                             });
                             continue;
+                        }
+                        if (customerData.city_id !== undefined &&
+                            customerData.city_id !== null) {
+                            const cityExists = await prisma_client_1.default.cities.findUnique({
+                                where: { id: customerData.city_id },
+                                select: { id: true },
+                            });
+                            if (!cityExists) {
+                                results.errors.push({
+                                    customer: customerData,
+                                    reason: `City with ID ${customerData.city_id} does not exist`,
+                                });
+                                continue;
+                            }
+                        }
+                        if (customerData.district_id !== undefined &&
+                            customerData.district_id !== null) {
+                            const districtExists = await prisma_client_1.default.districts.findUnique({
+                                where: { id: customerData.district_id },
+                                select: { id: true },
+                            });
+                            if (!districtExists) {
+                                results.errors.push({
+                                    customer: customerData,
+                                    reason: `District with ID ${customerData.district_id} does not exist`,
+                                });
+                                continue;
+                            }
+                        }
+                        if (customerData.region_id !== undefined &&
+                            customerData.region_id !== null) {
+                            const regionExists = await prisma_client_1.default.regions.findUnique({
+                                where: { id: customerData.region_id },
+                                select: { id: true },
+                            });
+                            if (!regionExists) {
+                                results.errors.push({
+                                    customer: customerData,
+                                    reason: `Region with ID ${customerData.region_id} does not exist`,
+                                });
+                                continue;
+                            }
                         }
                         const cleanData = {};
                         Object.keys(customerData).forEach(key => {
@@ -542,6 +2011,166 @@ exports.customerController = {
                         let customerId;
                         let oldProfilePic = null;
                         let isUpdate = false;
+                        if (!existingCustomer) {
+                            let uniqueCode = await generateCustomerCode(final_depot_id);
+                            let attempts = 0;
+                            const maxAttempts = 10;
+                            while (attempts < maxAttempts) {
+                                const codeExists = await prisma_client_1.default.customers.findUnique({
+                                    where: { code: uniqueCode },
+                                });
+                                if (!codeExists)
+                                    break;
+                                const timestamp = Date.now().toString().slice(-4);
+                                uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
+                                attempts++;
+                            }
+                            if (attempts >= maxAttempts) {
+                                throw new Error('Failed to generate unique code');
+                            }
+                            const customerCreationData = {
+                                ...cleanData,
+                                code: uniqueCode,
+                                createdby: req.user?.id || 1,
+                                log_inst: customerData.log_inst || 1,
+                                createdate: new Date(),
+                                ...(route_id && {
+                                    customer_routes: { connect: { id: route_id } },
+                                }),
+                                ...(final_depot_id && {
+                                    customer_depot: { connect: { id: final_depot_id } },
+                                }),
+                                ...(customerData.city_id && {
+                                    customers_city: { connect: { id: customerData.city_id } },
+                                }),
+                                ...(customerData.district_id && {
+                                    customers_districts: {
+                                        connect: { id: customerData.district_id },
+                                    },
+                                }),
+                                ...(customerData.region_id && {
+                                    customers_regions: {
+                                        connect: { id: customerData.region_id },
+                                    },
+                                }),
+                                ...(salesperson_id && {
+                                    customer_users: { connect: { id: salesperson_id } },
+                                }),
+                                ...(customer_type_id && {
+                                    customer_type_customer: { connect: { id: customer_type_id } },
+                                }),
+                                ...(customer_channel_id && {
+                                    customer_channel_customer: {
+                                        connect: { id: customer_channel_id },
+                                    },
+                                }),
+                            };
+                            const customerImageData = [];
+                            if (imageMapping[customerIndex] &&
+                                Array.isArray(imageMapping[customerIndex])) {
+                                const fileIndices = imageMapping[customerIndex];
+                                for (const fileIndex of fileIndices) {
+                                    if (fileIndex < uploadedImageUrls.length &&
+                                        uploadedImageUrls[fileIndex]) {
+                                        customerImageData.push({
+                                            image_url: uploadedImageUrls[fileIndex],
+                                            is_active: 'Y',
+                                            createdby: req.user?.id || 1,
+                                            createdate: new Date(),
+                                            log_inst: 1,
+                                        });
+                                    }
+                                }
+                            }
+                            try {
+                                const customerCreationRequest = await (0, requests_controller_1.createRequest)({
+                                    requester_id: req.user?.id || 1,
+                                    request_type: 'CUSTOMER_CREATION',
+                                    reference_id: null,
+                                    request_data: JSON.stringify({
+                                        customer_data: customerCreationData,
+                                        customer_images: customerImageData,
+                                        platform_type,
+                                        requested_by: req.user?.name || 'Unknown User',
+                                        requested_date: new Date().toISOString(),
+                                    }),
+                                    createdby: req.user?.id || 1,
+                                    log_inst: 1,
+                                });
+                                const requestWithApprovals = await prisma_client_1.default.sfa_d_requests.findUnique({
+                                    where: { id: customerCreationRequest.id },
+                                    include: {
+                                        sfa_d_requests_approvals_request: {
+                                            include: {
+                                                sfa_d_requests_approvals_approver: {
+                                                    select: {
+                                                        id: true,
+                                                        name: true,
+                                                        email: true,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                });
+                                if (!requestWithApprovals?.sfa_d_requests_approvals_request ||
+                                    requestWithApprovals.sfa_d_requests_approvals_request
+                                        .length === 0) {
+                                    const createdCustomer = await prisma_client_1.default.customers.create({
+                                        data: customerCreationData,
+                                    });
+                                    await prisma_client_1.default.sfa_d_requests.update({
+                                        where: { id: customerCreationRequest.id },
+                                        data: {
+                                            status: 'A',
+                                            updatedate: new Date(),
+                                            updatedby: req.user?.id || 1,
+                                        },
+                                    });
+                                    if (customerImageData.length > 0) {
+                                        for (const imageData of customerImageData) {
+                                            await prisma_client_1.default.customer_image.create({
+                                                data: {
+                                                    ...imageData,
+                                                    customer_id: createdCustomer.id,
+                                                },
+                                            });
+                                        }
+                                    }
+                                    customerId = createdCustomer.id;
+                                    isUpdate = false;
+                                    results.created.push({
+                                        ...createdCustomer,
+                                        approval_required: false,
+                                        request_id: customerCreationRequest.id,
+                                        status: 'A',
+                                    });
+                                    console.log(`Customer created directly: ${createdCustomer.code}`);
+                                }
+                                else {
+                                    results.customer_creation_requests.push({
+                                        customer_code: uniqueCode,
+                                        customer_name: cleanData.name,
+                                        customer_email: cleanData.email,
+                                        customer_phone: cleanData.phone_number,
+                                        request_id: customerCreationRequest.id,
+                                        platform_type,
+                                        status: 'approval_required',
+                                        customer_data: customerCreationData,
+                                    });
+                                    console.log(`Customer creation request created: ${uniqueCode}`);
+                                }
+                            }
+                            catch (requestError) {
+                                console.error('Error creating customer creation request:', requestError);
+                                results.errors.push({
+                                    customer: customerData,
+                                    reason: `Failed to create customer creation request: ${requestError.message}`,
+                                });
+                                continue;
+                            }
+                            continue;
+                        }
                         if (existingCustomer) {
                             const hasChanged = checkIfCustomerChanged(existingCustomer, customerData);
                             const hasNewImages = imageMapping[customerIndex]?.length > 0;
@@ -623,6 +2252,49 @@ exports.customerController = {
                                     }
                                 }
                             }
+                            if (final_depot_id !== undefined && final_depot_id !== null) {
+                                const depotExists = await prisma_client_1.default.depots.findUnique({
+                                    where: { id: final_depot_id },
+                                });
+                                if (depotExists) {
+                                    updateData.customer_depot = {
+                                        connect: { id: final_depot_id },
+                                    };
+                                }
+                            }
+                            if (customerData.city_id !== undefined &&
+                                customerData.city_id !== null) {
+                                const cityExists = await prisma_client_1.default.cities.findUnique({
+                                    where: { id: customerData.city_id },
+                                });
+                                if (cityExists) {
+                                    updateData.customers_city = {
+                                        connect: { id: customerData.city_id },
+                                    };
+                                }
+                            }
+                            if (customerData.district_id !== undefined &&
+                                customerData.district_id !== null) {
+                                const districtExists = await prisma_client_1.default.districts.findUnique({
+                                    where: { id: customerData.district_id },
+                                });
+                                if (districtExists) {
+                                    updateData.customers_districts = {
+                                        connect: { id: customerData.district_id },
+                                    };
+                                }
+                            }
+                            if (customerData.region_id !== undefined &&
+                                customerData.region_id !== null) {
+                                const regionExists = await prisma_client_1.default.regions.findUnique({
+                                    where: { id: customerData.region_id },
+                                });
+                                if (regionExists) {
+                                    updateData.customers_regions = {
+                                        connect: { id: customerData.region_id },
+                                    };
+                                }
+                            }
                             await prisma_client_1.default.customers.update({
                                 where: { id: existingCustomer.id },
                                 data: updateData,
@@ -638,188 +2310,112 @@ exports.customerController = {
                                 }
                             }
                         }
-                        else {
-                            if (!cleanData.code) {
-                                let uniqueCode = await generateCustomerCode(depot_id);
-                                let attempts = 0;
-                                const maxAttempts = 10;
-                                while (attempts < maxAttempts) {
-                                    const codeExists = await prisma_client_1.default.customers.findUnique({
-                                        where: { code: uniqueCode },
-                                    });
-                                    if (!codeExists)
-                                        break;
-                                    const timestamp = Date.now().toString().slice(-4);
-                                    uniqueCode = `${uniqueCode.slice(0, -3)}${timestamp}`;
-                                    attempts++;
-                                }
-                                if (attempts >= maxAttempts) {
-                                    throw new Error('Failed to generate unique code');
-                                }
-                                cleanData.code = uniqueCode;
-                            }
-                            const createData = {
-                                ...cleanData,
-                                createdby: req.user?.id || 1,
-                                log_inst: customerData.log_inst || 1,
-                                createdate: new Date(),
-                            };
-                            if (route_id !== undefined && route_id !== null) {
-                                const routeExists = await prisma_client_1.default.routes.findUnique({
-                                    where: { id: route_id },
-                                });
-                                if (routeExists) {
-                                    createData.customer_routes = { connect: { id: route_id } };
+                        if (customerId !== undefined) {
+                            // Handle images for existing customers
+                            if (imageMapping[customerIndex] &&
+                                Array.isArray(imageMapping[customerIndex])) {
+                                const fileIndices = imageMapping[customerIndex];
+                                for (const fileIndex of fileIndices) {
+                                    if (fileIndex < uploadedImageUrls.length &&
+                                        uploadedImageUrls[fileIndex]) {
+                                        await prisma_client_1.default.customer_image.create({
+                                            data: {
+                                                customer_id: customerId, // ✅ NOW customerId IS ALWAYS DEFINED
+                                                image_url: uploadedImageUrls[fileIndex],
+                                                is_active: 'Y',
+                                                createdby: req.user?.id || 1,
+                                                createdate: new Date(),
+                                                log_inst: 1,
+                                            },
+                                        });
+                                    }
                                 }
                             }
-                            if (salesperson_id !== undefined && salesperson_id !== null) {
-                                const userExists = await prisma_client_1.default.users.findUnique({
-                                    where: { id: salesperson_id },
-                                });
-                                if (userExists) {
-                                    createData.customer_users = {
-                                        connect: { id: salesperson_id },
-                                    };
-                                }
-                            }
-                            if (customer_type_id !== undefined && customer_type_id !== null) {
-                                const typeExists = await prisma_client_1.default.customer_type.findUnique({
-                                    where: { id: customer_type_id },
-                                });
-                                if (typeExists) {
-                                    createData.customer_type_customer = {
-                                        connect: { id: customer_type_id },
-                                    };
-                                }
-                            }
-                            if (customer_channel_id !== undefined &&
-                                customer_channel_id !== null) {
-                                const channelExists = await prisma_client_1.default.customer_channel.findUnique({
-                                    where: { id: customer_channel_id },
-                                });
-                                if (channelExists) {
-                                    createData.customer_channel_customer = {
-                                        connect: { id: customer_channel_id },
-                                    };
-                                }
-                            }
-                            const newCustomer = await prisma_client_1.default.customers.create({
-                                data: createData,
-                            });
-                            customerId = newCustomer.id;
-                            isUpdate = false;
-                        }
-                        if (imageMapping[customerIndex] &&
-                            Array.isArray(imageMapping[customerIndex])) {
-                            const fileIndices = imageMapping[customerIndex];
-                            for (const fileIndex of fileIndices) {
-                                if (fileIndex < uploadedImageUrls.length &&
-                                    uploadedImageUrls[fileIndex]) {
-                                    await prisma_client_1.default.customer_image.create({
-                                        data: {
-                                            customer_id: customerId,
-                                            image_url: uploadedImageUrls[fileIndex],
-                                            is_active: 'Y',
-                                            createdby: req.user?.id || 1,
-                                            createdate: new Date(),
-                                            log_inst: 1,
+                            const customerToSerialize = await prisma_client_1.default.customers.findUnique({
+                                where: { id: customerId },
+                                include: {
+                                    customer_zones: true,
+                                    customer_routes: true,
+                                    customer_users: true,
+                                    customer_depot: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            code: true,
                                         },
-                                    });
-                                }
+                                    },
+                                    customer_type_customer: {
+                                        select: {
+                                            id: true,
+                                            type_name: true,
+                                            type_code: true,
+                                        },
+                                    },
+                                    customer_channel_customer: {
+                                        select: {
+                                            id: true,
+                                            channel_name: true,
+                                            channel_code: true,
+                                        },
+                                    },
+                                    outlet_images_customers: {
+                                        where: { is_active: 'Y' },
+                                        orderBy: { createdate: 'desc' },
+                                        select: {
+                                            id: true,
+                                            image_url: true,
+                                            createdate: true,
+                                            createdby: true,
+                                        },
+                                    },
+                                },
+                            });
+                            const serialized = await serializeCustomer(customerToSerialize);
+                            if (isUpdate) {
+                                results.updated.push(serialized);
                             }
-                        }
-                        const customerToSerialize = await prisma_client_1.default.customers.findUnique({
-                            where: { id: customerId },
-                            include: {
-                                customer_zones: true,
-                                customer_routes: true,
-                                customer_users: true,
-                                customer_depot: {
-                                    select: {
-                                        id: true,
-                                        name: true,
-                                        code: true,
-                                    },
-                                },
-                                customer_type_customer: {
-                                    select: {
-                                        id: true,
-                                        type_name: true,
-                                        type_code: true,
-                                    },
-                                },
-                                customer_channel_customer: {
-                                    select: {
-                                        id: true,
-                                        channel_name: true,
-                                        channel_code: true,
-                                    },
-                                },
-                                outlet_images_customers: {
-                                    where: { is_active: 'Y' },
-                                    orderBy: { createdate: 'desc' },
-                                    select: {
-                                        id: true,
-                                        image_url: true,
-                                        createdate: true,
-                                        createdby: true,
-                                    },
-                                },
-                            },
-                        });
-                        const serialized = await serializeCustomer(customerToSerialize);
-                        if (isUpdate) {
-                            results.updated.push(serialized);
-                        }
-                        else {
-                            results.created.push(serialized);
                         }
                     }
                     catch (error) {
                         console.error('Error processing customer:', error);
                         results.errors.push({
-                            customer: {
-                                name: customerData.name,
-                                email: customerData.email,
-                                phone_number: customerData.phone_number,
-                            },
+                            customer: customerData,
                             reason: error.message || 'Unknown error occurred',
                             error_code: error.code,
                         });
                     }
                 }
+                // ✅ UPDATED RESPONSE WITH NEW FIELDS
+                const summary = {
+                    total: customersData.length,
+                    created: results.created.length,
+                    updated: results.updated.length,
+                    skipped: results.skipped.length,
+                    errors: results.errors.length,
+                    customer_creation_requests: results.customer_creation_requests.length,
+                    outlet_images_uploaded: uploadedImageUrls.filter(url => url).length,
+                    profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
+                        .length,
+                };
                 if (results.errors.length > 0) {
                     return res.status(400).json({
                         success: false,
                         message: 'Bulk upsert completed with errors',
-                        summary: {
-                            total: customersData.length,
-                            created: results.created.length,
-                            updated: results.updated.length,
-                            skipped: results.skipped.length,
-                            errors: results.errors.length,
-                            outlet_images_uploaded: uploadedImageUrls.filter(url => url)
-                                .length,
-                            profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
-                                .length,
+                        summary,
+                        data: {
+                            ...results,
+                            customer_creation_requests: results.customer_creation_requests,
                         },
-                        data: results,
                     });
                 }
                 res.status(200).json({
                     success: true,
                     message: 'Bulk upsert completed successfully',
-                    summary: {
-                        total: customersData.length,
-                        created: results.created.length,
-                        updated: results.updated.length,
-                        skipped: results.skipped.length,
-                        errors: results.errors.length,
-                        outlet_images_uploaded: uploadedImageUrls.filter(url => url).length,
-                        profile_picture_uploaded: uploadedProfileUrls.filter(url => url)
-                            .length,
+                    summary,
+                    data: {
+                        ...results,
+                        customer_creation_requests: results.customer_creation_requests,
                     },
-                    data: results,
                 });
             }
             catch (error) {
@@ -838,6 +2434,326 @@ exports.customerController = {
         }
         catch (error) {
             console.error('Bulk Upsert Error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: error.message,
+            });
+        }
+    },
+    // async createLocationChangeRequest(req: any, res: any) {
+    //   try {
+    //     if (!req.body) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Request body is missing',
+    //       });
+    //     }
+    //     const {
+    //       customer_id,
+    //       customer_code,
+    //       latitude,
+    //       longitude,
+    //       reason,
+    //       request_type = 'LOCATION_RESET',
+    //     } = req.body;
+    //     if (!customer_id && !customer_code) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Either customer_id or customer_code is required',
+    //       });
+    //     }
+    //     if (latitude === undefined || longitude === undefined) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: 'Both latitude and longitude are required',
+    //       });
+    //     }
+    //     let existingCustomer;
+    //     if (customer_id) {
+    //       existingCustomer = await prisma.customers.findUnique({
+    //         where: { id: customer_id },
+    //         select: {
+    //           id: true,
+    //           code: true,
+    //           name: true,
+    //           email: true,
+    //           phone_number: true,
+    //           latitude: true,
+    //           longitude: true,
+    //           address: true,
+    //           city: true,
+    //           state: true,
+    //         },
+    //       });
+    //     } else {
+    //       existingCustomer = await prisma.customers.findUnique({
+    //         where: { code: customer_code },
+    //         select: {
+    //           id: true,
+    //           code: true,
+    //           name: true,
+    //           email: true,
+    //           phone_number: true,
+    //           latitude: true,
+    //           longitude: true,
+    //           address: true,
+    //           city: true,
+    //           state: true,
+    //         },
+    //       });
+    //     }
+    //     if (!existingCustomer) {
+    //       return res.status(404).json({
+    //         success: false,
+    //         message: 'Customer not found',
+    //       });
+    //     }
+    //     const resetData = {
+    //       latitude: parseFloat(latitude),
+    //       longitude: parseFloat(longitude),
+    //       reason: reason || 'Location coordinates update requested',
+    //       old_latitude: existingCustomer.latitude,
+    //       old_longitude: existingCustomer.longitude,
+    //       requested_by: req.user?.name || 'Unknown User',
+    //       requested_date: new Date().toISOString(),
+    //     };
+    //     const locationResetRequest = await createRequest({
+    //       requester_id: req.user?.id || 1,
+    //       request_type: request_type,
+    //       reference_id: existingCustomer.id,
+    //       request_data: JSON.stringify(resetData),
+    //       createdby: req.user?.id || 1,
+    //       log_inst: 1,
+    //     });
+    //     const requestDetails = await prisma.sfa_d_requests.findUnique({
+    //       where: { id: locationResetRequest.id },
+    //       include: {
+    //         sfa_d_requests_approvals_request: {
+    //           include: {
+    //             sfa_d_requests_approvals_approver: {
+    //               select: {
+    //                 id: true,
+    //                 name: true,
+    //                 email: true,
+    //               },
+    //             },
+    //           },
+    //         },
+    //       },
+    //     });
+    //     res.status(201).json({
+    //       success: true,
+    //       message: 'Location change request created successfully',
+    //       data: {
+    //         request_id: locationResetRequest.id,
+    //         request_type: request_type,
+    //         status: 'P',
+    //         customer: {
+    //           id: existingCustomer.id,
+    //           code: existingCustomer.code,
+    //           name: existingCustomer.name,
+    //           email: existingCustomer.email,
+    //           phone_number: existingCustomer.phone_number,
+    //           current_location: {
+    //             latitude: existingCustomer.latitude,
+    //             longitude: existingCustomer.longitude,
+    //           },
+    //         },
+    //         requested_location: {
+    //           latitude: resetData.latitude,
+    //           longitude: resetData.longitude,
+    //           reason: resetData.reason,
+    //         },
+    //         request_details: {
+    //           id: requestDetails?.id,
+    //           status: requestDetails?.status,
+    //           createdate: requestDetails?.createdate,
+    //           approvals: requestDetails?.sfa_d_requests_approvals_request,
+    //         },
+    //       },
+    //     });
+    //   } catch (error: any) {
+    //     console.error('Error creating location change request:', error);
+    //     res.status(500).json({
+    //       success: false,
+    //       message: 'Internal server error',
+    //       error: error.message,
+    //     });
+    //   }
+    // },
+    //II Without approval+ with approval
+    async createLocationChangeRequest(req, res) {
+        try {
+            if (!req.body) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Request body is missing',
+                });
+            }
+            const { customer_id, customer_code, latitude, longitude, reason, request_type = 'LOCATION_RESET', } = req.body;
+            if (!customer_id && !customer_code) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Either customer_id or customer_code is required',
+                });
+            }
+            if (latitude === undefined || longitude === undefined) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Both latitude and longitude are required',
+                });
+            }
+            let existingCustomer;
+            if (customer_id) {
+                existingCustomer = await prisma_client_1.default.customers.findUnique({
+                    where: { id: customer_id },
+                    select: {
+                        id: true,
+                        code: true,
+                        name: true,
+                        email: true,
+                        phone_number: true,
+                        latitude: true,
+                        longitude: true,
+                        address: true,
+                        city: true,
+                        state: true,
+                    },
+                });
+            }
+            else {
+                existingCustomer = await prisma_client_1.default.customers.findUnique({
+                    where: { code: customer_code },
+                    select: {
+                        id: true,
+                        code: true,
+                        name: true,
+                        email: true,
+                        phone_number: true,
+                        latitude: true,
+                        longitude: true,
+                        address: true,
+                        city: true,
+                        state: true,
+                    },
+                });
+            }
+            if (!existingCustomer) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Customer not found',
+                });
+            }
+            const resetData = {
+                latitude: parseFloat(latitude),
+                longitude: parseFloat(longitude),
+                reason: reason || 'Location coordinates update requested',
+                old_latitude: existingCustomer.latitude,
+                old_longitude: existingCustomer.longitude,
+                requested_by: req.user?.name || 'Unknown User',
+                requested_date: new Date().toISOString(),
+            };
+            const locationResetRequest = await (0, requests_controller_1.createRequest)({
+                requester_id: req.user?.id || 1,
+                request_type: request_type,
+                reference_id: existingCustomer.id,
+                request_data: JSON.stringify(resetData),
+                createdby: req.user?.id || 1,
+                log_inst: 1,
+            });
+            const requestWithApprovals = await prisma_client_1.default.sfa_d_requests.findUnique({
+                where: { id: locationResetRequest.id },
+                include: {
+                    sfa_d_requests_approvals_request: {
+                        include: {
+                            sfa_d_requests_approvals_approver: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    email: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+            if (!requestWithApprovals?.sfa_d_requests_approvals_request ||
+                requestWithApprovals.sfa_d_requests_approvals_request.length === 0) {
+                await prisma_client_1.default.customers.update({
+                    where: { id: existingCustomer.id },
+                    data: {
+                        latitude: parseFloat(latitude),
+                        longitude: parseFloat(longitude),
+                        updatedate: new Date(),
+                        updatedby: req.user?.id || 1,
+                    },
+                });
+                await prisma_client_1.default.sfa_d_requests.update({
+                    where: { id: locationResetRequest.id },
+                    data: {
+                        status: 'A',
+                        updatedate: new Date(),
+                        updatedby: req.user?.id || 1,
+                    },
+                });
+                return res.status(200).json({
+                    success: true,
+                    message: 'Customer location updated directly (no approval required)',
+                    data: {
+                        customer: {
+                            id: existingCustomer.id,
+                            code: existingCustomer.code,
+                            name: existingCustomer.name,
+                            email: existingCustomer.email,
+                            phone_number: existingCustomer.phone_number,
+                            updated_location: {
+                                latitude: parseFloat(latitude),
+                                longitude: parseFloat(longitude),
+                            },
+                        },
+                        request_id: locationResetRequest.id,
+                        status: 'A',
+                        approval_required: false,
+                        updated_date: new Date(),
+                    },
+                });
+            }
+            res.status(201).json({
+                success: true,
+                message: 'Location change request created successfully',
+                data: {
+                    request_id: locationResetRequest.id,
+                    request_type: request_type,
+                    status: 'P',
+                    approval_required: true,
+                    customer: {
+                        id: existingCustomer.id,
+                        code: existingCustomer.code,
+                        name: existingCustomer.name,
+                        email: existingCustomer.email,
+                        phone_number: existingCustomer.phone_number,
+                        current_location: {
+                            latitude: existingCustomer.latitude,
+                            longitude: existingCustomer.longitude,
+                        },
+                    },
+                    requested_location: {
+                        latitude: resetData.latitude,
+                        longitude: resetData.longitude,
+                        reason: resetData.reason,
+                    },
+                    request_details: {
+                        id: requestWithApprovals?.id,
+                        status: requestWithApprovals?.status,
+                        createdate: requestWithApprovals?.createdate,
+                        approvals: requestWithApprovals?.sfa_d_requests_approvals_request,
+                    },
+                },
+            });
+        }
+        catch (error) {
+            console.error('Error creating location change request:', error);
             res.status(500).json({
                 success: false,
                 message: 'Internal server error',
@@ -915,7 +2831,7 @@ exports.customerController = {
     },
     async getAllCustomers(req, res) {
         try {
-            const { page, limit, search, type, salesperson_id, route_id, isActive } = req.query;
+            const { page, limit, search, type, salesperson_id, route_id, isActive, city_id, district_id, region_id, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -928,6 +2844,9 @@ exports.customerController = {
                         { phone_number: { contains: searchLower } },
                     ],
                 }),
+                ...(city_id && { city_id: Number(city_id) }),
+                ...(district_id && { district_id: Number(district_id) }),
+                ...(region_id && { region_id: Number(region_id) }),
                 ...(type && type !== 'All' && { type }),
                 ...(salesperson_id && {
                     salesperson_id: parseInt(salesperson_id, 10),
@@ -961,6 +2880,27 @@ exports.customerController = {
                     },
                     customer_users: true,
                     customer_depot: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_city: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_districts: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_regions: {
                         select: {
                             id: true,
                             name: true,
@@ -1076,6 +3016,27 @@ exports.customerController = {
                             id: true,
                             channel_name: true,
                             channel_code: true,
+                        },
+                    },
+                    customers_city: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_districts: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                        },
+                    },
+                    customers_regions: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
                         },
                     },
                     outlet_images_customers: {

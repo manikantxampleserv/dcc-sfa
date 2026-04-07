@@ -8,7 +8,6 @@ import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import YesNoField from 'shared/YesNoField';
 
 interface ManageBrandProps {
   selectedBrand?: Brand | null;
@@ -54,7 +53,6 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
       name: selectedBrand?.name || '',
       description: selectedBrand?.description || '',
       is_active: selectedBrand?.is_active || 'Y',
-      is_asset_brand: selectedBrand?.is_asset_brand || 'N',
       logo: null,
     },
     validationSchema: brandValidationSchema,
@@ -65,7 +63,6 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
         formData.append('name', values.name);
         formData.append('description', values.description || '');
         formData.append('is_active', values.is_active);
-        formData.append('is_asset_brand', values.is_asset_brand);
 
         if (uploadedFile) {
           formData.append('logo', uploadedFile);
@@ -157,11 +154,6 @@ const ManageBrand: React.FC<ManageBrandProps> = ({
 
             <Box className="grid grid-cols-2 col-span-2">
               <ActiveInactiveField name="is_active" formik={formik} />
-              <YesNoField
-                name="is_asset_brand"
-                label="Asset Brand"
-                formik={formik}
-              />
             </Box>
             <Box className="md:!col-span-2">
               <Input

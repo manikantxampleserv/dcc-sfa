@@ -23,7 +23,7 @@ export const zoneValidationSchema = Yup.object({
     255,
     'Description must be less than 255 characters'
   ),
-  supervisor_id: Yup.number().positive('Invalid supervisor'),
+  supervisor_id: Yup.number().required('Zone supervisor is required'),
   is_active: Yup.string().required('Status is required'),
 });
 

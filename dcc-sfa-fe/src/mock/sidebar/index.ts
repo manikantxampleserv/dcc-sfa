@@ -62,11 +62,6 @@ const menuItems: MenuItem[] = [
         label: 'Organization Setup',
         icon: MdBusiness,
         children: [
-          // {
-          //   id: 'company-master',
-          //   label: 'Company Master',
-          //   href: '/masters/company',
-          // },
           { id: 'user-master', label: 'User Master', href: '/masters/users' },
           {
             id: 'role-permission',
@@ -90,11 +85,6 @@ const menuItems: MenuItem[] = [
         label: 'Operations & Logistics',
         icon: MdLocalShipping,
         children: [
-          // {
-          //   id: 'warehouse-master',
-          //   label: 'Warehouse Master',
-          //   href: '/masters/warehouses',
-          // },
           {
             id: 'vehicle-master',
             label: 'Vehicle Master',
@@ -104,6 +94,11 @@ const menuItems: MenuItem[] = [
             id: 'asset-types',
             label: 'Asset Types',
             href: '/masters/asset-types',
+          },
+          {
+            id: 'asset-brands',
+            label: 'Asset Brands',
+            href: '/masters/asset-brands',
           },
           {
             id: 'asset-sub-types',

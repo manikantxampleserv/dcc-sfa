@@ -132,7 +132,7 @@ const AssetSubTypesPage: React.FC = () => {
   const assetSubTypeColumns: TableColumn<AssetSubType>[] = [
     {
       id: 'name',
-      label: 'Asset Sub Type Name',
+      label: 'Asset Sub Type',
       render: (_value, row) => (
         <Box className="!flex !gap-2 !items-center">
           <Avatar

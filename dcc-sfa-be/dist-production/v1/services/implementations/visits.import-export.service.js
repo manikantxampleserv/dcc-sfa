@@ -50,6 +50,22 @@ class VisitsImportExportService extends import_export_service_1.ImportExportServ
         'visit_notes',
         'customer_feedback',
     ];
+    masterTableConfigs = [
+        {
+            masterTable: 'customers',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'code', 'email', 'phone_number'],
+            sheetName: 'Ref - Customers',
+            description: 'Use the ID from this sheet in the Customer ID column',
+        },
+        {
+            masterTable: 'users',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'email', 'employee_id'],
+            sheetName: 'Ref - Salespersons',
+            description: 'Use the ID from this sheet in the Salesperson ID column',
+        },
+    ];
     columns = [
         {
             key: 'customer_id',

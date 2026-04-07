@@ -11,6 +11,15 @@ class AssetSubTypesImportExportService extends import_export_service_1.ImportExp
     displayName = 'Asset Sub Types';
     uniqueFields = ['name', 'asset_type_id'];
     searchFields = ['name', 'description', 'code'];
+    masterTableConfigs = [
+        {
+            masterTable: 'asset_types',
+            masterKey: 'id',
+            masterDisplayFields: ['id', 'name', 'description'],
+            sheetName: 'Ref - Asset Types',
+            description: 'Use the ID from this sheet in the Asset Type ID column',
+        },
+    ];
     // Add code counters to avoid database queries during import
     codeCounters = new Map();
     columns = [

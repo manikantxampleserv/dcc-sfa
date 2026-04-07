@@ -18,7 +18,8 @@ exports.createZoneValidation = [
         .isString()
         .withMessage('Description must be a string'),
     (0, express_validator_1.body)('supervisor_id')
-        .optional()
+        .notEmpty()
+        .withMessage('Supervisor ID is required')
         .isInt()
         .withMessage('Supervisor ID must be a number'),
     (0, express_validator_1.body)('is_active')
