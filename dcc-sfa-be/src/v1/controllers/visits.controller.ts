@@ -590,6 +590,33 @@ async function generateInvoiceNumberInTransaction(tx: any): Promise<string> {
   return `${prefix}-${sequence}`;
 }
 
+const validateAndGetLocationId = async (
+  tx: any,
+  locationId: number | null | undefined
+): Promise<number | null> => {
+  if (!locationId) {
+    return null;
+  }
+
+  try {
+    const locationExists = await tx.warehouses.findUnique({
+      where: { id: locationId },
+      select: { id: true },
+    });
+
+    if (!locationExists) {
+      console.warn(
+        `Location ID ${locationId} not found in warehouses, using null`
+      );
+      return null;
+    }
+
+    return locationId;
+  } catch (error) {
+    console.warn(`Error validating location ${locationId}, using null:`, error);
+    return null;
+  }
+};
 export const visitsController = {
   async createVisits(req: Request, res: Response) {
     try {
@@ -2650,10 +2677,8 @@ export const visitsController = {
             survey,
           } = data;
 
-          console.log('=== DATA EXTRACTION ===');
           console.log('Full data object keys:', Object.keys(data));
           console.log('Invoices from data:', invoices);
-          console.log('======================');
 
           if (!visit) {
             results.failed.push({
@@ -3058,9 +3083,9 @@ export const visitsController = {
                       invoiceIds.push(createdInvoice.id);
 
                       if (invoiceItems.length > 0) {
-                        if ((invoiceData as any).invoice_method === 'order') {
+                        if ((invoiceData as any).invoice_method === 'direct') {
                           console.log(
-                            'Processing inventory deduction for order method...'
+                            'Processing inventory deduction for Direct method...'
                           );
 
                           for (const item of invoiceItems) {
@@ -3277,6 +3302,37 @@ export const visitsController = {
                                   );
                                 }
 
+                                // await tx.stock_movements.create({
+                                //   data: {
+                                //     product_id: product.id,
+                                //     batch_id: batchOrder.batch_lot_id,
+                                //     serial_id: null,
+                                //     movement_type: 'SALE',
+                                //     reference_type: 'INVOICE',
+                                //     reference_id: createdInvoice.id,
+                                //     from_location_id:
+                                //       vanInventory?.location_id || null,
+                                //     to_location_id: null,
+                                //     quantity: batchQty,
+                                //     movement_date: new Date(),
+                                //     remarks: `Sold via invoice ${createdInvoice.invoice_number} - Batch: ${batchLot.batch_number}`,
+                                //     is_active: 'Y',
+                                //     createdate: new Date(),
+                                //     createdby:
+                                //       (req as any).user?.id ||
+                                //       visit.createdby ||
+                                //       1,
+                                //     log_inst: 1,
+                                //     van_inventory_id: vanInventory?.id || null,
+                                //   },
+                                // });
+
+                                const validatedFromLocationId =
+                                  await validateAndGetLocationId(
+                                    tx,
+                                    vanInventory?.location_id
+                                  );
+
                                 await tx.stock_movements.create({
                                   data: {
                                     product_id: product.id,
@@ -3285,8 +3341,7 @@ export const visitsController = {
                                     movement_type: 'SALE',
                                     reference_type: 'INVOICE',
                                     reference_id: createdInvoice.id,
-                                    from_location_id:
-                                      vanInventory?.location_id || null,
+                                    from_location_id: validatedFromLocationId,
                                     to_location_id: null,
                                     quantity: batchQty,
                                     movement_date: new Date(),
@@ -3301,7 +3356,6 @@ export const visitsController = {
                                     van_inventory_id: vanInventory?.id || null,
                                   },
                                 });
-
                                 console.log(
                                   ` Deducted ${batchQty} from batch ${batchLot.batch_number}`
                                 );
@@ -3672,6 +3726,12 @@ export const visitsController = {
                                 );
                               }
 
+                              const validatedFromLocationId =
+                                await validateAndGetLocationId(
+                                  tx,
+                                  vanInventory?.location_id
+                                );
+
                               await tx.stock_movements.create({
                                 data: {
                                   product_id: product.id,
@@ -3680,8 +3740,7 @@ export const visitsController = {
                                   movement_type: 'SALE',
                                   reference_type: 'INVOICE',
                                   reference_id: createdInvoice.id,
-                                  from_location_id:
-                                    vanInventory?.location_id || null,
+                                  from_location_id: validatedFromLocationId,
                                   to_location_id: null,
                                   quantity: quantity,
                                   movement_date: new Date(),
