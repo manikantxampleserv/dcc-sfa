@@ -112,7 +112,6 @@ const ImportVehicle: React.FC<ImportVehicleProps> = ({
       open={drawerOpen}
       setOpen={handleCancel}
       title="Import Vehicles"
-      size="large"
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -304,7 +303,7 @@ const ImportVehicle: React.FC<ImportVehicleProps> = ({
             )}
           </Box>
 
-          <Box className="!flex !justify-end items-center">
+          <Box className="!flex !justify-end items-center gap-2">
             <Button
               type="button"
               variant="outlined"
@@ -321,7 +320,7 @@ const ImportVehicle: React.FC<ImportVehicleProps> = ({
                 disabled={!uploadedFile || importDataMutation.isPending}
                 loading={importDataMutation.isPending}
               >
-                {importDataMutation.isPending ? 'Importing...' : 'Import Data'}
+                {importDataMutation.isPending ? 'Importing...' : 'Import'}
               </Button>
             )}
 

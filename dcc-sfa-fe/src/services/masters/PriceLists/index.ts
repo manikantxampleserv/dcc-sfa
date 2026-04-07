@@ -32,6 +32,8 @@ interface PriceListItem {
   unit_price: string;
   uom?: string | null;
   discount_percent?: string | null;
+  tax_percent?: string | null;
+  sub_unit_price?: string | null;
   effective_from?: string | null;
   effective_to?: string | null;
   is_active: string;
@@ -44,7 +46,10 @@ interface PriceListItem {
 
 interface RoutePriceList {
   id: number;
-  route_id: number;
+  route_id?: number | null;
+  depot_id?: number | null;
+  customer_id?: number | null;
+  customer_category_id?: number | null;
   pricelist_id: number;
   effective_from?: string | null;
   effective_to?: string | null;
@@ -63,16 +68,7 @@ interface ManagePriceListPayload {
   valid_from?: string;
   valid_to?: string;
   is_active?: string;
-  priceListItems?: Omit<
-    PriceListItem,
-    | 'id'
-    | 'pricelist_id'
-    | 'createdate'
-    | 'createdby'
-    | 'updatedate'
-    | 'updatedby'
-    | 'log_inst'
-  >[];
+  priceListItems?: Partial<PriceListItem>[];
 }
 
 interface UpdatePriceListPayload {
@@ -82,6 +78,7 @@ interface UpdatePriceListPayload {
   valid_from?: string;
   valid_to?: string;
   is_active?: string;
+  priceListItems?: Partial<PriceListItem>[];
 }
 
 interface GetPriceListsParams {
@@ -89,6 +86,12 @@ interface GetPriceListsParams {
   limit?: number;
   search?: string;
   status?: string;
+  depot_id?: number;
+  route_id?: number;
+  customer_id?: number;
+  customer_category_id?: number;
+  from_date?: string;
+  to_date?: string;
 }
 
 /**

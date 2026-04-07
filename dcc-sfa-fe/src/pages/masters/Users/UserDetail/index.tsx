@@ -281,7 +281,7 @@ const UserDetail: React.FC = () => {
             <Avatar
               src={user.profile_image || undefined}
               className={classNames(
-                '!w-24 !h-24 !mx-auto !text-xl !font-bold !border-3 !border-white !shadow-lg',
+                '!w-24 !h-24',
                 {
                   '!bg-gradient-to-br !from-green-400 !to-green-600 !text-white':
                     user.is_active === 'Y',
@@ -331,21 +331,11 @@ const UserDetail: React.FC = () => {
                 Contact
               </Typography>
               <Typography variant="body2" className="!font-bold !text-gray-900">
-                {user.email}
+                {user.email || <span className="text-xs italic font-medium !text-gray-500">No Email Address</span>}
               </Typography>
             </div>
 
-            <div className="!p-1 !bg-gray-50 !rounded-md">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
-              >
-                Phone
-              </Typography>
-              <Typography variant="body2" className="!font-bold !text-gray-900">
-                {user.phone_number || 'N/A'}
-              </Typography>
-            </div>
+           
           </div>
         </div>
         <InfoCard title="Role & Organization" icon={Security}>
@@ -367,13 +357,12 @@ const UserDetail: React.FC = () => {
                 variant="caption"
                 className="!text-gray-500 !text-xs !uppercase !tracking-wide"
               >
-                Company
+                Reports To
               </Typography>
               <Typography variant="body2" className="!font-bold !text-gray-900">
-                {user.company?.name || 'Not assigned'}
+                {user.reporting_manager?.name || 'Not assigned'}
               </Typography>
             </div>
-
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
@@ -400,30 +389,6 @@ const UserDetail: React.FC = () => {
                   {user.depot?.name || 'Not assigned'}
                 </Typography>
               )}
-            </div>
-
-            <div className="!space-y-0.5">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-              >
-                Zone
-              </Typography>
-              <Typography variant="body2" className="!font-bold !text-gray-900">
-                {user.zone?.name || 'Not assigned'}
-              </Typography>
-            </div>
-
-            <div className="!space-y-0.5 md:!col-span-2">
-              <Typography
-                variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
-              >
-                Reports To
-              </Typography>
-              <Typography variant="body2" className="!font-bold !text-gray-900">
-                {user.reporting_manager?.name || 'Not assigned'}
-              </Typography>
             </div>
           </div>
         </InfoCard>
@@ -452,7 +417,7 @@ const UserDetail: React.FC = () => {
                 Email Address
               </Typography>
               <Typography variant="body2" className="!font-bold !text-gray-900">
-                {user.email}
+                {user.email || <span className="text-xs italic font-medium !text-gray-500">No Email Address</span>}
               </Typography>
             </div>
 
@@ -464,7 +429,7 @@ const UserDetail: React.FC = () => {
                 Phone Number
               </Typography>
               <Typography variant="body2" className="!font-bold !text-gray-900">
-                {user.phone_number || 'Not provided'}
+                {user.phone_number || <span className="text-xs italic font-medium !text-gray-500">No Phone Number</span>}
               </Typography>
             </div>
 
@@ -488,7 +453,7 @@ const UserDetail: React.FC = () => {
                 Address
               </Typography>
               <Typography variant="body2" className="!font-bold !text-gray-900">
-                {user.address || 'Not provided'}
+                {user.address || <span className="text-xs italic font-medium !text-gray-500">No Address</span>}
               </Typography>
             </div>
           </div>

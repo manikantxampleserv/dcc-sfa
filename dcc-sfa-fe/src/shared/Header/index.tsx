@@ -15,8 +15,7 @@ import {
   Menu,
   MenuItem,
   Skeleton,
-  Typography,
-  styled,
+  styled
 } from '@mui/material';
 import React, { useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
@@ -264,8 +263,8 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                   pointerEvents: 'none',
                 }}
               />
-              <Box className="!px-4 !py-3 !border-b !border-gray-200 !bg-gray-50">
-                <Box className="!flex !items-center !gap-3 !mb-2">
+              <Box className="!px-2 !py-2 !border-b !border-gray-200 !bg-gray-50">
+                <Box className="!flex !items-center !gap-3">
                   {userLoading ? (
                     <Skeleton
                       variant="circular"
@@ -289,19 +288,16 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                     </Avatar>
                   )}
                   <Box className="!flex-1">
-                    <Typography
-                      variant="body2"
+                    <p
                       className="!text-sm !font-medium !text-gray-900"
-                      sx={{ fontWeight: 500 }}
                     >
                       {userLoading ? (
                         <Skeleton width={120} height={16} />
                       ) : (
                         getUserDisplayName()
                       )}
-                    </Typography>
-                    <Typography
-                      variant="caption"
+                    </p>
+                    <p
                       className="!text-xs !text-gray-500"
                     >
                       {userLoading ? (
@@ -309,22 +305,11 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                       ) : (
                         getUserRole()
                       )}
-                    </Typography>
+                    </p>
                   </Box>
                 </Box>
 
-                {currentUser?.email && (
-                  <Typography
-                    variant="caption"
-                    className="!text-xs !text-gray-500"
-                  >
-                    {userLoading ? (
-                      <Skeleton width={150} height={12} />
-                    ) : (
-                      currentUser?.email
-                    )}
-                  </Typography>
-                )}
+                
               </Box>
 
               <MenuItem onClick={handleProfileClick} className="!px-4 !py-2">

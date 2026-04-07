@@ -225,11 +225,11 @@ const menuItems: MenuItem[] = [
           //   label: 'Batch & Lot Management',
           //   href: '/masters/batch-lots',
           // },
-          // {
-          //   id: 'pricelists',
-          //   label: 'Pricelists',
-          //   href: '/masters/pricelists',
-          // },
+          {
+            id: 'pricelists',
+            label: 'Price List Management',
+            href: '/masters/pricelists',
+          },
         ],
       },
       {

@@ -567,7 +567,7 @@ export const userController = {
         },
       });
 
-      const serializedUser = serializeUser(user);
+      const serializedUser = serializeUser(user,true,true);
       const responseData = {
         ...serializedUser,
         recent_activities: {
