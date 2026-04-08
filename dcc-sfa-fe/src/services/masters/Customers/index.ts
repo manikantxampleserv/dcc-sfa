@@ -144,6 +144,7 @@ interface GetCustomersParams {
   type?: string;
   zones_id?: number;
   route_id?: number;
+  depot_id?: number;
   salesperson_id?: number;
 }
 

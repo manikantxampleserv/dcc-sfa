@@ -68,7 +68,7 @@ interface ManagePriceListPayload {
   valid_from?: string;
   valid_to?: string;
   is_active?: string;
-  priceListItems?: Partial<PriceListItem>[];
+  pricelist_item?: Partial<PriceListItem>[];
 }
 
 interface UpdatePriceListPayload {
@@ -78,7 +78,7 @@ interface UpdatePriceListPayload {
   valid_from?: string;
   valid_to?: string;
   is_active?: string;
-  priceListItems?: Partial<PriceListItem>[];
+  pricelist_item?: Partial<PriceListItem>[];
 }
 
 interface GetPriceListsParams {
@@ -92,6 +92,7 @@ interface GetPriceListsParams {
   customer_category_id?: number;
   from_date?: string;
   to_date?: string;
+  include_items?: boolean;
 }
 
 /**
@@ -160,7 +161,7 @@ export const updatePriceList = async (
   data: UpdatePriceListPayload
 ): Promise<PriceList> => {
   try {
-    const response = await api.put(`/price-lists/${id}`, data);
+    const response = await api.post(`/price-lists`, { id, ...data });
     return response.data.data;
   } catch (error: any) {
     console.error('Error updating price list:', error);

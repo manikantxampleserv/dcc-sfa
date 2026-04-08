@@ -99,7 +99,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           valid_from: values.valid_from,
           valid_to: values.valid_to,
           description: values.description,
-          priceListItems: priceListItems
+          pricelist_item: priceListItems
             .filter(item => item.product_id !== '')
             .map(item => ({
               product_id: Number(item.product_id),

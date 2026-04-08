@@ -74,10 +74,10 @@ const PriceListsManagement: React.FC = () => {
     );
   }, [priceListsResponse, viewMode]);
 
-  const { data: depotsResponse } = useDepots({ limit: 1000, is_active: 'Y' });
+  const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' });
   const { data: routesResponse } = useRoutes({ limit: 1000, status: 'active', depot_id: depotId ? Number(depotId) : undefined });
   const { data: categoriesResponse } = useCustomerCategories({ limit: 1000, is_active: 'Y' });
-  const { data: customersResponse } = useCustomers({ limit: 1000, is_active: 'Y', depot_id: depotId ? Number(depotId) : undefined, route_id: routeId ? Number(routeId) : undefined });
+  const { data: customersResponse } = useCustomers({ limit: 1000, isActive: 'Y', depot_id: depotId ? Number(depotId) : undefined, route_id: routeId ? Number(routeId) : undefined });
 
   const depots = depotsResponse?.data || [];
   const routes = routesResponse?.data || [];
@@ -628,8 +628,8 @@ const PriceListsManagement: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No price lists found matching "${search}"`
-            : 'No price lists found in the system'
+            ? `No ${viewMode === 'details' ? 'pricing details' : 'price lists'} found matching "${search}"`
+            : `No ${viewMode === 'details' ? 'pricing details' : 'price lists'} found in the system`
         }
       />
 
