@@ -89,7 +89,7 @@ export const priceListValidationSchema = Yup.object({
     .oneOf(['Y', 'N'], 'Status must be Y or N')
     .default('Y'),
 
-  priceListItems: Yup.array().of(priceListItemSchema).nullable(),
+  pricelist_item: Yup.array().of(priceListItemSchema).nullable(),
 });
 
 export type PriceListFormData = Yup.InferType<typeof priceListValidationSchema>;

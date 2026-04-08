@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
+import { paginate } from '../../utils/paginate';
 
 interface PriceListSerialized {
   id: number;
@@ -32,7 +32,16 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
   updatedate: pl.updatedate,
   updatedby: pl.updatedby,
   log_inst: pl.log_inst,
-  pricelist_item: pl.pricelist_item || [],
+  pricelist_item: (pl.pricelist_item || []).map((item: any) => ({
+    ...item,
+    product: item.pricelist_items_products
+      ? {
+          id: item.pricelist_items_products.id,
+          name: item.pricelist_items_products.name,
+          code: item.pricelist_items_products.code,
+        }
+      : null,
+  })),
   route_pricelist: pl.route_pricelist || [],
 });
 
@@ -75,12 +84,13 @@ export const priceListsController = {
         });
       }
 
-      if (Array.isArray(data.pricelist_item)) {
+      const items = data.pricelist_item || data.priceListItems;
+      if (Array.isArray(items)) {
         const existingItems = await prisma.pricelist_items.findMany({
           where: { pricelist_id: priceList.id },
         });
 
-        const requestIds = data.pricelist_item
+        const requestIds = items
           .map((i: any) => i.id)
           .filter(Boolean) as number[];
 
@@ -91,12 +101,23 @@ export const priceListsController = {
           },
         });
 
-        for (const item of data.pricelist_item) {
+        for (const item of items) {
           const itemData = {
             product_id: item.product_id,
             unit_price: item.unit_price,
-            uom: item.uom,
-            discount_percent: item.discount_percent,
+            uom: item.uom || null,
+            discount_percent:
+              item.discount_percent !== '' && item.discount_percent !== null
+                ? Number(item.discount_percent)
+                : null,
+            tax_percent:
+              item.tax_percent !== '' && item.tax_percent !== null
+                ? Number(item.tax_percent)
+                : null,
+            sub_unit_price:
+              item.sub_unit_price !== '' && item.sub_unit_price !== null
+                ? item.sub_unit_price
+                : null,
             effective_from: item.effective_from
               ? new Date(item.effective_from)
               : null,
@@ -153,7 +174,19 @@ export const priceListsController = {
 
   async getAllPriceLists(req: any, res: any) {
     try {
-      const { page, limit, search, status } = req.query;
+      const {
+        page,
+        limit,
+        search,
+        status,
+        depot_id,
+        route_id,
+        customer_id,
+        customer_category_id,
+        from_date,
+        to_date,
+        include_items,
+      } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -165,11 +198,50 @@ export const priceListsController = {
             { name: { contains: searchLower } },
             { description: { contains: searchLower } },
             { currency_code: { contains: searchLower } },
+            {
+              pricelist_item: {
+                some: {
+                  pricelist_items_products: {
+                    OR: [
+                      { name: { contains: searchLower } },
+                      { code: { contains: searchLower } },
+                    ],
+                  },
+                },
+              },
+            },
           ],
         }),
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
+        ...(depot_id && {
+          route_pricelist: { some: { depot_id: Number(depot_id) } },
+        }),
+        ...(route_id && {
+          route_pricelist: { some: { route_id: Number(route_id) } },
+        }),
+        ...(customer_id && {
+          route_pricelist: { some: { customer_id: Number(customer_id) } },
+        }),
+        ...(customer_category_id && {
+          route_pricelist: {
+            some: { customer_category_id: Number(customer_category_id) },
+          },
+        }),
+        ...(from_date && {
+          valid_from: { gte: new Date(from_date as string) },
+        }),
+        ...(to_date && { valid_to: { lte: new Date(to_date as string) } }),
       };
+
+      const include: any = { route_pricelist: true };
+      if (include_items === 'true' || include_items === true) {
+        include.pricelist_item = {
+          include: { pricelist_items_products: true },
+        };
+      } else {
+        include.pricelist_item = true;
+      }
 
       const { data, pagination } = await paginate({
         model: prisma.pricelists,
@@ -177,7 +249,7 @@ export const priceListsController = {
         page: pageNum,
         limit: limitNum,
         orderBy: { createdate: 'desc' },
-        include: { pricelist_item: true, route_pricelist: true },
+        include,
       });
 
       const totalPriceLists = await prisma.pricelists.count();

@@ -28,6 +28,8 @@ interface PriceListItemForm {
   unit_price: string;
   uom: string;
   discount_percent: string;
+  tax_percent: string;
+  sub_unit_price: string;
   effective_from: string;
   effective_to: string;
   is_active: string;
@@ -60,6 +62,8 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
         unit_price: item.unit_price,
         uom: item.uom || '',
         discount_percent: item.discount_percent || '',
+        tax_percent: (item as any).tax_percent || '18',
+        sub_unit_price: (item as any).sub_unit_price || '',
         effective_from: item.effective_from
           ? item.effective_from.split('T')[0]
           : '',
@@ -95,13 +99,15 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           valid_from: values.valid_from,
           valid_to: values.valid_to,
           description: values.description,
-          priceListItems: priceListItems
+          pricelist_item: priceListItems
             .filter(item => item.product_id !== '')
             .map(item => ({
               product_id: Number(item.product_id),
               unit_price: item.unit_price,
               uom: item.uom,
               discount_percent: item.discount_percent,
+              tax_percent: item.tax_percent,
+              sub_unit_price: item.sub_unit_price,
               effective_from: item.effective_from,
               effective_to: item.effective_to,
               is_active: item.is_active,
@@ -130,6 +136,8 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       unit_price: '',
       uom: '',
       discount_percent: '',
+      tax_percent: '18',
+      sub_unit_price: '',
       effective_from: '',
       effective_to: '',
       is_active: 'Y',
@@ -149,6 +157,16 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   ) => {
     const updatedItems = [...priceListItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
+    
+    // Auto-calculate sub-unit price if unit price changes (placeholder logic)
+    if (field === 'unit_price' && value) {
+      const price = parseFloat(value as string);
+      if (!isNaN(price)) {
+        // Assuming a default conversion factor for now, or just setting it
+        updatedItems[index].sub_unit_price = (price / 24).toFixed(2);
+      }
+    }
+
     setPriceListItems(updatedItems);
   };
 
@@ -182,12 +200,60 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     },
     {
       id: 'unit_price',
-      label: 'Unit Price',
+      label: 'Base Price',
       render: (_value, row) => (
         <Input
           value={row.unit_price}
           onChange={e =>
             updatePriceListItem(row._index, 'unit_price', e.target.value)
+          }
+          placeholder="0.00"
+          type="number"
+          size="small"
+          className="!min-w-24"
+        />
+      ),
+    },
+    {
+      id: 'discount_percent',
+      label: 'Disc %',
+      render: (_value, row) => (
+        <Input
+          value={row.discount_percent}
+          onChange={e =>
+            updatePriceListItem(row._index, 'discount_percent', e.target.value)
+          }
+          placeholder="0"
+          type="number"
+          size="small"
+          className="!min-w-20"
+        />
+      ),
+    },
+    {
+      id: 'tax_percent',
+      label: 'Tax %',
+      render: (_value, row) => (
+        <Input
+          value={row.tax_percent}
+          onChange={e =>
+            updatePriceListItem(row._index, 'tax_percent', e.target.value)
+          }
+          placeholder="18"
+          type="number"
+          size="small"
+          className="!min-w-20"
+        />
+      ),
+    },
+    {
+      id: 'sub_unit_price',
+      label: 'Sub-unit Price',
+      render: (_value, row) => (
+        <Input
+          value={row.sub_unit_price}
+          onChange={e =>
+            updatePriceListItem(row._index, 'sub_unit_price', e.target.value)
           }
           placeholder="0.00"
           type="number"
@@ -204,22 +270,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           value={row.uom}
           onChange={e => updatePriceListItem(row._index, 'uom', e.target.value)}
           placeholder="Unit"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
-      id: 'discount_percent',
-      label: 'Discount %',
-      render: (_value, row) => (
-        <Input
-          value={row.discount_percent}
-          onChange={e =>
-            updatePriceListItem(row._index, 'discount_percent', e.target.value)
-          }
-          placeholder="0"
-          type="number"
           size="small"
           className="!min-w-20"
         />

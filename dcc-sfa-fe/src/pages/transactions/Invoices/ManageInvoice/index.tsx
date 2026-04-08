@@ -82,9 +82,9 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
 
   const formik = useFormik({
     initialValues: {
-      invoice_method: invoice?.invoice_method || 'order',
-      parent_id: invoice?.parent_id || '',
-      salesperson_id: invoice?.salesperson_id || '',
+      invoice_method: invoiceData?.invoice_method || 'order',
+      parent_id: invoiceData?.parent_id || '',
+      salesperson_id: invoiceData?.salesperson_id?.toString() || '',
       customer_id: invoiceData?.customer_id || '',
       currency_id:
         invoiceData?.currency_id ||

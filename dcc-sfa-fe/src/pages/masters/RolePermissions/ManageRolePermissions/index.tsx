@@ -16,7 +16,7 @@ import { useFormik } from 'formik';
 import { usePermissionsByModule } from 'hooks/usePermissions';
 import { useCreateRole, useUpdateRole, type Role } from 'hooks/useRoles';
 import React, { useState, useMemo } from 'react';
-import validationSchema from 'schemas/masters/RolePersmissions';
+import validationSchema from 'schemas/masters/RolePermissions';
 import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
@@ -46,12 +46,10 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
 
   const permissionsData = permissionsResponse?.data || [];
 
-  // Filter permissions based on search term
   const filteredPermissionsData = useMemo(() => {
     if (!searchTerm.trim()) {
       return permissionsData;
     }
-
     const lowerSearchTerm = searchTerm.toLowerCase();
     return permissionsData
       .map(module => ({
@@ -60,7 +58,7 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
           permission.name.toLowerCase().includes(lowerSearchTerm)
         ),
       }))
-      .filter(module => module.permissions.length > 0); // Only show modules with matching permissions
+      .filter(module => module.permissions.length > 0); 
   }, [permissionsData, searchTerm]);
 
   const createRoleMutation = useCreateRole({
@@ -318,18 +316,17 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
 
           {/* Permissions Section */}
           <Box className="mb-6">
-            <div className="flex items-center justify-between py-3 mb-2">
+            <div className="flex items-center justify-between py-3">
               <p className="!font-semibold !text-gray-900">Permissions</p>
-
               {/* Search Permissions */}
               <Box>
                 <Input
                   name="permissionSearch"
                   label="Search Permissions"
-                  placeholder="Search by permission name..."
+                  placeholder="Permissions..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="!w-full"
+                  className="!w-60"
                 />
               </Box>
             </div>

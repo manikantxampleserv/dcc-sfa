@@ -1390,6 +1390,8 @@ model pricelist_items {
   unit_price               Decimal    @db.Decimal(12, 2)
   uom                      String?    @db.NVarChar(20)
   discount_percent         Decimal?   @db.Decimal(5, 2)
+  tax_percent              Decimal?   @db.Decimal(5, 2)
+  sub_unit_price           Decimal?   @db.Decimal(12, 2)
   effective_from           DateTime?  @db.Date
   effective_to             DateTime?  @db.Date
   is_active                String     @default("Y") @db.Char(1)
@@ -1834,7 +1836,10 @@ model route_plans {
 
 model route_pricelists {
   id              Int        @id @default(autoincrement())
-  route_id        Int
+  route_id        Int?
+  depot_id        Int?
+  customer_id     Int?
+  customer_category_id Int?
   pricelist_id    Int
   is_active       String     @default("Y") @db.Char(1)
   createdate      DateTime?  @default(now()) @db.DateTime
