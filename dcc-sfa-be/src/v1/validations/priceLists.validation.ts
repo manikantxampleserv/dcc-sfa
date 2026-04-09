@@ -12,11 +12,6 @@ export const createPriceListsValidation = [
     .isLength({ max: 255 })
     .withMessage('Description cannot exceed 255 characters'),
 
-  body('currency_code')
-    .optional()
-    .isLength({ max: 10 })
-    .withMessage('Currency code cannot exceed 10 characters'),
-
   body('valid_from')
     .optional()
     .isISO8601()

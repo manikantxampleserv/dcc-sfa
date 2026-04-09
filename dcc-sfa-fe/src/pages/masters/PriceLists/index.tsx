@@ -1,22 +1,21 @@
-import { Add, Block, CheckCircle, Download, Upload, FilterList } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Download, FilterList, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { useExportToExcel } from 'hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import { useDepots } from 'hooks/useDepots';
-import { useRoutes } from 'hooks/useRoutes';
 import { useCustomerCategories } from 'hooks/useCustomerCategory';
 import { useCustomers } from 'hooks/useCustomers';
+import { useDepots } from 'hooks/useDepots';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import {
   useDeletePriceList,
   usePriceLists,
   type PriceList,
 } from 'hooks/usePriceLists';
-import { DollarSign, Calendar, TrendingUp, FileText, MapPin, Users, Tag, Package } from 'lucide-react';
+import { useRoutes } from 'hooks/useRoutes';
+import { Calendar, FileText, Package, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
-import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
@@ -33,8 +32,6 @@ const PriceListsManagement: React.FC = () => {
   const [routeId, setRouteId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [customerId, setCustomerId] = useState<string>('');
-  const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
 
   const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(
     null
@@ -55,8 +52,6 @@ const PriceListsManagement: React.FC = () => {
       route_id: routeId ? Number(routeId) : undefined,
       customer_id: customerId ? Number(customerId) : undefined,
       customer_category_id: categoryId ? Number(categoryId) : undefined,
-      from_date: fromDate || undefined,
-      to_date: toDate || undefined,
       include_items: viewMode === 'details' ? true : undefined,
     },
     { enabled: isRead }
@@ -69,7 +64,6 @@ const PriceListsManagement: React.FC = () => {
       (pl.pricelist_item || []).map((item: any) => ({
         ...item,
         price_list_name: pl.name,
-        currency_code: pl.currency_code,
       }))
     );
   }, [priceListsResponse, viewMode]);
@@ -140,8 +134,6 @@ const PriceListsManagement: React.FC = () => {
         route_id: routeId ? Number(routeId) : undefined,
         customer_id: customerId ? Number(customerId) : undefined,
         customer_category_id: categoryId ? Number(categoryId) : undefined,
-        from_date: fromDate || undefined,
-        to_date: toDate || undefined,
         view_mode: viewMode,
       };
 
@@ -152,7 +144,7 @@ const PriceListsManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting price lists:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter, depotId, routeId, customerId, categoryId, fromDate, toDate, viewMode]);
+  }, [exportToExcelMutation, search, statusFilter, depotId, routeId, customerId, categoryId, viewMode]);
 
   const pricingDetailsColumns: TableColumn<any>[] = [
     {
@@ -184,7 +176,7 @@ const PriceListsManagement: React.FC = () => {
       label: 'Base Price',
       render: (_value, row) => (
         <Typography variant="body2" className="!font-medium">
-          {row.currency_code} {row.unit_price}
+          {row.unit_price}
         </Typography>
       ),
     },
@@ -209,7 +201,7 @@ const PriceListsManagement: React.FC = () => {
         const applicable = base - (base * disc / 100);
         return (
           <Typography variant="body2" className="!font-bold text-primary-600">
-            {row.currency_code} {applicable.toFixed(2)}
+            {applicable.toFixed(2)}
           </Typography>
         );
       },
@@ -219,7 +211,7 @@ const PriceListsManagement: React.FC = () => {
       label: 'Sub-unit Price',
       render: (_value, row) => (
         <Typography variant="body2">
-          {row.currency_code} {row.sub_unit_price || (parseFloat(row.unit_price) / 24).toFixed(2)}
+          {row.sub_unit_price || (parseFloat(row.unit_price) / 24).toFixed(2)}
         </Typography>
       ),
     },
@@ -260,18 +252,6 @@ const PriceListsManagement: React.FC = () => {
               </Typography>
             )}
           </Box>
-        </Box>
-      ),
-    },
-    {
-      id: 'currency_code',
-      label: 'Currency',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <DollarSign className="w-3 h-3 text-gray-400" />
-          <span className="text-xs font-medium">
-            {row.currency_code || 'INR'}
-          </span>
         </Box>
       ),
     },
@@ -512,30 +492,6 @@ const PriceListsManagement: React.FC = () => {
                 </MenuItem>
               ))}
             </Select>
-
-            <Input
-              label="From Date"
-              type="date"
-              value={fromDate}
-              onChange={(e) => {
-                setFromDate(e.target.value);
-                setPage(1);
-              }}
-              size="small"
-              className="w-full"
-            />
-
-            <Input
-              label="To Date"
-              type="date"
-              value={toDate}
-              onChange={(e) => {
-                setToDate(e.target.value);
-                setPage(1);
-              }}
-              size="small"
-              className="w-full"
-            />
           </div>
         </Box>
       )}

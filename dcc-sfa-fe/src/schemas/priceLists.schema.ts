@@ -56,12 +56,6 @@ export const priceListValidationSchema = Yup.object({
     .max(255, 'Description must not exceed 255 characters')
     .trim(),
 
-  currency_code: Yup.string()
-    .nullable()
-    .max(10, 'Currency code must not exceed 10 characters')
-    .trim()
-    .uppercase(),
-
   valid_from: Yup.date()
     .nullable()
     .transform((value, originalValue) => {

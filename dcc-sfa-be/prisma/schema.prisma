@@ -253,7 +253,6 @@ model depots {
   depots_region                regions?                @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   depots_city                  cities?                 @relation(fields: [city_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   depots_district              districts?              @relation(fields: [district_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-depot_pricelists_depot      depot_pricelists[]        @relation("DepotPriceListDepot")
 }
 
 model api_tokens {
@@ -983,7 +982,6 @@ model customers {
   customers_districts                    districts?                     @relation(fields: [district_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   customers_regions                      regions?                       @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   category_grading_customers             customer_category_grading[]
-customer_pricelists_customers         customer_pricelists[]   @relation("CustomerPriceListCustomers")
 }
 
 model customer_image {
@@ -1412,7 +1410,10 @@ model pricelists {
   id              Int                @id @default(autoincrement())
   name            String             @db.NVarChar(100)
   description     String?            @db.NVarChar(255)
-  currency_code   String?             @db.NVarChar(10)
+  route_id        Int?
+  depot_id        Int?
+  customer_id     Int?
+  customer_category_id Int?
   valid_from      DateTime?          @db.Date
   valid_to        DateTime?          @db.Date
   is_active       String             @default("Y") @db.Char(1)
@@ -1422,43 +1423,7 @@ model pricelists {
   updatedby       Int?
   log_inst        Int?
   pricelist_item  pricelist_items[]
-  route_pricelist route_pricelists[]
-  customer_pricelists_pricelist   customer_pricelists[]  @relation("CustomerPriceListPricelist")
-  depot_pricelists_pricelist   depot_pricelists[]   @relation("DepotPriceListPricelist")
 }
-
-
-model customer_pricelists {
-  id              Int       @id(map: "PK__outlet_pr__3213E83F8B882CF8") @default(autoincrement())
-  customer_id       Int
-  pricelist_id    Int
-  effective_date  DateTime? @db.Date
-  expiry_date     DateTime? @db.Date
-  status          String    @default("Y") @db.Char(1)
-  createdate      DateTime? @default(now()) @db.DateTime
-  createdby       Int
-  updatedate      DateTime? @db.DateTime
-  updatedby       Int?
-  log_inst        Int?
-  customer_pricelists_customers        customers     @relation("CustomerPriceListCustomers", fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  customer_pricelists_pricelist       pricelists       @relation("CustomerPriceListPricelist", fields: [pricelist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  }
-
-model depot_pricelists {
-  id              Int       @id(map: "PK__depot_pri__3213E83F8B882CF8") @default(autoincrement())
-  depot_id        Int
-  pricelist_id    Int
-  effective_date  DateTime? @db.Date
-  expiry_date     DateTime? @db.Date
-  status          String    @default("Y") @db.Char(1)
-  createdate      DateTime? @default(now()) @db.DateTime
-  createdby       Int
-  updatedate      DateTime? @db.DateTime
-  updatedby       Int?
-  log_inst        Int?
-  depot_pricelists_depot           depots        @relation("DepotPriceListDepot", fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  depot_pricelists_pricelist       pricelists    @relation("DepotPriceListPricelist", fields: [pricelist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-} 
 model product_categories {
   id                                           Int                            @id @default(autoincrement())
   category_name                                String                         @db.NVarChar(255)
@@ -1833,23 +1798,6 @@ model route_plans {
   route_plan_details                       route_plan_details[]
   users_route_plans_sales_person_idTousers users                @relation("route_plans_sales_person_idTousers", fields: [sales_person_id], references: [id], onUpdate: NoAction, map: "FK__route_pla__sales__79C80F94")
 }
-
-model route_pricelists {
-  id              Int        @id @default(autoincrement())
-  route_id        Int?
-  depot_id        Int?
-  customer_id     Int?
-  customer_category_id Int?
-  pricelist_id    Int
-  is_active       String     @default("Y") @db.Char(1)
-  createdate      DateTime?  @default(now()) @db.DateTime
-  createdby       Int
-  updatedate      DateTime?  @db.DateTime
-  updatedby       Int?
-  log_inst        Int?
-  route_pricelist pricelists @relation(fields: [pricelist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
 model route_type {
   id                  Int        @id @default(autoincrement())
   name                String     @db.NVarChar(100)

@@ -12,7 +12,6 @@ interface PriceList {
   id: number;
   name: string;
   description?: string | null;
-  currency_code?: string | null;
   valid_from?: string | null;
   valid_to?: string | null;
   is_active: string;
@@ -64,7 +63,6 @@ interface RoutePriceList {
 interface ManagePriceListPayload {
   name: string;
   description?: string;
-  currency_code?: string;
   valid_from?: string;
   valid_to?: string;
   is_active?: string;
@@ -74,7 +72,6 @@ interface ManagePriceListPayload {
 interface UpdatePriceListPayload {
   name?: string;
   description?: string;
-  currency_code?: string;
   valid_from?: string;
   valid_to?: string;
   is_active?: string;

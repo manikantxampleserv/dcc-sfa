@@ -6,7 +6,6 @@ interface PriceListSerialized {
   id: number;
   name: string;
   description?: string | null;
-  currency_code?: string | null;
   valid_from?: Date | null;
   valid_to?: Date | null;
   is_active: string;
@@ -23,7 +22,6 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
   id: pl.id,
   name: pl.name,
   description: pl.description,
-  currency_code: pl.currency_code,
   valid_from: pl.valid_from,
   valid_to: pl.valid_to,
   is_active: pl.is_active,
@@ -59,7 +57,6 @@ export const priceListsController = {
           data: {
             name: data.name,
             description: data.description,
-            currency_code: data.currency_code || 'INR',
             valid_from: data.valid_from ? new Date(data.valid_from) : null,
             valid_to: data.valid_to ? new Date(data.valid_to) : null,
             is_active: data.is_active || 'Y',
@@ -73,7 +70,6 @@ export const priceListsController = {
           data: {
             name: data.name,
             description: data.description,
-            currency_code: data.currency_code || 'INR',
             valid_from: data.valid_from ? new Date(data.valid_from) : null,
             valid_to: data.valid_to ? new Date(data.valid_to) : null,
             is_active: data.is_active || 'Y',
@@ -155,7 +151,6 @@ export const priceListsController = {
         where: { id: priceList.id },
         include: {
           pricelist_item: true,
-          route_pricelist: true,
         },
       });
 
@@ -197,7 +192,6 @@ export const priceListsController = {
           OR: [
             { name: { contains: searchLower } },
             { description: { contains: searchLower } },
-            { currency_code: { contains: searchLower } },
             {
               pricelist_item: {
                 some: {
@@ -234,7 +228,7 @@ export const priceListsController = {
         ...(to_date && { valid_to: { lte: new Date(to_date as string) } }),
       };
 
-      const include: any = { route_pricelist: true };
+      const include: any = {};
       if (include_items === 'true' || include_items === true) {
         include.pricelist_item = {
           include: { pricelist_items_products: true },
@@ -295,7 +289,7 @@ export const priceListsController = {
       const { id } = req.params;
       const priceList = await prisma.pricelists.findUnique({
         where: { id: Number(id) },
-        include: { pricelist_item: true, route_pricelist: true },
+        include: { pricelist_item: true },
       });
 
       if (!priceList)

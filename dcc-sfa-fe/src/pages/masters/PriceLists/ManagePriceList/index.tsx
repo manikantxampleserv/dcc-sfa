@@ -80,7 +80,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     initialValues: {
       name: selectedPriceList?.name || '',
       description: selectedPriceList?.description || '',
-      currency_code: selectedPriceList?.currency_code || 'INR',
       valid_from: selectedPriceList?.valid_from
         ? selectedPriceList.valid_from.split('T')[0]
         : '',
@@ -95,7 +94,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       try {
         const submitData = {
           ...values,
-          currency_code: values.currency_code || 'INR',
           valid_from: values.valid_from,
           valid_to: values.valid_to,
           description: values.description,
@@ -158,11 +156,9 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     const updatedItems = [...priceListItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     
-    // Auto-calculate sub-unit price if unit price changes (placeholder logic)
     if (field === 'unit_price' && value) {
       const price = parseFloat(value as string);
       if (!isNaN(price)) {
-        // Assuming a default conversion factor for now, or just setting it
         updatedItems[index].sub_unit_price = (price / 24).toFixed(2);
       }
     }
@@ -170,13 +166,11 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     setPriceListItems(updatedItems);
   };
 
-  // Add index to each item for table operations
   const priceListItemsWithIndex = priceListItems.map((item, index) => ({
     ...item,
     _index: index,
   }));
 
-  // Table columns configuration
   const priceListItemsColumns: TableColumn<
     PriceListItemForm & { _index: number }
   >[] = [
@@ -248,7 +242,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     },
     {
       id: 'sub_unit_price',
-      label: 'Sub-unit Price',
+      label: 'Unit Price',
       render: (_value, row) => (
         <Input
           value={row.sub_unit_price}
@@ -262,19 +256,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
         />
       ),
     },
-    {
-      id: 'uom',
-      label: 'UOM',
-      render: (_value, row) => (
-        <Input
-          value={row.uom}
-          onChange={e => updatePriceListItem(row._index, 'uom', e.target.value)}
-          placeholder="Unit"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
+
     {
       id: 'effective_from',
       label: 'Effective From',
@@ -286,7 +268,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           }
           type="date"
           size="small"
-          className="!min-w-32"
+          className="!min-w-20"
         />
       ),
     },
@@ -301,25 +283,8 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           }
           type="date"
           size="small"
-          className="!min-w-32"
-        />
-      ),
-    },
-    {
-      id: 'is_active',
-      label: 'Status',
-      render: (_value, row) => (
-        <Select
-          value={row.is_active}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            updatePriceListItem(row._index, 'is_active', e.target.value)
-          }
-          size="small"
           className="!min-w-20"
-        >
-          <MenuItem value="Y">Active</MenuItem>
-          <MenuItem value="N">Inactive</MenuItem>
-        </Select>
+        />
       ),
     },
     {
@@ -337,22 +302,12 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     },
   ];
 
-  const currencyOptions = [
-    { value: 'INR', label: 'INR - Indian Rupee' },
-    { value: 'USD', label: 'USD - US Dollar' },
-    { value: 'EUR', label: 'EUR - Euro' },
-    { value: 'GBP', label: 'GBP - British Pound' },
-    { value: 'JPY', label: 'JPY - Japanese Yen' },
-    { value: 'AUD', label: 'AUD - Australian Dollar' },
-    { value: 'CAD', label: 'CAD - Canadian Dollar' },
-  ];
-
   return (
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Price List' : 'Create Price List'}
-      size="medium"
+      size="large"
     >
       <Box className="!p-6">
         <form onSubmit={formik.handleSubmit} className="!space-y-6">
@@ -377,19 +332,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                 rows={3}
               />
             </Box>
-
-            <Select
-              name="currency_code"
-              label="Currency"
-              formik={formik}
-              required
-            >
-              {currencyOptions.map(option => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
 
             <Select name="is_active" label="Status" formik={formik} required>
               <MenuItem value="Y">Active</MenuItem>
