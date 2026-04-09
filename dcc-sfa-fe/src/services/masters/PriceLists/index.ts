@@ -12,6 +12,11 @@ interface PriceList {
   id: number;
   name: string;
   description?: string | null;
+  customer_id?: number | null;
+  route_id?: number | null;
+  depot_id?: number | null;
+  customer_category_id?: number | null;
+  is_default: string;
   valid_from?: string | null;
   valid_to?: string | null;
   is_active: string;
@@ -22,6 +27,19 @@ interface PriceList {
   log_inst?: number | null;
   pricelist_item?: PriceListItem[];
   route_pricelist?: RoutePriceList[];
+  pricelists_customer?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  pricelists_route?: {
+    id: number;
+    name: string;
+  };
+  pricelists_depot?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface PriceListItem {
@@ -63,6 +81,11 @@ interface RoutePriceList {
 interface ManagePriceListPayload {
   name: string;
   description?: string;
+  customer_id?: number | null;
+  route_id?: number | null;
+  depot_id?: number | null;
+  customer_category_id?: number | null;
+  is_default?: string;
   valid_from?: string;
   valid_to?: string;
   is_active?: string;
@@ -72,6 +95,11 @@ interface ManagePriceListPayload {
 interface UpdatePriceListPayload {
   name?: string;
   description?: string;
+  customer_id?: number | null;
+  route_id?: number | null;
+  depot_id?: number | null;
+  customer_category_id?: number | null;
+  is_default?: string;
   valid_from?: string;
   valid_to?: string;
   is_active?: string;
@@ -83,6 +111,7 @@ interface GetPriceListsParams {
   limit?: number;
   search?: string;
   status?: string;
+  is_default?: string;
   depot_id?: number;
   route_id?: number;
   customer_id?: number;

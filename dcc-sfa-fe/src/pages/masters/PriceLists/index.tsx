@@ -28,6 +28,7 @@ const PriceListsManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'lists' | 'details'>('lists');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [defaultFilter, setDefaultFilter] = useState('all');
   const [depotId, setDepotId] = useState<string>('');
   const [routeId, setRouteId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
@@ -48,6 +49,7 @@ const PriceListsManagement: React.FC = () => {
       page,
       limit,
       status: statusFilter === 'all' ? undefined : statusFilter,
+      is_default: defaultFilter === 'all' ? undefined : (defaultFilter === 'Y' ? 'Y' : 'N'),
       depot_id: depotId ? Number(depotId) : undefined,
       route_id: routeId ? Number(routeId) : undefined,
       customer_id: customerId ? Number(customerId) : undefined,
@@ -256,6 +258,27 @@ const PriceListsManagement: React.FC = () => {
       ),
     },
     {
+      id: 'assignment',
+      label: 'Assignment',
+      render: (_value, row) => {
+        if (row.is_default === 'Y') {
+          return (
+            <Chip 
+              label="Default" 
+              size="small" 
+              className="!bg-blue-50 !text-blue-700 !border-blue-200"
+              variant="outlined"
+            />
+          );
+        }
+        if (row.customer_id) return <Typography variant="caption" className="text-gray-600">Customer: {row.pricelists_customer?.name || row.customer_id}</Typography>;
+        if (row.route_id) return <Typography variant="caption" className="text-gray-600">Route: {row.pricelists_route?.name || row.route_id}</Typography>;
+        if (row.depot_id) return <Typography variant="caption" className="text-gray-600">Depot: {row.pricelists_depot?.name || row.depot_id}</Typography>;
+        if (row.customer_category_id) return <Typography variant="caption" className="text-gray-600">Category: {row.customer_category_id}</Typography>;
+        return <Typography variant="caption" className="text-gray-400 italic">Global</Typography>;
+      },
+    },
+    {
       id: 'validity_period',
       label: 'Validity Period',
       render: (_value, row) => (
@@ -415,7 +438,7 @@ const PriceListsManagement: React.FC = () => {
             <FilterList className="text-primary-500" />
             <Typography variant="subtitle2" className="!font-bold">Filters</Typography>
           </Box>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Select
               label="Depot"
               value={depotId}
@@ -521,6 +544,15 @@ const PriceListsManagement: React.FC = () => {
                       <MenuItem value="all">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                    <Select
+                      value={defaultFilter}
+                      onChange={e => setDefaultFilter(e.target.value)}
+                      className="!w-32"
+                    >
+                      <MenuItem value="all">All Default</MenuItem>
+                      <MenuItem value="yes">Default Only</MenuItem>
+                      <MenuItem value="no">Non-Default</MenuItem>
                     </Select>
                   </>
                 )}

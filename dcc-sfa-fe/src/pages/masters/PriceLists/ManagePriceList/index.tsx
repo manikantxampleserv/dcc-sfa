@@ -1,14 +1,26 @@
-import { Add } from '@mui/icons-material';
-import { Box, MenuItem, Typography } from '@mui/material';
+import { Add, CheckCircle, Info } from '@mui/icons-material';
+import {
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  MenuItem,
+  Radio,
+  RadioGroup,
+} from '@mui/material';
 import { useFormik } from 'formik';
+import { useCustomerCategories } from 'hooks/useCustomerCategory';
+import { useCustomers } from 'hooks/useCustomers';
+import { useDepots } from 'hooks/useDepots';
 import {
   useCreatePriceList,
   useUpdatePriceList,
   type PriceList,
 } from 'hooks/usePriceLists';
-import React, { useState } from 'react';
+import { useRoutes } from 'hooks/useRoutes';
+import React, { useEffect, useState } from 'react';
 import { priceListValidationSchema } from 'schemas/priceLists.schema';
 import { DeleteButton } from 'shared/ActionButton';
+import ActiveInactiveField from 'shared/ActiveInactiveField';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
@@ -30,8 +42,6 @@ interface PriceListItemForm {
   discount_percent: string;
   tax_percent: string;
   sub_unit_price: string;
-  effective_from: string;
-  effective_to: string;
   is_active: string;
 }
 
@@ -43,19 +53,36 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
 }) => {
   const isEdit = !!selectedPriceList;
   const [priceListItems, setPriceListItems] = useState<PriceListItemForm[]>([]);
+  const [assignmentType, setAssignmentType] = useState<string>('default');
 
   const createPriceListMutation = useCreatePriceList();
   const updatePriceListMutation = useUpdatePriceList();
+
+  const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' });
+  const { data: routesResponse } = useRoutes({ limit: 1000, status: 'active' });
+  const { data: categoriesResponse } = useCustomerCategories({
+    limit: 1000,
+    is_active: 'Y',
+  });
+  const { data: customersResponse } = useCustomers({
+    limit: 1000,
+    isActive: 'Y',
+  });
+
+  const depots = depotsResponse?.data || [];
+  const routes = routesResponse?.data || [];
+  const categories = categoriesResponse?.data || [];
+  const customers = customersResponse?.data || [];
 
   const handleCancel = () => {
     setSelectedPriceList(null);
     setDrawerOpen(false);
     setPriceListItems([]);
+    setAssignmentType('default');
     formik.resetForm();
   };
 
-  // Initialize price list items when editing
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedPriceList?.pricelist_item) {
       const items = selectedPriceList.pricelist_item.map(item => ({
         product_id: item.product_id,
@@ -64,15 +91,23 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
         discount_percent: item.discount_percent || '',
         tax_percent: (item as any).tax_percent || '18',
         sub_unit_price: (item as any).sub_unit_price || '',
-        effective_from: item.effective_from
-          ? item.effective_from.split('T')[0]
-          : '',
-        effective_to: item.effective_to ? item.effective_to.split('T')[0] : '',
         is_active: item.is_active,
       }));
       setPriceListItems(items);
     } else {
       setPriceListItems([]);
+    }
+
+    if (selectedPriceList) {
+      if (selectedPriceList.is_default === 'Y') setAssignmentType('default');
+      else if (selectedPriceList.customer_id) setAssignmentType('customer');
+      else if (selectedPriceList.route_id) setAssignmentType('route');
+      else if (selectedPriceList.depot_id) setAssignmentType('depot');
+      else if (selectedPriceList.customer_category_id)
+        setAssignmentType('category');
+      else setAssignmentType('default');
+    } else {
+      setAssignmentType('default');
     }
   }, [selectedPriceList]);
 
@@ -80,6 +115,11 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     initialValues: {
       name: selectedPriceList?.name || '',
       description: selectedPriceList?.description || '',
+      is_default: selectedPriceList?.is_default || 'N',
+      customer_id: selectedPriceList?.customer_id || '',
+      route_id: selectedPriceList?.route_id || '',
+      depot_id: selectedPriceList?.depot_id || '',
+      customer_category_id: selectedPriceList?.customer_category_id || '',
       valid_from: selectedPriceList?.valid_from
         ? selectedPriceList.valid_from.split('T')[0]
         : '',
@@ -94,6 +134,15 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       try {
         const submitData = {
           ...values,
+          is_default: assignmentType === 'default' ? 'Y' : 'N',
+          customer_id:
+            assignmentType === 'customer' ? Number(values.customer_id) : null,
+          route_id: assignmentType === 'route' ? Number(values.route_id) : null,
+          depot_id: assignmentType === 'depot' ? Number(values.depot_id) : null,
+          customer_category_id:
+            assignmentType === 'category'
+              ? Number(values.customer_category_id)
+              : null,
           valid_from: values.valid_from,
           valid_to: values.valid_to,
           description: values.description,
@@ -106,8 +155,8 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
               discount_percent: item.discount_percent,
               tax_percent: item.tax_percent,
               sub_unit_price: item.sub_unit_price,
-              effective_from: item.effective_from,
-              effective_to: item.effective_to,
+              effective_from: values.valid_from,
+              effective_to: values.valid_to,
               is_active: item.is_active,
             })),
         };
@@ -127,7 +176,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     },
   });
 
-  // Helper functions for managing price list items
   const addPriceListItem = () => {
     const newItem: PriceListItemForm = {
       product_id: '',
@@ -136,8 +184,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       discount_percent: '',
       tax_percent: '18',
       sub_unit_price: '',
-      effective_from: '',
-      effective_to: '',
       is_active: 'Y',
     };
     setPriceListItems([...priceListItems, newItem]);
@@ -155,7 +201,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   ) => {
     const updatedItems = [...priceListItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
-    
+
     if (field === 'unit_price' && value) {
       const price = parseFloat(value as string);
       if (!isNaN(price)) {
@@ -188,7 +234,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
             )
           }
           size="small"
-          className="!min-w-40"
+          className="!min-w-64"
         />
       ),
     },
@@ -256,37 +302,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
         />
       ),
     },
-
-    {
-      id: 'effective_from',
-      label: 'Effective From',
-      render: (_value, row) => (
-        <Input
-          value={row.effective_from}
-          onChange={e =>
-            updatePriceListItem(row._index, 'effective_from', e.target.value)
-          }
-          type="date"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
-      id: 'effective_to',
-      label: 'Effective To',
-      render: (_value, row) => (
-        <Input
-          value={row.effective_to}
-          onChange={e =>
-            updatePriceListItem(row._index, 'effective_to', e.target.value)
-          }
-          type="date"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
     {
       id: 'actions',
       label: 'Actions',
@@ -309,10 +324,10 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       title={isEdit ? 'Edit Price List' : 'Create Price List'}
       size="large"
     >
-      <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
+      <div className="p-4">
+        <form onSubmit={formik.handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
               <Input
                 name="name"
                 label="Price List Name"
@@ -320,23 +335,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                 formik={formik}
                 required
               />
-            </Box>
-
-            <Box className="md:!col-span-2">
-              <Input
-                name="description"
-                label="Description"
-                placeholder="Enter description"
-                formik={formik}
-                multiline
-                rows={3}
-              />
-            </Box>
-
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
+            </div>
 
             <Input
               name="valid_from"
@@ -353,17 +352,153 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
               formik={formik}
               slotProps={{ inputLabel: { shrink: true } }}
             />
-          </Box>
+            <ActiveInactiveField
+              name="is_active"
+              formik={formik}
+              className="grid col-span-2"
+            />
+            <div className="md:col-span-2">
+              <Input
+                name="description"
+                label="Description"
+                placeholder="Enter description"
+                formik={formik}
+                multiline
+                rows={3}
+              />
+            </div>
 
-          {/* Price List Items Section */}
-          <Box className="!space-y-4">
-            <Box className="!flex !justify-between !items-center">
-              <Typography
-                variant="h6"
-                className="!font-semibold !text-gray-900"
-              >
+            <div className="md:col-span-2 bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <p className="text-sm font-semibold mb-2 flex items-center gap-2 text-blue-800">
+                <Info className="w-4 h-4" /> Configuration & Assignments
+              </p>
+               <div className="flex flex-col gap-4">
+                <FormControl component="fieldset" fullWidth>
+                  <FormLabel
+                    component="legend"
+                    className="!text-[10px] !pl-1 !mb-1 !font-bold !uppercase !tracking-wider !text-gray-500"
+                  >
+                    Assign To
+                  </FormLabel>
+                  <RadioGroup
+                    row
+                    value={assignmentType}
+                    onChange={e => setAssignmentType(e.target.value)}
+                  >
+                    <FormControlLabel
+                      value="default"
+                      control={<Radio size="small" />}
+                      className='!ml-px'
+                      label={<span className="text-xs">Default</span>}
+                    />
+                    <FormControlLabel
+                      value="depot"
+                      control={<Radio size="small" />}
+                      label={<span className="text-xs">Depot</span>}
+                    />
+                    <FormControlLabel
+                      value="route"
+                      control={<Radio size="small" />}
+                      label={<span className="text-xs">Route</span>}
+                    />
+                    <FormControlLabel
+                      value="customer"
+                      control={<Radio size="small" />}
+                      label={<span className="text-xs">Customer</span>}
+                    />
+                    <FormControlLabel
+                      value="category"
+                      control={<Radio size="small" />}
+                      label={<span className="text-xs">Category</span>}
+                    />
+                  </RadioGroup>
+
+                  <div className="mt-1 flex items-center gap-2">
+                    {assignmentType === 'depot' && (
+                      <Select
+                        name="depot_id"
+                        label="Select Depot"
+                        formik={formik}
+                        size="small"
+                        className="!min-w-72"
+                        required
+                      >
+                        {depots.map(d => (
+                          <MenuItem key={d.id} value={d.id}>
+                            {d.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                    {assignmentType === 'route' && (
+                      <Select
+                        name="route_id"
+                        label="Select Route"
+                        formik={formik}
+                        size="small"
+                        className="!min-w-72"
+                        required
+                      >
+                        {routes.map(r => (
+                          <MenuItem key={r.id} value={r.id}>
+                            {r.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                    {assignmentType === 'customer' && (
+                      <Select
+                        name="customer_id"
+                        label="Select Customer"
+                        formik={formik}
+                        size="small"
+                        className="!min-w-72"
+                        required
+                      >
+                        {customers.map(c => (
+                          <MenuItem key={c.id} value={c.id}>
+                            {c.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                    {assignmentType === 'category' && (
+                      <Select
+                        name="customer_category_id"
+                        label="Select Category"
+                        formik={formik}
+                        size="small"
+                        className="!min-w-72"
+                        required
+                      >
+                        {categories.map(c => (
+                          <MenuItem key={c.id} value={c.id}>
+                            {c.category_name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    )}
+                    {assignmentType === 'default' && (
+                      <div className="bg-white border border-blue-100 rounded p-2 flex items-center gap-2 text-xs text-blue-700">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        <span>
+                          This will be set as the{' '}
+                          <strong>Default Price List</strong> (available
+                          globally when no other specific assignments match).
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </FormControl>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-gray-100">
+            <div className="flex justify-between items-center">
+              <h6 className="text-base font-semibold text-gray-900">
                 Price List Items
-              </Typography>
+              </h6>
               <Button
                 type="button"
                 variant="outlined"
@@ -373,9 +508,9 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
               >
                 Add Item
               </Button>
-            </Box>
+            </div>
 
-            {priceListItems.length > 0 && (
+            {priceListItems.length > 0 ? (
               <Table
                 compact
                 data={priceListItemsWithIndex}
@@ -385,19 +520,17 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                 sortable={false}
                 emptyMessage="No price list items added yet."
               />
-            )}
-
-            {priceListItems.length === 0 && (
-              <Box className="!text-center !py-8 !text-gray-500">
-                <Typography variant="body2">
+            ) : (
+              <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-100 rounded-lg bg-gray-50/50">
+                <p className="text-sm">
                   No price list items added yet. Click "Add Item" to get
                   started.
-                </Typography>
-              </Box>
+                </p>
+              </div>
             )}
-          </Box>
+          </div>
 
-          <Box className="!flex !justify-end !gap-2">
+          <div className="flex justify-end gap-2 pt-6 border-t border-gray-100">
             <Button
               type="button"
               variant="outlined"
@@ -426,9 +559,9 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                   ? 'Update'
                   : 'Create'}
             </Button>
-          </Box>
+          </div>
         </form>
-      </Box>
+      </div>
     </CustomDrawer>
   );
 };

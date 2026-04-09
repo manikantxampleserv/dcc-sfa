@@ -56,6 +56,15 @@ export const priceListValidationSchema = Yup.object({
     .max(255, 'Description must not exceed 255 characters')
     .trim(),
 
+  customer_id: Yup.number().nullable(),
+  route_id: Yup.number().nullable(),
+  depot_id: Yup.number().nullable(),
+  customer_category_id: Yup.number().nullable(),
+
+  is_default: Yup.string()
+    .oneOf(['Y', 'N'], 'Default must be Y or N')
+    .default('N'),
+
   valid_from: Yup.date()
     .nullable()
     .transform((value, originalValue) => {
