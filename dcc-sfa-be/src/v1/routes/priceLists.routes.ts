@@ -49,4 +49,10 @@ router.delete(
   priceListsController.deletePriceLists
 );
 
+router.get(
+  '/price-lists/customer/:customer_id/resolve',
+  authenticateToken,
+  requirePermission([{ module: 'pricelist', action: 'read' }]),
+  priceListsController.getPriceListForCustomer
+);
 export default router;
