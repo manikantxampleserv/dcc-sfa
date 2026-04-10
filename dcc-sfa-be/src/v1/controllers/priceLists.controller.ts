@@ -9,6 +9,8 @@ interface PriceListSerialized {
   customer_id?: number | null;
   route_id?: number | null;
   depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: number | string | null;
   customer_category_id?: number | null;
   is_default: string;
   priority: string;
@@ -24,6 +26,7 @@ interface PriceListSerialized {
   pricelists_customer?: any;
   pricelists_route?: any;
   pricelists_depot?: any;
+  base_pricelist?: any;
 }
 
 const serializePriceList = (pl: any): PriceListSerialized => ({
@@ -33,6 +36,8 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
   customer_id: pl.customer_id,
   route_id: pl.route_id,
   depot_id: pl.depot_id,
+  base_pricelist_id: pl.base_pricelist_id,
+  factor: pl.factor?.toString() || null,
   customer_category_id: pl.customer_category_id,
   is_default: pl.is_default,
   priority: pl.priority,
@@ -44,19 +49,48 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
   updatedate: pl.updatedate,
   updatedby: pl.updatedby,
   log_inst: pl.log_inst,
-  pricelist_item: (pl.pricelist_item || []).map((item: any) => ({
-    ...item,
-    product: item.pricelist_items_products
-      ? {
-          id: item.pricelist_items_products.id,
-          name: item.pricelist_items_products.name,
-          code: item.pricelist_items_products.code,
-        }
-      : null,
-  })),
+    pricelist_item: (pl.pricelist_item || []).map((item: any) => {
+    const rawSpecialPrices =
+      item.pricelist_item_special_prices || item.special_prices || [];
+    
+    // Explicitly map special prices to the frontend's expected format
+    const specialPrices = rawSpecialPrices.map((sp: any) => ({
+      id: sp.id,
+      valid_from: sp.valid_from,
+      valid_to: sp.valid_to,
+      route_id: sp.route_id,
+      customer_id: sp.customer_id,
+      customer_category_id: sp.customer_category_id,
+      sale_price: sp.sale_price?.toString() || '0',
+      sale_sub_unit_price: sp.sale_sub_unit_price?.toString() || null,
+      tax_percent: sp.tax_percent?.toString() || null,
+      discount_percent: sp.discount_percent?.toString() || null,
+      is_active: sp.is_active,
+    }));
+
+    return {
+      id: item.id,
+      product_id: item.product_id,
+      unit_price: item.unit_price,
+      uom: item.uom,
+      discount_percent: item.discount_percent?.toString() || null,
+      tax_percent: item.tax_percent?.toString() || null,
+      sub_unit_price: item.sub_unit_price,
+      is_active: item.is_active,
+      product: item.pricelist_items_products
+        ? {
+            id: item.pricelist_items_products.id,
+            name: item.pricelist_items_products.name,
+            code: item.pricelist_items_products.code,
+          }
+        : null,
+      special_prices: specialPrices,
+    };
+  }),
   pricelists_customer: pl.pricelists_customer,
   pricelists_route: pl.pricelists_route,
   pricelists_depot: pl.pricelists_depot,
+  base_pricelist: pl.base_pricelist,
 });
 
 export const priceListsController = {
@@ -115,11 +149,11 @@ export const priceListsController = {
             customer_id: data.customer_id || null,
             route_id: data.route_id || null,
             depot_id: data.depot_id || null,
+            base_pricelist_id: data.base_pricelist_id || null,
+            factor: data.factor ? Number(data.factor) : null,
             customer_category_id: data.customer_category_id || null,
             is_default: data.is_default || 'N',
             priority: data.priority?.toString() || '1',
-            valid_from: data.valid_from ? new Date(data.valid_from) : null,
-            valid_to: data.valid_to ? new Date(data.valid_to) : null,
             is_active: data.is_active || 'Y',
             updatedate: new Date(),
             updatedby: userId,
@@ -134,11 +168,11 @@ export const priceListsController = {
             customer_id: data.customer_id || null,
             route_id: data.route_id || null,
             depot_id: data.depot_id || null,
+            base_pricelist_id: data.base_pricelist_id || null,
+            factor: data.factor ? Number(data.factor) : null,
             customer_category_id: data.customer_category_id || null,
             is_default: data.is_default || 'N',
             priority: data.priority?.toString() || '1',
-            valid_from: data.valid_from ? new Date(data.valid_from) : null,
-            valid_to: data.valid_to ? new Date(data.valid_to) : null,
             is_active: data.is_active || 'Y',
             createdate: new Date(),
             createdby: userId,
@@ -194,24 +228,11 @@ export const priceListsController = {
               item.sub_unit_price !== undefined
                 ? item.sub_unit_price
                 : null,
-            effective_from: item.effective_from
-              ? new Date(item.effective_from)
-              : null,
-            effective_to: item.effective_to
-              ? new Date(item.effective_to)
-              : null,
             is_active: item.is_active || 'Y',
           };
 
-          console.log('Processing item:', {
-            id: item.id,
-            product_id: item.product_id,
-            data: itemData,
-          });
-
           if (item.id && existingItems.find(e => e.id === item.id)) {
-            console.log('Updating item:', item.id);
-            await prisma.pricelist_items.update({
+            const updatedItem = await prisma.pricelist_items.update({
               where: { id: item.id },
               data: {
                 ...itemData,
@@ -220,9 +241,70 @@ export const priceListsController = {
                 log_inst: { increment: 1 },
               },
             });
+
+            // Handle special prices
+            if (Array.isArray(item.special_prices)) {
+              console.log(`Processing ${item.special_prices.length} special prices for existing item ${updatedItem.id}`);
+              const existingSpecialPrices =
+                await prisma.pricelist_item_special_prices.findMany({
+                  where: { pricelist_item_id: updatedItem.id },
+                });
+
+              const requestSpecialIds = item.special_prices
+                .map((sp: any) => sp.id)
+                .filter(Boolean) as number[];
+
+              await prisma.pricelist_item_special_prices.deleteMany({
+                where: {
+                  pricelist_item_id: updatedItem.id,
+                  id: { notIn: requestSpecialIds.length ? requestSpecialIds : [0] },
+                },
+              });
+
+              for (const sp of item.special_prices) {
+                const spData = {
+                  valid_from: sp.valid_from ? new Date(sp.valid_from) : null,
+                  valid_to: sp.valid_to ? new Date(sp.valid_to) : null,
+                  route_id: sp.route_id || null,
+                  customer_id: sp.customer_id || null,
+                  customer_category_id: sp.customer_category_id || null,
+                  sale_price: Number(sp.sale_price),
+                  sale_sub_unit_price: sp.sale_sub_unit_price
+                    ? Number(sp.sale_sub_unit_price)
+                    : null,
+                  tax_percent: sp.tax_percent ? Number(sp.tax_percent) : null,
+                  discount_percent: sp.discount_percent
+                    ? Number(sp.discount_percent)
+                    : null,
+                  is_active: sp.is_active || 'Y',
+                };
+
+                if (sp.id && existingSpecialPrices.find(e => e.id === sp.id)) {
+                  await prisma.pricelist_item_special_prices.update({
+                    where: { id: sp.id },
+                    data: {
+                      ...spData,
+                      updatedate: new Date(),
+                      updatedby: userId,
+                      log_inst: { increment: 1 },
+                    },
+                  });
+                } else {
+                  await prisma.pricelist_item_special_prices.create({
+                    data: {
+                      ...spData,
+                      pricelist_item_id: updatedItem.id,
+                      createdate: new Date(),
+                      createdby: userId,
+                      log_inst: 1,
+                    },
+                  });
+                }
+              }
+            }
           } else {
             console.log('Creating new item for product:', item.product_id);
-            await prisma.pricelist_items.create({
+            const newItem = await prisma.pricelist_items.create({
               data: {
                 ...itemData,
                 pricelist_id: priceList.id,
@@ -231,6 +313,39 @@ export const priceListsController = {
                 log_inst: 1,
               },
             });
+
+            // Handle special prices for new item
+            if (Array.isArray(item.special_prices)) {
+              console.log(`Creating ${item.special_prices.length} special prices for new item ${newItem.id}`);
+              for (const sp of item.special_prices) {
+                const spData = {
+                  valid_from: sp.valid_from ? new Date(sp.valid_from) : null,
+                  valid_to: sp.valid_to ? new Date(sp.valid_to) : null,
+                  route_id: sp.route_id || null,
+                  customer_id: sp.customer_id || null,
+                  customer_category_id: sp.customer_category_id || null,
+                  sale_price: Number(sp.sale_price),
+                  sale_sub_unit_price: sp.sale_sub_unit_price
+                    ? Number(sp.sale_sub_unit_price)
+                    : null,
+                  tax_percent: sp.tax_percent ? Number(sp.tax_percent) : null,
+                  discount_percent: sp.discount_percent
+                    ? Number(sp.discount_percent)
+                    : null,
+                  is_active: sp.is_active || 'Y',
+                };
+
+                await prisma.pricelist_item_special_prices.create({
+                  data: {
+                    ...spData,
+                    pricelist_item_id: newItem.id,
+                    createdate: new Date(),
+                    createdby: userId,
+                    log_inst: 1,
+                  },
+                });
+              }
+            }
           }
         }
       }
@@ -239,7 +354,10 @@ export const priceListsController = {
         where: { id: priceList.id },
         include: {
           pricelist_item: {
-            include: { pricelist_items_products: true },
+            include: {
+              pricelist_items_products: true,
+              pricelist_item_special_prices: true,
+            },
           },
           pricelists_customer: {
             select: {
@@ -255,6 +373,12 @@ export const priceListsController = {
             },
           },
           pricelists_depot: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          base_pricelist: {
             select: {
               id: true,
               name: true,
@@ -351,11 +475,20 @@ export const priceListsController = {
             name: true,
           },
         },
+        base_pricelist: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       };
 
       if (include_items === 'true' || include_items === true) {
         include.pricelist_item = {
-          include: { pricelist_items_products: true },
+          include: {
+            pricelist_items_products: true,
+            pricelist_item_special_prices: true,
+          },
         };
       } else {
         include.pricelist_item = true;
@@ -419,7 +552,10 @@ export const priceListsController = {
         where: { id: Number(id) },
         include: {
           pricelist_item: {
-            include: { pricelist_items_products: true },
+            include: {
+              pricelist_items_products: true,
+              pricelist_item_special_prices: true,
+            },
           },
           pricelists_customer: {
             select: {
@@ -435,6 +571,12 @@ export const priceListsController = {
             },
           },
           pricelists_depot: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          base_pricelist: {
             select: {
               id: true,
               name: true,
