@@ -86,6 +86,20 @@ interface SpecialPrice {
   tax_percent?: string | number | null;
   discount_percent?: string | number | null;
   is_active?: string;
+  special_customer_category?: {
+    id: number;
+    category_name: string;
+    category_code: string;
+  } | null;
+  special_customer?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  special_route?: {
+    id: number;
+    name: string;
+  } | null;
 }
 
 interface RoutePriceList {
@@ -108,15 +122,10 @@ interface RoutePriceList {
 interface ManagePriceListPayload {
   name: string;
   description?: string;
-  customer_id?: number | null;
-  route_id?: number | null;
   depot_id?: number | null;
   base_pricelist_id?: number | null;
   factor?: string | number | null;
-  customer_category_id?: number | null;
   is_default?: string;
-  valid_from?: string;
-  valid_to?: string;
   is_active?: string;
   pricelist_item?: Partial<PriceListItem>[];
 }
@@ -124,15 +133,10 @@ interface ManagePriceListPayload {
 interface UpdatePriceListPayload {
   name?: string;
   description?: string;
-  customer_id?: number | null;
-  route_id?: number | null;
   depot_id?: number | null;
   base_pricelist_id?: number | null;
   factor?: string | number | null;
-  customer_category_id?: number | null;
   is_default?: string;
-  valid_from?: string;
-  valid_to?: string;
   is_active?: string;
   pricelist_item?: Partial<PriceListItem>[];
 }
