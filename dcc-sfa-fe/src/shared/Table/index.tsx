@@ -104,6 +104,8 @@ export interface TableProps<T = any> {
   stickyHeader?: boolean;
   /** Maximum height of the table container */
   maxHeight?: string | number;
+  /** Minimum height of the table container */
+  minHeight?: string | number;
   /** Total count of records (for backend pagination) */
   totalCount?: number;
   /** Current page number (controlled) */
@@ -204,6 +206,7 @@ interface TableHeadProps<T> {
   orderBy: string;
   columns: TableColumn<T>[];
   sortable: boolean;
+  compact?: boolean;
   columnVisibility?: Record<string, boolean>;
 }
 
@@ -214,7 +217,7 @@ interface TableHeadProps<T> {
  * @returns Table header JSX element
  */
 function TableHead<T>(props: TableHeadProps<T>) {
-  const { order, orderBy, onRequestSort, columns, sortable, columnVisibility } =
+  const { order, orderBy, onRequestSort, columns, sortable, compact, columnVisibility } =
     props;
 
   const createSortHandler =
@@ -244,6 +247,7 @@ function TableHead<T>(props: TableHeadProps<T>) {
               column.className,
               '!border-b !px-1.5 !border-gray-200 !bg-blue-50 !font-semibold',
               '!whitespace-nowrap !text-gray-700 !p-4 !text-sm',
+              compact ? '!py-3 !text-xs' : '',
               column.numeric && '!justify-end'
             )}
             style={{ width: column.width }}
@@ -360,6 +364,7 @@ export default function Table<T extends Record<string, any>>(
     initialOrder = 'none',
     stickyHeader = false,
     maxHeight,
+    minHeight,
     totalCount = 0,
     page = 0,
     rowsPerPage = 6,
@@ -391,7 +396,6 @@ export default function Table<T extends Record<string, any>>(
     initialColumnVisibility[String(column.id)] = column.isVisible !== false;
   });
 
-  // Generate unique table ID automatically
   const autoTableId = useMemo(() => generateTableId(columns), [columns]);
   const activeTableId = tableId || autoTableId;
 
@@ -402,7 +406,6 @@ export default function Table<T extends Record<string, any>>(
     Record<string, boolean>
   >(initialColumnVisibility);
 
-  // Sync with backend preferences
   useEffect(() => {
     if (preferencesResponse?.data) {
       const savedPref = preferencesResponse.data.find(
@@ -420,10 +423,8 @@ export default function Table<T extends Record<string, any>>(
 
   const visibleColumns = useMemo(() => {
     if (loading) {
-      // Show all columns during loading
       return columns.filter(column => column.isVisible !== false);
     }
-    // Apply column visibility filter after loading
     return columns.filter(column => {
       const columnId = String(column.id);
       return columnVisibility[columnId] !== false && column.isVisible !== false;
@@ -484,8 +485,6 @@ export default function Table<T extends Record<string, any>>(
   ) => {
     const newVisibility = { ...columnVisibility, [columnId]: isVisible };
     setColumnVisibility(newVisibility);
-
-    // Save to backend
     savePreferences.mutate({
       route: activeTableId,
       preferences: newVisibility,
@@ -527,6 +526,7 @@ export default function Table<T extends Record<string, any>>(
           stickyHeader={stickyHeader}
         >
           <TableHead
+            compact={compact}
             order={order}
             orderBy={orderBy ? String(orderBy) : ''}
             onRequestSort={() => {}}
@@ -547,6 +547,7 @@ export default function Table<T extends Record<string, any>>(
         stickyHeader={stickyHeader}
       >
         <TableHead
+          compact={compact}
           order={order}
           orderBy={orderBy ? String(orderBy) : ''}
           onRequestSort={handleRequestSort}
@@ -607,7 +608,12 @@ export default function Table<T extends Record<string, any>>(
       >
         {props.actions && !Array.isArray(props.actions) && (
           <>
-            <Box className="!p-3 flex items-start justify-between gap-2">
+            <Box
+              className={classNames(
+                '!p-3 flex items-start gap-2',
+                filterColunm ? 'justify-between' : ''
+              )}
+            >
               {props.actions}{' '}
               {filterColunm &&
                 hideableColumns &&
@@ -685,7 +691,7 @@ export default function Table<T extends Record<string, any>>(
             </Box>
           </Box>
         </Menu>
-        <MuiTableContainer style={{ maxHeight }}>
+        <MuiTableContainer style={{ maxHeight, minHeight }}>
           {renderTableContent()}
         </MuiTableContainer>
         {pagination && isPermission && (

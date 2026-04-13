@@ -15,6 +15,8 @@ interface PriceList {
   customer_id?: number | null;
   route_id?: number | null;
   depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: string | number | null;
   customer_category_id?: number | null;
   is_default: string;
   valid_from?: string | null;
@@ -40,6 +42,10 @@ interface PriceList {
     id: number;
     name: string;
   };
+  base_pricelist?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface PriceListItem {
@@ -59,6 +65,27 @@ interface PriceListItem {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  product?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  special_prices?: SpecialPrice[];
+}
+
+interface SpecialPrice {
+  id?: number;
+  pricelist_item_id?: number;
+  valid_from?: string | null;
+  valid_to?: string | null;
+  route_id?: number | null;
+  customer_id?: number | null;
+  customer_category_id?: number | null;
+  sale_price: string | number;
+  sale_sub_unit_price?: string | number | null;
+  tax_percent?: string | number | null;
+  discount_percent?: string | number | null;
+  is_active?: string;
 }
 
 interface RoutePriceList {
@@ -84,6 +111,8 @@ interface ManagePriceListPayload {
   customer_id?: number | null;
   route_id?: number | null;
   depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: string | number | null;
   customer_category_id?: number | null;
   is_default?: string;
   valid_from?: string;
@@ -98,6 +127,8 @@ interface UpdatePriceListPayload {
   customer_id?: number | null;
   route_id?: number | null;
   depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: string | number | null;
   customer_category_id?: number | null;
   is_default?: string;
   valid_from?: string;
@@ -217,6 +248,7 @@ export const deletePriceList = async (id: number): Promise<void> => {
 export type {
   PriceList,
   PriceListItem,
+  SpecialPrice,
   RoutePriceList,
   ManagePriceListPayload,
   UpdatePriceListPayload,

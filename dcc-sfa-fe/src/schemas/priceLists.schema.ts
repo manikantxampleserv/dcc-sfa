@@ -58,35 +58,13 @@ export const priceListValidationSchema = Yup.object({
 
   customer_id: Yup.number().nullable(),
   route_id: Yup.number().nullable(),
-  depot_id: Yup.number().nullable(),
-  customer_category_id: Yup.number().nullable(),
+  depot_id: Yup.number().required('Depot is required').nullable(),
+  base_pricelist_id: Yup.number().nullable(),
+  factor: Yup.number().min(0.0001, 'Factor must be greater than 0').default(1),
 
   is_default: Yup.string()
     .oneOf(['Y', 'N'], 'Default must be Y or N')
     .default('N'),
-
-  valid_from: Yup.date()
-    .nullable()
-    .transform((value, originalValue) => {
-      if (originalValue === '' || originalValue === null) return null;
-      return value;
-    }),
-
-  valid_to: Yup.date()
-    .nullable()
-    .transform((value, originalValue) => {
-      if (originalValue === '' || originalValue === null) return null;
-      return value;
-    })
-    .when('valid_from', (valid_from, schema) => {
-      if (valid_from && valid_from[0]) {
-        return schema.min(
-          valid_from[0],
-          'Valid to date must be after valid from date'
-        );
-      }
-      return schema;
-    }),
 
   is_active: Yup.string()
     .oneOf(['Y', 'N'], 'Status must be Y or N')

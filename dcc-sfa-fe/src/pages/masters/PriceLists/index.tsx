@@ -11,7 +11,7 @@ import {
   type PriceList,
 } from 'hooks/usePriceLists';
 import { useRoutes } from 'hooks/useRoutes';
-import { Calendar, FileText, Package, TrendingUp } from 'lucide-react';
+import { FileText, Package, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
@@ -20,7 +20,6 @@ import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
 import ImportPriceList from './ImportPriceList';
 import ManagePriceList from './ManagePriceList';
 
@@ -28,7 +27,6 @@ const PriceListsManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'lists' | 'details'>('lists');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [defaultFilter, setDefaultFilter] = useState('all');
   const [depotId, setDepotId] = useState<string>('');
   const [routeId, setRouteId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
@@ -49,17 +47,15 @@ const PriceListsManagement: React.FC = () => {
       page,
       limit,
       status: statusFilter === 'all' ? undefined : statusFilter,
-      is_default: defaultFilter === 'all' ? undefined : (defaultFilter === 'Y' ? 'Y' : 'N'),
       depot_id: depotId ? Number(depotId) : undefined,
       route_id: routeId ? Number(routeId) : undefined,
       customer_id: customerId ? Number(customerId) : undefined,
       customer_category_id: categoryId ? Number(categoryId) : undefined,
-      include_items: viewMode === 'details' ? true : undefined,
+      include_items: true,
     },
     { enabled: isRead }
   );
 
-  // Flatten items for details view if needed
   const pricingDetails = React.useMemo(() => {
     if (viewMode !== 'details') return [];
     return (priceListsResponse?.data || []).flatMap((pl: any) => 
@@ -224,6 +220,21 @@ const PriceListsManagement: React.FC = () => {
         <Typography variant="body2">{row.tax_percent || '18'}%</Typography>
       ),
     },
+    {
+      id: 'special_prices_count',
+      label: 'Special Prices',
+      render: (_value, row) => {
+        const count = (row.special_prices || []).length;
+        return (
+          <Chip
+            label={`${count} rules`}
+            size="small"
+            variant="outlined"
+            className="!bg-indigo-50 !text-indigo-700 !border-indigo-200"
+          />
+        );
+      },
+    },
   ];
 
   const priceListsColumns: TableColumn<PriceList>[] = [
@@ -279,40 +290,6 @@ const PriceListsManagement: React.FC = () => {
       },
     },
     {
-      id: 'validity_period',
-      label: 'Validity Period',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-gray-400" />
-          <Box className="text-xs">
-            {row.valid_from || row.valid_to ? (
-              <span>
-                {row.valid_from && row.valid_to ? (
-                  <>
-                    {formatDate(row.valid_from)}
-                    <span className="mx-1 text-gray-400">–</span>
-                    {formatDate(row.valid_to)}
-                  </>
-                ) : row.valid_from ? (
-                  <>
-                    <span className="text-gray-400">From</span>{' '}
-                    {formatDate(row.valid_from)}
-                  </>
-                ) : (
-                  <>
-                    <span className="text-gray-400">Until</span>{' '}
-                    {formatDate(row.valid_to)}
-                  </>
-                )}
-              </span>
-            ) : (
-              <span className="text-gray-400 italic">No validity period</span>
-            )}
-          </Box>
-        </Box>
-      ),
-    },
-    {
       id: 'items_count',
       label: 'Items',
       render: (_value, row) => (
@@ -341,7 +318,7 @@ const PriceListsManagement: React.FC = () => {
       ? [
           {
             id: 'action',
-            label: 'Actions',
+            label: 'Action',
             sortable: false,
             render: (_value: any, row: PriceList) => (
               <div className="!flex !gap-2 !items-center">
@@ -545,15 +522,7 @@ const PriceListsManagement: React.FC = () => {
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
-                    <Select
-                      value={defaultFilter}
-                      onChange={e => setDefaultFilter(e.target.value)}
-                      className="!w-32"
-                    >
-                      <MenuItem value="all">All Default</MenuItem>
-                      <MenuItem value="yes">Default Only</MenuItem>
-                      <MenuItem value="no">Non-Default</MenuItem>
-                    </Select>
+                   
                   </>
                 )}
               </div>

@@ -2,6 +2,7 @@ import axiosInstance from 'configs/axio.config';
 import type { ApiResponse } from '../../../types/api.types';
 
 interface Product {
+  uom_id: string;
   id: number;
   name: string;
   code: string;
