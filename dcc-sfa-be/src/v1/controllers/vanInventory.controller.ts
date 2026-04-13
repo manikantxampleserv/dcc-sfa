@@ -4669,4 +4669,196 @@ export const vanInventoryController = {
       });
     }
   },
+
+  //1.Logic to get other dat a written in logic not in sp
+  // async testPriceListProcedure(req: Request, res: Response) {
+  //   try {
+  //     const { customer_id, order_date } = req.query;
+
+  //     if (!customer_id || !order_date) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'customer_id and order_date are required',
+  //       });
+  //     }
+
+  //     // Call the main stored procedure
+  //     const priceLists = await prisma.$queryRaw`
+  //     EXEC sp_GetPriceListsForCustomer
+  //       @CustomerID = ${parseInt(customer_id as string)},
+  //       @OrderDate = ${order_date as string}
+  //   `;
+
+  //     // For each price list, fetch pricelist_items and special_price_items
+  //     const result = await Promise.all(
+  //       (priceLists as any[]).map(async (priceList: any) => {
+  //         // Get customer details for special price filtering
+  //         const customer = await prisma.customers.findUnique({
+  //           where: { id: parseInt(customer_id as string) },
+  //           select: {
+  //             route_id: true,
+  //             depot_id: true,
+  //             customer_category_id: true,
+  //           },
+  //         });
+
+  //         // Fetch pricelist_items
+  //         const pricelistItems = await prisma.pricelist_items.findMany({
+  //           where: {
+  //             pricelist_id: priceList.pricelist_id,
+  //             is_active: 'Y',
+  //           },
+  //           include: {
+  //             pricelist_items_products: {
+  //               select: {
+  //                 id: true,
+  //                 name: true,
+  //                 code: true,
+  //               },
+  //             },
+  //           },
+  //         });
+
+  //         let specialPriceItems = null;
+
+  //         // Only fetch special items if they exist
+  //         if (
+  //           priceList.has_customer_special_prices ||
+  //           priceList.has_route_special_prices ||
+  //           priceList.has_category_special_prices ||
+  //           priceList.has_depot_special_prices
+  //         ) {
+  //           specialPriceItems =
+  //             await prisma.pricelist_item_special_prices.findMany({
+  //               where: {
+  //                 is_active: 'Y',
+  //                 OR: [
+  //                   { customer_id: parseInt(customer_id as string) },
+  //                   { route_id: customer?.route_id },
+  //                   { customer_category_id: customer?.customer_category_id },
+  //                 ],
+  //                 AND: [
+  //                   {
+  //                     OR: [
+  //                       { valid_from: null },
+  //                       { valid_from: { lte: new Date(order_date as string) } },
+  //                     ],
+  //                   },
+  //                   {
+  //                     OR: [
+  //                       { valid_to: null },
+  //                       { valid_to: { gte: new Date(order_date as string) } },
+  //                     ],
+  //                   },
+  //                 ],
+  //               },
+  //               include: {
+  //                 pricelist_item: {
+  //                   include: {
+  //                     pricelist_items_products: {
+  //                       select: {
+  //                         id: true,
+  //                         name: true,
+  //                         code: true,
+  //                       },
+  //                     },
+  //                   },
+  //                 },
+  //               },
+  //             });
+  //         }
+
+  //         return {
+  //           ...priceList,
+  //           pricelist_items: pricelistItems.map(item => ({
+  //             id: item.id,
+  //             product_id: item.product_id,
+  //             unit_price: item.unit_price,
+  //             discount_percent: item.discount_percent,
+  //             tax_percent: item.tax_percent,
+  //             is_active: item.is_active,
+  //             product_name: item.pricelist_items_products?.name,
+  //             product_code: item.pricelist_items_products?.code,
+  //           })),
+  //           special_price_items:
+  //             specialPriceItems?.map(sp => ({
+  //               special_price_id: sp.id,
+  //               pricelist_item_id: sp.pricelist_item_id,
+  //               customer_id: sp.customer_id,
+  //               route_id: sp.route_id,
+  //               customer_category_id: sp.customer_category_id,
+  //               sale_price: sp.sale_price,
+  //               sale_sub_unit_price: sp.sale_sub_unit_price,
+  //               tax_percent: sp.tax_percent,
+  //               discount_percent: sp.discount_percent,
+  //               valid_from: sp.valid_from,
+  //               valid_to: sp.valid_to,
+  //               is_active: sp.is_active,
+  //               product_id: sp.pricelist_item?.product_id,
+  //               base_unit_price: sp.pricelist_item?.unit_price,
+  //               base_tax_percent: sp.pricelist_item?.tax_percent,
+  //               product_name: sp.pricelist_item?.pricelist_items_products?.name,
+  //               product_code: sp.pricelist_item?.pricelist_items_products?.code,
+  //             })) || null,
+  //         };
+  //       })
+  //     );
+
+  //     res.status(200).json({
+  //       success: true,
+  //       message: 'Price lists retrieved successfully',
+  //       data: result,
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Test procedure error:', error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Error executing procedure',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
+  async testPriceListProcedure(req: Request, res: Response) {
+    try {
+      const { customer_id, order_date } = req.query;
+
+      if (!customer_id || !order_date) {
+        return res.status(400).json({
+          success: false,
+          message: 'customer_id and order_date are required',
+        });
+      }
+
+      const result = await prisma.$queryRaw`
+      EXEC sp_get_price_lists_for_customer 
+        @CustomerID = ${parseInt(customer_id as string)},
+        @OrderDate = ${order_date as string}
+    `;
+
+      // Parse JSON strings to arrays
+      const parsedResult = (result as any[]).map(priceList => ({
+        ...priceList,
+        pricelist_items: priceList.pricelist_items
+          ? JSON.parse(priceList.pricelist_items)
+          : [],
+        special_price_items: priceList.special_price_items
+          ? JSON.parse(priceList.special_price_items)
+          : null,
+      }));
+
+      res.json({
+        success: true,
+        message: 'Price lists retrieved successfully',
+        data: parsedResult,
+      });
+    } catch (error: any) {
+      console.error('Test procedure error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error executing procedure',
+        error: error.message,
+      });
+    }
+  },
 };

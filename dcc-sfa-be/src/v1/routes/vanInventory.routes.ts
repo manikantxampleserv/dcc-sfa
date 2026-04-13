@@ -36,6 +36,10 @@ router.get(
   vanInventoryController.getProducts
 );
 router.get(
+  '/van-inventory/test-procedure',
+  vanInventoryController.testPriceListProcedure
+);
+router.get(
   '/van-inventory/:id',
   authenticateToken,
   requirePermission([{ module: 'van-stock', action: 'read' }]),
