@@ -30,6 +30,12 @@ router.get(
   vanInventoryController.getAllVanInventory
 );
 router.get(
+  '/van-inventory/products',
+  authenticateToken,
+  requirePermission([{ module: 'van-stock', action: 'read' }]),
+  vanInventoryController.getProducts
+);
+router.get(
   '/van-inventory/:id',
   authenticateToken,
   requirePermission([{ module: 'van-stock', action: 'read' }]),

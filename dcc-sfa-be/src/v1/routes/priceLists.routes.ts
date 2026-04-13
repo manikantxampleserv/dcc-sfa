@@ -35,6 +35,12 @@ router.get(
   priceListsController.getPriceListsById
 );
 router.get(
+  '/pricelists/:salesperson_id',
+  authenticateToken,
+  priceListsController.getProductsAndCustomer
+);
+
+router.get(
   '/price-lists',
   authenticateToken,
   requirePermission([{ module: 'pricelist', action: 'read' }]),
