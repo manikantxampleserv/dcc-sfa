@@ -1,9 +1,17 @@
-import { Add, Block, CheckCircle, Download, FilterList, Upload } from '@mui/icons-material';
+import {
+  Add,
+  Block,
+  CheckCircle,
+  // Download,
+  FilterList,
+  // Upload,
+  Visibility,
+} from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useCustomerCategories } from 'hooks/useCustomerCategory';
 import { useCustomers } from 'hooks/useCustomers';
 import { useDepots } from 'hooks/useDepots';
-import { useExportToExcel } from 'hooks/useImportExport';
+// import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import {
   useDeletePriceList,
@@ -11,11 +19,12 @@ import {
   type PriceList,
 } from 'hooks/usePriceLists';
 import { useRoutes } from 'hooks/useRoutes';
-import { FileText, Package, TrendingUp } from 'lucide-react';
+import { FileText, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import { DeleteButton, EditButton } from 'shared/ActionButton';
+import { useNavigate } from 'react-router-dom';
+import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
-import { PopConfirm } from 'shared/DeleteConfirmation';
+// import { PopConfirm } from 'shared/DeleteConfirmation';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
@@ -24,7 +33,7 @@ import ImportPriceList from './ImportPriceList';
 import ManagePriceList from './ManagePriceList';
 
 const PriceListsManagement: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'lists' | 'details'>('lists');
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [depotId, setDepotId] = useState<string>('');
@@ -41,7 +50,11 @@ const PriceListsManagement: React.FC = () => {
   const [limit] = useState(10);
   const { isCreate, isUpdate, isDelete, isRead } = usePermission('pricelist');
 
-  const { data: priceListsResponse, isFetching, error } = usePriceLists(
+  const {
+    data: priceListsResponse,
+    isFetching,
+    error,
+  } = usePriceLists(
     {
       search,
       page,
@@ -56,20 +69,22 @@ const PriceListsManagement: React.FC = () => {
     { enabled: isRead }
   );
 
-  const pricingDetails = React.useMemo(() => {
-    if (viewMode !== 'details') return [];
-    return (priceListsResponse?.data || []).flatMap((pl: any) => 
-      (pl.pricelist_item || []).map((item: any) => ({
-        ...item,
-        price_list_name: pl.name,
-      }))
-    );
-  }, [priceListsResponse, viewMode]);
-
   const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' });
-  const { data: routesResponse } = useRoutes({ limit: 1000, status: 'active', depot_id: depotId ? Number(depotId) : undefined });
-  const { data: categoriesResponse } = useCustomerCategories({ limit: 1000, is_active: 'Y' });
-  const { data: customersResponse } = useCustomers({ limit: 1000, isActive: 'Y', depot_id: depotId ? Number(depotId) : undefined, route_id: routeId ? Number(routeId) : undefined });
+  const { data: routesResponse } = useRoutes({
+    limit: 1000,
+    status: 'active',
+    depot_id: depotId ? Number(depotId) : undefined,
+  });
+  const { data: categoriesResponse } = useCustomerCategories({
+    limit: 1000,
+    is_active: 'Y',
+  });
+  const { data: customersResponse } = useCustomers({
+    limit: 1000,
+    isActive: 'Y',
+    depot_id: depotId ? Number(depotId) : undefined,
+    route_id: routeId ? Number(routeId) : undefined,
+  });
 
   const depots = depotsResponse?.data || [];
   const routes = routesResponse?.data || [];
@@ -82,7 +97,7 @@ const PriceListsManagement: React.FC = () => {
   const stats = priceListsResponse?.stats || {};
 
   const deletePriceListMutation = useDeletePriceList();
-  const exportToExcelMutation = useExportToExcel();
+  // const exportToExcelMutation = useExportToExcel();
 
   const totalPriceLists = stats.total_price_lists ?? priceLists.length;
   const activePriceLists =
@@ -123,119 +138,35 @@ const PriceListsManagement: React.FC = () => {
     setPage(newPage + 1);
   };
 
-  const handleExportToExcel = useCallback(async () => {
-    try {
-      const filters = {
-        search,
-        status: statusFilter === 'all' ? undefined : statusFilter,
-        depot_id: depotId ? Number(depotId) : undefined,
-        route_id: routeId ? Number(routeId) : undefined,
-        customer_id: customerId ? Number(customerId) : undefined,
-        customer_category_id: categoryId ? Number(categoryId) : undefined,
-        view_mode: viewMode,
-      };
+  // const handleExportToExcel = useCallback(async () => {
+  //   try {
+  //     const filters = {
+  //       search,
+  //       status: statusFilter === 'all' ? undefined : statusFilter,
+  //       depot_id: depotId ? Number(depotId) : undefined,
+  //       route_id: routeId ? Number(routeId) : undefined,
+  //       customer_id: customerId ? Number(customerId) : undefined,
+  //       customer_category_id: categoryId ? Number(categoryId) : undefined,
+  //       view_mode: viewMode,
+  //     };
 
-      await exportToExcelMutation.mutateAsync({
-        tableName: 'pricelists',
-        filters,
-      });
-    } catch (error) {
-      console.error('Error exporting price lists:', error);
-    }
-  }, [exportToExcelMutation, search, statusFilter, depotId, routeId, customerId, categoryId, viewMode]);
-
-  const pricingDetailsColumns: TableColumn<any>[] = [
-    {
-      id: 'sku',
-      label: 'SKU',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-2">
-          <Package className="w-4 h-4 text-primary-500" />
-          <Box>
-            <Typography variant="body2" className="!font-medium">
-              {row.product?.name || `Product #${row.product_id}`}
-            </Typography>
-            <Typography variant="caption" className="text-gray-500">
-              {row.product?.code || 'NO-CODE'}
-            </Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      id: 'price_list',
-      label: 'Price List',
-      render: (_value, row) => (
-        <Typography variant="body2">{row.price_list_name}</Typography>
-      ),
-    },
-    {
-      id: 'base_price',
-      label: 'Base Price',
-      render: (_value, row) => (
-        <Typography variant="body2" className="!font-medium">
-          {row.unit_price}
-        </Typography>
-      ),
-    },
-    {
-      id: 'discount',
-      label: 'Discount %',
-      render: (_value, row) => (
-        <Chip 
-          label={`${row.discount_percent || 0}%`} 
-          size="small" 
-          className="!bg-orange-50 !text-orange-700 !border-orange-200"
-          variant="outlined"
-        />
-      ),
-    },
-    {
-      id: 'applicable_price',
-      label: 'Applicable Price',
-      render: (_value, row) => {
-        const base = parseFloat(row.unit_price);
-        const disc = parseFloat(row.discount_percent || '0');
-        const applicable = base - (base * disc / 100);
-        return (
-          <Typography variant="body2" className="!font-bold text-primary-600">
-            {applicable.toFixed(2)}
-          </Typography>
-        );
-      },
-    },
-    {
-      id: 'sub_unit_price',
-      label: 'Sub-unit Price',
-      render: (_value, row) => (
-        <Typography variant="body2">
-          {row.sub_unit_price || (parseFloat(row.unit_price) / 24).toFixed(2)}
-        </Typography>
-      ),
-    },
-    {
-      id: 'tax',
-      label: 'Tax %',
-      render: (_value, row) => (
-        <Typography variant="body2">{row.tax_percent || '18'}%</Typography>
-      ),
-    },
-    {
-      id: 'special_prices_count',
-      label: 'Special Prices',
-      render: (_value, row) => {
-        const count = (row.special_prices || []).length;
-        return (
-          <Chip
-            label={`${count} rules`}
-            size="small"
-            variant="outlined"
-            className="!bg-indigo-50 !text-indigo-700 !border-indigo-200"
-          />
-        );
-      },
-    },
-  ];
+  //     await exportToExcelMutation.mutateAsync({
+  //       tableName: 'pricelists',
+  //       filters,
+  //     });
+  //   } catch (error) {
+  //     console.error('Error exporting price lists:', error);
+  //   }
+  // }, [
+  //   exportToExcelMutation,
+  //   search,
+  //   statusFilter,
+  //   depotId,
+  //   routeId,
+  //   customerId,
+  //   categoryId,
+  //   viewMode,
+  // ]);
 
   const priceListsColumns: TableColumn<PriceList>[] = [
     {
@@ -274,19 +205,43 @@ const PriceListsManagement: React.FC = () => {
       render: (_value, row) => {
         if (row.is_default === 'Y') {
           return (
-            <Chip 
-              label="Default" 
-              size="small" 
+            <Chip
+              label="Default"
+              size="small"
               className="!bg-blue-50 !text-blue-700 !border-blue-200"
               variant="outlined"
             />
           );
         }
-        if (row.customer_id) return <Typography variant="caption" className="text-gray-600">Customer: {row.pricelists_customer?.name || row.customer_id}</Typography>;
-        if (row.route_id) return <Typography variant="caption" className="text-gray-600">Route: {row.pricelists_route?.name || row.route_id}</Typography>;
-        if (row.depot_id) return <Typography variant="caption" className="text-gray-600">Depot: {row.pricelists_depot?.name || row.depot_id}</Typography>;
-        if (row.customer_category_id) return <Typography variant="caption" className="text-gray-600">Category: {row.customer_category_id}</Typography>;
-        return <Typography variant="caption" className="text-gray-400 italic">Global</Typography>;
+        if (row.customer_id)
+          return (
+            <Typography variant="caption" className="text-gray-600">
+              Customer: {row.pricelists_customer?.name || row.customer_id}
+            </Typography>
+          );
+        if (row.route_id)
+          return (
+            <Typography variant="caption" className="text-gray-600">
+              Route: {row.pricelists_route?.name || row.route_id}
+            </Typography>
+          );
+        if (row.depot_id)
+          return (
+            <Typography variant="caption" className="text-gray-600">
+              Depot: {row.pricelists_depot?.name || row.depot_id}
+            </Typography>
+          );
+        if (row.customer_category_id)
+          return (
+            <Typography variant="caption" className="text-gray-600">
+              Category: {row.customer_category_id}
+            </Typography>
+          );
+        return (
+          <Typography variant="caption" className="text-gray-400 italic">
+            Global
+          </Typography>
+        );
       },
     },
     {
@@ -321,14 +276,21 @@ const PriceListsManagement: React.FC = () => {
             label: 'Action',
             sortable: false,
             render: (_value: any, row: PriceList) => (
-              <div className="!flex !gap-2 !items-center">
-                {isUpdate && (
+              <div className="!flex !gap-2 justify-center !items-center">
+                <ActionButton
+                  onClick={() => navigate(`/masters/price-lists/${row.id}`)}
+                  tooltip={`View ${row.name} details`}
+                  icon={<Visibility fontSize="small" />}
+                  color="info"
+                />
+                {isUpdate && row.is_default !== 'Y' && (
                   <EditButton
                     onClick={() => handleEditPriceList(row)}
                     tooltip={`Edit ${row.name}`}
                   />
                 )}
-                {isDelete && (
+
+                {isUpdate && row.is_default !== 'Y' && (
                   <DeleteButton
                     onClick={() => handleDeletePriceList(row.id)}
                     tooltip={`Delete ${row.name}`}
@@ -347,28 +309,12 @@ const PriceListsManagement: React.FC = () => {
     <>
       <Box className="!mb-3 !flex !justify-between !items-center">
         <Box>
-          <p className="!font-bold text-xl !text-gray-900">Price List Management</p>
+          <p className="!font-bold text-xl !text-gray-900">
+            Price List Management
+          </p>
           <p className="!text-gray-500 text-sm">
             Manage pricing lists and product pricing strategies
           </p>
-        </Box>
-        <Box className="flex gap-2">
-          <Button
-            variant={viewMode === 'lists' ? 'contained' : 'outlined'}
-            className="!capitalize"
-            onClick={() => setViewMode('lists')}
-            size="small"
-          >
-            Price Lists
-          </Button>
-          <Button
-            variant={viewMode === 'details' ? 'contained' : 'outlined'}
-            className="!capitalize"
-            onClick={() => setViewMode('details')}
-            size="small"
-          >
-            Pricing Details
-          </Button>
         </Box>
       </Box>
 
@@ -410,16 +356,18 @@ const PriceListsManagement: React.FC = () => {
       )}
 
       {isRead && (
-        <Box className="bg-white shadow-sm p-4 rounded-lg border border-gray-100 mb-4">
+        <Box className="bg-white shadow-sm p-3 rounded-lg border border-gray-100 mb-4">
           <Box className="flex items-center gap-2 mb-4">
             <FilterList className="text-primary-500" />
-            <Typography variant="subtitle2" className="!font-bold">Filters</Typography>
+            <Typography variant="subtitle2" className="!font-bold">
+              Filters
+            </Typography>
           </Box>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Select
               label="Depot"
               value={depotId}
-              onChange={(e) => {
+              onChange={e => {
                 setDepotId(e.target.value);
                 setRouteId('');
                 setCustomerId('');
@@ -428,7 +376,6 @@ const PriceListsManagement: React.FC = () => {
               placeholder="Select Depot"
               className="w-full"
             >
-              <MenuItem value="">All Depots</MenuItem>
               {depots.map((depot: any) => (
                 <MenuItem key={depot.id} value={depot.id.toString()}>
                   {depot.name}
@@ -439,7 +386,7 @@ const PriceListsManagement: React.FC = () => {
             <Select
               label="Route"
               value={routeId}
-              onChange={(e) => {
+              onChange={e => {
                 setRouteId(e.target.value);
                 setCustomerId('');
                 setPage(1);
@@ -448,7 +395,6 @@ const PriceListsManagement: React.FC = () => {
               disabled={!depotId}
               className="w-full"
             >
-              <MenuItem value="">All Routes</MenuItem>
               {routes.map((route: any) => (
                 <MenuItem key={route.id} value={route.id.toString()}>
                   {route.name}
@@ -459,14 +405,13 @@ const PriceListsManagement: React.FC = () => {
             <Select
               label="Customer Category"
               value={categoryId}
-              onChange={(e) => {
+              onChange={e => {
                 setCategoryId(e.target.value);
                 setPage(1);
               }}
               placeholder="Select Category"
               className="w-full"
             >
-              <MenuItem value="">All Categories</MenuItem>
               {categories.map((category: any) => (
                 <MenuItem key={category.id} value={category.id.toString()}>
                   {category.category_name}
@@ -477,7 +422,7 @@ const PriceListsManagement: React.FC = () => {
             <Select
               label="Customer"
               value={customerId}
-              onChange={(e) => {
+              onChange={e => {
                 setCustomerId(e.target.value);
                 setPage(1);
               }}
@@ -485,7 +430,6 @@ const PriceListsManagement: React.FC = () => {
               disabled={!depotId && !routeId}
               className="w-full"
             >
-              <MenuItem value="">All Customers</MenuItem>
               {customers.map((customer: any) => (
                 <MenuItem key={customer.id} value={customer.id.toString()}>
                   {customer.name}
@@ -497,8 +441,8 @@ const PriceListsManagement: React.FC = () => {
       )}
 
       <Table
-        data={viewMode === 'details' ? pricingDetails : priceLists}
-        columns={viewMode === 'details' ? pricingDetailsColumns : priceListsColumns}
+        data={priceLists}
+        columns={priceListsColumns}
         actions={
           isRead || isCreate ? (
             <div className="flex justify-between w-full items-center flex-wrap gap-2">
@@ -506,7 +450,7 @@ const PriceListsManagement: React.FC = () => {
                 {isRead && (
                   <>
                     <SearchInput
-                      placeholder={viewMode === 'details' ? "Search SKU or Product..." : "Search Price Lists..."}
+                      placeholder={'Search Price Lists...'}
                       value={search}
                       onChange={handleSearchChange}
                       debounceMs={400}
@@ -522,12 +466,11 @@ const PriceListsManagement: React.FC = () => {
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
-                   
                   </>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {isRead && (
+                {/* {isRead && (
                   <PopConfirm
                     title="Export Price Lists"
                     description="Are you sure you want to export the current price lists data to Excel? This will include all filtered results."
@@ -557,7 +500,7 @@ const PriceListsManagement: React.FC = () => {
                   >
                     Import
                   </Button>
-                )}
+                )} */}
                 {isCreate && (
                   <Button
                     variant="contained"
@@ -585,8 +528,8 @@ const PriceListsManagement: React.FC = () => {
         onPageChange={handlePageChange}
         emptyMessage={
           search
-            ? `No ${viewMode === 'details' ? 'pricing details' : 'price lists'} found matching "${search}"`
-            : `No ${viewMode === 'details' ? 'pricing details' : 'price lists'} found in the system`
+            ? `No price lists found matching "${search}"`
+            : 'No price lists found in the system'
         }
       />
 

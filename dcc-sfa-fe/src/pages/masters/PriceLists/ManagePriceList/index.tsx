@@ -27,6 +27,7 @@ import Input from 'shared/Input';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
 import YesNoField from 'shared/YesNoField';
+import type { PriceListItem, SpecialPrice } from 'services/masters/PriceLists';
 
 interface ManagePriceListProps {
   selectedPriceList?: PriceList | null;
@@ -35,9 +36,9 @@ interface ManagePriceListProps {
   setDrawerOpen: (drawerOpen: boolean) => void;
 }
 
-interface PriceListItemForm {
-  id?: number;
-  product_id: number | '';
+interface PriceListItemForm
+  extends Omit<Partial<PriceListItem>, 'special_prices'> {
+  product_id: number | undefined;
   unit_price: string;
   uom: string;
   discount_percent: string;
@@ -47,7 +48,11 @@ interface PriceListItemForm {
   special_prices?: SpecialPriceForm[];
 }
 
-interface SpecialPriceForm {
+interface SpecialPriceForm
+  extends Omit<
+    SpecialPrice,
+    'route_id' | 'customer_id' | 'customer_category_id' | 'sale_price'
+  > {
   id?: number;
   valid_from?: string;
   valid_to?: string;
@@ -87,9 +92,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     isActive: 'Y',
   });
   const { data: productsResponse } = useProducts({ limit: 1000 });
-
-  console.log(priceListItems, 'priceListItems');
-  
 
   const depots = depotsResponse?.data || [];
   const routes = routesResponse?.data || [];
@@ -200,7 +202,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
             : null,
           description: values.description,
           pricelist_item: priceListItems
-            .filter(item => item.product_id !== '')
+            .filter(item => item.product_id !== undefined)
             .map(item => ({
               id: item.id,
               product_id: Number(item.product_id),
@@ -456,12 +458,37 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     if (!item.special_prices) item.special_prices = [];
     const sps = [...item.special_prices];
     const sp = { ...sps[spIndex], [field]: value } as SpecialPriceForm;
+
+    const originalPrice = parseFloat(item.unit_price || '0');
+
     if (field === 'sale_price') {
       const n = parseFloat(value as string);
       if (!isNaN(n)) {
         sp.sale_sub_unit_price = (n / 24).toFixed(2);
+        if (originalPrice > 0) {
+          const discount = ((originalPrice - n) / originalPrice) * 100;
+          sp.discount_percent = discount.toFixed(2);
+        }
+      } else {
+        sp.sale_sub_unit_price = '';
+        sp.discount_percent = '';
       }
     }
+
+    if (field === 'discount_percent') {
+      const discount = parseFloat(value as string);
+      if (!isNaN(discount) && originalPrice > 0) {
+        const calculatedSalePrice =
+          originalPrice - (originalPrice * discount) / 100;
+        sp.sale_price = calculatedSalePrice.toFixed(2);
+        sp.sale_sub_unit_price = (calculatedSalePrice / 24).toFixed(2);
+      } else {
+        sp.sale_price = originalPrice > 0 ? originalPrice.toFixed(2) : '';
+        sp.sale_sub_unit_price =
+          originalPrice > 0 ? (originalPrice / 24).toFixed(2) : '';
+      }
+    }
+
     sps[spIndex] = sp;
     item.special_prices = sps;
     setPriceListItems(updated);
@@ -492,14 +519,13 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
               placeholder="Enter price list name"
               formik={formik}
               required
-              fullWidth
             />
             <Select
               name="depot_id"
               label="Depot"
               formik={formik}
               required
-              fullWidth
+              placeholder="Select Depot"
             >
               {depots.map(d => (
                 <MenuItem key={d.id} value={d.id}>
@@ -512,11 +538,8 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
               name="base_pricelist_id"
               label="Base Price List"
               formik={formik}
-              fullWidth
+              placeholder="Select Base Price List"
             >
-              <MenuItem value="" disabled>
-                Select Base Price List
-              </MenuItem>
               {allPriceLists.map(
                 (pl: { id: number | undefined; name: string }) => (
                   <MenuItem key={pl.id} value={pl.id}>
@@ -532,7 +555,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
               type="number"
               placeholder="1.00"
               formik={formik}
-              fullWidth
             />
             <YesNoField
               name="is_default"
@@ -547,12 +569,11 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                 formik={formik}
                 multiline
                 rows={3}
-                fullWidth
               />
             </div>
           </div>
 
-          <div className="space-y-4 pt-4 border-t border-gray-100">
+          <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h6 className="text-base font-semibold text-gray-900">
                 Price List Items
@@ -589,19 +610,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                   <span className="text-base font-bold text-gray-900 leading-tight">
                     Special Prices
                   </span>
-                  {showSpecialForIndex !== null &&
-                    priceListItems[showSpecialForIndex] && (
-                      <span className="text-xs font-normal text-gray-500">
-                        Product:{' '}
-                        {
-                          products.find(
-                            p =>
-                              p.id ===
-                              priceListItems[showSpecialForIndex].product_id
-                          )?.name
-                        }
-                      </span>
-                    )}
                 </div>
                 <div className="flex items-center gap-2">
                   <ActionButton
@@ -621,7 +629,27 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                         compact={true}
                         filterColunm={false}
                         actions={
-                          <div className="flex justify-end items-center w-full">
+                          <div className="flex justify-between items-center w-full">
+                            <div className="flex flex-col">
+                              {showSpecialForIndex !== null &&
+                                priceListItems[showSpecialForIndex] && (
+                                  <span className="font-bold text-sm">
+                                    {
+                                      products.find(
+                                        p =>
+                                          p.id ===
+                                          priceListItems[showSpecialForIndex]
+                                            .product_id
+                                      )?.name
+                                    }
+                                  </span>
+                                )}
+                              <p className="text-xs text-gray-500">
+                                Configure custom pricing based on routes,
+                                categories, or specific customers.
+                              </p>
+                            </div>
+
                             <Button
                               type="button"
                               variant="outlined"
@@ -914,11 +942,25 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                       />
                     </div>
                   )}
+                <div className="flex items-center justify-end p-2">
+                  <Button
+                    type="button"
+                    variant="contained"
+                    className="!h-8"
+                    onClick={() => setShowSpecialForIndex(null)}
+                    disabled={
+                      createPriceListMutation.isPending ||
+                      updatePriceListMutation.isPending
+                    }
+                  >
+                    Save Special Prices
+                  </Button>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
 
-          <div className="flex justify-end gap-2 pt-6 border-t border-gray-100">
+          <div className="flex justify-end gap-2">
             <Button
               type="button"
               variant="outlined"

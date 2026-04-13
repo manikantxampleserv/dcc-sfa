@@ -34,6 +34,7 @@ import OutletsManagement from 'pages/masters/Outlet';
 import OutletDetail from 'pages/masters/Outlet/OutletDetail';
 import OutletGroupsManagement from 'pages/masters/OutletGroups';
 import PriceListsManagement from 'pages/masters/PriceLists';
+import PriceListDetail from 'pages/masters/PriceLists/PriceListDetail';
 import ProductCategoriesManagement from 'pages/masters/ProductCategories';
 import ProductsManagement from 'pages/masters/Products';
 import ProductDetail from 'pages/masters/Products/ProductDetail';
@@ -545,10 +546,18 @@ const router = createBrowserRouter(
           ),
         },
         {
-          path: '/masters/pricelists',
+          path: '/masters/price-lists',
           element: (
-            <PermissionGuard module="pricelist" action="read">
+            <PermissionGuard module="price-list" action="read">
               <PriceListsManagement />
+            </PermissionGuard>
+          ),
+        },
+        {
+          path: '/masters/price-lists/:id',
+          element: (
+            <PermissionGuard module="price-list" action="read">
+              <PriceListDetail />
             </PermissionGuard>
           ),
         },

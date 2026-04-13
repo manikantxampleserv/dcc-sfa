@@ -237,6 +237,9 @@ const Select: React.FC<CustomSelectProps> = ({
               '& .MuiOutlinedInput-root': {
                 minWidth: '160px',
               },
+              '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root': {
+                paddingRight: '24px !important',
+              },
               ...(compact && {
                 '& .MuiInputBase-root': {
                   height: '28px !important',

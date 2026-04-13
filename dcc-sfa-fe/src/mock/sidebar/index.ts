@@ -228,7 +228,7 @@ const menuItems: MenuItem[] = [
           {
             id: 'pricelists',
             label: 'Price List Management',
-            href: '/masters/pricelists',
+            href: '/masters/price-lists',
           },
         ],
       },

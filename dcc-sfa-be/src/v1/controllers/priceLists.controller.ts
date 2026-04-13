@@ -53,7 +53,6 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
     const rawSpecialPrices =
       item.pricelist_item_special_prices || item.special_prices || [];
 
-    // Explicitly map special prices to the frontend's expected format
     const specialPrices = rawSpecialPrices.map((sp: any) => ({
       id: sp.id,
       valid_from: sp.valid_from,
@@ -123,21 +122,6 @@ export const priceListsController = {
         }
       }
 
-      const assignments = [
-        data.customer_id,
-        data.route_id,
-        data.depot_id,
-        data.customer_category_id,
-      ].filter(Boolean);
-
-      // if (assignments.length > 1) {
-      //   return res.status(400).send({
-      //     success: false,
-      //     message:
-      //       'Price list can be assigned to only one entity (customer, route, depot, or category)',
-      //   });
-      // }
-
       let priceList;
 
       if (data.id) {
@@ -191,12 +175,6 @@ export const priceListsController = {
           .map((i: any) => i.id)
           .filter((id: any) => id !== undefined && id !== null) as number[];
 
-        console.log('Request item IDs:', requestIds);
-        console.log(
-          'Existing items:',
-          existingItems.map(e => ({ id: e.id, product_id: e.product_id }))
-        );
-
         if (requestIds.length > 0) {
           await prisma.pricelist_items.deleteMany({
             where: {
@@ -243,9 +221,6 @@ export const priceListsController = {
             });
 
             if (Array.isArray(item.special_prices)) {
-              console.log(
-                `Processing ${item.special_prices.length} special prices for existing item ${updatedItem.id}`
-              );
               const existingSpecialPrices =
                 await prisma.pricelist_item_special_prices.findMany({
                   where: { pricelist_item_id: updatedItem.id },
@@ -306,7 +281,6 @@ export const priceListsController = {
               }
             }
           } else {
-            console.log('Creating new item for product:', item.product_id);
             const newItem = await prisma.pricelist_items.create({
               data: {
                 ...itemData,
@@ -318,9 +292,6 @@ export const priceListsController = {
             });
 
             if (Array.isArray(item.special_prices)) {
-              console.log(
-                `Creating ${item.special_prices.length} special prices for new item ${newItem.id}`
-              );
               for (const sp of item.special_prices) {
                 const spData = {
                   valid_from: sp.valid_from ? new Date(sp.valid_from) : null,
@@ -396,7 +367,6 @@ export const priceListsController = {
         data: serializePriceList(finalPriceList),
       });
     } catch (error: any) {
-      console.error('Error processing price list:', error);
       res.status(500).json({
         message: 'Error processing price list',
         error: error.message,
@@ -548,7 +518,6 @@ export const priceListsController = {
         }
       );
     } catch (error: any) {
-      console.error('Get PriceLists Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
@@ -612,7 +581,6 @@ export const priceListsController = {
   async deletePriceLists(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const userId = req.user?.id || 1;
 
       const existingPriceList = await prisma.pricelists.findUnique({
         where: { id: Number(id) },
@@ -629,6 +597,14 @@ export const priceListsController = {
           message: 'Cannot delete default price list',
         });
       }
+
+      await prisma.pricelist_item_special_prices.deleteMany({
+        where: {
+          pricelist_item: {
+            pricelist_id: Number(id),
+          },
+        },
+      });
 
       await prisma.pricelist_items.deleteMany({
         where: { pricelist_id: Number(id) },

@@ -53,7 +53,6 @@ export const routePriceListController = {
           createdby: req.user?.id || 1,
           log_inst: data.log_inst || 1,
         },
-        include: { route_pricelist: true },
       });
 
       res.status(201).json({
@@ -61,14 +60,22 @@ export const routePriceListController = {
         data: serializeRoutePriceList(routePriceList),
       });
     } catch (error: any) {
-      console.error('Create RoutePriceList Error:', error);
       res.status(500).json({ message: error.message });
     }
   },
 
   async getAllRoutePriceList(req: any, res: any) {
     try {
-      const { page, limit, search, status, route_id, depot_id, customer_id, customer_category_id } = req.query;
+      const {
+        page,
+        limit,
+        search,
+        status,
+        route_id,
+        depot_id,
+        customer_id,
+        customer_category_id,
+      } = req.query;
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 10;
       const searchLower = search ? (search as string).toLowerCase() : '';
@@ -83,7 +90,9 @@ export const routePriceListController = {
         ...(route_id && { route_id: Number(route_id) }),
         ...(depot_id && { depot_id: Number(depot_id) }),
         ...(customer_id && { customer_id: Number(customer_id) }),
-        ...(customer_category_id && { customer_category_id: Number(customer_category_id) }),
+        ...(customer_category_id && {
+          customer_category_id: Number(customer_category_id),
+        }),
       };
 
       const { data, pagination } = await paginate({
@@ -126,7 +135,6 @@ export const routePriceListController = {
 
       const routePriceList = await prisma.route_pricelists.findUnique({
         where: { id: Number(id) },
-        include: { route_pricelist: true },
       });
 
       if (!routePriceList)
@@ -161,14 +169,14 @@ export const routePriceListController = {
           route_id: data.route_id ?? existing.route_id,
           depot_id: data.depot_id ?? existing.depot_id,
           customer_id: data.customer_id ?? existing.customer_id,
-          customer_category_id: data.customer_category_id ?? existing.customer_category_id,
+          customer_category_id:
+            data.customer_category_id ?? existing.customer_category_id,
           pricelist_id: data.pricelist_id ?? existing.pricelist_id,
           is_active: data.is_active ?? existing.is_active,
           updatedate: new Date(),
           updatedby: req.user?.id || 1,
           log_inst: data.log_inst ?? existing.log_inst,
         },
-        include: { route_pricelist: true },
       });
 
       res.json({
