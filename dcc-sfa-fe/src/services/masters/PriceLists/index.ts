@@ -12,7 +12,13 @@ interface PriceList {
   id: number;
   name: string;
   description?: string | null;
-  currency_code?: string | null;
+  customer_id?: number | null;
+  route_id?: number | null;
+  depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: string | number | null;
+  customer_category_id?: number | null;
+  is_default: string;
   valid_from?: string | null;
   valid_to?: string | null;
   is_active: string;
@@ -23,6 +29,23 @@ interface PriceList {
   log_inst?: number | null;
   pricelist_item?: PriceListItem[];
   route_pricelist?: RoutePriceList[];
+  pricelists_customer?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  pricelists_route?: {
+    id: number;
+    name: string;
+  };
+  pricelists_depot?: {
+    id: number;
+    name: string;
+  };
+  base_pricelist?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface PriceListItem {
@@ -42,6 +65,27 @@ interface PriceListItem {
   updatedate?: string | null;
   updatedby?: number | null;
   log_inst?: number | null;
+  product?: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
+  special_prices?: SpecialPrice[];
+}
+
+interface SpecialPrice {
+  id?: number;
+  pricelist_item_id?: number;
+  valid_from?: string | null;
+  valid_to?: string | null;
+  route_id?: number | null;
+  customer_id?: number | null;
+  customer_category_id?: number | null;
+  sale_price: string | number;
+  sale_sub_unit_price?: string | number | null;
+  tax_percent?: string | number | null;
+  discount_percent?: string | number | null;
+  is_active?: string;
 }
 
 interface RoutePriceList {
@@ -64,7 +108,13 @@ interface RoutePriceList {
 interface ManagePriceListPayload {
   name: string;
   description?: string;
-  currency_code?: string;
+  customer_id?: number | null;
+  route_id?: number | null;
+  depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: string | number | null;
+  customer_category_id?: number | null;
+  is_default?: string;
   valid_from?: string;
   valid_to?: string;
   is_active?: string;
@@ -74,7 +124,13 @@ interface ManagePriceListPayload {
 interface UpdatePriceListPayload {
   name?: string;
   description?: string;
-  currency_code?: string;
+  customer_id?: number | null;
+  route_id?: number | null;
+  depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: string | number | null;
+  customer_category_id?: number | null;
+  is_default?: string;
   valid_from?: string;
   valid_to?: string;
   is_active?: string;
@@ -86,6 +142,7 @@ interface GetPriceListsParams {
   limit?: number;
   search?: string;
   status?: string;
+  is_default?: string;
   depot_id?: number;
   route_id?: number;
   customer_id?: number;
@@ -191,6 +248,7 @@ export const deletePriceList = async (id: number): Promise<void> => {
 export type {
   PriceList,
   PriceListItem,
+  SpecialPrice,
   RoutePriceList,
   ManagePriceListPayload,
   UpdatePriceListPayload,

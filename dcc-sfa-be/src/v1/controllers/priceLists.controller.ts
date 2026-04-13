@@ -9,6 +9,8 @@ interface PriceListSerialized {
   customer_id?: number | null;
   route_id?: number | null;
   depot_id?: number | null;
+  base_pricelist_id?: number | null;
+  factor?: number | string | null;
   customer_category_id?: number | null;
   is_default: string;
   priority: string;
@@ -24,6 +26,7 @@ interface PriceListSerialized {
   pricelists_customer?: any;
   pricelists_route?: any;
   pricelists_depot?: any;
+  base_pricelist?: any;
 }
 
 const serializePriceList = (pl: any): PriceListSerialized => ({
@@ -33,6 +36,8 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
   customer_id: pl.customer_id,
   route_id: pl.route_id,
   depot_id: pl.depot_id,
+  base_pricelist_id: pl.base_pricelist_id,
+  factor: pl.factor?.toString() || null,
   customer_category_id: pl.customer_category_id,
   is_default: pl.is_default,
   priority: pl.priority,
@@ -44,19 +49,48 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
   updatedate: pl.updatedate,
   updatedby: pl.updatedby,
   log_inst: pl.log_inst,
-  pricelist_item: (pl.pricelist_item || []).map((item: any) => ({
-    ...item,
-    product: item.pricelist_items_products
-      ? {
-          id: item.pricelist_items_products.id,
-          name: item.pricelist_items_products.name,
-          code: item.pricelist_items_products.code,
-        }
-      : null,
-  })),
+  pricelist_item: (pl.pricelist_item || []).map((item: any) => {
+    const rawSpecialPrices =
+      item.pricelist_item_special_prices || item.special_prices || [];
+
+    // Explicitly map special prices to the frontend's expected format
+    const specialPrices = rawSpecialPrices.map((sp: any) => ({
+      id: sp.id,
+      valid_from: sp.valid_from,
+      valid_to: sp.valid_to,
+      route_id: sp.route_id,
+      customer_id: sp.customer_id,
+      customer_category_id: sp.customer_category_id,
+      sale_price: sp.sale_price?.toString() || '0',
+      sale_sub_unit_price: sp.sale_sub_unit_price?.toString() || null,
+      tax_percent: sp.tax_percent?.toString() || null,
+      discount_percent: sp.discount_percent?.toString() || null,
+      is_active: sp.is_active,
+    }));
+
+    return {
+      id: item.id,
+      product_id: item.product_id,
+      unit_price: item.unit_price,
+      uom: item.uom,
+      discount_percent: item.discount_percent?.toString() || null,
+      tax_percent: item.tax_percent?.toString() || null,
+      sub_unit_price: item.sub_unit_price,
+      is_active: item.is_active,
+      product: item.pricelist_items_products
+        ? {
+            id: item.pricelist_items_products.id,
+            name: item.pricelist_items_products.name,
+            code: item.pricelist_items_products.code,
+          }
+        : null,
+      special_prices: specialPrices,
+    };
+  }),
   pricelists_customer: pl.pricelists_customer,
   pricelists_route: pl.pricelists_route,
   pricelists_depot: pl.pricelists_depot,
+  base_pricelist: pl.base_pricelist,
 });
 
 export const priceListsController = {
@@ -96,13 +130,13 @@ export const priceListsController = {
         data.customer_category_id,
       ].filter(Boolean);
 
-      if (assignments.length > 1) {
-        return res.status(400).send({
-          success: false,
-          message:
-            'Price list can be assigned to only one entity (customer, route, depot, or category)',
-        });
-      }
+      // if (assignments.length > 1) {
+      //   return res.status(400).send({
+      //     success: false,
+      //     message:
+      //       'Price list can be assigned to only one entity (customer, route, depot, or category)',
+      //   });
+      // }
 
       let priceList;
 
@@ -115,11 +149,11 @@ export const priceListsController = {
             customer_id: data.customer_id || null,
             route_id: data.route_id || null,
             depot_id: data.depot_id || null,
+            base_pricelist_id: data.base_pricelist_id || null,
+            factor: data.factor ? Number(data.factor) : null,
             customer_category_id: data.customer_category_id || null,
             is_default: data.is_default || 'N',
             priority: data.priority?.toString() || '1',
-            valid_from: data.valid_from ? new Date(data.valid_from) : null,
-            valid_to: data.valid_to ? new Date(data.valid_to) : null,
             is_active: data.is_active || 'Y',
             updatedate: new Date(),
             updatedby: userId,
@@ -134,11 +168,11 @@ export const priceListsController = {
             customer_id: data.customer_id || null,
             route_id: data.route_id || null,
             depot_id: data.depot_id || null,
+            base_pricelist_id: data.base_pricelist_id || null,
+            factor: data.factor ? Number(data.factor) : null,
             customer_category_id: data.customer_category_id || null,
             is_default: data.is_default || 'N',
             priority: data.priority?.toString() || '1',
-            valid_from: data.valid_from ? new Date(data.valid_from) : null,
-            valid_to: data.valid_to ? new Date(data.valid_to) : null,
             is_active: data.is_active || 'Y',
             createdate: new Date(),
             createdby: userId,
@@ -194,24 +228,11 @@ export const priceListsController = {
               item.sub_unit_price !== undefined
                 ? item.sub_unit_price
                 : null,
-            effective_from: item.effective_from
-              ? new Date(item.effective_from)
-              : null,
-            effective_to: item.effective_to
-              ? new Date(item.effective_to)
-              : null,
             is_active: item.is_active || 'Y',
           };
 
-          console.log('Processing item:', {
-            id: item.id,
-            product_id: item.product_id,
-            data: itemData,
-          });
-
           if (item.id && existingItems.find(e => e.id === item.id)) {
-            console.log('Updating item:', item.id);
-            await prisma.pricelist_items.update({
+            const updatedItem = await prisma.pricelist_items.update({
               where: { id: item.id },
               data: {
                 ...itemData,
@@ -220,9 +241,73 @@ export const priceListsController = {
                 log_inst: { increment: 1 },
               },
             });
+
+            if (Array.isArray(item.special_prices)) {
+              console.log(
+                `Processing ${item.special_prices.length} special prices for existing item ${updatedItem.id}`
+              );
+              const existingSpecialPrices =
+                await prisma.pricelist_item_special_prices.findMany({
+                  where: { pricelist_item_id: updatedItem.id },
+                });
+
+              const requestSpecialIds = item.special_prices
+                .map((sp: any) => sp.id)
+                .filter(Boolean) as number[];
+
+              await prisma.pricelist_item_special_prices.deleteMany({
+                where: {
+                  pricelist_item_id: updatedItem.id,
+                  id: {
+                    notIn: requestSpecialIds.length ? requestSpecialIds : [0],
+                  },
+                },
+              });
+
+              for (const sp of item.special_prices) {
+                const spData = {
+                  valid_from: sp.valid_from ? new Date(sp.valid_from) : null,
+                  valid_to: sp.valid_to ? new Date(sp.valid_to) : null,
+                  route_id: sp.route_id || null,
+                  customer_id: sp.customer_id || null,
+                  customer_category_id: sp.customer_category_id || null,
+                  sale_price: Number(sp.sale_price),
+                  sale_sub_unit_price: sp.sale_sub_unit_price
+                    ? Number(sp.sale_sub_unit_price)
+                    : null,
+                  tax_percent: sp.tax_percent ? Number(sp.tax_percent) : null,
+                  discount_percent: sp.discount_percent
+                    ? Number(sp.discount_percent)
+                    : null,
+                  is_active: sp.is_active || 'Y',
+                };
+
+                if (sp.id && existingSpecialPrices.find(e => e.id === sp.id)) {
+                  await prisma.pricelist_item_special_prices.update({
+                    where: { id: sp.id },
+                    data: {
+                      ...spData,
+                      updatedate: new Date(),
+                      updatedby: userId,
+                      log_inst: { increment: 1 },
+                    },
+                  });
+                } else {
+                  await prisma.pricelist_item_special_prices.create({
+                    data: {
+                      ...spData,
+                      pricelist_item_id: updatedItem.id,
+                      createdate: new Date(),
+                      createdby: userId,
+                      log_inst: 1,
+                    },
+                  });
+                }
+              }
+            }
           } else {
             console.log('Creating new item for product:', item.product_id);
-            await prisma.pricelist_items.create({
+            const newItem = await prisma.pricelist_items.create({
               data: {
                 ...itemData,
                 pricelist_id: priceList.id,
@@ -231,6 +316,40 @@ export const priceListsController = {
                 log_inst: 1,
               },
             });
+
+            if (Array.isArray(item.special_prices)) {
+              console.log(
+                `Creating ${item.special_prices.length} special prices for new item ${newItem.id}`
+              );
+              for (const sp of item.special_prices) {
+                const spData = {
+                  valid_from: sp.valid_from ? new Date(sp.valid_from) : null,
+                  valid_to: sp.valid_to ? new Date(sp.valid_to) : null,
+                  route_id: sp.route_id || null,
+                  customer_id: sp.customer_id || null,
+                  customer_category_id: sp.customer_category_id || null,
+                  sale_price: Number(sp.sale_price),
+                  sale_sub_unit_price: sp.sale_sub_unit_price
+                    ? Number(sp.sale_sub_unit_price)
+                    : null,
+                  tax_percent: sp.tax_percent ? Number(sp.tax_percent) : null,
+                  discount_percent: sp.discount_percent
+                    ? Number(sp.discount_percent)
+                    : null,
+                  is_active: sp.is_active || 'Y',
+                };
+
+                await prisma.pricelist_item_special_prices.create({
+                  data: {
+                    ...spData,
+                    pricelist_item_id: newItem.id,
+                    createdate: new Date(),
+                    createdby: userId,
+                    log_inst: 1,
+                  },
+                });
+              }
+            }
           }
         }
       }
@@ -239,7 +358,10 @@ export const priceListsController = {
         where: { id: priceList.id },
         include: {
           pricelist_item: {
-            include: { pricelist_items_products: true },
+            include: {
+              pricelist_items_products: true,
+              pricelist_item_special_prices: true,
+            },
           },
           pricelists_customer: {
             select: {
@@ -255,6 +377,12 @@ export const priceListsController = {
             },
           },
           pricelists_depot: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          base_pricelist: {
             select: {
               id: true,
               name: true,
@@ -316,6 +444,7 @@ export const priceListsController = {
             },
           ],
         }),
+
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
         ...(depot_id && { depot_id: Number(depot_id) }),
@@ -330,9 +459,10 @@ export const priceListsController = {
         ...(from_date && {
           valid_from: { gte: new Date(from_date as string) },
         }),
-        ...(to_date && { valid_to: { lte: new Date(to_date as string) } }),
+        ...(to_date && {
+          valid_to: { lte: new Date(to_date as string) },
+        }),
       };
-
       const include: any = {
         pricelists_customer: {
           select: {
@@ -353,11 +483,20 @@ export const priceListsController = {
             name: true,
           },
         },
+        base_pricelist: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       };
 
       if (include_items === 'true' || include_items === true) {
         include.pricelist_item = {
-          include: { pricelist_items_products: true },
+          include: {
+            pricelist_items_products: true,
+            pricelist_item_special_prices: true,
+          },
         };
       } else {
         include.pricelist_item = true;
@@ -421,7 +560,10 @@ export const priceListsController = {
         where: { id: Number(id) },
         include: {
           pricelist_item: {
-            include: { pricelist_items_products: true },
+            include: {
+              pricelist_items_products: true,
+              pricelist_item_special_prices: true,
+            },
           },
           pricelists_customer: {
             select: {
@@ -437,6 +579,12 @@ export const priceListsController = {
             },
           },
           pricelists_depot: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          base_pricelist: {
             select: {
               id: true,
               name: true,
@@ -640,419 +788,566 @@ export const priceListsController = {
     }
   },
 
-  // async getProductsAndCustomer(req: Request, res: Response) {
-  //   try {
-  //     const { salesperson_id } = req.params;
-  //     const {
-  //       page,
-  //       limit,
-  //       product_id,
-  //       document_date,
-  //       customer_id, // ADD customer_id parameter
-  //       include_expired_batches = 'false',
-  //       batch_status,
-  //       serial_status,
-  //     } = req.query;
+  //   async getProductsAndCustomer(req: Request, res: Response) {
+  //     try {
+  //       const { salesperson_id } = req.params;
+  //       const {
+  //         page,
+  //         limit,
+  //         product_id,
+  //         document_date,
+  //         customer_id,
+  //         include_expired_batches = 'false',
+  //         batch_status,
+  //         serial_status,
+  //       } = req.query;
 
-  //     const pageNum = parseInt(page as string, 10) || 1;
-  //     const limitNum = parseInt(limit as string, 10) || 50;
+  //       const pageNum = parseInt(page as string, 10) || 1;
+  //       const limitNum = parseInt(limit as string, 10) || 50;
 
-  //     // ADD: Price List Resolution Function
-  //     const resolvePriceListForCustomer = async (customerId: number) => {
-  //       const targetDate = new Date();
+  //       const resolvePriceListForCustomer = async (
+  //         customerId: number,
+  //         vanInventoryProductIds: number[]
+  //       ) => {
+  //         const targetDate = new Date();
 
-  //       // Priority 1: Customer-specific price list
-  //       const customerPriceList = await prisma.pricelists.findFirst({
-  //         where: {
+  //         const getPriceListWithMatchingProducts = async (whereClause: any) => {
+  //           const priceList = await prisma.pricelists.findFirst({
+  //             where: whereClause,
+  //             orderBy: [{ priority: 'asc' }],
+  //             include: {
+  //               pricelist_item: {
+  //                 where: {
+  //                   is_active: 'Y',
+  //                   product_id: { in: vanInventoryProductIds },
+  //                 },
+  //                 include: {
+  //                   pricelist_items_products: {
+  //                     select: {
+  //                       id: true,
+  //                       name: true,
+  //                       code: true,
+  //                     },
+  //                   },
+  //                 },
+  //               },
+  //             },
+  //           });
+
+  //           return priceList && priceList.pricelist_item.length > 0
+  //             ? priceList
+  //             : null;
+  //         };
+
+  //         const customerPriceList = await getPriceListWithMatchingProducts({
   //           customer_id: customerId,
   //           is_active: 'Y',
   //           valid_from: { lte: targetDate },
   //           valid_to: { gte: targetDate },
-  //         },
-  //         orderBy: [{ priority: 'asc' }],
-  //         include: {
-  //           pricelist_item: {
-  //             where: { is_active: 'Y' },
-  //             include: {
-  //               pricelist_items_products: {
-  //                 select: {
-  //                   id: true,
-  //                   name: true,
-  //                   code: true,
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         },
-  //       });
+  //         });
 
-  //       if (customerPriceList) {
-  //         return { priceList: customerPriceList, level: 'CUSTOMER' };
-  //       }
+  //         if (customerPriceList) {
+  //           return { priceList: customerPriceList, level: 'CUSTOMER' };
+  //         }
 
-  //       // Priority 2: Get customer's route and check route-specific price list
-  //       const customer = await prisma.customers.findUnique({
-  //         where: { id: customerId },
-  //         select: { route_id: true, depot_id: true },
-  //       });
+  //         const customer = await prisma.customers.findUnique({
+  //           where: { id: customerId },
+  //           select: { route_id: true, depot_id: true },
+  //         });
 
-  //       if (customer?.route_id) {
-  //         const routePriceList = await prisma.pricelists.findFirst({
-  //           where: {
+  //         if (customer?.route_id) {
+  //           const routePriceList = await getPriceListWithMatchingProducts({
   //             route_id: customer.route_id,
   //             is_active: 'Y',
   //             valid_from: { lte: targetDate },
   //             valid_to: { gte: targetDate },
-  //           },
-  //           orderBy: [{ priority: 'asc' }],
-  //           include: {
-  //             pricelist_item: {
-  //               where: { is_active: 'Y' },
-  //               include: {
-  //                 pricelist_items_products: {
-  //                   select: {
-  //                     id: true,
-  //                     name: true,
-  //                     code: true,
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         });
+  //           });
 
-  //         if (routePriceList) {
-  //           return { priceList: routePriceList, level: 'ROUTE' };
+  //           if (routePriceList) {
+  //             return { priceList: routePriceList, level: 'ROUTE' };
+  //           }
   //         }
-  //       }
 
-  //       // Priority 3: Depot-specific price list
-  //       if (customer?.depot_id) {
-  //         const depotPriceList = await prisma.pricelists.findFirst({
-  //           where: {
+  //         if (customer?.depot_id) {
+  //           const depotPriceList = await getPriceListWithMatchingProducts({
   //             depot_id: customer.depot_id,
   //             is_active: 'Y',
   //             valid_from: { lte: targetDate },
   //             valid_to: { gte: targetDate },
-  //           },
-  //           orderBy: [{ priority: 'asc' }],
-  //           include: {
-  //             pricelist_item: {
-  //               where: { is_active: 'Y' },
-  //               include: {
-  //                 pricelist_items_products: {
-  //                   select: {
-  //                     id: true,
-  //                     name: true,
-  //                     code: true,
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         });
+  //           });
 
-  //         if (depotPriceList) {
-  //           return { priceList: depotPriceList, level: 'DEPOT' };
+  //           if (depotPriceList) {
+  //             return { priceList: depotPriceList, level: 'DEPOT' };
+  //           }
   //         }
-  //       }
 
-  //       // Priority 4: Default price list
-  //       const defaultPriceList = await prisma.pricelists.findFirst({
-  //         where: {
+  //         const defaultPriceList = await getPriceListWithMatchingProducts({
   //           is_default: 'Y',
   //           is_active: 'Y',
   //           valid_from: { lte: targetDate },
   //           valid_to: { gte: targetDate },
-  //         },
-  //         orderBy: [{ priority: 'asc' }],
-  //         include: {
-  //           pricelist_item: {
-  //             where: { is_active: 'Y' },
-  //             include: {
-  //               pricelist_items_products: {
-  //                 select: {
-  //                   id: true,
-  //                   name: true,
-  //                   code: true,
-  //                 },
+  //         });
+
+  //         return defaultPriceList
+  //           ? { priceList: defaultPriceList, level: 'DEFAULT' }
+  //           : { priceList: null, level: 'NONE' };
+  //       };
+
+  //       const processVanInventoryItems = async (
+  //         vanInventories: any[],
+  //         resolvedPriceList: any
+  //       ) => {
+  //         let totalQuantity = 0;
+  //         let totalRemainingQuantity = 0;
+  //         const allProducts = new Set<number>();
+  //         let totalBatches = 0;
+  //         let totalSerials = 0;
+
+  //         const priceListProductMap = new Map<number, any>();
+  //         if (resolvedPriceList?.priceList) {
+  //           const priceList = resolvedPriceList.priceList as any;
+  //           priceList.pricelist_item.forEach((item: any) => {
+  //             priceListProductMap.set(item.product_id, {
+  //               unit_price: item.unit_price,
+  //               discount_percent: item.discount_percent,
+  //               tax_percent: item.tax_percent,
+  //               effective_from: item.effective_from,
+  //               effective_to: item.effective_to,
+  //               pricelist_item_id: item.id,
+  //             });
+  //           });
+  //         }
+
+  //         const processedVanInventories = vanInventories
+  //           .map(vanInventory => {
+  //             const products: Map<number, any> = new Map();
+
+  //             for (const item of vanInventory.van_inventory_items_inventory) {
+  //               if (
+  //                 product_id &&
+  //                 item.product_id !== parseInt(product_id as string, 10)
+  //               ) {
+  //                 continue;
+  //               }
+
+  //               if (customer_id && !priceListProductMap.has(item.product_id)) {
+  //                 continue;
+  //               }
+
+  //               const product = item.van_inventory_items_products;
+  //               const batch = item.van_inventory_items_batch_lot;
+
+  //               const trackingType = (
+  //                 product?.tracking_type || 'none'
+  //               ).toLowerCase();
+
+  //               let shouldSkipItem = false;
+
+  //               let allProductBatches: any[] = [];
+
+  //               if (batch && trackingType === 'batch') {
+  //                 allProductBatches.push({
+  //                   id: batch.id,
+  //                   batch_lot_id: batch.id,
+  //                   batch_number: batch.batch_number,
+  //                   lot_number: batch.lot_number,
+  //                   manufacturing_date: batch.manufacturing_date,
+  //                   expiry_date: batch.expiry_date,
+  //                   supplier_name: batch.supplier_name,
+  //                   quality_grade: batch.quality_grade,
+  //                   quantity: batch.quantity,
+  //                   remaining_quantity: batch.remaining_quantity,
+  //                   loaded_quantity: item.quantity || 0,
+  //                 });
+  //               }
+
+  //               if (shouldSkipItem) {
+  //                 continue;
+  //               }
+
+  //               let serials: any[] = [];
+  //               if (trackingType === 'serial') {
+  //                 const linkedSerial = item.van_inventory_serial;
+
+  //                 if (linkedSerial && linkedSerial.status === 'in_van') {
+  //                   const warrantyExpired =
+  //                     linkedSerial.warranty_expiry &&
+  //                     new Date(linkedSerial.warranty_expiry) <= new Date();
+
+  //                   serials = [
+  //                     {
+  //                       serial_id: linkedSerial.id,
+  //                       serial_number: linkedSerial.serial_number,
+  //                       status: linkedSerial.status,
+  //                       warranty_expiry: linkedSerial.warranty_expiry,
+  //                       warranty_expired: warrantyExpired,
+  //                       warranty_days_remaining: linkedSerial.warranty_expiry
+  //                         ? Math.floor(
+  //                             (new Date(linkedSerial.warranty_expiry).getTime() -
+  //                               Date.now()) /
+  //                               (1000 * 60 * 60 * 24)
+  //                           )
+  //                         : null,
+  //                       customer_id: linkedSerial.customer_id,
+  //                       customer: linkedSerial.serial_numbers_customers,
+  //                       sold_date: linkedSerial.sold_date,
+  //                     },
+  //                   ];
+  //                 }
+  //               }
+
+  //               const productId = item.product_id;
+
+  //               if (trackingType === 'serial' && serials.length === 0) {
+  //                 continue;
+  //               }
+
+  //               let itemQuantity = 0;
+  //               if (trackingType === 'serial') {
+  //                 itemQuantity = item.quantity || serials.length;
+  //               } else if (
+  //                 trackingType === 'batch' &&
+  //                 allProductBatches.length > 0
+  //               ) {
+  //                 itemQuantity = item.quantity || 0;
+  //               } else {
+  //                 itemQuantity = item.quantity || 0;
+  //               }
+
+  //               if (!products.has(productId)) {
+  //                 const priceListInfo = priceListProductMap.get(productId);
+
+  //                 products.set(productId, {
+  //                   product_id: productId,
+  //                   product_name: product?.name || null,
+  //                   product_code: product?.code || null,
+  //                   unit_of_measurment: product.product_unit_of_measurement,
+  //                   unit_price: product?.base_price
+  //                     ? Number(product.base_price)
+  //                     : null,
+  //                   tracking_type: product?.tracking_type || 'none',
+  //                   quantity: 0,
+  //                   batches: [],
+  //                   serials: [],
+  //                   tax_details: product?.product_tax_master
+  //                     ? {
+  //                         id: product.product_tax_master.id,
+  //                         name: product.product_tax_master.name,
+  //                         code: product.product_tax_master.code,
+  //                         tax_rate: Number(product.product_tax_master.tax_rate),
+  //                         description: product.product_tax_master.description,
+  //                       }
+  //                     : null,
+  //                   price_list_info: priceListInfo
+  //                     ? {
+  //                         pricelist_item_id: priceListInfo.pricelist_item_id,
+  //                         unit_price: priceListInfo.unit_price,
+  //                         discount_percent: priceListInfo.discount_percent,
+  //                         tax_percent: priceListInfo.tax_percent,
+  //                         effective_from: priceListInfo.effective_from,
+  //                         effective_to: priceListInfo.effective_to,
+  //                       }
+  //                     : null,
+  //                 });
+  //               }
+
+  //               const productData = products.get(productId)!;
+
+  //               productData.quantity += itemQuantity;
+  //               totalQuantity += itemQuantity;
+  //               allProducts.add(productId);
+
+  //               allProductBatches.forEach(batchInfo => {
+  //                 const existingBatch = productData.batches.find(
+  //                   (b: any) => b.batch_lot_id === batchInfo.batch_lot_id
+  //                 );
+  //                 if (!existingBatch) {
+  //                   productData.batches.push(batchInfo);
+  //                   totalRemainingQuantity += batchInfo.remaining_quantity || 0;
+  //                   totalBatches++;
+  //                 } else {
+  //                   existingBatch.loaded_quantity =
+  //                     (existingBatch.loaded_quantity || 0) +
+  //                     (batchInfo.loaded_quantity || 0);
+  //                 }
+  //               });
+
+  //               if (serials.length > 0) {
+  //                 serials.forEach((serial: any) => {
+  //                   if (
+  //                     !productData.serials.find(
+  //                       (existing: any) => existing.serial_id === serial.serial_id
+  //                     )
+  //                   ) {
+  //                     productData.serials.push(serial);
+  //                     totalSerials++;
+  //                   }
+  //                 });
+  //               }
+  //             }
+
+  //             if (products.size === 0) {
+  //               return null;
+  //             }
+
+  //             return {
+  //               van_inventory_id: vanInventory.id,
+  //               document_date: vanInventory.document_date,
+  //               status: vanInventory.status,
+  //               loading_type: vanInventory.loading_type,
+  //               location_id: vanInventory.location_id,
+  //               location_type: vanInventory.location_type,
+  //               vehicle_id: vanInventory.vehicle_id,
+  //               vehicle: vanInventory.vehicle
+  //                 ? {
+  //                     vehicle_id: vanInventory.vehicle.id,
+  //                     vehicle_number: vanInventory.vehicle.vehicle_number,
+  //                   }
+  //                 : null,
+  //               products: Array.from(products.values()),
+  //             };
+  //           })
+  //           .filter(vanInventory => vanInventory !== null);
+
+  //         return {
+  //           vanInventories: processedVanInventories,
+  //           totalProducts: allProducts.size,
+  //           totalQuantity,
+  //           totalRemainingQuantity,
+  //           totalBatches,
+  //           totalSerials,
+  //         };
+  //       };
+
+  //       let dateFilter = {};
+  //       if (document_date) {
+  //         const date = new Date(document_date as string);
+  //         if (isNaN(date.getTime())) {
+  //           return res.status(400).json({
+  //             success: false,
+  //             message: 'Invalid document_date format. Use YYYY-MM-DD',
+  //           });
+  //         }
+
+  //         const startOfDay = new Date(date);
+  //         startOfDay.setHours(0, 0, 0, 0);
+
+  //         const endOfDay = new Date(date);
+  //         endOfDay.setHours(23, 59, 59, 999);
+
+  //         dateFilter = {
+  //           document_date: {
+  //             gte: startOfDay,
+  //             lte: endOfDay,
+  //           },
+  //         };
+  //       }
+
+  //       if (
+  //         !salesperson_id ||
+  //         salesperson_id === '' ||
+  //         salesperson_id === 'all'
+  //       ) {
+  //         const allSalespersons = await prisma.users.findMany({
+  //           where: {},
+  //           select: {
+  //             id: true,
+  //             name: true,
+  //             email: true,
+  //             phone_number: true,
+  //             profile_image: true,
+  //             user_role: {
+  //               select: {
+  //                 name: true,
   //               },
   //             },
   //           },
-  //         },
-  //       });
-
-  //       return defaultPriceList
-  //         ? { priceList: defaultPriceList, level: 'DEFAULT' }
-  //         : { priceList: null, level: 'NONE' };
-  //     };
-
-  //     // ADD: Resolve price list if customer_id is provided
-  //     let resolvedPriceList = null;
-  //     if (customer_id) {
-  //       resolvedPriceList = await resolvePriceListForCustomer(
-  //         Number(customer_id)
-  //       );
-  //     }
-
-  //     const processVanInventoryItems = async (vanInventories: any[]) => {
-  //       let totalQuantity = 0;
-  //       let totalRemainingQuantity = 0;
-  //       const allProducts = new Set<number>();
-  //       let totalBatches = 0;
-  //       let totalSerials = 0;
-
-  //       // Create a map of products available in the resolved price list
-  //       const priceListProductMap = new Map<number, any>();
-  //       if (resolvedPriceList?.priceList) {
-  //         resolvedPriceList.priceList.pricelist_item.forEach((item: any) => {
-  //           priceListProductMap.set(item.product_id, {
-  //             unit_price: item.unit_price,
-  //             discount_percent: item.discount_percent,
-  //             tax_percent: item.tax_percent,
-  //             effective_from: item.effective_from,
-  //             effective_to: item.effective_to,
-  //             pricelist_item_id: item.id,
-  //           });
   //         });
-  //       }
 
-  //       const processedVanInventories = vanInventories
-  //         .map(vanInventory => {
-  //           const products: Map<number, any> = new Map();
+  //         const consolidatedSalespersons: any[] = [];
 
-  //           for (const item of vanInventory.van_inventory_items_inventory) {
-  //             if (
-  //               product_id &&
-  //               item.product_id !== parseInt(product_id as string, 10)
-  //             ) {
-  //               continue;
-  //             }
-
-  //             // ENHANCEMENT: Only include products that exist in the resolved price list
-  //             if (customer_id && !priceListProductMap.has(item.product_id)) {
-  //               continue; // Skip products not in price list when customer_id is provided
-  //             }
-
-  //             const product = item.van_inventory_items_products;
-  //             const batch = item.van_inventory_items_batch_lot;
-
-  //             const trackingType = (
-  //               product?.tracking_type || 'none'
-  //             ).toLowerCase();
-
-  //             let shouldSkipItem = false;
-
-  //             let allProductBatches: any[] = [];
-
-  //             if (batch && trackingType === 'batch') {
-  //               allProductBatches.push({
-  //                 id: batch.id,
-  //                 batch_lot_id: batch.id,
-  //                 batch_number: batch.batch_number,
-  //                 lot_number: batch.lot_number,
-  //                 manufacturing_date: batch.manufacturing_date,
-  //                 expiry_date: batch.expiry_date,
-  //                 supplier_name: batch.supplier_name,
-  //                 quality_grade: batch.quality_grade,
-  //                 quantity: batch.quantity,
-  //                 remaining_quantity: batch.remaining_quantity,
-  //                 loaded_quantity: item.quantity || 0,
-  //               });
-  //             }
-
-  //             if (shouldSkipItem) {
-  //               continue;
-  //             }
-
-  //             // Process serials using normalized trackingType
-  //             let serials: any[] = [];
-  //             if (trackingType === 'serial') {
-  //               const linkedSerial = item.van_inventory_serial;
-
-  //               if (linkedSerial && linkedSerial.status === 'in_van') {
-  //                 const warrantyExpired =
-  //                   linkedSerial.warranty_expiry &&
-  //                   new Date(linkedSerial.warranty_expiry) <= new Date();
-
-  //                 serials = [
-  //                   {
-  //                     serial_id: linkedSerial.id,
-  //                     serial_number: linkedSerial.serial_number,
-  //                     status: linkedSerial.status,
-  //                     warranty_expiry: linkedSerial.warranty_expiry,
-  //                     warranty_expired: warrantyExpired,
-  //                     warranty_days_remaining: linkedSerial.warranty_expiry
-  //                       ? Math.floor(
-  //                           (new Date(linkedSerial.warranty_expiry).getTime() -
-  //                             Date.now()) /
-  //                             (1000 * 60 * 60 * 24)
-  //                         )
-  //                       : null,
-  //                     customer_id: linkedSerial.customer_id,
-  //                     customer: linkedSerial.serial_numbers_customers,
-  //                     sold_date: linkedSerial.sold_date,
+  //         for (const salesperson of allSalespersons) {
+  //           const vanInventories = await prisma.van_inventory.findMany({
+  //             where: {
+  //               user_id: salesperson.id,
+  //               is_active: 'Y',
+  //               status: 'A',
+  //               ...dateFilter,
+  //             },
+  //             select: {
+  //               id: true,
+  //               status: true,
+  //               loading_type: true,
+  //               document_date: true,
+  //               location_id: true,
+  //               location_type: true,
+  //               vehicle_id: true,
+  //               vehicle: {
+  //                 select: {
+  //                   id: true,
+  //                   vehicle_number: true,
+  //                 },
+  //               },
+  //               van_inventory_items_inventory: {
+  //                 select: {
+  //                   id: true,
+  //                   product_id: true,
+  //                   quantity: true,
+  //                   batch_lot_id: true,
+  //                   serial_id: true,
+  //                   unit_price: true,
+  //                   van_inventory_items_batch_lot: {
+  //                     select: {
+  //                       id: true,
+  //                       batch_number: true,
+  //                       lot_number: true,
+  //                       manufacturing_date: true,
+  //                       expiry_date: true,
+  //                       supplier_name: true,
+  //                       quality_grade: true,
+  //                       quantity: true,
+  //                       remaining_quantity: true,
+  //                     },
   //                   },
-  //                 ];
-  //               }
-  //             }
+  //                   van_inventory_serial: {
+  //                     select: {
+  //                       id: true,
+  //                       serial_number: true,
+  //                       status: true,
+  //                       warranty_expiry: true,
+  //                       batch_id: true,
+  //                       customer_id: true,
+  //                       sold_date: true,
+  //                       batch_lots: {
+  //                         select: {
+  //                           id: true,
+  //                           batch_number: true,
+  //                           lot_number: true,
+  //                           expiry_date: true,
+  //                         },
+  //                       },
+  //                       serial_numbers_customers: {
+  //                         select: {
+  //                           id: true,
+  //                           name: true,
+  //                           code: true,
+  //                         },
+  //                       },
+  //                     },
+  //                   },
+  //                   van_inventory_items_products: {
+  //                     select: {
+  //                       id: true,
+  //                       name: true,
+  //                       code: true,
+  //                       base_price: true,
+  //                       product_unit_of_measurement: true,
+  //                       tracking_type: true,
+  //                       tax_id: true,
+  //                       product_tax_master: {
+  //                         select: {
+  //                           id: true,
+  //                           name: true,
+  //                           code: true,
+  //                           tax_rate: true,
+  //                           description: true,
+  //                         },
+  //                       },
+  //                     },
+  //                   },
+  //                 },
+  //               },
+  //             },
+  //             orderBy: { document_date: 'desc' },
+  //           });
 
-  //             const productId = item.product_id;
+  //           if (vanInventories.length === 0) continue;
 
-  //             if (trackingType === 'serial' && serials.length === 0) {
-  //               continue;
-  //             }
+  //           const vanInventoryProductIds = vanInventories.flatMap(vi =>
+  //             vi.van_inventory_items_inventory.map(item => item.product_id)
+  //           );
 
-  //             let itemQuantity = 0;
-  //             if (trackingType === 'serial') {
-  //               itemQuantity = item.quantity || serials.length;
-  //             } else if (
-  //               trackingType === 'batch' &&
-  //               allProductBatches.length > 0
-  //             ) {
-  //               itemQuantity = item.quantity || 0;
-  //             } else {
-  //               itemQuantity = item.quantity || 0;
-  //             }
-
-  //             if (!products.has(productId)) {
-  //               // ENHANCEMENT: Get price list information for this product
-  //               const priceListInfo = priceListProductMap.get(productId);
-
-  //               products.set(productId, {
-  //                 product_id: productId,
-  //                 product_name: product?.name || null,
-  //                 product_code: product?.code || null,
-  //                 unit_of_measurment: product.product_unit_of_measurement,
-  //                 unit_price: product?.base_price
-  //                   ? Number(product.base_price)
-  //                   : null,
-  //                 tracking_type: product?.tracking_type || 'none',
-  //                 quantity: 0,
-  //                 batches: [],
-  //                 serials: [],
-  //                 tax_details: product?.product_tax_master
-  //                   ? {
-  //                       id: product.product_tax_master.id,
-  //                       name: product.product_tax_master.name,
-  //                       code: product.product_tax_master.code,
-  //                       tax_rate: Number(product.product_tax_master.tax_rate),
-  //                       description: product.product_tax_master.description,
-  //                     }
-  //                   : null,
-  //                 // ENHANCEMENT: Add price list information
-  //                 price_list_info: priceListInfo
-  //                   ? {
-  //                       pricelist_item_id: priceListInfo.pricelist_item_id,
-  //                       unit_price: priceListInfo.unit_price,
-  //                       discount_percent: priceListInfo.discount_percent,
-  //                       tax_percent: priceListInfo.tax_percent,
-  //                       effective_from: priceListInfo.effective_from,
-  //                       effective_to: priceListInfo.effective_to,
-  //                     }
-  //                   : null,
-  //               });
-  //             }
-
-  //             const productData = products.get(productId)!;
-
-  //             productData.quantity += itemQuantity;
-  //             totalQuantity += itemQuantity;
-  //             allProducts.add(productId);
-
-  //             allProductBatches.forEach(batchInfo => {
-  //               const existingBatch = productData.batches.find(
-  //                 (b: any) => b.batch_lot_id === batchInfo.batch_lot_id
-  //               );
-  //               if (!existingBatch) {
-  //                 productData.batches.push(batchInfo);
-  //                 totalRemainingQuantity += batchInfo.remaining_quantity || 0;
-  //                 totalBatches++;
-  //               } else {
-  //                 existingBatch.loaded_quantity =
-  //                   (existingBatch.loaded_quantity || 0) +
-  //                   (batchInfo.loaded_quantity || 0);
-  //               }
-  //             });
-
-  //             if (serials.length > 0) {
-  //               serials.forEach((serial: any) => {
-  //                 if (
-  //                   !productData.serials.find(
-  //                     (existing: any) => existing.serial_id === serial.serial_id
-  //                   )
-  //                 ) {
-  //                   productData.serials.push(serial);
-  //                   totalSerials++;
-  //                 }
-  //               });
-  //             }
+  //           let resolvedPriceList = null;
+  //           if (customer_id) {
+  //             resolvedPriceList = await resolvePriceListForCustomer(
+  //               Number(customer_id),
+  //               vanInventoryProductIds
+  //             );
   //           }
 
-  //           if (products.size === 0) {
-  //             return null;
-  //           }
+  //           const {
+  //             vanInventories: processedVanInventories,
+  //             totalProducts,
+  //             totalQuantity,
+  //             totalRemainingQuantity,
+  //             totalBatches,
+  //             totalSerials,
+  //           } = await processVanInventoryItems(vanInventories, resolvedPriceList);
 
-  //           return {
-  //             van_inventory_id: vanInventory.id,
-  //             document_date: vanInventory.document_date,
-  //             status: vanInventory.status,
-  //             loading_type: vanInventory.loading_type,
-  //             location_id: vanInventory.location_id,
-  //             location_type: vanInventory.location_type,
-  //             vehicle_id: vanInventory.vehicle_id,
-  //             vehicle: vanInventory.vehicle
+  //           if (processedVanInventories.length === 0) continue;
+
+  //           consolidatedSalespersons.push({
+  //             salesperson_id: salesperson.id,
+  //             salesperson_name: salesperson.name,
+  //             salesperson_email: salesperson.email,
+  //             salesperson_phone: salesperson.phone_number,
+  //             salesperson_profile_image: salesperson.profile_image,
+  //             salesperson_role: salesperson.user_role.name,
+  //             total_van_inventories: processedVanInventories.length,
+  //             total_products: totalProducts,
+  //             total_quantity: totalQuantity,
+  //             total_remaining_quantity: totalRemainingQuantity,
+  //             total_batches: totalBatches,
+  //             total_serials: totalSerials,
+  //             van_inventories: processedVanInventories,
+  //             price_list: resolvedPriceList
   //               ? {
-  //                   vehicle_id: vanInventory.vehicle.id,
-  //                   vehicle_number: vanInventory.vehicle.vehicle_number,
+  //                   id: resolvedPriceList.priceList?.id,
+  //                   name: resolvedPriceList.priceList?.name,
+  //                   level: resolvedPriceList.level,
+  //                   priority: resolvedPriceList.priceList?.priority,
+  //                   valid_from: resolvedPriceList.priceList?.valid_from,
+  //                   valid_to: resolvedPriceList.priceList?.valid_to,
   //                 }
   //               : null,
-  //             products: Array.from(products.values()),
-  //           };
-  //         })
-  //         .filter(vanInventory => vanInventory !== null);
+  //           });
+  //         }
 
-  //       return {
-  //         vanInventories: processedVanInventories,
-  //         totalProducts: allProducts.size,
-  //         totalQuantity,
-  //         totalRemainingQuantity,
-  //         totalBatches,
-  //         totalSerials,
-  //       };
-  //     };
+  //         const startIndex = (pageNum - 1) * limitNum;
+  //         const paginatedData = consolidatedSalespersons.slice(
+  //           startIndex,
+  //           startIndex + limitNum
+  //         );
 
-  //     let dateFilter = {};
-  //     if (document_date) {
-  //       const date = new Date(document_date as string);
-  //       if (isNaN(date.getTime())) {
-  //         return res.status(400).json({
-  //           success: false,
-  //           message: 'Invalid document_date format. Use YYYY-MM-DD',
+  //         const pagination = {
+  //           current_page: pageNum,
+  //           per_page: limitNum,
+  //           total_pages: Math.ceil(consolidatedSalespersons.length / limitNum),
+  //           total_count: consolidatedSalespersons.length,
+  //           has_next:
+  //             pageNum < Math.ceil(consolidatedSalespersons.length / limitNum),
+  //           has_prev: pageNum > 1,
+  //         };
+
+  //         return res.json({
+  //           success: true,
+  //           message: 'All salesperson inventory data retrieved successfully',
+  //           data: paginatedData,
+  //           filters: {
+  //             document_date: document_date || null,
+  //             product_id: product_id || null,
+  //             customer_id: customer_id || null,
+  //             batch_status: batch_status || null,
+  //             serial_status: serial_status || null,
+  //           },
+  //           pagination,
   //         });
   //       }
 
-  //       const startOfDay = new Date(date);
-  //       startOfDay.setHours(0, 0, 0, 0);
+  //       const salespersonIdNum = parseInt(salesperson_id as string, 10);
 
-  //       const endOfDay = new Date(date);
-  //       endOfDay.setHours(23, 59, 59, 999);
-
-  //       dateFilter = {
-  //         document_date: {
-  //           gte: startOfDay,
-  //           lte: endOfDay,
-  //         },
-  //       };
-  //     }
-
-  //     if (
-  //       !salesperson_id ||
-  //       salesperson_id === '' ||
-  //       salesperson_id === 'all'
-  //     ) {
-  //       const allSalespersons = await prisma.users.findMany({
-  //         where: {},
+  //       const salesperson = await prisma.users.findUnique({
+  //         where: { id: salespersonIdNum },
   //         select: {
   //           id: true,
   //           name: true,
@@ -1067,131 +1362,190 @@ export const priceListsController = {
   //         },
   //       });
 
-  //       const consolidatedSalespersons: any[] = [];
-
-  //       for (const salesperson of allSalespersons) {
-  //         const vanInventories = await prisma.van_inventory.findMany({
-  //           where: {
-  //             user_id: salesperson.id,
-  //             is_active: 'Y',
-  //             status: 'A',
-  //             ...dateFilter,
-  //           },
-  //           select: {
-  //             id: true,
-  //             status: true,
-  //             loading_type: true,
-  //             document_date: true,
-  //             location_id: true,
-  //             location_type: true,
-  //             vehicle_id: true,
-  //             vehicle: {
-  //               select: {
-  //                 id: true,
-  //                 vehicle_number: true,
-  //               },
-  //             },
-  //             van_inventory_items_inventory: {
-  //               select: {
-  //                 id: true,
-  //                 product_id: true,
-  //                 quantity: true,
-  //                 batch_lot_id: true,
-  //                 serial_id: true,
-  //                 unit_price: true,
-  //                 van_inventory_items_batch_lot: {
-  //                   select: {
-  //                     id: true,
-  //                     batch_number: true,
-  //                     lot_number: true,
-  //                     manufacturing_date: true,
-  //                     expiry_date: true,
-  //                     supplier_name: true,
-  //                     quality_grade: true,
-  //                     quantity: true,
-  //                     remaining_quantity: true,
-  //                   },
-  //                 },
-  //                 van_inventory_serial: {
-  //                   select: {
-  //                     id: true,
-  //                     serial_number: true,
-  //                     status: true,
-  //                     warranty_expiry: true,
-  //                     batch_id: true,
-  //                     customer_id: true,
-  //                     sold_date: true,
-  //                     batch_lots: {
-  //                       select: {
-  //                         id: true,
-  //                         batch_number: true,
-  //                         lot_number: true,
-  //                         expiry_date: true,
-  //                       },
-  //                     },
-  //                     serial_numbers_customers: {
-  //                       select: {
-  //                         id: true,
-  //                         name: true,
-  //                         code: true,
-  //                       },
-  //                     },
-  //                   },
-  //                 },
-  //                 van_inventory_items_products: {
-  //                   select: {
-  //                     id: true,
-  //                     name: true,
-  //                     code: true,
-  //                     base_price: true,
-  //                     product_unit_of_measurement: true,
-  //                     tracking_type: true,
-  //                     tax_id: true,
-  //                     product_tax_master: {
-  //                       select: {
-  //                         id: true,
-  //                         name: true,
-  //                         code: true,
-  //                         tax_rate: true,
-  //                         description: true,
-  //                       },
-  //                     },
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //           orderBy: { document_date: 'desc' },
+  //       if (!salesperson) {
+  //         return res.status(404).json({
+  //           success: false,
+  //           message: 'Salesperson not found',
   //         });
+  //       }
 
-  //         if (vanInventories.length === 0) continue;
+  //       const vanInventories = await prisma.van_inventory.findMany({
+  //         where: {
+  //           user_id: salespersonIdNum,
+  //           is_active: 'Y',
+  //           status: 'A',
+  //           ...dateFilter,
+  //         },
+  //         select: {
+  //           id: true,
+  //           status: true,
+  //           loading_type: true,
+  //           document_date: true,
+  //           location_id: true,
+  //           location_type: true,
+  //           vehicle_id: true,
+  //           vehicle: {
+  //             select: {
+  //               id: true,
+  //               vehicle_number: true,
+  //             },
+  //           },
+  //           van_inventory_items_inventory: {
+  //             select: {
+  //               id: true,
+  //               product_id: true,
+  //               quantity: true,
+  //               batch_lot_id: true,
+  //               serial_id: true,
+  //               unit_price: true,
+  //               van_inventory_items_batch_lot: {
+  //                 select: {
+  //                   id: true,
+  //                   batch_number: true,
+  //                   lot_number: true,
+  //                   manufacturing_date: true,
+  //                   expiry_date: true,
+  //                   supplier_name: true,
+  //                   quality_grade: true,
+  //                   quantity: true,
+  //                   remaining_quantity: true,
+  //                 },
+  //               },
+  //               van_inventory_serial: {
+  //                 select: {
+  //                   id: true,
+  //                   serial_number: true,
+  //                   status: true,
+  //                   warranty_expiry: true,
+  //                   batch_id: true,
+  //                   customer_id: true,
+  //                   sold_date: true,
+  //                   batch_lots: {
+  //                     select: {
+  //                       id: true,
+  //                       batch_number: true,
+  //                       lot_number: true,
+  //                       expiry_date: true,
+  //                     },
+  //                   },
+  //                   serial_numbers_customers: {
+  //                     select: {
+  //                       id: true,
+  //                       name: true,
+  //                       code: true,
+  //                     },
+  //                   },
+  //                 },
+  //               },
+  //               van_inventory_items_products: {
+  //                 select: {
+  //                   id: true,
+  //                   name: true,
+  //                   code: true,
+  //                   base_price: true,
+  //                   product_unit_of_measurement: true,
+  //                   tracking_type: true,
+  //                   tax_id: true,
+  //                   product_tax_master: {
+  //                     select: {
+  //                       id: true,
+  //                       name: true,
+  //                       code: true,
+  //                       tax_rate: true,
+  //                       description: true,
+  //                     },
+  //                   },
+  //                 },
+  //               },
+  //             },
+  //           },
+  //         },
+  //         orderBy: { document_date: 'desc' },
+  //       });
 
-  //         const {
-  //           vanInventories: processedVanInventories,
-  //           totalProducts,
-  //           totalQuantity,
-  //           totalRemainingQuantity,
-  //           totalBatches,
-  //           totalSerials,
-  //         } = await processVanInventoryItems(vanInventories);
+  //       if (vanInventories.length === 0) {
+  //         return res.json({
+  //           success: true,
+  //           message: 'No inventory found for this salesperson',
+  //           data: {
+  //             salesperson_id: salesperson.id,
+  //             salesperson_name: salesperson.name,
+  //             salesperson_email: salesperson.email,
+  //             salesperson_phone: salesperson.phone_number,
+  //             salesperson_role: salesperson.user_role.name,
+  //             salesperson_profile_image: salesperson.profile_image,
+  //             total_van_inventories: 0,
+  //             total_products: 0,
+  //             total_quantity: 0,
+  //             total_remaining_quantity: 0,
+  //             total_batches: 0,
+  //             total_serials: 0,
+  //             van_inventories: [],
+  //             price_list: null,
+  //           },
+  //           filters: {
+  //             document_date: document_date || null,
+  //             product_id: product_id || null,
+  //             customer_id: customer_id || null,
+  //             batch_status: batch_status || null,
+  //             serial_status: serial_status || null,
+  //           },
+  //         });
+  //       }
 
-  //         if (processedVanInventories.length === 0) continue;
+  //       const vanInventoryProductIds = vanInventories.flatMap(vi =>
+  //         vi.van_inventory_items_inventory.map(item => item.product_id)
+  //       );
 
-  //         consolidatedSalespersons.push({
+  //       let resolvedPriceList = null;
+  //       if (customer_id) {
+  //         resolvedPriceList = await resolvePriceListForCustomer(
+  //           Number(customer_id),
+  //           vanInventoryProductIds
+  //         );
+  //       }
+
+  //       const {
+  //         vanInventories: processedVanInventories,
+  //         totalProducts,
+  //         totalQuantity,
+  //         totalRemainingQuantity,
+  //         totalBatches,
+  //         totalSerials,
+  //       } = await processVanInventoryItems(vanInventories, resolvedPriceList);
+
+  //       const startIndex = (pageNum - 1) * limitNum;
+  //       const paginatedVanInventories = processedVanInventories.slice(
+  //         startIndex,
+  //         startIndex + limitNum
+  //       );
+
+  //       const pagination = {
+  //         current_page: pageNum,
+  //         per_page: limitNum,
+  //         total_pages: Math.ceil(processedVanInventories.length / limitNum),
+  //         total_count: processedVanInventories.length,
+  //         has_next:
+  //           pageNum < Math.ceil(processedVanInventories.length / limitNum),
+  //         has_prev: pageNum > 1,
+  //       };
+
+  //       res.json({
+  //         success: true,
+  //         message: 'Salesperson inventory retrieved successfully',
+  //         data: {
   //           salesperson_id: salesperson.id,
   //           salesperson_name: salesperson.name,
   //           salesperson_email: salesperson.email,
   //           salesperson_phone: salesperson.phone_number,
   //           salesperson_profile_image: salesperson.profile_image,
-  //           salesperson_role: salesperson.user_role.name,
   //           total_van_inventories: processedVanInventories.length,
   //           total_products: totalProducts,
   //           total_quantity: totalQuantity,
   //           total_remaining_quantity: totalRemainingQuantity,
   //           total_batches: totalBatches,
   //           total_serials: totalSerials,
-  //           van_inventories: processedVanInventories,
-  //           // ENHANCEMENT: Add price list information
+  //           van_inventories: paginatedVanInventories,
   //           price_list: resolvedPriceList
   //             ? {
   //                 id: resolvedPriceList.priceList?.id,
@@ -1202,29 +1556,7 @@ export const priceListsController = {
   //                 valid_to: resolvedPriceList.priceList?.valid_to,
   //               }
   //             : null,
-  //         });
-  //       }
-
-  //       const startIndex = (pageNum - 1) * limitNum;
-  //       const paginatedData = consolidatedSalespersons.slice(
-  //         startIndex,
-  //         startIndex + limitNum
-  //       );
-
-  //       const pagination = {
-  //         current_page: pageNum,
-  //         per_page: limitNum,
-  //         total_pages: Math.ceil(consolidatedSalespersons.length / limitNum),
-  //         total_count: consolidatedSalespersons.length,
-  //         has_next:
-  //           pageNum < Math.ceil(consolidatedSalespersons.length / limitNum),
-  //         has_prev: pageNum > 1,
-  //       };
-
-  //       return res.json({
-  //         success: true,
-  //         message: 'All salesperson inventory data retrieved successfully',
-  //         data: paginatedData,
+  //         },
   //         filters: {
   //           document_date: document_date || null,
   //           product_id: product_id || null,
@@ -1234,238 +1566,16 @@ export const priceListsController = {
   //         },
   //         pagination,
   //       });
-  //     }
-
-  //     const salespersonIdNum = parseInt(salesperson_id as string, 10);
-
-  //     const salesperson = await prisma.users.findUnique({
-  //       where: { id: salespersonIdNum },
-  //       select: {
-  //         id: true,
-  //         name: true,
-  //         email: true,
-  //         phone_number: true,
-  //         profile_image: true,
-  //         user_role: {
-  //           select: {
-  //             name: true,
-  //           },
-  //         },
-  //       },
-  //     });
-
-  //     if (!salesperson) {
-  //       return res.status(404).json({
+  //     } catch (error: any) {
+  //       console.error('Get Salesperson Inventory Error:', error);
+  //       res.status(500).json({
   //         success: false,
-  //         message: 'Salesperson not found',
+  //         message: 'Failed to retrieve salesperson inventory',
+  //         error: error.message,
   //       });
   //     }
-
-  //     const vanInventories = await prisma.van_inventory.findMany({
-  //       where: {
-  //         user_id: salespersonIdNum,
-  //         is_active: 'Y',
-  //         status: 'A',
-  //         ...dateFilter,
-  //       },
-  //       select: {
-  //         id: true,
-  //         status: true,
-  //         loading_type: true,
-  //         document_date: true,
-  //         location_id: true,
-  //         location_type: true,
-  //         vehicle_id: true,
-  //         vehicle: {
-  //           select: {
-  //             id: true,
-  //             vehicle_number: true,
-  //           },
-  //         },
-  //         van_inventory_items_inventory: {
-  //           select: {
-  //             id: true,
-  //             product_id: true,
-  //             quantity: true,
-  //             batch_lot_id: true,
-  //             serial_id: true,
-  //             unit_price: true,
-  //             van_inventory_items_batch_lot: {
-  //               select: {
-  //                 id: true,
-  //                 batch_number: true,
-  //                 lot_number: true,
-  //                 manufacturing_date: true,
-  //                 expiry_date: true,
-  //                 supplier_name: true,
-  //                 quality_grade: true,
-  //                 quantity: true,
-  //                 remaining_quantity: true,
-  //               },
-  //             },
-  //             van_inventory_serial: {
-  //               select: {
-  //                 id: true,
-  //                 serial_number: true,
-  //                 status: true,
-  //                 warranty_expiry: true,
-  //                 batch_id: true,
-  //                 customer_id: true,
-  //                 sold_date: true,
-  //                 batch_lots: {
-  //                   select: {
-  //                     id: true,
-  //                     batch_number: true,
-  //                     lot_number: true,
-  //                     expiry_date: true,
-  //                   },
-  //                 },
-  //                 serial_numbers_customers: {
-  //                   select: {
-  //                     id: true,
-  //                     name: true,
-  //                     code: true,
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //             van_inventory_items_products: {
-  //               select: {
-  //                 id: true,
-  //                 name: true,
-  //                 code: true,
-  //                 base_price: true,
-  //                 product_unit_of_measurement: true,
-  //                 tracking_type: true,
-  //                 tax_id: true,
-  //                 product_tax_master: {
-  //                   select: {
-  //                     id: true,
-  //                     name: true,
-  //                     code: true,
-  //                     tax_rate: true,
-  //                     description: true,
-  //                   },
-  //                 },
-  //               },
-  //             },
-  //           },
-  //         },
-  //       },
-  //       orderBy: { document_date: 'desc' },
-  //     });
-
-  //     if (vanInventories.length === 0) {
-  //       return res.json({
-  //         success: true,
-  //         message: 'No inventory found for this salesperson',
-  //         data: {
-  //           salesperson_id: salesperson.id,
-  //           salesperson_name: salesperson.name,
-  //           salesperson_email: salesperson.email,
-  //           salesperson_phone: salesperson.phone_number,
-  //           salesperson_role: salesperson.user_role.name,
-  //           salesperson_profile_image: salesperson.profile_image,
-  //           total_van_inventories: 0,
-  //           total_products: 0,
-  //           total_quantity: 0,
-  //           total_remaining_quantity: 0,
-  //           total_batches: 0,
-  //           total_serials: 0,
-  //           van_inventories: [],
-  //           // ENHANCEMENT: Add price list information
-  //           price_list: resolvedPriceList
-  //             ? {
-  //                 id: resolvedPriceList.priceList?.id,
-  //                 name: resolvedPriceList.priceList?.name,
-  //                 level: resolvedPriceList.level,
-  //                 priority: resolvedPriceList.priceList?.priority,
-  //                 valid_from: resolvedPriceList.priceList?.valid_from,
-  //                 valid_to: resolvedPriceList.priceList?.valid_to,
-  //               }
-  //             : null,
-  //         },
-  //         filters: {
-  //           document_date: document_date || null,
-  //           product_id: product_id || null,
-  //           customer_id: customer_id || null,
-  //           batch_status: batch_status || null,
-  //           serial_status: serial_status || null,
-  //         },
-  //       });
-  //     }
-
-  //     const {
-  //       vanInventories: processedVanInventories,
-  //       totalProducts,
-  //       totalQuantity,
-  //       totalRemainingQuantity,
-  //       totalBatches,
-  //       totalSerials,
-  //     } = await processVanInventoryItems(vanInventories);
-
-  //     const startIndex = (pageNum - 1) * limitNum;
-  //     const paginatedVanInventories = processedVanInventories.slice(
-  //       startIndex,
-  //       startIndex + limitNum
-  //     );
-
-  //     const pagination = {
-  //       current_page: pageNum,
-  //       per_page: limitNum,
-  //       total_pages: Math.ceil(processedVanInventories.length / limitNum),
-  //       total_count: processedVanInventories.length,
-  //       has_next:
-  //         pageNum < Math.ceil(processedVanInventories.length / limitNum),
-  //       has_prev: pageNum > 1,
-  //     };
-
-  //     res.json({
-  //       success: true,
-  //       message: 'Salesperson inventory retrieved successfully',
-  //       data: {
-  //         salesperson_id: salesperson.id,
-  //         salesperson_name: salesperson.name,
-  //         salesperson_email: salesperson.email,
-  //         salesperson_phone: salesperson.phone_number,
-  //         salesperson_profile_image: salesperson.profile_image,
-  //         total_van_inventories: processedVanInventories.length,
-  //         total_products: totalProducts,
-  //         total_quantity: totalQuantity,
-  //         total_remaining_quantity: totalRemainingQuantity,
-  //         total_batches: totalBatches,
-  //         total_serials: totalSerials,
-  //         van_inventories: paginatedVanInventories,
-  //         // ENHANCEMENT: Add price list information
-  //         price_list: resolvedPriceList
-  //           ? {
-  //               id: resolvedPriceList.priceList?.id,
-  //               name: resolvedPriceList.priceList?.name,
-  //               level: resolvedPriceList.level,
-  //               priority: resolvedPriceList.priceList?.priority,
-  //               valid_from: resolvedPriceList.priceList?.valid_from,
-  //               valid_to: resolvedPriceList.priceList?.valid_to,
-  //             }
-  //           : null,
-  //       },
-  //       filters: {
-  //         document_date: document_date || null,
-  //         product_id: product_id || null,
-  //         customer_id: customer_id || null,
-  //         batch_status: batch_status || null,
-  //         serial_status: serial_status || null,
-  //       },
-  //       pagination,
-  //     });
-  //   } catch (error: any) {
-  //     console.error('Get Salesperson Inventory Error:', error);
-  //     res.status(500).json({
-  //       success: false,
-  //       message: 'Failed to retrieve salesperson inventory',
-  //       error: error.message,
-  //     });
-  //   }
-  // },
+  //   },
+  // };
 
   async getProductsAndCustomer(req: Request, res: Response) {
     try {
@@ -1484,92 +1594,268 @@ export const priceListsController = {
       const pageNum = parseInt(page as string, 10) || 1;
       const limitNum = parseInt(limit as string, 10) || 50;
 
+      const priceListCache = new Map<string, any>();
+
+      const validatePriceList = (priceList: any, targetDate: Date) => {
+        if (!priceList.valid_from || !priceList.valid_to) return true;
+        return (
+          targetDate >= priceList.valid_from && targetDate <= priceList.valid_to
+        );
+      };
+
+      const calculateDerivedPrice = (basePrice: number, factor: number) => {
+        return basePrice * (factor || 1);
+      };
+
       const resolvePriceListForCustomer = async (
         customerId: number,
-        vanInventoryProductIds: number[]
+        vanInventoryProductIds: number[],
+        documentDate?: Date
       ) => {
-        const targetDate = new Date();
+        const targetDate = documentDate || new Date();
 
-        const getPriceListWithMatchingProducts = async (whereClause: any) => {
-          const priceList = await prisma.pricelists.findFirst({
-            where: whereClause,
-            orderBy: [{ priority: 'asc' }],
-            include: {
-              pricelist_item: {
-                where: {
-                  is_active: 'Y',
-                  product_id: { in: vanInventoryProductIds },
-                },
-                include: {
-                  pricelist_items_products: {
-                    select: {
-                      id: true,
-                      name: true,
-                      code: true,
+        console.log(' Price List Resolution');
+        console.log('Customer ID:', customerId);
+        console.log('Product IDs:', vanInventoryProductIds);
+        console.log('Target Date:', targetDate);
+
+        const cacheKey = `${customerId}-${vanInventoryProductIds.join(',')}-${targetDate.toISOString()}`;
+        if (priceListCache.has(cacheKey)) {
+          return priceListCache.get(cacheKey);
+        }
+
+        const getPriceListWithMatchingProducts = async (
+          whereClause: any,
+          level: string
+        ) => {
+          try {
+            console.log(`\n--- Checking ${level} price list ---`);
+            console.log('Where clause:', whereClause);
+            const priceList = await prisma.pricelists.findFirst({
+              where: whereClause,
+              orderBy: [{ priority: 'asc' }],
+              include: {
+                pricelist_item: {
+                  where: {
+                    is_active: 'Y',
+                    product_id: { in: vanInventoryProductIds },
+                  },
+                  include: {
+                    pricelist_items_products: {
+                      select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                      },
+                    },
+                    pricelist_item_special_prices: {
+                      where: {
+                        is_active: 'Y',
+                        OR: [
+                          { customer_id: customerId },
+                          { customer_id: null },
+                          { customer_category_id: { not: null } },
+                        ],
+                      },
+                      include: {
+                        special_customer: {
+                          select: { id: true, name: true, code: true },
+                        },
+                        special_customer_category: {
+                          select: {
+                            id: true,
+                            category_name: true,
+                            category_code: true,
+                          },
+                        },
+                      },
                     },
                   },
                 },
               },
-            },
-          });
+            });
 
-          return priceList && priceList.pricelist_item.length > 0
-            ? priceList
-            : null;
+            if (priceList && validatePriceList(priceList, targetDate)) {
+              if (priceList.base_pricelist_id && priceList.factor) {
+                const basePriceList = await prisma.pricelists.findUnique({
+                  where: { id: priceList.base_pricelist_id },
+                  include: {
+                    pricelist_item: {
+                      where: {
+                        is_active: 'Y',
+                        product_id: { in: vanInventoryProductIds },
+                      },
+                    },
+                  },
+                });
+
+                if (basePriceList) {
+                  priceList.pricelist_item.forEach((item: any) => {
+                    const baseItem = basePriceList.pricelist_item.find(
+                      (baseItem: any) => baseItem.product_id === item.product_id
+                    );
+                    if (baseItem) {
+                      item.unit_price = calculateDerivedPrice(
+                        Number(baseItem.unit_price),
+                        Number(priceList.factor)
+                      );
+                    }
+                  });
+                }
+              }
+
+              priceList.pricelist_item.forEach((item: any) => {
+                if (item.pricelist_item_special_prices.length > 0) {
+                  const customerSpecial =
+                    item.pricelist_item_special_prices.find(
+                      (sp: any) => sp.customer_id === customerId
+                    );
+
+                  if (customerSpecial) {
+                    item.unit_price = Number(customerSpecial.sale_price);
+                    item.discount_percent = customerSpecial.discount_percent;
+                    item.tax_percent = customerSpecial.tax_percent;
+                  } else {
+                    const categorySpecial =
+                      item.pricelist_item_special_prices.find(
+                        (sp: any) =>
+                          sp.customer_category_id &&
+                          sp.customer_category_id !== null
+                      );
+
+                    if (categorySpecial) {
+                      item.unit_price = Number(categorySpecial.sale_price);
+                      item.discount_percent = categorySpecial.discount_percent;
+                      item.tax_percent = categorySpecial.tax_percent;
+                    }
+                  }
+                }
+              });
+
+              return priceList && priceList.pricelist_item.length > 0
+                ? priceList
+                : null;
+            }
+            return null;
+          } catch (error) {
+            console.error(`Error resolving ${level} price list:`, error);
+            return null;
+          }
         };
 
-        const customerPriceList = await getPriceListWithMatchingProducts({
-          customer_id: customerId,
-          is_active: 'Y',
-          valid_from: { lte: targetDate },
-          valid_to: { gte: targetDate },
-        });
+        const customerPriceList = await getPriceListWithMatchingProducts(
+          {
+            customer_id: customerId,
+            is_active: 'Y',
+            // valid_from: { lte: targetDate },
+            // valid_to: { gte: targetDate },
+          },
+          'CUSTOMER'
+        );
 
         if (customerPriceList) {
-          return { priceList: customerPriceList, level: 'CUSTOMER' };
+          const result = { priceList: customerPriceList, level: 'CUSTOMER' };
+          priceListCache.set(cacheKey, result);
+          return result;
         }
 
         const customer = await prisma.customers.findUnique({
           where: { id: customerId },
-          select: { route_id: true, depot_id: true },
+          select: {
+            id: true,
+            name: true,
+            route_id: true,
+            depot_id: true,
+            customer_category_id: true,
+          },
         });
 
+        console.log('Customer details:', {
+          customer_id: customer?.id,
+          customer_name: customer?.name,
+          depot_id: customer?.depot_id,
+          route_id: customer?.route_id,
+          customer_category_id: customer?.customer_category_id,
+        });
+
+        console.log('Customer details:', {
+          customer_id: customer?.id,
+          customer_name: customer?.name,
+          depot_id: customer?.depot_id,
+          route_id: customer?.route_id,
+          customer_category_id: customer?.customer_category_id,
+        });
+
+        if (customer?.customer_category_id) {
+          const categoryPriceList = await getPriceListWithMatchingProducts(
+            {
+              customer_category_id: customer.customer_category_id,
+              is_active: 'Y',
+              // valid_from: { lte: targetDate },
+              // valid_to: { gte: targetDate },
+            },
+            'CATEGORY'
+          );
+
+          if (categoryPriceList) {
+            const result = { priceList: categoryPriceList, level: 'CATEGORY' };
+            priceListCache.set(cacheKey, result);
+            return result;
+          }
+        }
+
         if (customer?.route_id) {
-          const routePriceList = await getPriceListWithMatchingProducts({
-            route_id: customer.route_id,
-            is_active: 'Y',
-            valid_from: { lte: targetDate },
-            valid_to: { gte: targetDate },
-          });
+          const routePriceList = await getPriceListWithMatchingProducts(
+            {
+              route_id: customer.route_id,
+              is_active: 'Y',
+              // valid_from: { lte: targetDate },
+              // valid_to: { gte: targetDate },
+            },
+            'ROUTE'
+          );
 
           if (routePriceList) {
-            return { priceList: routePriceList, level: 'ROUTE' };
+            const result = { priceList: routePriceList, level: 'ROUTE' };
+            priceListCache.set(cacheKey, result);
+            return result;
           }
         }
 
         if (customer?.depot_id) {
-          const depotPriceList = await getPriceListWithMatchingProducts({
-            depot_id: customer.depot_id,
-            is_active: 'Y',
-            valid_from: { lte: targetDate },
-            valid_to: { gte: targetDate },
-          });
+          const depotPriceList = await getPriceListWithMatchingProducts(
+            {
+              depot_id: customer.depot_id,
+              is_active: 'Y',
+              // valid_from: { lte: targetDate },
+              // valid_to: { gte: targetDate },
+            },
+            'DEPOT'
+          );
 
           if (depotPriceList) {
-            return { priceList: depotPriceList, level: 'DEPOT' };
+            const result = { priceList: depotPriceList, level: 'DEPOT' };
+            priceListCache.set(cacheKey, result);
+            return result;
           }
         }
 
-        const defaultPriceList = await getPriceListWithMatchingProducts({
-          is_default: 'Y',
-          is_active: 'Y',
-          valid_from: { lte: targetDate },
-          valid_to: { gte: targetDate },
-        });
+        const defaultPriceList = await getPriceListWithMatchingProducts(
+          {
+            is_default: 'Y',
+            is_active: 'Y',
+            // valid_from: { lte: targetDate },
+            // valid_to: { gte: targetDate },
+          },
+          'DEFAULT'
+        );
 
-        return defaultPriceList
+        const result = defaultPriceList
           ? { priceList: defaultPriceList, level: 'DEFAULT' }
           : { priceList: null, level: 'NONE' };
+
+        priceListCache.set(cacheKey, result);
+        return result;
       };
 
       const processVanInventoryItems = async (
@@ -1593,6 +1879,7 @@ export const priceListsController = {
               effective_from: item.effective_from,
               effective_to: item.effective_to,
               pricelist_item_id: item.id,
+              special_prices: item.pricelist_item_special_prices || [],
             });
           });
         }
@@ -1609,7 +1896,14 @@ export const priceListsController = {
                 continue;
               }
 
-              if (customer_id && !priceListProductMap.has(item.product_id)) {
+              // if (customer_id && !priceListProductMap.has(item.product_id)) {
+              //   continue;
+              // }
+              if (
+                customer_id &&
+                resolvedPriceList?.priceList &&
+                !priceListProductMap.has(item.product_id)
+              ) {
                 continue;
               }
 
@@ -1725,6 +2019,7 @@ export const priceListsController = {
                         tax_percent: priceListInfo.tax_percent,
                         effective_from: priceListInfo.effective_from,
                         effective_to: priceListInfo.effective_to,
+                        special_prices: priceListInfo.special_prices,
                       }
                     : null,
                 });
@@ -1799,6 +2094,8 @@ export const priceListsController = {
       };
 
       let dateFilter = {};
+      let targetDate = new Date();
+
       if (document_date) {
         const date = new Date(document_date as string);
         if (isNaN(date.getTime())) {
@@ -1808,6 +2105,7 @@ export const priceListsController = {
           });
         }
 
+        targetDate = date;
         const startOfDay = new Date(date);
         startOfDay.setHours(0, 0, 0, 0);
 
@@ -1851,7 +2149,7 @@ export const priceListsController = {
               user_id: salesperson.id,
               is_active: 'Y',
               status: 'A',
-              ...dateFilter,
+              ...(document_date && dateFilter),
             },
             select: {
               id: true,
@@ -1950,7 +2248,8 @@ export const priceListsController = {
           if (customer_id) {
             resolvedPriceList = await resolvePriceListForCustomer(
               Number(customer_id),
-              vanInventoryProductIds
+              vanInventoryProductIds,
+              targetDate
             );
           }
 
@@ -1987,6 +2286,9 @@ export const priceListsController = {
                   priority: resolvedPriceList.priceList?.priority,
                   valid_from: resolvedPriceList.priceList?.valid_from,
                   valid_to: resolvedPriceList.priceList?.valid_to,
+                  factor: resolvedPriceList.priceList?.factor,
+                  base_pricelist_id:
+                    resolvedPriceList.priceList?.base_pricelist_id,
                 }
               : null,
           });
@@ -2053,8 +2355,8 @@ export const priceListsController = {
           user_id: salespersonIdNum,
           is_active: 'Y',
           status: 'A',
-          ...dateFilter,
         },
+        ...(document_date && dateFilter),
         select: {
           id: true,
           status: true,
@@ -2180,7 +2482,8 @@ export const priceListsController = {
       if (customer_id) {
         resolvedPriceList = await resolvePriceListForCustomer(
           Number(customer_id),
-          vanInventoryProductIds
+          vanInventoryProductIds,
+          targetDate
         );
       }
 
@@ -2233,6 +2536,9 @@ export const priceListsController = {
                 priority: resolvedPriceList.priceList?.priority,
                 valid_from: resolvedPriceList.priceList?.valid_from,
                 valid_to: resolvedPriceList.priceList?.valid_to,
+                factor: resolvedPriceList.priceList?.factor,
+                base_pricelist_id:
+                  resolvedPriceList.priceList?.base_pricelist_id,
               }
             : null,
         },

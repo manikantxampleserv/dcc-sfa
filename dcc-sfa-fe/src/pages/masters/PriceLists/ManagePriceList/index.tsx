@@ -1,20 +1,32 @@
-import { Add } from '@mui/icons-material';
-import { Box, MenuItem, Typography } from '@mui/material';
+import { Add, Close, MoreHoriz } from '@mui/icons-material';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Tooltip,
+} from '@mui/material';
 import { useFormik } from 'formik';
+import { useCustomerCategories } from 'hooks/useCustomerCategory';
+import { useCustomers } from 'hooks/useCustomers';
+import { useDepots } from 'hooks/useDepots';
 import {
   useCreatePriceList,
+  usePriceLists,
   useUpdatePriceList,
   type PriceList,
 } from 'hooks/usePriceLists';
-import React, { useState } from 'react';
+import { useProducts } from 'hooks/useProducts';
+import { useRoutes } from 'hooks/useRoutes';
+import React, { useEffect, useState } from 'react';
 import { priceListValidationSchema } from 'schemas/priceLists.schema';
-import { DeleteButton } from 'shared/ActionButton';
+import { ActionButton, DeleteButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import CustomDrawer from 'shared/Drawer';
 import Input from 'shared/Input';
-import ProductSelect from 'shared/ProductSelect';
 import Select from 'shared/Select';
 import Table, { type TableColumn } from 'shared/Table';
+import YesNoField from 'shared/YesNoField';
 
 interface ManagePriceListProps {
   selectedPriceList?: PriceList | null;
@@ -24,15 +36,29 @@ interface ManagePriceListProps {
 }
 
 interface PriceListItemForm {
+  id?: number;
   product_id: number | '';
   unit_price: string;
   uom: string;
   discount_percent: string;
   tax_percent: string;
   sub_unit_price: string;
-  effective_from: string;
-  effective_to: string;
   is_active: string;
+  special_prices?: SpecialPriceForm[];
+}
+
+interface SpecialPriceForm {
+  id?: number;
+  valid_from?: string;
+  valid_to?: string;
+  route_id?: number | '';
+  customer_id?: number | '';
+  customer_category_id?: number | '';
+  sale_price: string;
+  sale_sub_unit_price?: string;
+  tax_percent?: string;
+  discount_percent?: string;
+  is_active?: string;
 }
 
 const ManagePriceList: React.FC<ManagePriceListProps> = ({
@@ -43,50 +69,117 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
 }) => {
   const isEdit = !!selectedPriceList;
   const [priceListItems, setPriceListItems] = useState<PriceListItemForm[]>([]);
+  const [showSpecialForIndex, setShowSpecialForIndex] = useState<number | null>(
+    null
+  );
 
   const createPriceListMutation = useCreatePriceList();
   const updatePriceListMutation = useUpdatePriceList();
+
+  const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' });
+  const { data: routesResponse } = useRoutes({ limit: 1000, status: 'active' });
+  const { data: categoriesResponse } = useCustomerCategories({
+    limit: 1000,
+    is_active: 'Y',
+  });
+  const { data: customersResponse } = useCustomers({
+    limit: 1000,
+    isActive: 'Y',
+  });
+  const { data: productsResponse } = useProducts({ limit: 1000 });
+
+  console.log(priceListItems, 'priceListItems');
+  
+
+  const depots = depotsResponse?.data || [];
+  const routes = routesResponse?.data || [];
+  const categories = categoriesResponse?.data || [];
+  const customers = customersResponse?.data || [];
+  const products = productsResponse?.data || [];
+
+  const { data: allPriceListsResponse } = usePriceLists({
+    limit: 1000,
+    include_items: true,
+  });
+  const allPriceLists = allPriceListsResponse?.data || [];
 
   const handleCancel = () => {
     setSelectedPriceList(null);
     setDrawerOpen(false);
     setPriceListItems([]);
+    setShowSpecialForIndex(null);
     formik.resetForm();
   };
 
-  // Initialize price list items when editing
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedPriceList?.pricelist_item) {
-      const items = selectedPriceList.pricelist_item.map(item => ({
-        product_id: item.product_id,
-        unit_price: item.unit_price,
-        uom: item.uom || '',
-        discount_percent: item.discount_percent || '',
-        tax_percent: (item as any).tax_percent || '18',
-        sub_unit_price: (item as any).sub_unit_price || '',
-        effective_from: item.effective_from
-          ? item.effective_from.split('T')[0]
-          : '',
-        effective_to: item.effective_to ? item.effective_to.split('T')[0] : '',
-        is_active: item.is_active,
-      }));
+      const items = selectedPriceList.pricelist_item.map(item => {
+        const rawSpecial =
+          (item as any).special_prices ||
+          (item as any).pricelist_item_special_prices ||
+          [];
+
+        const specialPrices = rawSpecial.map((sp: any) => ({
+          id: sp.id,
+          valid_from: sp.valid_from ? String(sp.valid_from).split('T')[0] : '',
+          valid_to: sp.valid_to ? String(sp.valid_to).split('T')[0] : '',
+          route_id: sp.route_id || '',
+          customer_id: sp.customer_id || '',
+          customer_category_id: sp.customer_category_id || '',
+          sale_price: String(sp.sale_price ?? '0'),
+          sale_sub_unit_price: sp.sale_sub_unit_price
+            ? String(sp.sale_sub_unit_price)
+            : '',
+          tax_percent: sp.tax_percent ? String(sp.tax_percent) : '',
+          discount_percent: sp.discount_percent
+            ? String(sp.discount_percent)
+            : '',
+          is_active: sp.is_active || 'Y',
+        }));
+
+        return {
+          id: item.id,
+          product_id: item.product_id,
+          unit_price: item.unit_price,
+          uom: item.uom || '',
+          discount_percent: item.discount_percent || '',
+          tax_percent: item.tax_percent || '18',
+          sub_unit_price: item.sub_unit_price || '',
+          is_active: item.is_active,
+          special_prices: specialPrices,
+        };
+      });
       setPriceListItems(items);
+    } else if (!isEdit) {
+      if (drawerOpen && products.length > 0 && priceListItems.length === 0) {
+        const initialItems = products.map(p => ({
+          product_id: p.id,
+          unit_price: '',
+          uom: p.uom_id || '',
+          discount_percent: '',
+          tax_percent: '18',
+          sub_unit_price: '',
+          is_active: 'Y',
+          special_prices: [],
+        }));
+        setPriceListItems(initialItems);
+      }
     } else {
       setPriceListItems([]);
     }
-  }, [selectedPriceList]);
+  }, [selectedPriceList, drawerOpen, products, isEdit]);
 
   const formik = useFormik({
     initialValues: {
       name: selectedPriceList?.name || '',
       description: selectedPriceList?.description || '',
-      currency_code: selectedPriceList?.currency_code || 'INR',
-      valid_from: selectedPriceList?.valid_from
-        ? selectedPriceList.valid_from.split('T')[0]
-        : '',
-      valid_to: selectedPriceList?.valid_to
-        ? selectedPriceList.valid_to.split('T')[0]
-        : '',
+      is_default: selectedPriceList?.is_default || 'N',
+      customer_id: selectedPriceList?.customer_id || '',
+      route_id: selectedPriceList?.route_id || '',
+      depot_id: selectedPriceList?.depot_id || '',
+      base_pricelist_id: selectedPriceList?.base_pricelist_id || '',
+      factor: selectedPriceList?.factor || '1.00',
+      customer_category_id: selectedPriceList?.customer_category_id || '',
       is_active: selectedPriceList?.is_active || 'Y',
     },
     validationSchema: priceListValidationSchema,
@@ -95,22 +188,47 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       try {
         const submitData = {
           ...values,
-          currency_code: values.currency_code || 'INR',
-          valid_from: values.valid_from,
-          valid_to: values.valid_to,
+          depot_id: Number(values.depot_id),
+          base_pricelist_id: values.base_pricelist_id
+            ? Number(values.base_pricelist_id)
+            : null,
+          factor: Number(values.factor),
+          customer_id: values.customer_id ? Number(values.customer_id) : null,
+          route_id: values.route_id ? Number(values.route_id) : null,
+          customer_category_id: values.customer_category_id
+            ? Number(values.customer_category_id)
+            : null,
           description: values.description,
           pricelist_item: priceListItems
             .filter(item => item.product_id !== '')
             .map(item => ({
+              id: item.id,
               product_id: Number(item.product_id),
               unit_price: item.unit_price,
               uom: item.uom,
               discount_percent: item.discount_percent,
               tax_percent: item.tax_percent,
               sub_unit_price: item.sub_unit_price,
-              effective_from: item.effective_from,
-              effective_to: item.effective_to,
               is_active: item.is_active,
+              special_prices: (item.special_prices || []).map(sp => ({
+                id: sp.id,
+                valid_from: sp.valid_from || undefined,
+                valid_to: sp.valid_to || undefined,
+                route_id: sp.route_id ? Number(sp.route_id) : null,
+                customer_id: sp.customer_id ? Number(sp.customer_id) : null,
+                customer_category_id: sp.customer_category_id
+                  ? Number(sp.customer_category_id)
+                  : null,
+                sale_price: Number(sp.sale_price || 0),
+                sale_sub_unit_price: sp.sale_sub_unit_price
+                  ? Number(sp.sale_sub_unit_price)
+                  : null,
+                tax_percent: sp.tax_percent ? Number(sp.tax_percent) : null,
+                discount_percent: sp.discount_percent
+                  ? Number(sp.discount_percent)
+                  : null,
+                is_active: sp.is_active || 'Y',
+              })),
             })),
         };
 
@@ -129,26 +247,28 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     },
   });
 
-  // Helper functions for managing price list items
-  const addPriceListItem = () => {
-    const newItem: PriceListItemForm = {
-      product_id: '',
-      unit_price: '',
-      uom: '',
-      discount_percent: '',
-      tax_percent: '18',
-      sub_unit_price: '',
-      effective_from: '',
-      effective_to: '',
-      is_active: 'Y',
-    };
-    setPriceListItems([...priceListItems, newItem]);
-  };
-
-  const removePriceListItem = (index: number) => {
-    const updatedItems = priceListItems.filter((_, i) => i !== index);
-    setPriceListItems(updatedItems);
-  };
+  useEffect(() => {
+    const factor = Number(formik.values.factor || 0);
+    const baseId = Number(formik.values.base_pricelist_id || 0);
+    if (!baseId || !factor) return;
+    const base = allPriceLists.find((pl: any) => pl.id === baseId);
+    if (!base?.pricelist_item?.length) return;
+    const updated = priceListItems.map(item => {
+      if (!item.product_id) return item;
+      const baseItem = base.pricelist_item.find(
+        (bi: any) => bi.product_id === item.product_id
+      );
+      if (!baseItem) return item;
+      const price = (parseFloat(baseItem.unit_price) * factor).toFixed(2);
+      const subUnit = (parseFloat(price) / 24).toFixed(2);
+      return {
+        ...item,
+        unit_price: price,
+        sub_unit_price: subUnit,
+      };
+    });
+    setPriceListItems(updated);
+  }, [formik.values.factor, formik.values.base_pricelist_id, allPriceLists]);
 
   const updatePriceListItem = (
     index: number,
@@ -157,52 +277,101 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   ) => {
     const updatedItems = [...priceListItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
-    
-    // Auto-calculate sub-unit price if unit price changes (placeholder logic)
+
+    if (field === 'product_id') {
+      const factor = Number(formik.values.factor || 0);
+      const baseId = Number(formik.values.base_pricelist_id || 0);
+      if (baseId && factor) {
+        const base = allPriceLists.find((pl: any) => pl.id === baseId);
+        const baseItem = base?.pricelist_item?.find(
+          (bi: any) => bi.product_id === value
+        );
+        if (baseItem) {
+          const price = (parseFloat(baseItem.unit_price) * factor).toFixed(2);
+          updatedItems[index].unit_price = price;
+          updatedItems[index].sub_unit_price = (parseFloat(price) / 24).toFixed(
+            2
+          );
+        }
+      }
+    }
+
     if (field === 'unit_price' && value) {
       const price = parseFloat(value as string);
       if (!isNaN(price)) {
-        // Assuming a default conversion factor for now, or just setting it
         updatedItems[index].sub_unit_price = (price / 24).toFixed(2);
+      }
+    }
+
+    if (field === 'sub_unit_price' && value) {
+      const subPrice = parseFloat(value as string);
+      if (!isNaN(subPrice)) {
+        updatedItems[index].unit_price = (subPrice * 24).toFixed(2);
       }
     }
 
     setPriceListItems(updatedItems);
   };
 
-  // Add index to each item for table operations
   const priceListItemsWithIndex = priceListItems.map((item, index) => ({
     ...item,
     _index: index,
   }));
 
-  // Table columns configuration
   const priceListItemsColumns: TableColumn<
     PriceListItemForm & { _index: number }
   >[] = [
     {
+      id: 'sku',
+      label: 'SKU',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        return <span>{product?.code || '-'}</span>;
+      },
+    },
+    {
       id: 'product_id',
       label: 'Product',
-      render: (_value, row) => (
-        <ProductSelect
-          value={row.product_id}
-          onChange={(_event, product) =>
-            updatePriceListItem(
-              row._index,
-              'product_id',
-              product ? product.id : ''
-            )
-          }
-          size="small"
-          className="!min-w-40"
-        />
-      ),
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        const name = product?.name || '-';
+        return (
+          <Tooltip title={name} arrow placement="top">
+            <div className="max-w-[240px] truncate cursor-help">{name}</div>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      id: 'base_price',
+      label: 'Base Price',
+      render: (_value, row) => {
+        const baseId = Number(formik.values.base_pricelist_id);
+        const base = allPriceLists.find((pl: any) => pl.id === baseId);
+        const baseItem = base?.pricelist_item?.find(
+          (bi: any) => bi.product_id === row.product_id
+        );
+        return <span>{baseItem?.unit_price || '-'}</span>;
+      },
+    },
+    {
+      id: 'base_subunit',
+      label: 'Base Subunit Price',
+      render: (_value, row) => {
+        const baseId = Number(formik.values.base_pricelist_id);
+        const base = allPriceLists.find((pl: any) => pl.id === baseId);
+        const baseItem = base?.pricelist_item?.find(
+          (bi: any) => bi.product_id === row.product_id
+        );
+        return <span>{baseItem?.sub_unit_price || '-'}</span>;
+      },
     },
     {
       id: 'unit_price',
-      label: 'Base Price',
+      label: 'Price',
       render: (_value, row) => (
         <Input
+          compact={true}
           value={row.unit_price}
           onChange={e =>
             updatePriceListItem(row._index, 'unit_price', e.target.value)
@@ -215,42 +384,11 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       ),
     },
     {
-      id: 'discount_percent',
-      label: 'Disc %',
-      render: (_value, row) => (
-        <Input
-          value={row.discount_percent}
-          onChange={e =>
-            updatePriceListItem(row._index, 'discount_percent', e.target.value)
-          }
-          placeholder="0"
-          type="number"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
-      id: 'tax_percent',
-      label: 'Tax %',
-      render: (_value, row) => (
-        <Input
-          value={row.tax_percent}
-          onChange={e =>
-            updatePriceListItem(row._index, 'tax_percent', e.target.value)
-          }
-          placeholder="18"
-          type="number"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
       id: 'sub_unit_price',
-      label: 'Sub-unit Price',
+      label: 'Subunit Price',
       render: (_value, row) => (
         <Input
+          compact={true}
           value={row.sub_unit_price}
           onChange={e =>
             updatePriceListItem(row._index, 'sub_unit_price', e.target.value)
@@ -263,111 +401,145 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       ),
     },
     {
-      id: 'uom',
-      label: 'UOM',
-      render: (_value, row) => (
-        <Input
-          value={row.uom}
-          onChange={e => updatePriceListItem(row._index, 'uom', e.target.value)}
-          placeholder="Unit"
-          size="small"
-          className="!min-w-20"
-        />
-      ),
-    },
-    {
-      id: 'effective_from',
-      label: 'Effective From',
-      render: (_value, row) => (
-        <Input
-          value={row.effective_from}
-          onChange={e =>
-            updatePriceListItem(row._index, 'effective_from', e.target.value)
-          }
-          type="date"
-          size="small"
-          className="!min-w-32"
-        />
-      ),
-    },
-    {
-      id: 'effective_to',
-      label: 'Effective To',
-      render: (_value, row) => (
-        <Input
-          value={row.effective_to}
-          onChange={e =>
-            updatePriceListItem(row._index, 'effective_to', e.target.value)
-          }
-          type="date"
-          size="small"
-          className="!min-w-32"
-        />
-      ),
-    },
-    {
-      id: 'is_active',
-      label: 'Status',
-      render: (_value, row) => (
-        <Select
-          value={row.is_active}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            updatePriceListItem(row._index, 'is_active', e.target.value)
-          }
-          size="small"
-          className="!min-w-20"
-        >
-          <MenuItem value="Y">Active</MenuItem>
-          <MenuItem value="N">Inactive</MenuItem>
-        </Select>
-      ),
-    },
-    {
       id: 'actions',
-      label: 'Actions',
-      sortable: false,
+      label: 'Action',
       render: (_value, row) => (
-        <DeleteButton
-          onClick={() => removePriceListItem(row._index)}
-          tooltip="Remove item"
-          confirmDelete={true}
-          itemName="price list item"
-        />
+        <div className="flex gap-2">
+          <ActionButton
+            onClick={() =>
+              setShowSpecialForIndex(
+                showSpecialForIndex === row._index ? null : row._index
+              )
+            }
+            size="small"
+            tooltip={
+              showSpecialForIndex === row._index
+                ? 'Hide Special Prices'
+                : 'Special Prices'
+            }
+            color={showSpecialForIndex === row._index ? 'primary' : 'info'}
+            icon={<MoreHoriz fontSize="small" />}
+          />
+        </div>
       ),
     },
   ];
 
-  const currencyOptions = [
-    { value: 'INR', label: 'INR - Indian Rupee' },
-    { value: 'USD', label: 'USD - US Dollar' },
-    { value: 'EUR', label: 'EUR - Euro' },
-    { value: 'GBP', label: 'GBP - British Pound' },
-    { value: 'JPY', label: 'JPY - Japanese Yen' },
-    { value: 'AUD', label: 'AUD - Australian Dollar' },
-    { value: 'CAD', label: 'CAD - Canadian Dollar' },
-  ];
+  const addSpecialPrice = (index: number) => {
+    const updated = [...priceListItems];
+    const item = updated[index];
+    const basePrice = item.unit_price || '0';
+    const sp: SpecialPriceForm = {
+      valid_from: '',
+      valid_to: '',
+      route_id: '',
+      customer_id: '',
+      customer_category_id: '',
+      sale_price: basePrice,
+      sale_sub_unit_price: item.sub_unit_price || '',
+      tax_percent: item.tax_percent || '',
+      discount_percent: '',
+      is_active: 'Y',
+    };
+    item.special_prices = [...(item.special_prices || []), sp];
+    setPriceListItems(updated);
+  };
+
+  const updateSpecialPrice = (
+    itemIndex: number,
+    spIndex: number,
+    field: keyof SpecialPriceForm,
+    value: string | number
+  ) => {
+    const updated = [...priceListItems];
+    const item = updated[itemIndex];
+    if (!item.special_prices) item.special_prices = [];
+    const sps = [...item.special_prices];
+    const sp = { ...sps[spIndex], [field]: value } as SpecialPriceForm;
+    if (field === 'sale_price') {
+      const n = parseFloat(value as string);
+      if (!isNaN(n)) {
+        sp.sale_sub_unit_price = (n / 24).toFixed(2);
+      }
+    }
+    sps[spIndex] = sp;
+    item.special_prices = sps;
+    setPriceListItems(updated);
+  };
+
+  const removeSpecialPrice = (itemIndex: number, spIndex: number) => {
+    const updated = [...priceListItems];
+    const item = updated[itemIndex];
+    item.special_prices = (item.special_prices || []).filter(
+      (_: any, i: number) => i !== spIndex
+    );
+    setPriceListItems(updated);
+  };
 
   return (
     <CustomDrawer
       open={drawerOpen}
       setOpen={handleCancel}
       title={isEdit ? 'Edit Price List' : 'Create Price List'}
-      size="medium"
+      size="large"
     >
-      <Box className="!p-6">
-        <form onSubmit={formik.handleSubmit} className="!space-y-6">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-6">
-            <Box className="md:!col-span-2">
-              <Input
-                name="name"
-                label="Price List Name"
-                placeholder="Enter price list name"
-                formik={formik}
-                required
-              />
-            </Box>
+      <div className="p-4">
+        <form onSubmit={formik.handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <Input
+              name="name"
+              label="Price List Name"
+              placeholder="Enter price list name"
+              formik={formik}
+              required
+              fullWidth
+            />
+            <Select
+              name="depot_id"
+              label="Depot"
+              formik={formik}
+              required
+              fullWidth
+            >
+              {depots.map(d => (
+                <MenuItem key={d.id} value={d.id}>
+                  {d.name}
+                </MenuItem>
+              ))}
+            </Select>
 
-            <Box className="md:!col-span-2">
+            <Select
+              name="base_pricelist_id"
+              label="Base Price List"
+              formik={formik}
+              fullWidth
+            >
+              <MenuItem value="" disabled>
+                Select Base Price List
+              </MenuItem>
+              {allPriceLists.map(
+                (pl: { id: number | undefined; name: string }) => (
+                  <MenuItem key={pl.id} value={pl.id}>
+                    {pl.name}
+                  </MenuItem>
+                )
+              )}
+            </Select>
+
+            <Input
+              name="factor"
+              label="Factor"
+              type="number"
+              placeholder="1.00"
+              formik={formik}
+              fullWidth
+            />
+            <YesNoField
+              name="is_default"
+              label="Default Price List"
+              formik={formik}
+            />
+            <div className="md:col-span-2">
               <Input
                 name="description"
                 label="Description"
@@ -375,67 +547,21 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                 formik={formik}
                 multiline
                 rows={3}
+                fullWidth
               />
-            </Box>
+            </div>
+          </div>
 
-            <Select
-              name="currency_code"
-              label="Currency"
-              formik={formik}
-              required
-            >
-              {currencyOptions.map(option => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-
-            <Select name="is_active" label="Status" formik={formik} required>
-              <MenuItem value="Y">Active</MenuItem>
-              <MenuItem value="N">Inactive</MenuItem>
-            </Select>
-
-            <Input
-              name="valid_from"
-              label="Valid From"
-              type="date"
-              formik={formik}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-
-            <Input
-              name="valid_to"
-              label="Valid To"
-              type="date"
-              formik={formik}
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-          </Box>
-
-          {/* Price List Items Section */}
-          <Box className="!space-y-4">
-            <Box className="!flex !justify-between !items-center">
-              <Typography
-                variant="h6"
-                className="!font-semibold !text-gray-900"
-              >
+          <div className="space-y-4 pt-4 border-t border-gray-100">
+            <div className="flex justify-between items-center">
+              <h6 className="text-base font-semibold text-gray-900">
                 Price List Items
-              </Typography>
-              <Button
-                type="button"
-                variant="outlined"
-                startIcon={<Add />}
-                onClick={addPriceListItem}
-                size="small"
-              >
-                Add Item
-              </Button>
-            </Box>
+              </h6>
+            </div>
 
-            {priceListItems.length > 0 && (
+            {priceListItems.length > 0 ? (
               <Table
-                compact
+                compact={true}
                 data={priceListItemsWithIndex}
                 columns={priceListItemsColumns}
                 getRowId={row => row._index.toString()}
@@ -443,19 +569,356 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                 sortable={false}
                 emptyMessage="No price list items added yet."
               />
-            )}
-
-            {priceListItems.length === 0 && (
-              <Box className="!text-center !py-8 !text-gray-500">
-                <Typography variant="body2">
+            ) : (
+              <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-100 rounded-lg bg-gray-50/50">
+                <p className="text-sm">
                   No price list items added yet. Click "Add Item" to get
                   started.
-                </Typography>
-              </Box>
+                </p>
+              </div>
             )}
-          </Box>
 
-          <Box className="!flex !justify-end !gap-2">
+            <Dialog
+              open={showSpecialForIndex !== null}
+              onClose={() => setShowSpecialForIndex(null)}
+              maxWidth="xl"
+              fullWidth
+            >
+              <DialogTitle className="flex justify-between items-center !py-2 !px-4 border-b border-gray-100">
+                <div className="flex flex-col">
+                  <span className="text-base font-bold text-gray-900 leading-tight">
+                    Special Prices
+                  </span>
+                  {showSpecialForIndex !== null &&
+                    priceListItems[showSpecialForIndex] && (
+                      <span className="text-xs font-normal text-gray-500">
+                        Product:{' '}
+                        {
+                          products.find(
+                            p =>
+                              p.id ===
+                              priceListItems[showSpecialForIndex].product_id
+                          )?.name
+                        }
+                      </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <ActionButton
+                    size="small"
+                    onClick={() => setShowSpecialForIndex(null)}
+                    icon={<Close fontSize="small" />}
+                    tooltip="Close"
+                  />
+                </div>
+              </DialogTitle>
+              <DialogContent className="!p-0 ">
+                {showSpecialForIndex !== null &&
+                  priceListItems[showSpecialForIndex] && (
+                    <div className="overflow-x-auto">
+                      <Table
+                        minHeight={400}
+                        compact={true}
+                        filterColunm={false}
+                        actions={
+                          <div className="flex justify-end items-center w-full">
+                            <Button
+                              type="button"
+                              variant="outlined"
+                              startIcon={<Add />}
+                              size="small"
+                              className="!py-1"
+                              onClick={() =>
+                                showSpecialForIndex !== null &&
+                                addSpecialPrice(showSpecialForIndex)
+                              }
+                            >
+                              Add Special Price
+                            </Button>
+                          </div>
+                        }
+                        data={(
+                          priceListItems[showSpecialForIndex].special_prices ||
+                          []
+                        ).map((sp, idx) => ({ ...sp, _index: idx }))}
+                        columns={[
+                          {
+                            id: 'valid_from',
+                            label: 'From',
+                            render: (_v, row: any) => (
+                              <Input
+                                compact={true}
+                                type="date"
+                                value={row.valid_from || ''}
+                                onChange={e =>
+                                  updateSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index,
+                                    'valid_from',
+                                    e.target.value
+                                  )
+                                }
+                                size="small"
+                                className="!min-w-28"
+                              />
+                            ),
+                          },
+                          {
+                            id: 'valid_to',
+                            label: 'To',
+                            render: (_v, row: any) => (
+                              <Input
+                                compact={true}
+                                type="date"
+                                value={row.valid_to || ''}
+                                onChange={e =>
+                                  updateSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index,
+                                    'valid_to',
+                                    e.target.value
+                                  )
+                                }
+                                size="small"
+                                className="!min-w-28"
+                              />
+                            ),
+                          },
+                          {
+                            id: 'route_id',
+                            label: 'Route',
+                            render: (_v, row: any) => (
+                              <Select
+                                compact={true}
+                                value={row.route_id ?? ''}
+                                onChange={(e: any) =>
+                                  updateSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index,
+                                    'route_id',
+                                    e.target.value === ''
+                                      ? null
+                                      : e.target.value
+                                  )
+                                }
+                                size="small"
+                                className="!min-w-36"
+                              >
+                                <MenuItem value="">None</MenuItem>
+                                {routes.map((r: any) => (
+                                  <MenuItem
+                                    key={r.id}
+                                    value={r.id}
+                                    className="text-xs"
+                                  >
+                                    {r.name}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            ),
+                          },
+                          {
+                            id: 'customer_category_id',
+                            label: 'Category',
+                            render: (_v, row: any) => (
+                              <Select
+                                compact={true}
+                                value={row.customer_category_id ?? ''}
+                                onChange={(e: any) =>
+                                  updateSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index,
+                                    'customer_category_id',
+                                    e.target.value === ''
+                                      ? null
+                                      : e.target.value
+                                  )
+                                }
+                                size="small"
+                                className="!min-w-36"
+                              >
+                                <MenuItem value="">None</MenuItem>
+                                {categories.map((c: any) => (
+                                  <MenuItem
+                                    key={c.id}
+                                    value={c.id}
+                                    className="text-xs"
+                                  >
+                                    {c.category_name}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            ),
+                          },
+                          {
+                            id: 'customer_id',
+                            label: 'Customer',
+                            render: (_v, row: any) => (
+                              <Select
+                                compact={true}
+                                value={row.customer_id ?? ''}
+                                onChange={(e: any) =>
+                                  updateSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index,
+                                    'customer_id',
+                                    e.target.value === ''
+                                      ? null
+                                      : e.target.value
+                                  )
+                                }
+                                size="small"
+                                className="!min-w-40"
+                              >
+                                <MenuItem value="">None</MenuItem>
+                                {customers.map((c: any) => (
+                                  <MenuItem
+                                    key={c.id}
+                                    value={c.id}
+                                    className="text-xs"
+                                  >
+                                    {c.name}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            ),
+                          },
+
+                          {
+                            id: 'original_price',
+                            label: 'Orig. Price',
+                            render: () => (
+                              <span className="text-xs">
+                                {priceListItems[showSpecialForIndex]
+                                  .unit_price || '0.00'}
+                              </span>
+                            ),
+                          },
+                          {
+                            id: 'original_subunit',
+                            label: 'Orig. Subunit',
+                            render: () => (
+                              <span className="text-xs">
+                                {priceListItems[showSpecialForIndex]
+                                  .sub_unit_price || '0.00'}
+                              </span>
+                            ),
+                          },
+                          {
+                            id: 'sale_price',
+                            label: 'Sale Price',
+                            render: (_v, row: any) => (
+                              <Input
+                                compact={true}
+                                type="number"
+                                value={row.sale_price}
+                                onChange={e =>
+                                  updateSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index,
+                                    'sale_price',
+                                    e.target.value
+                                  )
+                                }
+                                size="small"
+                                className="!min-w-24"
+                              />
+                            ),
+                          },
+                          {
+                            id: 'sale_sub_unit_price',
+                            label: 'Sale Subunit',
+                            render: (_v, row: any) => (
+                              <Input
+                                compact={true}
+                                type="number"
+                                value={row.sale_sub_unit_price || ''}
+                                onChange={e =>
+                                  updateSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index,
+                                    'sale_sub_unit_price',
+                                    e.target.value
+                                  )
+                                }
+                                size="small"
+                                className="!min-w-24"
+                              />
+                            ),
+                          },
+                          {
+                            id: 'tax_percent',
+                            label: 'Tax%',
+                            render: (_v, row: any) => (
+                              <Input
+                                type="number"
+                                compact={true}
+                                value={row.tax_percent || ''}
+                                onChange={e =>
+                                  updateSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index,
+                                    'tax_percent',
+                                    e.target.value
+                                  )
+                                }
+                                size="small"
+                                className="!min-w-16"
+                              />
+                            ),
+                          },
+                          {
+                            id: 'discount_percent',
+                            label: 'Disc%',
+                            render: (_v, row: any) => (
+                              <Input
+                                compact={true}
+                                type="number"
+                                value={row.discount_percent || ''}
+                                onChange={e =>
+                                  updateSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index,
+                                    'discount_percent',
+                                    e.target.value
+                                  )
+                                }
+                                size="small"
+                                className="!min-w-16"
+                              />
+                            ),
+                          },
+                          {
+                            id: 'actions',
+                            label: 'Actions',
+                            sortable: false,
+                            render: (_v, row: any) => (
+                              <DeleteButton
+                                onClick={() =>
+                                  removeSpecialPrice(
+                                    showSpecialForIndex,
+                                    row._index
+                                  )
+                                }
+                                tooltip="Remove"
+                                confirmDelete={true}
+                                itemName="special price"
+                                size="small"
+                              />
+                            ),
+                          },
+                        ]}
+                        pagination={false}
+                        sortable={false}
+                        emptyMessage="No special prices added."
+                      />
+                    </div>
+                  )}
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-6 border-t border-gray-100">
             <Button
               type="button"
               variant="outlined"
@@ -484,9 +947,9 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
                   ? 'Update'
                   : 'Create'}
             </Button>
-          </Box>
+          </div>
         </form>
-      </Box>
+      </div>
     </CustomDrawer>
   );
 };

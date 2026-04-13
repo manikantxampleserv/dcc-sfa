@@ -1,27 +1,25 @@
-import { Add, Block, CheckCircle, Download, Upload, FilterList } from '@mui/icons-material';
+import { Add, Block, CheckCircle, Download, FilterList, Upload } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
-import { useExportToExcel } from 'hooks/useImportExport';
-import { usePermission } from 'hooks/usePermission';
-import { useDepots } from 'hooks/useDepots';
-import { useRoutes } from 'hooks/useRoutes';
 import { useCustomerCategories } from 'hooks/useCustomerCategory';
 import { useCustomers } from 'hooks/useCustomers';
+import { useDepots } from 'hooks/useDepots';
+import { useExportToExcel } from 'hooks/useImportExport';
+import { usePermission } from 'hooks/usePermission';
 import {
   useDeletePriceList,
   usePriceLists,
   type PriceList,
 } from 'hooks/usePriceLists';
-import { DollarSign, Calendar, TrendingUp, FileText, MapPin, Users, Tag, Package } from 'lucide-react';
+import { useRoutes } from 'hooks/useRoutes';
+import { FileText, Package, TrendingUp } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
 import { PopConfirm } from 'shared/DeleteConfirmation';
-import Input from 'shared/Input';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
 import Table, { type TableColumn } from 'shared/Table';
-import { formatDate } from 'utils/dateUtils';
 import ImportPriceList from './ImportPriceList';
 import ManagePriceList from './ManagePriceList';
 
@@ -33,8 +31,6 @@ const PriceListsManagement: React.FC = () => {
   const [routeId, setRouteId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [customerId, setCustomerId] = useState<string>('');
-  const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
 
   const [selectedPriceList, setSelectedPriceList] = useState<PriceList | null>(
     null
@@ -55,21 +51,17 @@ const PriceListsManagement: React.FC = () => {
       route_id: routeId ? Number(routeId) : undefined,
       customer_id: customerId ? Number(customerId) : undefined,
       customer_category_id: categoryId ? Number(categoryId) : undefined,
-      from_date: fromDate || undefined,
-      to_date: toDate || undefined,
-      include_items: viewMode === 'details' ? true : undefined,
+      include_items: true,
     },
     { enabled: isRead }
   );
 
-  // Flatten items for details view if needed
   const pricingDetails = React.useMemo(() => {
     if (viewMode !== 'details') return [];
     return (priceListsResponse?.data || []).flatMap((pl: any) => 
       (pl.pricelist_item || []).map((item: any) => ({
         ...item,
         price_list_name: pl.name,
-        currency_code: pl.currency_code,
       }))
     );
   }, [priceListsResponse, viewMode]);
@@ -140,8 +132,6 @@ const PriceListsManagement: React.FC = () => {
         route_id: routeId ? Number(routeId) : undefined,
         customer_id: customerId ? Number(customerId) : undefined,
         customer_category_id: categoryId ? Number(categoryId) : undefined,
-        from_date: fromDate || undefined,
-        to_date: toDate || undefined,
         view_mode: viewMode,
       };
 
@@ -152,7 +142,7 @@ const PriceListsManagement: React.FC = () => {
     } catch (error) {
       console.error('Error exporting price lists:', error);
     }
-  }, [exportToExcelMutation, search, statusFilter, depotId, routeId, customerId, categoryId, fromDate, toDate, viewMode]);
+  }, [exportToExcelMutation, search, statusFilter, depotId, routeId, customerId, categoryId, viewMode]);
 
   const pricingDetailsColumns: TableColumn<any>[] = [
     {
@@ -184,7 +174,7 @@ const PriceListsManagement: React.FC = () => {
       label: 'Base Price',
       render: (_value, row) => (
         <Typography variant="body2" className="!font-medium">
-          {row.currency_code} {row.unit_price}
+          {row.unit_price}
         </Typography>
       ),
     },
@@ -209,7 +199,7 @@ const PriceListsManagement: React.FC = () => {
         const applicable = base - (base * disc / 100);
         return (
           <Typography variant="body2" className="!font-bold text-primary-600">
-            {row.currency_code} {applicable.toFixed(2)}
+            {applicable.toFixed(2)}
           </Typography>
         );
       },
@@ -219,7 +209,7 @@ const PriceListsManagement: React.FC = () => {
       label: 'Sub-unit Price',
       render: (_value, row) => (
         <Typography variant="body2">
-          {row.currency_code} {row.sub_unit_price || (parseFloat(row.unit_price) / 24).toFixed(2)}
+          {row.sub_unit_price || (parseFloat(row.unit_price) / 24).toFixed(2)}
         </Typography>
       ),
     },
@@ -229,6 +219,21 @@ const PriceListsManagement: React.FC = () => {
       render: (_value, row) => (
         <Typography variant="body2">{row.tax_percent || '18'}%</Typography>
       ),
+    },
+    {
+      id: 'special_prices_count',
+      label: 'Special Prices',
+      render: (_value, row) => {
+        const count = (row.special_prices || []).length;
+        return (
+          <Chip
+            label={`${count} rules`}
+            size="small"
+            variant="outlined"
+            className="!bg-indigo-50 !text-indigo-700 !border-indigo-200"
+          />
+        );
+      },
     },
   ];
 
@@ -264,50 +269,25 @@ const PriceListsManagement: React.FC = () => {
       ),
     },
     {
-      id: 'currency_code',
-      label: 'Currency',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <DollarSign className="w-3 h-3 text-gray-400" />
-          <span className="text-xs font-medium">
-            {row.currency_code || 'INR'}
-          </span>
-        </Box>
-      ),
-    },
-    {
-      id: 'validity_period',
-      label: 'Validity Period',
-      render: (_value, row) => (
-        <Box className="flex items-center gap-1">
-          <Calendar className="w-3 h-3 text-gray-400" />
-          <Box className="text-xs">
-            {row.valid_from || row.valid_to ? (
-              <span>
-                {row.valid_from && row.valid_to ? (
-                  <>
-                    {formatDate(row.valid_from)}
-                    <span className="mx-1 text-gray-400">–</span>
-                    {formatDate(row.valid_to)}
-                  </>
-                ) : row.valid_from ? (
-                  <>
-                    <span className="text-gray-400">From</span>{' '}
-                    {formatDate(row.valid_from)}
-                  </>
-                ) : (
-                  <>
-                    <span className="text-gray-400">Until</span>{' '}
-                    {formatDate(row.valid_to)}
-                  </>
-                )}
-              </span>
-            ) : (
-              <span className="text-gray-400 italic">No validity period</span>
-            )}
-          </Box>
-        </Box>
-      ),
+      id: 'assignment',
+      label: 'Assignment',
+      render: (_value, row) => {
+        if (row.is_default === 'Y') {
+          return (
+            <Chip 
+              label="Default" 
+              size="small" 
+              className="!bg-blue-50 !text-blue-700 !border-blue-200"
+              variant="outlined"
+            />
+          );
+        }
+        if (row.customer_id) return <Typography variant="caption" className="text-gray-600">Customer: {row.pricelists_customer?.name || row.customer_id}</Typography>;
+        if (row.route_id) return <Typography variant="caption" className="text-gray-600">Route: {row.pricelists_route?.name || row.route_id}</Typography>;
+        if (row.depot_id) return <Typography variant="caption" className="text-gray-600">Depot: {row.pricelists_depot?.name || row.depot_id}</Typography>;
+        if (row.customer_category_id) return <Typography variant="caption" className="text-gray-600">Category: {row.customer_category_id}</Typography>;
+        return <Typography variant="caption" className="text-gray-400 italic">Global</Typography>;
+      },
     },
     {
       id: 'items_count',
@@ -338,7 +318,7 @@ const PriceListsManagement: React.FC = () => {
       ? [
           {
             id: 'action',
-            label: 'Actions',
+            label: 'Action',
             sortable: false,
             render: (_value: any, row: PriceList) => (
               <div className="!flex !gap-2 !items-center">
@@ -435,7 +415,7 @@ const PriceListsManagement: React.FC = () => {
             <FilterList className="text-primary-500" />
             <Typography variant="subtitle2" className="!font-bold">Filters</Typography>
           </Box>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Select
               label="Depot"
               value={depotId}
@@ -512,30 +492,6 @@ const PriceListsManagement: React.FC = () => {
                 </MenuItem>
               ))}
             </Select>
-
-            <Input
-              label="From Date"
-              type="date"
-              value={fromDate}
-              onChange={(e) => {
-                setFromDate(e.target.value);
-                setPage(1);
-              }}
-              size="small"
-              className="w-full"
-            />
-
-            <Input
-              label="To Date"
-              type="date"
-              value={toDate}
-              onChange={(e) => {
-                setToDate(e.target.value);
-                setPage(1);
-              }}
-              size="small"
-              className="w-full"
-            />
           </div>
         </Box>
       )}
@@ -566,6 +522,7 @@ const PriceListsManagement: React.FC = () => {
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                     </Select>
+                   
                   </>
                 )}
               </div>
