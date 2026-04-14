@@ -115,19 +115,21 @@ const PriceListDetail: React.FC = () => {
         if (row.customer_id)
           return (
             <span className="inline-flex items-center px-2 py-0.5 rounded border border-gray-200 text-xs text-gray-600">
-              Customer: {row.customer_id}
+              Customer: {row?.special_customer?.name || row.customer_id}
             </span>
           );
         if (row.route_id)
           return (
             <span className="inline-flex items-center px-2 py-0.5 rounded border border-gray-200 text-xs text-gray-600">
-              Route: {row.route_id}
+              Route: {row.special_route?.name || row.route_id}
             </span>
           );
         if (row.customer_category_id)
           return (
             <span className="inline-flex items-center px-2 py-0.5 rounded border border-gray-200 text-xs text-gray-600">
-              Category: {row.customer_category_id}
+              Category:{' '}
+              {row.special_customer_category?.category_name ||
+                row.customer_category_id}
             </span>
           );
         return <span className="text-xs italic text-gray-500">Global</span>;

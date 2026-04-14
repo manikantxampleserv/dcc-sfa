@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import prisma from '../../configs/prisma.client';
-import { paginate } from '../../utils/paginate';
 
 interface PriceListSerialized {
   id: number;
@@ -34,7 +33,6 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
   depot_id: pl.depot_id,
   base_pricelist_id: pl.base_pricelist_id,
   factor: pl.factor?.toString() || null,
-  customer_category_id: pl.customer_category_id,
   is_default: pl.is_default,
   priority: pl.priority,
   is_active: pl.is_active,
@@ -59,6 +57,7 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
       tax_percent: sp.tax_percent?.toString() || null,
       discount_percent: sp.discount_percent?.toString() || null,
       is_active: sp.is_active,
+      special_customer_category: sp.special_customer_category,
     }));
 
     return {
@@ -80,8 +79,6 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
       special_prices: specialPrices,
     };
   }),
-  pricelists_customer: pl.pricelists_customer,
-  pricelists_route: pl.pricelists_route,
   pricelists_depot: pl.pricelists_depot,
   base_pricelist: pl.base_pricelist,
 });
@@ -403,19 +400,6 @@ export const priceListsController = {
         }),
       };
       const include: any = {
-        pricelists_customer: {
-          select: {
-            id: true,
-            name: true,
-            code: true,
-          },
-        },
-        pricelists_route: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
         pricelists_depot: {
           select: {
             id: true,
@@ -441,14 +425,24 @@ export const priceListsController = {
         include.pricelist_item = true;
       }
 
-      const { data, pagination } = await paginate({
-        model: prisma.pricelists,
-        filters,
-        page: pageNum,
-        limit: limitNum,
+      const data = await prisma.pricelists.findMany({
+        where: filters,
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
         orderBy: { createdate: 'desc' },
         include,
       });
+
+      const totalCount = await prisma.pricelists.count({ where: filters });
+
+      const pagination = {
+        current_page: pageNum,
+        per_page: limitNum,
+        total_pages: Math.ceil(totalCount / limitNum),
+        total_count: totalCount,
+        has_next: pageNum * limitNum < totalCount,
+        has_prev: pageNum > 1,
+      };
 
       const totalPriceLists = await prisma.pricelists.count();
       const activePriceLists = await prisma.pricelists.count({
@@ -500,7 +494,26 @@ export const priceListsController = {
           pricelist_item: {
             include: {
               pricelist_items_products: true,
-              pricelist_item_special_prices: true,
+              pricelist_item_special_prices: {
+                include: {
+                  special_customer_category: true,
+                  pricelist_item: true,
+                  special_customer: true,
+                  special_route: true,
+                },
+              },
+            },
+          },
+          derived_pricelists: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          pricelists_depot: {
+            select: {
+              id: true,
+              name: true,
             },
           },
           base_pricelist: {

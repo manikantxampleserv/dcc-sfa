@@ -195,11 +195,6 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
             ? Number(values.base_pricelist_id)
             : null,
           factor: Number(values.factor),
-          customer_id: values.customer_id ? Number(values.customer_id) : null,
-          route_id: values.route_id ? Number(values.route_id) : null,
-          customer_category_id: values.customer_category_id
-            ? Number(values.customer_category_id)
-            : null,
           description: values.description,
           pricelist_item: priceListItems
             .filter(item => item.product_id !== undefined)
