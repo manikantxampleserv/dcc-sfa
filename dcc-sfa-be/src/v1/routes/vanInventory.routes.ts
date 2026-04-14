@@ -35,10 +35,7 @@ router.get(
   requirePermission([{ module: 'van-stock', action: 'read' }]),
   vanInventoryController.getProducts
 );
-router.get(
-  '/van-inventory/test-procedure',
-  vanInventoryController.testPriceListProcedure
-);
+
 router.get(
   '/van-inventory/:id',
   authenticateToken,

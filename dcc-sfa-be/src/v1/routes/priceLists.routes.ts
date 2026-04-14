@@ -27,6 +27,10 @@ router.post(
   validate,
   priceListsController.upsertPriceList
 );
+router.get(
+  '/price-lists/customer',
+  priceListsController.getPriceListByCustomer
+);
 
 router.get(
   '/price-lists/:id',

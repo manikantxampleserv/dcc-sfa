@@ -1714,4 +1714,53 @@ export const priceListsController = {
       });
     }
   },
+  async getPriceListByCustomer(req: Request, res: Response) {
+    try {
+      const { customer_id, order_date } = req.query;
+
+      if (!customer_id || !order_date) {
+        return res.status(400).json({
+          success: false,
+          message: 'customer_id and order_date are required',
+        });
+      }
+
+      const result = await prisma.$queryRaw`
+      EXEC sp_get_price_lists_for_customer 
+        @CustomerID = ${parseInt(customer_id as string)},
+        @OrderDate = ${order_date as string}
+    `;
+
+      const parsedResult = (result as any[]).map(priceList => {
+        const pricelistItems = priceList.pricelist_items
+          ? JSON.parse(priceList.pricelist_items as string)
+          : [];
+
+        const itemsWithSpecialPrices = pricelistItems.map((item: any) => ({
+          ...item,
+          special_prices: item.special_prices
+            ? JSON.parse(item.special_prices)
+            : [],
+        }));
+
+        return {
+          ...priceList,
+          pricelist_items: itemsWithSpecialPrices,
+        };
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Price lists retrieved successfully',
+        data: parsedResult,
+      });
+    } catch (error: any) {
+      console.error('Test Price List Procedure Error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error retrieving price lists',
+        error: error.message,
+      });
+    }
+  },
 };
