@@ -38,11 +38,6 @@ router.get(
   requirePermission([{ module: 'pricelist', action: 'read' }]),
   priceListsController.getPriceListsById
 );
-router.get(
-  '/pricelists/:salesperson_id',
-  authenticateToken,
-  priceListsController.getProductsAndCustomer
-);
 
 router.get(
   '/price-lists',
@@ -59,10 +54,5 @@ router.delete(
   priceListsController.deletePriceLists
 );
 
-router.get(
-  '/price-lists/customer/:customer_id/resolve',
-  authenticateToken,
-  requirePermission([{ module: 'pricelist', action: 'read' }]),
-  priceListsController.getPriceListForCustomer
-);
+
 export default router;

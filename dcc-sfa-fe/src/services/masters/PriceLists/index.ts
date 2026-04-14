@@ -258,3 +258,58 @@ export type {
   UpdatePriceListPayload,
   GetPriceListsParams,
 };
+
+
+export interface CustomerPriceListItem {
+  id: number;
+  product_id: number;
+  product_name: string;
+  product_code: string;
+  unit_price: number;
+  discount_percent?: number | null;
+  tax_percent?: number | null;
+  is_active: string;
+  base_unit_price: number;
+  base_discount_percent?: number | null;
+  base_tax_percent?: number | null;
+  special_prices: SpecialPrice[];
+}
+
+export interface CustomerPriceListResult {
+  pricelist_id: number;
+  name: string;
+  description?: string | null;
+  level: 'DEPOT' | 'DEFAULT' | 'OTHER';
+  priority?: string | null;
+  factor?: number | null;
+  base_price_list_id?: number | null;
+  has_customer_special_prices: boolean;
+  has_route_special_prices: boolean;
+  has_category_special_prices: boolean;
+  has_depot_special_prices: boolean;
+  pricing_type: string;
+  description_level: string;
+  pricelist_items: CustomerPriceListItem[];
+}
+
+/**
+ * Fetch price list(s) for a customer using the stored procedure.
+ * Returns depot-level + default pricelists with resolved special prices.
+ */
+export const fetchPriceListByCustomer = async (
+  customerId: number,
+  orderDate: string
+): Promise<CustomerPriceListResult[]> => {
+  try {
+    const response = await api.get('/price-lists/customer', {
+      params: { customer_id: customerId, order_date: orderDate },
+    });
+    return response.data.data ?? [];
+  } catch (error: any) {
+    console.error('Error fetching customer price list:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to fetch customer price list'
+    );
+  }
+};
+
