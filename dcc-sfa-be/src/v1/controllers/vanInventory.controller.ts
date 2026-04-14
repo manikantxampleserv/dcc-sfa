@@ -4819,6 +4819,49 @@ export const vanInventoryController = {
   //   }
   // },
 
+  // 2.Logic to get  data written in sp not in logic
+  // async testPriceListProcedure(req: Request, res: Response) {
+  //   try {
+  //     const { customer_id, order_date } = req.query;
+
+  //     if (!customer_id || !order_date) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'customer_id and order_date are required',
+  //       });
+  //     }
+
+  //     const result = await prisma.$queryRaw`
+  //     EXEC sp_get_price_lists_for_customer
+  //       @CustomerID = ${parseInt(customer_id as string)},
+  //       @OrderDate = ${order_date as string}
+  //   `;
+
+  //     const parsedResult = (result as any[]).map(priceList => ({
+  //       ...priceList,
+  //       pricelist_items: priceList.pricelist_items
+  //         ? JSON.parse(priceList.pricelist_items)
+  //         : [],
+  //       special_price_items: priceList.special_price_items
+  //         ? JSON.parse(priceList.special_price_items)
+  //         : null,
+  //     }));
+
+  //     res.json({
+  //       success: true,
+  //       message: 'Price lists retrieved successfully',
+  //       data: parsedResult,
+  //     });
+  //   } catch (error: any) {
+  //     console.error('Test procedure error:', error);
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Error executing procedure',
+  //       error: error.message,
+  //     });
+  //   }
+  // },
+
   async testPriceListProcedure(req: Request, res: Response) {
     try {
       const { customer_id, order_date } = req.query;
@@ -4836,26 +4879,34 @@ export const vanInventoryController = {
         @OrderDate = ${order_date as string}
     `;
 
-      const parsedResult = (result as any[]).map(priceList => ({
-        ...priceList,
-        pricelist_items: priceList.pricelist_items
-          ? JSON.parse(priceList.pricelist_items)
-          : [],
-        special_price_items: priceList.special_price_items
-          ? JSON.parse(priceList.special_price_items)
-          : null,
-      }));
+      const parsedResult = (result as any[]).map(priceList => {
+        const pricelistItems = priceList.pricelist_items
+          ? JSON.parse(priceList.pricelist_items as string)
+          : [];
 
-      res.json({
+        const itemsWithSpecialPrices = pricelistItems.map((item: any) => ({
+          ...item,
+          special_prices: item.special_prices
+            ? JSON.parse(item.special_prices)
+            : [],
+        }));
+
+        return {
+          ...priceList,
+          pricelist_items: itemsWithSpecialPrices,
+        };
+      });
+
+      res.status(200).json({
         success: true,
         message: 'Price lists retrieved successfully',
         data: parsedResult,
       });
     } catch (error: any) {
-      console.error('Test procedure error:', error);
+      console.error('Test Price List Procedure Error:', error);
       res.status(500).json({
         success: false,
-        message: 'Error executing procedure',
+        message: 'Error retrieving price lists',
         error: error.message,
       });
     }
