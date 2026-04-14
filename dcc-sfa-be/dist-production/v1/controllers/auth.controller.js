@@ -199,6 +199,12 @@ const login = async (req, res) => {
             },
         });
         try {
+            await prisma_client_1.default.users.update({
+                where: { id: user.id },
+                data: {
+                    last_login: new Date(),
+                },
+            });
             await prisma_client_1.default.login_history.create({
                 data: {
                     user_id: user.id,
@@ -215,7 +221,7 @@ const login = async (req, res) => {
             });
         }
         catch (error) {
-            console.error('Error creating successful login history:', error);
+            console.error('Error updating login info:', error);
         }
         return res.success('Login successful', {
             user: {

@@ -23,6 +23,7 @@ interface InvoiceSerialized {
   billing_address?: string;
   is_active: string;
   invoice_method?: string;
+  pricelist_id?: number;
   salesperson_id?: number;
   createdate?: string;
   createdby: number;
@@ -81,6 +82,7 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
   billing_address: invoice.billing_address,
   is_active: invoice.is_active,
   invoice_method: invoice.parent_id ? 'order' : 'direct',
+  pricelist_id: invoice.pricelist_id,
   salesperson_id: invoice.salesperson_id,
   createdate: invoice.createdate?.toISOString(),
   createdby: invoice.createdby,
@@ -195,6 +197,7 @@ export const invoicesController = {
             notes: data.notes || null,
             billing_address: data.billing_address || null,
             is_active: data.is_active || 'Y',
+            pricelist_id: data.pricelist_id ? Number(data.pricelist_id) : null,
             createdby: data.createdby ? Number(data.createdby) : 1,
             log_inst: data.log_inst || 1,
             createdate: new Date(),
@@ -568,6 +571,7 @@ export const invoicesController = {
                 ? data.billing_address
                 : undefined,
             is_active: data.is_active || 'Y',
+            pricelist_id: data.pricelist_id !== undefined ? (data.pricelist_id ? Number(data.pricelist_id) : null) : undefined,
             updatedate: new Date(),
           },
         });

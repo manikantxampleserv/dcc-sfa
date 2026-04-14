@@ -22,6 +22,7 @@ const serializeOrder = (order) => ({
     payment_method: order.payment_method,
     payment_terms: order.payment_terms,
     promotion_id: order.promotion_id,
+    pricelist_id: order.pricelist_id ?? null,
     subtotal: order.subtotal ? Number(order.subtotal) : null,
     discount_amount: order.discount_amount ? Number(order.discount_amount) : null,
     tax_amount: order.tax_amount ? Number(order.tax_amount) : null,
@@ -443,6 +444,9 @@ exports.ordersController = {
                     is_active: orderData.is_active || 'Y',
                     promotion_id: selected_promotion_id
                         ? parseInt(selected_promotion_id)
+                        : null,
+                    pricelist_id: orderData.pricelist_id
+                        ? Number(orderData.pricelist_id)
                         : null,
                 };
                 if (isUpdate && orderId) {
@@ -1496,6 +1500,9 @@ exports.ordersController = {
                     shipping_address: orderData.shipping_address || null,
                     approval_status: orderData.approval_status,
                     is_active: orderData.is_active,
+                    pricelist_id: orderData.pricelist_id
+                        ? Number(orderData.pricelist_id)
+                        : null,
                     updatedate: new Date(),
                     updatedby: userId,
                     log_inst: { increment: 1 },

@@ -195,6 +195,12 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             }
           }
         }
+
+        const appliedPricelistId =
+          customerPriceLists && customerPriceLists.length > 0
+            ? (customerPriceLists[0].pricelist_id ?? null)
+            : null;
+
         const submitData = {
           ...values,
           invoice_date: new Date(values.invoice_date).toISOString(),
@@ -213,6 +219,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           total_amount: totals.total_amount,
           amount_paid: values.status === 'paid' ? totals.total_amount : 0,
           balance_due: totals.balance_due,
+          pricelist_id: appliedPricelistId,
           invoiceItems: invoiceItems
             .filter(item => item.product_id !== '')
             .map(item => ({

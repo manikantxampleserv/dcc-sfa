@@ -4,10 +4,7 @@
  * @author DCC-SFA Team
  * @version 1.0.0
  */
-/**
- * Seed Pricelists with mock data
- */
-export declare function seedPricelists(): Promise<void>;
+export declare const seedPricelists: () => Promise<void>;
 /**
  * Clear Pricelists data
  */

@@ -9,7 +9,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.seedPricelists = seedPricelists;
+exports.seedPricelists = void 0;
 exports.clearPricelists = clearPricelists;
 const logger_1 = __importDefault(require("../../configs/logger"));
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
@@ -17,7 +17,6 @@ const mockPricelists = [
     {
         name: 'Standard Retail Pricelist',
         description: 'Standard pricing for retail customers',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -25,7 +24,6 @@ const mockPricelists = [
     {
         name: 'Wholesale Pricelist',
         description: 'Volume-based pricing for wholesale customers',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -33,7 +31,6 @@ const mockPricelists = [
     {
         name: 'Corporate Pricelist',
         description: 'Special pricing for corporate clients',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -41,7 +38,6 @@ const mockPricelists = [
     {
         name: 'Healthcare Pricelist',
         description: 'Specialized pricing for healthcare facilities',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -49,7 +45,6 @@ const mockPricelists = [
     {
         name: 'Restaurant Pricelist',
         description: 'Food service industry pricing',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -57,7 +52,6 @@ const mockPricelists = [
     {
         name: 'Manufacturing Pricelist',
         description: 'Industrial and manufacturing pricing',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -65,7 +59,6 @@ const mockPricelists = [
     {
         name: 'Automotive Pricelist',
         description: 'Automotive industry specific pricing',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -73,7 +66,6 @@ const mockPricelists = [
     {
         name: 'Service Provider Pricelist',
         description: 'Pricing for service companies',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -81,7 +73,6 @@ const mockPricelists = [
     {
         name: 'Government Pricelist',
         description: 'Special pricing for government agencies',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -89,7 +80,6 @@ const mockPricelists = [
     {
         name: 'Educational Pricelist',
         description: 'Discounted pricing for educational institutions',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -97,7 +87,6 @@ const mockPricelists = [
     {
         name: 'Non-Profit Pricelist',
         description: 'Special pricing for non-profit organizations',
-        currency_code: 'INR',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
@@ -105,74 +94,68 @@ const mockPricelists = [
     {
         name: 'International Pricelist',
         description: 'Export pricing for international customers',
-        currency_code: 'USD',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
     },
     {
-        name: 'Emergency Services Pricelist',
-        description: 'Priority pricing for emergency services',
-        currency_code: 'INR',
+        name: 'Startup Pricelist',
+        description: 'Introductory pricing for startups',
         valid_from: new Date('2024-01-01'),
         valid_to: new Date('2024-12-31'),
         is_active: 'Y',
     },
     {
-        name: 'Promotional Pricelist',
-        description: 'Limited time promotional pricing',
-        currency_code: 'INR',
-        valid_from: new Date('2024-06-01'),
-        valid_to: new Date('2024-08-31'),
+        name: 'E-commerce Pricelist',
+        description: 'Dynamic pricing for online retailers',
+        valid_from: new Date('2024-01-01'),
+        valid_to: new Date('2024-12-31'),
         is_active: 'Y',
     },
     {
-        name: 'Legacy Pricelist',
-        description: 'Old pricelist no longer in use',
-        currency_code: 'INR',
-        valid_from: new Date('2023-01-01'),
-        valid_to: new Date('2023-12-31'),
-        is_active: 'N',
+        name: 'Franchise Pricelist',
+        description: 'Standardized pricing for franchises',
+        valid_from: new Date('2024-01-01'),
+        valid_to: new Date('2024-12-31'),
+        is_active: 'Y',
     },
 ];
-/**
- * Seed Pricelists with mock data
- */
-async function seedPricelists() {
+const seedPricelists = async () => {
     try {
-        let pricelistsCreated = 0;
-        let pricelistsSkipped = 0;
-        for (const pricelist of mockPricelists) {
-            const existingPricelist = await prisma_client_1.default.pricelists.findFirst({
-                where: { name: pricelist.name },
+        logger_1.default.info('Starting Pricelists seeding...');
+        // Get a default user for createdby
+        const defaultUser = await prisma_client_1.default.users.findFirst({
+            where: { is_active: 'Y' },
+            select: { id: true },
+        });
+        if (!defaultUser) {
+            logger_1.default.warn('No active users found. Skipping Pricelists seeding.');
+            return;
+        }
+        let createdCount = 0;
+        for (const pl of mockPricelists) {
+            const existing = await prisma_client_1.default.pricelists.findFirst({
+                where: { name: pl.name },
             });
-            if (!existingPricelist) {
+            if (!existing) {
                 await prisma_client_1.default.pricelists.create({
                     data: {
-                        name: pricelist.name,
-                        description: pricelist.description,
-                        currency_code: pricelist.currency_code,
-                        valid_from: pricelist.valid_from,
-                        valid_to: pricelist.valid_to,
-                        is_active: pricelist.is_active,
-                        createdate: new Date(),
-                        createdby: 1,
+                        ...pl,
+                        createdby: defaultUser.id,
                         log_inst: 1,
                     },
                 });
-                pricelistsCreated++;
-            }
-            else {
-                pricelistsSkipped++;
+                createdCount++;
             }
         }
-        logger_1.default.info(`Pricelists seeding completed: ${pricelistsCreated} created, ${pricelistsSkipped} skipped`);
+        logger_1.default.info(`Successfully seeded ${createdCount} new Pricelists.`);
     }
     catch (error) {
-        logger_1.default.error('Error seeding pricelists:', error);
+        logger_1.default.error('Error seeding Pricelists:', error);
         throw error;
     }
-}
+};
+exports.seedPricelists = seedPricelists;
 /**
  * Clear Pricelists data
  */
