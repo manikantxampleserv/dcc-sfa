@@ -295,7 +295,6 @@ const DepotSelect: React.FC<DepotSelectProps> = ({
       }
 
       if (newValue) {
-        // Update input value to show the full selected name
         setInputValue(newValue.name);
         setSearchValue('');
         setDebouncedSearch('');

@@ -57,6 +57,8 @@ const serializePriceList = (pl: any): PriceListSerialized => ({
       tax_percent: sp.tax_percent?.toString() || null,
       discount_percent: sp.discount_percent?.toString() || null,
       is_active: sp.is_active,
+      special_customer: sp.special_customer,
+      special_route: sp.special_route,
       special_customer_category: sp.special_customer_category,
     }));
 
@@ -351,8 +353,6 @@ export const priceListsController = {
         route_id,
         customer_id,
         customer_category_id,
-        from_date,
-        to_date,
         include_items,
         is_default,
       } = req.query;
@@ -384,19 +384,23 @@ export const priceListsController = {
         ...(statusLower === 'active' && { is_active: 'Y' }),
         ...(statusLower === 'inactive' && { is_active: 'N' }),
         ...(depot_id && { depot_id: Number(depot_id) }),
-        ...(route_id && { route_id: Number(route_id) }),
-        ...(customer_id && { customer_id: Number(customer_id) }),
-        ...(customer_category_id && {
-          customer_category_id: Number(customer_category_id),
+        ...((route_id || customer_id || customer_category_id) && {
+          pricelist_item: {
+            some: {
+              pricelist_item_special_prices: {
+                some: {
+                  ...(route_id && { route_id: Number(route_id) }),
+                  ...(customer_id && { customer_id: Number(customer_id) }),
+                  ...(customer_category_id && {
+                    customer_category_id: Number(customer_category_id),
+                  }),
+                },
+              },
+            },
+          },
         }),
         ...(is_default !== undefined && {
           is_default: is_default === 'true' ? 'Y' : 'N',
-        }),
-        ...(from_date && {
-          valid_from: { gte: new Date(from_date as string) },
-        }),
-        ...(to_date && {
-          valid_to: { lte: new Date(to_date as string) },
         }),
       };
       const include: any = {
@@ -499,7 +503,12 @@ export const priceListsController = {
                   special_customer_category: true,
                   pricelist_item: true,
                   special_customer: true,
-                  special_route: true,
+                  special_route: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
                 },
               },
             },
