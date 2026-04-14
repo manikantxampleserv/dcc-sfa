@@ -4836,7 +4836,6 @@ export const vanInventoryController = {
         @OrderDate = ${order_date as string}
     `;
 
-      // Parse JSON strings to arrays
       const parsedResult = (result as any[]).map(priceList => ({
         ...priceList,
         pricelist_items: priceList.pricelist_items
