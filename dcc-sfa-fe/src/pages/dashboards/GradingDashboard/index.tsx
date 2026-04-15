@@ -48,9 +48,7 @@ const GradingDashboard: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
-  const [typeFilter, setTypeFilter] = useState<
-    'all' | 'upgrade' | 'downgrade' | 'no_change'
-  >('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'upgrade' | 'downgrade' | 'no_change'>('all');
 
   const { data: statsData } = useGradingStats();
   const { data: requestsData, isFetching: isFetchingRequests } =
@@ -71,7 +69,6 @@ const GradingDashboard: React.FC = () => {
     setPage(newPage + 1);
   };
 
-  // Search is handled by the API now, so we can use data directly
   const tableData = requestsData?.data || [];
 
   const stats = {
@@ -194,6 +191,7 @@ const GradingDashboard: React.FC = () => {
                     key={cond.id}
                     title={cond.condition_description || ''}
                     arrow
+                    placement='top'
                   >
                     <Chip
                       label={`${cond.condition_type.replace(/_/g, ' ')} ${cond.condition_operator} ${cond.threshold_value}`}
