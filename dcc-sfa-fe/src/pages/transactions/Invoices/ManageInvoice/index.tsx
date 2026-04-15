@@ -4,12 +4,9 @@ import dayjs from 'dayjs';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
 import { useInventoryItemById } from 'hooks/useInventoryItems';
-import {
-  useCreateInvoice,
-  useInvoice,
-  useUpdateInvoice,
-} from 'hooks/useInvoices';
+import { useCreateInvoice, useInvoice, useUpdateInvoice } from 'hooks/useInvoices';
 import { useOrder, useOrders } from 'hooks/useOrders';
+import { usePriceListByCustomer, type CustomerPriceListResult } from 'hooks/usePriceLists';
 import { Plus } from 'lucide-react';
 import React, {
   useCallback,
@@ -198,6 +195,12 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             }
           }
         }
+
+        const appliedPricelistId =
+          customerPriceLists && customerPriceLists.length > 0
+            ? (customerPriceLists[0].pricelist_id ?? null)
+            : null;
+
         const submitData = {
           ...values,
           invoice_date: new Date(values.invoice_date).toISOString(),
@@ -216,6 +219,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           total_amount: totals.total_amount,
           amount_paid: values.status === 'paid' ? totals.total_amount : 0,
           balance_due: totals.balance_due,
+          pricelist_id: appliedPricelistId,
           invoiceItems: invoiceItems
             .filter(item => item.product_id !== '')
             .map(item => ({
@@ -266,6 +270,47 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const salespersonId = formik.values.salesperson_id
     ? Number(formik.values.salesperson_id)
     : 0;
+
+  const { data: customerPriceLists } = usePriceListByCustomer(
+    formik.values.customer_id || undefined,
+    formik.values.invoice_date || undefined,
+    { enabled: open }
+  );
+
+  /**
+   * Resolves the effective unit_price for a product from the SP pricelist result.
+   * Priority: customer special → route/category special → base pricelist price.
+   */
+  const resolvePrice = (
+    productId: number,
+    priceLists: CustomerPriceListResult[] | undefined
+  ): string | null => {
+    if (!priceLists || priceLists.length === 0) return null;
+
+    const customerId = Number(formik.values.customer_id);
+
+    for (const pl of priceLists) {
+      const item = pl.pricelist_items?.find(i => i.product_id === productId);
+      if (!item) continue;
+
+      const specials = item.special_prices ?? [];
+
+      // 1. Customer-specific price
+      const customerSp = specials.find(sp => sp.customer_id === customerId);
+      if (customerSp) return String(customerSp.sale_price);
+
+      // 2. Route or category special price
+      const otherSp = specials.find(
+        sp => sp.route_id != null || sp.customer_category_id != null
+      );
+      if (otherSp) return String(otherSp.sale_price);
+
+      // 3. Base pricelist item price
+      return String(item.unit_price);
+    }
+
+    return null;
+  };
 
   const { data: salespersonInventoryData } = useInventoryItemById(
     salespersonId,
@@ -471,12 +516,17 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       const isBatchOrSerial =
         trackingLower === 'batch' || trackingLower === 'serial';
 
+      const resolvedPrice = product
+        ? resolvePrice(product.product_id, customerPriceLists) ??
+          String(product.unit_price)
+        : '0';
+
       updatedItems[rowIndex] = {
         ...updatedItems[rowIndex],
         product_id: product ? product.product_id : '',
         product_name: product ? product.name : '',
         tracking_type: trackingType,
-        unit_price: product ? String(product.unit_price) : '0',
+        unit_price: resolvedPrice,
         quantity:
           product && isBatchOrSerial
             ? '0'
@@ -489,7 +539,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       formik.setFieldValue('invoice_items', updatedItems, false);
       formikSyncRef.current = JSON.stringify(updatedItems);
     },
-    [invoiceItems]
+    [invoiceItems, customerPriceLists, formik.values.customer_id]
   );
 
   const invoiceItemsWithIndex = React.useMemo(

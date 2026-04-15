@@ -7,6 +7,7 @@ import {
 } from 'hooks/useInventoryItems';
 import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
 import { useCurrency } from 'hooks/useCurrency';
+import { usePriceListByCustomer, type CustomerPriceListResult } from 'hooks/usePriceLists';
 import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
 import { Plus } from 'lucide-react';
 import React, {
@@ -103,10 +104,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             toast.error(`Item ${i + 1}: Please enter a valid quantity`);
             return;
           }
-
           const quantity = Number(item.quantity);
           const trackingType = (item.tracking_type || '').toLowerCase();
-
           if (trackingType === 'batch' && quantity > 0) {
             const rawBatches = item.product_batches || [];
             const nonZeroBatches = rawBatches.filter(b => {
@@ -173,6 +172,11 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           }
         }
 
+        const appliedPricelistId =
+          customerPriceLists && customerPriceLists.length > 0
+            ? (customerPriceLists[0].pricelist_id ?? null)
+            : null;
+
         const submitData = {
           ...values,
           order_date: new Date(values.order_date).toISOString(),
@@ -184,6 +188,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           delivery_date: new Date(values.delivery_date).toISOString(),
           notes: values.notes,
           shipping_address: values.shipping_address,
+          pricelist_id: appliedPricelistId,
           order_items: orderItems
             .filter(
               item => typeof item.product_id === 'number' && item.product_id > 0
@@ -223,6 +228,47 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const salespersonId = formik.values.salesperson_id
     ? Number(formik.values.salesperson_id)
     : 0;
+
+  const { data: customerPriceLists } = usePriceListByCustomer(
+    formik.values.parent_id || undefined,
+    formik.values.order_date || undefined,
+    { enabled: open }
+  );
+
+  /**
+   * Resolves the effective unit_price for a product from the SP pricelist result.
+   * Priority: customer special → route/category special → base pricelist price.
+   */
+  const resolvePrice = (
+    productId: number,
+    priceLists: CustomerPriceListResult[] | undefined
+  ): string | null => {
+    if (!priceLists || priceLists.length === 0) return null;
+
+    const customerId = Number(formik.values.parent_id);
+
+    for (const pl of priceLists) {
+      const item = pl.pricelist_items?.find(i => i.product_id === productId);
+      if (!item) continue;
+
+      const specials = item.special_prices ?? [];
+
+      // 1. Customer-specific price
+      const customerSp = specials.find(sp => sp.customer_id === customerId);
+      if (customerSp) return String(customerSp.sale_price);
+
+      // 2. Route or category special price
+      const otherSp = specials.find(
+        sp => sp.route_id != null || sp.customer_category_id != null
+      );
+      if (otherSp) return String(otherSp.sale_price);
+
+      // 3. Base pricelist item price
+      return String(item.unit_price);
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     if (order && open) {
@@ -433,12 +479,17 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       const isBatchOrSerial =
         trackingLower === 'batch' || trackingLower === 'serial';
 
+      const resolvedPrice = product
+        ? resolvePrice(product.product_id, customerPriceLists) ??
+          String(product.unit_price)
+        : '0';
+
       updatedItems[rowIndex] = {
         ...updatedItems[rowIndex],
         product_id: product ? product.product_id : 0,
         product_name: product ? product.name : '',
         tracking_type: trackingType,
-        unit_price: product ? String(product.unit_price) : '0',
+        unit_price: resolvedPrice,
         quantity:
           product && isBatchOrSerial
             ? '0'
@@ -451,7 +502,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       formik.setFieldValue('order_items', updatedItems);
       formikSyncRef.current = JSON.stringify(updatedItems);
     },
-    [orderItems]
+    [orderItems, customerPriceLists, formik.values.parent_id]
   );
 
   const orderItemsWithIndex = orderItems.map((item, index) => ({

@@ -16,6 +16,8 @@ export type {
   ManagePriceListPayload,
   UpdatePriceListPayload,
   GetPriceListsParams,
+  CustomerPriceListItem,
+  CustomerPriceListResult,
 } from '../services/masters/PriceLists';
 
 /**
@@ -27,6 +29,8 @@ export const priceListsQueryKeys = {
   list: (params?: any) => [...priceListsQueryKeys.lists(), params] as const,
   details: () => [...priceListsQueryKeys.all, 'detail'] as const,
   detail: (id: number) => [...priceListsQueryKeys.details(), id] as const,
+  byCustomer: (customerId: number, orderDate: string) =>
+    [...priceListsQueryKeys.all, 'by-customer', customerId, orderDate] as const,
 };
 
 /**
@@ -65,6 +69,32 @@ export const usePriceListById = (
     queryFn: () => priceListsService.fetchPriceListById(id),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+/**
+ * Hook to fetch the resolved price list for a customer + order date.
+ * Calls GET /price-lists/customer which executes sp_get_price_lists_for_customer.
+ * Priority: Customer special → Route special → Category special → Base price.
+ * Only fires when both customerId and orderDate are set.
+ */
+export const usePriceListByCustomer = (
+  customerId: number | string | undefined,
+  orderDate: string | undefined,
+  options?: Omit<
+    UseQueryOptions<priceListsService.CustomerPriceListResult[]>,
+    'queryKey' | 'queryFn'
+  >
+) => {
+  const id = customerId ? Number(customerId) : 0;
+  const date = orderDate ?? '';
+
+  return useQuery({
+    queryKey: priceListsQueryKeys.byCustomer(id, date),
+    queryFn: () => priceListsService.fetchPriceListByCustomer(id, date),
+    enabled: !!id && !!date,
+    staleTime: 2 * 60 * 1000,
     ...options,
   });
 };

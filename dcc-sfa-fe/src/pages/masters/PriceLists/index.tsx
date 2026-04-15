@@ -2,16 +2,11 @@ import {
   Add,
   Block,
   CheckCircle,
-  // Download,
   FilterList,
-  // Upload,
   Visibility,
 } from '@mui/icons-material';
 import { Alert, Avatar, Box, Chip, MenuItem, Typography } from '@mui/material';
 import { useCustomerCategories } from 'hooks/useCustomerCategory';
-import { useCustomers } from 'hooks/useCustomers';
-import { useDepots } from 'hooks/useDepots';
-// import { useExportToExcel } from 'hooks/useImportExport';
 import { usePermission } from 'hooks/usePermission';
 import {
   useDeletePriceList,
@@ -24,7 +19,8 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ActionButton, DeleteButton, EditButton } from 'shared/ActionButton';
 import Button from 'shared/Button';
-// import { PopConfirm } from 'shared/DeleteConfirmation';
+import CustomerSelect from 'shared/CustomerSelect';
+import DepotSelect from 'shared/DepotSelect';
 import SearchInput from 'shared/SearchInput';
 import Select from 'shared/Select';
 import StatsCard from 'shared/StatsCard';
@@ -69,27 +65,17 @@ const PriceListsManagement: React.FC = () => {
     { enabled: isRead }
   );
 
-  const { data: depotsResponse } = useDepots({ limit: 1000, isActive: 'Y' });
   const { data: routesResponse } = useRoutes({
     limit: 1000,
     status: 'active',
-    depot_id: depotId ? Number(depotId) : undefined,
   });
   const { data: categoriesResponse } = useCustomerCategories({
     limit: 1000,
     is_active: 'Y',
   });
-  const { data: customersResponse } = useCustomers({
-    limit: 1000,
-    isActive: 'Y',
-    depot_id: depotId ? Number(depotId) : undefined,
-    route_id: routeId ? Number(routeId) : undefined,
-  });
 
-  const depots = depotsResponse?.data || [];
   const routes = routesResponse?.data || [];
   const categories = categoriesResponse?.data || [];
-  const customers = customersResponse?.data || [];
 
   const priceLists = priceListsResponse?.data || [];
   const totalCount = priceListsResponse?.meta?.total || 0;
@@ -97,7 +83,6 @@ const PriceListsManagement: React.FC = () => {
   const stats = priceListsResponse?.stats || {};
 
   const deletePriceListMutation = useDeletePriceList();
-  // const exportToExcelMutation = useExportToExcel();
 
   const totalPriceLists = stats.total_price_lists ?? priceLists.length;
   const activePriceLists =
@@ -138,35 +123,6 @@ const PriceListsManagement: React.FC = () => {
     setPage(newPage + 1);
   };
 
-  // const handleExportToExcel = useCallback(async () => {
-  //   try {
-  //     const filters = {
-  //       search,
-  //       status: statusFilter === 'all' ? undefined : statusFilter,
-  //       depot_id: depotId ? Number(depotId) : undefined,
-  //       route_id: routeId ? Number(routeId) : undefined,
-  //       customer_id: customerId ? Number(customerId) : undefined,
-  //       customer_category_id: categoryId ? Number(categoryId) : undefined,
-  //       view_mode: viewMode,
-  //     };
-
-  //     await exportToExcelMutation.mutateAsync({
-  //       tableName: 'pricelists',
-  //       filters,
-  //     });
-  //   } catch (error) {
-  //     console.error('Error exporting price lists:', error);
-  //   }
-  // }, [
-  //   exportToExcelMutation,
-  //   search,
-  //   statusFilter,
-  //   depotId,
-  //   routeId,
-  //   customerId,
-  //   categoryId,
-  //   viewMode,
-  // ]);
 
   const priceListsColumns: TableColumn<PriceList>[] = [
     {
@@ -357,31 +313,23 @@ const PriceListsManagement: React.FC = () => {
 
       {isRead && (
         <Box className="bg-white shadow-sm p-3 rounded-lg border border-gray-100 mb-4">
-          <Box className="flex items-center gap-2 mb-4">
+          <Box className="flex items-center gap-2 mb-2">
             <FilterList className="text-primary-500" />
             <Typography variant="subtitle2" className="!font-bold">
               Filters
             </Typography>
           </Box>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Select
+            <DepotSelect
               label="Depot"
               value={depotId}
-              onChange={e => {
-                setDepotId(e.target.value);
+              setValue={value => {
+                setDepotId(value);
                 setRouteId('');
                 setCustomerId('');
                 setPage(1);
               }}
-              placeholder="Select Depot"
-              className="w-full"
-            >
-              {depots.map((depot: any) => (
-                <MenuItem key={depot.id} value={depot.id.toString()}>
-                  {depot.name}
-                </MenuItem>
-              ))}
-            </Select>
+            />
 
             <Select
               label="Route"
@@ -392,7 +340,6 @@ const PriceListsManagement: React.FC = () => {
                 setPage(1);
               }}
               placeholder="Select Route"
-              disabled={!depotId}
               className="w-full"
             >
               {routes.map((route: any) => (
@@ -419,23 +366,15 @@ const PriceListsManagement: React.FC = () => {
               ))}
             </Select>
 
-            <Select
+            <CustomerSelect
+              name="customer_id"
               label="Customer"
               value={customerId}
-              onChange={e => {
-                setCustomerId(e.target.value);
+              setValue={value => {
+                setCustomerId(value);
                 setPage(1);
               }}
-              placeholder="Select Customer"
-              disabled={!depotId && !routeId}
-              className="w-full"
-            >
-              {customers.map((customer: any) => (
-                <MenuItem key={customer.id} value={customer.id.toString()}>
-                  {customer.name}
-                </MenuItem>
-              ))}
-            </Select>
+            />
           </div>
         </Box>
       )}
@@ -470,37 +409,6 @@ const PriceListsManagement: React.FC = () => {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {/* {isRead && (
-                  <PopConfirm
-                    title="Export Price Lists"
-                    description="Are you sure you want to export the current price lists data to Excel? This will include all filtered results."
-                    onConfirm={handleExportToExcel}
-                    confirmText="Export"
-                    cancelText="Cancel"
-                    placement="top"
-                  >
-                    <Button
-                      variant="outlined"
-                      className="!capitalize"
-                      startIcon={<Download />}
-                      disabled={exportToExcelMutation.isPending}
-                    >
-                      {exportToExcelMutation.isPending
-                        ? 'Exporting...'
-                        : 'Export'}
-                    </Button>
-                  </PopConfirm>
-                )}
-                {isCreate && (
-                  <Button
-                    variant="outlined"
-                    className="!capitalize"
-                    startIcon={<Upload />}
-                    onClick={() => setImportModalOpen(true)}
-                  >
-                    Import
-                  </Button>
-                )} */}
                 {isCreate && (
                   <Button
                     variant="contained"

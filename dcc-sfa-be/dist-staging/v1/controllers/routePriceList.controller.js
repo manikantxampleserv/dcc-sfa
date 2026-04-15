@@ -9,6 +9,9 @@ const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
 const serializeRoutePriceList = (rpl) => ({
     id: rpl.id,
     route_id: rpl.route_id,
+    depot_id: rpl.depot_id,
+    customer_id: rpl.customer_id,
+    customer_category_id: rpl.customer_category_id,
     pricelist_id: rpl.pricelist_id,
     is_active: rpl.is_active,
     createdate: rpl.createdate,
@@ -27,27 +30,28 @@ exports.routePriceListController = {
             const routePriceList = await prisma_client_1.default.route_pricelists.create({
                 data: {
                     route_id: data.route_id,
+                    depot_id: data.depot_id,
+                    customer_id: data.customer_id,
+                    customer_category_id: data.customer_category_id,
                     pricelist_id: data.pricelist_id,
                     is_active: data.is_active || 'Y',
                     createdate: new Date(),
                     createdby: req.user?.id || 1,
                     log_inst: data.log_inst || 1,
                 },
-                include: { route_pricelist: true },
             });
             res.status(201).json({
-                message: 'Route price list created successfully',
+                message: 'Price list assignment created successfully',
                 data: serializeRoutePriceList(routePriceList),
             });
         }
         catch (error) {
-            console.error('Create RoutePriceList Error:', error);
             res.status(500).json({ message: error.message });
         }
     },
     async getAllRoutePriceList(req, res) {
         try {
-            const { page, limit, search, status } = req.query;
+            const { page, limit, search, status, route_id, depot_id, customer_id, customer_category_id, } = req.query;
             const pageNum = parseInt(page, 10) || 1;
             const limitNum = parseInt(limit, 10) || 10;
             const searchLower = search ? search.toLowerCase() : '';
@@ -58,6 +62,12 @@ exports.routePriceListController = {
                 }),
                 ...(statusLower === 'active' && { is_active: 'Y' }),
                 ...(statusLower === 'inactive' && { is_active: 'N' }),
+                ...(route_id && { route_id: Number(route_id) }),
+                ...(depot_id && { depot_id: Number(depot_id) }),
+                ...(customer_id && { customer_id: Number(customer_id) }),
+                ...(customer_category_id && {
+                    customer_category_id: Number(customer_category_id),
+                }),
             };
             const { data, pagination } = await (0, paginate_1.paginate)({
                 model: prisma_client_1.default.route_pricelists,
@@ -90,7 +100,6 @@ exports.routePriceListController = {
             const { id } = req.params;
             const routePriceList = await prisma_client_1.default.route_pricelists.findUnique({
                 where: { id: Number(id) },
-                include: { route_pricelist: true },
             });
             if (!routePriceList)
                 return res.status(404).json({ message: 'Route price list not found' });
@@ -117,13 +126,15 @@ exports.routePriceListController = {
                 where: { id: Number(id) },
                 data: {
                     route_id: data.route_id ?? existing.route_id,
+                    depot_id: data.depot_id ?? existing.depot_id,
+                    customer_id: data.customer_id ?? existing.customer_id,
+                    customer_category_id: data.customer_category_id ?? existing.customer_category_id,
                     pricelist_id: data.pricelist_id ?? existing.pricelist_id,
                     is_active: data.is_active ?? existing.is_active,
                     updatedate: new Date(),
                     updatedby: req.user?.id || 1,
                     log_inst: data.log_inst ?? existing.log_inst,
                 },
-                include: { route_pricelist: true },
             });
             res.json({
                 message: 'Route price list updated successfully',

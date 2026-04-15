@@ -7,7 +7,6 @@ interface PriceListItemSerialized {
   pricelist_id: number;
   product_id: number;
   unit_price: number;
-  uom?: string | null;
   discount_percent?: number | null;
   effective_from?: Date | null;
   effective_to?: Date | null;
@@ -26,7 +25,6 @@ const serializePriceListItem = (item: any): PriceListItemSerialized => ({
   pricelist_id: item.pricelist_id,
   product_id: item.product_id,
   unit_price: Number(item.unit_price),
-  uom: item.uom,
   discount_percent: item.discount_percent
     ? Number(item.discount_percent)
     : null,
@@ -63,7 +61,6 @@ export const priceListItemsController = {
           pricelist_id: data.pricelist_id,
           product_id: data.product_id,
           unit_price: data.unit_price,
-          uom: data.uom,
           discount_percent: data.discount_percent,
           effective_from: data.effective_from
             ? new Date(data.effective_from)
@@ -190,7 +187,6 @@ export const priceListItemsController = {
           pricelist_id: data.pricelist_id ?? existing.pricelist_id,
           product_id: data.product_id ?? existing.product_id,
           unit_price: data.unit_price ?? existing.unit_price,
-          uom: data.uom ?? existing.uom,
           discount_percent: data.discount_percent ?? existing.discount_percent,
           effective_from: data.effective_from
             ? new Date(data.effective_from)

@@ -256,6 +256,26 @@ async function generateInvoiceNumberInTransaction(tx) {
     const sequence = (existingCount + 1).toString().padStart(4, '0');
     return `${prefix}-${sequence}`;
 }
+const validateAndGetLocationId = async (tx, locationId) => {
+    if (!locationId) {
+        return null;
+    }
+    try {
+        const locationExists = await tx.warehouses.findUnique({
+            where: { id: locationId },
+            select: { id: true },
+        });
+        if (!locationExists) {
+            console.warn(`Location ID ${locationId} not found in warehouses, using null`);
+            return null;
+        }
+        return locationId;
+    }
+    catch (error) {
+        console.warn(`Error validating location ${locationId}, using null:`, error);
+        return null;
+    }
+};
 exports.visitsController = {
     async createVisits(req, res) {
         try {
@@ -2130,10 +2150,8 @@ exports.visitsController = {
                 const data = dataArray[index];
                 try {
                     const { visit, invoices, orders, payments, cooler_inspections, survey, } = data;
-                    console.log('=== DATA EXTRACTION ===');
                     console.log('Full data object keys:', Object.keys(data));
                     console.log('Invoices from data:', invoices);
-                    console.log('======================');
                     if (!visit) {
                         results.failed.push({
                             visitIndex: index,
@@ -2458,8 +2476,8 @@ exports.visitsController = {
                                         console.log('Invoice processed successfully:', createdInvoice.id);
                                         invoiceIds.push(createdInvoice.id);
                                         if (invoiceItems.length > 0) {
-                                            if (invoiceData.invoice_method === 'order') {
-                                                console.log('Processing inventory deduction for order method...');
+                                            if (invoiceData.invoice_method === 'direct') {
+                                                console.log('Processing inventory deduction for Direct method...');
                                                 for (const item of invoiceItems) {
                                                     const product = await tx.products.findUnique({
                                                         where: { id: Number(item.product_id) },
@@ -2593,6 +2611,31 @@ exports.visitsController = {
                                                             else {
                                                                 throw new Error(`Inventory stock not found for product ${product.name} and batch ${batchOrder.batch_lot_id}`);
                                                             }
+                                                            // await tx.stock_movements.create({
+                                                            //   data: {
+                                                            //     product_id: product.id,
+                                                            //     batch_id: batchOrder.batch_lot_id,
+                                                            //     serial_id: null,
+                                                            //     movement_type: 'SALE',
+                                                            //     reference_type: 'INVOICE',
+                                                            //     reference_id: createdInvoice.id,
+                                                            //     from_location_id:
+                                                            //       vanInventory?.location_id || null,
+                                                            //     to_location_id: null,
+                                                            //     quantity: batchQty,
+                                                            //     movement_date: new Date(),
+                                                            //     remarks: `Sold via invoice ${createdInvoice.invoice_number} - Batch: ${batchLot.batch_number}`,
+                                                            //     is_active: 'Y',
+                                                            //     createdate: new Date(),
+                                                            //     createdby:
+                                                            //       (req as any).user?.id ||
+                                                            //       visit.createdby ||
+                                                            //       1,
+                                                            //     log_inst: 1,
+                                                            //     van_inventory_id: vanInventory?.id || null,
+                                                            //   },
+                                                            // });
+                                                            const validatedFromLocationId = await validateAndGetLocationId(tx, vanInventory?.location_id);
                                                             await tx.stock_movements.create({
                                                                 data: {
                                                                     product_id: product.id,
@@ -2601,7 +2644,7 @@ exports.visitsController = {
                                                                     movement_type: 'SALE',
                                                                     reference_type: 'INVOICE',
                                                                     reference_id: createdInvoice.id,
-                                                                    from_location_id: vanInventory?.location_id || null,
+                                                                    from_location_id: validatedFromLocationId,
                                                                     to_location_id: null,
                                                                     quantity: batchQty,
                                                                     movement_date: new Date(),
@@ -2870,6 +2913,7 @@ exports.visitsController = {
                                                         else {
                                                             throw new Error(`Inventory stock not found for product ${product.name}`);
                                                         }
+                                                        const validatedFromLocationId = await validateAndGetLocationId(tx, vanInventory?.location_id);
                                                         await tx.stock_movements.create({
                                                             data: {
                                                                 product_id: product.id,
@@ -2878,7 +2922,7 @@ exports.visitsController = {
                                                                 movement_type: 'SALE',
                                                                 reference_type: 'INVOICE',
                                                                 reference_id: createdInvoice.id,
-                                                                from_location_id: vanInventory?.location_id || null,
+                                                                from_location_id: validatedFromLocationId,
                                                                 to_location_id: null,
                                                                 quantity: quantity,
                                                                 movement_date: new Date(),

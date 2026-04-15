@@ -499,7 +499,7 @@ exports.userController = {
                     device_info: true,
                 },
             });
-            const serializedUser = serializeUser(user);
+            const serializedUser = serializeUser(user, true, true);
             const responseData = {
                 ...serializedUser,
                 recent_activities: {
