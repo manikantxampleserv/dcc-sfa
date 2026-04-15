@@ -3855,10 +3855,26 @@ export const vanInventoryController = {
               }
             }
 
-            if (products.size === 0) {
-              return null;
-            }
+            // if (products.size === 0) {
+            //   return null;
+            // }
 
+            // return {
+            //   van_inventory_id: vanInventory.id,
+            //   document_date: vanInventory.document_date,
+            //   status: vanInventory.status,
+            //   loading_type: vanInventory.loading_type,
+            //   location_id: vanInventory.location_id,
+            //   location_type: vanInventory.location_type,
+            //   vehicle_id: vanInventory.vehicle_id,
+            //   vehicle: vanInventory.vehicle
+            //     ? {
+            //         vehicle_id: vanInventory.vehicle.id,
+            //         vehicle_number: vanInventory.vehicle.vehicle_number,
+            //       }
+            //     : null,
+            //   products: Array.from(products.values()),
+            // };
             return {
               van_inventory_id: vanInventory.id,
               document_date: vanInventory.document_date,
