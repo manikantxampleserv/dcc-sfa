@@ -40,6 +40,7 @@ const validationSchema = Yup.object({
   smtp_mail_from_name: Yup.string(),
   smtp_mail_from_address: Yup.string().email('Invalid from email address'),
   currency_id: Yup.number().nullable(),
+  customer_grading_cron_time: Yup.string(),
 });
 
 const SystemSettings: React.FC = () => {
@@ -74,6 +75,7 @@ const SystemSettings: React.FC = () => {
       smtp_username: settings?.smtp_username || '',
       smtp_password: settings?.smtp_password || '',
       currency_id: settings?.currency_id || null,
+      customer_grading_cron_time: settings?.customer_grading_cron_time || '0 0 * * *',
     },
     validationSchema,
     enableReinitialize: true,
@@ -111,6 +113,10 @@ const SystemSettings: React.FC = () => {
         formData.append(
           'currency_id',
           values.currency_id ? values.currency_id.toString() : ''
+        );
+        formData.append(
+          'customer_grading_cron_time',
+          values.customer_grading_cron_time || ''
         );
 
         if (uploadedFile) {
@@ -451,6 +457,31 @@ const SystemSettings: React.FC = () => {
               autoComplete="new-password"
               fullWidth
             />
+          </Box>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <Box className="flex items-center gap-2 mb-4">
+            <SettingsIcon className="w-5 h-5 text-primary-600" />
+            <Typography variant="h6" className="!font-semibold !text-gray-900">
+              Background Jobs
+            </Typography>
+          </Box>
+          <Divider className="!mb-6" />
+
+          <Box className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              name="customer_grading_cron_time"
+              formik={formik}
+              label="Customer Grading Cron Time"
+              fullWidth
+            >
+              <MenuItem value="0 0 * * *">Everyday Midnight</MenuItem>
+              <MenuItem value="0 * * * *">Every Hour</MenuItem>
+              <MenuItem value="* * * * *">Every Minute</MenuItem>
+              <MenuItem value="0 0 * * 0">Every Week (Sunday Midnight)</MenuItem>
+              <MenuItem value="0 0 1 * *">Every Month (1st Midnight)</MenuItem>
+            </Select>
           </Box>
         </div>
 

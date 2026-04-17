@@ -13,11 +13,9 @@ model users {
   password_hash                                                     String                       @db.NVarChar(255)
   name                                                              String                       @db.NVarChar(255)
   parent_id                                                         Int?
-  sap_code                                                          String?                      @db.VarChar(250)
   zone_id                                                           Int?
   phone_number                                                      String?                      @db.NVarChar(20)
   address                                                           String?                      @db.NVarChar(500)
-  depot_id                                                          Int?
   employee_id                                                       String                       @db.NVarChar(50)
   joining_date                                                      DateTime?                    @db.Date
   reporting_to                                                      Int?
@@ -30,12 +28,15 @@ model users {
   updatedby                                                         Int?
   log_inst                                                          Int?
   platform                                                          String?                      @db.NVarChar(20)
+  sap_code                                                          String?                      @db.VarChar(250)
+  depot_id                                                          Int?
   api_tokens_api_tokens_user_idTousers                              api_tokens[]                 @relation("api_tokens_user_idTousers")
   approval_work_flow_approver                                       approval_work_flow[]         @relation("ApprovalWorkFlowApprover")
   approval_workflows_approval_workflows_final_approved_byTousers    approval_workflows[]         @relation("approval_workflows_final_approved_byTousers")
   approval_workflows_approval_workflows_rejected_byTousers          approval_workflows[]         @relation("approval_workflows_rejected_byTousers")
   approval_workflows_approval_workflows_requested_byTousers         approval_workflows[]         @relation("approval_workflows_requested_byTousers")
   asset_maintenance_technician                                      asset_maintenance[]
+  asset_master_last_read                                            asset_master[]
   asset_movements_approved_by                                       asset_movements[]            @relation("AssetMovementApprovedBy")
   asset_movements_performed_by                                      asset_movements[]
   attendance_user                                                   attendance[]                 @relation("UserAttendance")
@@ -44,6 +45,7 @@ model users {
   coolers                                                           coolers[]
   customer_assets                                                   customer_assets[]
   customer_assets_history_customer_assets_history_changed_byTousers customer_assets_history[]    @relation("customer_assets_history_changed_byTousers")
+  approver_users                                                    customer_category_grading[]
   submitted_by_users                                                customer_complaints[]        @relation("CustomerComplaintsSubmittedBy")
   customer_documents_users                                          customer_documents[]
   customer_users                                                    customers[]
@@ -53,6 +55,7 @@ model users {
   depots_supervisior                                                depots[]                     @relation("DeportsSupervisior")
   employee_kpi_targets_users                                        employee_kpi_targets[]       @relation("EmployeeKpiTargetsUsers")
   gps_logs_gps_logs_user_idTousers                                  gps_logs[]                   @relation("gps_logs_user_idTousers")
+  invoices                                                          invoices[]
   login_history_login_history_user_idTousers                        login_history[]              @relation("login_history_user_idTousers")
   notifications                                                     notifications[]
   orders_approved_by                                                orders[]                     @relation("OrdersApprovedBy")
@@ -74,8 +77,10 @@ model users {
   stock_transfer_requests_approved_by                               stock_transfer_requests[]    @relation("StockTransferRequestsApprovedBy")
   stock_transfer_requests_requested_by                              stock_transfer_requests[]    @relation("StockTransferRequestsRequestedBy")
   survey_responses_submitted_by_users                               survey_responses[]           @relation("survey_responses_submitted_users")
+  users_depots_users                                                user_depots[]                @relation("UserDepotsUser")
   users                                                             users?                       @relation("usersTousers", fields: [reporting_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__users__reporting__403A8C7D")
   other_users                                                       users[]                      @relation("usersTousers")
+  user_depot                                                        depots?                      @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   companies                                                         companies?                   @relation(fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user_role                                                         roles                        @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   van_inventory_users                                               van_inventory[]              @relation("VanInventoryUsers")
@@ -85,11 +90,6 @@ model users {
   workflow_steps_workflow_steps_assigned_user_idTousers             workflow_steps[]             @relation("workflow_steps_assigned_user_idTousers")
   workflow_steps_workflow_steps_processed_byTousers                 workflow_steps[]             @relation("workflow_steps_processed_byTousers")
   zone_supervisor                                                   zones[]
-  approver_users                                                    customer_category_grading[]
-  invoices                                                          invoices[]
-  user_depot                                                        depots?                      @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users_depots_users                                                user_depots[]                @relation("UserDepotsUser")
-  asset_master_last_read                                            asset_master[]
 }
 
 model user_depots {
@@ -100,8 +100,8 @@ model user_depots {
   createdby            Int
   updatedate           DateTime? @db.DateTime
   updatedby            Int?
+  user_depots_depot_id depots    @relation("UserDepotsId", fields: [depot_id], references: [id], onUpdate: NoAction)
   users_depots_users   users     @relation("UserDepotsUser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user_depots_depot_id depots    @relation("UserDepotsId", fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([user_id, depot_id])
 }
@@ -211,9 +211,6 @@ model depots {
   id                           Int                     @id(map: "PK__depots__3213E83F2BEB71BC") @default(autoincrement())
   parent_id                    Int
   name                         String                  @db.NVarChar(255)
-  region_id                    Int?
-  city_id                      Int?
-  district_id                  Int?
   code                         String                  @db.NVarChar(50)
   address                      String?                 @db.NVarChar(500)
   city                         String?                 @db.NVarChar(100)
@@ -232,28 +229,31 @@ model depots {
   updatedate                   DateTime?               @db.DateTime
   updatedby                    Int?
   log_inst                     Int?
+  city_id                      Int?
+  district_id                  Int?
+  region_id                    Int?
   approval_work_flow_depot     approval_work_flow[]    @relation("ApprovalWorkFlowDepot")
   asset_movement_from_depot    asset_movements[]       @relation("AssetMovementFromDepot")
   asset_movement_to_depot      asset_movements[]       @relation("AssetMovementToDepot")
   customer_group_depot         customer_group_depots[]
   customer_depot               customers[]
   depot_price_overrides_depots depot_price_overrides[]
+  depots_city                  cities?                 @relation(fields: [city_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   depots_coodrinator           users?                  @relation("DepotsCoodrinator", fields: [coordinator_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  depots_district              districts?              @relation(fields: [district_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   depots_manager               users?                  @relation("DeportsManager", fields: [manager_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   depot_companies              companies               @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  depots_region                regions?                @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   depots_supervisior           users?                  @relation("DeportsSupervisior", fields: [supervisor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   inventory_stock_depots       inventory_stock[]
+  pricelists_depot             pricelists[]
   promotion_depot              promotion_depot[]
   route_depots                 routes[]                @relation("DepotRoutes")
   serial_numbers               serial_numbers[]
-  van_inventory_depot          van_inventory[]         @relation("VanInventoryDepot")
-  zone_depots                  zones[]
   user_depots_depot_id         user_depots[]           @relation("UserDepotsId")
   user_depot                   users[]
-  depots_region                regions?                @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  depots_city                  cities?                 @relation(fields: [city_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  depots_district              districts?              @relation(fields: [district_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  pricelists_depot             pricelists[]
+  van_inventory_depot          van_inventory[]         @relation("VanInventoryDepot")
+  zone_depots                  zones[]
 }
 
 model api_tokens {
@@ -336,21 +336,13 @@ model asset_maintenance {
   updatedby                    Int?
   log_inst                     Int?
   technician_id                Int
-  asset_maintenance_master     asset_master @relation(fields: [asset_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_maintenance_master     asset_master @relation(fields: [asset_id], references: [id], onUpdate: NoAction)
   asset_maintenance_technician users        @relation(fields: [technician_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model asset_master {
   id                           Int                     @id(map: "PK__asset_ma__3213E83FB367A2E5") @default(autoincrement())
   asset_type_id                Int
-  asset_brand_id               Int?
-  brand_id                     Int?
-  installation_date            DateTime?               @db.Date
-  last_scanned_date            DateTime?               @db.Date
-  last_read_by                 Int?
-  brand                        String?                 @db.VarChar(255)
-  barcode                      String?
-  nfc_tag                      String?
   name                         String                  @db.VarChar(255)
   code                         String                  @db.NVarChar(255)
   serial_number                String                  @unique(map: "UQ__asset_ma__BED14FEE105CB870") @db.NVarChar(100)
@@ -366,16 +358,24 @@ model asset_master {
   updatedby                    Int?
   log_inst                     Int?
   asset_sub_type_id            Int?
+  barcode                      String?
+  nfc_tag                      String?
+  brand_id                     Int?
+  brand                        String?                 @db.VarChar(255)
+  asset_brand_id               Int?
+  installation_date            DateTime?               @db.Date
+  last_read_by                 Int?
+  last_scanned_date            DateTime?               @db.Date
   asset_master_image           asset_images[]
   asset_maintenance_master     asset_maintenance[]
+  asset_master_brands          asset_brands?           @relation(fields: [asset_brand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   asset_master_asset_sub_types asset_sub_types?        @relation(fields: [asset_sub_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   asset_master_asset_types     asset_types             @relation(fields: [asset_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  asset_master_brand           brands?                 @relation(fields: [brand_id], references: [id], onDelete: Cascade)
+  asset_master_last_read       users?                  @relation(fields: [last_read_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
   asset_movement_assets_asset  asset_movement_assets[]
   asset_master_warranty_claims asset_warranty_claims[]
   cooler_asset_master          coolers[]
-  asset_master_brand           brands?                 @relation(fields: [brand_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  asset_master_brands          asset_brands?           @relation(fields: [asset_brand_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  asset_master_last_read       users?                  @relation(fields: [last_read_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model asset_sub_types {
@@ -391,7 +391,7 @@ model asset_sub_types {
   updatedby                    Int?
   log_inst                     Int?
   asset_master_asset_sub_types asset_master[]
-  asset_sub_types_asset_types  asset_types?   @relation(fields: [asset_type_id], references: [id], onUpdate: NoAction, onDelete: Cascade)
+  asset_sub_types_asset_types  asset_types?   @relation(fields: [asset_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model asset_brands {
@@ -464,7 +464,7 @@ model asset_movement_assets {
   updatedate                     DateTime?       @db.DateTime
   updatedby                      Int?
   log_inst                       Int?
-  asset_movement_assets_asset    asset_master    @relation(fields: [asset_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  asset_movement_assets_asset    asset_master    @relation(fields: [asset_id], references: [id], onUpdate: NoAction)
   asset_movement_assets_movement asset_movements @relation(fields: [movement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
@@ -554,34 +554,35 @@ model batch_lots {
 }
 
 model companies {
-  id                     Int         @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
-  name                   String      @db.NVarChar(255)
-  code                   String      @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
-  address                String?     @db.NVarChar(500)
-  city                   String?     @db.NVarChar(100)
-  state                  String?     @db.NVarChar(100)
-  country                String?     @db.NVarChar(100)
-  zipcode                String?     @db.NVarChar(20)
-  phone_number           String?     @db.NVarChar(20)
-  email                  String?     @db.NVarChar(255)
-  website                String?     @db.NVarChar(255)
-  logo                   String?     @db.NVarChar(500)
-  is_active              String      @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
-  created_date           DateTime?   @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
-  created_by             Int
-  updated_date           DateTime?   @db.DateTime
-  updated_by             Int?
-  log_inst               Int?
-  smtp_host              String?     @db.VarChar(50)
-  smtp_password          String?     @db.VarChar(100)
-  smtp_port              Int?
-  smtp_username          String?     @db.VarChar(200)
-  smtp_mail_from_address String?     @db.NVarChar(200)
-  smtp_mail_from_name    String?     @db.NVarChar(200)
-  currency_id            Int?
-  companies_currencies   currencies? @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  depot_companies        depots[]
-  users                  users[]
+  id                             Int         @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
+  name                           String      @db.NVarChar(255)
+  code                           String      @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
+  address                        String?     @db.NVarChar(500)
+  city                           String?     @db.NVarChar(100)
+  state                          String?     @db.NVarChar(100)
+  country                        String?     @db.NVarChar(100)
+  zipcode                        String?     @db.NVarChar(20)
+  phone_number                   String?     @db.NVarChar(20)
+  email                          String?     @db.NVarChar(255)
+  website                        String?     @db.NVarChar(255)
+  logo                           String?     @db.NVarChar(500)
+  is_active                      String      @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
+  created_date                   DateTime?   @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
+  created_by                     Int
+  updated_date                   DateTime?   @db.DateTime
+  updated_by                     Int?
+  log_inst                       Int?
+  smtp_host                      String?     @db.VarChar(50)
+  smtp_password                  String?     @db.VarChar(100)
+  smtp_port                      Int?
+  smtp_username                  String?     @db.VarChar(200)
+  smtp_mail_from_address         String?     @db.NVarChar(200)
+  smtp_mail_from_name            String?     @db.NVarChar(200)
+  currency_id                    Int?
+  customer_grading_cron_time     String?     @default("0 0 * * *") @db.VarChar(50)
+  companies_currencies           currencies? @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  depot_companies                depots[]
+  users                          users[]
 }
 
 model competitor_activity {
@@ -927,9 +928,6 @@ model customers {
   email                                  String?                         @db.NVarChar(255)
   address                                String?                         @db.NVarChar(500)
   city                                   String?                         @db.NVarChar(100)
-  district_id                            Int?
-  region_id                              Int?
-  city_id                                Int?
   state                                  String?                         @db.NVarChar(100)
   zipcode                                String?                         @db.NVarChar(20)
   latitude                               Decimal?                        @db.Decimal(10, 8)
@@ -948,21 +946,28 @@ model customers {
   log_inst                               Int?
   outlet_images                          String?                         @db.NVarChar(500)
   profile_picture                        String?                         @db.NVarChar(500)
+  city_id                                Int?
+  district_id                            Int?
+  region_id                              Int?
   asset_movement_from_customer           asset_movements[]               @relation("AssetMovementFromCustomer")
   asset_movement_to_customer             asset_movements[]               @relation("AssetMovementToCustomer")
   competitor_activity_customers          competitor_activity[]
   coolers_customers                      coolers[]
   credit_notes_customers                 credit_notes[]
   customer_assets_customers              customer_assets[]
+  category_grading_customers             customer_category_grading[]
   customer_complaint                     customer_complaints[]           @relation("CustomerComplaints")
   customer_documents_customers           customer_documents[]
   customer_group_members_customers       customer_group_members[]
   outlet_images_customers                customer_image[]
   customer_purchase_history              customer_purchase_history[]
+  customers_city                         cities?                         @relation(fields: [city_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   customer_category_customer             customer_category?              @relation(fields: [customer_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   customer_channel_customer              customer_channel?               @relation(fields: [customer_channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   customer_type_customer                 customer_type?                  @relation(fields: [customer_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   customer_depot                         depots?                         @relation(fields: [depot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customers_districts                    districts?                      @relation(fields: [district_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customers_regions                      regions?                        @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   customer_routes                        routes?                         @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   customer_users                         users?                          @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   customer_zones                         zones?                          @relation("ZoneCustomer", fields: [zones_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -970,6 +975,7 @@ model customers {
   invoices_customers                     invoices[]
   orders_customers                       orders[]
   payments_customers                     payments[]
+  pricelistItemSpecialPrices             pricelist_item_special_prices[]
   product_facing_customers               product_facing[]
   promotion_customer_exclusion_customers promotion_customer_exclusion[]
   return_requests_customers              return_requests[]
@@ -979,11 +985,6 @@ model customers {
   survey_response_customer               survey_responses[]              @relation("SurveyRresponsesCustomer")
   visit_customers                        visits[]
   warranty_claims_customers              warranty_claims[]
-  customers_city                         cities?                         @relation(fields: [city_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  customers_districts                    districts?                      @relation(fields: [district_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  customers_regions                      regions?                        @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  category_grading_customers             customer_category_grading[]
-  pricelistItemSpecialPrices             pricelist_item_special_prices[]
 }
 
 model customer_image {
@@ -1162,16 +1163,13 @@ model invoice_items {
   notes                  String?  @db.NVarChar(500)
   invoices               invoices @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__paren__1EA48E88")
   invoice_items_products products @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__produ__1F98B2C1")
-
 }
 
 model invoices {
   id                   Int             @id(map: "PK__invoices__3213E83F14772822") @default(autoincrement())
   invoice_number       String          @unique(map: "UQ__invoices__8081A63A5B749F42") @db.NVarChar(50)
   parent_id            Int?
-  salesperson_id       Int?
   customer_id          Int
-  pricelist_id         Int?
   invoice_date         DateTime?       @default(now(), map: "DF__invoices__invoic__09A971A2")
   due_date             DateTime?
   status               String?         @default("draft", map: "DF__invoices__status__0B91BA14") @db.NVarChar(20)
@@ -1192,10 +1190,12 @@ model invoices {
   updatedby            Int?
   log_inst             Int?
   currency_id          Int?
+  salesperson_id       Int?
+  pricelist_id         Int?
   invoice_items        invoice_items[]
   currencies           currencies?     @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK__invoices__curren__65370702")
-  orders               orders?         @relation(fields: [parent_id], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  invoices_customers   customers       @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  invoices_customers   customers       @relation(fields: [customer_id], references: [id], onUpdate: NoAction)
+  orders               orders?         @relation(fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   invoices_pricelist   pricelists?     @relation("InvoicesPricelist", fields: [pricelist_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   invoices_salesperson users?          @relation(fields: [salesperson_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   payment_lines        payment_lines[]
@@ -1267,7 +1267,6 @@ model orders {
   order_number                        String               @unique @db.NVarChar(50)
   parent_id                           Int
   promotion_id                        Int?
-  pricelist_id                        Int? 
   salesperson_id                      Int
   order_date                          DateTime?            @default(now())
   delivery_date                       DateTime?
@@ -1293,6 +1292,7 @@ model orders {
   updatedby                           Int?
   log_inst                            Int?
   currency_id                         Int?
+  pricelist_id                        Int?
   credit_notes_orders                 credit_notes[]
   delivery_schedules_customers_orders delivery_schedules[]
   digital_signatures_orders           digital_signatures[]
@@ -1301,8 +1301,8 @@ model orders {
   orders_approved_by                  users?               @relation("OrdersApprovedBy", fields: [approved_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
   orders_currencies                   currencies?          @relation("OrdersCurrencies", fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   orders_customers                    customers            @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  orders_promotion                    promotions?          @relation(fields: [promotion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   orders_pricelist                    pricelists?          @relation("OrdersPricelist", fields: [pricelist_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orders_promotion                    promotions?          @relation(fields: [promotion_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   orders_salesperson_users            users                @relation("OrdersSalesperson", fields: [salesperson_id], references: [id], onUpdate: NoAction)
 }
 
@@ -1394,8 +1394,6 @@ model pricelist_items {
   product_id                    Int
   unit_price                    Decimal                         @db.Decimal(12, 2)
   discount_percent              Decimal?                        @db.Decimal(5, 2)
-  tax_percent                   Decimal?                        @db.Decimal(5, 2)
-  sub_unit_price                Decimal?                        @db.Decimal(12, 2)
   effective_from                DateTime?                       @db.Date
   effective_to                  DateTime?                       @db.Date
   is_active                     String                          @default("Y") @db.Char(1)
@@ -1404,56 +1402,58 @@ model pricelist_items {
   updatedate                    DateTime?                       @db.DateTime
   updatedby                     Int?
   log_inst                      Int?
+  sub_unit_price                Decimal?                        @db.Decimal(12, 2)
+  tax_percent                   Decimal?                        @db.Decimal(5, 2)
+  pricelist_item_special_prices pricelist_item_special_prices[]
   pricelist_item                pricelists                      @relation(fields: [pricelist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   pricelist_items_products      products                        @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  pricelist_item_special_prices pricelist_item_special_prices[]
 }
 
 model pricelist_item_special_prices {
-  id                   Int             @id @default(autoincrement())
-  pricelist_item_id    Int
-  valid_from           DateTime?       @db.Date
-  valid_to             DateTime?       @db.Date
-  route_id             Int?
-  customer_id          Int?
-  customer_category_id Int?
-  sale_price           Decimal         @db.Decimal(12, 4)
-  sale_sub_unit_price  Decimal?        @db.Decimal(12, 4)
-  tax_percent          Decimal?        @db.Decimal(5, 2)
-  discount_percent     Decimal?        @db.Decimal(5, 2)
-  is_active            String          @default("Y") @db.Char(1)
-  createdate           DateTime?       @default(now()) @db.DateTime
-  createdby            Int
-  updatedate           DateTime?       @db.DateTime
-  updatedby            Int?
-  log_inst             Int?
-  pricelist_item       pricelist_items @relation(fields: [pricelist_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  special_customer     customers?      @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  special_route        routes?         @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                        Int                @id @default(autoincrement())
+  pricelist_item_id         Int
+  valid_from                DateTime?          @db.Date
+  valid_to                  DateTime?          @db.Date
+  route_id                  Int?
+  customer_id               Int?
+  customer_category_id      Int?
+  sale_price                Decimal            @db.Decimal(12, 4)
+  sale_sub_unit_price       Decimal?           @db.Decimal(12, 4)
+  tax_percent               Decimal?           @db.Decimal(5, 2)
+  discount_percent          Decimal?           @db.Decimal(5, 2)
+  is_active                 String             @default("Y") @db.Char(1)
+  createdate                DateTime?          @default(now()) @db.DateTime
+  createdby                 Int
+  updatedate                DateTime?          @db.DateTime
+  updatedby                 Int?
+  log_inst                  Int?
   special_customer_category customer_category? @relation(fields: [customer_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  special_customer          customers?         @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pricelist_item            pricelist_items    @relation(fields: [pricelist_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  special_route             routes?            @relation(fields: [route_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model pricelists {
-  id                   Int               @id @default(autoincrement())
-  name                 String            @db.NVarChar(100)
-  description          String?           @db.NVarChar(255)
-  depot_id             Int?
-  base_pricelist_id    Int?
-  factor               Decimal?          @db.Decimal(12, 4)
-  is_default           String            @default("N") @db.Char(1)
-  priority             String?           @db.NVarChar(100)
-  is_active            String            @default("Y") @db.Char(1)
-  createdate           DateTime?         @default(now()) @db.DateTime
-  createdby            Int
-  updatedate           DateTime?         @db.DateTime
-  updatedby            Int?
-  log_inst             Int?
-  pricelist_item       pricelist_items[]
-  pricelists_depot     depots?           @relation(fields: [depot_id], references: id, onDelete: Cascade, onUpdate: NoAction)
-  base_pricelist       pricelists?       @relation("BasePriceList", fields: [base_pricelist_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  derived_pricelists   pricelists[]      @relation("BasePriceList")
-  orders               orders[]          @relation("OrdersPricelist")
-  invoices             invoices[]        @relation("InvoicesPricelist")
+  id                 Int               @id @default(autoincrement())
+  name               String            @db.NVarChar(100)
+  description        String?           @db.NVarChar(255)
+  is_active          String            @default("Y") @db.Char(1)
+  createdate         DateTime?         @default(now()) @db.DateTime
+  createdby          Int
+  updatedate         DateTime?         @db.DateTime
+  updatedby          Int?
+  log_inst           Int?
+  is_default         String            @default("N") @db.Char(1)
+  priority           String?           @db.NVarChar(100)
+  base_pricelist_id  Int?
+  factor             Decimal?          @db.Decimal(12, 4)
+  depot_id           Int?
+  invoices           invoices[]        @relation("InvoicesPricelist")
+  orders             orders[]          @relation("OrdersPricelist")
+  pricelist_item     pricelist_items[]
+  base_pricelist     pricelists?       @relation("BasePriceList", fields: [base_pricelist_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  derived_pricelists pricelists[]      @relation("BasePriceList")
+  pricelists_depot   depots?           @relation(fields: [depot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model product_categories {
@@ -1611,7 +1611,6 @@ model tax_master {
 model brands {
   id                   Int               @id @default(autoincrement())
   name                 String            @db.NVarChar(255)
-  is_asset_brand       String?           @default("N") @db.Char(1)
   code                 String            @db.NVarChar(50)
   description          String?           @db.NVarChar(500)
   logo                 String?           @db.NVarChar(500)
@@ -1621,9 +1620,10 @@ model brands {
   updatedate           DateTime?         @db.DateTime
   updatedby            Int?
   log_inst             Int?
+  is_asset_brand       String?           @default("N") @db.Char(1)
+  asset_master_brand   asset_master[]
   customer_asset_brand customer_assets[]
   product_brands       products[]
-  asset_master_brand   asset_master[]
 }
 
 model unit_of_measurement {
@@ -1632,14 +1632,14 @@ model unit_of_measurement {
   description                  String?    @db.NVarChar(500)
   category                     String?    @db.NVarChar(50)
   symbol                       String?    @db.NVarChar(10)
-  sub_unit                     String?    @db.NVarChar(50)
-  conversion_rate              Float?     @db.Float
   is_active                    String     @default("Y") @db.Char(1)
   createdate                   DateTime?  @default(now()) @db.DateTime
   createdby                    Int
   updatedate                   DateTime?  @db.DateTime
   updatedby                    Int?
   log_inst                     Int?
+  conversion_rate              Float?
+  sub_unit                     String?    @db.NVarChar(50)
   product_unit_of_measurement  products[]
   subunits_unit_of_measurement subunits[]
 }
@@ -1834,9 +1834,6 @@ model route_plans {
 model route_pricelists {
   id                   Int       @id @default(autoincrement())
   route_id             Int?
-  depot_id             Int?
-  customer_id          Int?
-  customer_category_id Int?
   pricelist_id         Int
   is_active            String    @default("Y") @db.Char(1)
   createdate           DateTime? @default(now()) @db.DateTime
@@ -1844,7 +1841,9 @@ model route_pricelists {
   updatedate           DateTime? @db.DateTime
   updatedby            Int?
   log_inst             Int?
-  // route_pricelist pricelists @relation(fields: [pricelist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  customer_category_id Int?
+  customer_id          Int?
+  depot_id             Int?
 }
 
 model route_type {
@@ -1914,13 +1913,13 @@ model routes {
   outlet_group               String?                         @db.NVarChar(Max)
   customer_group_route       customer_group_routes[]
   customer_routes            customers[]
+  pricelistItemSpecialPrices pricelist_item_special_prices[]
   promotion_route            promotion_routes[]
   salespersons               route_salespersons[]
   route_depots               depots                          @relation("DepotRoutes", fields: [depot_id], references: [id], onUpdate: NoAction)
   route_zones                zones                           @relation("ZoneRoutes", fields: [parent_id], references: [id], onUpdate: NoAction)
   routes_route_type          route_type                      @relation(fields: [route_type_id], references: [id], onUpdate: NoAction)
   visit_routes               visits[]
-  pricelistItemSpecialPrices pricelist_item_special_prices[]
 }
 
 model route_salespersons {
@@ -2536,12 +2535,12 @@ model customer_category {
   updatedby                                          Int?
   log_inst                                           Int?
   customer_category_condition_customer_category      customer_category_condition[]
-  customer_group_customer_category_customer_category customer_group_customer_category[]
-  customers_customer_category                        customers[]
-  promotion_customer_categorys                       promotion_customer_category[]
   customer_category_grading_current_category         customer_category_grading[]        @relation("CurrentCategoryGrading")
   customer_category_grading_upcoming_category        customer_category_grading[]        @relation("UpcomingCategoryGrading")
+  customer_group_customer_category_customer_category customer_group_customer_category[]
+  customers_customer_category                        customers[]
   pricelist_item_special_prices                      pricelist_item_special_prices[]
+  promotion_customer_categorys                       promotion_customer_category[]
 }
 
 model customer_category_condition {
@@ -2978,9 +2977,9 @@ model regions {
   updatedate        DateTime?   @db.DateTime
   updatedby         Int?
   log_inst          Int?
-  district_regions  districts[]
   customers_regions customers[]
   depots_region     depots[]
+  district_regions  districts[]
 }
 
 model districts {
@@ -2995,10 +2994,10 @@ model districts {
   updatedate          DateTime?   @db.DateTime
   updatedby           Int?
   log_inst            Int?
-  district_regions    regions     @relation(fields: [region_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   cities_districts    cities[]
   customers_districts customers[]
   depots_district     depots[]
+  district_regions    regions     @relation(fields: [region_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model cities {
@@ -3055,14 +3054,14 @@ model customer_category_grading {
   action_taken                                String             @default("N") @db.VarChar(20)
   approver_id                                 Int?
   approved_date                               DateTime?
-  status                                      String?            @default("P") @db.VarChar(20)
   createdate                                  DateTime           @default(now())
   createdby                                   Int
   updatedate                                  DateTime?
   updatedby                                   Int?
   log_inst                                    Int?
-  category_grading_customers                  customers          @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  status                                      String?            @default("P") @db.VarChar(20)
   approver_users                              users?             @relation(fields: [approver_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   customer_category_grading_current_category  customer_category? @relation("CurrentCategoryGrading", fields: [current_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  category_grading_customers                  customers          @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   customer_category_grading_upcoming_category customer_category? @relation("UpcomingCategoryGrading", fields: [upcoming_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }

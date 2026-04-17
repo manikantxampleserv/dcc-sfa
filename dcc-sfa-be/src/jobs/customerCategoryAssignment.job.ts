@@ -1,157 +1,3 @@
-// import cron from 'node-cron';
-// import prisma from '../configs/prisma.client';
-// import logger from '../configs/logger';
-
-// export const scheduleCustomerCategoryAssignment = () => {
-//   cron.schedule(
-//     '0 0 * * *',
-//     async () => {
-//       console.log(' Cron job: Customer Category Assignment Started');
-//       console.log('Time:', new Date().toISOString());
-
-//       try {
-//         const startTime = new Date();
-//         const results = {
-//           totalProcessed: 0,
-//           totalUpdated: 0,
-//           totalUnchanged: 0,
-//           totalFailed: 0,
-//         };
-
-//         const categoryLevels = await prisma.customer_category.findMany({
-//           where: {
-//             is_active: 'Y',
-//           },
-//           include: {
-//             customer_category_condition_customer_category: {
-//               where: {
-//                 is_active: 'Y',
-//                 condition_type: 'sales_amount',
-//               },
-//             },
-//           },
-//           orderBy: {
-//             level: 'asc',
-//           },
-//         });
-
-//         const validCategories = categoryLevels
-//           .filter(
-//             cat => cat.customer_category_condition_customer_category.length > 0
-//           )
-//           .map(cat => ({
-//             id: cat.id,
-//             categoryName: cat.category_name,
-//             level: cat.level || 1,
-//             thresholdValue: Number(
-//               cat.customer_category_condition_customer_category[0]
-//                 ?.threshold_value || 0
-//             ),
-//           }))
-//           .sort((a, b) => a.thresholdValue - b.thresholdValue);
-
-//         if (validCategories.length === 0) {
-//           console.warn(
-//             '  No active customer categories found with sales conditions'
-//           );
-//           return;
-//         }
-
-//         console.log(` Found ${validCategories.length} category levels`);
-
-//         const customers = await prisma.customers.findMany({
-//           where: {
-//             is_active: 'Y',
-//           },
-//           select: {
-//             id: true,
-//             name: true,
-//             customer_category_id: true,
-//           },
-//         });
-
-//         console.log(` Processing ${customers.length} customers...\n`);
-
-//         for (const customer of customers) {
-//           results.totalProcessed++;
-
-//           try {
-//             const orderSales = await prisma.orders.aggregate({
-//               where: {
-//                 parent_id: customer.id,
-//                 status: {
-//                   in: ['approved', 'pending'],
-//                 },
-//                 is_active: 'Y',
-//               },
-//               _sum: {
-//                 total_amount: true,
-//               },
-//             });
-
-//             const totalSales = Number(orderSales._sum?.total_amount || 0);
-
-//             let assignedCategory = null;
-//             for (let i = validCategories.length - 1; i >= 0; i--) {
-//               if (totalSales >= validCategories[i].thresholdValue) {
-//                 assignedCategory = validCategories[i];
-//                 break;
-//               }
-//             }
-
-//             if (!assignedCategory && validCategories.length > 0) {
-//               assignedCategory = validCategories[0];
-//             }
-
-//             const newCategoryId = assignedCategory?.id || null;
-//             const currentCategoryId = customer.customer_category_id;
-
-//             if (newCategoryId !== currentCategoryId) {
-//               await prisma.customers.update({
-//                 where: { id: customer.id },
-//                 data: {
-//                   customer_category_id: newCategoryId,
-//                   updatedate: new Date(),
-//                   updatedby: 1,
-//                 },
-//               });
-
-//               results.totalUpdated++;
-//               console.log(
-//                 `   ${customer.name} → ${assignedCategory?.categoryName || 'None'} (Sales: ₹${totalSales})`
-//               );
-//             } else {
-//               results.totalUnchanged++;
-//             }
-//           } catch (error: any) {
-//             results.totalFailed++;
-//             console.error(` ${customer.name}: ${error.message}`);
-//           }
-//         }
-
-//         const endTime = new Date();
-//         const duration = (endTime.getTime() - startTime.getTime()) / 1000;
-
-//         console.log(' Cron Customer Category Assignment Completed');
-//         console.log(` Duration: ${duration}s`);
-//         console.log(' Summary:', {
-//           processed: results.totalProcessed,
-//           updated: results.totalUpdated,
-//           unchanged: results.totalUnchanged,
-//           failed: results.totalFailed,
-//         });
-//       } catch (error: any) {
-//         console.error(' Cron: Customer Category Assignment Failed');
-//         console.error('Error:', error.message);
-//       }
-//     },
-//     {
-//       timezone: 'Asia/Kolkata',
-//     }
-//   );
-//   logger.info('Customer Category Assignment cronjob scheduled');
-// };
-
 import cron from 'node-cron';
 import prisma from '../configs/prisma.client';
 import logger from '../configs/logger';
@@ -192,14 +38,30 @@ async function getLowestCategory() {
   return lowestCategory;
 }
 
-export const scheduleCustomerCategoryAssignment = () => {
-  console.log('Setting up cron job...');
+let scheduledTask: any = null;
 
-  cron.schedule(
-    '0 0 * * *',
+export const scheduleCustomerCategoryAssignment = async () => {
+  let cronExpression = '0 0 * * *';
+  try {
+    const companySettings = await prisma.companies.findFirst({
+      orderBy: { id: 'asc' },
+    });
+    if (companySettings?.customer_grading_cron_time) {
+      cronExpression = companySettings.customer_grading_cron_time;
+    }
+  } catch (error) {
+    logger.error('Failed to get cron settings, using default', error);
+  }
+
+  if (scheduledTask) {
+    scheduledTask.stop();
+  }
+
+  scheduledTask = cron.schedule(
+    cronExpression,
     async () => {
-      console.log(' Cron job: Customer Category Assignment Started');
-      console.log('Time:', new Date().toISOString());
+      logger.info('Cron job: Customer Category Assignment Started');
+      logger.info(`Time: ${new Date().toISOString()}`);
 
       try {
         const startTime = new Date();
@@ -243,25 +105,22 @@ export const scheduleCustomerCategoryAssignment = () => {
           .sort((a, b) => a.thresholdValue - b.thresholdValue);
 
         if (validCategories.length === 0) {
-          console.warn(
-            '  No active customer categories found with sales conditions'
+          logger.warn(
+            'No active customer categories found with sales conditions'
           );
           return;
         }
 
-        console.log(` Found ${validCategories.length} category levels`);
+        logger.info(`Found ${validCategories.length} category levels`);
 
         // const lowestCategory = await getLowestCategory();
 
         // if (!lowestCategory) {
-        //   console.warn('  No active customer categories found');
+        //   logger.warn('No active customer categories found');
         //   return;
         // }
 
-        // console.log(
-        //   ` Using lowest category: ${lowestCategory.category_name} (Level: ${lowestCategory.level})`
-        // );
-
+        //
         // const customers = await prisma.customers.findMany({
         //   where: {
         //     is_active: 'Y',
@@ -273,9 +132,9 @@ export const scheduleCustomerCategoryAssignment = () => {
         //   },
         // });
 
-        // console.log(` Processing ${customers.length} customers...\n`);
+        // logger.info(`Processing ${customers.length} customers...`);
 
-        // console.log(` Processing ${customers.length} customers...\n`);
+        // logger.info(`Processing ${customers.length} customers...`);
 
         // for (const customer of customers) {
         //   results.totalProcessed++;
@@ -340,10 +199,7 @@ export const scheduleCustomerCategoryAssignment = () => {
         //         });
 
         //         results.totalUpdated++;
-        //         console.log(
-        //           `   ${customer.name}  Updated existing ${changeType} request (Sales: ₹${totalSales})`
-        //         );
-        //       } else {
+        //        //       } else {
         //         await prisma.customer_category_grading.create({
         //           data: {
         //             customer_id: customer.id,
@@ -357,28 +213,25 @@ export const scheduleCustomerCategoryAssignment = () => {
         //         });
 
         //         results.totalUpdated++;
-        //         console.log(
-        //           `   ${customer.name} → ${changeType} request created (Sales: ₹${totalSales})`
-        //         );
-        //       }
+        //        //       }
         //     } else {
         //       results.totalUnchanged++;
         //     }
         //   } catch (error: any) {
         //     results.totalFailed++;
-        //     console.error(` ${customer.name}: ${error.message}`);
+        //     logger.error(` ${customer.name}: ${error.message}`);
         //   }
         // }
 
         const lowestCategory = await getLowestCategory();
 
         if (!lowestCategory) {
-          console.warn('  No active customer categories found');
+          logger.warn('No active customer categories found');
           return;
         }
 
-        console.log(
-          ` Using lowest category: ${lowestCategory.category_name} (Level: ${lowestCategory.level})`
+        logger.info(
+          `Using lowest category: ${lowestCategory.category_name} (Level: ${lowestCategory.level})`
         );
 
         const customers = await prisma.customers.findMany({
@@ -392,7 +245,7 @@ export const scheduleCustomerCategoryAssignment = () => {
           },
         });
 
-        console.log(` Processing ${customers.length} customers...\n`);
+        logger.info(`Processing ${customers.length} customers...`);
 
         for (const customer of customers) {
           results.totalProcessed++;
@@ -412,9 +265,6 @@ export const scheduleCustomerCategoryAssignment = () => {
             });
 
             const totalSales = Number(orderSales._sum?.total_amount || 0);
-            console.log(
-              `  ${customer.name}: Sales: ₹${totalSales}, Current Category: ${customer.customer_category_id}`
-            );
 
             let assignedCategory = null;
 
@@ -429,9 +279,6 @@ export const scheduleCustomerCategoryAssignment = () => {
               if (!assignedCategory && validCategories.length > 0) {
                 assignedCategory = validCategories[0];
               }
-              console.log(
-                `    Assigned Category: ${assignedCategory?.categoryName || 'None'} (ID: ${assignedCategory?.id})`
-              );
             } else {
               for (let i = validCategories.length - 1; i >= 0; i--) {
                 if (totalSales >= validCategories[i].thresholdValue) {
@@ -448,17 +295,15 @@ export const scheduleCustomerCategoryAssignment = () => {
             const newCategoryId = assignedCategory?.id || null;
             const currentCategoryId = customer.customer_category_id;
 
-            console.log(
-              `    Comparison: newCategoryId=${newCategoryId}, currentCategoryId=${currentCategoryId}`
-            );
-            console.log(
-              `    Condition newCategoryId !== currentCategoryId: ${newCategoryId !== currentCategoryId}`
-            );
-
             if (!currentCategoryId && newCategoryId) {
-              console.log(
-                `     Auto-assigning category to ${customer.name} (no previous category)`
-              );
+              await prisma.customers.update({
+                where: { id: customer.id },
+                data: {
+                  customer_category_id: newCategoryId,
+                  updatedate: new Date(),
+                  updatedby: 1,
+                },
+              });
 
               const existingRequest =
                 await prisma.customer_category_grading.findFirst({
@@ -485,9 +330,6 @@ export const scheduleCustomerCategoryAssignment = () => {
                 });
 
                 results.totalUpdated++;
-                console.log(
-                  `   ${customer.name} → Updated existing auto-assignment request (Sales: ₹${totalSales})`
-                );
               } else {
                 await prisma.customer_category_grading.create({
                   data: {
@@ -507,13 +349,8 @@ export const scheduleCustomerCategoryAssignment = () => {
                 });
 
                 results.totalUpdated++;
-                console.log(
-                  `   ${customer.name} → Auto-assignment request created (Sales: ₹${totalSales})`
-                );
               }
             } else if (newCategoryId !== currentCategoryId) {
-              console.log(`     Category change detected for ${customer.name}`);
-
               const changeType = getChangeType(
                 currentCategoryId,
                 newCategoryId,
@@ -542,9 +379,6 @@ export const scheduleCustomerCategoryAssignment = () => {
                 });
 
                 results.totalUpdated++;
-                console.log(
-                  `   ${customer.name} → Updated existing ${changeType} request (Sales: ₹${totalSales})`
-                );
               } else {
                 await prisma.customer_category_grading.create({
                   data: {
@@ -562,61 +396,51 @@ export const scheduleCustomerCategoryAssignment = () => {
                 });
 
                 results.totalUpdated++;
-                console.log(
-                  `   ${customer.name}  ${changeType} request created (Sales: ${totalSales})`
-                );
               }
             } else {
-              console.log(
-                `     No category change needed for ${customer.name}`
-              );
               results.totalUnchanged++;
             }
           } catch (error: any) {
             results.totalFailed++;
-            console.error(` ${customer.name}: ${error.message}`);
-            console.error(` Full error:`, JSON.stringify(error, null, 2));
+            logger.error(` ${customer.name}: ${error.message}`);
+            logger.error(` Full error:`, JSON.stringify(error, null, 2));
 
             if (error.code === 'P2002') {
-              console.error(` Unique constraint violation`);
+              logger.error(` Unique constraint violation`);
             } else if (error.code === 'P2003') {
-              console.error(` Foreign key constraint violation`);
+              logger.error(` Foreign key constraint violation`);
             }
           }
         }
         const endTime = new Date();
         const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
-        console.log(' Cron Customer Category Assignment Completed');
-        console.log(` Duration: ${duration}s`);
-        console.log(' Summary:', {
-          processed: results.totalProcessed,
-          requestsCreated: results.totalUpdated,
-          unchanged: results.totalUnchanged,
-          failed: results.totalFailed,
-        });
+        logger.info('Cron Customer Category Assignment Completed');
+        logger.info(`Duration: ${duration}s`);
+        logger.info(
+          `Summary: processed: ${results.totalProcessed}, requestsCreated: ${results.totalUpdated}, unchanged: ${results.totalUnchanged}, failed: ${results.totalFailed}`
+        );
       } catch (error: any) {
-        console.error(' Cron: Customer Category Assignment Failed');
-        console.error('Error:', error.message);
+        logger.error(' Cron: Customer Category Assignment Failed');
+        logger.error('Error:', error.message);
       }
     },
     {
       timezone: 'Asia/Kolkata',
     }
   );
-  logger.info('Customer Category Assignment cronjob scheduled');
 };
 
 export async function assignLowestCategoryToUncategorizedCustomers() {
   try {
-    console.log(
+    logger.info(
       'Starting one-time assignment of lowest category to uncategorized customers...'
     );
 
     const lowestCategory = await getLowestCategory();
 
     if (!lowestCategory) {
-      console.error('No active customer categories found');
+      logger.error('No active customer categories found');
       return;
     }
 
@@ -632,7 +456,7 @@ export async function assignLowestCategoryToUncategorizedCustomers() {
       },
     });
 
-    console.log(
+    logger.info(
       `Found ${uncategorizedCustomers.length} uncategorized customers`
     );
 
@@ -665,17 +489,16 @@ export async function assignLowestCategoryToUncategorizedCustomers() {
         });
 
         updated++;
-        console.log(`✓ ${customer.name} → ${lowestCategory.category_name}`);
       } catch (error: any) {
         failed++;
-        console.error(`✗ ${customer.name}: ${error.message}`);
+        logger.error(`✗ ${customer.name}: ${error.message}`);
       }
     }
 
-    console.log(`Assignment completed: ${updated} updated, ${failed} failed`);
+    logger.info(`Assignment completed: ${updated} updated, ${failed} failed`);
     return { updated, failed };
   } catch (error: any) {
-    console.error('One-time assignment failed:', error.message);
+    logger.error('One-time assignment failed:', error.message);
     throw error;
   }
 }

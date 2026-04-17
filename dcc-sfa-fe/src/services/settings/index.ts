@@ -25,6 +25,7 @@ export interface Settings {
   smtp_mail_from_name?: string | null;
   smtp_mail_from_address?: string | null;
   currency_id?: number | null;
+  customer_grading_cron_time: string;
   created_date?: string;
   updated_date?: string;
   users?: Array<{
