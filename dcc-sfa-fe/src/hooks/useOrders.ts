@@ -19,7 +19,6 @@ import {
 } from '../services/masters/Orders';
 import { useApiMutation } from './useApiMutation';
 
-// Query Keys
 export const orderKeys = {
   all: ['orders'] as const,
   lists: () => [...orderKeys.all, 'list'] as const,
@@ -68,7 +67,6 @@ export const useCreateOrder = (options?: {
     mutationFn: createOrder,
     loadingMessage: 'Creating order...',
     onSuccess: (data, variables) => {
-      // Invalidate and refetch orders list
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() });
       options?.onSuccess?.(data, variables);
     },

@@ -48,7 +48,7 @@ export const createApp = async (): Promise<Application> => {
 
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  app.use(cookieParser());
+  (app.use as any)(cookieParser());
 
   app.use(cors({ origin: '*', credentials: true }));
 
@@ -56,7 +56,7 @@ export const createApp = async (): Promise<Application> => {
 
   app.use('/api', routes);
 
-  app.use(
+  (app.use as any)(
     '/api-docs',
     swaggerUi.serve,
     swaggerUi.setup(swaggerSpec, swaggerUiOptions)

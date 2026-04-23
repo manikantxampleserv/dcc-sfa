@@ -156,8 +156,8 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           if (trackingType === 'serial' && quantity > 0) {
             const allSerials = (item.product_serials ||
               []) as (ProductSerial & {
-              selected?: boolean;
-            })[];
+                selected?: boolean;
+              })[];
             const selectedSerials = allSerials.filter(
               s => s.selected !== false
             );
@@ -428,6 +428,10 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     ) {
       const order = selectedOrderResponse.data;
 
+      if (order.id !== Number(formik.values.parent_id)) {
+        return;
+      }
+
       if (order.customer?.id) {
         formik.setFieldValue('customer_id', order.customer.id);
       }
@@ -436,8 +440,9 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
         formik.setFieldValue('salesperson_id', order.salesperson_id.toString());
       }
 
-      if (order.currency_id) {
-        formik.setFieldValue('currency_id', order.currency_id.toString());
+      const currencyId = order.currency_id || order.currency?.id;
+      if (currencyId) {
+        formik.setFieldValue('currency_id', currencyId.toString());
       }
 
       if (order.order_date) {
@@ -466,6 +471,21 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     formik.values.invoice_method,
     formik.values.parent_id,
   ]);
+
+  // Clear form when order selection changes but data hasn't loaded
+  useEffect(() => {
+    if (
+      formik.values.invoice_method === 'order' &&
+      formik.values.parent_id &&
+      (!selectedOrderResponse?.data || selectedOrderResponse.data.id !== Number(formik.values.parent_id))
+    ) {
+      formik.setFieldValue('customer_id', '');
+      formik.setFieldValue('salesperson_id', '');
+      setInvoiceItems([]);
+      formik.setFieldValue('invoice_items', [], false);
+      formikSyncRef.current = '[]';
+    }
+  }, [formik.values.parent_id, formik.values.invoice_method, selectedOrderResponse?.data]);
 
   const addInvoiceItem = () => {
     if (!formik.values.salesperson_id) {
@@ -518,7 +538,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
 
       const resolvedPrice = product
         ? resolvePrice(product.product_id, customerPriceLists) ??
-          String(product.unit_price)
+        String(product.unit_price)
         : '0';
 
       updatedItems[rowIndex] = {
@@ -554,121 +574,121 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   const invoiceItemsColumns: TableColumn<
     InvoiceItemFormData & { _index: number }
   >[] = [
-    {
-      id: 'product_id',
-      label: 'Product',
-      render: (_value, row) => (
-        <SalesItemsSelect
-          salespersonId={Number(formik.values.salesperson_id)}
-          value={row.product_id}
-          onChange={(_event, product) =>
-            handleProductChange(row._index, _event, product)
-          }
-          size="small"
-          placeholder="Search for a product"
-          label=""
-          disabled={!formik.values.salesperson_id}
-          className="!min-w-72"
-        />
-      ),
-    },
-    {
-      id: 'tracking_type',
-      label: 'Tracking',
-      render: (_value, row) => {
-        const tracking = (row.tracking_type || '').toString().toLowerCase();
-        const canManage =
-          tracking === 'batch' || tracking === 'serial' ? tracking : null;
-
-        return (
-          <Box className="!flex !justify-between !items-center !min-w-52">
-            <Typography
-              variant="body2"
-              className={`!text-gray-700 !uppercase !text-xs`}
-            >
-              {tracking || 'none'}
-            </Typography>
-
-            {canManage && (
-              <Button
-                type="button"
-                startIcon={<Tag />}
-                variant="text"
-                size="small"
-                onClick={() => {
-                  const index = row._index;
-                  const item = invoiceItems[index];
-                  if (!item || !item.product_id) {
-                    toast.error('Please select a product first');
-                    return;
-                  }
-                  setSelectedRowIndex(index);
-                  if (canManage === 'batch') {
-                    setIsBatchSelectorOpen(true);
-                  } else {
-                    setIsSerialSelectorOpen(true);
-                  }
-                }}
-              >
-                {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
-              </Button>
-            )}
-          </Box>
-        );
-      },
-    },
-    {
-      id: 'quantity',
-      label: 'Quantity',
-      render: (_value, row) => {
-        const tracking = (row.tracking_type || '').toString().toLowerCase();
-        const isNoneTracking = !tracking || tracking === 'none';
-        return (
-          <Input
-            value={row.quantity}
-            onChange={e =>
-              updateInvoiceItem(row._index, 'quantity', e.target.value)
+      {
+        id: 'product_id',
+        label: 'Product',
+        render: (_value, row) => (
+          <SalesItemsSelect
+            salespersonId={Number(formik.values.salesperson_id)}
+            value={row.product_id}
+            onChange={(_event, product) =>
+              handleProductChange(row._index, _event, product)
             }
-            placeholder="1"
+            size="small"
+            placeholder="Search for a product"
+            label=""
+            disabled={!formik.values.salesperson_id}
+            className="!min-w-72"
+          />
+        ),
+      },
+      {
+        id: 'tracking_type',
+        label: 'Tracking',
+        render: (_value, row) => {
+          const tracking = (row.tracking_type || '').toString().toLowerCase();
+          const canManage =
+            tracking === 'batch' || tracking === 'serial' ? tracking : null;
+
+          return (
+            <Box className="!flex !justify-between !items-center !min-w-52">
+              <Typography
+                variant="body2"
+                className={`!text-gray-700 !uppercase !text-xs`}
+              >
+                {tracking || 'none'}
+              </Typography>
+
+              {canManage && (
+                <Button
+                  type="button"
+                  startIcon={<Tag />}
+                  variant="text"
+                  size="small"
+                  onClick={() => {
+                    const index = row._index;
+                    const item = invoiceItems[index];
+                    if (!item || !item.product_id) {
+                      toast.error('Please select a product first');
+                      return;
+                    }
+                    setSelectedRowIndex(index);
+                    if (canManage === 'batch') {
+                      setIsBatchSelectorOpen(true);
+                    } else {
+                      setIsSerialSelectorOpen(true);
+                    }
+                  }}
+                >
+                  {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
+                </Button>
+              )}
+            </Box>
+          );
+        },
+      },
+      {
+        id: 'quantity',
+        label: 'Quantity',
+        render: (_value, row) => {
+          const tracking = (row.tracking_type || '').toString().toLowerCase();
+          const isNoneTracking = !tracking || tracking === 'none';
+          return (
+            <Input
+              value={row.quantity}
+              onChange={e =>
+                updateInvoiceItem(row._index, 'quantity', e.target.value)
+              }
+              placeholder="1"
+              type="number"
+              size="small"
+              className="!min-w-20"
+              disabled={!isNoneTracking}
+            />
+          );
+        },
+      },
+      {
+        id: 'unit_price',
+        label: 'Unit Price',
+        render: (_value, row) => (
+          <Input
+            value={row.unit_price}
+            onChange={e =>
+              updateInvoiceItem(row._index, 'unit_price', e.target.value)
+            }
+            placeholder="0.00"
             type="number"
             size="small"
-            className="!min-w-20"
-            disabled={!isNoneTracking}
+            className="!min-w-32"
           />
-        );
+        ),
       },
-    },
-    {
-      id: 'unit_price',
-      label: 'Unit Price',
-      render: (_value, row) => (
-        <Input
-          value={row.unit_price}
-          onChange={e =>
-            updateInvoiceItem(row._index, 'unit_price', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-32"
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <DeleteButton
-          onClick={() => removeInvoiceItem(row._index)}
-          tooltip="Remove item"
-          confirmDelete={true}
-          size="medium"
-          itemName="invoice item"
-        />
-      ),
-    },
-  ];
+      {
+        id: 'actions',
+        label: 'Actions',
+        sortable: false,
+        render: (_value, row) => (
+          <DeleteButton
+            onClick={() => removeInvoiceItem(row._index)}
+            tooltip="Remove item"
+            confirmDelete={true}
+            size="medium"
+            itemName="invoice item"
+          />
+        ),
+      },
+    ];
 
   return (
     <CustomDrawer

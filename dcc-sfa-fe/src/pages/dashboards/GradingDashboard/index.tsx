@@ -56,9 +56,9 @@ const GradingDashboard: React.FC = () => {
 
   const processRequestMutation = useProcessGradingRequest();
 
-  const handleAction = (requestId: number, action: 'approve' | 'reject') => {
+  const handleAction = (requestId: number, action: 'approve' | 'reject') =>
     processRequestMutation.mutate({ requestId, action });
-  };
+
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);

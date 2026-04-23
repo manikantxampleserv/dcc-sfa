@@ -7,7 +7,7 @@ function getChangeType(
   newCategoryId: number | null,
   validCategories: any[]
 ): string {
-  if (!currentCategoryId && newCategoryId) return 'new_assignment';
+  if (!currentCategoryId && newCategoryId) return 'no_change';
   if (!newCategoryId) return 'removal';
 
   const currentLevel =
@@ -113,116 +113,6 @@ export const scheduleCustomerCategoryAssignment = async () => {
 
         logger.info(`Found ${validCategories.length} category levels`);
 
-        // const lowestCategory = await getLowestCategory();
-
-        // if (!lowestCategory) {
-        //   logger.warn('No active customer categories found');
-        //   return;
-        // }
-
-        //
-        // const customers = await prisma.customers.findMany({
-        //   where: {
-        //     is_active: 'Y',
-        //   },
-        //   select: {
-        //     id: true,
-        //     name: true,
-        //     customer_category_id: true,
-        //   },
-        // });
-
-        // logger.info(`Processing ${customers.length} customers...`);
-
-        // logger.info(`Processing ${customers.length} customers...`);
-
-        // for (const customer of customers) {
-        //   results.totalProcessed++;
-
-        //   try {
-        //     const orderSales = await prisma.orders.aggregate({
-        //       where: {
-        //         parent_id: customer.id,
-        //         status: {
-        //           in: ['approved', 'pending', 'confirmed'],
-        //         },
-        //         is_active: 'Y',
-        //       },
-        //       _sum: {
-        //         total_amount: true,
-        //       },
-        //     });
-
-        //     const totalSales = Number(orderSales._sum?.total_amount || 0);
-
-        //     let assignedCategory = null;
-        //     for (let i = validCategories.length - 1; i >= 0; i--) {
-        //       if (totalSales >= validCategories[i].thresholdValue) {
-        //         assignedCategory = validCategories[i];
-        //         break;
-        //       }
-        //     }
-
-        //     if (!assignedCategory && validCategories.length > 0) {
-        //       assignedCategory = validCategories[0];
-        //     }
-
-        //     const newCategoryId = assignedCategory?.id || null;
-        //     const currentCategoryId = customer.customer_category_id;
-
-        //     if (newCategoryId !== currentCategoryId) {
-        //       const changeType = getChangeType(
-        //         currentCategoryId,
-        //         newCategoryId,
-        //         validCategories
-        //       );
-
-        //       const existingRequest =
-        //         await prisma.customer_category_grading.findFirst({
-        //           where: {
-        //             customer_id: customer.id,
-        //             action_taken: 'N',
-        //           },
-        //         });
-
-        //       if (existingRequest) {
-        //         await prisma.customer_category_grading.update({
-        //           where: { id: existingRequest.id },
-        //           data: {
-        //             current_category_id: currentCategoryId,
-        //             upcoming_category_id: newCategoryId,
-        //             change_type: changeType,
-        //             status: 'P',
-        //             updatedate: new Date(),
-        //             updatedby: 1,
-        //           },
-        //         });
-
-        //         results.totalUpdated++;
-        //        //       } else {
-        //         await prisma.customer_category_grading.create({
-        //           data: {
-        //             customer_id: customer.id,
-        //             current_category_id: currentCategoryId,
-        //             upcoming_category_id: newCategoryId,
-        //             status: 'P',
-        //             change_type: changeType,
-        //             action_taken: 'N',
-        //             createdby: 1,
-        //           },
-        //         });
-
-        //         results.totalUpdated++;
-        //        //       }
-        //     } else {
-        //       results.totalUnchanged++;
-        //     }
-        //   } catch (error: any) {
-        //     results.totalFailed++;
-        //     logger.error(` ${customer.name}: ${error.message}`);
-        //   }
-        // }
-
         const lowestCategory = await getLowestCategory();
 
         if (!lowestCategory) {
@@ -245,111 +135,110 @@ export const scheduleCustomerCategoryAssignment = async () => {
           },
         });
 
+        logger.info(
+          `Fetching aggregated sales for ${customers.length} customers...`
+        );
+        const orderSalesData = await prisma.orders.groupBy({
+          by: ['parent_id'],
+          where: {
+            parent_id: { in: customers.map((c: any) => c.id) },
+            status: { in: ['approved', 'pending', 'confirmed'] },
+            is_active: 'Y',
+          },
+          _sum: {
+            total_amount: true,
+          },
+        });
+
+        const salesMap = new Map();
+        for (const order of orderSalesData) {
+          if (order.parent_id !== null) {
+            salesMap.set(
+              order.parent_id,
+              Number(order._sum?.total_amount || 0)
+            );
+          }
+        }
+
         logger.info(`Processing ${customers.length} customers...`);
 
         for (const customer of customers) {
           results.totalProcessed++;
 
           try {
-            const orderSales = await prisma.orders.aggregate({
-              where: {
-                parent_id: customer.id,
-                status: {
-                  in: ['approved', 'pending', 'confirmed'],
-                },
-                is_active: 'Y',
-              },
-              _sum: {
-                total_amount: true,
-              },
-            });
-
-            const totalSales = Number(orderSales._sum?.total_amount || 0);
+            const totalSales = salesMap.get(customer.id) || 0;
 
             let assignedCategory = null;
 
-            if (!customer.customer_category_id) {
-              for (let i = validCategories.length - 1; i >= 0; i--) {
-                if (totalSales >= validCategories[i].thresholdValue) {
-                  assignedCategory = validCategories[i];
-                  break;
-                }
+            for (let i = validCategories.length - 1; i >= 0; i--) {
+              if (totalSales >= validCategories[i].thresholdValue) {
+                assignedCategory = validCategories[i];
+                break;
               }
+            }
 
-              if (!assignedCategory && validCategories.length > 0) {
-                assignedCategory = validCategories[0];
-              }
-            } else {
-              for (let i = validCategories.length - 1; i >= 0; i--) {
-                if (totalSales >= validCategories[i].thresholdValue) {
-                  assignedCategory = validCategories[i];
-                  break;
-                }
-              }
-
-              if (!assignedCategory && validCategories.length > 0) {
-                assignedCategory = validCategories[0];
-              }
+            if (!assignedCategory && validCategories.length > 0) {
+              assignedCategory = validCategories[0];
             }
 
             const newCategoryId = assignedCategory?.id || null;
             const currentCategoryId = customer.customer_category_id;
 
             if (!currentCategoryId && newCategoryId) {
-              await prisma.customers.update({
-                where: { id: customer.id },
-                data: {
-                  customer_category_id: newCategoryId,
-                  updatedate: new Date(),
-                  updatedby: 1,
-                },
+              await prisma.$transaction(async tx => {
+                await tx.customers.update({
+                  where: { id: customer.id },
+                  data: {
+                    customer_category_id: newCategoryId,
+                    updatedate: new Date(),
+                    updatedby: 1,
+                  },
+                });
+
+                const existingRequest =
+                  await tx.customer_category_grading.findFirst({
+                    where: {
+                      customer_id: customer.id,
+                      action_taken: 'N',
+                    },
+                  });
+
+                if (existingRequest) {
+                  await tx.customer_category_grading.update({
+                    where: { id: existingRequest.id },
+                    data: {
+                      current_category_id: newCategoryId,
+                      upcoming_category_id: newCategoryId,
+                      change_type: 'no_change',
+                      status: 'C',
+                      action_taken: 'A',
+                      approver_id: 1,
+                      approved_date: new Date(),
+                      updatedate: new Date(),
+                      updatedby: 1,
+                    },
+                  });
+                } else {
+                  await tx.customer_category_grading.create({
+                    data: {
+                      customer_id: customer.id,
+                      current_category_id: newCategoryId,
+                      upcoming_category_id: newCategoryId,
+                      change_type: 'no_change',
+                      status: 'C',
+                      action_taken: 'A',
+                      approver_id: 1,
+                      approved_date: new Date(),
+                      createdate: new Date(),
+                      updatedate: new Date(),
+                      createdby: 1,
+                      updatedby: 1,
+                    },
+                  });
+                }
               });
 
-              const existingRequest =
-                await prisma.customer_category_grading.findFirst({
-                  where: {
-                    customer_id: customer.id,
-                    action_taken: 'N',
-                  },
-                });
-
-              if (existingRequest) {
-                await prisma.customer_category_grading.update({
-                  where: { id: existingRequest.id },
-                  data: {
-                    current_category_id: newCategoryId,
-                    upcoming_category_id: newCategoryId,
-                    change_type: 'no_change',
-                    status: 'C',
-                    action_taken: 'A',
-                    approver_id: 1,
-                    approved_date: new Date(),
-                    updatedate: new Date(),
-                    updatedby: 1,
-                  },
-                });
-
-                results.totalUpdated++;
-              } else {
-                await prisma.customer_category_grading.create({
-                  data: {
-                    customer_id: customer.id,
-                    current_category_id: newCategoryId,
-                    upcoming_category_id: newCategoryId,
-                    change_type: 'no_change',
-                    status: 'C',
-                    action_taken: 'A',
-                    approver_id: 1,
-                    approved_date: new Date(),
-                    createdate: new Date(),
-                    updatedate: new Date(),
-                    createdby: 1,
-                    updatedby: 1,
-                  },
-                });
-
-                results.totalUpdated++;
-              }
+              results.totalUpdated++;
             } else if (newCategoryId !== currentCategoryId) {
               const changeType = getChangeType(
                 currentCategoryId,
@@ -402,13 +291,13 @@ export const scheduleCustomerCategoryAssignment = async () => {
             }
           } catch (error: any) {
             results.totalFailed++;
-            logger.error(` ${customer.name}: ${error.message}`);
-            logger.error(` Full error:`, JSON.stringify(error, null, 2));
+            logger.error(`${customer.name}: ${error.message}`);
+            logger.error(`Full error:`, JSON.stringify(error, null, 2));
 
             if (error.code === 'P2002') {
-              logger.error(` Unique constraint violation`);
+              logger.error(`Unique constraint violation`);
             } else if (error.code === 'P2003') {
-              logger.error(` Foreign key constraint violation`);
+              logger.error(`Foreign key constraint violation`);
             }
           }
         }
@@ -421,7 +310,7 @@ export const scheduleCustomerCategoryAssignment = async () => {
           `Summary: processed: ${results.totalProcessed}, requestsCreated: ${results.totalUpdated}, unchanged: ${results.totalUnchanged}, failed: ${results.totalFailed}`
         );
       } catch (error: any) {
-        logger.error(' Cron: Customer Category Assignment Failed');
+        logger.error('Cron: Customer Category Assignment Failed');
         logger.error('Error:', error.message);
       }
     },
@@ -465,27 +354,29 @@ export async function assignLowestCategoryToUncategorizedCustomers() {
 
     for (const customer of uncategorizedCustomers) {
       try {
-        await prisma.customers.update({
-          where: { id: customer.id },
-          data: {
-            customer_category_id: lowestCategory.id,
-            updatedate: new Date(),
-            updatedby: 1,
-          },
-        });
+        await prisma.$transaction(async tx => {
+          await tx.customers.update({
+            where: { id: customer.id },
+            data: {
+              customer_category_id: lowestCategory.id,
+              updatedate: new Date(),
+              updatedby: 1,
+            },
+          });
 
-        await prisma.customer_category_grading.create({
-          data: {
-            customer_id: customer.id,
-            current_category_id: null,
-            upcoming_category_id: lowestCategory.id,
-            change_type: 'no_change',
-            status: 'C',
-            action_taken: 'A',
-            approver_id: 1,
-            approved_date: new Date(),
-            createdby: 1,
-          },
+          await tx.customer_category_grading.create({
+            data: {
+              customer_id: customer.id,
+              current_category_id: null,
+              upcoming_category_id: lowestCategory.id,
+              change_type: 'no_change',
+              status: 'C',
+              action_taken: 'A',
+              approver_id: 1,
+              approved_date: new Date(),
+              createdby: 1,
+            },
+          });
         });
 
         updated++;
