@@ -86,6 +86,7 @@ exports.priceListsController = {
                 }
             }
             let priceList;
+            const isUpdate = !!data.id;
             if (data.id) {
                 priceList = await prisma_client_1.default.pricelists.update({
                     where: { id: data.id },
@@ -285,13 +286,16 @@ exports.priceListsController = {
                     },
                 },
             });
-            res.status(200).json({
-                message: 'Price list processed successfully',
+            const message = isUpdate
+                ? 'Price List Updated Successfully'
+                : 'Price list created successfully';
+            res.status(200).send({
+                message,
                 data: serializePriceList(finalPriceList),
             });
         }
         catch (error) {
-            res.status(500).json({
+            res.status(500).send({
                 message: 'Error processing price list',
                 error: error.message,
             });

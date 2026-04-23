@@ -88,6 +88,8 @@ const serializeOrder = (order) => ({
         notes: oi.notes,
         is_free_gift: oi.is_free_gift || false,
         tracking_type: oi.products?.tracking_type || null,
+        product_batches: oi.product_batches || [],
+        product_serials: oi.product_serials || [],
     })) || [],
     invoices: order.invoices?.map((inv) => ({
         id: inv.id,
@@ -1435,6 +1437,44 @@ exports.ordersController = {
             });
             if (!order)
                 return res.status(404).json({ message: 'Order not found' });
+            const stockMovements = await prisma_client_1.default.stock_movements.findMany({
+                where: {
+                    reference_type: 'ORDER',
+                    reference_id: order.id,
+                },
+                include: {
+                    batch_lots: true,
+                    serial_numbers: true,
+                },
+            });
+            if (stockMovements.length > 0 && order.order_items) {
+                order.order_items = order.order_items.map((item) => {
+                    const itemMovements = stockMovements.filter((sm) => sm.product_id === item.product_id);
+                    const batches = itemMovements
+                        .filter((sm) => sm.batch_id != null && sm.batch_lots)
+                        .map((sm) => ({
+                        batch_lot_id: sm.batch_id,
+                        batch_number: sm.batch_lots.batch_number,
+                        lot_number: sm.batch_lots.lot_number,
+                        manufacturing_date: sm.batch_lots.manufacturing_date,
+                        expiry_date: sm.batch_lots.expiry_date,
+                        quantity: sm.quantity,
+                        batch_remaining_quantity: sm.batch_lots.remaining_quantity,
+                    }));
+                    const serials = itemMovements
+                        .filter((sm) => sm.serial_id != null && sm.serial_numbers)
+                        .map((sm) => ({
+                        id: sm.serial_id,
+                        serial_number: sm.serial_numbers.serial_number,
+                        selected: true,
+                    }));
+                    return {
+                        ...item,
+                        product_batches: batches.length > 0 ? batches : undefined,
+                        product_serials: serials.length > 0 ? serials : undefined,
+                    };
+                });
+            }
             const serialized = serializeOrder(order);
             if (order.promotion_id && order.orders_promotion) {
                 serialized.promotion_applied = {

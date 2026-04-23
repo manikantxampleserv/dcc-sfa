@@ -95,20 +95,6 @@ const login = async (req, res) => {
         if (typeof password !== 'string') {
             return res.error('Password must be a string', 400);
         }
-        // const user = await prisma.users.findFirst({
-        //   where: {
-        //     OR: [{ email: identifier }, { employee_id: identifier }],
-        //   },
-        //   include: {
-        //     user_role: true,
-        //   },
-        // });
-        // if (!user) {
-        //   console.log(
-        //     `Failed login attempt for unknown user: ${identifier} from IP: ${getClientIP(req)}`
-        //   );
-        //   return res.error('User not found', 404);
-        // }
         if (platform && !['mobile', 'web'].includes(platform)) {
             return res.error('Invalid platform. Must be "mobile" or "web"', 400);
         }

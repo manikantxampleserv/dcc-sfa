@@ -1,4 +1,4 @@
-export declare const scheduleCustomerCategoryAssignment: () => void;
+export declare const scheduleCustomerCategoryAssignment: () => Promise<void>;
 export declare function assignLowestCategoryToUncategorizedCustomers(): Promise<{
     updated: number;
     failed: number;

@@ -6,35 +6,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createApp = void 0;
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
-const express_1 = __importDefault(require("express"));
-const response_middleware_1 = require("./middlewares/response.middleware");
-const routes_1 = __importDefault(require("./routes"));
-const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignment.job");
 const dotenv_1 = __importDefault(require("dotenv"));
+const express_1 = __importDefault(require("express"));
 const path_1 = require("path");
 const server_1 = require("./graphql/server");
-const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
-const swagger_1 = require("./configs/swagger");
-if (!process.env.DATABASE_URL) {
-    const possiblePaths = [
-        (0, path_1.resolve)(process.cwd(), '.env'),
-        (0, path_1.resolve)(__dirname, '../.env'),
-        (0, path_1.resolve)(__dirname, '../../../.env'),
-        '.env',
-    ];
-    for (const path of possiblePaths) {
-        try {
-            const result = dotenv_1.default.config({ path, quiet: true });
-            if (result.error) {
-                continue;
-            }
-            if (process.env.DATABASE_URL) {
-                break;
-            }
-        }
-        catch (error) {
+const customerCategoryAssignment_job_1 = require("./jobs/customerCategoryAssignment.job");
+const response_middleware_1 = require("./middlewares/response.middleware");
+const routes_1 = __importDefault(require("./routes"));
+const possiblePaths = [
+    (0, path_1.resolve)(process.cwd(), '.env'),
+    (0, path_1.resolve)(__dirname, '../.env'),
+    (0, path_1.resolve)(__dirname, '../../../.env'),
+    '.env',
+];
+for (const path of possiblePaths) {
+    try {
+        const result = dotenv_1.default.config({ path, quiet: true });
+        if (result.error) {
             continue;
         }
+        if (process.env.DATABASE_URL) {
+            break;
+        }
+    }
+    catch (error) {
+        continue;
     }
 }
 /**
@@ -51,7 +47,6 @@ const createApp = async () => {
     app.use((0, cors_1.default)({ origin: '*', credentials: true }));
     app.use(response_middleware_1.responseHandler);
     app.use('/api', routes_1.default);
-    app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.swaggerSpec, swagger_1.swaggerUiOptions));
     (0, customerCategoryAssignment_job_1.scheduleCustomerCategoryAssignment)();
     return app;
 };

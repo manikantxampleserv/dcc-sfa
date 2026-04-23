@@ -6,7 +6,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = require("path");
-const logger_1 = __importDefault(require("./logger"));
 if (process.env.DATABASE_URL) {
     console.log('DATABASE_URL found in environment variables');
 }
@@ -14,7 +13,6 @@ else {
     const isProduction = process.env.NODE_ENV === 'production' ||
         process.env.NODE_ENV === 'prod' ||
         process.env.env === 'production';
-    logger_1.default.info(`Environment detection - NODE_ENV: ${process.env.NODE_ENV}, isProduction: ${isProduction}`);
     const possiblePaths = [
         ...(isProduction
             ? [

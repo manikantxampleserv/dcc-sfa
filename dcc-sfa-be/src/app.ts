@@ -1,35 +1,31 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { Application } from 'express';
-import { responseHandler } from './middlewares/response.middleware';
-import routes from './routes';
-import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssignment.job';
 import dotenv from 'dotenv';
+import express, { Application } from 'express';
 import { resolve } from 'path';
 import { setupGraphQL } from './graphql/server';
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec, swaggerUiOptions } from './configs/swagger';
+import { scheduleCustomerCategoryAssignment } from './jobs/customerCategoryAssignment.job';
+import { responseHandler } from './middlewares/response.middleware';
+import routes from './routes';
 
-if (!process.env.DATABASE_URL) {
-  const possiblePaths = [
-    resolve(process.cwd(), '.env'),
-    resolve(__dirname, '../.env'),
-    resolve(__dirname, '../../../.env'),
-    '.env',
-  ];
+const possiblePaths = [
+  resolve(process.cwd(), '.env'),
+  resolve(__dirname, '../.env'),
+  resolve(__dirname, '../../../.env'),
+  '.env',
+];
 
-  for (const path of possiblePaths) {
-    try {
-      const result = dotenv.config({ path, quiet: true });
-      if (result.error) {
-        continue;
-      }
-      if (process.env.DATABASE_URL) {
-        break;
-      }
-    } catch (error) {
+for (const path of possiblePaths) {
+  try {
+    const result = dotenv.config({ path, quiet: true });
+    if (result.error) {
       continue;
     }
+    if (process.env.DATABASE_URL) {
+      break;
+    }
+  } catch (error) {
+    continue;
   }
 }
 
@@ -48,19 +44,13 @@ export const createApp = async (): Promise<Application> => {
 
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  (app.use as any)(cookieParser());
+  app.use(cookieParser());
 
   app.use(cors({ origin: '*', credentials: true }));
 
   app.use(responseHandler);
 
   app.use('/api', routes);
-
-  (app.use as any)(
-    '/api-docs',
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec, swaggerUiOptions)
-  );
 
   scheduleCustomerCategoryAssignment();
 

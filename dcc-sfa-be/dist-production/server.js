@@ -46,7 +46,6 @@ const startServer = async () => {
         const server = app.listen(port, async () => {
             attendance_cron_service_1.AttendanceCronService.startAutoPunchOut();
             attendance_cron_service_1.AttendanceCronService.startMidnightStatusReset();
-            logger_1.default.info('Attendance cron jobs started');
             logger_1.default.success(`Server running at http://localhost:${port}`);
             logger_1.default.info(`GraphQL Playground available at http://localhost:${port}/graphql`);
         });

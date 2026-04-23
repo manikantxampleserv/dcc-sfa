@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -35,6 +68,7 @@ const serializeSettings = (settings, includeCreatedAt = false, includeUpdatedAt 
         'DCC SFA System',
     smtp_password: settings.smtp_password,
     currency_id: settings.currency_id,
+    customer_grading_cron_time: settings.customer_grading_cron_time,
     ...(includeCreatedAt && { created_date: settings.created_date }),
     ...(includeUpdatedAt && { updated_date: settings.updated_date }),
     currency: settings.companies_currencies
@@ -105,7 +139,7 @@ exports.settingsController = {
                 res.error('Company settings not found', 404);
                 return;
             }
-            const { name, address, city, state, country, zipcode, phone_number, email, website, is_active, log_inst, smtp_host, smtp_port, smtp_username, smtp_password, smtp_mail_from_address, smtp_mail_from_name, currency_id, } = req.body;
+            const { name, address, city, state, country, zipcode, phone_number, email, website, is_active, log_inst, smtp_host, smtp_port, smtp_username, smtp_password, smtp_mail_from_address, smtp_mail_from_name, currency_id, customer_grading_cron_time, } = req.body;
             const data = {
                 ...(name && { name }),
                 ...(address !== undefined && { address }),
@@ -131,6 +165,7 @@ exports.settingsController = {
                 ...(currency_id !== undefined && {
                     currency_id: currency_id ? Number(currency_id) : null,
                 }),
+                ...(customer_grading_cron_time !== undefined && { customer_grading_cron_time }),
                 updated_date: new Date(),
                 updated_by: req.user?.id,
             };
@@ -151,6 +186,10 @@ exports.settingsController = {
                 catch (deleteError) {
                     console.error('Error deleting old logo:', deleteError);
                 }
+            }
+            if (customer_grading_cron_time && customer_grading_cron_time !== existingCompany.customer_grading_cron_time) {
+                const { scheduleCustomerCategoryAssignment } = await Promise.resolve().then(() => __importStar(require('../../jobs/customerCategoryAssignment.job')));
+                scheduleCustomerCategoryAssignment();
             }
             res.success('Company settings updated successfully', serializeSettings(company, true, true), 200);
         }

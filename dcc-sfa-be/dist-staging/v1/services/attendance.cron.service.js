@@ -6,10 +6,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AttendanceCronService = void 0;
 const node_cron_1 = __importDefault(require("node-cron"));
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+const logger_1 = __importDefault(require("../../configs/logger"));
 class AttendanceCronService {
     static startAutoPunchOut() {
         node_cron_1.default.schedule('0 0 * * *', async () => {
-            console.log('Running auto punch-out check...', new Date().toISOString());
+            logger_1.default.info(`Running auto punch-out check... Time: ${new Date().toISOString()}`);
             try {
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
@@ -97,18 +98,18 @@ class AttendanceCronService {
                         });
                     }
                     catch (historyError) {
-                        console.error('History creation error:', historyError);
+                        logger_1.default.error(`History creation error: ${historyError}`);
                     }
                 }
             }
             catch (error) {
-                console.error('Auto punch-out error:', error);
+                logger_1.default.error(`Auto punch-out error: ${error}`);
             }
         });
     }
     static startMidnightStatusReset() {
         node_cron_1.default.schedule('0 0 * * *', async () => {
-            console.log('Running midnight status reset to not_punch...', new Date().toISOString());
+            logger_1.default.info(`Running midnight status reset to not_punch... Time: ${new Date().toISOString()}`);
             try {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -127,10 +128,10 @@ class AttendanceCronService {
                         updatedate: new Date(),
                     },
                 });
-                console.log(`Status reset completed. Updated ${result.count} attendance records.`);
+                logger_1.default.info(`Status reset completed. Updated ${result.count} attendance records.`);
             }
             catch (error) {
-                console.error('Midnight status reset error:', error);
+                logger_1.default.error(`Midnight status reset error: ${error}`);
             }
         });
     }
