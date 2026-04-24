@@ -116,7 +116,6 @@ const SalesTargetsManagement: React.FC = () => {
               ? 'Y'
               : 'N',
       };
-
       await exportToExcelMutation.mutateAsync({
         tableName: 'sales_targets',
         filters,
@@ -126,7 +125,6 @@ const SalesTargetsManagement: React.FC = () => {
     }
   }, [exportToExcelMutation, search, statusFilter]);
 
-  // Define table columns
   const targetColumns: TableColumn<SalesTarget>[] = [
     {
       id: 'target_info',

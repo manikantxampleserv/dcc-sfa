@@ -1161,6 +1161,11 @@ model invoice_items {
   tax_amount             Decimal? @default(0, map: "DF__invoice_i__tax_a__1DB06A4F") @db.Decimal(18, 2)
   total_amount           Decimal? @db.Decimal(18, 2)
   notes                  String?  @db.NVarChar(500)
+  tax_code               String?  @db.NVarChar(50)
+  tax_rate               Decimal? @default(0) @db.Decimal(5, 2)
+  conversion_factor      Decimal? @default(1) @db.Decimal(18, 2)
+  base_quantity          Int?     @default(0)
+  expiry_date            DateTime? @db.DateTime
   invoices               invoices @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__paren__1EA48E88")
   invoice_items_products products @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__produ__1F98B2C1")
 }
@@ -1183,6 +1188,13 @@ model invoices {
   balance_due          Decimal?        @db.Decimal(19, 2)
   notes                String?
   billing_address      String?
+  slip_type            String?   @db.NVarChar(50)
+  total_discount       Decimal?  @default(0) @db.Decimal(18, 2)
+  total_quantity       Int?      @default(0)
+  total_volume         Decimal?  @default(0) @db.Decimal(18, 2)
+  total_weight         Decimal?  @default(0) @db.Decimal(18, 2)
+  item_count           Int?      @default(0)
+  is_synced            Boolean?  @default(false)
   is_active            String          @default("Y", map: "DF__invoices__is_act__14270015") @db.Char(1)
   createdate           DateTime?       @default(now(), map: "DF__invoices__create__151B244E") @db.DateTime
   createdby            Int
@@ -1348,6 +1360,10 @@ model payments {
   reference_number                   String?           @db.NVarChar(100)
   total_amount                       Decimal           @db.Decimal(18, 2)
   notes                              String?
+  slip_number                        String?           @db.NVarChar(50)
+  customer_name                      String?           @db.NVarChar(255)
+  is_auto                            Boolean?          @default(false)
+  is_synced                          Boolean?          @default(false)
   is_active                          String            @default("Y", map: "DF__payments__is_act__47A6A41B") @db.Char(1)
   createdate                         DateTime?         @default(now(), map: "DF__payments__create__489AC854") @db.DateTime
   createdby                          Int
@@ -2149,6 +2165,7 @@ model survey_responses {
   log_inst                            Int?
   location                            String?          @db.NVarChar(255)
   customer_id                         Int?
+  visit_id                            Int?
   survey_answer_responses             survey_answers[]
   survey_response_customer            customers?       @relation("SurveyRresponsesCustomer", fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   surveys                             surveys          @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)

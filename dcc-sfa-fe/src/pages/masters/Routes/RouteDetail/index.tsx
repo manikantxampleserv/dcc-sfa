@@ -310,7 +310,7 @@ const RouteDetail: React.FC = () => {
     <div className="flex flex-col gap-4">
       <div className="flex items-start gap-4">
         <div className="!flex-2 flex flex-col gap-4">
-          <div className="!bg-white !rounded-lg !pb-9 !shadow !border !border-gray-200 !p-6 !text-center !relative">
+          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
             <div className="absolute top-3 right-3">
               <div
                 className={`!w-2.5 !h-2.5 !rounded-full ${route.is_active === 'Y' ? '!bg-green-400' : '!bg-gray-400'

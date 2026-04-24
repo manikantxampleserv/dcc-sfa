@@ -173,6 +173,8 @@ interface BulkVisitInput {
     createdby?: number;
   };
   invoices?: Array<{
+    createdby: number | undefined;
+    created_at: any;
     invoice_id?: number;
     visit_id?: number;
     salesperson_id?: number | null;
@@ -192,6 +194,13 @@ interface BulkVisitInput {
     billing_address?: string;
     is_active?: string;
     currency_id?: number;
+    slip_type?: string;
+    total_discount?: number;
+    total_quantity?: number;
+    total_volume?: number;
+    total_weight?: number;
+    item_count?: number;
+    is_synced?: boolean;
     items?: Array<{
       item_id?: number;
       product_id: number;
@@ -203,6 +212,11 @@ interface BulkVisitInput {
       tax_amount?: number;
       total_amount?: number;
       notes?: string;
+      tax_code?: string;
+      tax_rate?: number;
+      conversion_factor?: number;
+      base_quantity?: number;
+      expiry_date?: Date | string;
     }>;
   }>;
   orders?: Array<{
@@ -241,6 +255,7 @@ interface BulkVisitInput {
     }>;
   }>;
   payments?: Array<{
+    createdby: any;
     payment_id?: number;
     visit_id?: number;
     payment_number?: string;
@@ -253,6 +268,10 @@ interface BulkVisitInput {
     notes?: string | null;
     is_active?: string;
     currency_id?: number;
+    slip_number?: string;
+    customer_name?: string;
+    is_auto?: boolean;
+    is_synced?: boolean;
   }>;
   cooler_inspections?: Array<{
     id?: number;
@@ -689,1890 +708,6 @@ export const visitsController = {
     }
   },
 
-  // async bulkUpsertVisits(req: Request, res: Response) {
-  //   try {
-  //     const inputData = req.body;
-  //     console.log('Received inputData:', JSON.stringify(inputData, null, 2));
-  //     let dataArray: BulkVisitInput[] = [];
-
-  //     if (typeof inputData.visits === 'string') {
-  //       console.log('Parsing visits as string...');
-  //       try {
-  //         const cleanVisitsData = inputData.visits.trim();
-  //         dataArray = JSON.parse(cleanVisitsData);
-  //         console.log('Parsed dataArray:', dataArray);
-  //       } catch (e) {
-  //         console.error('JSON parse error:', e);
-  //         console.error('Raw visits data:', JSON.stringify(inputData.visits));
-  //         return res.status(400).json({
-  //           success: false,
-  //           message: 'Invalid visits JSON string',
-  //           error: 'Please provide valid JSON in visits field',
-  //         });
-  //       }
-  //     } else if (inputData.visits && Array.isArray(inputData.visits)) {
-  //       dataArray = inputData.visits;
-  //     } else if (inputData.visit && Array.isArray(inputData.visit)) {
-  //       dataArray = inputData.visit.map((item: any) => ({
-  //         visit: {
-  //           id: item.id,
-  //           customer_id: item.customer_id,
-
-  //           sales_person_id: item.sales_person_id,
-  //           route_id: item.route_id,
-  //           zones_id: item.zones_id,
-  //           visit_date: item.visit_date,
-  //           visit_time: item.visit_time,
-  //           purpose: item.purpose,
-  //           status: item.status,
-  //           start_time: item.start_time,
-  //           end_time: item.end_time,
-  //           duration: item.duration,
-  //           start_latitude: item.start_latitude,
-  //           start_longitude: item.start_longitude,
-  //           end_latitude: item.end_latitude,
-  //           end_longitude: item.end_longitude,
-  //           check_in_time: item.check_in_time,
-  //           check_out_time: item.check_out_time,
-  //           orders_created: item.orders_created,
-  //           amount_collected: item.amount_collected,
-  //           visit_notes: item.visit_notes,
-  //           customer_feedback: item.customer_feedback,
-  //           next_visit_date: item.next_visit_date,
-  //           is_active: item.is_active,
-  //           createdby: item.createdby,
-  //           visit_id: item.visit_id,
-  //         },
-  //         orders: item.orders || [],
-  //         invoices: item.invoices || [],
-
-  //         payments: item.payments || [],
-  //         cooler_inspections: item.cooler_inspections || [],
-  //         survey: item.survey,
-  //       }));
-  //     } else if (Array.isArray(inputData)) {
-  //       dataArray = inputData;
-  //     } else if (inputData.visit) {
-  //       dataArray = [inputData];
-  //     } else {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message:
-  //           'Invalid input format. Expected { visits: [...] }, { visit: [...] }, or [{ visit: {...} }]',
-  //       });
-  //     }
-
-  //     if (!dataArray || dataArray.length === 0) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'No visit data provided',
-  //       });
-  //     }
-
-  //     const organizedFiles = (req as any).organizedFiles || {};
-
-  //     console.log(`\n Starting bulk upsert for ${dataArray.length} visit(s)`);
-  //     console.log(
-  //       ` Files received: ${Object.keys(organizedFiles).length > 0 ? Object.keys(organizedFiles).join(', ') : 'None'}`
-  //     );
-
-  //     const results = {
-  //       created: [] as any[],
-  //       updated: [] as any[],
-  //       failed: [] as any[],
-  //     };
-
-  //     for (let index = 0; index < dataArray.length; index++) {
-  //       const data = dataArray[index];
-
-  //       try {
-  //         const {
-  //           visit,
-  //           invoices,
-  //           orders,
-  //           payments,
-  //           cooler_inspections,
-  //           survey,
-  //         } = data;
-  //         if (!visit) {
-  //           results.failed.push({
-  //             visitIndex: index,
-  //             data,
-  //             error: 'Visit data is required',
-  //           });
-  //           continue;
-  //         }
-
-  //         if (!visit.customer_id || !visit.sales_person_id) {
-  //           results.failed.push({
-  //             visitIndex: index,
-  //             data,
-  //             error: 'Customer ID and Sales Person ID are required',
-  //           });
-  //           continue;
-  //         }
-
-  //         const isUpdate = (visit.id ?? visit.visit_id ?? 0) > 0;
-  //         const visitIdToUpdate = visit.id ?? visit.visit_id;
-  //         console.log(
-  //           `\nProcessing visit ${index + 1}/${dataArray.length} (Customer: ${visit.customer_id}${isUpdate ? `, Visit ID: ${visitIdToUpdate}` : ''})`
-  //         );
-
-  //         const selfImagesFiles =
-  //           organizedFiles[`visit_${index}_self_images`] || [];
-  //         const customerImagesFiles =
-  //           organizedFiles[`visit_${index}_customer_images`] || [];
-  //         const coolerImagesFiles =
-  //           organizedFiles[`visit_${index}_cooler_images`] || [];
-
-  //         console.log(
-  //           ` Images: Self(${selfImagesFiles.length}) Customer(${customerImagesFiles.length}) Cooler(${coolerImagesFiles.length})`
-  //         );
-
-  //         let selfImageUrls: string[] = [];
-  //         let customerImageUrls: string[] = [];
-  //         let coolerImageUrls: string[] = [];
-  //         let uploadedImagePaths: string[] = [];
-
-  //         try {
-  //           if (selfImagesFiles.length > 0) {
-  //             const uploadedPath = await uploadMultipleImages(
-  //               selfImagesFiles,
-  //               'visits/self',
-  //               visitIdToUpdate || Date.now() + index
-  //             );
-  //             selfImageUrls = uploadedPath ? uploadedPath.split(',') : [];
-  //             uploadedImagePaths.push(...selfImageUrls);
-  //             console.log(`Uploaded ${selfImagesFiles.length} self image(s)`);
-  //           }
-
-  //           if (customerImagesFiles.length > 0) {
-  //             const uploadedPath = await uploadMultipleImages(
-  //               customerImagesFiles,
-  //               'visits/customer',
-  //               visitIdToUpdate || Date.now() + index
-  //             );
-  //             customerImageUrls = uploadedPath ? uploadedPath.split(',') : [];
-  //             uploadedImagePaths.push(...customerImageUrls);
-  //             console.log(
-  //               `Uploaded ${customerImagesFiles.length} customer image(s)`
-  //             );
-  //           }
-
-  //           if (coolerImagesFiles.length > 0) {
-  //             const uploadedPath = await uploadMultipleImages(
-  //               coolerImagesFiles,
-  //               'visits/cooler',
-  //               visitIdToUpdate || Date.now() + index
-  //             );
-  //             coolerImageUrls = uploadedPath ? uploadedPath.split(',') : [];
-  //             uploadedImagePaths.push(...coolerImageUrls);
-  //             console.log(
-  //               `Uploaded ${coolerImagesFiles.length} cooler image(s)`
-  //             );
-  //           }
-  //         } catch (uploadError: any) {
-  //           console.error(`Image upload failed:`, uploadError.message);
-  //           results.failed.push({
-  //             visitIndex: index,
-  //             data,
-  //             error: `Image upload failed: ${uploadError.message}`,
-  //           });
-  //           continue;
-  //         }
-
-  //         const processedVisitData = {
-  //           customer_id: visit.customer_id,
-  //           sales_person_id: visit.sales_person_id,
-  //           ...(visit.route_id !== undefined &&
-  //             visit.route_id !== null && {
-  //               route_id: visit.route_id,
-  //             }),
-  //           ...(visit.zones_id !== undefined &&
-  //             visit.zones_id !== null && {
-  //               zones_id: visit.zones_id,
-  //             }),
-  //           ...(visit.visit_date && {
-  //             visit_date: new Date(visit.visit_date),
-  //           }),
-  //           ...(visit.visit_time && { visit_time: visit.visit_time }),
-  //           ...(visit.purpose && { purpose: visit.purpose }),
-  //           ...(visit.status && { status: visit.status }),
-  //           ...(visit.start_time && {
-  //             start_time: new Date(visit.start_time),
-  //           }),
-  //           ...(visit.end_time && {
-  //             end_time: new Date(visit.end_time),
-  //           }),
-  //           ...(visit.duration !== undefined && { duration: visit.duration }),
-  //           ...(visit.start_latitude &&
-  //             visit.start_latitude.trim() !== '' && {
-  //               start_latitude: parseFloat(visit.start_latitude),
-  //             }),
-  //           ...(visit.start_longitude &&
-  //             visit.start_longitude.trim() !== '' && {
-  //               start_longitude: parseFloat(visit.start_longitude),
-  //             }),
-  //           ...(visit.end_latitude &&
-  //             visit.end_latitude.trim() !== '' && {
-  //               end_latitude: parseFloat(visit.end_latitude),
-  //             }),
-  //           ...(visit.end_longitude &&
-  //             visit.end_longitude.trim() !== '' && {
-  //               end_longitude: parseFloat(visit.end_longitude),
-  //             }),
-  //           ...(visit.check_in_time && {
-  //             check_in_time: new Date(visit.check_in_time),
-  //           }),
-  //           ...(visit.check_out_time && {
-  //             check_out_time: new Date(visit.check_out_time),
-  //           }),
-  //           ...(visit.orders_created !== undefined && {
-  //             orders_created: visit.orders_created,
-  //           }),
-  //           ...(visit.amount_collected &&
-  //             visit.amount_collected.trim() !== '' && {
-  //               amount_collected: parseFloat(visit.amount_collected),
-  //             }),
-  //           ...(visit.visit_notes && { visit_notes: visit.visit_notes }),
-  //           ...(visit.customer_feedback && {
-  //             customer_feedback: visit.customer_feedback,
-  //           }),
-  //           ...(visit.next_visit_date && {
-  //             next_visit_date: new Date(visit.next_visit_date),
-  //           }),
-  //           is_active: visit.is_active || 'Y',
-  //         };
-
-  //         console.log(
-  //           ` Processing visit ${isUpdate ? 'update' : 'creation'} for customer ${visit.customer_id}`
-  //         );
-  //         console.log(` Payments to process: ${payments?.length || 0}`);
-  //         console.log(`Invoices to process: ${invoices?.length || 0}`);
-  //         console.log(
-  //           `Cooler inspections to process: ${cooler_inspections?.length || 0}`
-  //         );
-
-  //         let oldSelfImages: string[] = [];
-  //         let oldCustomerImages: string[] = [];
-  //         let oldCoolerImages: string[] = [];
-
-  //         if (isUpdate) {
-  //           const existingVisit = await prisma.visits.findUnique({
-  //             where: { id: visitIdToUpdate },
-  //             select: {
-  //               id: true,
-  //             },
-  //           });
-
-  //           if (!existingVisit) {
-  //             results.failed.push({
-  //               visitIndex: index,
-  //               data,
-  //               error: `Visit with id ${visitIdToUpdate} not found`,
-  //             });
-  //             continue;
-  //           }
-
-  //           const existingAttachments = await prisma.visit_attachments.findMany(
-  //             {
-  //               where: { visit_id: visitIdToUpdate },
-  //               select: { id: true, file_url: true, file_type: true },
-  //             }
-  //           );
-
-  //           oldSelfImages = existingAttachments
-  //             .filter(att => att.file_type === 'self_image' && att.file_url)
-  //             .map(att => att.file_url!);
-  //           oldCustomerImages = existingAttachments
-  //             .filter(att => att.file_type === 'customer_image' && att.file_url)
-  //             .map(att => att.file_url!);
-  //           oldCoolerImages = existingAttachments
-  //             .filter(att => att.file_type === 'cooler_image' && att.file_url)
-  //             .map(att => att.file_url!);
-  //         }
-
-  //         try {
-  //           const result = await prisma.$transaction(
-  //             async tx => {
-  //               const invoiceIds: number[] = [];
-  //               const paymentIds: number[] = [];
-  //               const inspectionIds: number[] = [];
-  //               const surveyResponseIds: number[] = [];
-
-  //               let visitRecord;
-
-  //               if (isUpdate) {
-  //                 visitRecord = await tx.visits.update({
-  //                   where: { id: visitIdToUpdate },
-  //                   data: {
-  //                     ...processedVisitData,
-  //                     updatedate: new Date(),
-  //                     updatedby: (req as any).user?.id || visit.createdby || 1,
-  //                   },
-  //                 });
-  //               } else {
-  //                 visitRecord = await tx.visits.create({
-  //                   data: {
-  //                     ...processedVisitData,
-  //                     createdate: new Date(),
-  //                     createdby: visit.createdby || (req as any).user?.id || 1,
-  //                     log_inst: 1,
-  //                   },
-  //                 });
-  //               }
-
-  //               const visitId = visitRecord.id;
-
-  //               if (isUpdate) {
-  //                 if (selfImageUrls.length > 0) {
-  //                   await tx.visit_attachments.deleteMany({
-  //                     where: {
-  //                       visit_id: visitId,
-  //                       file_type: 'self_image',
-  //                     },
-  //                   });
-  //                 }
-  //                 if (customerImageUrls.length > 0) {
-  //                   await tx.visit_attachments.deleteMany({
-  //                     where: {
-  //                       visit_id: visitId,
-  //                       file_type: 'customer_image',
-  //                     },
-  //                   });
-  //                 }
-  //                 if (coolerImageUrls.length > 0) {
-  //                   await tx.visit_attachments.deleteMany({
-  //                     where: {
-  //                       visit_id: visitId,
-  //                       file_type: 'cooler_image',
-  //                     },
-  //                   });
-  //                 }
-  //               }
-
-  //               const attachmentData: any[] = [];
-
-  //               if (selfImageUrls.length > 0) {
-  //                 selfImageUrls.forEach((url, index) => {
-  //                   attachmentData.push({
-  //                     visit_id: visitId,
-  //                     file_name: `self_image_${index + 1}`,
-  //                     file_url: url,
-  //                     file_type: 'self_image',
-  //                     description: 'Self image captured during visit',
-  //                     createdby: visit.createdby || (req as any).user?.id || 1,
-  //                   });
-  //                 });
-  //               }
-
-  //               if (customerImageUrls.length > 0) {
-  //                 customerImageUrls.forEach((url, index) => {
-  //                   attachmentData.push({
-  //                     visit_id: visitId,
-  //                     file_name: `customer_image_${index + 1}`,
-  //                     file_url: url,
-  //                     file_type: 'customer_image',
-  //                     description: 'Customer image captured during visit',
-  //                     createdby: visit.createdby || (req as any).user?.id || 1,
-  //                   });
-  //                 });
-  //               }
-
-  //               if (coolerImageUrls.length > 0) {
-  //                 coolerImageUrls.forEach((url, index) => {
-  //                   attachmentData.push({
-  //                     visit_id: visitId,
-  //                     file_name: `cooler_image_${index + 1}`,
-  //                     file_url: url,
-  //                     file_type: 'cooler_image',
-  //                     description: 'Cooler image captured during visit',
-  //                     createdby: visit.createdby || (req as any).user?.id || 1,
-  //                   });
-  //                 });
-  //               }
-
-  //               if (attachmentData.length > 0) {
-  //                 await tx.visit_attachments.createMany({
-  //                   data: attachmentData,
-  //                 });
-  //                 console.log(
-  //                   `Created ${attachmentData.length} attachment records`
-  //                 );
-  //               }
-
-  //               if (invoices && invoices.length > 0) {
-  //                 console.log(`Processing ${invoices.length} invoice(s)...`);
-
-  //                 for (const invoiceData of invoices) {
-  //                   const invoiceItems = invoiceData.items || [];
-  //                   const createdOrder = await tx.orders.create({
-  //                     data: {
-  //                       order_number: `ORD-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-  //                       parent_id: visit.customer_id,
-  //                       salesperson_id: visit.sales_person_id,
-  //                       order_date: new Date(),
-  //                       status: 'completed',
-  //                       total_amount: invoiceData.total_amount || 0,
-  //                       createdate: new Date(),
-  //                       createdby:
-  //                         visit.createdby || (req as any).user?.id || 1,
-  //                       log_inst: 1,
-  //                     },
-  //                   });
-  //                   let invoiceNumber = invoiceData.invoice_number;
-  //                   if (!invoiceNumber) {
-  //                     invoiceNumber =
-  //                       await generateInvoiceNumberInTransaction(tx);
-  //                   } else {
-  //                     // Validate user-provided invoice number doesn't exist
-  //                     const existingInvoice = await tx.invoices.findFirst({
-  //                       where: { invoice_number: invoiceNumber },
-  //                     });
-  //                     if (existingInvoice) {
-  //                       throw new Error(
-  //                         `Invoice number ${invoiceNumber} already exists`
-  //                       );
-  //                     }
-  //                   }
-  //                   const processedInvoiceData = {
-  //                     customer_id: visit.customer_id,
-  //                     invoice_number: invoiceNumber,
-
-  //                     parent_id: createdOrder.id,
-  //                     invoice_date: invoiceData.invoice_date
-  //                       ? new Date(invoiceData.invoice_date)
-  //                       : new Date(),
-  //                     due_date: invoiceData.due_date
-  //                       ? new Date(invoiceData.due_date)
-  //                       : undefined,
-  //                     status: invoiceData.status || 'draft',
-  //                     salesperson_id: invoiceData.salesperson_id || null,
-  //                     payment_method: invoiceData.payment_method || 'credit',
-  //                     subtotal: invoiceData.subtotal || 0,
-  //                     discount_amount: invoiceData.discount_amount || 0,
-  //                     tax_amount: invoiceData.tax_amount || 0,
-  //                     shipping_amount: invoiceData.shipping_amount || 0,
-  //                     total_amount: invoiceData.total_amount || 0,
-  //                     amount_paid: invoiceData.amount_paid || 0,
-  //                     balance_due: invoiceData.balance_due,
-  //                     notes: invoiceData.notes,
-  //                     billing_address: invoiceData.billing_address,
-  //                     is_active: invoiceData.is_active || 'Y',
-  //                     currency_id: invoiceData.currency_id,
-  //                   };
-
-  //                   let createdInvoice: any = undefined;
-
-  //                   if (invoiceData.invoice_id || (invoiceData as any).id) {
-  //                     const invoiceIdToUpdate =
-  //                       (invoiceData as any).id || invoiceData.invoice_id;
-  //                     createdInvoice = await tx.invoices.update({
-  //                       where: { id: invoiceIdToUpdate },
-  //                       data: {
-  //                         ...processedInvoiceData,
-  //                         updatedate: new Date(),
-  //                         updatedby:
-  //                           (req as any).user?.id || visit.createdby || 1,
-  //                       },
-  //                     });
-
-  //                     invoiceIds.push(createdInvoice.id);
-
-  //                     if (invoiceItems.length > 0) {
-  //                       if ((invoiceData as any).invoice_method === 'order') {
-  //                         // Order method with batch/serial deduction logic
-  //                         for (const item of invoiceItems) {
-  //                           const product = await tx.products.findUnique({
-  //                             where: { id: Number(item.product_id) },
-  //                           });
-
-  //                           if (!product) {
-  //                             throw new Error(
-  //                               `Product ${item.product_id} not found`
-  //                             );
-  //                           }
-
-  //                           const trackingType =
-  //                             (
-  //                               product.tracking_type as string
-  //                             )?.toUpperCase() || 'NONE';
-  //                           const quantity = parseInt(
-  //                             String(item.quantity),
-  //                             10
-  //                           );
-
-  //                           if (trackingType === 'BATCH') {
-  //                             console.log(
-  //                               'Processing BATCH deduction for invoice item'
-  //                             );
-
-  //                             const batchData =
-  //                               (item as any).product_batches ||
-  //                               (item as any).batches;
-
-  //                             if (!batchData || !Array.isArray(batchData)) {
-  //                               throw new Error(
-  //                                 `Batches are required for product "${product.name}"`
-  //                               );
-  //                             }
-
-  //                             let totalOrderedQty = 0;
-  //                             for (const batchOrder of batchData) {
-  //                               const batchQty = parseInt(
-  //                                 batchOrder.quantity,
-  //                                 10
-  //                               );
-  //                               totalOrderedQty += batchQty;
-
-  //                               const batchLot = await tx.batch_lots.findUnique(
-  //                                 {
-  //                                   where: { id: batchOrder.batch_lot_id },
-  //                                 }
-  //                               );
-
-  //                               if (!batchLot) {
-  //                                 throw new Error(
-  //                                   `Batch lot ${batchOrder.batch_lot_id} not found`
-  //                                 );
-  //                               }
-
-  //                               // Check and deduct from van inventory if van_inventory_id is provided
-  //                               if ((invoiceData as any).van_inventory_id) {
-  //                                 const vanItem =
-  //                                   await tx.van_inventory_items.findFirst({
-  //                                     where: {
-  //                                       product_id: product.id,
-  //                                       batch_lot_id: batchOrder.batch_lot_id,
-  //                                       van_inventory_items_inventory: {
-  //                                         is_active: 'Y',
-  //                                       },
-  //                                     },
-  //                                     include: {
-  //                                       van_inventory_items_inventory: true,
-  //                                     },
-  //                                   });
-
-  //                                 if (!vanItem) {
-  //                                   throw new Error(
-  //                                     `Batch ${batchOrder.batch_lot_id} not found in van inventory for product "${product.name}"`
-  //                                   );
-  //                                 }
-
-  //                                 if (vanItem.quantity < batchQty) {
-  //                                   throw new Error(
-  //                                     `Insufficient quantity in van for batch. Available: ${vanItem.quantity}, Requested: ${batchQty}`
-  //                                   );
-  //                                 }
-
-  //                                 const newVanItemQuantity =
-  //                                   vanItem.quantity - batchQty;
-  //                                 if (newVanItemQuantity > 0) {
-  //                                   await tx.van_inventory_items.update({
-  //                                     where: { id: vanItem.id },
-  //                                     data: { quantity: newVanItemQuantity },
-  //                                   });
-  //                                 } else {
-  //                                   await tx.van_inventory_items.delete({
-  //                                     where: { id: vanItem.id },
-  //                                   });
-  //                                 }
-  //                               }
-
-  //                               if (batchLot.remaining_quantity < batchQty) {
-  //                                 throw new Error(
-  //                                   `Insufficient quantity in batch lot. Available: ${batchLot.remaining_quantity}, Requested: ${batchQty}`
-  //                                 );
-  //                               }
-
-  //                               await tx.batch_lots.update({
-  //                                 where: { id: batchOrder.batch_lot_id },
-  //                                 data: {
-  //                                   remaining_quantity:
-  //                                     batchLot.remaining_quantity - batchQty,
-  //                                   updatedate: new Date(),
-  //                                 },
-  //                               });
-
-  //                               const productBatch =
-  //                                 await tx.product_batches.findFirst({
-  //                                   where: {
-  //                                     product_id: product.id,
-  //                                     batch_lot_id: batchOrder.batch_lot_id,
-  //                                     is_active: 'Y',
-  //                                   },
-  //                                 });
-
-  //                               if (productBatch) {
-  //                                 if (productBatch.quantity < batchQty) {
-  //                                   throw new Error(
-  //                                     `Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${batchQty}`
-  //                                   );
-  //                                 }
-
-  //                                 await tx.product_batches.update({
-  //                                   where: { id: productBatch.id },
-  //                                   data: {
-  //                                     quantity:
-  //                                       productBatch.quantity - batchQty,
-  //                                     updatedate: new Date(),
-  //                                   },
-  //                                 });
-  //                               }
-
-  //                               const inventoryStock =
-  //                                 await tx.inventory_stock.findFirst({
-  //                                   where: {
-  //                                     product_id: product.id,
-  //                                     batch_id: batchOrder.batch_lot_id,
-  //                                   },
-  //                                 });
-
-  //                               if (inventoryStock) {
-  //                                 const currentStock =
-  //                                   inventoryStock.current_stock ?? 0;
-  //                                 const availableStock =
-  //                                   inventoryStock.available_stock ?? 0;
-
-  //                                 if (currentStock < batchQty) {
-  //                                   throw new Error(
-  //                                     `Insufficient inventory stock for batch. Available: ${currentStock}, Requested: ${batchQty}`
-  //                                   );
-  //                                 }
-
-  //                                 await tx.inventory_stock.update({
-  //                                   where: { id: inventoryStock.id },
-  //                                   data: {
-  //                                     current_stock: currentStock - batchQty,
-  //                                     available_stock:
-  //                                       availableStock - batchQty,
-  //                                     updatedate: new Date(),
-  //                                     updatedby:
-  //                                       (req as any).user?.id ||
-  //                                       visit.createdby ||
-  //                                       1,
-  //                                   },
-  //                                 });
-  //                               }
-
-  //                               await tx.stock_movements.create({
-  //                                 data: {
-  //                                   product_id: product.id,
-  //                                   batch_id: batchOrder.batch_lot_id,
-  //                                   serial_id: null,
-  //                                   movement_type: 'SALE',
-  //                                   reference_type: 'INVOICE',
-  //                                   reference_id: createdInvoice.id,
-  //                                   from_location_id: (invoiceData as any)
-  //                                     .van_inventory_id
-  //                                     ? (
-  //                                         await tx.van_inventory.findUnique({
-  //                                           where: {
-  //                                             id: (invoiceData as any)
-  //                                               .van_inventory_id,
-  //                                           },
-  //                                         })
-  //                                       )?.location_id || null
-  //                                     : null,
-  //                                   to_location_id: null,
-  //                                   quantity: batchQty,
-  //                                   movement_date: new Date(),
-  //                                   remarks: `Sold via invoice ${createdInvoice.invoice_number} - Batch: ${batchLot.batch_number}`,
-  //                                   is_active: 'Y',
-  //                                   createdate: new Date(),
-  //                                   createdby:
-  //                                     (req as any).user?.id ||
-  //                                     visit.createdby ||
-  //                                     1,
-  //                                   log_inst: 1,
-  //                                   van_inventory_id: (invoiceData as any)
-  //                                     .van_inventory_id
-  //                                     ? Number(
-  //                                         (invoiceData as any).van_inventory_id
-  //                                       )
-  //                                     : null,
-  //                                 },
-  //                               });
-
-  //                               console.log(
-  //                                 `Deducted ${batchQty} from batch ${batchLot.batch_number}`
-  //                               );
-  //                             }
-
-  //                             if (totalOrderedQty !== quantity) {
-  //                               throw new Error(
-  //                                 `Total batch quantity (${totalOrderedQty}) does not match ordered quantity (${quantity})`
-  //                               );
-  //                             }
-  //                           } else if (trackingType === 'SERIAL') {
-  //                             console.log(
-  //                               'Processing SERIAL deduction for invoice item'
-  //                             );
-  //                             const serialData =
-  //                               (item as any).product_serials ||
-  //                               (item as any).serials;
-
-  //                             if (
-  //                               !serialData ||
-  //                               !Array.isArray(serialData) ||
-  //                               serialData.length === 0
-  //                             ) {
-  //                               throw new Error(
-  //                                 `Serial numbers required for "${product.name}"`
-  //                               );
-  //                             }
-
-  //                             for (const serialInput of serialData) {
-  //                               const serialNumber =
-  //                                 typeof serialInput === 'string'
-  //                                   ? serialInput
-  //                                   : serialInput.serial_number;
-
-  //                               if (!serialNumber) {
-  //                                 throw new Error('Serial number is required');
-  //                               }
-
-  //                               const serial =
-  //                                 await tx.serial_numbers.findUnique({
-  //                                   where: { serial_number: serialNumber },
-  //                                 });
-
-  //                               if (!serial) {
-  //                                 throw new Error(
-  //                                   `Serial number ${serialNumber} not found`
-  //                                 );
-  //                               }
-
-  //                               await tx.serial_numbers.update({
-  //                                 where: { id: serial.id },
-  //                                 data: {
-  //                                   status: 'sold',
-  //                                   customer_id: visit.customer_id,
-  //                                   sold_date: new Date(),
-  //                                   updatedate: new Date(),
-  //                                   updatedby:
-  //                                     (req as any).user?.id ||
-  //                                     visit.createdby ||
-  //                                     1,
-  //                                 },
-  //                               });
-
-  //                               const inventoryStock =
-  //                                 await tx.inventory_stock.findFirst({
-  //                                   where: {
-  //                                     product_id: product.id,
-  //                                     serial_number_id: serial.id,
-  //                                   },
-  //                                 });
-
-  //                               if (inventoryStock) {
-  //                                 const oldCurrent =
-  //                                   inventoryStock.current_stock || 0;
-  //                                 const oldAvailable =
-  //                                   inventoryStock.available_stock || 0;
-  //                                 const newCurrentStock = Math.max(
-  //                                   0,
-  //                                   oldCurrent - 1
-  //                                 );
-  //                                 const newAvailableStock = Math.max(
-  //                                   0,
-  //                                   oldAvailable - 1
-  //                                 );
-
-  //                                 await tx.inventory_stock.update({
-  //                                   where: { id: inventoryStock.id },
-  //                                   data: {
-  //                                     current_stock: newCurrentStock,
-  //                                     available_stock: newAvailableStock,
-  //                                     updatedate: new Date(),
-  //                                     updatedby:
-  //                                       (req as any).user?.id ||
-  //                                       visit.createdby ||
-  //                                       1,
-  //                                   },
-  //                                 });
-  //                               }
-
-  //                               // Check and deduct from van inventory if van_inventory_id is provided
-  //                               if ((invoiceData as any).van_inventory_id) {
-  //                                 const vanItem =
-  //                                   await tx.van_inventory_items.findFirst({
-  //                                     where: {
-  //                                       product_id: product.id,
-  //                                       serial_id: serial.id,
-  //                                       van_inventory_items_inventory: {
-  //                                         is_active: 'Y',
-  //                                       },
-  //                                     },
-  //                                     include: {
-  //                                       van_inventory_items_inventory: true,
-  //                                     },
-  //                                   });
-
-  //                                 if (vanItem && vanItem.quantity > 0) {
-  //                                   const newVanItemQuantity =
-  //                                     vanItem.quantity - 1;
-  //                                   if (newVanItemQuantity > 0) {
-  //                                     await tx.van_inventory_items.update({
-  //                                       where: { id: vanItem.id },
-  //                                       data: { quantity: newVanItemQuantity },
-  //                                     });
-  //                                   } else {
-  //                                     await tx.van_inventory_items.delete({
-  //                                       where: { id: vanItem.id },
-  //                                     });
-  //                                   }
-  //                                 }
-  //                               }
-
-  //                               await tx.stock_movements.create({
-  //                                 data: {
-  //                                   product_id: product.id,
-  //                                   batch_id: null,
-  //                                   serial_id: serial.id,
-  //                                   movement_type: 'SALE',
-  //                                   reference_type: 'INVOICE',
-  //                                   reference_id: createdInvoice.id,
-  //                                   from_location_id: (invoiceData as any)
-  //                                     .van_inventory_id
-  //                                     ? (
-  //                                         await tx.van_inventory.findUnique({
-  //                                           where: {
-  //                                             id: (invoiceData as any)
-  //                                               .van_inventory_id,
-  //                                           },
-  //                                         })
-  //                                       )?.location_id || null
-  //                                     : null,
-  //                                   to_location_id: null,
-  //                                   quantity: 1,
-  //                                   movement_date: new Date(),
-  //                                   remarks: `Sold via invoice ${createdInvoice.invoice_number} - Serial ${serialNumber}`,
-  //                                   is_active: 'Y',
-  //                                   createdate: new Date(),
-  //                                   createdby:
-  //                                     (req as any).user?.id ||
-  //                                     visit.createdby ||
-  //                                     1,
-  //                                   log_inst: 1,
-  //                                   van_inventory_id: (invoiceData as any)
-  //                                     .van_inventory_id
-  //                                     ? Number(
-  //                                         (invoiceData as any).van_inventory_id
-  //                                       )
-  //                                     : null,
-  //                                 },
-  //                               });
-  //                             }
-  //                           }
-
-  //                           // Create invoice item
-  //                           const itemData = {
-  //                             product_id: item.product_id,
-  //                             product_name: item.product_name || product.name,
-  //                             unit: item.unit,
-  //                             quantity: item.quantity,
-  //                             unit_price: item.unit_price,
-  //                             discount_amount: item.discount_amount || 0,
-  //                             tax_amount: item.tax_amount || 0,
-  //                             total_amount: item.total_amount,
-  //                             notes: item.notes,
-  //                           };
-
-  //                           if (item.item_id || (item as any).id) {
-  //                             const itemIdToUpdate =
-  //                               (item as any).id || item.item_id;
-  //                             await tx.invoice_items.update({
-  //                               where: { id: itemIdToUpdate },
-  //                               data: itemData,
-  //                             });
-  //                           } else {
-  //                             await tx.invoice_items.create({
-  //                               data: {
-  //                                 ...itemData,
-  //                                 parent_id: createdInvoice.id,
-  //                               },
-  //                             });
-  //                           }
-  //                         }
-  //                       } else {
-  //                         // Regular invoice processing (existing logic)
-  //                         for (const item of invoiceItems) {
-  //                           const itemData = {
-  //                             product_id: item.product_id,
-  //                             product_name: item.product_name,
-  //                             unit: item.unit,
-  //                             quantity: parseInt(String(item.quantity), 10),
-  //                             unit_price: item.unit_price,
-  //                             discount_amount: item.discount_amount || 0,
-  //                             tax_amount: item.tax_amount || 0,
-  //                             total_amount: item.total_amount,
-  //                             notes: item.notes,
-  //                           };
-
-  //                           if (item.item_id || (item as any).id) {
-  //                             const itemIdToUpdate =
-  //                               (item as any).id || item.item_id;
-  //                             await tx.invoice_items.update({
-  //                               where: { id: itemIdToUpdate },
-  //                               data: itemData,
-  //                             });
-  //                           } else {
-  //                             await tx.invoice_items.create({
-  //                               data: {
-  //                                 ...itemData,
-  //                                 parent_id: createdInvoice.id,
-  //                               },
-  //                             });
-  //                           }
-  //                         }
-  //                       }
-  //                     }
-  //                   } else {
-  //                     createdInvoice = await tx.invoices.create({
-  //                       data: {
-  //                         ...processedInvoiceData,
-  //                         createdate: new Date(),
-  //                         createdby:
-  //                           visit.createdby || (req as any).user?.id || 1,
-  //                         log_inst: 1,
-  //                       },
-  //                     });
-
-  //                     invoiceIds.push(createdInvoice.id);
-
-  //                     if (invoiceItems.length > 0) {
-  //                       if ((invoiceData as any).invoice_method === 'order') {
-  //                         // Order method with batch/serial deduction logic
-  //                         for (const item of invoiceItems) {
-  //                           const product = await tx.products.findUnique({
-  //                             where: { id: Number(item.product_id) },
-  //                           });
-
-  //                           if (!product) {
-  //                             throw new Error(
-  //                               `Product ${item.product_id} not found`
-  //                             );
-  //                           }
-
-  //                           const trackingType =
-  //                             (
-  //                               product.tracking_type as string
-  //                             )?.toUpperCase() || 'NONE';
-  //                           const quantity = parseInt(
-  //                             String(item.quantity),
-  //                             10
-  //                           );
-
-  //                           if (trackingType === 'BATCH') {
-  //                             console.log(
-  //                               'Processing BATCH deduction for invoice item'
-  //                             );
-
-  //                             const batchData =
-  //                               (item as any).product_batches ||
-  //                               (item as any).batches;
-
-  //                             if (!batchData || !Array.isArray(batchData)) {
-  //                               throw new Error(
-  //                                 `Batches are required for product "${product.name}"`
-  //                               );
-  //                             }
-
-  //                             let totalOrderedQty = 0;
-  //                             for (const batchOrder of batchData) {
-  //                               const batchQty = parseInt(
-  //                                 batchOrder.quantity,
-  //                                 10
-  //                               );
-  //                               totalOrderedQty += batchQty;
-
-  //                               const batchLot = await tx.batch_lots.findUnique(
-  //                                 {
-  //                                   where: { id: batchOrder.batch_lot_id },
-  //                                 }
-  //                               );
-
-  //                               if (!batchLot) {
-  //                                 throw new Error(
-  //                                   `Batch lot ${batchOrder.batch_lot_id} not found`
-  //                                 );
-  //                               }
-
-  //                               // Check and deduct from van inventory if van_inventory_id is provided
-  //                               if ((invoiceData as any).van_inventory_id) {
-  //                                 const vanItem =
-  //                                   await tx.van_inventory_items.findFirst({
-  //                                     where: {
-  //                                       product_id: product.id,
-  //                                       batch_lot_id: batchOrder.batch_lot_id,
-  //                                       van_inventory_items_inventory: {
-  //                                         is_active: 'Y',
-  //                                       },
-  //                                     },
-  //                                     include: {
-  //                                       van_inventory_items_inventory: true,
-  //                                     },
-  //                                   });
-
-  //                                 if (!vanItem) {
-  //                                   throw new Error(
-  //                                     `Batch ${batchOrder.batch_lot_id} not found in van inventory for product "${product.name}"`
-  //                                   );
-  //                                 }
-
-  //                                 if (vanItem.quantity < batchQty) {
-  //                                   throw new Error(
-  //                                     `Insufficient quantity in van for batch. Available: ${vanItem.quantity}, Requested: ${batchQty}`
-  //                                   );
-  //                                 }
-
-  //                                 const newVanItemQuantity =
-  //                                   vanItem.quantity - batchQty;
-  //                                 if (newVanItemQuantity > 0) {
-  //                                   await tx.van_inventory_items.update({
-  //                                     where: { id: vanItem.id },
-  //                                     data: { quantity: newVanItemQuantity },
-  //                                   });
-  //                                 } else {
-  //                                   await tx.van_inventory_items.delete({
-  //                                     where: { id: vanItem.id },
-  //                                   });
-  //                                 }
-  //                               }
-
-  //                               if (batchLot.remaining_quantity < batchQty) {
-  //                                 throw new Error(
-  //                                   `Insufficient quantity in batch lot. Available: ${batchLot.remaining_quantity}, Requested: ${batchQty}`
-  //                                 );
-  //                               }
-
-  //                               await tx.batch_lots.update({
-  //                                 where: { id: batchOrder.batch_lot_id },
-  //                                 data: {
-  //                                   remaining_quantity:
-  //                                     batchLot.remaining_quantity - batchQty,
-  //                                   updatedate: new Date(),
-  //                                 },
-  //                               });
-
-  //                               const productBatch =
-  //                                 await tx.product_batches.findFirst({
-  //                                   where: {
-  //                                     product_id: product.id,
-  //                                     batch_lot_id: batchOrder.batch_lot_id,
-  //                                     is_active: 'Y',
-  //                                   },
-  //                                 });
-
-  //                               if (productBatch) {
-  //                                 if (productBatch.quantity < batchQty) {
-  //                                   throw new Error(
-  //                                     `Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${batchQty}`
-  //                                   );
-  //                                 }
-
-  //                                 await tx.product_batches.update({
-  //                                   where: { id: productBatch.id },
-  //                                   data: {
-  //                                     quantity:
-  //                                       productBatch.quantity - batchQty,
-  //                                     updatedate: new Date(),
-  //                                   },
-  //                                 });
-  //                               }
-
-  //                               const inventoryStock =
-  //                                 await tx.inventory_stock.findFirst({
-  //                                   where: {
-  //                                     product_id: product.id,
-  //                                     batch_id: batchOrder.batch_lot_id,
-  //                                   },
-  //                                 });
-
-  //                               if (inventoryStock) {
-  //                                 const currentStock =
-  //                                   inventoryStock.current_stock ?? 0;
-  //                                 const availableStock =
-  //                                   inventoryStock.available_stock ?? 0;
-
-  //                                 if (currentStock < batchQty) {
-  //                                   throw new Error(
-  //                                     `Insufficient inventory stock for batch. Available: ${currentStock}, Requested: ${batchQty}`
-  //                                   );
-  //                                 }
-
-  //                                 await tx.inventory_stock.update({
-  //                                   where: { id: inventoryStock.id },
-  //                                   data: {
-  //                                     current_stock: currentStock - batchQty,
-  //                                     available_stock:
-  //                                       availableStock - batchQty,
-  //                                     updatedate: new Date(),
-  //                                     updatedby:
-  //                                       (req as any).user?.id ||
-  //                                       visit.createdby ||
-  //                                       1,
-  //                                   },
-  //                                 });
-  //                               }
-
-  //                               await tx.stock_movements.create({
-  //                                 data: {
-  //                                   product_id: product.id,
-  //                                   batch_id: batchOrder.batch_lot_id,
-  //                                   serial_id: null,
-  //                                   movement_type: 'SALE',
-  //                                   reference_type: 'INVOICE',
-  //                                   reference_id: createdInvoice.id,
-  //                                   from_location_id: (invoiceData as any)
-  //                                     .van_inventory_id
-  //                                     ? (
-  //                                         await tx.van_inventory.findUnique({
-  //                                           where: {
-  //                                             id: (invoiceData as any)
-  //                                               .van_inventory_id,
-  //                                           },
-  //                                         })
-  //                                       )?.location_id || null
-  //                                     : null,
-  //                                   to_location_id: null,
-  //                                   quantity: batchQty,
-  //                                   movement_date: new Date(),
-  //                                   remarks: `Sold via invoice ${createdInvoice.invoice_number} - Batch: ${batchLot.batch_number}`,
-  //                                   is_active: 'Y',
-  //                                   createdate: new Date(),
-  //                                   createdby:
-  //                                     (req as any).user?.id ||
-  //                                     visit.createdby ||
-  //                                     1,
-  //                                   log_inst: 1,
-  //                                   van_inventory_id: (invoiceData as any)
-  //                                     .van_inventory_id
-  //                                     ? Number(
-  //                                         (invoiceData as any).van_inventory_id
-  //                                       )
-  //                                     : null,
-  //                                 },
-  //                               });
-
-  //                               console.log(
-  //                                 `Deducted ${batchQty} from batch ${batchLot.batch_number}`
-  //                               );
-  //                             }
-
-  //                             if (totalOrderedQty !== quantity) {
-  //                               throw new Error(
-  //                                 `Total batch quantity (${totalOrderedQty}) does not match ordered quantity (${quantity})`
-  //                               );
-  //                             }
-  //                           } else if (trackingType === 'SERIAL') {
-  //                             console.log(
-  //                               'Processing SERIAL deduction for invoice item'
-  //                             );
-  //                             const serialData =
-  //                               (item as any).product_serials ||
-  //                               (item as any).serials;
-
-  //                             if (
-  //                               !serialData ||
-  //                               !Array.isArray(serialData) ||
-  //                               serialData.length === 0
-  //                             ) {
-  //                               throw new Error(
-  //                                 `Serial numbers required for "${product.name}"`
-  //                               );
-  //                             }
-
-  //                             for (const serialInput of serialData) {
-  //                               const serialNumber =
-  //                                 typeof serialInput === 'string'
-  //                                   ? serialInput
-  //                                   : serialInput.serial_number;
-
-  //                               if (!serialNumber) {
-  //                                 throw new Error('Serial number is required');
-  //                               }
-
-  //                               const serial =
-  //                                 await tx.serial_numbers.findUnique({
-  //                                   where: { serial_number: serialNumber },
-  //                                 });
-
-  //                               if (!serial) {
-  //                                 throw new Error(
-  //                                   `Serial number ${serialNumber} not found`
-  //                                 );
-  //                               }
-
-  //                               await tx.serial_numbers.update({
-  //                                 where: { id: serial.id },
-  //                                 data: {
-  //                                   status: 'sold',
-  //                                   customer_id: visit.customer_id,
-  //                                   sold_date: new Date(),
-  //                                   updatedate: new Date(),
-  //                                   updatedby:
-  //                                     (req as any).user?.id ||
-  //                                     visit.createdby ||
-  //                                     1,
-  //                                 },
-  //                               });
-
-  //                               const inventoryStock =
-  //                                 await tx.inventory_stock.findFirst({
-  //                                   where: {
-  //                                     product_id: product.id,
-  //                                     serial_number_id: serial.id,
-  //                                   },
-  //                                 });
-
-  //                               if (inventoryStock) {
-  //                                 const oldCurrent =
-  //                                   inventoryStock.current_stock || 0;
-  //                                 const oldAvailable =
-  //                                   inventoryStock.available_stock || 0;
-  //                                 const newCurrentStock = Math.max(
-  //                                   0,
-  //                                   oldCurrent - 1
-  //                                 );
-  //                                 const newAvailableStock = Math.max(
-  //                                   0,
-  //                                   oldAvailable - 1
-  //                                 );
-
-  //                                 await tx.inventory_stock.update({
-  //                                   where: { id: inventoryStock.id },
-  //                                   data: {
-  //                                     current_stock: newCurrentStock,
-  //                                     available_stock: newAvailableStock,
-  //                                     updatedate: new Date(),
-  //                                     updatedby:
-  //                                       (req as any).user?.id ||
-  //                                       visit.createdby ||
-  //                                       1,
-  //                                   },
-  //                                 });
-  //                               }
-
-  //                               // Check and deduct from van inventory if van_inventory_id is provided
-  //                               if ((invoiceData as any).van_inventory_id) {
-  //                                 const vanItem =
-  //                                   await tx.van_inventory_items.findFirst({
-  //                                     where: {
-  //                                       product_id: product.id,
-  //                                       serial_id: serial.id,
-  //                                       van_inventory_items_inventory: {
-  //                                         is_active: 'Y',
-  //                                       },
-  //                                     },
-  //                                     include: {
-  //                                       van_inventory_items_inventory: true,
-  //                                     },
-  //                                   });
-
-  //                                 if (vanItem && vanItem.quantity > 0) {
-  //                                   const newVanItemQuantity =
-  //                                     vanItem.quantity - 1;
-  //                                   if (newVanItemQuantity > 0) {
-  //                                     await tx.van_inventory_items.update({
-  //                                       where: { id: vanItem.id },
-  //                                       data: { quantity: newVanItemQuantity },
-  //                                     });
-  //                                   } else {
-  //                                     await tx.van_inventory_items.delete({
-  //                                       where: { id: vanItem.id },
-  //                                     });
-  //                                   }
-  //                                 }
-  //                               }
-
-  //                               await tx.stock_movements.create({
-  //                                 data: {
-  //                                   product_id: product.id,
-  //                                   batch_id: null,
-  //                                   serial_id: serial.id,
-  //                                   movement_type: 'SALE',
-  //                                   reference_type: 'INVOICE',
-  //                                   reference_id: createdInvoice.id,
-  //                                   from_location_id: (invoiceData as any)
-  //                                     .van_inventory_id
-  //                                     ? (
-  //                                         await tx.van_inventory.findUnique({
-  //                                           where: {
-  //                                             id: (invoiceData as any)
-  //                                               .van_inventory_id,
-  //                                           },
-  //                                         })
-  //                                       )?.location_id || null
-  //                                     : null,
-  //                                   to_location_id: null,
-  //                                   quantity: 1,
-  //                                   movement_date: new Date(),
-  //                                   remarks: `Sold via invoice ${createdInvoice.invoice_number} - Serial ${serialNumber}`,
-  //                                   is_active: 'Y',
-  //                                   createdate: new Date(),
-  //                                   createdby:
-  //                                     (req as any).user?.id ||
-  //                                     visit.createdby ||
-  //                                     1,
-  //                                   log_inst: 1,
-  //                                   van_inventory_id: (invoiceData as any)
-  //                                     .van_inventory_id
-  //                                     ? Number(
-  //                                         (invoiceData as any).van_inventory_id
-  //                                       )
-  //                                     : null,
-  //                                 },
-  //                               });
-  //                             }
-  //                           }
-
-  //                           // Create invoice item
-  //                           await tx.invoice_items.create({
-  //                             data: {
-  //                               product_id: item.product_id,
-  //                               product_name: item.product_name || product.name,
-  //                               unit: item.unit,
-  //                               quantity: parseInt(String(item.quantity), 10),
-  //                               unit_price: item.unit_price,
-  //                               discount_amount: item.discount_amount || 0,
-  //                               tax_amount: item.tax_amount || 0,
-  //                               total_amount: item.total_amount,
-  //                               notes: item.notes,
-  //                               parent_id: createdInvoice.id,
-  //                             },
-  //                           });
-  //                         }
-  //                       } else {
-  //                         await tx.invoice_items.createMany({
-  //                           data: invoiceItems.map(item => ({
-  //                             parent_id: createdInvoice.id,
-  //                             product_id: item.product_id,
-  //                             product_name: item.product_name,
-  //                             unit: item.unit,
-  //                             quantity: parseInt(String(item.quantity), 10),
-  //                             unit_price: item.unit_price,
-  //                             discount_amount: item.discount_amount || 0,
-  //                             tax_amount: item.tax_amount || 0,
-  //                             total_amount: item.total_amount,
-  //                             notes: item.notes,
-  //                           })),
-  //                         });
-  //                       }
-  //                     }
-  //                   }
-
-  //                   if (createdInvoice) {
-  //                     console.log(
-  //                       `Invoice ${createdInvoice.invoice_number} processed`
-  //                     );
-  //                   }
-  //                 }
-  //               }
-
-  //               if (payments && payments.length > 0) {
-  //                 console.log(` Processing ${payments.length} payment(s)...`);
-
-  //                 for (const payment of payments) {
-  //                   try {
-  //                     let paymentNumber = payment.payment_number;
-  //                     if (!paymentNumber) {
-  //                       paymentNumber =
-  //                         await generatePaymentNumberInTransaction(tx);
-  //                     }
-
-  //                     const processedPaymentData = {
-  //                       payment_number: paymentNumber,
-  //                       customer_id: payment.customer_id || visit.customer_id,
-  //                       payment_date: payment.payment_date
-  //                         ? new Date(payment.payment_date)
-  //                         : new Date(),
-  //                       collected_by: payment.collected_by,
-  //                       method: payment.method,
-  //                       reference_number: payment.reference_number,
-  //                       total_amount: payment.total_amount,
-  //                       notes: payment.notes,
-  //                       is_active: payment.is_active || 'Y',
-  //                       currency_id: payment.currency_id,
-  //                     };
-
-  //                     let paymentRecord;
-
-  //                     if (payment.payment_id || (payment as any).id) {
-  //                       const paymentIdToUpdate =
-  //                         (payment as any).id || payment.payment_id;
-  //                       paymentRecord = await tx.payments.update({
-  //                         where: { id: paymentIdToUpdate },
-  //                         data: {
-  //                           ...processedPaymentData,
-  //                           updatedate: new Date(),
-  //                           updatedby:
-  //                             (req as any).user?.id || visit.createdby || 1,
-  //                         },
-  //                       });
-  //                     } else {
-  //                       paymentRecord = await tx.payments.upsert({
-  //                         where: {
-  //                           payment_number: processedPaymentData.payment_number,
-  //                         },
-  //                         update: {
-  //                           ...processedPaymentData,
-  //                           updatedate: new Date(),
-  //                           updatedby:
-  //                             (req as any).user?.id || visit.createdby || 1,
-  //                         },
-  //                         create: {
-  //                           ...processedPaymentData,
-  //                           createdate: new Date(),
-  //                           createdby:
-  //                             visit.createdby || (req as any).user?.id || 1,
-  //                           log_inst: 1,
-  //                         },
-  //                       });
-  //                     }
-
-  //                     paymentIds.push(paymentRecord.id);
-  //                     console.log(
-  //                       ` Payment ${paymentRecord.payment_number} processed (₹${paymentRecord.total_amount})`
-  //                     );
-  //                   } catch (paymentError: any) {
-  //                     console.error(
-  //                       'Payment processing failed:',
-  //                       paymentError.message
-  //                     );
-  //                     throw paymentError;
-  //                   }
-  //                 }
-  //               }
-
-  //               if (cooler_inspections && cooler_inspections.length > 0) {
-  //                 console.log(
-  //                   `    Processing ${cooler_inspections.length} cooler inspection(s)...`
-  //                 );
-
-  //                 for (const inspection of cooler_inspections) {
-  //                   let coolerId = inspection.cooler?.id;
-
-  //                   if (inspection.cooler) {
-  //                     const coolerData = inspection.cooler;
-
-  //                     const processedCoolerData = {
-  //                       code:
-  //                         coolerData.code ||
-  //                         `COOL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-  //                       brand: coolerData.brand,
-  //                       model: coolerData.model,
-  //                       serial_number: coolerData.serial_number,
-  //                       customer_id:
-  //                         coolerData.customer_id || visit.customer_id,
-  //                       capacity: coolerData.capacity
-  //                         ? typeof coolerData.capacity === 'number'
-  //                           ? coolerData.capacity
-  //                           : parseInt(
-  //                               String(coolerData.capacity).replace(
-  //                                 /[^0-9]/g,
-  //                                 ''
-  //                               )
-  //                             ) || null
-  //                         : null,
-  //                       install_date: coolerData.install_date
-  //                         ? new Date(coolerData.install_date)
-  //                         : undefined,
-  //                       last_service_date: coolerData.last_service_date
-  //                         ? new Date(coolerData.last_service_date)
-  //                         : undefined,
-  //                       next_service_due: coolerData.next_service_due
-  //                         ? new Date(coolerData.next_service_due)
-  //                         : undefined,
-  //                       status: coolerData.status || 'working',
-  //                       temperature: coolerData.temperature || undefined,
-  //                       energy_rating: coolerData.energy_rating,
-  //                       warranty_expiry: coolerData.warranty_expiry
-  //                         ? new Date(coolerData.warranty_expiry)
-  //                         : undefined,
-  //                       maintenance_contract: coolerData.maintenance_contract,
-  //                       technician_id: coolerData.technician_id,
-  //                       last_scanned_date: coolerData.last_scanned_date
-  //                         ? new Date(coolerData.last_scanned_date)
-  //                         : undefined,
-  //                       is_active: coolerData.is_active || 'Y',
-  //                     };
-
-  //                     if (coolerData.id) {
-  //                       await tx.coolers.update({
-  //                         where: { id: coolerData.id },
-  //                         data: {
-  //                           ...processedCoolerData,
-  //                           updatedate: new Date(),
-  //                           updatedby:
-  //                             (req as any).user?.id || visit.createdby || 1,
-  //                         },
-  //                       });
-  //                       coolerId = coolerData.id;
-  //                     } else {
-  //                       const newCooler = await tx.coolers.create({
-  //                         data: {
-  //                           ...processedCoolerData,
-  //                           createdate: new Date(),
-  //                           createdby:
-  //                             visit.createdby || (req as any).user?.id || 1,
-  //                           log_inst: 1,
-  //                         },
-  //                       });
-  //                       coolerId = newCooler.id;
-  //                     }
-  //                   }
-
-  //                   if (!coolerId) {
-  //                     throw new Error('Cooler ID is required for inspection');
-  //                   }
-
-  //                   const processedInspectionData = {
-  //                     cooler_id: coolerId,
-  //                     visit_id: visitId,
-  //                     inspected_by: inspection.inspected_by,
-  //                     inspection_date: inspection.inspection_date
-  //                       ? new Date(inspection.inspection_date)
-  //                       : new Date(),
-  //                     temperature: inspection.temperature || undefined,
-  //                     is_working: inspection.is_working || 'Y',
-  //                     issues: inspection.issues,
-  //                     images: inspection.images,
-  //                     latitude: inspection.latitude || undefined,
-  //                     longitude: inspection.longitude || undefined,
-  //                     action_required: inspection.action_required || 'N',
-  //                     action_taken: inspection.action_taken,
-  //                     next_inspection_due: inspection.next_inspection_due
-  //                       ? new Date(inspection.next_inspection_due)
-  //                       : undefined,
-  //                   };
-
-  //                   if (inspection.id) {
-  //                     const updatedInspection =
-  //                       await tx.cooler_inspections.update({
-  //                         where: { id: inspection.id },
-  //                         data: {
-  //                           ...processedInspectionData,
-  //                           updatedate: new Date(),
-  //                           updatedby:
-  //                             (req as any).user?.id || visit.createdby || 1,
-  //                         },
-  //                       });
-
-  //                     inspectionIds.push(updatedInspection.id);
-  //                   } else {
-  //                     const newInspection = await tx.cooler_inspections.create({
-  //                       data: {
-  //                         ...processedInspectionData,
-  //                         createdate: new Date(),
-  //                         createdby:
-  //                           visit.createdby || (req as any).user?.id || 1,
-  //                         log_inst: 1,
-  //                       },
-  //                     });
-
-  //                     inspectionIds.push(newInspection.id);
-  //                   }
-
-  //                   console.log(
-  //                     `   Cooler inspection processed (Cooler ID: ${coolerId})`
-  //                   );
-  //                 }
-  //               }
-
-  //               if (survey && survey.survey_response) {
-  //                 console.log(`    Processing survey response...`);
-
-  //                 const { survey_response } = survey;
-  //                 const surveyAnswers = survey_response.survey_answers || [];
-
-  //                 const processedSurveyData = {
-  //                   parent_id: survey_response.parent_id,
-  //                   customer_id:
-  //                     survey_response.customer_id || visit.customer_id,
-  //                   visit_id: visitId,
-  //                   submitted_by: survey_response.submitted_by,
-  //                   submitted_at: survey_response.submitted_at
-  //                     ? new Date(survey_response.submitted_at)
-  //                     : new Date(),
-  //                   location: survey_response.location,
-  //                   photo_url: survey_response.photo_url,
-  //                   is_active: survey_response.is_active || 'Y',
-  //                 };
-
-  //                 let surveyResponseRecord: any = undefined;
-
-  //                 if (survey_response.id) {
-  //                   surveyResponseRecord = await tx.survey_responses.update({
-  //                     where: { id: survey_response.id },
-  //                     data: {
-  //                       ...processedSurveyData,
-  //                       updatedate: new Date(),
-  //                       updatedby:
-  //                         (req as any).user?.id || visit.createdby || 1,
-  //                     },
-  //                   });
-
-  //                   surveyResponseIds.push(surveyResponseRecord.id);
-
-  //                   if (surveyAnswers.length > 0) {
-  //                     for (const answer of surveyAnswers) {
-  //                       const answerData = {
-  //                         parent_id: surveyResponseRecord.id,
-  //                         field_id: answer.field_id,
-  //                         answer: answer.answer,
-  //                       };
-
-  //                       if (answer.id) {
-  //                         await tx.survey_answers.update({
-  //                           where: { id: answer.id },
-  //                           data: answerData,
-  //                         });
-  //                       } else {
-  //                         await tx.survey_answers.create({
-  //                           data: answerData,
-  //                         });
-  //                       }
-  //                     }
-  //                   }
-  //                 } else {
-  //                   surveyResponseRecord = await tx.survey_responses.create({
-  //                     data: {
-  //                       ...processedSurveyData,
-  //                       createdate: new Date(),
-  //                       createdby:
-  //                         visit.createdby || (req as any).user?.id || 1,
-  //                       log_inst: 1,
-  //                     },
-  //                   });
-
-  //                   surveyResponseIds.push(surveyResponseRecord.id);
-
-  //                   if (surveyAnswers.length > 0) {
-  //                     await tx.survey_answers.createMany({
-  //                       data: surveyAnswers.map(answer => ({
-  //                         parent_id: surveyResponseRecord.id,
-  //                         field_id: answer.field_id,
-  //                         answer: answer.answer,
-  //                       })),
-  //                     });
-  //                   }
-  //                 }
-
-  //                 console.log(`Survey response processed`);
-  //               }
-
-  //               const visitWithBasicRelations = await tx.visits.findUnique({
-  //                 where: { id: visitId },
-  //                 include: {
-  //                   visit_customers: true,
-  //                   visits_salesperson: true,
-  //                   visit_routes: true,
-  //                   visit_zones: true,
-  //                   visit_attachments: true,
-  //                 },
-  //               });
-  //               const relatedInvoices =
-  //                 invoiceIds.length > 0
-  //                   ? await tx.invoices.findMany({
-  //                       where: {
-  //                         id: { in: invoiceIds },
-  //                       },
-  //                       include: {
-  //                         invoice_items: {
-  //                           include: {
-  //                             invoice_items_products: true,
-  //                           },
-  //                         },
-  //                       },
-  //                     })
-  //                   : [];
-
-  //               const relatedPayments =
-  //                 paymentIds.length > 0
-  //                   ? await tx.payments.findMany({
-  //                       where: {
-  //                         id: { in: paymentIds },
-  //                       },
-  //                     })
-  //                   : [];
-
-  //               const relatedInspections =
-  //                 inspectionIds.length > 0
-  //                   ? await tx.cooler_inspections.findMany({
-  //                       where: {
-  //                         id: { in: inspectionIds },
-  //                       },
-  //                       include: {
-  //                         coolers: true,
-  //                       },
-  //                     })
-  //                   : [];
-
-  //               const relatedSurveyResponses =
-  //                 surveyResponseIds.length > 0
-  //                   ? await tx.survey_responses.findMany({
-  //                       where: {
-  //                         id: { in: surveyResponseIds },
-  //                       },
-  //                     })
-  //                   : [];
-
-  //               const surveyAnswersData =
-  //                 surveyResponseIds.length > 0
-  //                   ? await tx.survey_answers.findMany({
-  //                       where: {
-  //                         parent_id: { in: surveyResponseIds },
-  //                       },
-  //                     })
-  //                   : [];
-
-  //               const surveyResponsesWithAnswers = relatedSurveyResponses.map(
-  //                 response => ({
-  //                   ...response,
-  //                   survey_answers: surveyAnswersData.filter(
-  //                     answer => answer.parent_id === response.id
-  //                   ),
-  //                 })
-  //               );
-
-  //               // Retrieve visit attachments
-  //               const relatedAttachments = await tx.visit_attachments.findMany({
-  //                 where: { visit_id: visitId },
-  //               });
-
-  //               console.log(
-  //                 ` Visit ${isUpdate ? 'updated' : 'created'} successfully (ID: ${visitId})`
-  //               );
-  //               console.log(
-  //                 `Invoices: ${invoiceIds.length}, Payments: ${paymentIds.length}, Inspections: ${inspectionIds.length}, Surveys: ${surveyResponseIds.length}, Attachments: ${relatedAttachments.length}`
-  //               );
-
-  //               return {
-  //                 ...visitWithBasicRelations,
-  //                 invoices: relatedInvoices,
-
-  //                 payments: relatedPayments,
-  //                 cooler_inspections: relatedInspections,
-  //                 survey_responses: surveyResponsesWithAnswers,
-  //                 visit_attachments: relatedAttachments,
-  //               };
-  //             },
-  //             {
-  //               maxWait: 15000,
-  //               timeout: 90000,
-  //             }
-  //           );
-
-  //           if (isUpdate) {
-  //             if (selfImageUrls.length > 0 && oldSelfImages.length > 0) {
-  //               console.log(`  Deleting old self images`);
-  //               for (const oldImage of oldSelfImages) {
-  //                 await deleteOldImages(oldImage).catch(err =>
-  //                   console.error('Failed to delete old self image:', err)
-  //                 );
-  //               }
-  //             }
-  //             if (
-  //               customerImageUrls.length > 0 &&
-  //               oldCustomerImages.length > 0
-  //             ) {
-  //               console.log(`Deleting old customer images`);
-  //               for (const oldImage of oldCustomerImages) {
-  //                 await deleteOldImages(oldImage).catch(err =>
-  //                   console.error('Failed to delete old customer image:', err)
-  //                 );
-  //               }
-  //             }
-  //             if (coolerImageUrls.length > 0 && oldCoolerImages.length > 0) {
-  //               console.log(`Deleting old cooler images`);
-  //               for (const oldImage of oldCoolerImages) {
-  //                 await deleteOldImages(oldImage).catch(err =>
-  //                   console.error('Failed to delete old cooler image:', err)
-  //                 );
-  //               }
-  //             }
-  //           }
-
-  //           if (isUpdate) {
-  //             results.updated.push({
-  //               visit: serializeVisit(result),
-  //               visit_id: result?.id,
-  //               message: `Visit ${visitIdToUpdate} updated successfully`,
-  //             });
-  //           } else {
-  //             results.created.push({
-  //               visit: serializeVisit(result),
-  //               visit_id: result?.id,
-  //               message: 'Visit created successfully',
-  //             });
-  //           }
-  //         } catch (transactionError: any) {
-  //           console.error(`Transaction failed, rolling back images...`);
-  //           for (const imagePath of uploadedImagePaths) {
-  //             await deleteOldImages(imagePath).catch(err =>
-  //               console.error('Failed to cleanup uploaded image:', err)
-  //             );
-  //           }
-
-  //           throw transactionError;
-  //         }
-  //       } catch (error: any) {
-  //         console.error(` Visit ${index + 1} Processing Error:`, error.message);
-  //         results.failed.push({
-  //           visitIndex: index,
-  //           data: data?.visit || data,
-  //           constraint: error.meta?.target,
-  //           meta: error.meta,
-  //           error: error.message || 'Unknown error occurred',
-  //           stack:
-  //             process.env.NODE_ENV === 'development' ? error.stack : undefined,
-  //         });
-  //         continue;
-  //       }
-  //     }
-
-  //     const statusCode =
-  //       results.failed.length === dataArray.length
-  //         ? 400
-  //         : results.failed.length > 0
-  //           ? 207
-  //           : results.created.length > 0
-  //             ? 201
-  //             : 200;
-
-  //     console.log(
-  //       `\n Bulk upsert completed: Created(${results.created.length}) Updated(${results.updated.length}) Failed(${results.failed.length})\n`
-  //     );
-
-  //     res.status(statusCode).json({
-  //       success: results.failed.length === 0,
-  //       message: 'Bulk upsert completed',
-  //       summary: {
-  //         total: dataArray.length,
-  //         created: results.created.length,
-  //         updated: results.updated.length,
-  //         failed: results.failed.length,
-  //       },
-  //       results: {
-  //         created: results.created,
-  //         updated: results.updated,
-  //         failed: results.failed,
-  //       },
-  //     });
-  //   } catch (error: any) {
-  //     console.error(' Bulk Upsert Error:', error);
-  //     res.status(500).json({
-  //       success: false,
-  //       message: 'Internal server error',
-  //       error: error.message,
-  //       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-  //     });
-  //   }
-  // },
-
-  //II
   async bulkUpsertVisits(req: Request, res: Response) {
     try {
       const inputData = req.body;
@@ -2583,15 +718,49 @@ export const visitsController = {
         console.log('Parsing visits as string...');
         try {
           const cleanVisitsData = inputData.visits.trim();
-          dataArray = JSON.parse(cleanVisitsData);
+          const parsed = JSON.parse(cleanVisitsData);
+          dataArray = Array.isArray(parsed) ? parsed : [parsed];
           console.log('Parsed dataArray:', dataArray);
         } catch (e) {
           console.error('JSON parse error:', e);
-          console.error('Raw visits data:', JSON.stringify(inputData.visits));
           return res.status(400).json({
             success: false,
             message: 'Invalid visits JSON string',
             error: 'Please provide valid JSON in visits field',
+          });
+        }
+      } else if (typeof inputData.visit === 'string') {
+        console.log('Parsing visit as string...');
+        try {
+          let rawVisit = inputData.visit.trim();
+
+          // Fix for malformed JSON string where the outer object wrapper is missing
+          // e.g. {"customer_id":...},"invoices":[...] instead of {"visit":{...},"invoices":[...]}
+          if (
+            rawVisit.startsWith('{') &&
+            !rawVisit.includes('"visit":') &&
+            rawVisit.includes('},"')
+          ) {
+            console.log('Attempting to fix malformed visit JSON string...');
+            rawVisit = `{ "visit": ${rawVisit} }`;
+          }
+
+          const parsed = JSON.parse(rawVisit);
+          dataArray = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+          console.error('JSON parse error in visit field:', e);
+          console.error(
+            'Raw visit string (first 100):',
+            inputData.visit.substring(0, 100)
+          );
+          console.error(
+            'Raw visit string (last 100):',
+            inputData.visit.substring(inputData.visit.length - 100)
+          );
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid visit JSON string',
+            error: e instanceof Error ? e.message : String(e),
           });
         }
       } else if (inputData.visits && Array.isArray(inputData.visits)) {
@@ -2663,6 +832,19 @@ export const visitsController = {
         updated: [] as any[],
         failed: [] as any[],
       };
+
+      // Normalize each element — if it's a string, parse it
+      dataArray = dataArray.map((item: any, idx: number) => {
+        if (typeof item === 'string') {
+          try {
+            return JSON.parse(item);
+          } catch (e) {
+            console.error(`Failed to parse visits[${idx}] as JSON string`);
+            throw new Error(`Invalid JSON at visits[${idx}]`);
+          }
+        }
+        return item;
+      });
 
       for (let index = 0; index < dataArray.length; index++) {
         const data = dataArray[index];
@@ -2792,19 +974,19 @@ export const visitsController = {
             }),
             ...(visit.duration !== undefined && { duration: visit.duration }),
             ...(visit.start_latitude &&
-              visit.start_latitude.trim() !== '' && {
+              String(visit.start_latitude).trim() !== '' && {
                 start_latitude: parseFloat(visit.start_latitude),
               }),
             ...(visit.start_longitude &&
-              visit.start_longitude.trim() !== '' && {
+              String(visit.start_longitude).trim() !== '' && {
                 start_longitude: parseFloat(visit.start_longitude),
               }),
             ...(visit.end_latitude &&
-              visit.end_latitude.trim() !== '' && {
+              String(visit.end_latitude).trim() !== '' && {
                 end_latitude: parseFloat(visit.end_latitude),
               }),
             ...(visit.end_longitude &&
-              visit.end_longitude.trim() !== '' && {
+              String(visit.end_longitude).trim() !== '' && {
                 end_longitude: parseFloat(visit.end_longitude),
               }),
             ...(visit.check_in_time && {
@@ -2817,7 +999,7 @@ export const visitsController = {
               orders_created: visit.orders_created,
             }),
             ...(visit.amount_collected &&
-              visit.amount_collected.trim() !== '' && {
+              String(visit.amount_collected).trim() !== '' && {
                 amount_collected: parseFloat(visit.amount_collected),
               }),
             ...(visit.visit_notes && { visit_notes: visit.visit_notes }),
@@ -2846,9 +1028,7 @@ export const visitsController = {
           if (isUpdate) {
             const existingVisit = await prisma.visits.findUnique({
               where: { id: visitIdToUpdate },
-              select: {
-                id: true,
-              },
+              select: { id: true },
             });
 
             if (!existingVisit) {
@@ -2917,26 +1097,17 @@ export const visitsController = {
                 if (isUpdate) {
                   if (selfImageUrls.length > 0) {
                     await tx.visit_attachments.deleteMany({
-                      where: {
-                        visit_id: visitId,
-                        file_type: 'self_image',
-                      },
+                      where: { visit_id: visitId, file_type: 'self_image' },
                     });
                   }
                   if (customerImageUrls.length > 0) {
                     await tx.visit_attachments.deleteMany({
-                      where: {
-                        visit_id: visitId,
-                        file_type: 'customer_image',
-                      },
+                      where: { visit_id: visitId, file_type: 'customer_image' },
                     });
                   }
                   if (coolerImageUrls.length > 0) {
                     await tx.visit_attachments.deleteMany({
-                      where: {
-                        visit_id: visitId,
-                        file_type: 'cooler_image',
-                      },
+                      where: { visit_id: visitId, file_type: 'cooler_image' },
                     });
                   }
                 }
@@ -2944,10 +1115,10 @@ export const visitsController = {
                 const attachmentData: any[] = [];
 
                 if (selfImageUrls.length > 0) {
-                  selfImageUrls.forEach((url, index) => {
+                  selfImageUrls.forEach((url, idx) => {
                     attachmentData.push({
                       visit_id: visitId,
-                      file_name: `self_image_${index + 1}`,
+                      file_name: `self_image_${idx + 1}`,
                       file_url: url,
                       file_type: 'self_image',
                       description: 'Self image captured during visit',
@@ -2957,10 +1128,10 @@ export const visitsController = {
                 }
 
                 if (customerImageUrls.length > 0) {
-                  customerImageUrls.forEach((url, index) => {
+                  customerImageUrls.forEach((url, idx) => {
                     attachmentData.push({
                       visit_id: visitId,
-                      file_name: `customer_image_${index + 1}`,
+                      file_name: `customer_image_${idx + 1}`,
                       file_url: url,
                       file_type: 'customer_image',
                       description: 'Customer image captured during visit',
@@ -2970,10 +1141,10 @@ export const visitsController = {
                 }
 
                 if (coolerImageUrls.length > 0) {
-                  coolerImageUrls.forEach((url, index) => {
+                  coolerImageUrls.forEach((url, idx) => {
                     attachmentData.push({
                       visit_id: visitId,
-                      file_name: `cooler_image_${index + 1}`,
+                      file_name: `cooler_image_${idx + 1}`,
                       file_url: url,
                       file_type: 'cooler_image',
                       description: 'Cooler image captured during visit',
@@ -2991,6 +1162,7 @@ export const visitsController = {
                   );
                 }
 
+                // ─── INVOICES ────────────────────────────────────────────────
                 if (invoices && invoices.length > 0) {
                   console.log(`Processing ${invoices.length} invoice(s)...`);
 
@@ -3021,7 +1193,9 @@ export const visitsController = {
                         invoice_number: invoiceNumber,
                         invoice_date: invoiceData.invoice_date
                           ? new Date(invoiceData.invoice_date)
-                          : new Date(),
+                          : invoiceData.created_at
+                            ? new Date(invoiceData.created_at)
+                            : new Date(),
                         due_date: invoiceData.due_date
                           ? new Date(invoiceData.due_date)
                           : undefined,
@@ -3029,7 +1203,10 @@ export const visitsController = {
                         salesperson_id: invoiceData.salesperson_id || null,
                         payment_method: invoiceData.payment_method || 'credit',
                         subtotal: invoiceData.subtotal || 0,
-                        discount_amount: invoiceData.discount_amount || 0,
+                        discount_amount:
+                          invoiceData.discount_amount ??
+                          invoiceData.total_discount ??
+                          0,
                         tax_amount: invoiceData.tax_amount || 0,
                         shipping_amount: invoiceData.shipping_amount || 0,
                         total_amount: invoiceData.total_amount || 0,
@@ -3039,6 +1216,28 @@ export const visitsController = {
                         billing_address: invoiceData.billing_address,
                         is_active: invoiceData.is_active || 'Y',
                         currency_id: invoiceData.currency_id,
+                        // New fields from updated JSON format
+                        ...(invoiceData.slip_type && {
+                          slip_type: invoiceData.slip_type,
+                        }),
+                        ...(invoiceData.total_discount !== undefined && {
+                          total_discount: invoiceData.total_discount,
+                        }),
+                        ...(invoiceData.total_quantity !== undefined && {
+                          total_quantity: invoiceData.total_quantity,
+                        }),
+                        ...(invoiceData.total_volume !== undefined && {
+                          total_volume: invoiceData.total_volume,
+                        }),
+                        ...(invoiceData.total_weight !== undefined && {
+                          total_weight: invoiceData.total_weight,
+                        }),
+                        ...(invoiceData.item_count !== undefined && {
+                          item_count: invoiceData.item_count,
+                        }),
+                        ...(invoiceData.is_synced !== undefined && {
+                          is_synced: !!invoiceData.is_synced,
+                        }),
                       };
 
                       let createdInvoice: any = undefined;
@@ -3066,7 +1265,10 @@ export const visitsController = {
                             ...processedInvoiceData,
                             createdate: new Date(),
                             createdby:
-                              visit.createdby || (req as any).user?.id || 1,
+                              invoiceData.createdby ||
+                              visit.createdby ||
+                              (req as any).user?.id ||
+                              1,
                             log_inst: 1,
                           },
                         });
@@ -3084,6 +1286,7 @@ export const visitsController = {
 
                       if (invoiceItems.length > 0) {
                         if ((invoiceData as any).invoice_method === 'direct') {
+                          // ── DIRECT method: deduct from inventory ──────────
                           console.log(
                             'Processing inventory deduction for Direct method...'
                           );
@@ -3103,10 +1306,12 @@ export const visitsController = {
                               (
                                 product.tracking_type as string
                               )?.toUpperCase() || 'NONE';
-                            const quantity = parseInt(
-                              String(item.quantity),
-                              10
-                            );
+
+                            // Use base_quantity (stock units) when available,
+                            // otherwise fall back to quantity (sales UOM units)
+                            const quantity = item.base_quantity
+                              ? parseInt(String(item.base_quantity), 10)
+                              : parseInt(String(item.quantity), 10);
 
                             console.log(
                               `Processing ${trackingType} tracking for product ${product.name}`
@@ -3117,22 +1322,67 @@ export const visitsController = {
                                 'Processing BATCH deduction for invoice item'
                               );
 
-                              const batchData =
-                                (item as any).product_batches ||
-                                (item as any).batches;
+                              // Determine batch source:
+                              // NEW format → batch_number string on the item
+                              // OLD format → product_batches array with batch_lot_id
+                              const hasBatchNumber = !!(item as any)
+                                .batch_number;
+                              const hasProductBatches =
+                                (item as any).product_batches &&
+                                Array.isArray((item as any).product_batches);
 
-                              if (!batchData || !Array.isArray(batchData)) {
+                              let batchDeductions: Array<{
+                                batch_lot_id: number;
+                                quantity: number;
+                              }> = [];
+
+                              if (hasBatchNumber) {
+                                // NEW FORMAT: resolve batch_lot_id from batch_number string
+                                console.log(
+                                  `Resolving batch by batch_number: ${(item as any).batch_number}`
+                                );
+
+                                const batchLot = await tx.batch_lots.findFirst({
+                                  where: {
+                                    batch_number: (item as any).batch_number,
+                                    productsId: product.id,
+                                  },
+                                });
+
+                                if (!batchLot) {
+                                  throw new Error(
+                                    `Batch "${(item as any).batch_number}" not found for product "${product.name}"`
+                                  );
+                                }
+
+                                batchDeductions = [
+                                  { batch_lot_id: batchLot.id, quantity },
+                                ];
+                              } else if (hasProductBatches) {
+                                // OLD FORMAT: product_batches array
+                                const batchData =
+                                  (item as any).product_batches ||
+                                  (item as any).batches;
+                                if (!batchData || !Array.isArray(batchData)) {
+                                  throw new Error(
+                                    `Batches are required for product "${product.name}"`
+                                  );
+                                }
+                                batchDeductions = batchData.map((b: any) => ({
+                                  batch_lot_id: b.batch_lot_id,
+                                  quantity: parseInt(b.quantity, 10),
+                                }));
+                              } else {
                                 throw new Error(
-                                  `Batches are required for product "${product.name}"`
+                                  `No batch information provided for BATCH-tracked product "${product.name}". ` +
+                                    `Provide either "batch_number" string or "product_batches" array.`
                                 );
                               }
 
                               let totalOrderedQty = 0;
-                              for (const batchOrder of batchData) {
-                                const batchQty = parseInt(
-                                  batchOrder.quantity,
-                                  10
-                                );
+
+                              for (const batchOrder of batchDeductions) {
+                                const batchQty = batchOrder.quantity;
                                 totalOrderedQty += batchQty;
 
                                 const batchLot = await tx.batch_lots.findUnique(
@@ -3163,9 +1413,7 @@ export const visitsController = {
                                     include: {
                                       van_inventory_items_inventory: true,
                                     },
-                                    orderBy: {
-                                      document_date: 'desc',
-                                    },
+                                    orderBy: { document_date: 'desc' },
                                   });
 
                                 const vanItem =
@@ -3252,7 +1500,6 @@ export const visitsController = {
                                       `Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${batchQty}`
                                     );
                                   }
-
                                   await tx.product_batches.update({
                                     where: { id: productBatch.id },
                                     data: {
@@ -3302,31 +1549,6 @@ export const visitsController = {
                                   );
                                 }
 
-                                // await tx.stock_movements.create({
-                                //   data: {
-                                //     product_id: product.id,
-                                //     batch_id: batchOrder.batch_lot_id,
-                                //     serial_id: null,
-                                //     movement_type: 'SALE',
-                                //     reference_type: 'INVOICE',
-                                //     reference_id: createdInvoice.id,
-                                //     from_location_id:
-                                //       vanInventory?.location_id || null,
-                                //     to_location_id: null,
-                                //     quantity: batchQty,
-                                //     movement_date: new Date(),
-                                //     remarks: `Sold via invoice ${createdInvoice.invoice_number} - Batch: ${batchLot.batch_number}`,
-                                //     is_active: 'Y',
-                                //     createdate: new Date(),
-                                //     createdby:
-                                //       (req as any).user?.id ||
-                                //       visit.createdby ||
-                                //       1,
-                                //     log_inst: 1,
-                                //     van_inventory_id: vanInventory?.id || null,
-                                //   },
-                                // });
-
                                 const validatedFromLocationId =
                                   await validateAndGetLocationId(
                                     tx,
@@ -3356,6 +1578,7 @@ export const visitsController = {
                                     van_inventory_id: vanInventory?.id || null,
                                   },
                                 });
+
                                 console.log(
                                   ` Deducted ${batchQty} from batch ${batchLot.batch_number}`
                                 );
@@ -3371,7 +1594,8 @@ export const visitsController = {
                                 data: {
                                   parent_id: createdInvoice.id,
                                   product_id: product.id,
-                                  product_name: product.name,
+                                  product_name:
+                                    item.product_name || product.name,
                                   unit: item.unit || 'pcs',
                                   quantity: totalOrderedQty,
                                   unit_price: Number(item.unit_price) || 0,
@@ -3381,7 +1605,25 @@ export const visitsController = {
                                   total_amount:
                                     totalOrderedQty *
                                     (Number(item.unit_price) || 0),
-                                  notes: `Batches: ${batchData.map((b: any) => b.batch_lot_id).join(', ')}`,
+                                  notes: hasBatchNumber
+                                    ? `Batch: ${(item as any).batch_number}`
+                                    : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
+                                  // New fields
+                                  ...(item.tax_code && {
+                                    tax_code: item.tax_code,
+                                  }),
+                                  ...(item.tax_rate !== undefined && {
+                                    tax_rate: item.tax_rate,
+                                  }),
+                                  ...(item.conversion_factor !== undefined && {
+                                    conversion_factor: item.conversion_factor,
+                                  }),
+                                  ...(item.base_quantity !== undefined && {
+                                    base_quantity: item.base_quantity,
+                                  }),
+                                  ...(item.expiry_date && {
+                                    expiry_date: new Date(item.expiry_date),
+                                  }),
                                 },
                               });
                             } else if (trackingType === 'SERIAL') {
@@ -3440,6 +1682,7 @@ export const visitsController = {
                                       van_inventory_items_inventory: true,
                                     },
                                   });
+
                                 await tx.serial_numbers.update({
                                   where: { id: serial.id },
                                   data: {
@@ -3584,8 +1827,9 @@ export const visitsController = {
                                 data: {
                                   parent_id: createdInvoice.id,
                                   product_id: product.id,
-                                  product_name: product.name,
-                                  unit: 'pcs',
+                                  product_name:
+                                    item.product_name || product.name,
+                                  unit: item.unit || 'pcs',
                                   quantity: serialData.length,
                                   unit_price: Number(item.unit_price) || 0,
                                   discount_amount:
@@ -3594,13 +1838,36 @@ export const visitsController = {
                                   total_amount:
                                     serialData.length *
                                     (Number(item.unit_price) || 0),
-                                  notes: `Serials: ${serialData.map((s: any) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
+                                  notes: `Serials: ${serialData
+                                    .map((s: any) =>
+                                      typeof s === 'string'
+                                        ? s
+                                        : s.serial_number
+                                    )
+                                    .join(', ')}`,
+                                  // New fields
+                                  ...(item.tax_code && {
+                                    tax_code: item.tax_code,
+                                  }),
+                                  ...(item.tax_rate !== undefined && {
+                                    tax_rate: item.tax_rate,
+                                  }),
+                                  ...(item.conversion_factor !== undefined && {
+                                    conversion_factor: item.conversion_factor,
+                                  }),
+                                  ...(item.base_quantity !== undefined && {
+                                    base_quantity: item.base_quantity,
+                                  }),
+                                  ...(item.expiry_date && {
+                                    expiry_date: new Date(item.expiry_date),
+                                  }),
                                 },
                               });
                               console.log(
                                 `Invoice item created for ${serialData.length} serials`
                               );
                             } else {
+                              // ── NONE tracking ──────────────────────────────
                               console.log(
                                 'Processing NONE tracking for invoice item'
                               );
@@ -3622,9 +1889,7 @@ export const visitsController = {
                                   include: {
                                     van_inventory_items_inventory: true,
                                   },
-                                  orderBy: {
-                                    document_date: 'desc',
-                                  },
+                                  orderBy: { document_date: 'desc' },
                                 });
 
                               const vanItem =
@@ -3760,7 +2025,8 @@ export const visitsController = {
                                 data: {
                                   parent_id: createdInvoice.id,
                                   product_id: product.id,
-                                  product_name: product.name,
+                                  product_name:
+                                    item.product_name || product.name,
                                   unit: item.unit || 'pcs',
                                   quantity: quantity,
                                   unit_price: Number(item.unit_price) || 0,
@@ -3770,6 +2036,22 @@ export const visitsController = {
                                   total_amount:
                                     quantity * (Number(item.unit_price) || 0),
                                   notes: item.notes || null,
+                                  // New fields
+                                  ...(item.tax_code && {
+                                    tax_code: item.tax_code,
+                                  }),
+                                  ...(item.tax_rate !== undefined && {
+                                    tax_rate: item.tax_rate,
+                                  }),
+                                  ...(item.conversion_factor !== undefined && {
+                                    conversion_factor: item.conversion_factor,
+                                  }),
+                                  ...(item.base_quantity !== undefined && {
+                                    base_quantity: item.base_quantity,
+                                  }),
+                                  ...(item.expiry_date && {
+                                    expiry_date: new Date(item.expiry_date),
+                                  }),
                                 },
                               });
                               console.log(
@@ -3778,7 +2060,8 @@ export const visitsController = {
                             }
                           }
                         } else {
-                          console.log('Processing non-order invoice items...');
+                          // ── Non-direct (order-based) invoice items ─────────
+                          console.log('Processing non-direct invoice items...');
                           for (const item of invoiceItems) {
                             await tx.invoice_items.create({
                               data: {
@@ -3786,20 +2069,37 @@ export const visitsController = {
                                 product_id: item.product_id,
                                 product_name: item.product_name,
                                 unit: item.unit || 'pcs',
-                                quantity: item.quantity,
+                                quantity: item.base_quantity || item.quantity,
                                 unit_price: Number(item.unit_price) || 0,
                                 discount_amount:
                                   Number(item.discount_amount) || 0,
                                 tax_amount: Number(item.tax_amount) || 0,
                                 total_amount:
-                                  item.quantity *
+                                  (item.base_quantity || item.quantity) *
                                   (Number(item.unit_price) || 0),
                                 notes: item.notes || null,
+                                // New fields
+                                ...(item.tax_code && {
+                                  tax_code: item.tax_code,
+                                }),
+                                ...(item.tax_rate !== undefined && {
+                                  tax_rate: item.tax_rate,
+                                }),
+                                ...(item.conversion_factor !== undefined && {
+                                  conversion_factor: item.conversion_factor,
+                                }),
+                                ...(item.base_quantity !== undefined && {
+                                  base_quantity: item.base_quantity,
+                                }),
+                                ...(item.expiry_date && {
+                                  expiry_date: new Date(item.expiry_date),
+                                }),
                               },
                             });
                           }
                         }
 
+                        // Recalculate subtotal from actual invoice items
                         const subtotal =
                           (
                             await tx.invoice_items.aggregate({
@@ -3830,6 +2130,7 @@ export const visitsController = {
                   }
                 }
 
+                // ─── PAYMENTS ────────────────────────────────────────────────
                 if (payments && payments.length > 0) {
                   console.log(`Processing ${payments.length} payment(s)...`);
 
@@ -3850,7 +2151,7 @@ export const visitsController = {
                     }
 
                     const processedPaymentData = {
-                      customer_id: visit.customer_id,
+                      customer_id: paymentData.customer_id || visit.customer_id,
                       payment_number: paymentNumber,
                       payment_date: paymentData.payment_date
                         ? new Date(paymentData.payment_date)
@@ -3863,6 +2164,19 @@ export const visitsController = {
                       notes: paymentData.notes || null,
                       is_active: paymentData.is_active || 'Y',
                       currency_id: paymentData.currency_id,
+                      // New fields from updated JSON format
+                      ...(paymentData.slip_number && {
+                        slip_number: paymentData.slip_number,
+                      }),
+                      ...(paymentData.customer_name && {
+                        customer_name: paymentData.customer_name,
+                      }),
+                      ...(paymentData.is_auto !== undefined && {
+                        is_auto: !!paymentData.is_auto,
+                      }),
+                      ...(paymentData.is_synced !== undefined && {
+                        is_synced: !!paymentData.is_synced,
+                      }),
                     };
 
                     let createdPayment: any = undefined;
@@ -3879,28 +2193,29 @@ export const visitsController = {
                             (req as any).user?.id || visit.createdby || 1,
                         },
                       });
-
-                      paymentIds.push(createdPayment.id);
                     } else {
                       createdPayment = await tx.payments.create({
                         data: {
                           ...processedPaymentData,
                           createdate: new Date(),
                           createdby:
-                            (req as any).user?.id || visit.createdby || 1,
+                            paymentData.createdby ||
+                            (req as any).user?.id ||
+                            visit.createdby ||
+                            1,
                           log_inst: 1,
                         },
                       });
-
-                      paymentIds.push(createdPayment.id);
                     }
 
+                    paymentIds.push(createdPayment.id);
                     console.log(
                       `Payment ${createdPayment.payment_number} processed`
                     );
                   }
                 }
 
+                // ─── COOLER INSPECTIONS ──────────────────────────────────────
                 if (cooler_inspections && cooler_inspections.length > 0) {
                   console.log(
                     `Processing ${cooler_inspections.length} cooler inspection(s)...`
@@ -3956,15 +2271,16 @@ export const visitsController = {
                           }),
                           code:
                             code ||
-                            `COOLER-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                            `COOLER-${Date.now()}-${Math.random()
+                              .toString(36)
+                              .substr(2, 6)
+                              .toUpperCase()}`,
                           createdate: new Date(),
                           createdby:
                             visit.createdby || (req as any).user?.id || 1,
                           log_inst: 1,
                           coolers_customers: {
-                            connect: {
-                              id: visit.customer_id,
-                            },
+                            connect: { id: visit.customer_id },
                           },
                         },
                       });
@@ -4002,7 +2318,6 @@ export const visitsController = {
                               (req as any).user?.id || visit.createdby || 1,
                           },
                         });
-
                       inspectionIds.push(updatedInspection.id);
                     } else {
                       const newInspection = await tx.cooler_inspections.create({
@@ -4014,7 +2329,6 @@ export const visitsController = {
                           log_inst: 1,
                         },
                       });
-
                       inspectionIds.push(newInspection.id);
                     }
 
@@ -4024,6 +2338,7 @@ export const visitsController = {
                   }
                 }
 
+                // ─── SURVEY ──────────────────────────────────────────────────
                 if (survey && survey.survey_response) {
                   console.log(`    Processing survey response...`);
 
@@ -4056,7 +2371,6 @@ export const visitsController = {
                           (req as any).user?.id || visit.createdby || 1,
                       },
                     });
-
                     surveyResponseIds.push(surveyResponseRecord.id);
 
                     if (surveyAnswers.length > 0) {
@@ -4066,16 +2380,13 @@ export const visitsController = {
                           field_id: answer.field_id,
                           answer: answer.answer,
                         };
-
                         if (answer.id) {
                           await tx.survey_answers.update({
                             where: { id: answer.id },
                             data: answerData,
                           });
                         } else {
-                          await tx.survey_answers.create({
-                            data: answerData,
-                          });
+                          await tx.survey_answers.create({ data: answerData });
                         }
                       }
                     }
@@ -4089,12 +2400,11 @@ export const visitsController = {
                         log_inst: 1,
                       },
                     });
-
                     surveyResponseIds.push(surveyResponseRecord.id);
 
                     if (surveyAnswers.length > 0) {
                       await tx.survey_answers.createMany({
-                        data: surveyAnswers.map(answer => ({
+                        data: surveyAnswers.map((answer: any) => ({
                           parent_id: surveyResponseRecord.id,
                           field_id: answer.field_id,
                           answer: answer.answer,
@@ -4106,6 +2416,7 @@ export const visitsController = {
                   console.log(`Survey response processed`);
                 }
 
+                // ─── FETCH FINAL RESULT ──────────────────────────────────────
                 const visitWithBasicRelations = await tx.visits.findUnique({
                   where: { id: visitId },
                   include: {
@@ -4120,14 +2431,10 @@ export const visitsController = {
                 const relatedInvoices =
                   invoiceIds.length > 0
                     ? await tx.invoices.findMany({
-                        where: {
-                          id: { in: invoiceIds },
-                        },
+                        where: { id: { in: invoiceIds } },
                         include: {
                           invoice_items: {
-                            include: {
-                              invoice_items_products: true,
-                            },
+                            include: { invoice_items_products: true },
                           },
                         },
                       })
@@ -4136,39 +2443,29 @@ export const visitsController = {
                 const relatedPayments =
                   paymentIds.length > 0
                     ? await tx.payments.findMany({
-                        where: {
-                          id: { in: paymentIds },
-                        },
+                        where: { id: { in: paymentIds } },
                       })
                     : [];
 
                 const relatedInspections =
                   inspectionIds.length > 0
                     ? await tx.cooler_inspections.findMany({
-                        where: {
-                          id: { in: inspectionIds },
-                        },
-                        include: {
-                          coolers: true,
-                        },
+                        where: { id: { in: inspectionIds } },
+                        include: { coolers: true },
                       })
                     : [];
 
                 const relatedSurveyResponses =
                   surveyResponseIds.length > 0
                     ? await tx.survey_responses.findMany({
-                        where: {
-                          id: { in: surveyResponseIds },
-                        },
+                        where: { id: { in: surveyResponseIds } },
                       })
                     : [];
 
                 const surveyAnswersData =
                   surveyResponseIds.length > 0
                     ? await tx.survey_answers.findMany({
-                        where: {
-                          parent_id: { in: surveyResponseIds },
-                        },
+                        where: { parent_id: { in: surveyResponseIds } },
                       })
                     : [];
 
@@ -4257,7 +2554,6 @@ export const visitsController = {
                 console.error('Failed to cleanup uploaded image:', err)
               );
             }
-
             throw transactionError;
           }
         } catch (error: any) {

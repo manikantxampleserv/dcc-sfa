@@ -71,7 +71,8 @@ const CoolerInstallationsManagement: React.FC = () => {
 
   const coolerInstallations = coolerInstallationsResponse?.data || [];
   const totalCount = coolerInstallationsResponse?.meta?.total_count || 0;
-  const currentPage = (coolerInstallationsResponse?.meta?.page || 1) - 1;
+  const currentPage =
+    (coolerInstallationsResponse?.meta?.current_page || 1) - 1;
 
   const deleteCoolerInstallationMutation = useDeleteCoolerInstallation();
   const exportToExcelMutation = useExportToExcel();
@@ -263,7 +264,6 @@ const CoolerInstallationsManagement: React.FC = () => {
             src={row.technician?.profile_image || 'mkx'}
             className="!rounded !bg-primary-100 !text-primary-600"
           />
-
           <Box className="flex flex-col">
             <Typography
               variant="body1"
