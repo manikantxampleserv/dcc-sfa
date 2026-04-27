@@ -61,7 +61,7 @@ interface OrderSerialized {
     id: number;
     product_id: number;
     product_name?: string;
-    unit?: string;
+    unit?: 'CASE' | 'PIECE';
     quantity: number;
     unit_price: number;
     discount_amount?: number;
@@ -654,6 +654,8 @@ export const ordersController = {
                 where: { id: Number(item.product_id) },
               });
 
+              console.log('Product', product);
+              console.log('items', item.unit);
               if (!product) {
                 throw new Error(`Product ${item.product_id} not found`);
               }
@@ -780,6 +782,7 @@ export const ordersController = {
                   if (inventoryStock) {
                     const currentStock = inventoryStock.current_stock ?? 0;
                     const availableStock = inventoryStock.available_stock ?? 0;
+                    const baseQuantity = inventoryStock.base_quantity ?? 0;
 
                     if (currentStock < batchQty) {
                       throw new Error(
@@ -841,7 +844,7 @@ export const ordersController = {
                     parent_id: order.id,
                     product_id: product.id,
                     product_name: product.name,
-                    unit: item.unit || 'pcs',
+                    unit: item.unit || 'CASE',
                     quantity: totalOrderedQty,
                     unit_price: Number(item.unit_price || item.price) || 0,
                     discount_amount: Number(item.discount_amount) || 0,
@@ -856,7 +859,6 @@ export const ordersController = {
               } else if (trackingType === 'SERIAL') {
                 console.log(' Going to SERIAL branch');
                 const serialData = item.serials || item.product_serials;
-
                 if (
                   !serialData ||
                   !Array.isArray(serialData) ||
@@ -993,7 +995,7 @@ export const ordersController = {
                     parent_id: order.id,
                     product_id: product.id,
                     product_name: product.name,
-                    unit: 'pcs',
+                    unit: 'PIECE',
                     quantity: serialData.length,
                     unit_price: Number(item.unit_price || item.price) || 0,
                     discount_amount: Number(item.discount_amount || 0),
@@ -1111,7 +1113,7 @@ export const ordersController = {
                     parent_id: order.id,
                     product_id: product.id,
                     product_name: product.name,
-                    unit: item.unit || 'pcs',
+                    unit: item.unit || 'CASE',
                     quantity: quantity,
                     unit_price: Number(item.unit_price || item.price) || 0,
                     discount_amount: Number(item.discount_amount) || 0,
@@ -1132,7 +1134,7 @@ export const ordersController = {
                     parent_id: order.id,
                     product_id: freeProduct.product_id,
                     product_name: freeProduct.product_name || null,
-                    unit: null,
+                    unit: freeProduct.unit || 'CASE',
                     quantity: freeProduct.quantity,
                     unit_price: 0,
                     discount_amount: 0,
@@ -1964,7 +1966,7 @@ export const ordersController = {
                 parent_id: order.id,
                 product_id: item.product_id,
                 product_name: item.product_name || null,
-                unit: item.unit || null,
+                unit: item.unit || 'CASE',
                 quantity: quantity,
                 unit_price: unitPrice,
                 discount_amount: discountAmount,
