@@ -554,35 +554,35 @@ model batch_lots {
 }
 
 model companies {
-  id                             Int         @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
-  name                           String      @db.NVarChar(255)
-  code                           String      @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
-  address                        String?     @db.NVarChar(500)
-  city                           String?     @db.NVarChar(100)
-  state                          String?     @db.NVarChar(100)
-  country                        String?     @db.NVarChar(100)
-  zipcode                        String?     @db.NVarChar(20)
-  phone_number                   String?     @db.NVarChar(20)
-  email                          String?     @db.NVarChar(255)
-  website                        String?     @db.NVarChar(255)
-  logo                           String?     @db.NVarChar(500)
-  is_active                      String      @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
-  created_date                   DateTime?   @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
-  created_by                     Int
-  updated_date                   DateTime?   @db.DateTime
-  updated_by                     Int?
-  log_inst                       Int?
-  smtp_host                      String?     @db.VarChar(50)
-  smtp_password                  String?     @db.VarChar(100)
-  smtp_port                      Int?
-  smtp_username                  String?     @db.VarChar(200)
-  smtp_mail_from_address         String?     @db.NVarChar(200)
-  smtp_mail_from_name            String?     @db.NVarChar(200)
-  currency_id                    Int?
-  customer_grading_cron_time     String?     @default("0 0 * * *") @db.VarChar(50)
-  companies_currencies           currencies? @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  depot_companies                depots[]
-  users                          users[]
+  id                         Int         @id(map: "PK__companie__3213E83FD973FC3D") @default(autoincrement())
+  name                       String      @db.NVarChar(255)
+  code                       String      @unique(map: "UQ__companie__357D4CF9866FC0C5") @db.NVarChar(50)
+  address                    String?     @db.NVarChar(500)
+  city                       String?     @db.NVarChar(100)
+  state                      String?     @db.NVarChar(100)
+  country                    String?     @db.NVarChar(100)
+  zipcode                    String?     @db.NVarChar(20)
+  phone_number               String?     @db.NVarChar(20)
+  email                      String?     @db.NVarChar(255)
+  website                    String?     @db.NVarChar(255)
+  logo                       String?     @db.NVarChar(500)
+  is_active                  String      @default("Y", map: "DF__companies__is_ac__25869641") @db.Char(1)
+  created_date               DateTime?   @default(now(), map: "DF__companies__creat__267ABA7A") @db.DateTime
+  created_by                 Int
+  updated_date               DateTime?   @db.DateTime
+  updated_by                 Int?
+  log_inst                   Int?
+  smtp_host                  String?     @db.VarChar(50)
+  smtp_password              String?     @db.VarChar(100)
+  smtp_port                  Int?
+  smtp_username              String?     @db.VarChar(200)
+  smtp_mail_from_address     String?     @db.NVarChar(200)
+  smtp_mail_from_name        String?     @db.NVarChar(200)
+  currency_id                Int?
+  customer_grading_cron_time String?     @default("0 0 * * *") @db.VarChar(50)
+  companies_currencies       currencies? @relation(fields: [currency_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  depot_companies            depots[]
+  users                      users[]
 }
 
 model competitor_activity {
@@ -1137,6 +1137,7 @@ model inventory_stock {
   createdate               DateTime?       @default(now()) @db.DateTime
   createdby                Int
   updatedate               DateTime?       @db.DateTime
+  base_quantity            Int?
   updatedby                Int?
   log_inst                 Int?
   inventory_stock_batch    batch_lots?     @relation("BatchToInventory", fields: [batch_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -1150,24 +1151,25 @@ model inventory_stock {
 }
 
 model invoice_items {
-  id                     Int      @id(map: "PK__invoice___3213E83F051E2380") @default(autoincrement())
+  id                     Int       @id(map: "PK__invoice___3213E83F051E2380") @default(autoincrement())
   parent_id              Int
   product_id             Int
-  product_name           String?  @db.NVarChar(255)
-  unit                   String?  @db.NVarChar(50)
-  quantity               Int      @default(1, map: "DF__invoice_i__quant__1AD3FDA4")
-  unit_price             Decimal  @default(0, map: "DF__invoice_i__unit___1BC821DD") @db.Decimal(18, 2)
-  discount_amount        Decimal? @default(0, map: "DF__invoice_i__disco__1CBC4616") @db.Decimal(18, 2)
-  tax_amount             Decimal? @default(0, map: "DF__invoice_i__tax_a__1DB06A4F") @db.Decimal(18, 2)
-  total_amount           Decimal? @db.Decimal(18, 2)
-  notes                  String?  @db.NVarChar(500)
-  tax_code               String?  @db.NVarChar(50)
-  tax_rate               Decimal? @default(0) @db.Decimal(5, 2)
-  conversion_factor      Decimal? @default(1) @db.Decimal(18, 2)
-  base_quantity          Int?     @default(0)
+  uom                    String?   @db.VarChar(255)
+  product_name           String?   @db.NVarChar(255)
+  unit                   String?   @db.NVarChar(50)
+  quantity               Int       @default(1, map: "DF__invoice_i__quant__1AD3FDA4")
+  unit_price             Decimal   @default(0, map: "DF__invoice_i__unit___1BC821DD") @db.Decimal(18, 2)
+  discount_amount        Decimal?  @default(0, map: "DF__invoice_i__disco__1CBC4616") @db.Decimal(18, 2)
+  tax_amount             Decimal?  @default(0, map: "DF__invoice_i__tax_a__1DB06A4F") @db.Decimal(18, 2)
+  total_amount           Decimal?  @db.Decimal(18, 2)
+  notes                  String?   @db.NVarChar(500)
+  tax_code               String?   @db.NVarChar(50)
+  tax_rate               Decimal?  @default(0) @db.Decimal(5, 2)
+  conversion_factor      Decimal?  @default(1) @db.Decimal(18, 2)
+  base_quantity          Int?      @default(0)
   expiry_date            DateTime? @db.DateTime
-  invoices               invoices @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__paren__1EA48E88")
-  invoice_items_products products @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__produ__1F98B2C1")
+  invoices               invoices  @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__paren__1EA48E88")
+  invoice_items_products products  @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__invoice_i__produ__1F98B2C1")
 }
 
 model invoices {
@@ -1188,13 +1190,13 @@ model invoices {
   balance_due          Decimal?        @db.Decimal(19, 2)
   notes                String?
   billing_address      String?
-  slip_type            String?   @db.NVarChar(50)
-  total_discount       Decimal?  @default(0) @db.Decimal(18, 2)
-  total_quantity       Int?      @default(0)
-  total_volume         Decimal?  @default(0) @db.Decimal(18, 2)
-  total_weight         Decimal?  @default(0) @db.Decimal(18, 2)
-  item_count           Int?      @default(0)
-  is_synced            Boolean?  @default(false)
+  slip_type            String?         @db.NVarChar(50)
+  total_discount       Decimal?        @default(0) @db.Decimal(18, 2)
+  total_quantity       Int?            @default(0)
+  total_volume         Decimal?        @default(0) @db.Decimal(18, 2)
+  total_weight         Decimal?        @default(0) @db.Decimal(18, 2)
+  item_count           Int?            @default(0)
+  is_synced            Boolean?        @default(false)
   is_active            String          @default("Y", map: "DF__invoices__is_act__14270015") @db.Char(1)
   createdate           DateTime?       @default(now(), map: "DF__invoices__create__151B244E") @db.DateTime
   createdby            Int
@@ -1258,20 +1260,23 @@ model notifications {
 }
 
 model order_items {
-  id              Int      @id(map: "PK__order_it__3213E83F94212297") @default(autoincrement())
-  parent_id       Int
-  product_id      Int
-  product_name    String?  @db.NVarChar(255)
-  is_free_gift    Boolean? @default(false)
-  unit            String?  @db.NVarChar(50)
-  quantity        Int      @default(1, map: "DF__order_ite__quant__01142BA1")
-  unit_price      Decimal  @default(0, map: "DF__order_ite__unit___02084FDA") @db.Decimal(18, 2)
-  discount_amount Decimal? @default(0, map: "DF__order_ite__disco__02FC7413") @db.Decimal(18, 2)
-  tax_amount      Decimal? @default(0, map: "DF__order_ite__tax_a__03F0984C") @db.Decimal(18, 2)
-  total_amount    Decimal? @db.Decimal(18, 2)
-  notes           String?  @db.NVarChar(500)
-  orders          orders   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__order_ite__paren__04E4BC85")
-  products        products @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__order_ite__produ__05D8E0BE")
+  id                Int      @id(map: "PK__order_it__3213E83F94212297") @default(autoincrement())
+  parent_id         Int
+  uom               Int?
+  product_id        Int
+  product_name      String?  @db.NVarChar(255)
+  is_free_gift      Boolean? @default(false)
+  unit              String?  @db.NVarChar(50)
+  quantity          Int      @default(1, map: "DF__order_ite__quant__01142BA1")
+  unit_price        Decimal  @default(0, map: "DF__order_ite__unit___02084FDA") @db.Decimal(18, 2)
+  discount_amount   Decimal? @default(0, map: "DF__order_ite__disco__02FC7413") @db.Decimal(18, 2)
+  tax_amount        Decimal? @default(0, map: "DF__order_ite__tax_a__03F0984C") @db.Decimal(18, 2)
+  total_amount      Decimal? @db.Decimal(18, 2)
+  notes             String?  @db.NVarChar(500)
+  conversion_factor Decimal? @default(1) @db.Decimal(18, 2)
+  base_quantity     Int?     @default(0)
+  orders            orders   @relation(fields: [parent_id], references: [id], onUpdate: NoAction, map: "FK__order_ite__paren__04E4BC85")
+  products          products @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "FK__order_ite__produ__05D8E0BE")
 }
 
 model orders {
@@ -2220,6 +2225,7 @@ model van_inventory_items {
   id                            Int             @id @default(autoincrement())
   parent_id                     Int
   product_id                    Int
+  base_quantity                 Int?
   product_name                  String?         @db.NVarChar(255)
   unit                          String?         @db.NVarChar(50)
   batch_lot_id                  Int?
