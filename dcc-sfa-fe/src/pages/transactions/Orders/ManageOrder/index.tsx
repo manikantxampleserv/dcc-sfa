@@ -238,17 +238,62 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     { enabled: open }
   );
 
+  useEffect(() => {
+    if (orderItems.length > 0 && !formik.values.parent_id) {
+      const updatedItems = orderItems.map(item => ({
+        ...item,
+        unit_price: '0',
+        conversion_rate: 1,
+      }));
+      setOrderItems(updatedItems);
+      formik.setFieldValue('order_items', updatedItems, false);
+      formikSyncRef.current = JSON.stringify(updatedItems);
+    } else if (
+      orderItems.length > 0 &&
+      formik.values.parent_id &&
+      customerPriceLists
+    ) {
+      const updatedItems = orderItems.map(item => {
+        if (!item.product_id) return item;
+
+        const unit = item.unit || 'CASE';
+        const conversionRate = getProductConversionRate(item.product_id);
+        const resolvedPrice =
+          resolvePrice(item.product_id, customerPriceLists, unit) ?? '0';
+
+        return {
+          ...item,
+          unit_price: resolvedPrice,
+          conversion_rate: conversionRate,
+        };
+      });
+      setOrderItems(updatedItems);
+      formik.setFieldValue('order_items', updatedItems, false);
+      formikSyncRef.current = JSON.stringify(updatedItems);
+    }
+  }, [formik.values.parent_id, formik.values.order_date, customerPriceLists]);
+
   /**
    * Resolves the effective unit_price for a product from the SP pricelist result.
-   * Priority: customer special → route/category special → base pricelist price.
+   * Only uses price list API pricing - no fallback to product base prices.
+   * For CASE: uses unit_price from price list.
+   * For PIECE: uses sub_unit_price from price list, falls back to calculated price.
    */
   const resolvePrice = (
     productId: number,
-    priceLists: CustomerPriceListResult[] | undefined
+    priceLists: CustomerPriceListResult[] | undefined,
+    unit: 'CASE' | 'PIECE' = 'CASE'
   ): string | null => {
-    if (!priceLists || priceLists.length === 0) return null;
+    if (
+      !priceLists ||
+      priceLists.length === 0 ||
+      !formik.values.parent_id ||
+      !productId
+    )
+      return null;
 
     const customerId = Number(formik.values.parent_id);
+    let casePrice: number | null = null;
 
     for (const pl of priceLists) {
       const item = pl.pricelist_items?.find(i => i.product_id === productId);
@@ -257,19 +302,41 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       const specials = item.special_prices ?? [];
 
       const customerSp = specials.find(sp => sp.customer_id === customerId);
-      if (customerSp) return String(customerSp.sale_price);
+      if (customerSp) {
+        casePrice = Number(customerSp.sale_price);
+        break;
+      }
 
       const otherSp = specials.find(
         sp => sp.route_id != null || sp.customer_category_id != null
       );
-      if (otherSp) return String(otherSp.sale_price);
+      if (otherSp) {
+        casePrice = Number(otherSp.sale_price);
+        break;
+      }
 
-      return String(item.unit_price);
+      casePrice = Number(item.unit_price);
+      break;
     }
 
-    return null;
-  };
+    if (casePrice === null) return null;
 
+    if (unit === 'PIECE') {
+      for (const pl of priceLists) {
+        const item = pl.pricelist_items?.find(i => i.product_id === productId);
+        if (item && item.sub_unit_price) {
+          return String(item.sub_unit_price);
+        }
+      }
+
+      const conversionRate = getProductConversionRate(productId);
+      if (conversionRate <= 0) return String(casePrice);
+      const piecePrice = casePrice / conversionRate;
+      return String(Math.round(piecePrice * 100) / 100);
+    }
+
+    return String(casePrice);
+  };
   useEffect(() => {
     if (order && open) {
       formik.setValues({
@@ -469,6 +536,60 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     formikSyncRef.current = JSON.stringify(updatedItems);
   };
 
+  /**
+   * Get product conversion rate from inventory data
+   */
+  const getProductConversionRate = useCallback(
+    (productId: number): number => {
+      if (!inventoryData?.data) return 1;
+      const responseData = inventoryData.data;
+      const salespersonData = responseData as SalespersonInventoryData;
+      const product = salespersonData.products?.find(
+        p => p.product_id === productId
+      );
+      return product?.product_unit_of_measurement?.conversion_rate ?? 1;
+    },
+    [inventoryData]
+  );
+
+  /**
+   * Update price when unit changes (CASE/PIECE)
+   */
+  const handleUnitChange = useCallback(
+    (rowIndex: number, unit: 'CASE' | 'PIECE') => {
+      const item = orderItems[rowIndex];
+
+      const isSerialTracked = item.tracking_type?.toLowerCase() === 'serial';
+      if (isSerialTracked && unit === 'PIECE') {
+        return;
+      }
+
+      const conversionRate = getProductConversionRate(item.product_id);
+      let resolvedPrice = resolvePrice(
+        item.product_id,
+        customerPriceLists,
+        unit
+      );
+
+      if (!resolvedPrice) {
+        resolvedPrice = '0';
+      }
+
+      const updatedItems = [...orderItems];
+      updatedItems[rowIndex] = {
+        ...updatedItems[rowIndex],
+        unit,
+        unit_price: resolvedPrice,
+        conversion_rate: conversionRate,
+      };
+
+      setOrderItems(updatedItems);
+      formik.setFieldValue('order_items', updatedItems, false);
+      formikSyncRef.current = JSON.stringify(updatedItems);
+    },
+    [orderItems, customerPriceLists, getProductConversionRate]
+  );
+
   const handleProductChange = useCallback(
     (rowIndex: number, _event: any, product: any) => {
       const updatedItems = [...orderItems];
@@ -479,9 +600,13 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       const isBatchOrSerial =
         trackingLower === 'batch' || trackingLower === 'serial';
 
+      const currentItem = updatedItems[rowIndex];
+      const isSerialTracked = trackingType?.toLowerCase() === 'serial';
+      const unit = isSerialTracked ? 'CASE' : currentItem?.unit || 'CASE';
+      const conversionRate = getProductConversionRate(product?.product_id || 0);
+
       const resolvedPrice = product
-        ? (resolvePrice(product.product_id, customerPriceLists) ??
-          String(product.unit_price))
+        ? (resolvePrice(product.product_id, customerPriceLists, unit) ?? '0')
         : '0';
 
       updatedItems[rowIndex] = {
@@ -489,7 +614,9 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         product_id: product ? product.product_id : 0,
         product_name: product ? product.name : '',
         tracking_type: trackingType,
+        unit: unit,
         unit_price: resolvedPrice,
+        conversion_rate: conversionRate,
         quantity:
           product && isBatchOrSerial
             ? '0'
@@ -502,7 +629,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       formik.setFieldValue('order_items', updatedItems);
       formikSyncRef.current = JSON.stringify(updatedItems);
     },
-    [orderItems, customerPriceLists, formik.values.parent_id]
+    [
+      orderItems,
+      customerPriceLists,
+      formik.values.parent_id,
+      getProductConversionRate,
+    ]
   );
 
   const orderItemsWithIndex = orderItems.map((item, index) => ({
@@ -510,15 +642,16 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     _index: index,
   }));
 
-  console.log('Order items', orderItems);
-
   const orderItemsColumns: TableColumn<
     OrderItemFormData & { _index: number }
   >[] = [
     {
       id: 'product_id',
       label: 'Product',
-      render: (_value, row) => (
+      render: (
+        _value: any,
+        row: OrderItemFormData & { _index: number }
+      ): React.ReactNode => (
         <SalesItemsSelect
           salespersonId={salespersonId}
           value={row.product_id}
@@ -537,19 +670,27 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       id: 'uom',
       label: 'Case/PCs',
       render: (_value, row) => {
+        const currentValue = ['CASE', 'PIECE'].includes(row.unit)
+          ? row.unit
+          : 'CASE';
+
+        const isSerialTracked = row.tracking_type?.toLowerCase() === 'serial';
+
         return (
           <Box className="!min-w-28">
             <Select
-              value={['CASE', 'PIECE'].includes(row.unit) ? row.unit : 'CASE'}
-              onChange={e =>
-                updateOrderItem(row._index, 'unit', e.target.value)
-              }
+              value={currentValue}
+              onChange={(e: any) => {
+                const unit = e.target.value as 'CASE' | 'PIECE';
+                handleUnitChange(row._index, unit);
+              }}
               size="small"
               disableClearable
               label=""
+              disabled={isSerialTracked}
             >
               <MenuItem value="CASE">CASE</MenuItem>
-              <MenuItem value="PIECE">PIECE</MenuItem>
+              {!isSerialTracked && <MenuItem value="PIECE">PIECE</MenuItem>}
             </Select>
           </Box>
         );
@@ -713,19 +854,19 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <Select name="status" label="Status" formik={formik} required>
-              <MenuItem value="draft">Draft</MenuItem>
-              <MenuItem value="pending">Pending</MenuItem>
-              <MenuItem value="confirmed">Confirmed</MenuItem>
-              <MenuItem value="processing">Processing</MenuItem>
-              <MenuItem value="shipped">Shipped</MenuItem>
-              <MenuItem value="delivered">Delivered</MenuItem>
-              <MenuItem value="cancelled">Cancelled</MenuItem>
+              <MenuItem value="draft"> Draft </MenuItem>
+              <MenuItem value="pending"> Pending </MenuItem>
+              <MenuItem value="confirmed"> Confirmed </MenuItem>
+              <MenuItem value="processing"> Processing </MenuItem>
+              <MenuItem value="shipped"> Shipped </MenuItem>
+              <MenuItem value="delivered"> Delivered </MenuItem>
+              <MenuItem value="cancelled"> Cancelled </MenuItem>
             </Select>
             <Select name="priority" label="Priority" formik={formik} required>
-              <MenuItem value="low">Low</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="high">High</MenuItem>
-              <MenuItem value="urgent">Urgent</MenuItem>
+              <MenuItem value="low"> Low </MenuItem>
+              <MenuItem value="medium"> Medium </MenuItem>
+              <MenuItem value="high"> High </MenuItem>
+              <MenuItem value="urgent"> Urgent </MenuItem>
             </Select>
             <Select
               name="order_type"
@@ -733,10 +874,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               formik={formik}
               required
             >
-              <MenuItem value="regular">Regular</MenuItem>
-              <MenuItem value="urgent">Urgent</MenuItem>
-              <MenuItem value="promotional">Promotional</MenuItem>
-              <MenuItem value="sample">Sample</MenuItem>
+              <MenuItem value="regular"> Regular </MenuItem>
+              <MenuItem value="urgent"> Urgent </MenuItem>
+              <MenuItem value="promotional"> Promotional </MenuItem>
+              <MenuItem value="sample"> Sample </MenuItem>
             </Select>
             <Select
               name="payment_method"
@@ -744,10 +885,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
               formik={formik}
               required
             >
-              <MenuItem value="cash">Cash</MenuItem>
-              <MenuItem value="credit">Credit</MenuItem>
-              <MenuItem value="cheque">Cheque</MenuItem>
-              <MenuItem value="bank_transfer">Bank Transfer</MenuItem>
+              <MenuItem value="cash"> Cash </MenuItem>
+              <MenuItem value="credit"> Credit </MenuItem>
+              <MenuItem value="cheque"> Cheque </MenuItem>
+              <MenuItem value="bank_transfer"> Bank Transfer </MenuItem>
             </Select>
             <Input
               name="payment_terms"

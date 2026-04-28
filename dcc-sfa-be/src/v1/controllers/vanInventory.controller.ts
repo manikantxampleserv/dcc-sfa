@@ -3541,7 +3541,13 @@ export const vanInventoryController = {
                   code: true,
                   tracking_type: true,
                   tax_id: true,
-
+                  product_unit_of_measurement: {
+                    select: {
+                      id: true,
+                      name: true,
+                      conversion_rate: true,
+                    },
+                  },
                   product_tax_master: {
                     select: {
                       id: true,

@@ -63,6 +63,11 @@ export interface ProductInventory {
   tracking_type: string;
   total_quantity: number;
   total_remaining_quantity: number;
+  product_unit_of_measurement?: {
+    id: number;
+    name: string;
+    conversion_rate?: number | null;
+  } | null;
   van_inventories: VanInventoryReference[];
   batches: BatchInfo[];
   serials: SerialInfo[];

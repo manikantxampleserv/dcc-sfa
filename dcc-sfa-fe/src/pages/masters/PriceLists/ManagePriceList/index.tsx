@@ -74,6 +74,10 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
 }) => {
   const isEdit = !!selectedPriceList;
   const [priceListItems, setPriceListItems] = useState<PriceListItemForm[]>([]);
+  const [newPriceListItems, setNewPriceListItems] = useState<
+    PriceListItemForm[]
+  >([]);
+
   const [showSpecialForIndex, setShowSpecialForIndex] = useState<number | null>(
     null
   );
@@ -91,7 +95,9 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
     limit: 1000,
     isActive: 'Y',
   });
-  const { data: productsResponse } = useProducts({ limit: 1000 });
+  const { data: productsResponse, isLoading: isLoadingProducts } = useProducts({
+    limit: 1000,
+  });
 
   const depots = depotsResponse?.data || [];
   const routes = routesResponse?.data || [];
@@ -99,23 +105,25 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   const customers = customersResponse?.data || [];
   const products = productsResponse?.data || [];
 
-  const { data: allPriceListsResponse } = usePriceLists({
-    limit: 1000,
-    include_items: true,
-  });
+  const { data: allPriceListsResponse, isLoading: isLoadingPriceList } =
+    usePriceLists({
+      limit: 1000,
+      include_items: true,
+    });
   const allPriceLists = allPriceListsResponse?.data || [];
 
   const handleCancel = () => {
     setSelectedPriceList(null);
     setDrawerOpen(false);
     setPriceListItems([]);
+    setNewPriceListItems([]);
     setShowSpecialForIndex(null);
     formik.resetForm();
   };
 
   useEffect(() => {
     if (selectedPriceList?.pricelist_item) {
-      const items = selectedPriceList.pricelist_item.map(item => {
+      const existingItems = selectedPriceList.pricelist_item.map(item => {
         const rawSpecial =
           (item as any).special_prices ||
           (item as any).pricelist_item_special_prices ||
@@ -151,7 +159,26 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           special_prices: specialPrices,
         };
       });
-      setPriceListItems(items);
+
+      const existingProductIds = new Set(
+        existingItems.map(item => item.product_id)
+      );
+
+      const newItems = products
+        .filter(p => !existingProductIds.has(p.id))
+        .map(p => ({
+          product_id: p.id,
+          unit_price: '',
+          uom: p.uom_id || '',
+          discount_percent: '',
+          tax_percent: '18',
+          sub_unit_price: '',
+          is_active: 'Y' as string,
+          special_prices: [],
+        }));
+
+      setPriceListItems(existingItems); // 👈 only existing
+      setNewPriceListItems(newItems); // 👈 only new
     } else if (!isEdit) {
       if (drawerOpen && products.length > 0 && priceListItems.length === 0) {
         const initialItems = products.map(p => ({
@@ -168,6 +195,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       }
     } else {
       setPriceListItems([]);
+      setNewPriceListItems([]);
     }
   }, [selectedPriceList, drawerOpen, products, isEdit]);
 
@@ -196,7 +224,7 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
             : null,
           factor: Number(values.factor),
           description: values.description,
-          pricelist_item: priceListItems
+          pricelist_item: [...priceListItems, ...newPriceListItems]
             .filter(item => item.product_id !== undefined)
             .map(item => ({
               id: item.id,
@@ -243,6 +271,30 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
       }
     },
   });
+  const updateNewPriceListItem = (
+    index: number,
+    field: keyof PriceListItemForm,
+    value: string | number
+  ) => {
+    const updatedItems = [...newPriceListItems];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+
+    if (field === 'unit_price' && value) {
+      const price = parseFloat(value as string);
+      if (!isNaN(price)) {
+        updatedItems[index].sub_unit_price = (price / 24).toFixed(2);
+      }
+    }
+
+    if (field === 'sub_unit_price' && value) {
+      const subPrice = parseFloat(value as string);
+      if (!isNaN(subPrice)) {
+        updatedItems[index].unit_price = (subPrice * 24).toFixed(2);
+      }
+    }
+
+    setNewPriceListItems(updatedItems);
+  };
 
   useEffect(() => {
     const factor = Number(formik.values.factor || 0);
@@ -311,6 +363,11 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
   };
 
   const priceListItemsWithIndex = priceListItems.map((item, index) => ({
+    ...item,
+    _index: index,
+  }));
+
+  const newPriceListItemsWithIndex = newPriceListItems.map((item, index) => ({
     ...item,
     _index: index,
   }));
@@ -389,6 +446,112 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           value={row.sub_unit_price}
           onChange={e =>
             updatePriceListItem(row._index, 'sub_unit_price', e.target.value)
+          }
+          placeholder="0.00"
+          type="number"
+          size="small"
+          className="!min-w-24"
+        />
+      ),
+    },
+    {
+      id: 'actions',
+      label: 'Action',
+      render: (_value, row) => (
+        <div className="flex gap-2">
+          <ActionButton
+            onClick={() =>
+              setShowSpecialForIndex(
+                showSpecialForIndex === row._index ? null : row._index
+              )
+            }
+            size="small"
+            tooltip={
+              showSpecialForIndex === row._index
+                ? 'Hide Special Prices'
+                : 'Special Prices'
+            }
+            color={showSpecialForIndex === row._index ? 'primary' : 'info'}
+            icon={<MoreHoriz fontSize="small" />}
+          />
+        </div>
+      ),
+    },
+  ];
+  const newPriceListItemsColumns: TableColumn<
+    PriceListItemForm & { _index: number }
+  >[] = [
+    {
+      id: 'sku',
+      label: 'SKU',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        return <span>{product?.code || '-'}</span>;
+      },
+    },
+    {
+      id: 'product_id',
+      label: 'Product',
+      render: (_value, row) => {
+        const product = products.find(p => p.id === row.product_id);
+        const name = product?.name || '-';
+        return (
+          <Tooltip title={name} arrow placement="top">
+            <div className="max-w-[240px] truncate cursor-help">{name}</div>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      id: 'base_price',
+      label: 'Base Price',
+      render: (_value, row) => {
+        const baseId = Number(formik.values.base_pricelist_id);
+        const base = allPriceLists.find((pl: any) => pl.id === baseId);
+        const baseItem = base?.pricelist_item?.find(
+          (bi: any) => bi.product_id === row.product_id
+        );
+        return <span>{baseItem?.unit_price || '-'}</span>;
+      },
+    },
+    {
+      id: 'base_subunit',
+      label: 'Base Subunit Price',
+      render: (_value, row) => {
+        const baseId = Number(formik.values.base_pricelist_id);
+        const base = allPriceLists.find((pl: any) => pl.id === baseId);
+        const baseItem = base?.pricelist_item?.find(
+          (bi: any) => bi.product_id === row.product_id
+        );
+        return <span>{baseItem?.sub_unit_price || '-'}</span>;
+      },
+    },
+    {
+      id: 'unit_price',
+      label: 'Price',
+      render: (_value, row) => (
+        <Input
+          compact={true}
+          value={row.unit_price}
+          onChange={e =>
+            updateNewPriceListItem(row._index, 'unit_price', e.target.value)
+          }
+          placeholder="0.00"
+          type="number"
+          size="small"
+          className="!min-w-24"
+        />
+      ),
+    },
+    {
+      id: 'sub_unit_price',
+      label: 'Subunit Price',
+      render: (_value, row) => (
+        <Input
+          compact={true}
+          value={row.sub_unit_price}
+          onChange={e =>
+            updateNewPriceListItem(row._index, 'sub_unit_price', e.target.value)
           }
           placeholder="0.00"
           type="number"
@@ -571,29 +734,40 @@ const ManagePriceList: React.FC<ManagePriceListProps> = ({
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h6 className="text-base font-semibold text-gray-900">
-                Price List Items
+                {isEdit && 'Existing'} Price List Items
               </h6>
             </div>
 
-            {priceListItems.length > 0 ? (
-              <Table
-                compact={true}
-                data={priceListItemsWithIndex}
-                columns={priceListItemsColumns}
-                getRowId={row => row._index.toString()}
-                pagination={false}
-                sortable={false}
-                emptyMessage="No price list items added yet."
-              />
-            ) : (
-              <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-100 rounded-lg bg-gray-50/50">
-                <p className="text-sm">
-                  No price list items added yet. Click "Add Item" to get
-                  started.
-                </p>
-              </div>
-            )}
+            <Table
+              compact={true}
+              data={priceListItemsWithIndex}
+              columns={priceListItemsColumns}
+              getRowId={row => row._index.toString()}
+              pagination={false}
+              sortable={false}
+              loading={isLoadingPriceList || isLoadingProducts}
+              emptyMessage="No list items found."
+            />
 
+            {isEdit && (
+              <>
+                <div className="flex justify-between items-center">
+                  <h6 className="text-base font-semibold text-gray-900">
+                    New Price List Items
+                  </h6>
+                </div>
+
+                <Table
+                  compact={true}
+                  data={newPriceListItemsWithIndex}
+                  columns={newPriceListItemsColumns}
+                  getRowId={row => row._index.toString()}
+                  pagination={false}
+                  sortable={false}
+                  emptyMessage="No new list items found."
+                />
+              </>
+            )}
             <Dialog
               open={showSpecialForIndex !== null}
               onClose={() => setShowSpecialForIndex(null)}

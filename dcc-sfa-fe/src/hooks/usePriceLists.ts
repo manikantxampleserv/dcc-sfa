@@ -87,12 +87,13 @@ export const usePriceListByCustomer = (
     'queryKey' | 'queryFn'
   >
 ) => {
-  const id = customerId ? Number(customerId) : 0;
+  const id = customerId ? Number(customerId) : null;
   const date = orderDate ?? '';
 
   return useQuery({
-    queryKey: priceListsQueryKeys.byCustomer(id, date),
-    queryFn: () => priceListsService.fetchPriceListByCustomer(id, date),
+    queryKey: priceListsQueryKeys.byCustomer(id || 0, date),
+    queryFn: () =>
+      id ? priceListsService.fetchPriceListByCustomer(id, date) : [],
     enabled: !!id && !!date,
     staleTime: 2 * 60 * 1000,
     ...options,

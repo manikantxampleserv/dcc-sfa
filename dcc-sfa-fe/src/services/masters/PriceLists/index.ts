@@ -259,17 +259,18 @@ export type {
   GetPriceListsParams,
 };
 
-
 export interface CustomerPriceListItem {
   id: number;
   product_id: number;
   product_name: string;
   product_code: string;
   unit_price: number;
+  sub_unit_price?: number | null;
   discount_percent?: number | null;
   tax_percent?: number | null;
   is_active: string;
   base_unit_price: number;
+  base_sub_unit_price?: number | null;
   base_discount_percent?: number | null;
   base_tax_percent?: number | null;
   special_prices: SpecialPrice[];
@@ -312,4 +313,3 @@ export const fetchPriceListByCustomer = async (
     );
   }
 };
-

@@ -123,7 +123,6 @@ const PriceListsManagement: React.FC = () => {
     setPage(newPage + 1);
   };
 
-
   const priceListsColumns: TableColumn<PriceList>[] = [
     {
       id: 'price_list_info',
@@ -239,14 +238,14 @@ const PriceListsManagement: React.FC = () => {
                   icon={<Visibility fontSize="small" />}
                   color="info"
                 />
-                {isUpdate && row.is_default !== 'Y' && (
+                {isUpdate && (
                   <EditButton
                     onClick={() => handleEditPriceList(row)}
                     tooltip={`Edit ${row.name}`}
                   />
                 )}
 
-                {isUpdate && row.is_default !== 'Y' && (
+                {isUpdate && (
                   <DeleteButton
                     onClick={() => handleDeletePriceList(row.id)}
                     tooltip={`Delete ${row.name}`}

@@ -25,12 +25,13 @@ export interface OrderFormValues {
 export interface OrderItemFormData {
   product_id: number;
   product_name?: string | null;
-  unit?: string | null;
+  unit: 'CASE' | 'PIECE';
   tracking_type?: string | null;
   quantity: string;
   unit_price?: string;
   total_amount?: string;
   notes?: string;
+  conversion_rate?: number | null;
   product_batches?: any[];
   product_serials?: any[];
 }
