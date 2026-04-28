@@ -21,9 +21,10 @@ interface OrderSerialized {
   order_type?: string | null;
   payment_method?: string | null;
   payment_terms?: string | null;
-  subtotal?: number | null;
   promotion_id?: number | null;
   pricelist_id?: number | null;
+  currency_id?: number | null;
+  subtotal?: number | null;
   discount_amount?: number | null;
   tax_amount?: number | null;
   shipping_amount?: number | null;
@@ -63,12 +64,17 @@ interface OrderSerialized {
     product_name?: string;
     unit?: 'CASE' | 'PIECE';
     quantity: number;
+    base_quantity?: number | null;
+    conversion_factor?: number;
     unit_price: number;
     discount_amount?: number;
     tax_amount?: number;
     total_amount?: number;
     notes?: string;
     is_free_gift?: boolean;
+    tracking_type?: string | null;
+    product_batches?: any[];
+    product_serials?: any[];
   }[];
   invoices?: { id: number; invoice_number: string; amount: number }[];
   promotion_applied?: {
@@ -94,6 +100,7 @@ const serializeOrder = (order: any): OrderSerialized => ({
   payment_terms: order.payment_terms,
   promotion_id: order.promotion_id,
   pricelist_id: order.pricelist_id ?? null,
+  currency_id: order.currency_id,
   subtotal: order.subtotal ? Number(order.subtotal) : null,
   discount_amount: order.discount_amount ? Number(order.discount_amount) : null,
   tax_amount: order.tax_amount ? Number(order.tax_amount) : null,
@@ -152,6 +159,10 @@ const serializeOrder = (order: any): OrderSerialized => ({
       product_name: oi.product_name,
       unit: oi.unit,
       quantity: oi.quantity,
+      base_quantity: oi.base_quantity,
+      conversion_factor: oi.conversion_factor
+        ? Number(oi.conversion_factor)
+        : 1,
       unit_price: Number(oi.unit_price),
       discount_amount: oi.discount_amount
         ? Number(oi.discount_amount)
@@ -643,10 +654,35 @@ async function processOrderItems(
       }
     }
 
+    // await tx.order_items.update({
+    //   where: { id: originalItem.id },
+    //   data: {
+    //     quantity: parseInt(newItem.quantity),
+    //     unit_price: Number(newItem.unit_price || newItem.price) || 0,
+    //     discount_amount: Number(newItem.discount_amount) || 0,
+    //     tax_amount: Number(newItem.tax_amount) || 0,
+    //     total_amount:
+    //       parseInt(newItem.quantity) *
+    //       (Number(newItem.unit_price || newItem.price) || 0),
+    //     notes: newItem.notes || originalItem.notes,
+    //   },
+    // });
+
+    const unit = (newItem.unit || 'CASE').toUpperCase();
+
     await tx.order_items.update({
       where: { id: originalItem.id },
       data: {
-        quantity: parseInt(newItem.quantity),
+        unit,
+
+        quantity: unit === 'PCS' ? 0 : parseInt(newItem.quantity),
+        base_quantity: unit === 'PCS' ? parseInt(newItem.quantity) : 0,
+
+        conversion_factor:
+          Number(newItem.conversion_factor) ||
+          Number(newItem.conversion_rate) ||
+          1,
+
         unit_price: Number(newItem.unit_price || newItem.price) || 0,
         discount_amount: Number(newItem.discount_amount) || 0,
         tax_amount: Number(newItem.tax_amount) || 0,
@@ -656,7 +692,6 @@ async function processOrderItems(
         notes: newItem.notes || originalItem.notes,
       },
     });
-
     console.log(
       `Updated item ${originalItem.product_id}: qty=${originalItem.quantity}→${newItem.quantity}, price=${Number(originalItem.unit_price)}→${Number(newItem.unit_price || newItem.price)}`
     );
@@ -2907,7 +2942,6 @@ export const ordersController = {
           }
 
           if (items && items.length > 0) {
-            // DELTA UPDATE: Compare original vs new items
             let originalOrderItems: any[] = [];
 
             if (isUpdate && orderId) {
@@ -2919,7 +2953,6 @@ export const ordersController = {
               });
             }
 
-            // Process items based on tracking type
             await processOrderItems(tx, {
               items,
               originalOrderItems,
@@ -3003,7 +3036,6 @@ export const ordersController = {
             userId
           );
 
-          // Check if approval workflow exists before creating request
           const salesperson = await prisma.users.findUnique({
             where: { id: result.salesperson_id },
             select: {
@@ -3579,7 +3611,6 @@ export const ordersController = {
       });
     }
   },
-
   async getOrdersById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -3631,8 +3662,17 @@ export const ordersController = {
         },
       });
 
-      if (stockMovements.length > 0 && order.order_items) {
+      console.log('stockMovements count:', stockMovements.length);
+
+      if (order.order_items) {
         order.order_items = order.order_items.map((item: any) => {
+          console.log(
+            'Mapping item:',
+            item.id,
+            item.product_id,
+            item.product_name
+          );
+
           const itemMovements = stockMovements.filter(
             (sm: any) => sm.product_id === item.product_id
           );
@@ -3659,13 +3699,23 @@ export const ordersController = {
 
           return {
             ...item,
-            product_batches: batches.length > 0 ? batches : undefined,
-            product_serials: serials.length > 0 ? serials : undefined,
+            product_batches: batches.length > 0 ? batches : [],
+            product_serials: serials.length > 0 ? serials : [],
           };
         }) as any;
       }
 
+      console.log(
+        'After mapping order_items count:',
+        order.order_items?.length
+      );
+
       const serialized = serializeOrder(order);
+
+      console.log(
+        'After serialized order_items count:',
+        serialized.order_items?.length
+      );
 
       if (order.promotion_id && order.orders_promotion) {
         serialized.promotion_applied = {
@@ -3681,7 +3731,8 @@ export const ordersController = {
               .map((item: any) => ({
                 product_id: item.product_id,
                 product_name: item.product_name,
-                quantity: item.quantity,
+                quantity:
+                  item.unit === 'PCS' ? item.base_quantity : item.quantity,
               })) || [],
         };
       }
@@ -4023,14 +4074,55 @@ export const ordersController = {
   async deleteOrders(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const orderId = Number(id);
+
       const existingOrder = await prisma.orders.findUnique({
-        where: { id: Number(id) },
+        where: { id: orderId },
+        include: {
+          order_items: true,
+          invoices: true,
+        },
       });
 
       if (!existingOrder)
         return res.status(404).json({ message: 'Order not found' });
 
-      await prisma.orders.delete({ where: { id: Number(id) } });
+      await prisma.$transaction(async tx => {
+        await tx.stock_movements.deleteMany({
+          where: {
+            reference_type: 'ORDER',
+            reference_id: orderId,
+          },
+        });
+
+        await tx.order_items.deleteMany({
+          where: {
+            parent_id: orderId,
+          },
+        });
+
+        await tx.invoices.deleteMany({
+          where: {
+            parent_id: orderId,
+          },
+        });
+
+        await tx.delivery_schedules.deleteMany({
+          where: {
+            order_id: orderId,
+          },
+        });
+
+        await tx.digital_signatures.deleteMany({
+          where: {
+            document_id: orderId,
+          },
+        });
+
+        await tx.orders.delete({
+          where: { id: orderId },
+        });
+      });
 
       res.json({ message: 'Order deleted successfully' });
     } catch (error: any) {
