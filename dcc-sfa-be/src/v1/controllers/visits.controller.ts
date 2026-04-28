@@ -637,42 +637,175 @@ const validateAndGetLocationId = async (
   }
 };
 
-function calculateStockDeduction(
-  currentQuantity: number,
-  currentBaseQuantity: number,
-  piecesToDeduct: number,
-  conversionFactor: number
-): {
-  newQuantity: number;
-  newBaseQuantity: number;
-  totalAvailablePieces: number;
-} {
-  const totalAvailablePieces =
-    currentQuantity * conversionFactor + currentBaseQuantity;
+// function calculateStockDeduction(
+//   currentQuantity: number,
+//   currentBaseQuantity: number,
+//   piecesToDeduct: number,
+//   conversionFactor: number
+// ): {
+//   newQuantity: number;
+//   newBaseQuantity: number;
+//   totalAvailablePieces: number;
+// } {
+//   const totalAvailablePieces =
+//     currentQuantity * conversionFactor + currentBaseQuantity;
 
-  if (totalAvailablePieces < piecesToDeduct) {
-    return { newQuantity: -1, newBaseQuantity: -1, totalAvailablePieces };
-  }
+//   if (totalAvailablePieces < piecesToDeduct) {
+//     return { newQuantity: -1, newBaseQuantity: -1, totalAvailablePieces };
+//   }
 
-  const remainingPieces = totalAvailablePieces - piecesToDeduct;
-  const newQuantity = Math.floor(remainingPieces / conversionFactor);
-  const newBaseQuantity = remainingPieces % conversionFactor;
+//   const remainingPieces = totalAvailablePieces - piecesToDeduct;
+//   const newQuantity = Math.floor(remainingPieces / conversionFactor);
+//   const newBaseQuantity = remainingPieces % conversionFactor;
 
-  return { newQuantity, newBaseQuantity, totalAvailablePieces };
-}
+//   return { newQuantity, newBaseQuantity, totalAvailablePieces };
+// }
 
+// function getOrderedQuantities(item: any): {
+//   orderedQty: number;
+//   orderedPieces: number;
+//   conversionFactor: number;
+// } {
+//   const conversionFactor = parseInt(String(item.conversion_factor), 10) || 1;
+//   const orderedQty = parseInt(String(item.quantity), 10) || 0;
+//   const orderedPieces = item.base_quantity
+//     ? parseInt(String(item.base_quantity), 10)
+//     : orderedQty * conversionFactor;
+
+//   return { orderedQty, orderedPieces, conversionFactor };
+// }
 function getOrderedQuantities(item: any): {
   orderedQty: number;
   orderedPieces: number;
   conversionFactor: number;
+  unit: string;
 } {
-  const conversionFactor = parseInt(String(item.conversion_factor), 10) || 1;
-  const orderedQty = parseInt(String(item.quantity), 10) || 0;
-  const orderedPieces = item.base_quantity
-    ? parseInt(String(item.base_quantity), 10)
-    : orderedQty * conversionFactor;
+  const conversionFactor = Number(item.conversion_factor) || 1;
+  const rawUnit = (item.unit || 'CASE').toUpperCase().trim();
 
-  return { orderedQty, orderedPieces, conversionFactor };
+  const PCS_VARIANTS = [
+    'PCS',
+    'PC',
+    'PIECE',
+    'PIECES',
+    'PSC',
+    'PEC',
+    'PCE',
+    'PICS',
+  ];
+  const CASE_VARIANTS = [
+    'CASE',
+    'CASES',
+    'CS',
+    'CTN',
+    'CARTON',
+    'BOX',
+    'BOXES',
+  ];
+
+  let normalizedUnit: string;
+  if (PCS_VARIANTS.includes(rawUnit)) {
+    normalizedUnit = 'PCS';
+  } else if (CASE_VARIANTS.includes(rawUnit)) {
+    normalizedUnit = 'CASE';
+  } else {
+    console.warn(`⚠️ Unknown unit "${rawUnit}" — defaulting to CASE`);
+    normalizedUnit = 'CASE';
+  }
+
+  const quantityInCases = Number(item.quantity) || 0;
+  const baseQuantityInPcs = Number(item.base_quantity) || 0;
+  const isPcsUnit = normalizedUnit === 'PCS';
+
+  console.log(
+    `Unit normalize: "${rawUnit}" → "${normalizedUnit}" | ` +
+      `Cases: ${quantityInCases}, Pcs: ${baseQuantityInPcs}, CF: ${conversionFactor}`
+  );
+
+  if (isPcsUnit) {
+    return {
+      orderedQty: 0,
+      orderedPieces: baseQuantityInPcs,
+      conversionFactor,
+      unit: normalizedUnit,
+    };
+  } else {
+    return {
+      orderedQty: quantityInCases,
+      orderedPieces: quantityInCases * conversionFactor,
+      conversionFactor,
+      unit: normalizedUnit,
+    };
+  }
+}
+
+interface StockDeductionResult {
+  newQuantity: number;
+  newBaseQuantity: number;
+  totalAvailablePieces: number;
+  deductedPieces: number;
+}
+
+function calculateStockDeduction(
+  currentCases: number,
+  currentPcs: number,
+  piecesToDeduct: number,
+  conversionFactor: number,
+  unit?: string,
+  orderedCases?: number
+): StockDeductionResult {
+  const cf = conversionFactor || 1;
+  const unitUpper = (unit || 'CASE').toUpperCase();
+  const isPcsUnit = ['PCS', 'PC', 'PIECE', 'PIECES'].includes(unitUpper);
+
+  const totalAvailablePieces = currentCases * cf + currentPcs;
+
+  if (isPcsUnit) {
+    // PCS LOGIC
+    // Example: 100cs, 0pcs, deduct 2pcs, cf=10
+    // total = 1000pcs, remaining = 998pcs
+    // newCases = floor(998/10) = 99, newPcs = 998%10 = 8
+    if (piecesToDeduct > totalAvailablePieces) {
+      return {
+        newQuantity: -1,
+        newBaseQuantity: 0,
+        totalAvailablePieces,
+        deductedPieces: piecesToDeduct,
+      };
+    }
+
+    const remainingPieces = totalAvailablePieces - piecesToDeduct;
+    const newCases = Math.floor(remainingPieces / cf);
+    const newPcs = remainingPieces % cf;
+
+    return {
+      newQuantity: newCases,
+      newBaseQuantity: newPcs,
+      totalAvailablePieces,
+      deductedPieces: piecesToDeduct,
+    };
+  } else {
+    // CASE LOGIC
+    // Example: 100cs, 0pcs, deduct 2 cases
+    // newCases = 100 - 2 = 98, pcs unchanged
+    const casesToDeduct = orderedCases ?? Math.floor(piecesToDeduct / cf);
+
+    if (casesToDeduct > currentCases) {
+      return {
+        newQuantity: -1,
+        newBaseQuantity: currentPcs,
+        totalAvailablePieces,
+        deductedPieces: piecesToDeduct,
+      };
+    }
+
+    return {
+      newQuantity: currentCases - casesToDeduct,
+      newBaseQuantity: currentPcs,
+      totalAvailablePieces,
+      deductedPieces: piecesToDeduct,
+    };
+  }
 }
 
 export const visitsController = {
@@ -3625,7 +3758,6 @@ export const visitsController = {
         return item;
       });
 
-      // ─── PROCESS EACH VISIT ────────────────────────────────────────────
       for (let index = 0; index < dataArray.length; index++) {
         const data = dataArray[index];
 
@@ -3659,6 +3791,7 @@ export const visitsController = {
 
           const isUpdate = (visit.id ?? visit.visit_id ?? 0) > 0;
           const visitIdToUpdate = visit.id ?? visit.visit_id;
+
           console.log(
             `\nProcessing visit ${index + 1}/${dataArray.length} (Customer: ${visit.customer_id}${isUpdate ? `, Visit ID: ${visitIdToUpdate}` : ''})`
           );
@@ -3718,13 +3851,9 @@ export const visitsController = {
             customer_id: visit.customer_id,
             sales_person_id: visit.sales_person_id,
             ...(visit.route_id !== undefined &&
-              visit.route_id !== null && {
-                route_id: visit.route_id,
-              }),
+              visit.route_id !== null && { route_id: visit.route_id }),
             ...(visit.zones_id !== undefined &&
-              visit.zones_id !== null && {
-                zones_id: visit.zones_id,
-              }),
+              visit.zones_id !== null && { zones_id: visit.zones_id }),
             ...(visit.visit_date && { visit_date: new Date(visit.visit_date) }),
             ...(visit.visit_time && { visit_time: visit.visit_time }),
             ...(visit.purpose && { purpose: visit.purpose }),
@@ -3840,7 +3969,6 @@ export const visitsController = {
 
                 const visitId = visitRecord.id;
 
-                // ─── ATTACHMENTS ─────────────────────────────────────────
                 if (isUpdate) {
                   if (selfImageUrls.length > 0) {
                     await tx.visit_attachments.deleteMany({
@@ -3901,9 +4029,8 @@ export const visitsController = {
                   });
                 }
 
-                // ─── INVOICES ────────────────────────────────────────────
                 if (invoices && invoices.length > 0) {
-                  console.log(`Processing ${invoices.length} invoice(s)...`);
+                  console.log(`Processing ${invoices.length} invoice(s)`);
 
                   for (const invoiceData of invoices) {
                     const invoiceItems = invoiceData.items || [];
@@ -4002,8 +4129,14 @@ export const visitsController = {
                       let order: any = null;
 
                       if (!isDirect) {
-                        // Create order for non-direct
-                        const orderNumber = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+                        const orderNumber = `ORD-${new Date()
+                          .toISOString()
+                          .slice(0, 10)
+                          .replace(/-/g, '')}-${Math.random()
+                          .toString(36)
+                          .substr(2, 6)
+                          .toUpperCase()}`;
+
                         order = await tx.orders.create({
                           data: {
                             order_number: orderNumber,
@@ -4049,18 +4182,408 @@ export const visitsController = {
                           (product.tracking_type as string)?.toUpperCase() ||
                           'NONE';
 
-                        const { orderedQty, orderedPieces, conversionFactor } =
-                          getOrderedQuantities(item);
+                        const {
+                          orderedQty,
+                          orderedPieces,
+                          conversionFactor,
+                          unit: itemUnit,
+                        } = getOrderedQuantities(item);
+
+                        const isUnitPcs = itemUnit === 'PCS';
 
                         console.log(
                           `Processing ${trackingType} - Product: ${product.name}, ` +
-                            `Ordered: ${orderedQty} ${item.unit} (${orderedPieces} pieces), ` +
+                            `Unit: ${itemUnit}, ` +
+                            `Ordered Cases: ${orderedQty}, ` +
+                            `Ordered Pcs: ${orderedPieces}, ` +
                             `ConversionFactor: ${conversionFactor}`
                         );
 
-                        // ═══════════════════════════════════════════════
+                        // if (trackingType === 'BATCH') {
+                        //   const hasBatchNumber = !!(item as any).batch_number;
+                        //   const hasProductBatches =
+                        //     (item as any).product_batches &&
+                        //     Array.isArray((item as any).product_batches);
+
+                        //   let batchDeductions: Array<{
+                        //     batch_lot_id: number;
+                        //     pieces: number;
+                        //     uomQty: number;
+                        //   }> = [];
+
+                        //   if (hasBatchNumber) {
+                        //     const batchLot = await tx.batch_lots.findFirst({
+                        //       where: {
+                        //         batch_number: (item as any).batch_number,
+                        //         productsId: product.id,
+                        //       },
+                        //     });
+
+                        //     if (!batchLot) {
+                        //       throw new Error(
+                        //         `Batch "${(item as any).batch_number}" not found for product "${product.name}"`
+                        //       );
+                        //     }
+
+                        //     batchDeductions = [
+                        //       {
+                        //         batch_lot_id: batchLot.id,
+                        //         pieces: orderedPieces,
+                        //         uomQty: orderedQty,
+                        //       },
+                        //     ];
+                        //   } else if (hasProductBatches) {
+                        //     const batchData =
+                        //       (item as any).product_batches ||
+                        //       (item as any).batches;
+                        //     batchDeductions = batchData.map((b: any) => {
+                        //       const bUomQty = parseInt(b.quantity, 10);
+                        //       const bPieces = b.base_quantity
+                        //         ? parseInt(b.base_quantity, 10)
+                        //         : bUomQty * conversionFactor;
+                        //       return {
+                        //         batch_lot_id: b.batch_lot_id,
+                        //         pieces: bPieces,
+                        //         uomQty: bUomQty,
+                        //       };
+                        //     });
+                        //   } else {
+                        //     throw new Error(
+                        //       `No batch information for BATCH-tracked product "${product.name}"`
+                        //     );
+                        //   }
+
+                        //   let totalPiecesDeducted = 0;
+                        //   let totalUomDeducted = 0;
+
+                        //   for (const batchOrder of batchDeductions) {
+                        //     const piecesToDeduct = batchOrder.pieces;
+                        //     totalPiecesDeducted += piecesToDeduct;
+                        //     totalUomDeducted += batchOrder.uomQty;
+
+                        //     const batchLot = await tx.batch_lots.findUnique({
+                        //       where: { id: batchOrder.batch_lot_id },
+                        //     });
+
+                        //     if (!batchLot) {
+                        //       throw new Error(
+                        //         `Batch lot ${batchOrder.batch_lot_id} not found`
+                        //       );
+                        //     }
+
+                        //     const vanInventory =
+                        //       await tx.van_inventory.findFirst({
+                        //         where: {
+                        //           user_id: visit.sales_person_id,
+                        //           status: 'A',
+                        //           is_active: 'Y',
+                        //           van_inventory_items_inventory: {
+                        //             some: {
+                        //               product_id: product.id,
+                        //               batch_lot_id: batchOrder.batch_lot_id,
+                        //             },
+                        //           },
+                        //         },
+                        //         include: {
+                        //           van_inventory_items_inventory: true,
+                        //         },
+                        //         orderBy: { document_date: 'desc' },
+                        //       });
+
+                        //     const vanItem =
+                        //       await tx.van_inventory_items.findFirst({
+                        //         where: {
+                        //           product_id: product.id,
+                        //           batch_lot_id: batchOrder.batch_lot_id,
+                        //           parent_id: vanInventory?.id,
+                        //         },
+                        //       });
+
+                        //     if (!vanItem) {
+                        //       throw new Error(
+                        //         `Batch ${batchOrder.batch_lot_id} not found in van for product "${product.name}"`
+                        //       );
+                        //     }
+
+                        //     // ── Deduct from van_inventory_items ────────────────
+                        //     const vanDeduction = calculateStockDeduction(
+                        //       vanItem.quantity || 0,
+                        //       vanItem.base_quantity || 0,
+                        //       piecesToDeduct,
+                        //       conversionFactor,
+                        //       itemUnit,
+                        //       orderedQty
+                        //     );
+
+                        //     if (vanDeduction.newQuantity < 0) {
+                        //       const availableMsg = isUnitPcs
+                        //         ? `${vanDeduction.totalAvailablePieces} pcs`
+                        //         : `${vanItem.quantity} cases`;
+                        //       const requestedMsg = isUnitPcs
+                        //         ? `${piecesToDeduct} pcs`
+                        //         : `${orderedQty} cases`;
+                        //       throw new Error(
+                        //         `Insufficient van quantity for batch "${batchLot.batch_number}". ` +
+                        //           `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                        //       );
+                        //     }
+
+                        //     console.log(
+                        //       `BATCH VAN [${itemUnit}]: ${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
+                        //         `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
+                        //     );
+
+                        //     if (
+                        //       vanDeduction.newQuantity > 0 ||
+                        //       vanDeduction.newBaseQuantity > 0
+                        //     ) {
+                        //       await tx.van_inventory_items.update({
+                        //         where: { id: vanItem.id },
+                        //         data: {
+                        //           quantity: vanDeduction.newQuantity,
+                        //           base_quantity: vanDeduction.newBaseQuantity,
+                        //         },
+                        //       });
+                        //     } else {
+                        //       await tx.van_inventory_items.delete({
+                        //         where: { id: vanItem.id },
+                        //       });
+                        //     }
+
+                        //     // ── Deduct from batch_lots (in pieces) ─────────────
+                        //     if (batchLot.remaining_quantity < piecesToDeduct) {
+                        //       throw new Error(
+                        //         `Insufficient batch lot quantity. Available: ${batchLot.remaining_quantity}, Requested: ${piecesToDeduct}`
+                        //       );
+                        //     }
+
+                        //     await tx.batch_lots.update({
+                        //       where: { id: batchOrder.batch_lot_id },
+                        //       data: {
+                        //         remaining_quantity:
+                        //           batchLot.remaining_quantity - piecesToDeduct,
+                        //         updatedate: new Date(),
+                        //       },
+                        //     });
+
+                        //     // ── Deduct from product_batches (in pieces) ────────
+                        //     const productBatch =
+                        //       await tx.product_batches.findFirst({
+                        //         where: {
+                        //           product_id: product.id,
+                        //           batch_lot_id: batchOrder.batch_lot_id,
+                        //           is_active: 'Y',
+                        //         },
+                        //       });
+
+                        //     if (productBatch) {
+                        //       if (productBatch.quantity < piecesToDeduct) {
+                        //         throw new Error(
+                        //           `Insufficient product batch. Available: ${productBatch.quantity}, Requested: ${piecesToDeduct}`
+                        //         );
+                        //       }
+                        //       await tx.product_batches.update({
+                        //         where: { id: productBatch.id },
+                        //         data: {
+                        //           quantity:
+                        //             productBatch.quantity - piecesToDeduct,
+                        //           updatedate: new Date(),
+                        //         },
+                        //       });
+                        //     }
+
+                        //     // ── Deduct from inventory_stock ────────────────────
+                        //     const inventoryStock =
+                        //       await tx.inventory_stock.findFirst({
+                        //         where: {
+                        //           product_id: product.id,
+                        //           batch_id: batchOrder.batch_lot_id,
+                        //         },
+                        //       });
+
+                        //     if (inventoryStock) {
+                        //       const stockDeduction = calculateStockDeduction(
+                        //         inventoryStock.current_stock || 0,
+                        //         inventoryStock.base_quantity || 0,
+                        //         piecesToDeduct,
+                        //         conversionFactor,
+                        //         itemUnit,
+                        //         orderedQty
+                        //       );
+
+                        //       if (stockDeduction.newQuantity < 0) {
+                        //         const availableMsg = isUnitPcs
+                        //           ? `${stockDeduction.totalAvailablePieces} pcs`
+                        //           : `${inventoryStock.current_stock} cases`;
+                        //         const requestedMsg = isUnitPcs
+                        //           ? `${piecesToDeduct} pcs`
+                        //           : `${orderedQty} cases`;
+                        //         throw new Error(
+                        //           `Insufficient inventory stock for batch. ` +
+                        //             `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                        //         );
+                        //       }
+
+                        //       // Calculate new available_stock
+                        //       let newAvailableQty: number;
+                        //       if (isUnitPcs) {
+                        //         const availableTotalPieces =
+                        //           (inventoryStock.available_stock || 0) *
+                        //             conversionFactor +
+                        //           (inventoryStock.base_quantity || 0);
+                        //         const newAvailablePieces = Math.max(
+                        //           0,
+                        //           availableTotalPieces - piecesToDeduct
+                        //         );
+                        //         newAvailableQty = Math.floor(
+                        //           newAvailablePieces / conversionFactor
+                        //         );
+                        //       } else {
+                        //         newAvailableQty = Math.max(
+                        //           0,
+                        //           (inventoryStock.available_stock || 0) -
+                        //             orderedQty
+                        //         );
+                        //       }
+
+                        //       await tx.inventory_stock.update({
+                        //         where: { id: inventoryStock.id },
+                        //         data: {
+                        //           current_stock: stockDeduction.newQuantity,
+                        //           available_stock: newAvailableQty,
+                        //           base_quantity: stockDeduction.newBaseQuantity,
+                        //           updatedate: new Date(),
+                        //           updatedby:
+                        //             (req as any).user?.id ||
+                        //             visit.createdby ||
+                        //             1,
+                        //         },
+                        //       });
+
+                        //       console.log(
+                        //         `BATCH STOCK [${itemUnit}]: ${inventoryStock.current_stock}cs + ` +
+                        //           `${inventoryStock.base_quantity || 0}pc → ` +
+                        //           `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
+                        //       );
+                        //     } else {
+                        //       throw new Error(
+                        //         `Inventory stock not found for product ${product.name} batch ${batchOrder.batch_lot_id}`
+                        //       );
+                        //     }
+
+                        //     const validatedFromLocationId =
+                        //       await validateAndGetLocationId(
+                        //         tx,
+                        //         vanInventory?.location_id
+                        //       );
+
+                        //     await tx.stock_movements.create({
+                        //       data: {
+                        //         product_id: product.id,
+                        //         batch_id: batchOrder.batch_lot_id,
+                        //         serial_id: null,
+                        //         movement_type: 'SALE',
+                        //         reference_type: referenceType,
+                        //         reference_id: referenceId,
+                        //         from_location_id: validatedFromLocationId,
+                        //         to_location_id: null,
+                        //         quantity: piecesToDeduct,
+                        //         movement_date: new Date(),
+                        //         remarks: isUnitPcs
+                        //           ? `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${piecesToDeduct} PCS`
+                        //           : `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} CASE(S) (${piecesToDeduct} pieces)`,
+                        //         is_active: 'Y',
+                        //         createdate: new Date(),
+                        //         createdby:
+                        //           (req as any).user?.id || visit.createdby || 1,
+                        //         log_inst: 1,
+                        //         van_inventory_id: vanInventory?.id || null,
+                        //       },
+                        //     });
+                        //   }
+
+                        //   if (totalPiecesDeducted !== orderedPieces) {
+                        //     throw new Error(
+                        //       `Total batch pieces (${totalPiecesDeducted}) does not match ordered pieces (${orderedPieces})`
+                        //     );
+                        //   }
+
+                        //   // Create order_items if non-direct
+                        //   if (!isDirect) {
+                        //     await tx.order_items.create({
+                        //       data: {
+                        //         parent_id: order.id,
+                        //         product_id: product.id,
+                        //         product_name: item.product_name || product.name,
+                        //         unit: item.unit || 'CASE',
+                        //         quantity: isUnitPcs ? 0 : orderedQty,
+                        //         unit_price: Number(item.unit_price) || 0,
+                        //         discount_amount:
+                        //           Number(item.discount_amount) || 0,
+                        //         tax_amount: Number(item.tax_amount) || 0,
+                        //         total_amount: isUnitPcs
+                        //           ? totalPiecesDeducted *
+                        //             (Number(item.unit_price) || 0)
+                        //           : totalUomDeducted *
+                        //             (Number(item.unit_price) || 0),
+                        //         notes: hasBatchNumber
+                        //           ? `Batch: ${(item as any).batch_number}`
+                        //           : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
+                        //         conversion_factor: conversionFactor,
+                        //         base_quantity: isUnitPcs
+                        //           ? totalPiecesDeducted
+                        //           : 0,
+                        //       },
+                        //     });
+                        //   }
+
+                        //   // Create invoice_items
+                        //   await tx.invoice_items.create({
+                        //     data: {
+                        //       parent_id: createdInvoice.id,
+                        //       product_id: product.id,
+                        //       product_name: item.product_name || product.name,
+                        //       unit: item.unit || 'CASE',
+                        //       quantity: isUnitPcs ? 0 : totalUomDeducted,
+                        //       unit_price: Number(item.unit_price) || 0,
+                        //       discount_amount:
+                        //         Number(item.discount_amount) || 0,
+                        //       tax_amount: Number(item.tax_amount) || 0,
+                        //       total_amount: isUnitPcs
+                        //         ? totalPiecesDeducted *
+                        //           (Number(item.unit_price) || 0)
+                        //         : totalUomDeducted *
+                        //           (Number(item.unit_price) || 0),
+                        //       notes: !isDirect
+                        //         ? `Order ID: ${order.id} - ${
+                        //             hasBatchNumber
+                        //               ? `Batch: ${(item as any).batch_number}`
+                        //               : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`
+                        //           }`
+                        //         : hasBatchNumber
+                        //           ? `Batch: ${(item as any).batch_number}`
+                        //           : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
+                        //       ...(item.tax_code && { tax_code: item.tax_code }),
+                        //       ...(item.tax_rate !== undefined && {
+                        //         tax_rate: item.tax_rate,
+                        //       }),
+                        //       conversion_factor: conversionFactor,
+                        //       base_quantity: isUnitPcs
+                        //         ? totalPiecesDeducted
+                        //         : 0,
+                        //       ...(item.expiry_date && {
+                        //         expiry_date: new Date(item.expiry_date),
+                        //       }),
+                        //     },
+                        //   });
+                        // }
+                        // ═══════════════════════════════════════════════════════
+                        // SERIAL TRACKING
+                        // ═══════════════════════════════════════════════════════
+
+                        // ═══════════════════════════════════════════════════════
                         // BATCH TRACKING
-                        // ═══════════════════════════════════════════════
+                        // ═══════════════════════════════════════════════════════
                         if (trackingType === 'BATCH') {
                           const hasBatchNumber = !!(item as any).batch_number;
                           const hasProductBatches =
@@ -4091,7 +4614,7 @@ export const visitsController = {
                               {
                                 batch_lot_id: batchLot.id,
                                 pieces: orderedPieces,
-                                uomQty: orderedQty,
+                                uomQty: isUnitPcs ? orderedPieces : orderedQty,
                               },
                             ];
                           } else if (hasProductBatches) {
@@ -4123,6 +4646,7 @@ export const visitsController = {
                             totalPiecesDeducted += piecesToDeduct;
                             totalUomDeducted += batchOrder.uomQty;
 
+                            // ── 1. Find batch_lot ──────────────────────────────────────────
                             const batchLot = await tx.batch_lots.findUnique({
                               where: { id: batchOrder.batch_lot_id },
                             });
@@ -4133,7 +4657,7 @@ export const visitsController = {
                               );
                             }
 
-                            // Find van inventory
+                            // ── 2. Find van inventory ──────────────────────────────────────
                             const vanInventory =
                               await tx.van_inventory.findFirst({
                                 where: {
@@ -4168,23 +4692,33 @@ export const visitsController = {
                               );
                             }
 
-                            // Deduct from van_inventory_items with conversion
+                            // ── 3. Deduct van_inventory_items (CASE/PCS logic) ─────────────
                             const vanDeduction = calculateStockDeduction(
                               vanItem.quantity || 0,
                               vanItem.base_quantity || 0,
                               piecesToDeduct,
-                              conversionFactor
+                              conversionFactor,
+                              itemUnit,
+                              orderedQty
                             );
 
                             if (vanDeduction.newQuantity < 0) {
+                              const availableMsg = isUnitPcs
+                                ? `${vanDeduction.totalAvailablePieces} pcs`
+                                : `${vanItem.quantity} cases`;
+                              const requestedMsg = isUnitPcs
+                                ? `${piecesToDeduct} pcs`
+                                : `${orderedQty} cases`;
                               throw new Error(
-                                `Insufficient van quantity for batch. Available: ${vanDeduction.totalAvailablePieces} pieces, Requested: ${piecesToDeduct} pieces`
+                                `Insufficient van quantity for batch "${batchLot.batch_number}". ` +
+                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
                               );
                             }
 
                             console.log(
-                              `BATCH VAN: ${vanItem.quantity}cs+${vanItem.base_quantity || 0}pc → ` +
-                                `${vanDeduction.newQuantity}cs+${vanDeduction.newBaseQuantity}pc`
+                              `BATCH VAN [${itemUnit}]: ` +
+                                `${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
+                                `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
                             );
 
                             if (
@@ -4204,23 +4738,53 @@ export const visitsController = {
                               });
                             }
 
-                            // Deduct from batch_lots (in pieces)
-                            if (batchLot.remaining_quantity < piecesToDeduct) {
+                            // ── 4. Deduct batch_lots remaining_quantity + base_quantity ────
+                            // remaining_quantity = CASES, base_quantity = PCS
+                            // Same logic as van_inventory_items and inventory_stock
+                            const batchLotDeduction = calculateStockDeduction(
+                              batchLot.remaining_quantity || 0,
+                              batchLot.base_quantity || 0,
+                              piecesToDeduct,
+                              conversionFactor,
+                              itemUnit,
+                              orderedQty
+                            );
+
+                            if (batchLotDeduction.newQuantity < 0) {
+                              const totalAvailableInBatch =
+                                (batchLot.remaining_quantity || 0) *
+                                  conversionFactor +
+                                (batchLot.base_quantity || 0);
+                              const availableMsg = isUnitPcs
+                                ? `${totalAvailableInBatch} pcs`
+                                : `${batchLot.remaining_quantity} cases`;
+                              const requestedMsg = isUnitPcs
+                                ? `${piecesToDeduct} pcs`
+                                : `${orderedQty} cases`;
                               throw new Error(
-                                `Insufficient batch lot quantity. Available: ${batchLot.remaining_quantity}, Requested: ${piecesToDeduct}`
+                                `Insufficient batch lot quantity for "${batchLot.batch_number}". ` +
+                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
                               );
                             }
+
+                            console.log(
+                              `BATCH LOT [${itemUnit}]: ` +
+                                `${batchLot.remaining_quantity}cs + ${batchLot.base_quantity || 0}pc → ` +
+                                `${batchLotDeduction.newQuantity}cs + ${batchLotDeduction.newBaseQuantity}pc`
+                            );
 
                             await tx.batch_lots.update({
                               where: { id: batchOrder.batch_lot_id },
                               data: {
                                 remaining_quantity:
-                                  batchLot.remaining_quantity - piecesToDeduct,
+                                  batchLotDeduction.newQuantity,
+                                base_quantity:
+                                  batchLotDeduction.newBaseQuantity,
                                 updatedate: new Date(),
                               },
                             });
 
-                            // Deduct from product_batches (in pieces)
+                            // ── 5. Deduct product_batches (CASE/PCS logic) ─────────────────
                             const productBatch =
                               await tx.product_batches.findFirst({
                                 where: {
@@ -4231,22 +4795,116 @@ export const visitsController = {
                               });
 
                             if (productBatch) {
-                              if (productBatch.quantity < piecesToDeduct) {
-                                throw new Error(
-                                  `Insufficient product batch. Available: ${productBatch.quantity}, Requested: ${piecesToDeduct}`
+                              const productBatchCurrentQty =
+                                productBatch.quantity || 0;
+                              // product_batches HAS base_quantity in schema (Int?)
+                              const productBatchCurrentBase =
+                                productBatch.base_quantity || 0;
+
+                              let newProductBatchQty: number;
+                              let newProductBatchBase: number;
+
+                              if (isUnitPcs) {
+                                // PCS: deduct from combined total
+                                const totalPcs =
+                                  productBatchCurrentQty * conversionFactor +
+                                  productBatchCurrentBase;
+                                const remaining = totalPcs - piecesToDeduct;
+
+                                if (remaining < 0) {
+                                  throw new Error(
+                                    `Insufficient product batch for "${batchLot.batch_number}". ` +
+                                      `Available: ${totalPcs} pcs, Requested: ${piecesToDeduct} pcs`
+                                  );
+                                }
+
+                                newProductBatchQty = Math.floor(
+                                  remaining / conversionFactor
                                 );
+                                newProductBatchBase =
+                                  remaining % conversionFactor;
+                              } else {
+                                // CASE: deduct full cases
+                                if (orderedQty > productBatchCurrentQty) {
+                                  throw new Error(
+                                    `Insufficient product batch for "${batchLot.batch_number}". ` +
+                                      `Available: ${productBatchCurrentQty} cases, Requested: ${orderedQty} cases`
+                                  );
+                                }
+                                newProductBatchQty =
+                                  productBatchCurrentQty - orderedQty;
+                                newProductBatchBase = productBatchCurrentBase; // unchanged
                               }
+
+                              console.log(
+                                `PRODUCT BATCH [${itemUnit}]: ` +
+                                  `${productBatchCurrentQty}cs + ${productBatchCurrentBase}pc → ` +
+                                  `${newProductBatchQty}cs + ${newProductBatchBase}pc`
+                              );
+
                               await tx.product_batches.update({
                                 where: { id: productBatch.id },
                                 data: {
-                                  quantity:
-                                    productBatch.quantity - piecesToDeduct,
+                                  quantity: newProductBatchQty,
+                                  base_quantity: newProductBatchBase, // ✅ field exists in schema
                                   updatedate: new Date(),
                                 },
                               });
                             }
 
-                            // Deduct from inventory_stock with conversion
+                            if (productBatch) {
+                              // Check if product_batches has base_quantity field
+                              const productBatchCurrentQty =
+                                productBatch.quantity || 0;
+                              const productBatchCurrentBase =
+                                (productBatch as any).base_quantity || 0;
+
+                              const productBatchDeduction =
+                                calculateStockDeduction(
+                                  productBatchCurrentQty,
+                                  productBatchCurrentBase,
+                                  piecesToDeduct,
+                                  conversionFactor,
+                                  itemUnit,
+                                  orderedQty
+                                );
+
+                              if (productBatchDeduction.newQuantity < 0) {
+                                const totalAvailable =
+                                  productBatchCurrentQty * conversionFactor +
+                                  productBatchCurrentBase;
+                                const availableMsg = isUnitPcs
+                                  ? `${totalAvailable} pcs`
+                                  : `${productBatchCurrentQty} cases`;
+                                const requestedMsg = isUnitPcs
+                                  ? `${piecesToDeduct} pcs`
+                                  : `${orderedQty} cases`;
+                                throw new Error(
+                                  `Insufficient product batch for "${batchLot.batch_number}". ` +
+                                    `Available: ${availableMsg}, Requested: ${requestedMsg}`
+                                );
+                              }
+
+                              console.log(
+                                `PRODUCT BATCH [${itemUnit}]: ` +
+                                  `${productBatchCurrentQty}cs + ${productBatchCurrentBase}pc → ` +
+                                  `${productBatchDeduction.newQuantity}cs + ${productBatchDeduction.newBaseQuantity}pc`
+                              );
+
+                              await tx.product_batches.update({
+                                where: { id: productBatch.id },
+                                data: {
+                                  quantity: productBatchDeduction.newQuantity,
+                                  ...(productBatchCurrentBase !== undefined && {
+                                    base_quantity:
+                                      productBatchDeduction.newBaseQuantity,
+                                  }),
+                                  updatedate: new Date(),
+                                },
+                              });
+                            }
+
+                            // ── 6. Deduct inventory_stock (CASE/PCS logic) ─────────────────
                             const inventoryStock =
                               await tx.inventory_stock.findFirst({
                                 where: {
@@ -4260,26 +4918,45 @@ export const visitsController = {
                                 inventoryStock.current_stock || 0,
                                 inventoryStock.base_quantity || 0,
                                 piecesToDeduct,
-                                conversionFactor
+                                conversionFactor,
+                                itemUnit,
+                                orderedQty
                               );
 
                               if (stockDeduction.newQuantity < 0) {
+                                const availableMsg = isUnitPcs
+                                  ? `${stockDeduction.totalAvailablePieces} pcs`
+                                  : `${inventoryStock.current_stock} cases`;
+                                const requestedMsg = isUnitPcs
+                                  ? `${piecesToDeduct} pcs`
+                                  : `${orderedQty} cases`;
                                 throw new Error(
-                                  `Insufficient inventory stock for batch. Available: ${stockDeduction.totalAvailablePieces} pieces, Requested: ${piecesToDeduct} pieces`
+                                  `Insufficient inventory stock for batch "${batchLot.batch_number}". ` +
+                                    `Available: ${availableMsg}, Requested: ${requestedMsg}`
                                 );
                               }
 
-                              const availableTotalPieces =
-                                (inventoryStock.available_stock || 0) *
-                                  conversionFactor +
-                                (inventoryStock.base_quantity || 0);
-                              const newAvailablePieces = Math.max(
-                                0,
-                                availableTotalPieces - piecesToDeduct
-                              );
-                              const newAvailableQty = Math.floor(
-                                newAvailablePieces / conversionFactor
-                              );
+                              // Calculate new available_stock
+                              let newAvailableQty: number;
+                              if (isUnitPcs) {
+                                const availableTotalPieces =
+                                  (inventoryStock.available_stock || 0) *
+                                    conversionFactor +
+                                  (inventoryStock.base_quantity || 0);
+                                const newAvailablePieces = Math.max(
+                                  0,
+                                  availableTotalPieces - piecesToDeduct
+                                );
+                                newAvailableQty = Math.floor(
+                                  newAvailablePieces / conversionFactor
+                                );
+                              } else {
+                                newAvailableQty = Math.max(
+                                  0,
+                                  (inventoryStock.available_stock || 0) -
+                                    orderedQty
+                                );
+                              }
 
                               await tx.inventory_stock.update({
                                 where: { id: inventoryStock.id },
@@ -4296,8 +4973,9 @@ export const visitsController = {
                               });
 
                               console.log(
-                                `BATCH STOCK: ${inventoryStock.current_stock}cs+${inventoryStock.base_quantity || 0}pc → ` +
-                                  `${stockDeduction.newQuantity}cs+${stockDeduction.newBaseQuantity}pc`
+                                `BATCH STOCK [${itemUnit}]: ` +
+                                  `${inventoryStock.current_stock}cs + ${inventoryStock.base_quantity || 0}pc → ` +
+                                  `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
                               );
                             } else {
                               throw new Error(
@@ -4305,6 +4983,7 @@ export const visitsController = {
                               );
                             }
 
+                            // ── 7. Stock Movement ──────────────────────────────────────────
                             const validatedFromLocationId =
                               await validateAndGetLocationId(
                                 tx,
@@ -4323,7 +5002,9 @@ export const visitsController = {
                                 to_location_id: null,
                                 quantity: piecesToDeduct,
                                 movement_date: new Date(),
-                                remarks: `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} ${item.unit} (${piecesToDeduct} pieces)`,
+                                remarks: isUnitPcs
+                                  ? `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${piecesToDeduct} PCS`
+                                  : `Sold via ${referenceLabel} - Batch: ${batchLot.batch_number} - ${batchOrder.uomQty} CASE(S) (${piecesToDeduct} pieces)`,
                                 is_active: 'Y',
                                 createdate: new Date(),
                                 createdby:
@@ -4334,52 +5015,59 @@ export const visitsController = {
                             });
                           }
 
+                          // ── Validate total pieces ────────────────────────────────────────
                           if (totalPiecesDeducted !== orderedPieces) {
                             throw new Error(
                               `Total batch pieces (${totalPiecesDeducted}) does not match ordered pieces (${orderedPieces})`
                             );
                           }
 
-                          // Create order_items if non-direct
+                          // ── Create order_items if non-direct ────────────────────────────
                           if (!isDirect) {
                             await tx.order_items.create({
                               data: {
                                 parent_id: order.id,
                                 product_id: product.id,
                                 product_name: item.product_name || product.name,
-                                unit: item.unit || 'pcs',
-                                quantity: totalUomDeducted,
+                                unit: item.unit || 'CASE',
+                                quantity: isUnitPcs ? 0 : orderedQty,
                                 unit_price: Number(item.unit_price) || 0,
                                 discount_amount:
                                   Number(item.discount_amount) || 0,
                                 tax_amount: Number(item.tax_amount) || 0,
-                                total_amount:
-                                  totalUomDeducted *
-                                  (Number(item.unit_price) || 0),
+                                total_amount: isUnitPcs
+                                  ? totalPiecesDeducted *
+                                    (Number(item.unit_price) || 0)
+                                  : totalUomDeducted *
+                                    (Number(item.unit_price) || 0),
                                 notes: hasBatchNumber
                                   ? `Batch: ${(item as any).batch_number}`
                                   : `Batches: ${batchDeductions.map(b => b.batch_lot_id).join(', ')}`,
                                 conversion_factor: conversionFactor,
-                                base_quantity: totalPiecesDeducted,
+                                base_quantity: isUnitPcs
+                                  ? totalPiecesDeducted
+                                  : 0,
                               },
                             });
                           }
 
-                          // Create invoice_items
+                          // ── Create invoice_items ─────────────────────────────────────────
                           await tx.invoice_items.create({
                             data: {
                               parent_id: createdInvoice.id,
                               product_id: product.id,
                               product_name: item.product_name || product.name,
-                              unit: item.unit || 'pcs',
-                              quantity: totalUomDeducted,
+                              unit: item.unit || 'CASE',
+                              quantity: isUnitPcs ? 0 : totalUomDeducted,
                               unit_price: Number(item.unit_price) || 0,
                               discount_amount:
                                 Number(item.discount_amount) || 0,
                               tax_amount: Number(item.tax_amount) || 0,
-                              total_amount:
-                                totalUomDeducted *
-                                (Number(item.unit_price) || 0),
+                              total_amount: isUnitPcs
+                                ? totalPiecesDeducted *
+                                  (Number(item.unit_price) || 0)
+                                : totalUomDeducted *
+                                  (Number(item.unit_price) || 0),
                               notes: !isDirect
                                 ? `Order ID: ${order.id} - ${
                                     hasBatchNumber
@@ -4394,17 +5082,15 @@ export const visitsController = {
                                 tax_rate: item.tax_rate,
                               }),
                               conversion_factor: conversionFactor,
-                              base_quantity: totalPiecesDeducted,
+                              base_quantity: isUnitPcs
+                                ? totalPiecesDeducted
+                                : 0,
                               ...(item.expiry_date && {
                                 expiry_date: new Date(item.expiry_date),
                               }),
                             },
                           });
-                        }
-                        // ═══════════════════════════════════════════════
-                        // SERIAL TRACKING
-                        // ═══════════════════════════════════════════════
-                        else if (trackingType === 'SERIAL') {
+                        } else if (trackingType === 'SERIAL') {
                           const serialData =
                             (item as any).product_serials ||
                             (item as any).serials;
@@ -4569,7 +5255,11 @@ export const visitsController = {
                                 total_amount:
                                   serialData.length *
                                   (Number(item.unit_price) || 0),
-                                notes: `Serials: ${serialData.map((s: any) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
+                                notes: `Serials: ${serialData
+                                  .map((s: any) =>
+                                    typeof s === 'string' ? s : s.serial_number
+                                  )
+                                  .join(', ')}`,
                                 conversion_factor: 1,
                                 base_quantity: serialData.length,
                               },
@@ -4591,8 +5281,20 @@ export const visitsController = {
                                 serialData.length *
                                 (Number(item.unit_price) || 0),
                               notes: !isDirect
-                                ? `Order ID: ${order.id} - Serials: ${serialData.map((s: any) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`
-                                : `Serials: ${serialData.map((s: any) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
+                                ? `Order ID: ${order.id} - Serials: ${serialData
+                                    .map((s: any) =>
+                                      typeof s === 'string'
+                                        ? s
+                                        : s.serial_number
+                                    )
+                                    .join(', ')}`
+                                : `Serials: ${serialData
+                                    .map((s: any) =>
+                                      typeof s === 'string'
+                                        ? s
+                                        : s.serial_number
+                                    )
+                                    .join(', ')}`,
                               ...(item.tax_code && { tax_code: item.tax_code }),
                               ...(item.tax_rate !== undefined && {
                                 tax_rate: item.tax_rate,
@@ -4605,9 +5307,9 @@ export const visitsController = {
                             },
                           });
                         }
-                        // ═══════════════════════════════════════════════
+                        // ═══════════════════════════════════════════════════════
                         // NONE TRACKING
-                        // ═══════════════════════════════════════════════
+                        // ═══════════════════════════════════════════════════════
                         else {
                           const vanInventory = await tx.van_inventory.findFirst(
                             {
@@ -4644,23 +5346,32 @@ export const visitsController = {
                             );
                           }
 
-                          // Deduct from van_inventory_items with conversion
+                          // ── Deduct from van_inventory_items ──────────────────
                           const vanDeduction = calculateStockDeduction(
                             vanItem.quantity || 0,
                             vanItem.base_quantity || 0,
                             orderedPieces,
-                            conversionFactor
+                            conversionFactor,
+                            itemUnit,
+                            orderedQty
                           );
 
                           if (vanDeduction.newQuantity < 0) {
+                            const availableMsg = isUnitPcs
+                              ? `${vanDeduction.totalAvailablePieces} pcs`
+                              : `${vanItem.quantity} cases`;
+                            const requestedMsg = isUnitPcs
+                              ? `${orderedPieces} pcs`
+                              : `${orderedQty} cases`;
                             throw new Error(
-                              `Insufficient van quantity for "${product.name}". Available: ${vanDeduction.totalAvailablePieces} pieces, Requested: ${orderedPieces} pieces`
+                              `Insufficient van quantity for "${product.name}". ` +
+                                `Available: ${availableMsg}, Requested: ${requestedMsg}`
                             );
                           }
 
                           console.log(
-                            `NONE VAN: ${vanItem.quantity}cs+${vanItem.base_quantity || 0}pc → ` +
-                              `${vanDeduction.newQuantity}cs+${vanDeduction.newBaseQuantity}pc`
+                            `NONE VAN [${itemUnit}]: ${vanItem.quantity}cs + ${vanItem.base_quantity || 0}pc → ` +
+                              `${vanDeduction.newQuantity}cs + ${vanDeduction.newBaseQuantity}pc`
                           );
 
                           if (
@@ -4680,7 +5391,7 @@ export const visitsController = {
                             });
                           }
 
-                          // Deduct from inventory_stock with conversion
+                          // ── Deduct from inventory_stock ──────────────────────
                           const inventoryStock =
                             await tx.inventory_stock.findFirst({
                               where: {
@@ -4698,26 +5409,45 @@ export const visitsController = {
                               inventoryStock.current_stock || 0,
                               inventoryStock.base_quantity || 0,
                               orderedPieces,
-                              conversionFactor
+                              conversionFactor,
+                              itemUnit,
+                              orderedQty
                             );
 
                             if (stockDeduction.newQuantity < 0) {
+                              const availableMsg = isUnitPcs
+                                ? `${stockDeduction.totalAvailablePieces} pcs`
+                                : `${inventoryStock.current_stock} cases`;
+                              const requestedMsg = isUnitPcs
+                                ? `${orderedPieces} pcs`
+                                : `${orderedQty} cases`;
                               throw new Error(
-                                `Insufficient inventory stock for "${product.name}". Available: ${stockDeduction.totalAvailablePieces} pieces, Requested: ${orderedPieces} pieces`
+                                `Insufficient inventory stock for "${product.name}". ` +
+                                  `Available: ${availableMsg}, Requested: ${requestedMsg}`
                               );
                             }
 
-                            const availableTotalPieces =
-                              (inventoryStock.available_stock || 0) *
-                                conversionFactor +
-                              (inventoryStock.base_quantity || 0);
-                            const newAvailablePieces = Math.max(
-                              0,
-                              availableTotalPieces - orderedPieces
-                            );
-                            const newAvailableQty = Math.floor(
-                              newAvailablePieces / conversionFactor
-                            );
+                            // Calculate new available_stock
+                            let newAvailableQty: number;
+                            if (isUnitPcs) {
+                              const availableTotalPieces =
+                                (inventoryStock.available_stock || 0) *
+                                  conversionFactor +
+                                (inventoryStock.base_quantity || 0);
+                              const newAvailablePieces = Math.max(
+                                0,
+                                availableTotalPieces - orderedPieces
+                              );
+                              newAvailableQty = Math.floor(
+                                newAvailablePieces / conversionFactor
+                              );
+                            } else {
+                              newAvailableQty = Math.max(
+                                0,
+                                (inventoryStock.available_stock || 0) -
+                                  orderedQty
+                              );
+                            }
 
                             await tx.inventory_stock.update({
                               where: { id: inventoryStock.id },
@@ -4732,8 +5462,9 @@ export const visitsController = {
                             });
 
                             console.log(
-                              `NONE STOCK: ${inventoryStock.current_stock}cs+${inventoryStock.base_quantity || 0}pc → ` +
-                                `${stockDeduction.newQuantity}cs+${stockDeduction.newBaseQuantity}pc`
+                              `NONE STOCK [${itemUnit}]: ${inventoryStock.current_stock}cs + ` +
+                                `${inventoryStock.base_quantity || 0}pc → ` +
+                                `${stockDeduction.newQuantity}cs + ${stockDeduction.newBaseQuantity}pc`
                             );
                           } else {
                             throw new Error(
@@ -4741,6 +5472,7 @@ export const visitsController = {
                             );
                           }
 
+                          // ── Stock Movement ───────────────────────────────────
                           const validatedFromLocationId =
                             await validateAndGetLocationId(
                               tx,
@@ -4759,7 +5491,9 @@ export const visitsController = {
                               to_location_id: null,
                               quantity: orderedPieces,
                               movement_date: new Date(),
-                              remarks: `Sold via ${referenceLabel} - ${orderedQty} ${item.unit || 'units'} (${orderedPieces} pieces)`,
+                              remarks: isUnitPcs
+                                ? `Sold via ${referenceLabel} - ${orderedPieces} PCS`
+                                : `Sold via ${referenceLabel} - ${orderedQty} CASE(S) (${orderedPieces} pieces)`,
                               is_active: 'Y',
                               createdate: new Date(),
                               createdby:
@@ -4769,41 +5503,45 @@ export const visitsController = {
                             },
                           });
 
-                          // Create order_items if non-direct
+                          // ── Order Items (non-direct) ─────────────────────────
                           if (!isDirect) {
                             await tx.order_items.create({
                               data: {
                                 parent_id: order.id,
                                 product_id: product.id,
                                 product_name: item.product_name || product.name,
-                                unit: item.unit || 'pcs',
-                                quantity: orderedQty,
+                                unit: item.unit || 'CASE',
+                                quantity: isUnitPcs ? 0 : orderedQty,
                                 unit_price: Number(item.unit_price) || 0,
                                 discount_amount:
                                   Number(item.discount_amount) || 0,
                                 tax_amount: Number(item.tax_amount) || 0,
-                                total_amount:
-                                  orderedQty * (Number(item.unit_price) || 0),
+                                total_amount: isUnitPcs
+                                  ? orderedPieces *
+                                    (Number(item.unit_price) || 0)
+                                  : orderedQty * (Number(item.unit_price) || 0),
                                 notes: item.notes || null,
                                 conversion_factor: conversionFactor,
-                                base_quantity: orderedPieces,
+                                base_quantity: isUnitPcs ? orderedPieces : 0,
                               },
                             });
                           }
 
+                          // ── Invoice Items ────────────────────────────────────
                           await tx.invoice_items.create({
                             data: {
                               parent_id: createdInvoice.id,
                               product_id: product.id,
                               product_name: item.product_name || product.name,
-                              unit: item.unit || 'pcs',
-                              quantity: orderedQty,
+                              unit: item.unit || 'CASE',
+                              quantity: isUnitPcs ? 0 : orderedQty,
                               unit_price: Number(item.unit_price) || 0,
                               discount_amount:
                                 Number(item.discount_amount) || 0,
                               tax_amount: Number(item.tax_amount) || 0,
-                              total_amount:
-                                orderedQty * (Number(item.unit_price) || 0),
+                              total_amount: isUnitPcs
+                                ? orderedPieces * (Number(item.unit_price) || 0)
+                                : orderedQty * (Number(item.unit_price) || 0),
                               notes: !isDirect
                                 ? `Order ID: ${order.id} - ${item.notes || ''}`
                                 : item.notes || null,
@@ -4812,7 +5550,7 @@ export const visitsController = {
                                 tax_rate: item.tax_rate,
                               }),
                               conversion_factor: conversionFactor,
-                              base_quantity: orderedPieces,
+                              base_quantity: isUnitPcs ? orderedPieces : 0,
                               ...(item.expiry_date && {
                                 expiry_date: new Date(item.expiry_date),
                               }),
@@ -4821,7 +5559,7 @@ export const visitsController = {
                         }
                       }
 
-                      // Recalculate invoice subtotal
+                      // ── Recalculate invoice subtotal ───────────────────────────
                       const subtotal =
                         (
                           await tx.invoice_items.aggregate({
@@ -4848,7 +5586,7 @@ export const visitsController = {
                   }
                 }
 
-                // ─── PAYMENTS ────────────────────────────────────────────
+                // ─── PAYMENTS ────────────────────────────────────────────────────
                 if (payments && payments.length > 0) {
                   for (const paymentData of payments) {
                     let paymentNumber = paymentData.payment_number;
@@ -4927,7 +5665,7 @@ export const visitsController = {
                   }
                 }
 
-                // ─── COOLER INSPECTIONS ──────────────────────────────────
+                // ─── COOLER INSPECTIONS ──────────────────────────────────────────
                 if (cooler_inspections && cooler_inspections.length > 0) {
                   for (const inspection of cooler_inspections) {
                     const coolerData = inspection.cooler || {};
@@ -4979,7 +5717,10 @@ export const visitsController = {
                           }),
                           code:
                             code ||
-                            `COOLER-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+                            `COOLER-${Date.now()}-${Math.random()
+                              .toString(36)
+                              .substr(2, 6)
+                              .toUpperCase()}`,
                           createdate: new Date(),
                           createdby:
                             visit.createdby || (req as any).user?.id || 1,
@@ -5039,7 +5780,7 @@ export const visitsController = {
                   }
                 }
 
-                // ─── SURVEY ──────────────────────────────────────────────
+                // ─── SURVEY ──────────────────────────────────────────────────────
                 if (survey && survey.survey_response) {
                   const { survey_response } = survey;
                   const surveyAnswers = survey_response.survey_answers || [];
@@ -5113,7 +5854,7 @@ export const visitsController = {
                   }
                 }
 
-                // ─── FETCH FINAL RESULT ──────────────────────────────────
+                // ─── FETCH FINAL RESULT ──────────────────────────────────────────
                 const visitWithBasicRelations = await tx.visits.findUnique({
                   where: { id: visitId },
                   include: {
@@ -5191,7 +5932,7 @@ export const visitsController = {
               { maxWait: 15000, timeout: 90000 }
             );
 
-            // Cleanup old images on update
+            // ── Cleanup old images on update ────────────────────────────────────
             if (isUpdate) {
               if (selfImageUrls.length > 0 && oldSelfImages.length > 0) {
                 for (const oldImage of oldSelfImages) {
@@ -5233,13 +5974,26 @@ export const visitsController = {
               });
             }
           } catch (transactionError: any) {
-            console.error(`Transaction failed, rolling back images...`);
+            console.error(
+              `Transaction failed for visit ${index + 1}, rolling back images...`
+            );
             for (const imagePath of uploadedImagePaths) {
               await deleteOldImages(imagePath).catch(err =>
                 console.error('Failed to cleanup uploaded image:', err)
               );
             }
-            throw transactionError;
+            results.failed.push({
+              visitIndex: index,
+              data: data?.visit || data,
+              constraint: transactionError.meta?.target,
+              meta: transactionError.meta,
+              error: transactionError.message || 'Transaction failed',
+              stack:
+                process.env.NODE_ENV === 'development'
+                  ? transactionError.stack
+                  : undefined,
+            });
+            continue;
           }
         } catch (error: any) {
           console.error(`Visit ${index + 1} Processing Error:`, error.message);
