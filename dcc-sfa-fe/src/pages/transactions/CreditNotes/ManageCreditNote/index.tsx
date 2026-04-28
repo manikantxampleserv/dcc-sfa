@@ -29,6 +29,7 @@ interface ManageCreditNoteProps {
 
 interface CreditNoteItemFormData {
   product_id: number | '';
+  unit: 'CASE' | 'PIECE';
   quantity: string;
   unit_price: string;
   discount_amount: string;
@@ -67,6 +68,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
       const items =
         creditNoteResponse.data.creditNoteItems?.map(item => ({
           product_id: item.product_id,
+          unit: (item as any).unit || 'CASE',
           quantity: (item as any).quantity?.toString() || '1',
           unit_price: item.unit_price?.toString() || '0',
           discount_amount: (item.discount_amount || 0).toString(),
@@ -135,6 +137,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
             .filter(item => item.product_id !== '')
             .map(item => ({
               product_id: Number(item.product_id),
+              unit: item.unit,
               quantity: Number(item.quantity),
               unit_price: Number(item.unit_price),
               discount_amount: Number(item.discount_amount) || 0,
@@ -161,6 +164,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
   const addCreditNoteItem = () => {
     const newItem: CreditNoteItemFormData = {
       product_id: '',
+      unit: 'CASE',
       quantity: '1',
       unit_price: '0',
       discount_amount: '0',
@@ -213,6 +217,26 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
           size="small"
           className="!min-w-60"
         />
+      ),
+    },
+    {
+      id: 'uom',
+      label: 'Case/PCs',
+      render: (_value, row) => (
+        <Box className="!min-w-28">
+          <Select
+            value={['CASE', 'PIECE'].includes(row.unit) ? row.unit : 'CASE'}
+            onChange={(e: any) =>
+              updateCreditNoteItem(row._index, 'unit', e.target.value as any)
+            }
+            size="small"
+            disableClearable
+            label=""
+          >
+            <MenuItem value="CASE">CASE</MenuItem>
+            <MenuItem value="PIECE">PIECE</MenuItem>
+          </Select>
+        </Box>
       ),
     },
     {
@@ -352,7 +376,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-5">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
+          <Box className="!grid !grid-cols-1 !gap-5 md:!grid-cols-2">
             <Box className="md:!col-span-2">
               <Typography
                 variant="h6"
@@ -468,7 +492,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
           </Box>
 
           <Box className="!space-y-4">
-            <Box className="!flex !justify-between !items-center">
+            <Box className="!flex !items-center !justify-between">
               <Typography
                 variant="h6"
                 className="!font-semibold !text-gray-900"
@@ -498,8 +522,8 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
             )}
 
             {creditNoteItems.length === 0 && (
-              <Box className="!text-center !py-8 !text-gray-500">
-                <Package className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+              <Box className="!py-8 !text-center !text-gray-500">
+                <Package className="mx-auto mb-2 h-12 w-12 text-gray-400" />
                 <Typography variant="body2">
                   No items added yet. Click "Add Item" to get started.
                 </Typography>
@@ -507,10 +531,10 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
             )}
 
             {creditNoteItems.length > 0 && (
-              <Box className="!bg-gray-50 !rounded-lg !mt-4">
+              <Box className="!mt-4 !rounded-lg !bg-gray-50">
                 <Typography
                   variant="h6"
-                  className="!font-semibold !text-gray-900 !mb-2"
+                  className="!mb-2 !font-semibold !text-gray-900"
                 >
                   Credit Note Summary
                 </Typography>
@@ -552,7 +576,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
                       )}
                     </Typography>
                   </Box>
-                  <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
+                  <Box className="!mt-2 !border-t !border-gray-300 !pt-2">
                     <Box className="!flex !justify-between">
                       <Typography variant="subtitle2" className="!font-bold">
                         Total Amount:
@@ -574,7 +598,7 @@ const ManageCreditNote: React.FC<ManageCreditNoteProps> = ({
                       )}
                     </Typography>
                   </Box>
-                  <Box className="!border-t !border-gray-300 !pt-2 !mt-2">
+                  <Box className="!mt-2 !border-t !border-gray-300 !pt-2">
                     <Box className="!flex !justify-between">
                       <Typography variant="subtitle2" className="!font-bold">
                         Balance Due:

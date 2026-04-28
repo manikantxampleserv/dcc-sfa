@@ -45,7 +45,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
   const formik = useFormik({
     initialValues: {
       customer_id: selectedInstallation?.customer_id || '',
-      asset_master_id: selectedInstallation?.asset_master_id || '',
+      asset_master_id: selectedInstallation?.asset_master_id,
       brand: selectedInstallation?.brand || '',
       model: selectedInstallation?.model || '',
       serial_number: selectedInstallation?.serial_number || '',
@@ -124,6 +124,8 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
     status: 'active',
   });
 
+  console.log(formik.values.asset_master_id);
+
   const assets = assetMasterData?.data || [];
   return (
     <CustomDrawer
@@ -139,6 +141,7 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               label="Cooler"
               formik={formik}
               required
+              placeholder="Select Cooler"
             >
               {assets.map((asset: AssetMaster) => (
                 <MenuItem key={asset.id} value={asset.id}>
@@ -153,27 +156,6 @@ const ManageCoolerInstallation: React.FC<ManageCoolerInstallationProps> = ({
               formik={formik}
               required
             />
-
-            {/* <Input
-              name="brand"
-              label="Brand"
-              placeholder="Enter cooler brand"
-              formik={formik}
-            />
-
-            <Input
-              name="model"
-              label="Model"
-              placeholder="Enter cooler model"
-              formik={formik}
-            />
-
-            <Input
-              name="serial_number"
-              label="Serial Number"
-              placeholder="Enter serial number"
-              formik={formik}
-            /> */}
 
             <Input
               name="capacity"

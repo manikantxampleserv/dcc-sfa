@@ -213,15 +213,17 @@ const CoolerInstallationsManagement: React.FC = () => {
           <Box className="flex flex-col">
             <Typography
               variant="body1"
-              className="!text-gray-900 !leading-tight"
+              className="!text-gray-900 !leading-tight !font-medium"
             >
-              {row.asset_master?.serial_number || 'No Asset'}
+              {row.brand && row.model
+                ? `${row.brand} ${row.model}`
+                : row.asset_master?.serial_number || 'No Asset'}
             </Typography>
             <Typography
               variant="caption"
               className="!text-gray-500 !text-xs !block !mt-0.5"
             >
-              {row.asset_master?.current_status || 'Unknown Status'}
+              {row.serial_number || row.code || 'No Serial'}
             </Typography>
           </Box>
         </Box>
@@ -292,7 +294,9 @@ const CoolerInstallationsManagement: React.FC = () => {
             <span className="text-xs">
               {row.install_date
                 ? formatDate(row.install_date)
-                : 'Not installed'}
+                : row.createdate
+                  ? formatDate(row.createdate)
+                  : 'Not installed'}
             </span>
           </Box>
           {row.capacity && (
@@ -470,7 +474,7 @@ const CoolerInstallationsManagement: React.FC = () => {
                       onChange={handleTechnicianFilterChange}
                       fullWidth={true}
                       size="small"
-                      className="!w-60"
+                      className="!w-72"
                     />
                   </>
                 )}

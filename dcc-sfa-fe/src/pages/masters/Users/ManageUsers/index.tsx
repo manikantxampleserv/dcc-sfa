@@ -140,6 +140,8 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
     setUploadedFile(null);
   };
 
+  console.log(formik.errors);
+
   const removeUploadedFile = () => {
     setUploadedFile(null);
   };
@@ -293,6 +295,15 @@ const ManageUsers: React.FC<ManageUsersProps> = ({
                   formik.setFieldValue('depot_ids', ids)
                 }
               />
+              {formik.errors.depot_ids && (
+                <Typography
+                  variant="caption"
+                  color="error"
+                  className="!mt-1 !block"
+                >
+                  {formik.errors.depot_ids as string}
+                </Typography>
+              )}
             </Box>
           </Box>
           <Box className="md:!col-span-2">

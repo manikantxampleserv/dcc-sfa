@@ -6,7 +6,7 @@ interface InvoiceItem {
   parent_id?: number;
   product_id: number;
   product_name?: string;
-  unit?: string;
+  unit: 'CASE' | 'PIECE';
   quantity: number;
   unit_price: number;
   discount_amount?: number;

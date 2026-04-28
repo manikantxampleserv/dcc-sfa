@@ -11,7 +11,7 @@ import {
   Autocomplete,
   FormControl,
   TextField,
-  type AutocompleteProps
+  type AutocompleteProps,
 } from '@mui/material';
 import type { FormikProps } from 'formik';
 import React, { useCallback, useMemo } from 'react';
@@ -237,9 +237,10 @@ const Select: React.FC<CustomSelectProps> = ({
               '& .MuiOutlinedInput-root': {
                 minWidth: '160px',
               },
-              '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root': {
-                paddingRight: '24px !important',
-              },
+              '&.MuiAutocomplete-hasPopupIcon.MuiAutocomplete-hasClearIcon .MuiOutlinedInput-root':
+                {
+                  paddingRight: '24px !important',
+                },
               ...(compact && {
                 '& .MuiInputBase-root': {
                   height: '28px !important',
@@ -296,9 +297,6 @@ const Select: React.FC<CustomSelectProps> = ({
               htmlInput: {
                 ...params.inputProps,
                 required: false,
-              },
-              inputLabel: {
-                shrink: true,
               },
             }}
           />

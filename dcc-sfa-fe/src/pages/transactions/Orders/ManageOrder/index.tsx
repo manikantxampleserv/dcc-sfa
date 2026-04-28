@@ -7,7 +7,10 @@ import {
 } from 'hooks/useInventoryItems';
 import { useCreateOrder, useOrder, useUpdateOrder } from 'hooks/useOrders';
 import { useCurrency } from 'hooks/useCurrency';
-import { usePriceListByCustomer, type CustomerPriceListResult } from 'hooks/usePriceLists';
+import {
+  usePriceListByCustomer,
+  type CustomerPriceListResult,
+} from 'hooks/usePriceLists';
 import type { ProductBatch, ProductSerial } from 'hooks/useVanInventory';
 import { Plus } from 'lucide-react';
 import React, {
@@ -253,17 +256,14 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
 
       const specials = item.special_prices ?? [];
 
-      // 1. Customer-specific price
       const customerSp = specials.find(sp => sp.customer_id === customerId);
       if (customerSp) return String(customerSp.sale_price);
 
-      // 2. Route or category special price
       const otherSp = specials.find(
         sp => sp.route_id != null || sp.customer_category_id != null
       );
       if (otherSp) return String(otherSp.sale_price);
 
-      // 3. Base pricelist item price
       return String(item.unit_price);
     }
 
@@ -386,7 +386,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         orderResponse.data.order_items?.map(item => ({
           product_id: item.product_id,
           product_name: item.product_name || null,
-          unit: item.unit || null,
+          unit: (item.unit as any) || 'CASE',
           tracking_type: item.tracking_type || null,
           quantity: item.quantity.toString(),
           unit_price: item.unit_price.toString(),
@@ -435,7 +435,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     const newItem: OrderItemFormData = {
       product_id: 0,
       product_name: '',
-      unit: '',
+      unit: 'CASE',
       tracking_type: null,
       quantity: '1',
       unit_price: '0',
@@ -457,10 +457,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     formikSyncRef.current = JSON.stringify(updatedItems);
   };
 
-  const updateOrderItem = (
+  const updateOrderItem = <K extends keyof OrderItemFormData>(
     index: number,
-    field: keyof OrderItemFormData,
-    value: string
+    field: K,
+    value: OrderItemFormData[K]
   ) => {
     const updatedItems = [...orderItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
@@ -480,8 +480,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         trackingLower === 'batch' || trackingLower === 'serial';
 
       const resolvedPrice = product
-        ? resolvePrice(product.product_id, customerPriceLists) ??
-          String(product.unit_price)
+        ? (resolvePrice(product.product_id, customerPriceLists) ??
+          String(product.unit_price))
         : '0';
 
       updatedItems[rowIndex] = {
@@ -510,6 +510,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     _index: index,
   }));
 
+  console.log('Order items', orderItems);
+
   const orderItemsColumns: TableColumn<
     OrderItemFormData & { _index: number }
   >[] = [
@@ -532,22 +534,42 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       ),
     },
     {
+      id: 'uom',
+      label: 'Case/PCs',
+      render: (_value, row) => {
+        return (
+          <Box className="!min-w-28">
+            <Select
+              value={['CASE', 'PIECE'].includes(row.unit) ? row.unit : 'CASE'}
+              onChange={e =>
+                updateOrderItem(row._index, 'unit', e.target.value)
+              }
+              size="small"
+              disableClearable
+              label=""
+            >
+              <MenuItem value="CASE">CASE</MenuItem>
+              <MenuItem value="PIECE">PIECE</MenuItem>
+            </Select>
+          </Box>
+        );
+      },
+    },
+    {
       id: 'tracking_type',
       label: 'Tracking',
       render: (_value, row) => {
         const tracking = (row.tracking_type || '').toString().toLowerCase();
         const canManage =
           tracking === 'batch' || tracking === 'serial' ? tracking : null;
-
         return (
-          <Box className="!flex !justify-between !items-center !min-w-52">
+          <Box className="!flex !min-w-48 !items-center !justify-between">
             <Typography
               variant="body2"
               className={`!text-gray-700 !uppercase !text-xs`}
             >
               {tracking || 'none'}
             </Typography>
-
             {canManage && (
               <Button
                 type="button"
@@ -629,23 +651,34 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     },
   ];
 
-  const calculateOrderTotals = () => {
+  const totals = useMemo(() => {
     const subtotal = orderItems.reduce((sum, item) => {
       const qty = Number(item.quantity) || 0;
       const price = Number(item.unit_price) || 0;
       return sum + qty * price;
     }, 0);
-    const shippingAmount = 0;
+    const shippingAmount = formik.values.shipping_amount || 0;
     const totalAmount = subtotal + shippingAmount;
-
     return {
       subtotal,
       shipping_amount: shippingAmount,
       total_amount: totalAmount,
     };
-  };
+  }, [orderItems, formik.values.shipping_amount]);
 
-  const totals = calculateOrderTotals();
+  useEffect(() => {
+    if (formik.values.subtotal !== totals.subtotal) {
+      formik.setFieldValue('subtotal', totals.subtotal, false);
+    }
+    if (formik.values.total_amount !== totals.total_amount) {
+      formik.setFieldValue('total_amount', totals.total_amount, false);
+    }
+  }, [
+    totals,
+    formik.setFieldValue,
+    formik.values.subtotal,
+    formik.values.total_amount,
+  ]);
 
   return (
     <CustomDrawer
@@ -656,7 +689,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     >
       <Box className="!p-5">
         <form onSubmit={formik.handleSubmit} className="!space-y-5">
-          <Box className="!grid !grid-cols-1 md:!grid-cols-2 !gap-5">
+          <Box className="!grid !grid-cols-1 !gap-5 md:!grid-cols-2">
             <CustomerSelect
               name="parent_id"
               label="Customer"
@@ -745,7 +778,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           </Box>
 
           <Box className="!space-y-4">
-            <Box className="!flex !justify-between !items-center">
+            <Box className="!flex !items-center !justify-between">
               <Typography
                 variant="h6"
                 className="!font-semibold !text-gray-900"
@@ -778,7 +811,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             />
 
             {orderItems.length > 0 && (
-              <Box className="!bg-gray-50 !rounded-lg !mt-4">
+              <Box className="!mt-4 !rounded-lg !bg-gray-50">
                 <Box className="!flex !justify-between">
                   <Typography variant="subtitle2" className="!font-bold">
                     Total:

@@ -8,7 +8,6 @@ import {
   Inventory,
   LocationOn,
   MonetizationOn,
-  Person,
   Phone,
   Receipt,
   Schedule,
@@ -28,13 +27,13 @@ import {
 } from '@mui/material';
 import { useCustomer } from 'hooks/useCustomers';
 import {
-  FileText,
-  Package,
   Building2,
   Calendar,
   CreditCard,
-  MapPin,
   ExternalLink,
+  FileText,
+  MapPin,
+  Package,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -113,11 +112,11 @@ const OutletDetail: React.FC = () => {
         </Box>
 
         {/* Info Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map(index => (
             <div
               key={index}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+              className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -142,9 +141,9 @@ const OutletDetail: React.FC = () => {
         </div>
 
         {/* Detailed Information Skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Contact Information Skeleton */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <Skeleton
               variant="text"
               width={150}
@@ -170,7 +169,7 @@ const OutletDetail: React.FC = () => {
           </div>
 
           {/* Business Information Skeleton */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <Skeleton
               variant="text"
               width={150}
@@ -197,49 +196,49 @@ const OutletDetail: React.FC = () => {
         </div>
 
         {/* Tabs Skeleton */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
           <Box>
             <Tabs value={0}>
               <Tab
                 icon={<Inventory />}
                 label="Assets (0)"
                 iconPosition="start"
-                className="!py-0 !min-h-14"
+                className="!min-h-14 !py-0"
                 disabled
               />
               <Tab
                 icon={<History />}
                 label="Asset History (0)"
                 iconPosition="start"
-                className="!py-0 !min-h-14"
+                className="!min-h-14 !py-0"
                 disabled
               />
               <Tab
                 icon={<Receipt />}
                 label="Transactions (0)"
                 iconPosition="start"
-                className="!py-0 !min-h-14"
+                className="!min-h-14 !py-0"
                 disabled
               />
               <Tab
                 icon={<Feedback />}
                 label="Feedbacks (0)"
                 iconPosition="start"
-                className="!py-0 !min-h-14"
+                className="!min-h-14 !py-0"
                 disabled
               />
               <Tab
                 icon={<ErrorIcon />}
                 label="Complaints (0)"
                 iconPosition="start"
-                className="!py-0 !min-h-14"
+                className="!min-h-14 !py-0"
                 disabled
               />
               <Tab
                 icon={<Description />}
                 label="Attachments (0)"
                 iconPosition="start"
-                className="!py-0 !min-h-14"
+                className="!min-h-14 !py-0"
                 disabled
               />
             </Tabs>
@@ -256,7 +255,7 @@ const OutletDetail: React.FC = () => {
               />
             </Box>
             {[1, 2, 3, 4, 5].map(index => (
-              <Box key={index} className="flex items-center gap-4 mb-3">
+              <Box key={index} className="mb-3 flex items-center gap-4">
                 <Skeleton
                   variant="rectangular"
                   width={40}
@@ -297,8 +296,8 @@ const OutletDetail: React.FC = () => {
       label: 'Document Type',
       render: (_value, row) => (
         <Box className="flex items-center gap-2">
-          <Avatar className="!bg-blue-100 !text-blue-600 !w-8 !h-8">
-            <FileText className="w-4 h-4" />
+          <Avatar className="!h-8 !w-8 !bg-blue-100 !text-blue-600">
+            <FileText className="h-4 w-4" />
           </Avatar>
           <Typography variant="body2" className="!font-medium">
             {row.document_type}
@@ -371,8 +370,8 @@ const OutletDetail: React.FC = () => {
       label: 'Asset Code',
       render: (_value, row) => (
         <Box className="flex items-center gap-2">
-          <Avatar className="!bg-purple-100 !text-purple-600 !w-8 !h-8">
-            <Package className="w-4 h-4" />
+          <Avatar className="!h-8 !w-8 !bg-purple-100 !text-purple-600">
+            <Package className="h-4 w-4" />
           </Avatar>
           <Box>
             <Typography variant="body2" className="!font-medium">
@@ -588,7 +587,7 @@ const OutletDetail: React.FC = () => {
             </Typography>
           ))}
           {rating && (
-            <Typography variant="caption" className="!text-gray-500 !ml-1">
+            <Typography variant="caption" className="!ml-1 !text-gray-500">
               ({rating})
             </Typography>
           )}
@@ -765,12 +764,12 @@ const OutletDetail: React.FC = () => {
                 label={customer.type || 'N/A'}
                 size="small"
                 variant="outlined"
-                className="!capitalize !px-1"
+                className="!px-1 !capitalize"
                 color={getBusinessTypeChipColor(customer.type || '')}
               />
             )}
           </Box>
-          <Typography variant="body2" className="!text-gray-500 !mt-1">
+          <Typography variant="body2" className="!mt-1 !text-gray-500">
             Code: {customer.code}
             {customer.short_name && ` • Short: ${customer.short_name}`}
             {customer.email && ` • ${customer.email}`}
@@ -781,12 +780,12 @@ const OutletDetail: React.FC = () => {
       </Box>
 
       {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Customer Type Card */}
         <StatsCard
           title="Customer Type"
           value={customer.customer_type?.type_name || 'N/A'}
-          icon={<Building2 className="w-6 h-6" />}
+          icon={<Building2 className="h-6 w-6" />}
           color="blue"
         />
 
@@ -794,7 +793,7 @@ const OutletDetail: React.FC = () => {
         <StatsCard
           title="Category"
           value={customer.customer_category?.category_name || 'N/A'}
-          icon={<Star className="w-6 h-6" />}
+          icon={<Star className="h-6 w-6" />}
           color="purple"
         />
 
@@ -802,7 +801,7 @@ const OutletDetail: React.FC = () => {
         <StatsCard
           title="Zone"
           value={customer.customer_zones?.name || 'N/A'}
-          icon={<LocationOn className="w-6 h-6" />}
+          icon={<LocationOn className="h-6 w-6" />}
           color="green"
         />
 
@@ -810,35 +809,24 @@ const OutletDetail: React.FC = () => {
         <StatsCard
           title="Route"
           value={customer.customer_routes?.name || 'N/A'}
-          icon={<Schedule className="w-6 h-6" />}
+          icon={<Schedule className="h-6 w-6" />}
           color="orange"
         />
       </div>
 
       {/* Detailed Information */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Contact Information */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <Typography
             variant="h6"
-            className="!font-semibold !text-gray-900 !mb-4"
+            className="!mb-4 !font-semibold !text-gray-900"
           >
             Contact Information
           </Typography>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <Person className="w-4 h-4 text-gray-400" />
-              <div>
-                <Typography variant="body2" className="!text-gray-500">
-                  Contact Person
-                </Typography>
-                <Typography variant="body1" className="!font-medium">
-                  {customer.contact_person || 'N/A'}
-                </Typography>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Phone className="w-4 h-4 text-gray-400" />
+              <Phone className="h-4 w-4 text-gray-400" />
               <div>
                 <Typography variant="body2" className="!text-gray-500">
                   Phone Number
@@ -849,24 +837,25 @@ const OutletDetail: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Building2 className="w-4 h-4 text-gray-400" />
+              <Building2 className="h-4 w-4 text-gray-400" />
               <div>
                 <Typography variant="body2" className="!text-gray-500">
                   Outlet Channel
                 </Typography>
                 <Typography variant="body1" className="!font-medium">
-                  {customer.customer_channel?.channel_name || 'N/A'}
+                  {customer.customer_channel?.channel_name || (
+                    <span className="text-xs text-gray-400 italic">
+                      No Channel
+                    </span>
+                  )}
                 </Typography>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <MapPin className="w-4 h-4 text-gray-400 mt-1" />
+              <MapPin className="mt-1 h-4 w-4 text-gray-400" />
               <div className="space-y-1">
                 <Typography variant="body2" className="!text-gray-500">
                   Address & Location
-                </Typography>
-                <Typography variant="body1" className="!font-medium">
-                  {customer.address || 'N/A'}
                 </Typography>
                 {(customer.customer_city ||
                   customer.customer_district ||
@@ -889,7 +878,7 @@ const OutletDetail: React.FC = () => {
                 {(customer.latitude || customer.longitude) && (
                   <Typography
                     variant="body2"
-                    className="!text-gray-400 !text-xs italic"
+                    className="!text-xs !text-gray-400 italic"
                   >
                     Coordinates: {customer.latitude}, {customer.longitude}
                   </Typography>
@@ -900,16 +889,16 @@ const OutletDetail: React.FC = () => {
         </div>
 
         {/* Business Information */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <Typography
             variant="h6"
-            className="!font-semibold !text-gray-900 !mb-4"
+            className="!mb-4 !font-semibold !text-gray-900"
           >
             Business Information
           </Typography>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <CreditCard className="w-4 h-4 text-gray-400" />
+              <CreditCard className="h-4 w-4 text-gray-400" />
               <div>
                 <Typography variant="body2" className="!text-gray-500">
                   Credit Limit
@@ -922,7 +911,7 @@ const OutletDetail: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <MonetizationOn className="w-4 h-4 text-gray-400" />
+              <MonetizationOn className="h-4 w-4 text-gray-400" />
               <div>
                 <Typography variant="body2" className="!text-gray-500">
                   Outstanding Amount
@@ -935,7 +924,7 @@ const OutletDetail: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Calendar className="w-4 h-4 text-gray-400" />
+              <Calendar className="h-4 w-4 text-gray-400" />
               <div>
                 <Typography variant="body2" className="!text-gray-500">
                   Last Visit Date
@@ -949,7 +938,7 @@ const OutletDetail: React.FC = () => {
             </div>
             {customer.depot && (
               <div className="flex items-center gap-3">
-                <Building2 className="w-4 h-4 text-gray-400" />
+                <Building2 className="h-4 w-4 text-gray-400" />
                 <div>
                   <Typography variant="body2" className="!text-gray-500">
                     Associated Depot
@@ -966,10 +955,10 @@ const OutletDetail: React.FC = () => {
 
       {/* Map Section */}
       {(customer.latitude || customer.longitude) && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-blue-600" />
+              <MapPin className="h-5 w-5 text-blue-600" />
               <Typography
                 variant="h6"
                 className="!font-semibold !text-gray-900"
@@ -981,13 +970,13 @@ const OutletDetail: React.FC = () => {
               href={`https://www.google.com/maps/search/?api=1&query=${customer.latitude},${customer.longitude}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
             >
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="h-4 w-4" />
               Open in Google Maps
             </a>
           </div>
-          <div className="w-full h-[400px] rounded-lg overflow-hidden border border-gray-100 shadow-inner">
+          <div className="h-[400px] w-full overflow-hidden rounded-lg border border-gray-100 shadow-inner">
             <iframe
               src={`https://maps.google.com/maps?q=${customer.latitude},${customer.longitude}&z=16&output=embed`}
               width="100%"
@@ -999,7 +988,7 @@ const OutletDetail: React.FC = () => {
               title="Location Map"
             />
           </div>
-          <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 bg-gray-50 p-3 rounded border border-gray-100">
+          <div className="mt-3 flex items-center gap-4 rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-500">
             <p>
               <span className="font-semibold text-gray-700">Latitude:</span>{' '}
               {customer.latitude}
@@ -1013,7 +1002,7 @@ const OutletDetail: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <Box>
           <Tabs
             value={tabValue}
@@ -1024,7 +1013,7 @@ const OutletDetail: React.FC = () => {
               icon={<Inventory />}
               label={`Assets (${assets.length})`}
               iconPosition="start"
-              className="!py-0 !min-h-14"
+              className="!min-h-14 !py-0"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -1035,7 +1024,7 @@ const OutletDetail: React.FC = () => {
               icon={<History />}
               label={`Asset History (${allAssetHistory.length})`}
               iconPosition="start"
-              className="!py-0 !min-h-14"
+              className="!min-h-14 !py-0"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,
@@ -1046,7 +1035,7 @@ const OutletDetail: React.FC = () => {
               icon={<Description />}
               label={`Attachments (${documents.length})`}
               iconPosition="start"
-              className="!py-0 !min-h-14"
+              className="!min-h-14 !py-0"
               sx={{
                 '& .MuiButtonBase-root': {
                   padding: 1,

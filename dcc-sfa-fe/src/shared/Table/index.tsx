@@ -217,8 +217,15 @@ interface TableHeadProps<T> {
  * @returns Table header JSX element
  */
 function TableHead<T>(props: TableHeadProps<T>) {
-  const { order, orderBy, onRequestSort, columns, sortable, compact, columnVisibility } =
-    props;
+  const {
+    order,
+    orderBy,
+    onRequestSort,
+    columns,
+    sortable,
+    compact,
+    columnVisibility,
+  } = props;
 
   const createSortHandler =
     (property: keyof T | string) => (event: React.MouseEvent<unknown>) => {
@@ -610,8 +617,8 @@ export default function Table<T extends Record<string, any>>(
           <>
             <Box
               className={classNames(
-                '!p-3 flex items-start gap-2',
-                filterColunm ? 'justify-between' : ''
+                '!p-3 flex gap-2',
+                filterColunm ? 'justify-between items-center' : 'items-start'
               )}
             >
               {props.actions}{' '}

@@ -56,21 +56,21 @@ const OrderDetail: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'draft':
-        return <Package className="w-4 h-4" />;
+        return <Package className="h-4 w-4" />;
       case 'pending':
-        return <Clock className="w-4 h-4" />;
+        return <Clock className="h-4 w-4" />;
       case 'confirmed':
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircle className="h-4 w-4" />;
       case 'processing':
-        return <Package className="w-4 h-4" />;
+        return <Package className="h-4 w-4" />;
       case 'shipped':
-        return <Truck className="w-4 h-4" />;
+        return <Truck className="h-4 w-4" />;
       case 'delivered':
-        return <CheckCircle className="w-4 h-4" />;
+        return <CheckCircle className="h-4 w-4" />;
       case 'cancelled':
-        return <XCircle className="w-4 h-4" />;
+        return <XCircle className="h-4 w-4" />;
       default:
-        return <Package className="w-4 h-4" />;
+        return <Package className="h-4 w-4" />;
     }
   };
 
@@ -111,12 +111,15 @@ const OrderDetail: React.FC = () => {
 
   const getApprovalIcon = (status: string) => {
     const normalizedStatus = status?.slice(0, 1)?.toUpperCase();
-    if (normalizedStatus === 'A') return <CheckCircle className="w-4 h-4" />;
-    if (normalizedStatus === 'R') return <XCircle className="w-4 h-4" />;
-    return <Clock className="w-4 h-4" />;
+    if (normalizedStatus === 'A') return <CheckCircle className="h-4 w-4" />;
+    if (normalizedStatus === 'R') return <XCircle className="h-4 w-4" />;
+    return <Clock className="h-4 w-4" />;
   };
 
-  const formatCurrency = (amount: number | null | undefined, currency = 'USD') => {
+  const formatCurrency = (
+    amount: number | null | undefined,
+    currency = 'USD'
+  ) => {
     if (amount === null || amount === undefined) return 'N/A';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -131,8 +134,8 @@ const OrderDetail: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-start gap-4">
-        <div className="!flex-2 flex flex-col gap-4">
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
+        <div className="flex !flex-2 flex-col gap-4">
+          <div className="!relative !rounded-lg !border !border-gray-200 !bg-white !p-6 !text-center !shadow">
             <Skeleton
               variant="circular"
               width={96}
@@ -151,12 +154,12 @@ const OrderDetail: React.FC = () => {
               height={16}
               className="!mx-auto !mb-3"
             />
-            <div className="!flex !justify-center !gap-2 !mb-4">
+            <div className="!mb-4 !flex !justify-center !gap-2">
               <Skeleton variant="rectangular" width={80} height={24} />
               <Skeleton variant="rectangular" width={80} height={24} />
               <Skeleton variant="rectangular" width={80} height={24} />
             </div>
-            <div className="!space-y-1 !text-left !mt-4">
+            <div className="!mt-4 !space-y-1 !text-left">
               <Skeleton
                 variant="rectangular"
                 width="100%"
@@ -167,14 +170,14 @@ const OrderDetail: React.FC = () => {
             </div>
           </div>
 
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6">
+          <div className="!rounded-lg !border !border-gray-200 !bg-white !p-6 !shadow">
             <Skeleton
               variant="text"
               width="40%"
               height={24}
               className="!mb-4"
             />
-            <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+            <div className="!grid !grid-cols-1 !gap-4 md:!grid-cols-2">
               {[1, 2, 3, 4, 5].map(item => (
                 <div key={item} className="!space-y-2">
                   <Skeleton variant="text" width="60%" height={12} />
@@ -184,14 +187,14 @@ const OrderDetail: React.FC = () => {
             </div>
           </div>
 
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6">
+          <div className="!rounded-lg !border !border-gray-200 !bg-white !p-6 !shadow">
             <Skeleton
               variant="text"
               width="40%"
               height={24}
               className="!mb-4"
             />
-            <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+            <div className="!grid !grid-cols-1 !gap-4 md:!grid-cols-2">
               {[1, 2, 3].map(item => (
                 <div key={item} className="!space-y-2">
                   <Skeleton variant="text" width="60%" height={12} />
@@ -202,8 +205,8 @@ const OrderDetail: React.FC = () => {
           </div>
         </div>
 
-        <div className="!flex-4 flex flex-col gap-4">
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6">
+        <div className="flex !flex-4 flex-col gap-4">
+          <div className="!rounded-lg !border !border-gray-200 !bg-white !p-6 !shadow">
             <Skeleton
               variant="text"
               width="30%"
@@ -222,14 +225,14 @@ const OrderDetail: React.FC = () => {
             </div>
           </div>
 
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6">
+          <div className="!rounded-lg !border !border-gray-200 !bg-white !p-6 !shadow">
             <Skeleton
               variant="text"
               width="40%"
               height={24}
               className="!mb-4"
             />
-            <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+            <div className="!grid !grid-cols-1 !gap-4 md:!grid-cols-2">
               {[1, 2, 3, 4, 5].map(item => (
                 <div key={item} className="!space-y-2">
                   <Skeleton variant="text" width="60%" height={12} />
@@ -239,7 +242,7 @@ const OrderDetail: React.FC = () => {
             </div>
           </div>
 
-          <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6">
+          <div className="!rounded-lg !border !border-gray-200 !bg-white !p-6 !shadow">
             <Skeleton
               variant="text"
               width="30%"
@@ -256,10 +259,10 @@ const OrderDetail: React.FC = () => {
   if (error || !orderData) {
     return (
       <div className="!p-6">
-        <div className="bg-gradient-to-r from-red-600 via-pink-600 to-red-600 rounded-lg p-6 text-white relative overflow-hidden shadow-lg">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-5 h-5" />
-            <Typography variant="h6" className="!text-white !font-bold">
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-red-600 via-pink-600 to-red-600 p-6 text-white shadow-lg">
+          <div className="mb-3 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            <Typography variant="h6" className="!font-bold !text-white">
               Failed to load order details
             </Typography>
           </div>
@@ -291,12 +294,12 @@ const OrderDetail: React.FC = () => {
     children: React.ReactNode;
     icon?: React.ElementType;
   }) => (
-    <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !relative !overflow-hidden">
-      <div className="!absolute !top-0 !right-0 !w-16 !h-16 !bg-gradient-to-br !from-blue-50 !to-purple-50 !rounded-full !-translate-y-8 !translate-x-8"></div>
+    <div className="!relative !overflow-hidden !rounded-lg !border !border-gray-200 !bg-white !p-6 !shadow">
+      <div className="!absolute !top-0 !right-0 !h-16 !w-16 !translate-x-8 !-translate-y-8 !rounded-full !bg-gradient-to-br !from-blue-50 !to-purple-50"></div>
       <div className="!relative !z-10">
-        <div className="!flex !items-center !gap-2 !mb-4">
+        <div className="!mb-4 !flex !items-center !gap-2">
           {Icon && (
-            <div className="!p-1.5 !w-10 !h-10 flex items-center justify-center !bg-primary-100 !rounded-md">
+            <div className="flex !h-10 !w-10 items-center justify-center !rounded-md !bg-primary-100 !p-1.5">
               <Icon className="!text-primary-500" />
             </div>
           )}
@@ -311,8 +314,8 @@ const OrderDetail: React.FC = () => {
 
   return (
     <div className="flex items-start gap-4">
-      <div className="!flex-2 flex flex-col gap-4">
-        <div className="!bg-white !rounded-lg !shadow !border !border-gray-200 !p-6 !text-center !relative">
+      <div className="flex !flex-2 flex-col gap-4">
+        <div className="!relative !rounded-lg !border !border-gray-200 !bg-white !p-6 !text-center !shadow">
           <div className="!relative !mb-4">
             <Avatar
               className={classNames(
@@ -333,19 +336,19 @@ const OrderDetail: React.FC = () => {
                 }
               )}
             >
-              <ShoppingCart className="!w-8 !h-8" />
+              <ShoppingCart className="!h-8 !w-8" />
             </Avatar>
           </div>
 
-          <Typography variant="h6" className="!font-bold !text-gray-900 !mb-1">
+          <Typography variant="h6" className="!mb-1 !font-bold !text-gray-900">
             {orderData.order_number}
           </Typography>
 
-          <Typography variant="body2" className="!text-gray-600 !mb-3">
+          <Typography variant="body2" className="!mb-3 !text-gray-600">
             {orderData.customer?.name || 'Unknown Customer'}
           </Typography>
 
-          <div className="!flex !justify-center !gap-2 !mb-4">
+          <div className="!mb-4 !flex !justify-center !gap-2">
             <Chip
               icon={getStatusIcon(orderData.status || 'draft')}
               label={getStatusLabel(orderData.status || 'draft')}
@@ -365,11 +368,11 @@ const OrderDetail: React.FC = () => {
             />
           </div>
 
-          <div className="!space-y-1 !text-left !mt-4">
-            <div className="!p-2 !bg-gray-50 !rounded-md">
+          <div className="!mt-4 !space-y-1 !text-left">
+            <div className="!rounded-md !bg-gray-50 !p-2">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
+                className="!mb-0.5 !text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Total Amount
               </Typography>
@@ -381,10 +384,10 @@ const OrderDetail: React.FC = () => {
               </Typography>
             </div>
 
-            <div className="!p-2 !bg-gray-50 !rounded-md">
+            <div className="!rounded-md !bg-gray-50 !p-2">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide !mb-0.5"
+                className="!mb-0.5 !text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Items Count
               </Typography>
@@ -398,11 +401,11 @@ const OrderDetail: React.FC = () => {
           </div>
         </div>
         <InfoCard title="Order Information" icon={Info}>
-          <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+          <div className="!grid !grid-cols-1 !gap-4 md:!grid-cols-2">
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Order Date
               </Typography>
@@ -416,7 +419,7 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Delivery Date
               </Typography>
@@ -430,7 +433,7 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Order Type
               </Typography>
@@ -444,7 +447,7 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Payment Method
               </Typography>
@@ -458,7 +461,7 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5 md:!col-span-2">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Payment Terms
               </Typography>
@@ -472,33 +475,41 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Approval Status
               </Typography>
-              <Typography variant="body2" className="!font-semibold !text-gray-900">
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
                 {getApprovalLabel(orderData.approval_status || 'P')}
               </Typography>
             </div>
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Approved At
               </Typography>
-              <Typography variant="body2" className="!font-semibold !text-gray-900">
-                {orderData.approved_at ? formatDate(orderData.approved_at) : 'N/A'}
+              <Typography
+                variant="body2"
+                className="!font-semibold !text-gray-900"
+              >
+                {orderData.approved_at
+                  ? formatDate(orderData.approved_at)
+                  : 'N/A'}
               </Typography>
             </div>
           </div>
         </InfoCard>
         <InfoCard title="Customer Information" icon={Package}>
-          <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+          <div className="!grid !grid-cols-1 !gap-4 md:!grid-cols-2">
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Customer Name
               </Typography>
@@ -512,7 +523,7 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Customer Code
               </Typography>
@@ -526,7 +537,7 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5 md:!col-span-2">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Customer Type
               </Typography>
@@ -541,16 +552,16 @@ const OrderDetail: React.FC = () => {
         </InfoCard>
       </div>
 
-      <div className="!flex-4 flex flex-col gap-4">
+      <div className="flex !flex-4 flex-col gap-4">
         <InfoCard title="Order Items" icon={Package}>
           <div className="!space-y-2">
             {orderData.order_items && orderData.order_items.length > 0 ? (
               orderData.order_items.map((item, index) => (
                 <div
                   key={item.id || index}
-                  className="!p-3 !bg-gray-50 !rounded-md !border !border-gray-200"
+                  className="!rounded-md !border !border-gray-200 !bg-gray-50 !p-3"
                 >
-                  <div className="!flex !justify-between !items-start !mb-1">
+                  <div className="!mb-1 !flex !items-start !justify-between">
                     <Typography
                       variant="body2"
                       className="!font-semibold !text-gray-900"
@@ -570,7 +581,6 @@ const OrderDetail: React.FC = () => {
                       {formatCurrency(item.unit_price, currencyCode)}
                       {item.unit && ` (${item.unit})`}
                     </span>
-
                   </div>
                   {Array.isArray((item as any).product_batches) &&
                     (item as any).product_batches.length > 0 && (
@@ -580,7 +590,9 @@ const OrderDetail: React.FC = () => {
                           .filter((b: any) => Number(b?.quantity || 0) > 0)
                           .map((b: any, idx: number) => {
                             const label =
-                              b?.batch_number || b?.lot_number || `Batch ${idx + 1}`;
+                              b?.batch_number ||
+                              b?.lot_number ||
+                              `Batch ${idx + 1}`;
                             return `${label} (${b?.quantity})`;
                           })
                           .join(', ') || 'N/A'}
@@ -600,7 +612,7 @@ const OrderDetail: React.FC = () => {
                   {item.notes && (
                     <Typography
                       variant="caption"
-                      className="!text-gray-600 !block !mt-1"
+                      className="!mt-1 !block !text-gray-600"
                     >
                       {item.notes}
                     </Typography>
@@ -610,7 +622,7 @@ const OrderDetail: React.FC = () => {
             ) : (
               <Typography
                 variant="body2"
-                className="!text-gray-500 !text-center !py-4"
+                className="!py-4 !text-center !text-gray-500"
               >
                 No items found
               </Typography>
@@ -618,11 +630,11 @@ const OrderDetail: React.FC = () => {
           </div>
         </InfoCard>
         <InfoCard title="Amount Breakdown" icon={DollarSign}>
-          <div className="!grid !grid-cols-1 md:!grid-cols-2 !gap-4">
+          <div className="!grid !grid-cols-1 !gap-4 md:!grid-cols-2">
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Subtotal
               </Typography>
@@ -636,7 +648,7 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Discount
               </Typography>
@@ -650,7 +662,7 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Tax
               </Typography>
@@ -664,7 +676,7 @@ const OrderDetail: React.FC = () => {
             <div className="!space-y-0.5">
               <Typography
                 variant="caption"
-                className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                className="!text-xs !tracking-wide !text-gray-500 !uppercase"
               >
                 Shipping
               </Typography>
@@ -676,10 +688,10 @@ const OrderDetail: React.FC = () => {
               </Typography>
             </div>
             <div className="!space-y-0.5 md:!col-span-2">
-              <div className="!border-t !border-gray-300 !pt-2 !mt-2">
+              <div className="!mt-2 !border-t !border-gray-300 !pt-2">
                 <Typography
                   variant="caption"
-                  className="!text-gray-500 !text-xs !uppercase !tracking-wide"
+                  className="!text-xs !tracking-wide !text-gray-500 !uppercase"
                 >
                   Total
                 </Typography>
