@@ -53,6 +53,9 @@ interface InvoiceSerialized {
     discount_amount: number;
     tax_amount: number;
     notes?: string;
+    uom?: string;
+    conversion_factor?: number;
+    base_quantity?: number;
     product?: {
       id: number;
       name: string;
@@ -119,6 +122,9 @@ const serializeInvoice = (invoice: any): InvoiceSerialized => ({
     discount_amount: Number(item.discount_amount),
     tax_amount: Number(item.tax_amount),
     notes: item.notes,
+    uom: item.uom,
+    conversion_factor: Number(item.conversion_factor) || 1,
+    base_quantity: Number(item.base_quantity) || 0,
     tracking_type: item.invoice_items_products?.tracking_type || null,
     product: item.invoice_items_products
       ? {
@@ -306,6 +312,11 @@ export const invoicesController = {
                 parent_id: newInvoice.id,
                 product_id: Number(item.product_id),
                 product_name: product?.name || '',
+                uom:
+                  item.uom ||
+                  product?.product_unit_of_measurement?.name ||
+                  product?.product_unit_of_measurement?.symbol ||
+                  'pcs',
                 unit:
                   product?.product_unit_of_measurement?.name ||
                   product?.product_unit_of_measurement?.symbol ||
@@ -315,6 +326,8 @@ export const invoicesController = {
                 discount_amount: discountAmount,
                 tax_amount: taxAmount,
                 total_amount: totalAmount,
+                conversion_factor: Number(item.conversion_factor) || 1,
+                base_quantity: Number(item.base_quantity) || 0,
                 notes: item.notes
                   ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
                   : trackingNotes || null,
@@ -571,7 +584,12 @@ export const invoicesController = {
                 ? data.billing_address
                 : undefined,
             is_active: data.is_active || 'Y',
-            pricelist_id: data.pricelist_id !== undefined ? (data.pricelist_id ? Number(data.pricelist_id) : null) : undefined,
+            pricelist_id:
+              data.pricelist_id !== undefined
+                ? data.pricelist_id
+                  ? Number(data.pricelist_id)
+                  : null
+                : undefined,
             updatedate: new Date(),
           },
         });
@@ -629,6 +647,11 @@ export const invoicesController = {
                   parent_id: Number(id),
                   product_id: Number(item.product_id),
                   product_name: product?.name || '',
+                  uom:
+                    item.uom ||
+                    product?.product_unit_of_measurement?.name ||
+                    product?.product_unit_of_measurement?.symbol ||
+                    'pcs',
                   unit:
                     product?.product_unit_of_measurement?.name ||
                     product?.product_unit_of_measurement?.symbol ||
@@ -638,6 +661,8 @@ export const invoicesController = {
                   discount_amount: discountAmount,
                   tax_amount: taxAmount,
                   total_amount: totalAmount,
+                  conversion_factor: Number(item.conversion_factor) || 1,
+                  base_quantity: Number(item.base_quantity) || 0,
                   notes: item.notes
                     ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
                     : trackingNotes || null,

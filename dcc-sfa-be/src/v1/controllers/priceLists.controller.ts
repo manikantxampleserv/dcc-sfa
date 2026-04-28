@@ -567,9 +567,15 @@ export const priceListsController = {
   async deletePriceLists(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const priceListId = Number(id);
 
       const existingPriceList = await prisma.pricelists.findUnique({
-        where: { id: Number(id) },
+        where: { id: priceListId },
+        include: {
+          pricelist_item: {
+            select: { id: true },
+          },
+        },
       });
 
       if (!existingPriceList)
@@ -584,20 +590,37 @@ export const priceListsController = {
         });
       }
 
-      await prisma.pricelist_item_special_prices.deleteMany({
-        where: {
-          pricelist_item: {
-            pricelist_id: Number(id),
+      await prisma.$transaction(async (tx: any) => {
+        await tx.pricelist_item_special_prices.deleteMany({
+          where: {
+            pricelist_item: {
+              pricelist_id: priceListId,
+            },
           },
-        },
-      });
+        });
 
-      await prisma.pricelist_items.deleteMany({
-        where: { pricelist_id: Number(id) },
-      });
+        await tx.pricelist_items.deleteMany({
+          where: { pricelist_id: priceListId },
+        });
 
-      await prisma.pricelists.delete({
-        where: { id: Number(id) },
+        await tx.orders.updateMany({
+          where: { pricelist_id: priceListId },
+          data: { pricelist_id: null },
+        });
+
+        await tx.invoices.updateMany({
+          where: { pricelist_id: priceListId },
+          data: { pricelist_id: null },
+        });
+
+        await tx.pricelists.updateMany({
+          where: { base_pricelist_id: priceListId },
+          data: { base_pricelist_id: null },
+        });
+
+        await tx.pricelists.delete({
+          where: { id: priceListId },
+        });
       });
 
       res.send({
