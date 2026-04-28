@@ -2201,6 +2201,11 @@ export const vanInventoryController = {
                     },
                   },
                   product_tax_master: true,
+                  serial_numbers_products: {
+                    include: {
+                      serial_numbers_customers: true,
+                    },
+                  },
                 },
               },
             },
