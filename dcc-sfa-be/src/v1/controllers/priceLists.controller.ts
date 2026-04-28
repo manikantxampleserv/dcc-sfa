@@ -90,6 +90,13 @@ export const priceListsController = {
     const data = req.body;
     const userId = req.user?.id || 1;
 
+    console.log('upsertPriceList called with:', {
+      id: data.id,
+      name: data.name,
+      isUpdate: !!data.id,
+      bodyKeys: Object.keys(data),
+    });
+
     try {
       if (!data.name || data.name.trim() === '') {
         return res.status(400).send({
@@ -117,6 +124,8 @@ export const priceListsController = {
 
       let priceList;
       const isUpdate = !!data.id;
+
+      console.log('isUpdate:', isUpdate, 'data.id:', data.id);
 
       if (data.id) {
         priceList = await prisma.pricelists.update({
