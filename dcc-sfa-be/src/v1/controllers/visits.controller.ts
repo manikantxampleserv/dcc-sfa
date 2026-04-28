@@ -4646,7 +4646,6 @@ export const visitsController = {
                             totalPiecesDeducted += piecesToDeduct;
                             totalUomDeducted += batchOrder.uomQty;
 
-                            // ── 1. Find batch_lot ──────────────────────────────────────────
                             const batchLot = await tx.batch_lots.findUnique({
                               where: { id: batchOrder.batch_lot_id },
                             });
@@ -4657,7 +4656,6 @@ export const visitsController = {
                               );
                             }
 
-                            // ── 2. Find van inventory ──────────────────────────────────────
                             const vanInventory =
                               await tx.van_inventory.findFirst({
                                 where: {
@@ -4692,7 +4690,6 @@ export const visitsController = {
                               );
                             }
 
-                            // ── 3. Deduct van_inventory_items (CASE/PCS logic) ─────────────
                             const vanDeduction = calculateStockDeduction(
                               vanItem.quantity || 0,
                               vanItem.base_quantity || 0,
@@ -4738,9 +4735,6 @@ export const visitsController = {
                               });
                             }
 
-                            // ── 4. Deduct batch_lots remaining_quantity + base_quantity ────
-                            // remaining_quantity = CASES, base_quantity = PCS
-                            // Same logic as van_inventory_items and inventory_stock
                             const batchLotDeduction = calculateStockDeduction(
                               batchLot.remaining_quantity || 0,
                               batchLot.base_quantity || 0,
@@ -4784,7 +4778,6 @@ export const visitsController = {
                               },
                             });
 
-                            // ── 5. Deduct product_batches (CASE/PCS logic) ─────────────────
                             const productBatch =
                               await tx.product_batches.findFirst({
                                 where: {
@@ -4797,7 +4790,6 @@ export const visitsController = {
                             if (productBatch) {
                               const productBatchCurrentQty =
                                 productBatch.quantity || 0;
-                              // product_batches HAS base_quantity in schema (Int?)
                               const productBatchCurrentBase =
                                 productBatch.base_quantity || 0;
 
@@ -4805,7 +4797,6 @@ export const visitsController = {
                               let newProductBatchBase: number;
 
                               if (isUnitPcs) {
-                                // PCS: deduct from combined total
                                 const totalPcs =
                                   productBatchCurrentQty * conversionFactor +
                                   productBatchCurrentBase;
@@ -4824,7 +4815,6 @@ export const visitsController = {
                                 newProductBatchBase =
                                   remaining % conversionFactor;
                               } else {
-                                // CASE: deduct full cases
                                 if (orderedQty > productBatchCurrentQty) {
                                   throw new Error(
                                     `Insufficient product batch for "${batchLot.batch_number}". ` +
@@ -4846,14 +4836,13 @@ export const visitsController = {
                                 where: { id: productBatch.id },
                                 data: {
                                   quantity: newProductBatchQty,
-                                  base_quantity: newProductBatchBase, // ✅ field exists in schema
+                                  base_quantity: newProductBatchBase,
                                   updatedate: new Date(),
                                 },
                               });
                             }
 
                             if (productBatch) {
-                              // Check if product_batches has base_quantity field
                               const productBatchCurrentQty =
                                 productBatch.quantity || 0;
                               const productBatchCurrentBase =
@@ -4904,7 +4893,6 @@ export const visitsController = {
                               });
                             }
 
-                            // ── 6. Deduct inventory_stock (CASE/PCS logic) ─────────────────
                             const inventoryStock =
                               await tx.inventory_stock.findFirst({
                                 where: {
@@ -4936,7 +4924,6 @@ export const visitsController = {
                                 );
                               }
 
-                              // Calculate new available_stock
                               let newAvailableQty: number;
                               if (isUnitPcs) {
                                 const availableTotalPieces =
@@ -4983,7 +4970,6 @@ export const visitsController = {
                               );
                             }
 
-                            // ── 7. Stock Movement ──────────────────────────────────────────
                             const validatedFromLocationId =
                               await validateAndGetLocationId(
                                 tx,
@@ -5015,14 +5001,12 @@ export const visitsController = {
                             });
                           }
 
-                          // ── Validate total pieces ────────────────────────────────────────
                           if (totalPiecesDeducted !== orderedPieces) {
                             throw new Error(
                               `Total batch pieces (${totalPiecesDeducted}) does not match ordered pieces (${orderedPieces})`
                             );
                           }
 
-                          // ── Create order_items if non-direct ────────────────────────────
                           if (!isDirect) {
                             await tx.order_items.create({
                               data: {
@@ -5051,7 +5035,6 @@ export const visitsController = {
                             });
                           }
 
-                          // ── Create invoice_items ─────────────────────────────────────────
                           await tx.invoice_items.create({
                             data: {
                               parent_id: createdInvoice.id,
@@ -5239,7 +5222,6 @@ export const visitsController = {
                             });
                           }
 
-                          // Create order_items if non-direct
                           if (!isDirect) {
                             await tx.order_items.create({
                               data: {
@@ -5306,11 +5288,7 @@ export const visitsController = {
                               }),
                             },
                           });
-                        }
-                        // ═══════════════════════════════════════════════════════
-                        // NONE TRACKING
-                        // ═══════════════════════════════════════════════════════
-                        else {
+                        } else {
                           const vanInventory = await tx.van_inventory.findFirst(
                             {
                               where: {
@@ -5346,7 +5324,6 @@ export const visitsController = {
                             );
                           }
 
-                          // ── Deduct from van_inventory_items ──────────────────
                           const vanDeduction = calculateStockDeduction(
                             vanItem.quantity || 0,
                             vanItem.base_quantity || 0,
@@ -5391,7 +5368,6 @@ export const visitsController = {
                             });
                           }
 
-                          // ── Deduct from inventory_stock ──────────────────────
                           const inventoryStock =
                             await tx.inventory_stock.findFirst({
                               where: {
@@ -5427,7 +5403,6 @@ export const visitsController = {
                               );
                             }
 
-                            // Calculate new available_stock
                             let newAvailableQty: number;
                             if (isUnitPcs) {
                               const availableTotalPieces =
@@ -5472,7 +5447,6 @@ export const visitsController = {
                             );
                           }
 
-                          // ── Stock Movement ───────────────────────────────────
                           const validatedFromLocationId =
                             await validateAndGetLocationId(
                               tx,
@@ -5503,7 +5477,6 @@ export const visitsController = {
                             },
                           });
 
-                          // ── Order Items (non-direct) ─────────────────────────
                           if (!isDirect) {
                             await tx.order_items.create({
                               data: {
@@ -5527,7 +5500,6 @@ export const visitsController = {
                             });
                           }
 
-                          // ── Invoice Items ────────────────────────────────────
                           await tx.invoice_items.create({
                             data: {
                               parent_id: createdInvoice.id,
@@ -5559,7 +5531,6 @@ export const visitsController = {
                         }
                       }
 
-                      // ── Recalculate invoice subtotal ───────────────────────────
                       const subtotal =
                         (
                           await tx.invoice_items.aggregate({
@@ -5586,7 +5557,6 @@ export const visitsController = {
                   }
                 }
 
-                // ─── PAYMENTS ────────────────────────────────────────────────────
                 if (payments && payments.length > 0) {
                   for (const paymentData of payments) {
                     let paymentNumber = paymentData.payment_number;
@@ -5665,7 +5635,6 @@ export const visitsController = {
                   }
                 }
 
-                // ─── COOLER INSPECTIONS ──────────────────────────────────────────
                 if (cooler_inspections && cooler_inspections.length > 0) {
                   for (const inspection of cooler_inspections) {
                     const coolerData = inspection.cooler || {};
@@ -5780,7 +5749,6 @@ export const visitsController = {
                   }
                 }
 
-                // ─── SURVEY ──────────────────────────────────────────────────────
                 if (survey && survey.survey_response) {
                   const { survey_response } = survey;
                   const surveyAnswers = survey_response.survey_answers || [];
@@ -5854,7 +5822,6 @@ export const visitsController = {
                   }
                 }
 
-                // ─── FETCH FINAL RESULT ──────────────────────────────────────────
                 const visitWithBasicRelations = await tx.visits.findUnique({
                   where: { id: visitId },
                   include: {
@@ -5932,7 +5899,6 @@ export const visitsController = {
               { maxWait: 15000, timeout: 90000 }
             );
 
-            // ── Cleanup old images on update ────────────────────────────────────
             if (isUpdate) {
               if (selfImageUrls.length > 0 && oldSelfImages.length > 0) {
                 for (const oldImage of oldSelfImages) {
@@ -7044,7 +7010,6 @@ export const visitsController = {
         ];
       }
 
-      // Build orderBy
       let orderBy: any = { createdate: 'desc' };
 
       if (sortByField === 'cooler_code') {
