@@ -3,7 +3,10 @@ import { Box, MenuItem, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 import { useFormik } from 'formik';
 import { useCurrencies } from 'hooks/useCurrencies';
-import { useInventoryItemById } from 'hooks/useInventoryItems';
+import {
+  useInventoryItemById,
+  type SalespersonInventoryData,
+} from 'hooks/useInventoryItems';
 import {
   useCreateInvoice,
   useInvoice,
@@ -58,6 +61,7 @@ export interface InvoiceItemFormData {
   notes: string;
   product_batches?: ProductBatch[];
   product_serials?: ProductSerial[];
+  conversion_rate?: number;
 }
 
 const ManageInvoice: React.FC<ManageInvoiceProps> = ({
@@ -286,13 +290,37 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     { enabled: open }
   );
 
+  const { data: salespersonInventoryData } = useInventoryItemById(
+    salespersonId,
+    { enabled: !!salespersonId && open }
+  );
+
+  /**
+   * Get product conversion rate from inventory data
+   */
+  const getProductConversionRate = useCallback(
+    (productId: number): number => {
+      if (!salespersonInventoryData?.data) return 1;
+      const responseData = salespersonInventoryData.data;
+      const salespersonData = responseData as SalespersonInventoryData;
+      const product = salespersonData.products?.find(
+        p => p.product_id === productId
+      );
+      return product?.product_unit_of_measurement?.conversion_rate ?? 1;
+    },
+    [salespersonInventoryData]
+  );
+
   /**
    * Resolves the effective unit_price for a product from the SP pricelist result.
-   * Priority: customer special → route/category special → base pricelist price.
+   * Only uses price list API pricing - no fallback to product base prices.
+   * For CASE: uses unit_price from price list.
+   * For PIECE: uses sub_unit_price from price list, falls back to calculated price.
    */
   const resolvePrice = (
     productId: number,
-    priceLists: CustomerPriceListResult[] | undefined
+    priceLists: CustomerPriceListResult[] | undefined,
+    unit: 'CASE' | 'PIECE' = 'CASE'
   ): string | null => {
     if (!priceLists || priceLists.length === 0) return null;
 
@@ -306,25 +334,45 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
 
       // 1. Customer-specific price
       const customerSp = specials.find(sp => sp.customer_id === customerId);
-      if (customerSp) return String(customerSp.sale_price);
+      if (customerSp) {
+        if (unit === 'PIECE') {
+          const piecePrice = Number(customerSp.sale_price) / 24;
+          return String(piecePrice.toFixed(2));
+        }
+        return String(customerSp.sale_price);
+      }
 
       // 2. Route or category special price
       const otherSp = specials.find(
         sp => sp.route_id != null || sp.customer_category_id != null
       );
-      if (otherSp) return String(otherSp.sale_price);
+      if (otherSp) {
+        if (unit === 'PIECE') {
+          const piecePrice = Number(otherSp.sale_price) / 24;
+          return String(piecePrice.toFixed(2));
+        }
+        return String(otherSp.sale_price);
+      }
 
       // 3. Base pricelist item price
+      if (unit === 'PIECE') {
+        // Use sub_unit_price if available, otherwise calculate
+        const subUnitPrice = item.sub_unit_price;
+        if (subUnitPrice) {
+          return String(subUnitPrice);
+        }
+        // Fallback: calculate from unit_price
+        const casePrice = Number(item.unit_price);
+        if (!isNaN(casePrice)) {
+          const piecePrice = casePrice / 24;
+          return String(piecePrice.toFixed(2));
+        }
+      }
       return String(item.unit_price);
     }
 
     return null;
   };
-
-  const { data: salespersonInventoryData } = useInventoryItemById(
-    salespersonId,
-    { enabled: !!salespersonId && open }
-  );
 
   const inventoryByProductId = useMemo(() => {
     const map: Record<
@@ -389,6 +437,48 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     }
   }, [open, invoiceItemsStr]);
 
+  useEffect(() => {
+    if (invoiceItems.length > 0 && !formik.values.customer_id) {
+      const updatedItems = invoiceItems.map(item => ({
+        ...item,
+        unit_price: '0',
+      }));
+      setInvoiceItems(updatedItems);
+      formik.setFieldValue('invoice_items', updatedItems, false);
+      formikSyncRef.current = JSON.stringify(updatedItems);
+    } else if (
+      invoiceItems.length > 0 &&
+      formik.values.customer_id &&
+      customerPriceLists
+    ) {
+      const updatedItems = invoiceItems.map(item => {
+        if (!item.product_id) return item;
+        const unit = item.unit || 'CASE';
+        const conversionRate = getProductConversionRate(
+          item.product_id as number
+        );
+        const resolvedPrice =
+          resolvePrice(item.product_id as number, customerPriceLists, unit) ??
+          '0';
+
+        return {
+          ...item,
+          unit_price: resolvedPrice,
+          conversion_rate: conversionRate,
+        };
+      });
+      setInvoiceItems(updatedItems);
+      formik.setFieldValue('invoice_items', updatedItems, false);
+      formikSyncRef.current = JSON.stringify(updatedItems);
+    }
+  }, [
+    formik.values.customer_id,
+    formik.values.invoice_date,
+    customerPriceLists,
+    invoiceItems,
+    getProductConversionRate,
+  ]);
+
   const handleCancel = () => {
     onClose();
     setInvoiceItems([]);
@@ -397,6 +487,8 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       null;
     initialParentId.current = null;
     setSelectedRowIndex(null);
+    setIsBatchSelectorOpen(false);
+    setIsSerialSelectorOpen(false);
   };
 
   useEffect(() => {
@@ -415,6 +507,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
             notes: item.notes || '',
             product_batches: item.product_batches || [],
             product_serials: item.product_serials || [],
+            conversion_rate: 1,
           })) || [];
         setInvoiceItems(items);
         (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
@@ -470,6 +563,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           notes: item.notes || '',
           product_batches: item.product_batches || [],
           product_serials: item.product_serials || [],
+          conversion_rate: 1,
         }));
         setInvoiceItems(items);
         formik.setFieldValue('invoice_items', items, false);
@@ -518,6 +612,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       notes: '',
       product_batches: [],
       product_serials: [],
+      conversion_rate: 1,
     };
     const updatedItems = [...invoiceItems, newItem];
     setInvoiceItems(updatedItems);
@@ -544,26 +639,73 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     formikSyncRef.current = JSON.stringify(updatedItems);
   };
 
+  /**
+   * Update price when unit changes (CASE/PIECE)
+   */
+  const handleUnitChange = useCallback(
+    (rowIndex: number, unit: 'CASE' | 'PIECE') => {
+      const item = invoiceItems[rowIndex];
+
+      const isSerialTracked = item.tracking_type?.toLowerCase() === 'serial';
+      if (isSerialTracked && unit === 'PIECE') {
+        return;
+      }
+
+      const conversionRate = getProductConversionRate(
+        item.product_id as number
+      );
+      let resolvedPrice = resolvePrice(
+        item.product_id as number,
+        customerPriceLists,
+        unit
+      );
+
+      if (!resolvedPrice) {
+        resolvedPrice = '0';
+      }
+
+      const updatedItems = [...invoiceItems];
+      updatedItems[rowIndex] = {
+        ...updatedItems[rowIndex],
+        unit,
+        unit_price: resolvedPrice,
+        conversion_rate: conversionRate,
+      };
+
+      setInvoiceItems(updatedItems);
+      formik.setFieldValue('invoice_items', updatedItems, false);
+      formikSyncRef.current = JSON.stringify(updatedItems);
+    },
+    [invoiceItems, customerPriceLists, getProductConversionRate]
+  );
+
   const handleProductChange = useCallback(
     (rowIndex: number, _event: any, product: any) => {
       const updatedItems = [...invoiceItems];
       const trackingType = product?.tracking_type || null;
-      const trackingLower = trackingType ? trackingType.toLowerCase() : null;
+      const trackingLower = trackingType
+        ? trackingType.toString().toLowerCase()
+        : null;
       const isBatchOrSerial =
         trackingLower === 'batch' || trackingLower === 'serial';
 
+      const currentItem = updatedItems[rowIndex];
+      const isSerialTracked = trackingType?.toLowerCase() === 'serial';
+      const unit = isSerialTracked ? 'CASE' : currentItem?.unit || 'CASE';
+      const conversionRate = getProductConversionRate(product?.product_id || 0);
+
       const resolvedPrice = product
-        ? (resolvePrice(product.product_id, customerPriceLists) ??
-          String(product.unit_price))
+        ? (resolvePrice(product.product_id, customerPriceLists, unit) ?? '0')
         : '0';
 
       updatedItems[rowIndex] = {
         ...updatedItems[rowIndex],
         product_id: product ? product.product_id : '',
         product_name: product ? product.name : '',
-        unit: updatedItems[rowIndex].unit || 'CASE',
         tracking_type: trackingType,
+        unit: unit,
         unit_price: resolvedPrice,
+        conversion_rate: conversionRate,
         quantity:
           product && isBatchOrSerial
             ? '0'
@@ -576,7 +718,12 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       formik.setFieldValue('invoice_items', updatedItems, false);
       formikSyncRef.current = JSON.stringify(updatedItems);
     },
-    [invoiceItems, customerPriceLists, formik.values.customer_id]
+    [
+      invoiceItems,
+      customerPriceLists,
+      formik.values.customer_id,
+      getProductConversionRate,
+    ]
   );
 
   const invoiceItemsWithIndex = React.useMemo(
@@ -613,19 +760,27 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       id: 'uom',
       label: 'Case/PCs',
       render: (_value, row) => {
+        const currentValue = ['CASE', 'PIECE'].includes(row.unit)
+          ? row.unit
+          : 'CASE';
+
+        const isSerialTracked = row.tracking_type?.toLowerCase() === 'serial';
+
         return (
           <Box className="!min-w-28">
             <Select
-              value={['CASE', 'PIECE'].includes(row.unit) ? row.unit : 'CASE'}
-              onChange={(e: any) =>
-                updateInvoiceItem(row._index, 'unit', e.target.value)
-              }
+              value={currentValue}
+              onChange={(e: any) => {
+                const unit = e.target.value as 'CASE' | 'PIECE';
+                handleUnitChange(row._index, unit);
+              }}
               size="small"
               disableClearable
               label=""
+              disabled={isSerialTracked}
             >
               <MenuItem value="CASE">CASE</MenuItem>
-              <MenuItem value="PIECE">PIECE</MenuItem>
+              {!isSerialTracked && <MenuItem value="PIECE">PIECE</MenuItem>}
             </Select>
           </Box>
         );
