@@ -138,7 +138,8 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             const allSerials = (item.product_serials ||
               []) as (ProductSerial & { selected?: boolean })[];
             const selectedSerials = allSerials.filter(
-              s => s.selected !== false
+              (s): s is ProductSerial & { selected: true } =>
+                s.selected !== false
             );
 
             if (selectedSerials.length === 0) {
@@ -271,7 +272,12 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       formik.setFieldValue('order_items', updatedItems, false);
       formikSyncRef.current = JSON.stringify(updatedItems);
     }
-  }, [formik.values.parent_id, formik.values.order_date, customerPriceLists]);
+  }, [
+    formik.values.parent_id,
+    formik.values.order_date,
+    customerPriceLists,
+    orderItems,
+  ]);
 
   /**
    * Resolves the effective unit_price for a product from the SP pricelist result.
@@ -422,6 +428,9 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     formikSyncRef.current = '';
     initializedRef.current = null;
     hydratedItemsRef.current = '';
+    setSelectedRowIndex(null);
+    setIsBatchSelectorOpen(false);
+    setIsSerialSelectorOpen(false);
   };
 
   const orderKey = useMemo(
