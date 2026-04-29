@@ -630,6 +630,7 @@ export const vanInventoryController = {
               code: true,
               unit_of_measurement: true,
               tracking_type: true,
+              product_unit_of_measurement: true,
             },
           },
           van_inventory_items_batch_lot: {

@@ -55,8 +55,7 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
       return;
     }
 
-    const productId =
-      typeof item.product_id === 'number' ? item.product_id : null;
+    const productId = typeof item.product_id === 'number' ? item.product_id : null;
 
     if (
       productId &&
@@ -65,10 +64,14 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
       inventoryByProductId[productId].batches.length > 0
     ) {
       const initialBatches = inventoryByProductId[productId].batches.map(
-        batch => ({
-          ...batch,
-          quantity: batch.batch_remaining_quantity || batch.quantity || 0,
-        })
+        batch => {
+          // Initialize with display quantity (pieces if unit is PIECE, cases if CASE)
+          // Defaulting to 0 for selection, but we can show available in pieces
+          return {
+            ...batch,
+            quantity: 0,
+          };
+        }
       );
       setProductBatches(initialBatches);
       return;
@@ -83,9 +86,6 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
     setSelectedRowIndex(null);
   }, [setIsOpen, setSelectedRowIndex]);
 
-  const handleDelete = React.useCallback((rowIndex: number) => {
-    setProductBatches(prev => prev.filter((_, index) => index !== rowIndex));
-  }, []);
 
   const handleBatchChange = React.useCallback(
     (field: keyof ProductBatch, rowIndex: number, value: string | number) => {
@@ -123,18 +123,7 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
       0
     );
 
-    // Convert back to base quantity for main invoice if PIECE is selected
-    const currentItem =
-      selectedRowIndex !== null ? invoiceItems[selectedRowIndex] : null;
-    const unit = currentItem?.unit || '';
-    const conversionRate = currentItem?.conversion_rate || 1;
-    let finalQuantity = totalQty;
-
-    if (unit.toUpperCase() === 'PIECE') {
-      finalQuantity = totalQty / conversionRate;
-    }
-
-    if (activeBatches.length === 0 || finalQuantity <= 0) {
+    if (activeBatches.length === 0 || totalQty <= 0) {
       toast.error('Total batch quantity must be greater than 0.');
       return;
     }
@@ -172,7 +161,7 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
     const updatedItems = [...invoiceItems];
     updatedItems[selectedRowIndex] = {
       ...updatedItems[selectedRowIndex],
-      quantity: String(finalQuantity),
+      quantity: String(totalQty),
       product_batches: productBatches.map(b => ({
         ...b,
         batch_number: (b.batch_number || '').trim(),
@@ -192,10 +181,12 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
     handleClose,
   ]);
 
-  const totalBatchQuantity = React.useMemo(
-    () => productBatches.reduce((sum, b) => sum + (Number(b.quantity) || 0), 0),
-    [productBatches]
-  );
+  const totalBatchQuantity = React.useMemo(() => {
+    return productBatches.reduce(
+      (sum, b) => sum + (Number(b.quantity) || 0),
+      0
+    );
+  }, [productBatches]);
 
   const isFormValid = React.useMemo(() => {
     if (selectedRowIndex === null) return false;
@@ -265,46 +256,73 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
       },
       {
         id: 'total_quantity',
-        label: 'Total Quantity',
-        render: (_value, row) => (
-          <Typography variant="body2" className="!text-gray-600">
-            {row.batch_remaining_quantity}
-          </Typography>
-        ),
+        label: 'Total Available',
+        render: (_value, row) => {
+          const currentItem =
+            selectedRowIndex !== null ? invoiceItems[selectedRowIndex] : null;
+          const unit = currentItem?.unit || '';
+          const conversionRate = currentItem?.conversion_rate || 1;
+
+          let displayTotal = row.batch_remaining_quantity || 0;
+          if (unit.toUpperCase() === 'PIECE') {
+            displayTotal = displayTotal * conversionRate;
+          }
+
+          return (
+            <Typography variant="body2" className="!text-gray-600">
+              {displayTotal} {unit.toUpperCase() === 'PIECE' ? 'pieces' : 'cases'}
+            </Typography>
+          );
+        },
       },
       {
         id: 'quantity',
         label: 'Quantity',
-        render: (_value, row, rowIndex) => (
-          <Input
-            type="number"
-            value={row.quantity}
-            onChange={e => {
-              const raw = Number(e.target.value);
-              const max = Number(
-                row.batch_remaining_quantity ?? row.quantity ?? 0
-              );
-              if (!Number.isFinite(raw)) {
-                handleBatchChange('quantity', rowIndex, 0);
-                return;
-              }
-              const nonNegative = raw >= 0 ? raw : 0;
-              const limited =
-                Number.isFinite(max) && max > 0
-                  ? Math.min(nonNegative, max)
-                  : nonNegative;
+        render: (_value, row, rowIndex) => {
+          const currentItem =
+            selectedRowIndex !== null ? invoiceItems[selectedRowIndex] : null;
+          const unit = currentItem?.unit || '';
+          const conversionRate = currentItem?.conversion_rate || 1;
 
-              handleBatchChange('quantity', rowIndex, limited);
-            }}
-            size="small"
-            className="!w-40"
-            placeholder="Enter quantity"
-            fullWidth
-          />
-        ),
+          // row.quantity is already display unit in our state
+          const displayValue = row.quantity || 0;
+
+          let maxDisplay = row.batch_remaining_quantity || 0;
+          if (unit.toUpperCase() === 'PIECE') {
+            maxDisplay = maxDisplay * conversionRate;
+          }
+
+          return (
+            <Input
+              type="number"
+              value={displayValue}
+              onChange={e => {
+                const raw = Number(e.target.value);
+                const max = maxDisplay;
+
+                if (!Number.isFinite(raw)) {
+                  handleBatchChange('quantity', rowIndex, 0);
+                  return;
+                }
+                const nonNegative = raw >= 0 ? raw : 0;
+                const limited =
+                  Number.isFinite(max) && max > 0
+                    ? Math.min(nonNegative, max)
+                    : nonNegative;
+
+                // We store the display value directly in the state
+                handleBatchChange('quantity', rowIndex, limited);
+              }}
+              size="small"
+              className="!w-40"
+              placeholder="Enter quantity"
+              fullWidth
+            />
+          );
+        },
       },
     ],
-    [handleBatchChange, handleDelete]
+    [handleBatchChange, selectedRowIndex, invoiceItems]
   );
 
   return (

@@ -124,15 +124,9 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       0
     );
 
-    const currentItem =
-      selectedRowIndex !== null ? orderItems[selectedRowIndex] : null;
-    const unit = currentItem?.unit || '';
-    const conversionRate = currentItem?.conversion_rate || 1;
-    let finalQuantity = totalQty;
 
-    if (unit.toUpperCase() === 'PIECE') {
-      finalQuantity = totalQty / conversionRate;
-    }
+
+    const finalQuantity = totalQty;
 
     if (activeBatches.length === 0 || finalQuantity <= 0) {
       toast.error('Total batch quantity must be greater than 0.');
@@ -235,16 +229,6 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
       0
     );
 
-    // Get current order item to check unit
-    const currentItem =
-      selectedRowIndex !== null ? orderItems[selectedRowIndex] : null;
-    const unit = currentItem?.unit || '';
-    const conversionRate = currentItem?.conversion_rate || 1;
-
-    // If unit is PIECE, convert to pieces
-    if (unit.toUpperCase() === 'PIECE') {
-      return baseTotal * conversionRate;
-    }
 
     return baseTotal;
   }, [productBatches, selectedRowIndex, orderItems]);
@@ -282,7 +266,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
         id: 'total_quantity',
         label:
           selectedRowIndex !== null &&
-          orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PIECE'
+            orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PIECE'
             ? 'Total Available (pieces)'
             : 'Total Available (cases)',
         render: (_value, row) => {
@@ -310,7 +294,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
         id: 'quantity',
         label:
           selectedRowIndex !== null &&
-          orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PIECE'
+            orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PIECE'
             ? 'Quantity (pieces)'
             : 'Quantity (cases)',
         render: (_value, row, rowIndex) => {
@@ -350,10 +334,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
                     : nonNegative;
 
                 // Convert back to base quantity for storage
-                const baseQuantity =
-                  unit.toUpperCase() === 'PIECE'
-                    ? limited / conversionRate
-                    : limited;
+                const baseQuantity = limited;
                 handleBatchChange('quantity', rowIndex, baseQuantity);
               }}
               size="small"
@@ -384,7 +365,7 @@ const ManageOrderBatch: React.FC<ManageOrderBatchProps> = ({
         <p className="!font-semibold text-lg !text-gray-900">
           Batch Information ({totalBatchQuantity}{' '}
           {selectedRowIndex !== null &&
-          orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PIECE'
+            orderItems[selectedRowIndex]?.unit?.toUpperCase() === 'PIECE'
             ? 'pieces'
             : 'cases'}
           )

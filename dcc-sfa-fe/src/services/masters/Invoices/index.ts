@@ -7,6 +7,7 @@ interface InvoiceItem {
   product_id: number;
   product_name?: string;
   unit: 'CASE' | 'PIECE';
+  uom?: 'CASE' | 'PIECE';
   quantity: number;
   base_quantity?: number;
   conversion_factor?: number;

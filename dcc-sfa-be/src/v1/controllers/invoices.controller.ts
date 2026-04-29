@@ -2,6 +2,17 @@ import { Request, Response } from 'express';
 import { paginate } from '../../utils/paginate';
 import prisma from '../../configs/prisma.client';
 
+function calculateUnitConversion(
+  quantity: number,
+  unit: string,
+  conversionRate: number
+): number {
+  if (unit?.toUpperCase() === 'PIECE') {
+    return quantity / (conversionRate || 1);
+  }
+  return quantity;
+}
+
 interface InvoiceSerialized {
   id: number;
   invoice_number: string;
@@ -174,6 +185,7 @@ export const invoicesController = {
             'All invoice items must have product_id, quantity, and unit_price',
         });
       }
+
       const invoiceNumber = data.invoice_number || `INV-${Date.now()}`;
 
       const invoice = await prisma.$transaction(async tx => {
@@ -244,6 +256,15 @@ export const invoicesController = {
             const totalAmount =
               quantity * unitPrice - discountAmount + taxAmount;
 
+            const conversionRate =
+              Number(product?.product_unit_of_measurement?.conversion_rate) ||
+              1;
+            const baseQuantity = calculateUnitConversion(
+              quantity,
+              item.unit,
+              conversionRate
+            );
+
             let trackingNotes = '';
             const trackingType = product?.tracking_type?.toUpperCase();
 
@@ -256,8 +277,14 @@ export const invoicesController = {
               // If this is a direct invoice (not from order), deduct stock
               if (data.invoice_method !== 'order') {
                 for (const batch of batchData) {
-                  const batchQty = Number(batch.quantity);
-                  if (batchQty > 0) {
+                  const rawBatchQty = Number(batch.quantity);
+                  const batchBaseQty = calculateUnitConversion(
+                    rawBatchQty,
+                    item.unit,
+                    conversionRate
+                  );
+
+                  if (batchBaseQty > 0) {
                     // Update van inventory
                     const vanItem = await tx.van_inventory_items.findFirst({
                       where: {
@@ -268,14 +295,16 @@ export const invoicesController = {
                     if (vanItem) {
                       await tx.van_inventory_items.update({
                         where: { id: vanItem.id },
-                        data: { quantity: { decrement: batchQty } },
+                        data: { quantity: { decrement: batchBaseQty } },
                       });
                     }
 
                     // Update batch lot
                     await tx.batch_lots.update({
                       where: { id: batch.batch_lot_id },
-                      data: { remaining_quantity: { decrement: batchQty } },
+                      data: {
+                        remaining_quantity: { decrement: batchBaseQty },
+                      },
                     });
                   }
                 }
@@ -305,6 +334,21 @@ export const invoicesController = {
                   });
                 }
               }
+            } else if (data.invoice_method !== 'order') {
+              const vanItem = await tx.van_inventory_items.findFirst({
+                where: {
+                  product_id: product?.id,
+                  batch_lot_id: null,
+                  serial_id: null,
+                },
+              });
+
+              if (vanItem) {
+                await tx.van_inventory_items.update({
+                  where: { id: vanItem.id },
+                  data: { quantity: { decrement: baseQuantity } },
+                });
+              }
             }
 
             await tx.invoice_items.create({
@@ -326,8 +370,8 @@ export const invoicesController = {
                 discount_amount: discountAmount,
                 tax_amount: taxAmount,
                 total_amount: totalAmount,
-                conversion_factor: Number(item.conversion_factor) || 1,
-                base_quantity: Number(item.base_quantity) || 0,
+                conversion_factor: conversionRate,
+                base_quantity: baseQuantity,
                 notes: item.notes
                   ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
                   : trackingNotes || null,

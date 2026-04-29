@@ -453,14 +453,21 @@ async function processOrderItems(
       }
 
       if (needsUpdate) {
+        // Crucial: originalItem.quantity is for CASE, originalItem.base_quantity is for PIECE
+        const originalDisplayQty =
+          originalItem.unit === 'PIECE'
+            ? originalItem.base_quantity
+            : originalItem.quantity;
+        const newDisplayQty = parseInt(newItem.quantity, 10);
+
         console.log(
           `Item ${originalItem.product_id} needs update: ${updateReason}`
         );
         itemsToUpdate.push({
           originalItem,
           newItem,
-          quantityDiff: parseInt(newItem.quantity) - originalItem.quantity,
-          priceChanged: newPrice !== originalPrice,
+          quantityDiff: newDisplayQty - originalDisplayQty,
+          priceChanged: updateReason.includes('price'),
           batchesChanged:
             JSON.stringify(newBatches) !== JSON.stringify(originalBatches),
           serialsChanged:
@@ -627,11 +634,15 @@ async function processOrderItems(
             movementType: 'SALE',
           });
         }
-      } else {
+        const originalDisplayQty =
+          originalItem.unit === 'PIECE'
+            ? originalItem.base_quantity
+            : originalItem.quantity;
+
         await processInventoryChange(tx, {
           product,
           trackingType,
-          quantity: originalItem.quantity,
+          quantity: originalDisplayQty,
           item: originalItem,
           order,
           van_inventory_id,
@@ -1179,19 +1190,46 @@ async function processInventoryChange(
         van_inventory_items_inventory: { is_active: 'Y' },
       },
     });
+
     if (vanItem) {
-      const newQty = Number(vanItem.quantity) + qChange;
-      if (newQty > 0) {
-        await tx.van_inventory_items.update({
-          where: { id: vanItem.id },
-          data: { quantity: newQty },
-        });
-      } else if (newQty === 0) {
-        await tx.van_inventory_items.delete({ where: { id: vanItem.id } });
-      } else if (movementType === 'SALE') {
-        throw new Error(`Insufficient quantity for "${product.name}"`);
+      if (unit === 'PIECE') {
+        const vanRes = calculateUnitConversion(
+          Number(vanItem.quantity) || 0,
+          Number(vanItem.base_quantity) || 0,
+          conversionFactor,
+          quantity,
+          'PIECE',
+          movementType
+        );
+
+        if (vanRes.newQuantity === 0 && vanRes.newBaseQuantity === 0) {
+          await tx.van_inventory_items.delete({ where: { id: vanItem.id } });
+        } else {
+          await tx.van_inventory_items.update({
+            where: { id: vanItem.id },
+            data: {
+              quantity: vanRes.newQuantity,
+              base_quantity: vanRes.newBaseQuantity,
+            },
+          });
+        }
+        console.log(
+          `VAN NONE PCS → cases=${vanRes.newQuantity}, pcs=${vanRes.newBaseQuantity}`
+        );
+      } else {
+        const newQty = Number(vanItem.quantity) + qChange;
+        if (newQty > 0) {
+          await tx.van_inventory_items.update({
+            where: { id: vanItem.id },
+            data: { quantity: newQty },
+          });
+        } else if (newQty === 0) {
+          await tx.van_inventory_items.delete({ where: { id: vanItem.id } });
+        } else if (movementType === 'SALE') {
+          throw new Error(`Insufficient quantity for "${product.name}"`);
+        }
       }
-    } else {
+    } else if (movementType === 'SALE') {
       console.log(
         `No van item for NONE tracking product ${product.name} - skipping van update`
       );
@@ -1204,16 +1242,39 @@ async function processInventoryChange(
         serial_number_id: null,
       },
     });
+
     if (stock) {
-      await tx.inventory_stock.update({
-        where: { id: stock.id },
-        data: {
-          current_stock: Number(stock.current_stock) + qChange,
-          available_stock: Number(stock.available_stock) + qChange,
-          updatedate: new Date(),
-          updatedby: userId,
-        },
-      });
+      if (unit === 'PIECE') {
+        const stockRes = calculateUnitConversion(
+          Number(stock.current_stock) || 0,
+          Number(stock.base_quantity) || 0,
+          conversionFactor,
+          quantity,
+          'PIECE',
+          movementType
+        );
+
+        await tx.inventory_stock.update({
+          where: { id: stock.id },
+          data: {
+            current_stock: stockRes.newQuantity,
+            available_stock: stockRes.newQuantity,
+            base_quantity: stockRes.newBaseQuantity,
+            updatedate: new Date(),
+            updatedby: userId,
+          },
+        });
+      } else {
+        await tx.inventory_stock.update({
+          where: { id: stock.id },
+          data: {
+            current_stock: Number(stock.current_stock) + qChange,
+            available_stock: Number(stock.available_stock) + qChange,
+            updatedate: new Date(),
+            updatedby: userId,
+          },
+        });
+      }
     }
 
     await tx.stock_movements.create({

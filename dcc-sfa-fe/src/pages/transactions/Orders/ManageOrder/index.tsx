@@ -198,13 +198,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             )
             .map(item => {
               const unitPrice = Number(item.unit_price) || 0;
-              // Only convert if item wasn't loaded from existing order
-              // For loaded items, quantity is already in correct display format
-              let quantity = Number(item.quantity) || 0;
-              if (!item.isLoaded && item.unit === 'PIECE') {
-                // Convert display quantity to base quantity for backend
-                quantity = quantity / (item.conversion_rate || 1);
-              }
+              const quantity = Number(item.quantity) || 0;
               const conversionRate = item.conversion_rate || 1;
 
               return {
@@ -215,15 +209,10 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 quantity: quantity,
                 unit_price: unitPrice,
                 notes: item.notes,
-                product_batches: item.isLoaded
-                  ? item.product_batches
-                  : item.product_batches?.map(batch => ({
-                      ...batch,
-                      quantity:
-                        item.unit === 'PIECE'
-                          ? (batch.quantity || 0) / (item.conversion_rate || 1)
-                          : batch.quantity || 0,
-                    })) || [],
+                product_batches: item.product_batches?.map(batch => ({
+                  ...batch,
+                  quantity: Number(batch.quantity) || 0,
+                })) || [],
                 product_serials: item.product_serials,
                 conversion_rate: conversionRate,
               };
@@ -473,9 +462,9 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
           const conversionRate = item.conversion_factor || 1;
           let displayQuantity = item.quantity;
 
-          // For PIECE units, convert base_quantity back to display quantity
+          // For PIECE units, displayQuantity is the raw piece count stored in base_quantity
           if (item.unit === 'PIECE') {
-            displayQuantity = (item.base_quantity || 0) / conversionRate;
+            displayQuantity = item.base_quantity || 0;
           }
 
           return {
@@ -484,6 +473,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             unit: (item.unit as any) || 'CASE',
             tracking_type: item.tracking_type || null,
             quantity: displayQuantity.toString(),
+            base_quantity: item.base_quantity || 0,
             unit_price: item.unit_price.toString(),
             notes: item.notes || '',
             isLoaded: true, // Mark as loaded from existing order
@@ -492,7 +482,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 ...batch,
                 quantity:
                   item.unit === 'PIECE'
-                    ? (batch.quantity || 0) / conversionRate
+                    ? (batch.quantity || 0) * conversionRate
                     : batch.quantity || 0,
               })) || [],
             product_serials: item.product_serials || [],
@@ -615,14 +605,25 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       }
 
       const updatedItems = [...orderItems];
+      const previousUnit = item.unit || 'CASE';
+
+      const updatedBatches =
+        item.product_batches?.map(batch => {
+          let newQty = Number(batch.quantity) || 0;
+          if (previousUnit === 'CASE' && unit === 'PIECE') {
+            newQty = newQty * conversionRate;
+          } else if (previousUnit === 'PIECE' && unit === 'CASE') {
+            newQty = newQty / conversionRate;
+          }
+          return { ...batch, quantity: newQty };
+        }) || [];
+
       updatedItems[rowIndex] = {
         ...updatedItems[rowIndex],
         unit,
         unit_price: resolvedPrice,
         conversion_rate: conversionRate,
-        quantity: '0',
-        product_batches: [],
-        product_serials: [],
+        product_batches: updatedBatches,
       };
 
       setOrderItems(updatedItems);
@@ -687,173 +688,159 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
   const orderItemsColumns: TableColumn<
     OrderItemFormData & { _index: number }
   >[] = [
-    {
-      id: 'product_id',
-      label: 'Product',
-      render: (
-        _value: any,
-        row: OrderItemFormData & { _index: number }
-      ): React.ReactNode => (
-        <SalesItemsSelect
-          salespersonId={salespersonId}
-          value={row.product_id}
-          onChange={(_event, product) =>
-            handleProductChange(row._index, _event, product)
-          }
-          size="small"
-          placeholder="Search for a product"
-          label=""
-          disabled={!formik.values.salesperson_id}
-          className="!min-w-72"
-        />
-      ),
-    },
-    {
-      id: 'uom',
-      label: 'Case/PCs',
-      render: (_value, row) => {
-        const currentValue = ['CASE', 'PIECE'].includes(row.unit)
-          ? row.unit
-          : 'CASE';
-
-        const isSerialTracked = row.tracking_type?.toLowerCase() === 'serial';
-
-        return (
-          <Box className="!min-w-28">
-            <Select
-              value={currentValue}
-              onChange={(e: any) => {
-                const unit = e.target.value as 'CASE' | 'PIECE';
-                handleUnitChange(row._index, unit);
-              }}
-              size="small"
-              disableClearable
-              label=""
-              disabled={isSerialTracked}
-            >
-              <MenuItem value="CASE">CASE</MenuItem>
-              {!isSerialTracked && <MenuItem value="PIECE">PIECE</MenuItem>}
-            </Select>
-          </Box>
-        );
-      },
-    },
-    {
-      id: 'tracking_type',
-      label: 'Tracking',
-      render: (_value, row) => {
-        const tracking = (row.tracking_type || '').toString().toLowerCase();
-        const canManage =
-          tracking === 'batch' || tracking === 'serial' ? tracking : null;
-        return (
-          <Box className="!flex !min-w-48 !items-center !justify-between">
-            <Typography
-              variant="body2"
-              className={`!text-gray-700 !uppercase !text-xs`}
-            >
-              {tracking || 'none'}
-            </Typography>
-            {canManage && (
-              <Button
-                type="button"
-                startIcon={<Tag />}
-                variant="text"
-                size="small"
-                onClick={() => {
-                  const index = row._index;
-                  const item = orderItems[index];
-                  if (!item || !item.product_id) {
-                    toast.error('Please select a product first');
-                    return;
-                  }
-                  setSelectedRowIndex(index);
-                  if (canManage === 'batch') {
-                    setIsBatchSelectorOpen(true);
-                  } else {
-                    setIsSerialSelectorOpen(true);
-                  }
-                }}
-              >
-                {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
-              </Button>
-            )}
-          </Box>
-        );
-      },
-    },
-    {
-      id: 'quantity',
-      label: orderItems.some(item => item.unit === 'PIECE')
-        ? 'Quantity (pieces)'
-        : 'Quantity (cases)',
-      render: (_value, row) => {
-        const tracking = (row.tracking_type || '').toString().toLowerCase();
-        const isNoneTracking = !tracking || tracking === 'none';
-        const unit = row.unit || '';
-        const conversionRate = row.conversion_rate || 1;
-
-        let displayValue = row.quantity || '0';
-        if (unit.toUpperCase() === 'PIECE') {
-          displayValue = String((Number(row.quantity) || 0) * conversionRate);
-        }
-
-        return (
-          <Input
-            value={displayValue}
-            onChange={e => {
-              const raw = Number(e.target.value);
-              if (unit.toUpperCase() === 'PIECE') {
-                // Convert back to base quantity for storage
-                const baseQuantity = Number.isFinite(raw)
-                  ? raw / conversionRate
-                  : 0;
-                updateOrderItem(row._index, 'quantity', String(baseQuantity));
-              } else {
-                updateOrderItem(row._index, 'quantity', e.target.value);
-              }
-            }}
-            placeholder={
-              unit.toUpperCase() === 'PIECE' ? 'Enter pieces' : 'Enter cases'
+      {
+        id: 'product_id',
+        label: 'Product',
+        render: (
+          _value: any,
+          row: OrderItemFormData & { _index: number }
+        ): React.ReactNode => (
+          <SalesItemsSelect
+            salespersonId={salespersonId}
+            value={row.product_id}
+            onChange={(_event, product) =>
+              handleProductChange(row._index, _event, product)
             }
+            size="small"
+            placeholder="Search for a product"
+            label=""
+            disabled={!formik.values.salesperson_id}
+            className="!min-w-72"
+          />
+        ),
+      },
+      {
+        id: 'uom',
+        label: 'Case/PCs',
+        render: (_value, row) => {
+          const currentValue = ['CASE', 'PIECE'].includes(row.unit)
+            ? row.unit
+            : 'CASE';
+
+          const isSerialTracked = row.tracking_type?.toLowerCase() === 'serial';
+
+          return (
+            <Box className="!min-w-28">
+              <Select
+                value={currentValue}
+                onChange={(e: any) => {
+                  const unit = e.target.value as 'CASE' | 'PIECE';
+                  handleUnitChange(row._index, unit);
+                }}
+                size="small"
+                disableClearable
+                label=""
+                disabled={isSerialTracked}
+              >
+                <MenuItem value="CASE">CASE</MenuItem>
+                {!isSerialTracked && <MenuItem value="PIECE">PIECE</MenuItem>}
+              </Select>
+            </Box>
+          );
+        },
+      },
+      {
+        id: 'tracking_type',
+        label: 'Tracking',
+        render: (_value, row) => {
+          const tracking = (row.tracking_type || '').toString().toLowerCase();
+          const canManage =
+            tracking === 'batch' || tracking === 'serial' ? tracking : null;
+          return (
+            <Box className="!flex !min-w-48 !items-center !justify-between">
+              <Typography
+                variant="body2"
+                className={`!text-gray-700 !uppercase !text-xs`}
+              >
+                {tracking || 'none'}
+              </Typography>
+              {canManage && (
+                <Button
+                  type="button"
+                  startIcon={<Tag />}
+                  variant="text"
+                  size="small"
+                  onClick={() => {
+                    const index = row._index;
+                    const item = orderItems[index];
+                    if (!item || !item.product_id) {
+                      toast.error('Please select a product first');
+                      return;
+                    }
+                    setSelectedRowIndex(index);
+                    if (canManage === 'batch') {
+                      setIsBatchSelectorOpen(true);
+                    } else {
+                      setIsSerialSelectorOpen(true);
+                    }
+                  }}
+                >
+                  {canManage === 'batch' ? 'Select Batches' : 'Select Serials'}
+                </Button>
+              )}
+            </Box>
+          );
+        },
+      },
+      {
+        id: 'quantity',
+        label: orderItems.some(item => item.unit === 'PIECE')
+          ? 'Quantity (pieces)'
+          : 'Quantity (cases)',
+        render: (_value, row) => {
+          const tracking = (row.tracking_type || '').toString().toLowerCase();
+          const isNoneTracking = !tracking || tracking === 'none';
+          const unit = row.unit || 'CASE';
+          const displayQuantity = Number(row.quantity) || 0;
+
+          return (
+            <Input
+              value={displayQuantity.toString()}
+              onChange={e => {
+                updateOrderItem(row._index, 'quantity', e.target.value);
+              }}
+              placeholder={
+                unit.toUpperCase() === 'PIECE' ? 'Enter pieces' : 'Enter cases'
+              }
+              type="number"
+              size="small"
+              className="!min-w-20"
+              disabled={!isNoneTracking}
+            />
+          );
+        },
+      },
+      {
+        id: 'unit_price',
+        label: 'Unit Price',
+        render: (_value, row) => (
+          <Input
+            value={row.unit_price}
+            onChange={e =>
+              updateOrderItem(row._index, 'unit_price', e.target.value)
+            }
+            placeholder="0.00"
             type="number"
             size="small"
-            className="!min-w-20"
-            disabled={!isNoneTracking}
+            className="!min-w-32"
           />
-        );
+        ),
       },
-    },
-    {
-      id: 'unit_price',
-      label: 'Unit Price',
-      render: (_value, row) => (
-        <Input
-          value={row.unit_price}
-          onChange={e =>
-            updateOrderItem(row._index, 'unit_price', e.target.value)
-          }
-          placeholder="0.00"
-          type="number"
-          size="small"
-          className="!min-w-32"
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
-      sortable: false,
-      render: (_value, row) => (
-        <DeleteButton
-          onClick={() => removeOrderItem(row._index)}
-          tooltip="Remove item"
-          confirmDelete={true}
-          size="medium"
-          itemName="order item"
-        />
-      ),
-    },
-  ];
+      {
+        id: 'actions',
+        label: 'Actions',
+        sortable: false,
+        render: (_value, row) => (
+          <DeleteButton
+            onClick={() => removeOrderItem(row._index)}
+            tooltip="Remove item"
+            confirmDelete={true}
+            size="medium"
+            itemName="order item"
+          />
+        ),
+      },
+    ];
 
   const totals = useMemo(() => {
     const subtotal = orderItems.reduce((sum, item) => {
