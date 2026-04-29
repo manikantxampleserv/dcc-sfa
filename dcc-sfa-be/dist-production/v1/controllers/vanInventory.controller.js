@@ -486,6 +486,7 @@ exports.vanInventoryController = {
                             code: true,
                             unit_of_measurement: true,
                             tracking_type: true,
+                            product_unit_of_measurement: true,
                         },
                     },
                     van_inventory_items_batch_lot: {
@@ -1827,6 +1828,11 @@ exports.vanInventoryController = {
                                         },
                                     },
                                     product_tax_master: true,
+                                    serial_numbers_products: {
+                                        include: {
+                                            serial_numbers_customers: true,
+                                        },
+                                    },
                                 },
                             },
                         },
@@ -2986,6 +2992,13 @@ exports.vanInventoryController = {
                                     code: true,
                                     tracking_type: true,
                                     tax_id: true,
+                                    product_unit_of_measurement: {
+                                        select: {
+                                            id: true,
+                                            name: true,
+                                            conversion_rate: true,
+                                        },
+                                    },
                                     product_tax_master: {
                                         select: {
                                             id: true,

@@ -64,7 +64,6 @@ const MODULE_MAPPING = {
     'stock-movement': 'Stock Movement',
     'stock-transfer': 'Stock Transfer Request',
     'batch-lots': 'Batch & Lot Management',
-    'inventory-management': 'Inventory Management',
     competitor: 'Competitor Activity',
     'customer-complaint': 'Customer Complaint',
     'customer-category': 'Customer Category',
@@ -88,6 +87,10 @@ const MODULE_MAPPING = {
     token: 'Token',
     setting: 'Setting',
     templates: 'email-templates',
+    region: 'Region Master',
+    district: 'District Master',
+    city: 'City Master',
+    pricelist: 'Price List',
 };
 /**
  * @constant MODULES
@@ -118,6 +121,7 @@ const READ_ONLY_MODULES = [
     'route-effectiveness',
     'profile',
     'login-history',
+    'inventory-items',
 ];
 /**
  * @description Generates CRUD permissions for each module based on available actions
@@ -127,7 +131,7 @@ const mockPermissions = [];
 exports.mockPermissions = mockPermissions;
 MODULES.forEach(moduleKey => {
     ACTIONS.forEach(action => {
-        if (READ_ONLY_MODULES.includes(moduleKey) && action.key === 'delete') {
+        if (READ_ONLY_MODULES.includes(moduleKey) && action.key !== 'read') {
             return;
         }
         if (moduleKey === 'setting' && action.key !== 'read') {

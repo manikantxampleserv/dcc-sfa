@@ -64,6 +64,12 @@ exports.priceListsController = {
     async upsertPriceList(req, res) {
         const data = req.body;
         const userId = req.user?.id || 1;
+        console.log('upsertPriceList called with:', {
+            id: data.id,
+            name: data.name,
+            isUpdate: !!data.id,
+            bodyKeys: Object.keys(data),
+        });
         try {
             if (!data.name || data.name.trim() === '') {
                 return res.status(400).send({
@@ -87,6 +93,7 @@ exports.priceListsController = {
             }
             let priceList;
             const isUpdate = !!data.id;
+            console.log('isUpdate:', isUpdate, 'data.id:', data.id);
             if (data.id) {
                 priceList = await prisma_client_1.default.pricelists.update({
                     where: { id: data.id },
@@ -485,8 +492,14 @@ exports.priceListsController = {
     async deletePriceLists(req, res) {
         try {
             const { id } = req.params;
+            const priceListId = Number(id);
             const existingPriceList = await prisma_client_1.default.pricelists.findUnique({
-                where: { id: Number(id) },
+                where: { id: priceListId },
+                include: {
+                    pricelist_item: {
+                        select: { id: true },
+                    },
+                },
             });
             if (!existingPriceList)
                 return res
@@ -498,18 +511,32 @@ exports.priceListsController = {
                     message: 'Cannot delete default price list',
                 });
             }
-            await prisma_client_1.default.pricelist_item_special_prices.deleteMany({
-                where: {
-                    pricelist_item: {
-                        pricelist_id: Number(id),
+            await prisma_client_1.default.$transaction(async (tx) => {
+                await tx.pricelist_item_special_prices.deleteMany({
+                    where: {
+                        pricelist_item: {
+                            pricelist_id: priceListId,
+                        },
                     },
-                },
-            });
-            await prisma_client_1.default.pricelist_items.deleteMany({
-                where: { pricelist_id: Number(id) },
-            });
-            await prisma_client_1.default.pricelists.delete({
-                where: { id: Number(id) },
+                });
+                await tx.pricelist_items.deleteMany({
+                    where: { pricelist_id: priceListId },
+                });
+                await tx.orders.updateMany({
+                    where: { pricelist_id: priceListId },
+                    data: { pricelist_id: null },
+                });
+                await tx.invoices.updateMany({
+                    where: { pricelist_id: priceListId },
+                    data: { pricelist_id: null },
+                });
+                await tx.pricelists.updateMany({
+                    where: { base_pricelist_id: priceListId },
+                    data: { base_pricelist_id: null },
+                });
+                await tx.pricelists.delete({
+                    where: { id: priceListId },
+                });
             });
             res.send({
                 success: true,

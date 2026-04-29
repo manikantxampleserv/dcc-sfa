@@ -6,6 +6,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.invoicesController = void 0;
 const paginate_1 = require("../../utils/paginate");
 const prisma_client_1 = __importDefault(require("../../configs/prisma.client"));
+function calculateUnitConversion(quantity, unit, conversionRate) {
+    if (unit?.toUpperCase() === 'PIECE') {
+        return quantity / (conversionRate || 1);
+    }
+    return quantity;
+}
 const serializeInvoice = (invoice) => ({
     id: invoice.id,
     invoice_number: invoice.invoice_number,
@@ -63,6 +69,9 @@ const serializeInvoice = (invoice) => ({
         discount_amount: Number(item.discount_amount),
         tax_amount: Number(item.tax_amount),
         notes: item.notes,
+        uom: item.uom,
+        conversion_factor: Number(item.conversion_factor) || 1,
+        base_quantity: Number(item.base_quantity) || 0,
         tracking_type: item.invoice_items_products?.tracking_type || null,
         product: item.invoice_items_products
             ? {
@@ -164,6 +173,9 @@ exports.invoicesController = {
                         const discountAmount = Number(item.discount_amount) || 0;
                         const taxAmount = Number(item.tax_amount) || 0;
                         const totalAmount = quantity * unitPrice - discountAmount + taxAmount;
+                        const conversionRate = Number(product?.product_unit_of_measurement?.conversion_rate) ||
+                            1;
+                        const baseQuantity = calculateUnitConversion(quantity, item.unit, conversionRate);
                         let trackingNotes = '';
                         const trackingType = product?.tracking_type?.toUpperCase();
                         if (trackingType === 'BATCH' && item.product_batches) {
@@ -174,8 +186,9 @@ exports.invoicesController = {
                             // If this is a direct invoice (not from order), deduct stock
                             if (data.invoice_method !== 'order') {
                                 for (const batch of batchData) {
-                                    const batchQty = Number(batch.quantity);
-                                    if (batchQty > 0) {
+                                    const rawBatchQty = Number(batch.quantity);
+                                    const batchBaseQty = calculateUnitConversion(rawBatchQty, item.unit, conversionRate);
+                                    if (batchBaseQty > 0) {
                                         // Update van inventory
                                         const vanItem = await tx.van_inventory_items.findFirst({
                                             where: {
@@ -186,13 +199,15 @@ exports.invoicesController = {
                                         if (vanItem) {
                                             await tx.van_inventory_items.update({
                                                 where: { id: vanItem.id },
-                                                data: { quantity: { decrement: batchQty } },
+                                                data: { quantity: { decrement: batchBaseQty } },
                                             });
                                         }
                                         // Update batch lot
                                         await tx.batch_lots.update({
                                             where: { id: batch.batch_lot_id },
-                                            data: { remaining_quantity: { decrement: batchQty } },
+                                            data: {
+                                                remaining_quantity: { decrement: batchBaseQty },
+                                            },
                                         });
                                     }
                                 }
@@ -220,11 +235,30 @@ exports.invoicesController = {
                                 }
                             }
                         }
+                        else if (data.invoice_method !== 'order') {
+                            const vanItem = await tx.van_inventory_items.findFirst({
+                                where: {
+                                    product_id: product?.id,
+                                    batch_lot_id: null,
+                                    serial_id: null,
+                                },
+                            });
+                            if (vanItem) {
+                                await tx.van_inventory_items.update({
+                                    where: { id: vanItem.id },
+                                    data: { quantity: { decrement: baseQuantity } },
+                                });
+                            }
+                        }
                         await tx.invoice_items.create({
                             data: {
                                 parent_id: newInvoice.id,
                                 product_id: Number(item.product_id),
                                 product_name: product?.name || '',
+                                uom: item.uom ||
+                                    product?.product_unit_of_measurement?.name ||
+                                    product?.product_unit_of_measurement?.symbol ||
+                                    'pcs',
                                 unit: product?.product_unit_of_measurement?.name ||
                                     product?.product_unit_of_measurement?.symbol ||
                                     'pcs',
@@ -233,6 +267,8 @@ exports.invoicesController = {
                                 discount_amount: discountAmount,
                                 tax_amount: taxAmount,
                                 total_amount: totalAmount,
+                                conversion_factor: conversionRate,
+                                base_quantity: baseQuantity,
                                 notes: item.notes
                                     ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
                                     : trackingNotes || null,
@@ -454,7 +490,11 @@ exports.invoicesController = {
                             ? data.billing_address
                             : undefined,
                         is_active: data.is_active || 'Y',
-                        pricelist_id: data.pricelist_id !== undefined ? (data.pricelist_id ? Number(data.pricelist_id) : null) : undefined,
+                        pricelist_id: data.pricelist_id !== undefined
+                            ? data.pricelist_id
+                                ? Number(data.pricelist_id)
+                                : null
+                            : undefined,
                         updatedate: new Date(),
                     },
                 });
@@ -501,6 +541,10 @@ exports.invoicesController = {
                                     parent_id: Number(id),
                                     product_id: Number(item.product_id),
                                     product_name: product?.name || '',
+                                    uom: item.uom ||
+                                        product?.product_unit_of_measurement?.name ||
+                                        product?.product_unit_of_measurement?.symbol ||
+                                        'pcs',
                                     unit: product?.product_unit_of_measurement?.name ||
                                         product?.product_unit_of_measurement?.symbol ||
                                         'pcs',
@@ -509,6 +553,8 @@ exports.invoicesController = {
                                     discount_amount: discountAmount,
                                     tax_amount: taxAmount,
                                     total_amount: totalAmount,
+                                    conversion_factor: Number(item.conversion_factor) || 1,
+                                    base_quantity: Number(item.base_quantity) || 0,
                                     notes: item.notes
                                         ? `${item.notes}${trackingNotes ? ` (${trackingNotes})` : ''}`
                                         : trackingNotes || null,
