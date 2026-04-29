@@ -68,7 +68,6 @@ const MODULE_MAPPING: Record<string, string> = {
   'stock-movement': 'Stock Movement',
   'stock-transfer': 'Stock Transfer Request',
   'batch-lots': 'Batch & Lot Management',
-  'inventory-management': 'Inventory Management',
   competitor: 'Competitor Activity',
   'customer-complaint': 'Customer Complaint',
   'customer-category': 'Customer Category',
@@ -92,6 +91,10 @@ const MODULE_MAPPING: Record<string, string> = {
   token: 'Token',
   setting: 'Setting',
   templates: 'email-templates',
+  region: 'Region Master',
+  district: 'District Master',
+  city: 'City Master',
+  pricelist: 'Price List',
 };
 
 /**
@@ -125,6 +128,7 @@ const READ_ONLY_MODULES: string[] = [
   'route-effectiveness',
   'profile',
   'login-history',
+  'inventory-items',
 ];
 
 /**
@@ -135,7 +139,7 @@ const mockPermissions: MockPermission[] = [];
 
 MODULES.forEach(moduleKey => {
   ACTIONS.forEach(action => {
-    if (READ_ONLY_MODULES.includes(moduleKey) && action.key === 'delete') {
+    if (READ_ONLY_MODULES.includes(moduleKey) && action.key !== 'read') {
       return;
     }
 

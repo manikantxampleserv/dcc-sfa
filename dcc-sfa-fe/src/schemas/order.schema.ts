@@ -34,6 +34,7 @@ export interface OrderItemFormData {
   conversion_rate?: number | null;
   product_batches?: any[];
   product_serials?: any[];
+  isLoaded?: boolean;
 }
 
 export const orderItemValidationSchema = yup.object().shape({

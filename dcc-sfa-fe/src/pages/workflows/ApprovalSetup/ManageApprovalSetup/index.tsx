@@ -81,8 +81,8 @@ const ManageApprovalSetup: React.FC<ManageApprovalSetupProps> = ({
     selectedDepotId ?? undefined
   );
 
-  const { data: zonesResponse } = useZones({ isActive: 'Y' });
-  const { data: depotsResponse } = useDepots({ isActive: 'Y' });
+  const { data: zonesResponse } = useZones({ isActive: 'Y', limit: 1000 });
+  const { data: depotsResponse } = useDepots({ isActive: 'Y', limit: 1000 });
   const { data: requestTypesResponse } = useRequestTypes();
   const { data: usersResponse } = useUsers({
     page: 1,

@@ -47,18 +47,33 @@ const ManageRolePermissions: React.FC<ManageRolePermissionsProps> = ({
   const permissionsData = permissionsResponse?.data || [];
 
   const filteredPermissionsData = useMemo(() => {
+    let filteredData = permissionsData;
+
+    filteredData = filteredData.map(module => {
+      if (module.module === 'Dashboard') {
+        return {
+          ...module,
+          permissions: module.permissions.filter(
+            permission => permission.action === 'READ'
+          ),
+        };
+      }
+      return module;
+    });
+
     if (!searchTerm.trim()) {
-      return permissionsData;
+      return filteredData;
     }
+
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return permissionsData
+    return filteredData
       .map(module => ({
         ...module,
         permissions: module.permissions.filter(permission =>
           permission.name.toLowerCase().includes(lowerSearchTerm)
         ),
       }))
-      .filter(module => module.permissions.length > 0); 
+      .filter(module => module.permissions.length > 0);
   }, [permissionsData, searchTerm]);
 
   const createRoleMutation = useCreateRole({

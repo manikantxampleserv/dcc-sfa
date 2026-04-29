@@ -32,7 +32,10 @@ const AssetMovementStatusReport: React.FC = () => {
     }
   );
 
-  const { data: assetTypesData } = useAssetTypes();
+  const { data: assetTypesData } = useAssetTypes({
+    limit: 1000,
+    isActive: 'Y',
+  });
 
   const assetTypes = assetTypesData?.data || [];
 

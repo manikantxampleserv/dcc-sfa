@@ -52,7 +52,10 @@ const ManageRoute: React.FC<ManageRouteProps> = ({
   const createRouteMutation = useCreateRoute();
   const updateRouteMutation = useUpdateRoute();
 
-  const { data: routeTypesResponse } = useRouteTypes({ status: 'active' });
+  const { data: routeTypesResponse } = useRouteTypes({
+    status: 'active',
+    limit: 1000,
+  });
   const routeTypes = routeTypesResponse?.data || [];
 
   const formik = useFormik({

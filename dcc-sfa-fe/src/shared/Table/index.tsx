@@ -623,6 +623,7 @@ export default function Table<T extends Record<string, any>>(
             >
               {props.actions}{' '}
               {filterColunm &&
+                isPermission &&
                 hideableColumns &&
                 hideableColumns.length > 0 && (
                   <Box className="!relative">

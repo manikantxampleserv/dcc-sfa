@@ -57,11 +57,13 @@ export interface InvoiceItemFormData {
   unit: 'CASE' | 'PIECE';
   tracking_type?: string | null;
   quantity: string;
+  base_quantity?: number;
   unit_price: string;
   notes: string;
   product_batches?: ProductBatch[];
   product_serials?: ProductSerial[];
   conversion_rate?: number;
+  isLoaded?: boolean; // Track if item was loaded from existing invoice
 }
 
 const ManageInvoice: React.FC<ManageInvoiceProps> = ({
@@ -112,7 +114,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       notes: invoiceData?.notes || '',
       billing_address: invoiceData?.billing_address || '',
       is_active: invoiceData?.is_active || 'Y',
-      invoice_items: [],
+      invoiceItems: [],
     },
     validationSchema: invoiceValidationSchema,
     enableReinitialize: true,
@@ -234,16 +236,36 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           pricelist_id: appliedPricelistId,
           invoiceItems: invoiceItems
             .filter(item => item.product_id !== '')
-            .map(item => ({
-              product_id: Number(item.product_id),
-              quantity: Number(item.quantity),
-              unit_price: Number(item.unit_price),
-              notes: item.notes,
-              unit: item.unit,
-              tracking_type: item.tracking_type,
-              product_batches: item.product_batches,
-              product_serials: item.product_serials,
-            })),
+            .map(item => {
+              const unitPrice = Number(item.unit_price) || 0;
+
+              let quantity = Number(item.quantity) || 0;
+              if (!item.isLoaded && item.unit === 'PIECE') {
+                quantity = quantity / (item.conversion_rate || 1);
+              }
+              const conversionRate = item.conversion_rate || 1;
+
+              return {
+                tracking_type: item.tracking_type || null,
+                product_id: Number(item.product_id),
+                product_name: item.product_name || undefined,
+                unit: item.unit || undefined,
+                quantity: quantity,
+                unit_price: unitPrice,
+                notes: item.notes,
+                product_batches: item.isLoaded
+                  ? item.product_batches
+                  : item.product_batches?.map(batch => ({
+                      ...batch,
+                      quantity:
+                        item.unit === 'PIECE'
+                          ? (batch.quantity || 0) / (item.conversion_rate || 1)
+                          : batch.quantity || 0,
+                    })) || [],
+                product_serials: item.product_serials,
+                conversion_rate: conversionRate,
+              };
+            }),
         };
 
         if (isEdit && invoice) {
@@ -426,13 +448,13 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
   useEffect(() => {
     if (!open) return;
 
-    const currentFormikStr = JSON.stringify(formik.values.invoice_items || []);
+    const currentFormikStr = JSON.stringify(formik.values.invoiceItems || []);
 
     if (
       invoiceItemsStr !== currentFormikStr &&
       formikSyncRef.current !== invoiceItemsStr
     ) {
-      formik.setFieldValue('invoice_items', invoiceItems, false);
+      formik.setFieldValue('invoiceItems', invoiceItems, false);
       formikSyncRef.current = invoiceItemsStr;
     }
   }, [open, invoiceItemsStr]);
@@ -444,7 +466,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
         unit_price: '0',
       }));
       setInvoiceItems(updatedItems);
-      formik.setFieldValue('invoice_items', updatedItems, false);
+      formik.setFieldValue('invoiceItems', updatedItems, false);
       formikSyncRef.current = JSON.stringify(updatedItems);
     } else if (
       invoiceItems.length > 0 &&
@@ -468,7 +490,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
         };
       });
       setInvoiceItems(updatedItems);
-      formik.setFieldValue('invoice_items', updatedItems, false);
+      formik.setFieldValue('invoiceItems', updatedItems, false);
       formikSyncRef.current = JSON.stringify(updatedItems);
     }
   }, [
@@ -497,18 +519,36 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     if (currentInvoiceId !== lastLoadedInvoiceId.current) {
       if (invoice && invoiceResponse?.data) {
         const items =
-          invoiceResponse.data.invoice_items?.map(item => ({
-            product_id: item.product_id,
-            product_name: item.product_name || '',
-            unit: item.unit || 'CASE',
-            tracking_type: item.tracking_type || null,
-            quantity: item.quantity.toString(),
-            unit_price: item.unit_price.toString(),
-            notes: item.notes || '',
-            product_batches: item.product_batches || [],
-            product_serials: item.product_serials || [],
-            conversion_rate: 1,
-          })) || [];
+          invoiceResponse.data.invoice_items?.map(item => {
+            const conversionRate = item.conversion_factor || 1;
+            let displayQuantity = item.quantity;
+
+            if (item.unit === 'PIECE') {
+              displayQuantity = (item.base_quantity || 0) / conversionRate;
+            }
+
+            return {
+              product_id: item.product_id,
+              product_name: item.product_name || '',
+              unit: item.unit || 'CASE',
+              tracking_type: item.tracking_type || null,
+              quantity: displayQuantity.toString(),
+              base_quantity: item.base_quantity || 0,
+              unit_price: item.unit_price.toString(),
+              notes: item.notes || '',
+              isLoaded: true,
+              product_batches:
+                item.product_batches?.map(batch => ({
+                  ...batch,
+                  quantity:
+                    item.unit === 'PIECE'
+                      ? (batch.quantity || 0) / conversionRate
+                      : batch.quantity || 0,
+                })) || [],
+              product_serials: item.product_serials || [],
+              conversion_rate: conversionRate,
+            };
+          }) || [];
         setInvoiceItems(items);
         (lastLoadedInvoiceId as React.MutableRefObject<number | null>).current =
           currentInvoiceId ?? null;
@@ -566,7 +606,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           conversion_rate: 1,
         }));
         setInvoiceItems(items);
-        formik.setFieldValue('invoice_items', items, false);
+        formik.setFieldValue('invoiceItems', items, false);
         formikSyncRef.current = JSON.stringify(items);
       }
     }
@@ -587,7 +627,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       formik.setFieldValue('customer_id', '');
       formik.setFieldValue('salesperson_id', '');
       setInvoiceItems([]);
-      formik.setFieldValue('invoice_items', [], false);
+      formik.setFieldValue('invoiceItems', [], false);
       formikSyncRef.current = '[]';
     }
   }, [
@@ -603,7 +643,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     }
 
     const newItem: InvoiceItemFormData = {
-      product_id: '',
+      product_id: 0,
       product_name: '',
       unit: 'CASE',
       tracking_type: null,
@@ -612,18 +652,18 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       notes: '',
       product_batches: [],
       product_serials: [],
-      conversion_rate: 1,
+      conversion_rate: getProductConversionRate(0), // Use actual product conversion rate
     };
     const updatedItems = [...invoiceItems, newItem];
     setInvoiceItems(updatedItems);
-    formik.setFieldValue('invoice_items', updatedItems, false);
+    formik.setFieldValue('invoiceItems', updatedItems, false);
     formikSyncRef.current = JSON.stringify(updatedItems);
   };
 
   const removeInvoiceItem = (index: number) => {
     const updatedItems = invoiceItems.filter((_, i) => i !== index);
     setInvoiceItems(updatedItems);
-    formik.setFieldValue('invoice_items', updatedItems, false);
+    formik.setFieldValue('invoiceItems', updatedItems, false);
     formikSyncRef.current = JSON.stringify(updatedItems);
   };
 
@@ -635,7 +675,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     const updatedItems = [...invoiceItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     setInvoiceItems(updatedItems);
-    formik.setFieldValue('invoice_items', updatedItems, false);
+    formik.setFieldValue('invoiceItems', updatedItems, false);
     formikSyncRef.current = JSON.stringify(updatedItems);
   };
 
@@ -673,7 +713,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       };
 
       setInvoiceItems(updatedItems);
-      formik.setFieldValue('invoice_items', updatedItems, false);
+      formik.setFieldValue('invoiceItems', updatedItems, false);
       formikSyncRef.current = JSON.stringify(updatedItems);
     },
     [invoiceItems, customerPriceLists, getProductConversionRate]
@@ -715,7 +755,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       };
 
       setInvoiceItems(updatedItems);
-      formik.setFieldValue('invoice_items', updatedItems, false);
+      formik.setFieldValue('invoiceItems', updatedItems, false);
       formikSyncRef.current = JSON.stringify(updatedItems);
     },
     [
@@ -837,9 +877,19 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       render: (_value, row) => {
         const tracking = (row.tracking_type || '').toString().toLowerCase();
         const isNoneTracking = !tracking || tracking === 'none';
+        const unit = row.unit || 'CASE';
+        const conversionRate = row.conversion_rate || 1;
+
+        // Calculate display quantity for PIECE units
+        let displayQuantity = Number(row.quantity) || 0;
+        if (unit === 'PIECE' && row.isLoaded) {
+          // For loaded items, convert base_quantity back to display quantity
+          displayQuantity = (row.base_quantity || 0) / conversionRate;
+        }
+
         return (
           <Input
-            value={row.quantity}
+            value={displayQuantity.toString()}
             onChange={e =>
               updateInvoiceItem(row._index, 'quantity', e.target.value)
             }
@@ -905,7 +955,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                 formik.setFieldValue('parent_id', '');
                 formik.setFieldValue('customer_id', '');
                 formik.setFieldValue('salesperson_id', '');
-                formik.setFieldValue('invoice_items', []);
+                formik.setFieldValue('invoiceItems', []);
                 setInvoiceItems([]);
                 formikSyncRef.current = '';
               }}
@@ -924,7 +974,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
                   if (!selectedOrderId) {
                     formik.setFieldValue('customer_id', '');
                     formik.setFieldValue('salesperson_id', '');
-                    formik.setFieldValue('invoice_items', []);
+                    formik.setFieldValue('invoiceItems', []);
                     setInvoiceItems([]);
                     formikSyncRef.current = '';
                   }

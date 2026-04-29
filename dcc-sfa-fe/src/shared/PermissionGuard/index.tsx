@@ -1,6 +1,11 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { usePermission } from 'hooks/usePermission';
-import NoConnection from 'pages/NoConnection';
+import { useCurrentUser } from 'hooks/useUsers';
+import { useAuth } from 'context/AuthContext';
+import { tokenService } from 'services/auth/tokenService';
+import AuthLoader from 'components/AuthLoader';
+import NoPermission from 'shared/NoPermission';
 
 interface PermissionGuardProps {
   module: string;
@@ -13,7 +18,30 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
   action = 'read',
   children,
 }) => {
+  const location = useLocation();
+  const { isAuthenticated: authContextAuthenticated, isLoggingOut } = useAuth();
+  const token = tokenService.getToken();
+  const user = tokenService.getUser();
+  const isExpired = tokenService.isTokenExpired();
+  const currentPath = location.pathname;
+  const isAuthPage =
+    currentPath.includes('/login') ||
+    currentPath.includes('/auth') ||
+    currentPath === '/';
+
+  if (
+    !token ||
+    !user ||
+    isExpired ||
+    !authContextAuthenticated ||
+    isLoggingOut ||
+    isAuthPage
+  ) {
+    return <AuthLoader message="Signing out..." />;
+  }
+
   const permissions = usePermission(module as any);
+  const currentUserQuery = useCurrentUser();
 
   const hasPermission = (() => {
     switch (action) {
@@ -34,7 +62,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
     }
   })();
 
-  if (permissions.isLoading) {
+  if (permissions.isLoading || currentUserQuery.isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div>Loading permissions...</div>
@@ -42,8 +70,12 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
     );
   }
 
-  if (permissions.isNetworkError || !hasPermission) {
-    return <NoConnection />;
+  if (!currentUserQuery.data || !tokenService.isAuthenticated()) {
+    return <AuthLoader message="Signing out..." />;
+  }
+
+  if (!hasPermission) {
+    return <NoPermission />;
   }
 
   return <>{children}</>;

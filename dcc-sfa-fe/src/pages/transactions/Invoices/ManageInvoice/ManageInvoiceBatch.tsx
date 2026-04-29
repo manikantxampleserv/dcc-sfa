@@ -123,7 +123,18 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
       0
     );
 
-    if (activeBatches.length === 0 || totalQty <= 0) {
+    // Convert back to base quantity for main invoice if PIECE is selected
+    const currentItem =
+      selectedRowIndex !== null ? invoiceItems[selectedRowIndex] : null;
+    const unit = currentItem?.unit || '';
+    const conversionRate = currentItem?.conversion_rate || 1;
+    let finalQuantity = totalQty;
+
+    if (unit.toUpperCase() === 'PIECE') {
+      finalQuantity = totalQty / conversionRate;
+    }
+
+    if (activeBatches.length === 0 || finalQuantity <= 0) {
       toast.error('Total batch quantity must be greater than 0.');
       return;
     }
@@ -161,7 +172,7 @@ const ManageInvoiceBatch: React.FC<ManageInvoiceBatchProps> = ({
     const updatedItems = [...invoiceItems];
     updatedItems[selectedRowIndex] = {
       ...updatedItems[selectedRowIndex],
-      quantity: String(totalQty),
+      quantity: String(finalQuantity),
       product_batches: productBatches.map(b => ({
         ...b,
         batch_number: (b.batch_number || '').trim(),

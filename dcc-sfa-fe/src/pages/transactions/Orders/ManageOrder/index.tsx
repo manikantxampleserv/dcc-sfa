@@ -138,8 +138,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             const allSerials = (item.product_serials ||
               []) as (ProductSerial & { selected?: boolean })[];
             const selectedSerials = allSerials.filter(
-              (s): s is ProductSerial & { selected: true } =>
-                s.selected !== false
+              s => s.selected !== false
             );
 
             if (selectedSerials.length === 0) {
@@ -199,7 +198,15 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
             )
             .map(item => {
               const unitPrice = Number(item.unit_price) || 0;
-              const quantity = Number(item.quantity) || 0;
+              // Only convert if item wasn't loaded from existing order
+              // For loaded items, quantity is already in correct display format
+              let quantity = Number(item.quantity) || 0;
+              if (!item.isLoaded && item.unit === 'PIECE') {
+                // Convert display quantity to base quantity for backend
+                quantity = quantity / (item.conversion_rate || 1);
+              }
+              const conversionRate = item.conversion_rate || 1;
+
               return {
                 tracking_type: item.tracking_type || null,
                 product_id: Number(item.product_id),
@@ -208,8 +215,17 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
                 quantity: quantity,
                 unit_price: unitPrice,
                 notes: item.notes,
-                product_batches: item.product_batches,
+                product_batches: item.isLoaded
+                  ? item.product_batches
+                  : item.product_batches?.map(batch => ({
+                      ...batch,
+                      quantity:
+                        item.unit === 'PIECE'
+                          ? (batch.quantity || 0) / (item.conversion_rate || 1)
+                          : batch.quantity || 0,
+                    })) || [],
                 product_serials: item.product_serials,
+                conversion_rate: conversionRate,
               };
             }),
         };
@@ -272,12 +288,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       formik.setFieldValue('order_items', updatedItems, false);
       formikSyncRef.current = JSON.stringify(updatedItems);
     }
-  }, [
-    formik.values.parent_id,
-    formik.values.order_date,
-    customerPriceLists,
-    orderItems,
-  ]);
+  }, [formik.values.parent_id, formik.values.order_date, customerPriceLists]);
 
   /**
    * Resolves the effective unit_price for a product from the SP pricelist result.
@@ -343,6 +354,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
 
     return String(casePrice);
   };
+
   useEffect(() => {
     if (order && open) {
       formik.setValues({
@@ -428,9 +440,6 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     formikSyncRef.current = '';
     initializedRef.current = null;
     hydratedItemsRef.current = '';
-    setSelectedRowIndex(null);
-    setIsBatchSelectorOpen(false);
-    setIsSerialSelectorOpen(false);
   };
 
   const orderKey = useMemo(
@@ -459,17 +468,37 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       orderResponse.data
     ) {
       const items =
-        orderResponse.data.order_items?.map(item => ({
-          product_id: item.product_id,
-          product_name: item.product_name || null,
-          unit: (item.unit as any) || 'CASE',
-          tracking_type: item.tracking_type || null,
-          quantity: item.quantity.toString(),
-          unit_price: item.unit_price.toString(),
-          notes: item.notes || '',
-          product_batches: [],
-          product_serials: [],
-        })) || [];
+        orderResponse.data.order_items?.map(item => {
+          // Use existing conversion_factor if available, otherwise fallback to 1
+          const conversionRate = item.conversion_factor || 1;
+          let displayQuantity = item.quantity;
+
+          // For PIECE units, convert base_quantity back to display quantity
+          if (item.unit === 'PIECE') {
+            displayQuantity = (item.base_quantity || 0) / conversionRate;
+          }
+
+          return {
+            product_id: item.product_id,
+            product_name: item.product_name || null,
+            unit: (item.unit as any) || 'CASE',
+            tracking_type: item.tracking_type || null,
+            quantity: displayQuantity.toString(),
+            unit_price: item.unit_price.toString(),
+            notes: item.notes || '',
+            isLoaded: true, // Mark as loaded from existing order
+            product_batches:
+              item.product_batches?.map(batch => ({
+                ...batch,
+                quantity:
+                  item.unit === 'PIECE'
+                    ? (batch.quantity || 0) / conversionRate
+                    : batch.quantity || 0,
+              })) || [],
+            product_serials: item.product_serials || [],
+            conversion_rate: conversionRate,
+          };
+        }) || [];
 
       const itemsStr = JSON.stringify(items);
 
@@ -518,6 +547,7 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
       notes: '',
       product_batches: [],
       product_serials: [],
+      conversion_rate: getProductConversionRate(0), // Use actual product conversion rate
     };
 
     const updatedItems = [...orderItems, newItem];
@@ -590,6 +620,9 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
         unit,
         unit_price: resolvedPrice,
         conversion_rate: conversionRate,
+        quantity: '0',
+        product_batches: [],
+        product_serials: [],
       };
 
       setOrderItems(updatedItems);
@@ -750,17 +783,38 @@ const ManageOrder: React.FC<ManageOrderProps> = ({ open, onClose, order }) => {
     },
     {
       id: 'quantity',
-      label: 'Quantity',
+      label: orderItems.some(item => item.unit === 'PIECE')
+        ? 'Quantity (pieces)'
+        : 'Quantity (cases)',
       render: (_value, row) => {
         const tracking = (row.tracking_type || '').toString().toLowerCase();
         const isNoneTracking = !tracking || tracking === 'none';
+        const unit = row.unit || '';
+        const conversionRate = row.conversion_rate || 1;
+
+        let displayValue = row.quantity || '0';
+        if (unit.toUpperCase() === 'PIECE') {
+          displayValue = String((Number(row.quantity) || 0) * conversionRate);
+        }
+
         return (
           <Input
-            value={row.quantity}
-            onChange={e =>
-              updateOrderItem(row._index, 'quantity', e.target.value)
+            value={displayValue}
+            onChange={e => {
+              const raw = Number(e.target.value);
+              if (unit.toUpperCase() === 'PIECE') {
+                // Convert back to base quantity for storage
+                const baseQuantity = Number.isFinite(raw)
+                  ? raw / conversionRate
+                  : 0;
+                updateOrderItem(row._index, 'quantity', String(baseQuantity));
+              } else {
+                updateOrderItem(row._index, 'quantity', e.target.value);
+              }
+            }}
+            placeholder={
+              unit.toUpperCase() === 'PIECE' ? 'Enter pieces' : 'Enter cases'
             }
-            placeholder="1"
             type="number"
             size="small"
             className="!min-w-20"

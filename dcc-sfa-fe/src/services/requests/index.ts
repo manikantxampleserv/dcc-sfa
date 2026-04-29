@@ -162,7 +162,9 @@ export const fetchRequestTypes = async (): Promise<
   ApiResponse<RequestType[]>
 > => {
   try {
-    const response = await api.get('/approval-setup/request-types');
+    const response = await api.get('/approval-setup/request-types', {
+      params: { limit: 1000 },
+    });
     return response.data;
   } catch (error: any) {
     console.error('Error fetching request types:', error);

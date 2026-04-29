@@ -427,12 +427,12 @@ const ExecutiveDashboard: React.FC = () => {
   // Header Skeleton Component
   const HeaderSkeleton = () => (
     <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-      <div className="flex justify-between items-center">
+      <div className="lg:flex justify-between items-center">
         <div className="flex-1">
           <Skeleton variant="text" width={280} height={32} className="!mb-2" />
           <Skeleton variant="text" width={400} height={20} />
         </div>
-        <div className="flex gap-3">
+        <div className="flex lg:mt-0 mt-3 gap-3">
           <Skeleton
             variant="rectangular"
             width={140}
@@ -670,7 +670,7 @@ const ExecutiveDashboard: React.FC = () => {
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-white shadow-sm p-5 rounded-lg border border-gray-100">
-        <div className="flex justify-between items-center">
+        <div className="lg:flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-semibold text-blue-600 mb-1">
               Executive Dashboard
@@ -679,7 +679,7 @@ const ExecutiveDashboard: React.FC = () => {
               Track your sales performance, orders, and field operations
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex lg:mt-0 mt-3 gap-3">
             <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
               {formatCurrency(
                 stats?.salesRevenue.value || 0,
@@ -690,17 +690,12 @@ const ExecutiveDashboard: React.FC = () => {
             <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
               {stats?.totalOrders.value.toLocaleString() || '0'} Orders
             </span>
-            <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-              {stats?.deliveries.successRate || '0'}% Delivery Success
-            </span>
           </div>
         </div>
       </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats_cards.map(stat => {
           const colors = getColorClasses(stat.color);
-
           return (
             <div
               key={stat.title}

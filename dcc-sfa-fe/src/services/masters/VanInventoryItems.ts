@@ -317,26 +317,3 @@ export const bulkUpdateVanInventoryItems = async (
   );
   return response.data;
 };
-
-export interface SalespersonInventoryItemDropdown {
-  id: number;
-  product_id: number;
-  name: string;
-  code: string;
-  unit_price: number;
-  tracking_type?: string | null;
-}
-
-export const fetchSalespersonInventoryItemsDropdown = async (
-  salespersonId: number,
-  search?: string
-): Promise<ApiResponse<SalespersonInventoryItemDropdown[]>> => {
-  const queryParams = new URLSearchParams();
-  if (search) queryParams.append('search', search);
-
-  const qs = queryParams.toString();
-  const url = `/inventory-items-dropdown/${salespersonId}${qs ? `?${qs}` : ''}`;
-
-  const response = await api.get(url);
-  return response.data;
-};

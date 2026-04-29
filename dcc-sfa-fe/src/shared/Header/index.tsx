@@ -15,7 +15,7 @@ import {
   Menu,
   MenuItem,
   Skeleton,
-  styled
+  styled,
 } from '@mui/material';
 import React, { useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
@@ -288,18 +288,14 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                     </Avatar>
                   )}
                   <Box className="!flex-1">
-                    <p
-                      className="!text-sm !font-medium !text-gray-900"
-                    >
+                    <p className="!text-sm !font-medium !text-gray-900">
                       {userLoading ? (
                         <Skeleton width={120} height={16} />
                       ) : (
                         getUserDisplayName()
                       )}
                     </p>
-                    <p
-                      className="!text-xs !text-gray-500"
-                    >
+                    <p className="!text-xs !text-gray-500">
                       {userLoading ? (
                         <Skeleton width={80} height={12} />
                       ) : (
@@ -308,8 +304,6 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, toggleSidebar }) => {
                     </p>
                   </Box>
                 </Box>
-
-                
               </Box>
 
               <MenuItem onClick={handleProfileClick} className="!px-4 !py-2">

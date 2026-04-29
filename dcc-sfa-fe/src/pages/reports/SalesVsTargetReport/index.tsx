@@ -36,8 +36,11 @@ const SalesVsTargetReport: React.FC = () => {
     }
   );
 
-  const { data: categoriesData } = useProductCategories();
-  const { data: usersData } = useUsers();
+  const { data: categoriesData } = useProductCategories({
+    limit: 1000,
+    status: 'active',
+  });
+  const { data: usersData } = useUsers({ limit: 1000, isActive: 'Y' });
 
   const categories = categoriesData?.data || [];
   const users = usersData?.data || [];

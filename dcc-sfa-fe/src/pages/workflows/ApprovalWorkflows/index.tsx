@@ -43,7 +43,7 @@ const ApprovalWorkflows: React.FC = () => {
     }
   );
 
-  const { data: requestTypesResponse } = useRequestTypes();
+  const { data: requestTypesResponse } = useRequestTypes({ enabled: isRead });
 
   const requests: Request[] = requestsResponse?.data || [];
   const pagination = requestsResponse?.pagination;

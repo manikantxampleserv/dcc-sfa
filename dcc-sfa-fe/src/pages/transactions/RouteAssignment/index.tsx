@@ -209,7 +209,6 @@ const RouteAssignmentManagement: React.FC = () => {
             color="green"
             isLoading={isFetching}
           />
-
           <StatsCard
             icon={<RouteIcon />}
             title="Unassigned Routes"

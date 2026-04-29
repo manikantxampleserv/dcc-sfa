@@ -67,7 +67,7 @@ const OutletGroupsManagement: React.FC = () => {
     outletGroupsResponse?.stats?.inactive_groups ??
     outletGroups.filter(g => g.is_active === 'N').length;
   const avgDiscountPercentage =
-    Number(outletGroupsResponse?.stats?.avg_discount)?.toFixed(2) ?? 0;
+    outletGroupsResponse?.stats?.avg_discount?.toFixed(2) ?? 0;
 
   const handleCreateOutletGroup = useCallback(() => {
     setSelectedOutletGroup(null);

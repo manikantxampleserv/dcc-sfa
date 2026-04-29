@@ -87,6 +87,20 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
     return formatCurrency(amount, undefined, currencies, currencyId);
   };
 
+  // Helper function to calculate display quantity for PIECE units
+  const getDisplayQuantity = (item: any) => {
+    if (item.unit === 'PIECE') {
+      const pieceQuantity = item.base_quantity || item.quantity || 0;
+      return pieceQuantity.toString();
+    }
+    return item.quantity;
+  };
+
+  // Helper function to get unit label
+  const getUnitLabel = (item: any) => {
+    return item.unit || 'CASE';
+  };
+
   const isOverdue = (invoice: Invoice) => {
     if (!invoice.due_date || !invoice.balance_due) return false;
     return new Date(invoice.due_date) < new Date() && invoice.balance_due > 0;
@@ -530,15 +544,27 @@ const InvoiceDetail: React.FC<InvoiceDetailProps> = ({
                         className="!font-semibold !text-gray-900"
                       >
                         {formatCurrencyWithInvoiceCurrency(
-                          item.unit_price * item.quantity -
-                            (item.discount_amount || 0) || 0
+                          (() => {
+                            const quantity = getDisplayQuantity(item);
+                            const unitPrice =
+                              item.unit === 'PIECE' && item.conversion_factor
+                                ? item.unit_price * item.conversion_factor
+                                : item.unit_price;
+                            return (
+                              unitPrice * quantity - (item.discount_amount || 0)
+                            );
+                          })()
                         )}
                       </Typography>
                     </div>
                     <div className="!flex !justify-between !text-xs !text-gray-500">
                       <span>
-                        Qty: {item.quantity} ×{' '}
-                        {formatCurrencyWithInvoiceCurrency(item.unit_price)}
+                        Qty: {getDisplayQuantity(item)} {getUnitLabel(item)} ×{' '}
+                        {formatCurrencyWithInvoiceCurrency(
+                          item.unit === 'PIECE' && item.conversion_factor
+                            ? item.unit_price * item.conversion_factor
+                            : item.unit_price
+                        )}
                       </span>
                       {item.discount_amount && item.discount_amount > 0 && (
                         <span className="!text-green-600">

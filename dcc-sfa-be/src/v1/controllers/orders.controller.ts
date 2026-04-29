@@ -196,7 +196,7 @@ function calculateUnitConversion(
 ): { newQuantity: number; newBaseQuantity: number } {
   const factor = conversionFactor || 1;
 
-  if (unit === 'PCS') {
+  if (unit === 'PIECE') {
     const totalCurrentPCS = currentQuantity * factor + currentBaseQuantity;
 
     let newTotalPCS: number;
@@ -654,29 +654,16 @@ async function processOrderItems(
       }
     }
 
-    // await tx.order_items.update({
-    //   where: { id: originalItem.id },
-    //   data: {
-    //     quantity: parseInt(newItem.quantity),
-    //     unit_price: Number(newItem.unit_price || newItem.price) || 0,
-    //     discount_amount: Number(newItem.discount_amount) || 0,
-    //     tax_amount: Number(newItem.tax_amount) || 0,
-    //     total_amount:
-    //       parseInt(newItem.quantity) *
-    //       (Number(newItem.unit_price || newItem.price) || 0),
-    //     notes: newItem.notes || originalItem.notes,
-    //   },
-    // });
-
     const unit = (newItem.unit || 'CASE').toUpperCase();
 
     await tx.order_items.update({
       where: { id: originalItem.id },
       data: {
         unit,
-
-        quantity: unit === 'PCS' ? 0 : parseInt(newItem.quantity),
-        base_quantity: unit === 'PCS' ? parseInt(newItem.quantity) : 0,
+        // For PIECE: quantity col = 0, base_quantity col = raw piece count
+        // For CASE: quantity col = case count, base_quantity col = 0
+        quantity: unit === 'PIECE' ? 0 : parseInt(newItem.quantity),
+        base_quantity: unit === 'PIECE' ? parseInt(newItem.quantity) : 0,
 
         conversion_factor:
           Number(newItem.conversion_factor) ||
@@ -710,15 +697,8 @@ async function processSingleItem(
     isNewItem: boolean;
   }
 ) {
-  const {
-    item,
-    order,
-    vanInventory,
-    van_inventory_id,
-    userId,
-    customer,
-    isNewItem,
-  } = params;
+  const { item, order, vanInventory, van_inventory_id, userId, customer } =
+    params;
 
   const product = await tx.products.findUnique({
     where: { id: Number(item.product_id) },
@@ -734,16 +714,25 @@ async function processSingleItem(
   }
 
   const trackingType = product.tracking_type?.toUpperCase() || 'NONE';
+
+  // quantity from frontend is always the display quantity:
+  //   - CASE unit  → number of cases
+  //   - PIECE unit → number of pieces
+  // parseInt is safe here because the frontend now sends the raw display value.
   const quantity = parseInt(item.quantity, 10);
   const unit = (item.unit || 'CASE').toUpperCase();
-
   const conversionFactor =
     Number(item.conversion_factor) || Number(item.conversion_rate) || 1;
-  let orderItemBaseQuantity = 0;
-  if (unit === 'PCS') {
-    orderItemBaseQuantity = quantity;
-  }
 
+  console.log(`processSingleItem: product=${product.name}`, {
+    unit,
+    quantity,
+    conversionFactor,
+    trackingType,
+  });
+
+  // processInventoryChange handles the PIECE→CASE math internally via
+  // calculateUnitConversion, so we always pass the raw display quantity.
   await processInventoryChange(tx, {
     product,
     trackingType,
@@ -757,14 +746,17 @@ async function processSingleItem(
     conversionFactor,
   });
 
+  // Persist to order_items:
+  //   quantity     column = cases  (0 when unit is PIECE)
+  //   base_quantity column = pieces (0 when unit is CASE)
   await tx.order_items.create({
     data: {
       parent_id: order.id,
       product_id: product.id,
       product_name: product.name,
       unit: unit,
-      quantity: unit === 'PCS' ? 0 : quantity,
-      base_quantity: unit === 'PCS' ? quantity : 0,
+      quantity: unit === 'PIECE' ? 0 : quantity,
+      base_quantity: unit === 'PIECE' ? quantity : 0,
       conversion_factor: conversionFactor,
       unit_price: Number(item.unit_price || item.price) || 0,
       discount_amount: Number(item.discount_amount) || 0,
@@ -776,7 +768,7 @@ async function processSingleItem(
   });
 
   console.log(
-    `Created order item: product=${product.name}, unit=${unit}, quantity=${quantity}, conversion_factor=${conversionFactor}, base_quantity=${orderItemBaseQuantity}`
+    `Created order item: product=${product.name}, unit=${unit}, quantity=${quantity}, conversionFactor=${conversionFactor}`
   );
 }
 
@@ -813,8 +805,10 @@ async function restoreInventoryForItem(
   const conversionFactor =
     Number(item.conversion_factor) || Number(product.conversion_factor) || 1;
 
+  // For PIECE items the stored display quantity lives in base_quantity;
+  // for CASE items it lives in quantity.
   const restoreQuantity =
-    unit === 'PCS' ? item.base_quantity || item.quantity : item.quantity;
+    unit === 'PIECE' ? item.base_quantity || item.quantity : item.quantity;
 
   await processInventoryChange(tx, {
     product,
@@ -888,6 +882,7 @@ async function processInventoryChange(
     });
 
     for (const batch of uniqueBatches) {
+      // batchQty is always in the same unit as the item (CASE or PIECE)
       const batchQty = parseInt(batch.quantity, 10);
 
       const batchLot = await tx.batch_lots.findUnique({
@@ -898,14 +893,15 @@ async function processInventoryChange(
         throw new Error(`Batch ${batch.batch_lot_id} not found`);
       }
 
-      if (unit === 'PCS') {
+      if (unit === 'PIECE') {
+        // calculateUnitConversion handles pieces ↔ cases arithmetic
         const calc = (currentQty: number, currentBase: number) =>
           calculateUnitConversion(
             currentQty,
             currentBase,
             conversionFactor,
             batchQty,
-            'PCS',
+            'PIECE',
             movementType
           );
 
@@ -997,6 +993,7 @@ async function processInventoryChange(
           });
         }
       } else {
+        // CASE unit — straightforward add/subtract
         const change = movementType === 'SALE' ? -batchQty : batchQty;
 
         await tx.batch_lots.update({
@@ -1024,7 +1021,6 @@ async function processInventoryChange(
           });
         }
 
-        // van_inventory_items
         const vanItem = await tx.van_inventory_items.findFirst({
           where: {
             product_id: product.id,
@@ -1174,6 +1170,7 @@ async function processInventoryChange(
       });
     }
   } else {
+    // NONE tracking
     const qChange = movementType === 'SALE' ? -quantity : quantity;
 
     const vanItem = await tx.van_inventory_items.findFirst({
@@ -1238,1080 +1235,8 @@ async function processInventoryChange(
     });
   }
 }
+
 export const ordersController = {
-  // 1. Old updation logic
-  // async createOrUpdateOrder(req: Request, res: Response) {
-  //   const data = req.body;
-  //   const userId = req.user?.id || 1;
-
-  //   try {
-  //     const {
-  //       orderItems,
-  //       order_items,
-  //       selected_promotion_id,
-  //       van_inventory_id,
-  //       ...orderData
-  //     } = data;
-  //     const items = orderItems || order_items || [];
-  //     let orderId = orderData.id;
-
-  //     console.log(' Processing order with items:', {
-  //       orderId,
-  //       orderNumber: orderData.order_number,
-  //       itemsCount: items.length,
-  //       selected_promotion_id: selected_promotion_id || 'None',
-  //       van_inventory_id: van_inventory_id || 'None',
-  //     });
-
-  //     let vanInventory = null;
-  //     if (van_inventory_id) {
-  //       vanInventory = await prisma.van_inventory.findUnique({
-  //         where: { id: Number(van_inventory_id) },
-  //         include: {
-  //           van_inventory_items_inventory: {
-  //             include: {
-  //               van_inventory_items_products: true,
-  //               van_inventory_items_batch_lot: true,
-  //             },
-  //           },
-  //         },
-  //       });
-
-  //       if (!vanInventory) {
-  //         return res.status(404).json({
-  //           success: false,
-  //           message: 'Van inventory not found',
-  //         });
-  //       }
-  //     }
-
-  //     let calculatedSubtotal = new Prisma.Decimal(0);
-  //     for (const item of items) {
-  //       const itemTotal = new Prisma.Decimal(item.quantity).mul(
-  //         new Prisma.Decimal(item.price || item.unit_price || 0)
-  //       );
-  //       calculatedSubtotal = calculatedSubtotal.add(itemTotal);
-  //     }
-
-  //     const customer = await prisma.customers.findUnique({
-  //       where: { id: orderData.parent_id },
-  //       select: {
-  //         id: true,
-  //         type: true,
-  //         route_id: true,
-  //       },
-  //     });
-
-  //     if (!customer) {
-  //       return res.status(404).json({
-  //         success: false,
-  //         message: 'Customer not found',
-  //       });
-  //     }
-
-  //     let appliedPromotion = null;
-  //     let promotionDiscount = new Prisma.Decimal(0);
-  //     let freeProducts: any[] = [];
-
-  //     if (selected_promotion_id) {
-  //       try {
-  //         const promotion = await prisma.promotions.findUnique({
-  //           where: { id: parseInt(selected_promotion_id) },
-  //           include: {
-  //             promotion_condition_promotions: {
-  //               where: { is_active: 'Y' },
-  //               include: {
-  //                 promotion_condition_products: {
-  //                   where: { is_active: 'Y' },
-  //                 },
-  //               },
-  //             },
-  //             promotion_level_promotions: {
-  //               where: { is_active: 'Y' },
-  //               include: {
-  //                 promotion_benefit_level: {
-  //                   where: { is_active: 'Y' },
-  //                   include: {
-  //                     promotion_benefit_products: {
-  //                       select: {
-  //                         id: true,
-  //                         name: true,
-  //                         code: true,
-  //                       },
-  //                     },
-  //                   },
-  //                 },
-  //               },
-  //               orderBy: { threshold_value: 'desc' },
-  //             },
-  //             promotion_salesperson_promotions: {
-  //               where: { is_active: 'Y' },
-  //               select: { salesperson_id: true },
-  //             },
-  //             promotion_routes_promotions: {
-  //               where: { is_active: 'Y' },
-  //               select: { route_id: true },
-  //             },
-  //             promotion_customer_category_promotions: {
-  //               where: { is_active: 'Y' },
-  //               select: { customer_category_id: true },
-  //             },
-  //             promotion_customer_exclusion_promotions: {
-  //               where: { customer_id: orderData.parent_id },
-  //               select: { is_excluded: true },
-  //             },
-  //           },
-  //         });
-
-  //         if (!promotion) {
-  //           return res.status(404).json({
-  //             success: false,
-  //             message: 'Selected promotion not found',
-  //           });
-  //         }
-
-  //         const now = new Date();
-  //         if (
-  //           promotion.is_active !== 'Y' ||
-  //           promotion.start_date > now ||
-  //           promotion.end_date < now
-  //         ) {
-  //           return res.status(400).json({
-  //             success: false,
-  //             message: 'Selected promotion is not active or has expired',
-  //           });
-  //         }
-
-  //         if (promotion.promotion_customer_exclusion_promotions.length > 0) {
-  //           const isExcluded =
-  //             promotion.promotion_customer_exclusion_promotions.some(
-  //               exc => exc.is_excluded === 'Y'
-  //             );
-  //           if (isExcluded) {
-  //             return res.status(400).json({
-  //               success: false,
-  //               message: 'Customer is excluded from this promotion',
-  //             });
-  //           }
-  //         }
-
-  //         let isEligible = false;
-
-  //         if (
-  //           promotion.promotion_salesperson_promotions.length === 0 &&
-  //           promotion.promotion_routes_promotions.length === 0 &&
-  //           promotion.promotion_customer_category_promotions.length === 0
-  //         ) {
-  //           isEligible = true;
-  //         } else {
-  //           if (
-  //             promotion.promotion_salesperson_promotions.length > 0 &&
-  //             promotion.promotion_salesperson_promotions.some(
-  //               s => s.salesperson_id === orderData.salesperson_id
-  //             )
-  //           ) {
-  //             isEligible = true;
-  //           }
-
-  //           if (
-  //             !isEligible &&
-  //             customer.route_id &&
-  //             promotion.promotion_routes_promotions.length > 0 &&
-  //             promotion.promotion_routes_promotions.some(
-  //               r => r.route_id === customer.route_id
-  //             )
-  //           ) {
-  //             isEligible = true;
-  //           }
-
-  //           if (
-  //             !isEligible &&
-  //             customer.type &&
-  //             promotion.promotion_customer_category_promotions.length > 0
-  //           ) {
-  //             const categoryIds =
-  //               promotion.promotion_customer_category_promotions.map(
-  //                 c => c.customer_category_id
-  //               );
-  //             const categories = await prisma.customer_category.findMany({
-  //               where: {
-  //                 id: { in: categoryIds },
-  //                 category_code: customer.type,
-  //               },
-  //               select: { id: true },
-  //             });
-
-  //             if (categories.length > 0) {
-  //               isEligible = true;
-  //             }
-  //           }
-  //         }
-
-  //         if (!isEligible) {
-  //           return res.status(400).json({
-  //             success: false,
-  //             message: 'Customer does not qualify for this promotion',
-  //           });
-  //         }
-
-  //         if (promotion.promotion_condition_promotions.length === 0) {
-  //           return res.status(400).json({
-  //             success: false,
-  //             message: 'Promotion has no conditions defined',
-  //           });
-  //         }
-
-  //         const condition = promotion.promotion_condition_promotions[0];
-  //         let totalQty = new Prisma.Decimal(0);
-  //         let totalValue = new Prisma.Decimal(0);
-
-  //         const productIds = items.map((item: any) => item.product_id);
-  //         const products = await prisma.products.findMany({
-  //           where: { id: { in: productIds } },
-  //           select: { id: true, category_id: true },
-  //         });
-
-  //         const productCategoryMap = new Map(
-  //           products.map(p => [p.id, p.category_id])
-  //         );
-
-  //         for (const item of items) {
-  //           const productMatch = condition.promotion_condition_products.find(
-  //             cp =>
-  //               cp.product_id === item.product_id ||
-  //               cp.category_id === productCategoryMap.get(item.product_id)
-  //           );
-
-  //           if (productMatch) {
-  //             const lineQty = new Prisma.Decimal(item.quantity || 0);
-  //             const linePrice = new Prisma.Decimal(
-  //               item.price || item.unit_price || 0
-  //             );
-  //             const lineValue = lineQty.mul(linePrice);
-
-  //             totalQty = totalQty.add(lineQty);
-  //             totalValue = totalValue.add(lineValue);
-  //           }
-  //         }
-
-  //         const minValue = new Prisma.Decimal(condition.min_value || 0);
-  //         if (!totalValue.gte(minValue)) {
-  //           return res.status(400).json({
-  //             success: false,
-  //             message: `Order value ${totalValue.toFixed(2)} does not meet minimum ${minValue.toFixed(2)}`,
-  //           });
-  //         }
-
-  //         const applicableLevel = promotion.promotion_level_promotions.find(
-  //           lvl => new Prisma.Decimal(lvl.threshold_value).lte(totalValue)
-  //         );
-
-  //         if (!applicableLevel) {
-  //           return res.status(400).json({
-  //             success: false,
-  //             message: 'Order does not meet promotion threshold',
-  //           });
-  //         }
-
-  //         let discountAmount = new Prisma.Decimal(0);
-  //         if (applicableLevel.discount_type === 'PERCENTAGE') {
-  //           const discountPercent = new Prisma.Decimal(
-  //             applicableLevel.discount_value || 0
-  //           );
-  //           discountAmount = totalValue.mul(discountPercent).div(100);
-  //         } else if (applicableLevel.discount_type === 'FIXED_AMOUNT') {
-  //           discountAmount = new Prisma.Decimal(
-  //             applicableLevel.discount_value || 0
-  //           );
-  //         }
-
-  //         for (const benefit of applicableLevel.promotion_benefit_level) {
-  //           if (benefit.benefit_type === 'FREE_PRODUCT') {
-  //             freeProducts.push({
-  //               product_id: benefit.product_id,
-  //               product_name: benefit.promotion_benefit_products?.name || null,
-  //               product_code: benefit.promotion_benefit_products?.code || null,
-  //               quantity: benefit.benefit_value.toNumber(),
-  //               gift_limit: benefit.gift_limit || 0,
-  //             });
-  //           }
-  //         }
-
-  //         appliedPromotion = {
-  //           promotion_id: promotion.id,
-  //           promotion_name: promotion.name,
-  //           promotion_code: promotion.code,
-  //           discount_amount: discountAmount.toNumber(),
-  //           free_products: freeProducts,
-  //         };
-
-  //         promotionDiscount = discountAmount;
-
-  //         console.log(' Promotion applied:', appliedPromotion.promotion_name);
-  //       } catch (error) {
-  //         console.error(' Error applying promotion:', error);
-  //         return res.status(400).json({
-  //           success: false,
-  //           message: 'Failed to apply selected promotion',
-  //         });
-  //       }
-  //     }
-
-  //     const subtotal = calculatedSubtotal;
-  //     const discount_amount = promotionDiscount;
-  //     const tax_amount = new Prisma.Decimal(orderData.tax_amount || 0);
-  //     const shipping_amount = new Prisma.Decimal(
-  //       orderData.shipping_amount || 0
-  //     );
-
-  //     const total_amount = subtotal
-  //       .minus(discount_amount)
-  //       .plus(tax_amount)
-  //       .plus(shipping_amount);
-
-  //     const result = await prisma.$transaction(
-  //       async tx => {
-  //         let order;
-  //         let isUpdate = false;
-
-  //         if (!orderId && orderData.order_number) {
-  //           const existingOrder = await tx.orders.findFirst({
-  //             where: { order_number: orderData.order_number },
-  //           });
-  //           if (existingOrder) {
-  //             orderId = existingOrder.id;
-  //             isUpdate = true;
-  //           }
-  //         } else if (orderId) {
-  //           isUpdate = true;
-  //         }
-
-  //         let orderNumber = orderData.order_number;
-  //         if (!isUpdate && !orderNumber) {
-  //           orderNumber = await generateOrderNumber(tx);
-  //         }
-
-  //         const orderPayload = {
-  //           order_number: orderNumber,
-  //           parent_id: orderData.parent_id,
-  //           salesperson_id: orderData.salesperson_id,
-  //           currency_id: orderData.currency_id || null,
-  //           order_date: orderData.order_date
-  //             ? new Date(orderData.order_date)
-  //             : undefined,
-  //           delivery_date: orderData.delivery_date
-  //             ? new Date(orderData.delivery_date)
-  //             : undefined,
-  //           status: orderData.status || 'draft',
-  //           priority: orderData.priority || 'medium',
-  //           order_type: orderData.order_type || 'regular',
-  //           payment_method: orderData.payment_method || 'credit',
-  //           payment_terms: orderData.payment_terms || 'Net 30',
-  //           subtotal: subtotal.toNumber(),
-  //           discount_amount: discount_amount.toNumber(),
-  //           tax_amount: tax_amount.toNumber(),
-  //           shipping_amount: shipping_amount.toNumber(),
-  //           total_amount: total_amount.toNumber(),
-  //           notes: orderData.notes || null,
-  //           shipping_address: orderData.shipping_address || null,
-  //           approval_status: orderData.approval_status || 'pending',
-  //           is_active: orderData.is_active || 'Y',
-  //           promotion_id: selected_promotion_id
-  //             ? parseInt(selected_promotion_id)
-  //             : null,
-  //           pricelist_id: orderData.pricelist_id
-  //             ? Number(orderData.pricelist_id)
-  //             : null,
-  //         };
-
-  //         if (isUpdate && orderId) {
-  //           const updatePayload = { ...orderPayload };
-  //           if (!orderData.order_number) {
-  //             delete updatePayload.order_number;
-  //           }
-
-  //           order = await tx.orders.update({
-  //             where: { id: orderId },
-  //             data: {
-  //               ...updatePayload,
-  //               updatedate: new Date(),
-  //               updatedby: userId,
-  //               log_inst: { increment: 1 },
-  //             },
-  //           });
-  //         } else {
-  //           order = await tx.orders.create({
-  //             data: {
-  //               ...orderPayload,
-  //               createdate: new Date(),
-  //               createdby: userId,
-  //               log_inst: 1,
-  //             },
-  //           });
-  //         }
-
-  //         if (items && items.length > 0) {
-  //           if (isUpdate && orderId) {
-  //             await tx.order_items.deleteMany({
-  //               where: { parent_id: orderId },
-  //             });
-  //           }
-
-  //           for (const item of items) {
-  //             const product = await tx.products.findUnique({
-  //               where: { id: Number(item.product_id) },
-  //             });
-
-  //             console.log('Product', product);
-  //             console.log('items', item.unit);
-  //             if (!product) {
-  //               throw new Error(`Product ${item.product_id} not found`);
-  //             }
-
-  //             const trackingType =
-  //               product.tracking_type?.toUpperCase() || 'NONE';
-  //             const quantity = parseInt(item.quantity, 10);
-
-  //             if (trackingType === 'BATCH') {
-  //               console.log('Going to BATCH branch');
-
-  //               const batchData = item.batches || item.product_batches;
-
-  //               if (!batchData || !Array.isArray(batchData)) {
-  //                 throw new Error(
-  //                   `Batches are required for product "${product.name}"`
-  //                 );
-  //               }
-
-  //               let totalOrderedQty = 0;
-  //               for (const batchOrder of batchData) {
-  //                 const batchQty = parseInt(batchOrder.quantity, 10);
-  //                 totalOrderedQty += batchQty;
-
-  //                 const batchLot = await tx.batch_lots.findUnique({
-  //                   where: { id: batchOrder.batch_lot_id },
-  //                 });
-
-  //                 if (!batchLot) {
-  //                   throw new Error(
-  //                     `Batch lot ${batchOrder.batch_lot_id} not found`
-  //                   );
-  //                 }
-
-  //                 const vanItem = await tx.van_inventory_items.findFirst({
-  //                   where: {
-  //                     product_id: product.id,
-  //                     batch_lot_id: batchOrder.batch_lot_id,
-  //                     van_inventory_items_inventory: {
-  //                       is_active: 'Y',
-  //                     },
-  //                   },
-  //                   include: {
-  //                     van_inventory_items_inventory: true,
-  //                   },
-  //                 });
-
-  //                 if (!vanItem) {
-  //                   throw new Error(
-  //                     `Batch ${batchOrder.batch_lot_id} not found in any van inventory for product "${product.name}"`
-  //                   );
-  //                 }
-
-  //                 if (vanItem.quantity < batchQty) {
-  //                   throw new Error(
-  //                     `Insufficient quantity in van for batch. Available: ${vanItem.quantity}, Requested: ${batchQty}`
-  //                   );
-  //                 }
-
-  //                 const newVanItemQuantity = vanItem.quantity - batchQty;
-  //                 if (newVanItemQuantity > 0) {
-  //                   await tx.van_inventory_items.update({
-  //                     where: { id: vanItem.id },
-  //                     data: { quantity: newVanItemQuantity },
-  //                   });
-  //                   console.log(
-  //                     ` Updated van_inventory_items for batch ${batchLot.batch_number}: ${vanItem.quantity}→${newVanItemQuantity}`
-  //                   );
-  //                 } else {
-  //                   await tx.van_inventory_items.delete({
-  //                     where: { id: vanItem.id },
-  //                   });
-  //                   console.log(
-  //                     ` Deleted van_inventory_items for batch ${batchLot.batch_number} (quantity reached zero)`
-  //                   );
-  //                 }
-
-  //                 if (batchLot.remaining_quantity < batchQty) {
-  //                   throw new Error(
-  //                     `Insufficient quantity in batch lot. Available: ${batchLot.remaining_quantity}, Requested: ${batchQty}`
-  //                   );
-  //                 }
-
-  //                 await tx.batch_lots.update({
-  //                   where: { id: batchOrder.batch_lot_id },
-  //                   data: {
-  //                     remaining_quantity:
-  //                       batchLot.remaining_quantity - batchQty,
-  //                     updatedate: new Date(),
-  //                   },
-  //                 });
-
-  //                 const productBatch = await tx.product_batches.findFirst({
-  //                   where: {
-  //                     product_id: product.id,
-  //                     batch_lot_id: batchOrder.batch_lot_id,
-  //                     is_active: 'Y',
-  //                   },
-  //                 });
-
-  //                 if (productBatch) {
-  //                   if (productBatch.quantity < batchQty) {
-  //                     throw new Error(
-  //                       `Insufficient quantity in product batch. Available: ${productBatch.quantity}, Requested: ${batchQty}`
-  //                     );
-  //                   }
-
-  //                   await tx.product_batches.update({
-  //                     where: { id: productBatch.id },
-  //                     data: {
-  //                       quantity: productBatch.quantity - batchQty,
-  //                       updatedate: new Date(),
-  //                     },
-  //                   });
-  //                 }
-
-  //                 const inventoryStock = await tx.inventory_stock.findFirst({
-  //                   where: {
-  //                     product_id: product.id,
-  //                     batch_id: batchOrder.batch_lot_id,
-  //                   },
-  //                 });
-
-  //                 if (inventoryStock) {
-  //                   const currentStock = inventoryStock.current_stock ?? 0;
-  //                   const availableStock = inventoryStock.available_stock ?? 0;
-  //                   const baseQuantity = inventoryStock.base_quantity ?? 0;
-
-  //                   if (currentStock < batchQty) {
-  //                     throw new Error(
-  //                       `Insufficient inventory stock for batch. Available: ${currentStock}, Requested: ${batchQty}`
-  //                     );
-  //                   }
-
-  //                   await tx.inventory_stock.update({
-  //                     where: { id: inventoryStock.id },
-  //                     data: {
-  //                       current_stock: currentStock - batchQty,
-  //                       available_stock: availableStock - batchQty,
-  //                       updatedate: new Date(),
-  //                       updatedby: userId,
-  //                     },
-  //                   });
-  //                 } else {
-  //                   throw new Error(
-  //                     `Inventory stock not found for product ${product.name} and batch ${batchOrder.batch_lot_id}`
-  //                   );
-  //                 }
-
-  //                 await tx.stock_movements.create({
-  //                   data: {
-  //                     product_id: product.id,
-  //                     batch_id: batchOrder.batch_lot_id,
-  //                     serial_id: null,
-  //                     movement_type: 'SALE',
-  //                     reference_type: 'ORDER',
-  //                     reference_id: order.id,
-  //                     from_location_id: vanInventory?.location_id || null,
-  //                     to_location_id: null,
-  //                     quantity: batchQty,
-  //                     movement_date: new Date(),
-  //                     remarks: `Sold via order ${order.order_number} - Batch: ${batchLot.batch_number}`,
-  //                     is_active: 'Y',
-  //                     createdate: new Date(),
-  //                     createdby: userId,
-  //                     log_inst: 1,
-  //                     van_inventory_id: van_inventory_id
-  //                       ? Number(van_inventory_id)
-  //                       : null,
-  //                   },
-  //                 });
-
-  //                 console.log(
-  //                   ` Deducted ${batchQty} from batch ${batchLot.batch_number}`
-  //                 );
-  //               }
-
-  //               if (totalOrderedQty !== quantity) {
-  //                 throw new Error(
-  //                   `Total batch quantity (${totalOrderedQty}) does not match ordered quantity (${quantity})`
-  //                 );
-  //               }
-
-  //               await tx.order_items.create({
-  //                 data: {
-  //                   parent_id: order.id,
-  //                   product_id: product.id,
-  //                   product_name: product.name,
-  //                   unit: item.unit || 'CASE',
-  //                   quantity: totalOrderedQty,
-  //                   unit_price: Number(item.unit_price || item.price) || 0,
-  //                   discount_amount: Number(item.discount_amount) || 0,
-  //                   tax_amount: Number(item.tax_amount) || 0,
-  //                   total_amount:
-  //                     totalOrderedQty *
-  //                     (Number(item.unit_price || item.price) || 0),
-  //                   notes: `Batches: ${batchData.map((b: any) => b.batch_lot_id).join(', ')}`,
-  //                   is_free_gift: false,
-  //                 },
-  //               });
-  //             } else if (trackingType === 'SERIAL') {
-  //               console.log(' Going to SERIAL branch');
-  //               const serialData = item.serials || item.product_serials;
-  //               if (
-  //                 !serialData ||
-  //                 !Array.isArray(serialData) ||
-  //                 serialData.length === 0
-  //               ) {
-  //                 throw new Error(
-  //                   `Serial numbers required for "${product.name}"`
-  //                 );
-  //               }
-
-  //               for (const serialInput of serialData) {
-  //                 const serialNumber =
-  //                   typeof serialInput === 'string'
-  //                     ? serialInput
-  //                     : serialInput.serial_number;
-
-  //                 if (!serialNumber) {
-  //                   throw new Error('Serial number is required');
-  //                 }
-
-  //                 const serial = await tx.serial_numbers.findUnique({
-  //                   where: { serial_number: serialNumber },
-  //                 });
-
-  //                 if (!serial) {
-  //                   throw new Error(`Serial number ${serialNumber} not found`);
-  //                 }
-
-  //                 await tx.serial_numbers.update({
-  //                   where: { id: serial.id },
-  //                   data: {
-  //                     status: 'sold',
-  //                     customer_id: customer?.id || null,
-  //                     sold_date: new Date(),
-  //                     updatedate: new Date(),
-  //                     updatedby: userId,
-  //                   },
-  //                 });
-  //                 console.log(` Serial ${serialNumber} marked as SOLD`);
-
-  //                 const inventoryStock = await tx.inventory_stock.findFirst({
-  //                   where: {
-  //                     product_id: product.id,
-  //                     serial_number_id: serial.id,
-  //                   },
-  //                 });
-
-  //                 if (inventoryStock) {
-  //                   const oldCurrent = inventoryStock.current_stock || 0;
-  //                   const oldAvailable = inventoryStock.available_stock || 0;
-  //                   const newCurrentStock = Math.max(0, oldCurrent - 1);
-  //                   const newAvailableStock = Math.max(0, oldAvailable - 1);
-
-  //                   await tx.inventory_stock.update({
-  //                     where: { id: inventoryStock.id },
-  //                     data: {
-  //                       current_stock: newCurrentStock,
-  //                       available_stock: newAvailableStock,
-  //                       updatedate: new Date(),
-  //                       updatedby: userId,
-  //                     },
-  //                   });
-  //                   console.log(
-  //                     ` DECREASED inventory_stock for ${serialNumber}: current ${oldCurrent}→${newCurrentStock}, available ${oldAvailable}→${newAvailableStock}`
-  //                   );
-  //                 } else {
-  //                   console.warn(
-  //                     ` No inventory_stock found for serial ${serialNumber}`
-  //                   );
-  //                 }
-
-  //                 const vanItem = await tx.van_inventory_items.findFirst({
-  //                   where: {
-  //                     product_id: product.id,
-  //                     serial_id: serial.id,
-  //                     van_inventory_items_inventory: {
-  //                       is_active: 'Y',
-  //                     },
-  //                   },
-  //                   include: {
-  //                     van_inventory_items_inventory: true,
-  //                   },
-  //                 });
-
-  //                 if (vanItem && vanItem.quantity > 0) {
-  //                   const newVanItemQuantity = vanItem.quantity - 1;
-  //                   if (newVanItemQuantity > 0) {
-  //                     await tx.van_inventory_items.update({
-  //                       where: { id: vanItem.id },
-  //                       data: { quantity: newVanItemQuantity },
-  //                     });
-  //                     console.log(
-  //                       ` DECREASED van_inventory_items for ${serialNumber}: ${vanItem.quantity}→${newVanItemQuantity}`
-  //                     );
-  //                   } else {
-  //                     await tx.van_inventory_items.delete({
-  //                       where: { id: vanItem.id },
-  //                     });
-  //                     console.log(
-  //                       ` DELETED van_inventory_items for ${serialNumber} (quantity reached zero)`
-  //                     );
-  //                   }
-  //                 }
-
-  //                 await tx.stock_movements.create({
-  //                   data: {
-  //                     product_id: product.id,
-  //                     batch_id: null,
-  //                     serial_id: serial.id,
-  //                     movement_type: 'SALE',
-  //                     reference_type: 'ORDER',
-  //                     reference_id: order.id,
-  //                     from_location_id: vanInventory?.location_id || null,
-  //                     to_location_id: null,
-  //                     quantity: 1,
-  //                     movement_date: new Date(),
-  //                     remarks: `Sold via order ${order.order_number} - Serial ${serialNumber}`,
-  //                     is_active: 'Y',
-  //                     createdate: new Date(),
-  //                     createdby: userId,
-  //                     log_inst: 1,
-  //                     van_inventory_id: van_inventory_id
-  //                       ? Number(van_inventory_id)
-  //                       : null,
-  //                   },
-  //                 });
-  //                 console.log(
-  //                   ` SALE stock_movement created for ${serialNumber}`
-  //                 );
-  //               }
-
-  //               await tx.order_items.create({
-  //                 data: {
-  //                   parent_id: order.id,
-  //                   product_id: product.id,
-  //                   product_name: product.name,
-  //                   unit: 'PIECE',
-  //                   quantity: serialData.length,
-  //                   unit_price: Number(item.unit_price || item.price) || 0,
-  //                   discount_amount: Number(item.discount_amount || 0),
-  //                   tax_amount: Number(item.tax_amount || 0),
-  //                   total_amount:
-  //                     serialData.length *
-  //                     (Number(item.unit_price || item.price) || 0),
-  //                   notes: `Serials: ${serialData.map((s: any) => (typeof s === 'string' ? s : s.serial_number)).join(', ')}`,
-  //                   is_free_gift: false,
-  //                 },
-  //               });
-  //               console.log(
-  //                 `Order item created for ${serialData.length} serials`
-  //               );
-  //             } else {
-  //               console.log(' Going to NONE branch');
-
-  //               if (vanInventory) {
-  //                 const vanItem =
-  //                   vanInventory.van_inventory_items_inventory.find(
-  //                     vi => vi.product_id === product.id
-  //                   );
-
-  //                 if (!vanItem) {
-  //                   throw new Error(
-  //                     `Product "${product.name}" not found in van inventory`
-  //                   );
-  //                 }
-
-  //                 if (vanItem.quantity < quantity) {
-  //                   throw new Error(
-  //                     `Insufficient quantity in van for "${product.name}". Available: ${vanItem.quantity}, Requested: ${quantity}`
-  //                   );
-  //                 }
-
-  //                 // Update van inventory item quantity
-  //                 const newVanItemQuantity = vanItem.quantity - quantity;
-  //                 if (newVanItemQuantity > 0) {
-  //                   await tx.van_inventory_items.update({
-  //                     where: { id: vanItem.id },
-  //                     data: { quantity: newVanItemQuantity },
-  //                   });
-  //                   console.log(
-  //                     ` Updated van_inventory_items for ${product.name}: ${vanItem.quantity}→${newVanItemQuantity}`
-  //                   );
-  //                 } else {
-  //                   // Delete van inventory item if quantity becomes zero
-  //                   await tx.van_inventory_items.delete({
-  //                     where: { id: vanItem.id },
-  //                   });
-  //                   console.log(
-  //                     ` Deleted van_inventory_items for ${product.name} (quantity reached zero)`
-  //                   );
-  //                 }
-  //               }
-
-  //               const inventoryStock = await tx.inventory_stock.findFirst({
-  //                 where: {
-  //                   product_id: product.id,
-  //                   batch_id: null,
-  //                   serial_number_id: null,
-  //                 },
-  //               });
-
-  //               if (inventoryStock) {
-  //                 const newCurrentStock = Math.max(
-  //                   0,
-  //                   (inventoryStock.current_stock || 0) - 1
-  //                 );
-  //                 const newAvailableStock = Math.max(
-  //                   0,
-  //                   (inventoryStock.available_stock || 0) - 1
-  //                 );
-
-  //                 await tx.inventory_stock.update({
-  //                   where: { id: inventoryStock.id },
-  //                   data: {
-  //                     current_stock: newCurrentStock,
-  //                     available_stock: newAvailableStock,
-  //                     updatedate: new Date(),
-  //                     updatedby: userId,
-  //                   },
-  //                 });
-  //               } else {
-  //                 throw new Error(
-  //                   `Inventory stock not found for product ${product.name}`
-  //                 );
-  //               }
-
-  //               await tx.stock_movements.create({
-  //                 data: {
-  //                   product_id: product.id,
-  //                   batch_id: null,
-  //                   serial_id: null,
-  //                   movement_type: 'SALE',
-  //                   reference_type: 'ORDER',
-  //                   reference_id: order.id,
-  //                   from_location_id: vanInventory?.location_id || null,
-  //                   to_location_id: null,
-  //                   quantity: quantity,
-  //                   movement_date: new Date(),
-  //                   remarks: `Sold via order ${order.order_number}`,
-  //                   is_active: 'Y',
-  //                   createdate: new Date(),
-  //                   createdby: userId,
-  //                   log_inst: 1,
-  //                   van_inventory_id: van_inventory_id
-  //                     ? Number(van_inventory_id)
-  //                     : null,
-  //                 },
-  //               });
-
-  //               await tx.order_items.create({
-  //                 data: {
-  //                   parent_id: order.id,
-  //                   product_id: product.id,
-  //                   product_name: product.name,
-  //                   unit: item.unit || 'CASE',
-  //                   quantity: quantity,
-  //                   unit_price: Number(item.unit_price || item.price) || 0,
-  //                   discount_amount: Number(item.discount_amount) || 0,
-  //                   tax_amount: Number(item.tax_amount) || 0,
-  //                   total_amount:
-  //                     quantity * (Number(item.unit_price || item.price) || 0),
-  //                   notes: item.notes || null,
-  //                   is_free_gift: false,
-  //                 },
-  //               });
-  //             }
-  //           }
-
-  //           if (freeProducts.length > 0) {
-  //             for (const freeProduct of freeProducts) {
-  //               await tx.order_items.create({
-  //                 data: {
-  //                   parent_id: order.id,
-  //                   product_id: freeProduct.product_id,
-  //                   product_name: freeProduct.product_name || null,
-  //                   unit: freeProduct.unit || 'CASE',
-  //                   quantity: freeProduct.quantity,
-  //                   unit_price: 0,
-  //                   discount_amount: 0,
-  //                   tax_amount: 0,
-  //                   total_amount: 0,
-  //                   notes: `Free gift from promotion: ${appliedPromotion?.promotion_name}`,
-  //                   is_free_gift: true,
-  //                 },
-  //               });
-  //             }
-  //           }
-  //         }
-
-  //         const finalOrder = await tx.orders.findUnique({
-  //           where: { id: order.id },
-  //           include: {
-  //             orders_currencies: true,
-  //             orders_customers: {
-  //               include: {
-  //                 customer_routes: true,
-  //               },
-  //             },
-  //             orders_salesperson_users: true,
-  //             order_items: true,
-  //             invoices: true,
-  //           },
-  //         });
-
-  //         return finalOrder;
-  //       },
-  //       {
-  //         maxWait: 10000,
-  //         timeout: 20000,
-  //       }
-  //     );
-
-  //     if (appliedPromotion && !orderId) {
-  //       try {
-  //         await prisma.promotion_tracking.create({
-  //           data: {
-  //             parent_id: appliedPromotion.promotion_id,
-  //             action_type: 'APPLIED',
-  //             action_date: new Date(),
-  //             user_id: userId,
-  //             comments: `Applied to order ${result?.order_number}`,
-  //             is_active: 'Y',
-  //           },
-  //         });
-  //       } catch (error) {
-  //         console.error('Promotion tracking failed:', error);
-  //       }
-  //     }
-
-  //     if (result && !orderId) {
-  //       try {
-  //         await createOrderNotification(
-  //           result.createdby || userId,
-  //           result.id,
-  //           result.order_number || '',
-  //           'created',
-  //           userId
-  //         );
-
-  //         // Check if approval workflow exists before creating request
-  //         const salesperson = await prisma.users.findUnique({
-  //           where: { id: result.salesperson_id },
-  //           select: {
-  //             id: true,
-  //             zone_id: true,
-  //             depot_id: true,
-  //           },
-  //         });
-
-  //         if (salesperson) {
-  //           let workflowSteps = null;
-
-  //           // Check for workflow in the same order as createRequest function
-  //           if (salesperson.zone_id && salesperson.depot_id) {
-  //             workflowSteps = await prisma.approval_work_flow.findMany({
-  //               where: {
-  //                 request_type: 'ORDER_APPROVAL',
-  //                 zone_id: salesperson.zone_id,
-  //                 depot_id: salesperson.depot_id,
-  //                 is_active: 'Y',
-  //               },
-  //             });
-  //           }
-
-  //           if (
-  //             (!workflowSteps || workflowSteps.length === 0) &&
-  //             salesperson.zone_id
-  //           ) {
-  //             workflowSteps = await prisma.approval_work_flow.findMany({
-  //               where: {
-  //                 request_type: 'ORDER_APPROVAL',
-  //                 zone_id: salesperson.zone_id,
-  //                 depot_id: null,
-  //                 is_active: 'Y',
-  //               },
-  //             });
-  //           }
-
-  //           if (
-  //             (!workflowSteps || workflowSteps.length === 0) &&
-  //             salesperson.depot_id
-  //           ) {
-  //             workflowSteps = await prisma.approval_work_flow.findMany({
-  //               where: {
-  //                 request_type: 'ORDER_APPROVAL',
-  //                 depot_id: salesperson.depot_id,
-  //                 zone_id: null,
-  //                 is_active: 'Y',
-  //               },
-  //             });
-  //           }
-
-  //           if (!workflowSteps || workflowSteps.length === 0) {
-  //             workflowSteps = await prisma.approval_work_flow.findMany({
-  //               where: {
-  //                 request_type: 'ORDER_APPROVAL',
-  //                 zone_id: null,
-  //                 depot_id: null,
-  //                 is_active: 'Y',
-  //               },
-  //             });
-  //           }
-
-  //           // Only create approval request if workflow exists
-  //           if (workflowSteps && workflowSteps.length > 0) {
-  //             await createRequest({
-  //               requester_id: result.salesperson_id,
-  //               request_type: 'ORDER_APPROVAL',
-  //               reference_id: result.id,
-  //               createdby: userId,
-  //               log_inst: 1,
-  //             });
-  //             console.log('Approval request created - workflow found');
-  //           } else {
-  //             console.log(
-  //               'No approval workflow found - order processed without approval'
-  //             );
-  //           }
-  //         }
-  //       } catch (error: any) {
-  //         console.error('Error checking approval workflow:', error);
-  //       }
-  //     }
-  //     const response = {
-  //       success: true,
-  //       message: orderId
-  //         ? 'Order updated successfully'
-  //         : 'Order created successfully',
-  //       data: {
-  //         ...serializeOrder(result),
-  //         promotion_applied: appliedPromotion,
-  //       },
-  //     };
-
-  //     res.status(orderId ? 200 : 201).json(response);
-  //   } catch (error: any) {
-  //     console.error(' Error processing order:', error);
-  //     res.status(500).json({
-  //       success: false,
-  //       message: 'Failed to process order',
-  //       error: error.message,
-  //     });
-  //   }
-  // },
-
   async createOrUpdateOrder(req: Request, res: Response) {
     const data = req.body;
     const userId = req.user?.id || 1;
@@ -2745,7 +1670,6 @@ export const ordersController = {
               customer,
             });
 
-            // Add free products from promotion
             if (freeProducts.length > 0) {
               for (const freeProduct of freeProducts) {
                 await tx.order_items.create({
@@ -2829,7 +1753,6 @@ export const ordersController = {
           if (salesperson) {
             let workflowSteps = null;
 
-            // Check for workflow in the same order as createRequest function
             if (salesperson.zone_id && salesperson.depot_id) {
               workflowSteps = await prisma.approval_work_flow.findMany({
                 where: {
@@ -2880,7 +1803,6 @@ export const ordersController = {
               });
             }
 
-            // Only create approval request if workflow exists
             if (workflowSteps && workflowSteps.length > 0) {
               await createRequest({
                 requester_id: result.salesperson_id,
@@ -2900,6 +1822,7 @@ export const ordersController = {
           console.error('Error checking approval workflow:', error);
         }
       }
+
       const response = {
         success: true,
         message: orderId
@@ -3392,6 +2315,7 @@ export const ordersController = {
       });
     }
   },
+
   async getOrdersById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -3513,7 +2437,7 @@ export const ordersController = {
                 product_id: item.product_id,
                 product_name: item.product_name,
                 quantity:
-                  item.unit === 'PCS' ? item.base_quantity : item.quantity,
+                  item.unit === 'PIECE' ? item.base_quantity : item.quantity,
               })) || [],
         };
       }
@@ -3574,7 +2498,6 @@ export const ordersController = {
               : null,
             updatedate: new Date(),
             updatedby: userId,
-
             log_inst: { increment: 1 },
           };
 
@@ -3592,6 +2515,7 @@ export const ordersController = {
               const unitPrice =
                 parseFloat(item.unit_price || item.price || '0') || 0;
               const quantity = parseInt(item.quantity) || 1;
+              const unit = (item.unit || 'CASE').toUpperCase();
               const discountAmount =
                 parseFloat(item.discount_amount || '0') || 0;
               const taxAmount = parseFloat(item.tax_amount || '0') || 0;
@@ -3603,8 +2527,13 @@ export const ordersController = {
                 parent_id: order.id,
                 product_id: item.product_id,
                 product_name: item.product_name || null,
-                unit: item.unit || 'CASE',
-                quantity: quantity,
+                unit,
+                quantity: unit === 'PIECE' ? 0 : quantity,
+                base_quantity: unit === 'PIECE' ? quantity : 0,
+                conversion_factor:
+                  Number(item.conversion_factor) ||
+                  Number(item.conversion_rate) ||
+                  1,
                 unit_price: unitPrice,
                 discount_amount: discountAmount,
                 tax_amount: taxAmount,

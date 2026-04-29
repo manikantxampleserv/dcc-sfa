@@ -127,6 +127,55 @@ const OrderDetail: React.FC = () => {
     }).format(amount);
   };
 
+  const formatQuantity = (item: any) => {
+    const unit = (item.unit || '').toUpperCase();
+    const caseQty = item.quantity || 0;
+    const pieceQty = item.base_quantity || 0;
+    const conversionFactor = item.conversion_factor || 1;
+
+    if (unit === 'PIECE' || unit === 'PSC') {
+      // When PIECE is selected, always show as pieces regardless of base_quantity
+      const displayQty = pieceQty > 0 ? pieceQty : caseQty;
+      return {
+        display: `${displayQty} pieces`,
+        details:
+          conversionFactor > 1 && pieceQty > 0
+            ? `(${displayQty} pieces = ${(displayQty / conversionFactor).toFixed(2)} cases)`
+            : conversionFactor > 1 && pieceQty === 0
+              ? `(${displayQty} pieces = ${(displayQty / conversionFactor).toFixed(2)} cases)`
+              : '',
+        pricePer: 'per piece',
+      };
+    }
+
+    // For CASE or any other unit
+    if (caseQty > 0) {
+      return {
+        display: `${caseQty} cases`,
+        details:
+          conversionFactor > 1
+            ? `(${caseQty} cases = ${caseQty * conversionFactor} pieces)`
+            : '',
+        pricePer: 'per case',
+      };
+    } else if (pieceQty > 0) {
+      return {
+        display: `${pieceQty} pieces`,
+        details:
+          conversionFactor > 1
+            ? `(${pieceQty} pieces = ${(pieceQty / conversionFactor).toFixed(2)} cases)`
+            : '',
+        pricePer: 'per piece',
+      };
+    }
+
+    return {
+      display: '0',
+      details: '',
+      pricePer: '',
+    };
+  };
+
   const handleBack = () => {
     navigate('/transactions/orders');
   };
@@ -577,11 +626,13 @@ const OrderDetail: React.FC = () => {
                   </div>
                   <div className="!flex !justify-between !text-xs !text-gray-500">
                     <span>
-                      Qty: {item.quantity} ×{' '}
-                      {formatCurrency(item.unit_price, currencyCode)}
-                      {item.unit && ` (${item.unit})`}
+                      {(() => {
+                        const quantityInfo = formatQuantity(item);
+                        return `Qty: ${quantityInfo.display} × ${formatCurrency(item.unit_price, currencyCode)} (${quantityInfo.pricePer})`;
+                      })()}
                     </span>
                   </div>
+
                   {Array.isArray((item as any).product_batches) &&
                     (item as any).product_batches.length > 0 && (
                       <div className="!mt-2 !text-xs !text-gray-600">

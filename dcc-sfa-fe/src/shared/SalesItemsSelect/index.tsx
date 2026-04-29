@@ -6,11 +6,11 @@ import {
   TextField,
 } from '@mui/material';
 import type { FormikProps } from 'formik';
-import { useSalespersonInventoryItemsDropdown } from 'hooks/useVanInventoryItems';
-import type { SalespersonInventoryItemDropdown } from 'services/masters/VanInventoryItems';
+import { useInventoryItemById } from 'hooks/useInventoryItems';
+import type { ProductInventory } from 'services/masters/VanInventoryItems';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 
-type SalesItem = SalespersonInventoryItemDropdown;
+type SalesItem = ProductInventory;
 
 interface SalesItemsSelectProps {
   salespersonId: number;
@@ -39,7 +39,6 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
   formik,
   setValue,
   value,
-  nameToSearch = '',
   onChange,
   className,
   placeholder = 'Search for a product',
@@ -76,30 +75,16 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
     return () => clearTimeout(timer);
   }, [searchValue, isSelecting]);
 
-  const effectiveSearch = useMemo(() => {
-    if (hasInitialized || inputValue) {
-      return debouncedSearch;
-    }
-    if (normalizedValue && nameToSearch && !hasInitialized) {
-      return nameToSearch;
-    }
-    return debouncedSearch;
-  }, [
-    debouncedSearch,
-    nameToSearch,
-    hasInitialized,
-    normalizedValue,
-    inputValue,
-  ]);
-
-  const { data: salesItemsData, isFetching } =
-    useSalespersonInventoryItemsDropdown(salespersonId, effectiveSearch, {
+  const { data: salesItemsData, isFetching } = useInventoryItemById(
+    salespersonId,
+    {
       enabled: !disabled && !!salespersonId,
-    });
+    }
+  );
 
   const options = useMemo(() => {
-    if (!salesItemsData?.data) return [];
-    return salesItemsData.data;
+    if (!salesItemsData?.data?.products) return [];
+    return salesItemsData.data.products;
   }, [salesItemsData]);
 
   useEffect(() => {
@@ -111,12 +96,13 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
     ) {
       isInitializingRef.current = true;
       const found = options.find(
-        p => String(p.product_id) === String(normalizedValue)
+        (p: ProductInventory) =>
+          String(p.product_id) === String(normalizedValue)
       );
       if (found) {
         setSelectedItemData(found);
         if (!hasInitialized && !inputValue) {
-          setInputValue(found.name);
+          setInputValue(found.product_name || '');
           setHasInitialized(true);
         }
       }
@@ -177,7 +163,7 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
       setDebouncedSearch('');
       setSearchValue('');
     } else {
-      setInputValue(newValue.name);
+      setInputValue(newValue.product_name || '');
     }
 
     setTimeout(() => setIsSelecting(false), 150);
@@ -209,7 +195,7 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
     <Autocomplete
       id={`sales-items-select-${name}`}
       options={options}
-      getOptionLabel={(option: SalesItem) => option.name}
+      getOptionLabel={(option: SalesItem) => option.product_name || ''}
       loading={isFetching}
       value={selectedItem}
       onChange={handleChange}
@@ -229,18 +215,20 @@ const SalesItemsSelect: React.FC<SalesItemsSelectProps> = ({
         <Box
           component="li"
           {...props}
-          key={option.id}
+          key={option.product_id}
           className="!flex !items-center !gap-2 cursor-pointer py-1 px-2 hover:!bg-gray-50"
         >
           <Avatar
-            src={option.name || 'mkx'}
-            alt={option.name}
+            src={option.product_name || undefined}
+            alt={option.product_name || ''}
             className="!rounded !bg-primary-100 !text-primary-600"
           />
           <Box>
-            <p className="!text-gray-900 !text-sm">{option.name || ''}</p>
-            {option.code && (
-              <p className="!text-gray-500 !text-xs">{option.code}</p>
+            <p className="!text-gray-900 !text-sm">
+              {option.product_name || ''}
+            </p>
+            {option.product_code && (
+              <p className="!text-gray-500 !text-xs">{option.product_code}</p>
             )}
           </Box>
         </Box>

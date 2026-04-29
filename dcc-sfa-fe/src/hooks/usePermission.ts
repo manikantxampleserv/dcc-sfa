@@ -117,65 +117,44 @@ export const usePermission = (module: Module) => {
   }, [user]);
 
   /**
-   * @description Check if error is a network error
-   */
-  const isNetworkError = useMemo(() => {
-    if (!error) return false;
-    const apiError = error as any;
-    return (
-      apiError?.errorType === 'NETWORK_ERROR' ||
-      apiError?.errorType === 'TIMEOUT' ||
-      (apiError?.statusCode === 0 && !apiError?.response) ||
-      (!apiError?.response &&
-        (apiError?.code === 'ERR_NETWORK' ||
-          apiError?.code === 'ECONNREFUSED' ||
-          apiError?.code === 'ETIMEDOUT' ||
-          apiError?.code === 'ENOTFOUND')) ||
-      (apiError?.message &&
-        (apiError.message.includes('Network') ||
-          apiError.message.includes('network')))
-    );
-  }, [error]);
-
-  /**
    * @description Check if user has create permission for the module
    */
   const isCreate = useMemo(() => {
-    if (isLoading || !user || isNetworkError) {
+    if (isLoading || !user) {
       return false;
     }
     return hasModulePermission(userPermissions, module, 'create');
-  }, [userPermissions, module, isLoading, user, isNetworkError]);
+  }, [userPermissions, module, isLoading, user]);
 
   /**
    * @description Check if user has read permission for the module
    */
   const isRead = useMemo(() => {
-    if (isLoading || !user || isNetworkError) {
+    if (isLoading || !user) {
       return false;
     }
     return hasModulePermission(userPermissions, module, 'read');
-  }, [userPermissions, module, isLoading, user, isNetworkError]);
+  }, [userPermissions, module, isLoading, user]);
 
   /**
    * @description Check if user has update permission for the module
    */
   const isUpdate = useMemo(() => {
-    if (isLoading || !user || isNetworkError) {
+    if (isLoading || !user) {
       return false;
     }
     return hasModulePermission(userPermissions, module, 'update');
-  }, [userPermissions, module, isLoading, user, isNetworkError]);
+  }, [userPermissions, module, isLoading, user]);
 
   /**
    * @description Check if user has delete permission for the module
    */
   const isDelete = useMemo(() => {
-    if (isLoading || !user || isNetworkError) {
+    if (isLoading || !user) {
       return false;
     }
     return hasModulePermission(userPermissions, module, 'delete');
-  }, [userPermissions, module, isLoading, user, isNetworkError]);
+  }, [userPermissions, module, isLoading, user]);
 
   return {
     isCreate,
@@ -184,6 +163,5 @@ export const usePermission = (module: Module) => {
     isRead,
     isLoading,
     error,
-    isNetworkError,
   };
 };

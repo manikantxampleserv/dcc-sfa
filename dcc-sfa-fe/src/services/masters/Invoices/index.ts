@@ -8,6 +8,8 @@ interface InvoiceItem {
   product_name?: string;
   unit: 'CASE' | 'PIECE';
   quantity: number;
+  base_quantity?: number;
+  conversion_factor?: number;
   unit_price: number;
   discount_amount?: number;
   tax_amount?: number;
