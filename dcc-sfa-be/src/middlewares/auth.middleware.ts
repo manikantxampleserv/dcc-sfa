@@ -247,6 +247,7 @@ export const requirePermission = (permissions: PermissionItem[]) => {
       req.query.limit &&
       (Number(req.query.limit) > 100 ||
         Number(req.query.limit) === 5 ||
+        Number(req.query.limit) === 50 ||
         Number(req.query.limit) === 100)
     ) {
       return next();
