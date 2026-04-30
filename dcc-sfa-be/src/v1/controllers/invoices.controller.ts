@@ -274,7 +274,6 @@ export const invoicesController = {
                 : JSON.parse(item.product_batches || '[]');
               trackingNotes = `Batches: ${batchData.map((b: any) => b.batch_number || b.batch_lot_id).join(', ')}`;
 
-              // If this is a direct invoice (not from order), deduct stock
               if (data.invoice_method !== 'order') {
                 for (const batch of batchData) {
                   const rawBatchQty = Number(batch.quantity);
@@ -285,7 +284,6 @@ export const invoicesController = {
                   );
 
                   if (batchBaseQty > 0) {
-                    // Update van inventory
                     const vanItem = await tx.van_inventory_items.findFirst({
                       where: {
                         product_id: product?.id,
@@ -299,7 +297,6 @@ export const invoicesController = {
                       });
                     }
 
-                    // Update batch lot
                     await tx.batch_lots.update({
                       where: { id: batch.batch_lot_id },
                       data: {
@@ -325,7 +322,6 @@ export const invoicesController = {
                     data: { status: 'sold', sold_date: new Date() },
                   });
 
-                  // Remove from van inventory
                   await tx.van_inventory_items.deleteMany({
                     where: {
                       product_id: product?.id,
@@ -582,7 +578,6 @@ export const invoicesController = {
       }
 
       await prisma.$transaction(async tx => {
-        // Update invoice basic info
         await tx.invoices.update({
           where: { id: Number(id) },
           data: {
@@ -638,14 +633,11 @@ export const invoicesController = {
           },
         });
 
-        // Sync items if provided
         if (data.invoiceItems && Array.isArray(data.invoiceItems)) {
-          // Delete old items
           await tx.invoice_items.deleteMany({
             where: { parent_id: Number(id) },
           });
 
-          // Create new items
           if (data.invoiceItems.length > 0) {
             const productIds = data.invoiceItems.map((item: any) =>
               Number(item.product_id)

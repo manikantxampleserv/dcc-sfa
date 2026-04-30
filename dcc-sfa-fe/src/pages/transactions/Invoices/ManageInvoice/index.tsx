@@ -281,7 +281,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     );
 
     const totalAmount = subtotal;
-    // If status is paid, balance due should be 0, otherwise it's the total amount
     const balanceDue = formik.values.status === 'paid' ? 0 : totalAmount;
 
     return {
@@ -368,12 +367,10 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
 
       // 3. Base pricelist item price
       if (unit === 'PIECE') {
-        // Use sub_unit_price if available, otherwise calculate
         const subUnitPrice = item.sub_unit_price;
         if (subUnitPrice) {
           return String(subUnitPrice);
         }
-        // Fallback: calculate from unit_price
         const casePrice = Number(item.unit_price);
         if (!isNaN(casePrice)) {
           const piecePrice = casePrice / conversionRate;
@@ -594,12 +591,12 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
           if (item.unit === 'PIECE') {
             displayQuantity = (item.base_quantity || 0) * (item.conversion_factor || 1);
           }
-          console.log(item.product_batches, 'mkx');
 
           return {
             product_id: item.product_id,
             product_name: item.product_name || '',
             unit: item.unit || 'CASE',
+            uom: item.unit || 'CASE',
             tracking_type: item.tracking_type || null,
             quantity: displayQuantity.toString(),
             base_quantity: item.base_quantity || 0,
@@ -626,7 +623,6 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
     formik.values.parent_id,
   ]);
 
-  // Clear form when order selection changes but data hasn't loaded
   useEffect(() => {
     if (
       formik.values.invoice_method === 'order' &&
@@ -662,7 +658,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
       notes: '',
       product_batches: [],
       product_serials: [],
-      conversion_rate: getProductConversionRate(0), // Use actual product conversion rate
+      conversion_rate: getProductConversionRate(0),
     };
     const updatedItems = [...invoiceItems, newItem];
     setInvoiceItems(updatedItems);
@@ -1051,18 +1047,7 @@ const ManageInvoice: React.FC<ManageInvoiceProps> = ({
               slotProps={{ inputLabel: { shrink: true } }}
             />
 
-            {/* <Select
-              name="currency_id"
-              label="Currency"
-              formik={formik}
-              required
-            >
-              {currencies.map(currency => (
-                <MenuItem key={currency.id} value={currency.id}>
-                  {currency.code}
-                </MenuItem>
-              ))}
-            </Select> */}
+
 
             <Select name="status" label="Status" formik={formik} required>
               <MenuItem value="draft">Draft</MenuItem>
